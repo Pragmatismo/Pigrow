@@ -76,13 +76,20 @@ def make_graph(da,ta):
     ax.fill_between(da, ta, 0,where=ta > toohigh, alpha=0.6, color='red')
     ax.fill_between(da, ta, 0,where=ta > dangerhigh, alpha=0.6, color='darkred')
     ax.xaxis_date()
+    plt.title("Time Perod; " + str(da[0].strftime("%b-%d %H:%M")) + " to " + str(da[-1].strftime("%b-%d %H:%M")) + " UTC")
+    plt.ylabel("Humidity")
+    fig = plt.gcf()
+    fig.canvas.set_window_title('Humidity Graph')
     maxh = ta
+    fig.autofmt_xdate()
     plt.show()
+    #plt.savefig("./saved_humid_fig.jpg")
 
 add_log(log_location)
 cut_list_last_hours(hours_to_show)
 print "----------------------------------"
-print "most recent humidity - " + str(log_humid[-1])[0:4]
+secago = datetime.datetime.now() - log_date[-1]
+print "most recent humidity - " + str(log_humid[-1])[0:4] + " - " + str(secago) + " seconds ago" 
 print "----------------------------------"
 #make_graph(log_date, log_humid)
 make_graph(cut_list_date, log_humid[-len(cut_list_date):])
