@@ -11,7 +11,7 @@ toolow = 40
 toohigh = 70
 dangerhigh = 80
 hours_to_show = 24*5 #hours from the end of the log, use absurdly high number to see all
-log_location = "/home/pi/Pigrow/logs/sensor_log.txt"
+log_location = "home/pi/Pigrow/logs/sensor_log.txt"
 
 
 ##Change the above numbers as required, 
@@ -22,10 +22,10 @@ log_location = "/home/pi/Pigrow/logs/sensor_log.txt"
 log_humid = []
 log_date = []
 cut_list_date = []
-
+thetime = datetime.datetime.now()
 print "----------------------------------"
 print "-------Preparing To Graph---------"
-print "-------------Humitiy--------------"
+print "-------------Humidity-------------"
 print "----------------------------------"
 
 def add_log(linktolog):
@@ -88,7 +88,7 @@ def make_graph(da,ta):
 add_log(log_location)
 cut_list_last_hours(hours_to_show)
 print "----------------------------------"
-secago = datetime.datetime.now() - log_date[-1]
+secago = thetime - log_date[-1]
 print "most recent humidity - " + str(log_humid[-1])[0:4] + " - " + str(secago) + " seconds ago" 
 print "----------------------------------"
 #make_graph(log_date, log_humid)
