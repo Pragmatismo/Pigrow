@@ -10,7 +10,7 @@ dangercold = 15
 toocold = 23
 toohot = 30
 dangerhot = 36
-hours_to_show = 48 #hours from the end of the log, use absurdly high number to see all
+hours_to_show = 24*5 #hours from the end of the log, use absurdly high number to see all
 log_location = "/home/pi/Pigrow/logs/sensor_log.txt"
 
 ##Change the above numbers as required, 
@@ -46,7 +46,7 @@ def add_log(linktolog):
             except:
                 print('--failed loading item, no drama, ignored.')
     print('We now have ' + str(len(log_temp)) + ' temp and humidity readings to work with.')
-    print('Log starts - ' + str(log_date[0]) + ' to ' + str(log_date[-1]))
+    print('Log starts - ' + str(log_date[0].strftime("%b-%d %H:%M")) + ' to ' + str(log_date[-1].strftime("%b-%d %H:%M")))
 
 def cut_list_last_hours(hours_to_show):
     print("Shortening list to show only last " + str(hours_to_show) + " hours")
@@ -58,7 +58,7 @@ def cut_list_last_hours(hours_to_show):
             cut_list_date.append(x)
         else:
             pass
-    print("-now working with " + str(len(cut_list_date)) + " log entries starting from " + str(cut_list_date[0]))
+    print("-now working with " + str(len(cut_list_date)) + " log entries starting from " + str(cut_list_date[0].strftime("%b-%d %H:%M")))
 
 
 def make_graph(da,ta):
