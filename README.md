@@ -30,10 +30,28 @@ Test and config scripts;
 
 scripts to be called by cron;
 
+To add a one of the following timelapse programs to cron simply use;
+   
+       sudo crontab -e
+
+and at the bottom of the file after the explanation of how it works add the line;
+
+       */1 * * * * python /home/pi/Pigrow/scripts/camcap_text_simple.py
+
+This will run the script and take an image every one min.
+
               Camera -
                      - camcap.py - captures just a single image for
                      - camcap_text_simple.py - captures image and adds date and sensor data to it. 
             !!!!     - camcap_text_colour.py - text colour changes according to sensor data. 
+
+
+To set up a 12:12 light cycle simple add the two lines;
+
+     0 10 * * * python /home/pi/pigrow3/lamp_on.py
+     0 22 * * * python /home/pi/pigrow3/lamp_off.py     
+
+This turns the lamp on at ten am and off at ten pm. Try not to turn on fans and lamps at exactly the same time, it will work but both items cause power-spikes which if combined might trip your RCD.
 
               Relay -
                     - lamp_on / off - actuates lamp relay
@@ -41,11 +59,15 @@ scripts to be called by cron;
                     - heat_on / off - for manual timing of heat
                     - dehumi_on / off - for manual timing of dehumidifier
 
+These scripts are run preiodically as with the camera scripts to check the health of the pi or it's friend, you can check many pi's by calling the script many times.
+
         Sanity Check - 
                      - self_awareness - sensor log, camera, health check
                      - nosey_neighbour - check on a brother pigrow
 
 Scripts to be constantly running;
+
+This is some init.d business i'll be back to explain once the script is uploaded...
 
           autorunlog.py - logs sensor data to file, switches heaters or fans according to sensor data
 
