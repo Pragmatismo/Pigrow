@@ -10,9 +10,9 @@ dangerlow = 30
 toolow = 40
 toohigh = 70
 dangerhigh = 80
-hours_to_show = 24*5 #hours from the end of the log, use absurdly high number to see all
-log_location = "home/pi/Pigrow/logs/sensor_log.txt"
-
+hours_to_show = 48 #hours from the end of the log, use absurdly high number to see all
+#log_location = "home/pi/Pigrow/logs/sensor_log.txt"
+log_location = "/home/pi/pigrow3/logs/glog.txt"
 
 ##Change the above numbers as required, 
 
@@ -33,37 +33,37 @@ def add_log(linktolog):
         logitem = f.read()
         logitem = logitem.split("\n")
     print('Adding ' + str(len(logitem)) + ' readings from log.')
-    for item in logitem:
-        item = item.split(">")
-        if len(item) >= 3:
-            try:
-                log_humid.append(float(item[1]))
-                date = item[2]
-                date = date.split(".")       
-                date = datetime.datetime.strptime(date[0], '%Y-%m-%d %H:%M:%S')
-                log_date.append(date)
-            except:
-                print('--failed loading item, no drama, ignored.')
-    print('We now have ' + str(len(log_humid)) + ' humidity readings to work with.')
-    print('Log starts - ' + str(log_date[0].strftime("%b-%d %H:%M")) + ' to ' + str(log_date[-1].strftime("%b-%d %H:%M")))
+    oldest_allowed_date = thetime - datetime.timedelta(hours=hours_to_show)
+    curr_line = len(logitem) - 1
 
-def cut_list_last_hours(hours_to_show):
-    print("Shortening list to show only last " + str(hours_to_show) + " hours")
-    final_time = log_date[-1]
-    hours_shown = datetime.timedelta(hours=hours_to_show)
-    start_time = final_time-hours_shown
-    for x in log_date:
-        if x >= start_time:
-            cut_list_date.append(x)
-        else:
-            pass
-    print("-now working with " + str(len(cut_list_date)) + " log entries starting from " + str(cut_list_date[0].strftime("%b-%d %H:%M")))
+    while curr_line >= 0:
+        try:
+            item = logitem[curr_line]
+            item = item.split(">")
+            date = item[2].split(".")
+            date = datetime.datetime.strptime(date[0], '%Y-%m-%d %H:%M:%S')
+            if date < oldest_allowed_date:
+                break
+            
+            hum = float(item[1])
+            log_humid.append(hum)
+            log_date.append(date)
+            curr_line = curr_line - 1
+        except:
+            print("-log item "+str(curr_line)+" failed to parse, ignoring it..." + logitem[curr_line])
+            curr_line = curr_line - 1
+
+    log_humid.reverse()
+    log_date.reverse()
+
+    print('We have ' + str(len(log_humid)) + ' humidity readings to work with.')
+    print('Log starts - ' + str(log_date[0].strftime("%b-%d %H:%M")) + ' to ' + str(log_date[-1].strftime("%b-%d %H:%M")))
 
 
 def make_graph(da,ta):
     plt.figure(1)
     ax = plt.subplot()
- #   ax.bar(da, ta, width=0.01, color='green', linewidth = 0)
+  #  ax.bar(da, ta, width=0.01, color='k', linewidth = 0)
     ax.plot(da, ta, color='darkblue', lw=3)
     ave = 0
     for x in ta:
@@ -86,11 +86,11 @@ def make_graph(da,ta):
     #plt.savefig("./saved_humid_fig.jpg")
 
 add_log(log_location)
-cut_list_last_hours(hours_to_show)
+
 print "----------------------------------"
 secago = thetime - log_date[-1]
 print "most recent humidity - " + str(log_humid[-1])[0:4] + " - " + str(secago) + " seconds ago" 
 print "----------------------------------"
-#make_graph(log_date, log_humid)
-make_graph(cut_list_date, log_humid[-len(cut_list_date):])
+make_graph(log_date, log_humid)
+#make_graph(cut_list_date, log_humid[-len(cut_list_date):])
 
