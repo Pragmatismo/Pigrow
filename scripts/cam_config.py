@@ -7,7 +7,7 @@ b_val = "60"
 x_dim = 1280
 y_dim = 720
 additonal_commands = "-d/dev/video0 -w"
-loc_settings = "/home/magimo/pigitgrow/Pigrow/config/camera_settings.txt"
+loc_settings = "/home/pi/Pigrow/config/camera_settings.txt"
 
 start_v = 10 #between 1-255
 end_v = 250 #between 1-255
