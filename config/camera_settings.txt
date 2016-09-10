@@ -1,0 +1,7 @@
+s_val=100
+c_val=60
+g_val=60
+b_val=180
+x_dim=1280
+y_dim=720
+additonal_commands=-d/dev/video0 -w
