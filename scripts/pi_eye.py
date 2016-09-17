@@ -63,7 +63,7 @@ for x in range(0, len(log_date)):
     up_ago = int(up_ago.total_seconds())
     log_up_date_ago.append(up_ago)
     #make list of differing times between both computers
-    comps_time_diff = log_cm_date[x] - log_date[x] - datetime.timedelta(hours=1)
+    comps_time_diff = log_cm_date[x] - log_date[x] #to account for bst# - datetime.timedelta(hours=1)
     comps_time_diff = int(comps_time_diff.total_seconds())
     log_comp_diff.append(comps_time_diff) 
 #make list of uptime differences between each log entry
@@ -89,7 +89,7 @@ def make_pi_time_graph():
 def make_step_graph():    
     plt.figure(2)
     ax = plt.subplot()
-    ax.bar(log_date, log_diff_pitime, width=0.01, color='green', linewidth = 0.05)
+    ax.bar(log_date, log_diff_pitime, width=0.001, color='green', linewidth = 0.05)
     plt.title("Time from start of log")
     plt.ylabel("seconds")   
     plt.gcf().autofmt_xdate()
@@ -99,7 +99,7 @@ def make_step_graph():
 def make_up_graph():    
     plt.figure(3)
     ax = plt.subplot()
-    ax.bar(log_date, log_up_date_ago, width=0.01, color='green', linewidth = 0)
+    ax.bar(log_date, log_up_date_ago, width=0.001, color='green', linewidth = 0)
     #ax.plot(log_date, log_up_date_ago, color='red', lw=1) #optional
     plt.title("Announced Uptime")
     plt.ylabel("seconds")
@@ -121,7 +121,7 @@ def make_c_time_graph():
     plt.figure(5)
     ax = plt.subplot()   
     ax.plot(log_date, log_comp_diff, color='darkblue', lw=3) #choice of this, below line or both.
-    ax.bar(log_date, log_comp_diff, width=0.01, color='green', linewidth = 0.05) #optional
+    ax.bar(log_date, log_comp_diff, width=0.001, color='green', linewidth = 0.05) #optional
     plt.title("Time difference between both computers")
     plt.ylabel("seconds")
     plt.gcf().autofmt_xdate()
