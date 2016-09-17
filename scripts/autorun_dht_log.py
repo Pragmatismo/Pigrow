@@ -12,6 +12,7 @@ gpio_heater = 12 #heater relay
 templow = 20  #temp to turn on heater
 temphigh = 25 #temp at which to turn heater off 
 sensor_pin = 18 #sensor gpio number
+log_frequency = 60
 
 #load settings
 try:
@@ -19,16 +20,18 @@ try:
         c_item = f.read()
         c_item = c_item.split("\n")
     box_name = str(c_item[0].split('=')[1])
-    time_lamp_on = str(c_item[1].split('=')[1])
-    time_lamp_off = str(c_item[2].split('=')[1])
-    gpio_lamp = str(c_item[3].split('=')[1])
-    gpio_heater = str(c_item[4].split('=')[1])
-    gpio_fan_in = str(c_item[5].split('=')[1])
-    gpio_fan_off = str(c_item[6].split('=')[1])
-    sensor_pin = str(c_item[7].split('=')[1])
-    templow = str(c_item[8].split('=')[1])
-    temphigh = str(c_item[9].split('=')[1])
-    log_frequency = str(c_item[10].split('=')[1])
+    time_lamp_on = int(c_item[1].split('=')[1])
+    time_lamp_off = int(c_item[2].split('=')[1])
+    gpio_lamp = int(c_item[3].split('=')[1])
+    gpio_heater = int(c_item[4].split('=')[1])
+    gpio_fan_in = int(c_item[5].split('=')[1])
+    gpio_fan_off = int(c_item[6].split('=')[1])
+    sensor_pin = int(c_item[7].split('=')[1])
+    templow = int(c_item[8].split('=')[1])
+    temphigh = int(c_item[9].split('=')[1])
+    log_frequency = int(c_item[10].split('=')[1])
+except:
+    pass
 
 import datetime
 import time
@@ -64,6 +67,7 @@ timno = datetime.datetime.now()
 while True:
     try:
         print("be cool if this tested the internet is up and the time updated")
+        break
     except:
         time.sleep(15)
         pass
