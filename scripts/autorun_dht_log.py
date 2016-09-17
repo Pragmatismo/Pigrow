@@ -33,6 +33,8 @@ try:
 except:
     pass
 
+print "Logging every " + str(log_frequency) + " seconds"
+
 import datetime
 import time
 import Adafruit_DHT
