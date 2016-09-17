@@ -72,3 +72,44 @@ This is some init.d business i'll be back to explain once the script is uploaded
           autorunlog.py - logs sensor data to file, switches heaters or fans according to sensor data
 
 
+
+
+
+------- Useful information which might be needed before release of setup scripts
+
+Installing 3rd party software commands;
+
+--Adafruit DHT sensor drivers,
+
+    git clone https://github.com/adafruit/Adafruit_Python_DHT.git
+    cd Adafruit_Python_DHT
+    sudo apt-get update
+    sudo apt-get install build-essential python-dev python-openssl
+    sudo python setup.py install
+
+      -more information at, https://learn.adafruit.com/dht-humidity-sensing-on-raspberry-pi-with-gdocs-logging/software-install-updated
+
+--From linux Repository 
+
+     sudo apt-get install uvccapture       #for use with camera
+
+     sudo pip install pexpect              #for use when logging other pigrows health
+
+
+directory structure 
+
+            mkdir /home/pi/Pigrow/logs
+            mkdir /home/pi/Pigrow/config
+            mkdir /home/pi/Pigrow/graphs
+ 
+to set timed events useibg cron
+
+     crontab -e
+
+lines to include might look like;
+  
+     0 7 * * * python /home/pi/pigrow2/lampon.py           #turns lamp relay on at 7 am
+     0 1 * * * python /home/pi/pigrow2/lampoff.py          #turns lamp relay off at 1 am
+
+     */5 * * * * python /home/pi/Pigrow/scrips/pi_eye.py    #runs pi_eye monitoring script every 5min
+
