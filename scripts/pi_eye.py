@@ -5,8 +5,8 @@ print("  -----------------------------------")
 print("------Pi Spy Py Pi Uptime-Monitor------")
 print("  -----------------------------------")
 print ("time on this computer is now: " + str(datetime.datetime.now()))
-pi_eye_log = '/home/pi/pigrow/logs/pi_eye_log.txt'
-graph_path = '/homw/pi/pigrow/graphs/'
+pi_eye_log = '/home/pi/Pigrow/logs/pi_eye_log.txt'
+graph_path = '/home/pi/Pigrow/graphs/'
 
 log_date = []
 log_cm_date = [] 

@@ -1,4 +1,4 @@
-import pxssh
+from pexpect import pxssh
 import time
 import datetime
 print("----------------------------------")
