@@ -111,5 +111,5 @@ lines to include might look like;
      0 7 * * * python /home/pi/pigrow2/lampon.py           #turns lamp relay on at 7 am
      0 1 * * * python /home/pi/pigrow2/lampoff.py          #turns lamp relay off at 1 am
 
-     */5 * * * * python /home/pi/Pigrow/scrips/pi_eye.py    #runs pi_eye monitoring script every 5min
+     */5 * * * * python /home/pi/Pigrow/scrips/pi_eye_logger.py    #runs pi_eye monitoring script every 5min
 
