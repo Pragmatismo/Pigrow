@@ -1,10 +1,10 @@
 box_name ="Pigrow2 - veg"
 time_lamp_on =7
 time_lamp_off=1
-gpio_lamp=8
-gpio_heater=12
-gpio_fan_in=
-gpio_fan_off=
+gpio_lamp=8=n_off
+gpio_heater=12=n_on
+gpio_fan_in==n_on
+gpio_fan_off==n_on
 sensor_pin=18
 templow=20
 temphigh=25

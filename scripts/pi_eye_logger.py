@@ -57,8 +57,9 @@ def get_pi_times():
     except:
         print("pi date error") 
         some_error = True
-
 get_pi_times()
+s.logout()
+
 counter = 0
 while some_error == True and counter != 9:
     if some_error ==  True:  
