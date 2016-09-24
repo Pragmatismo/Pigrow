@@ -7,10 +7,10 @@ box_name = "Pigrow -"
 temp = 9999999
 humid = 9999999
 rot_val = 90 #useful if your webcam is on it's side. 
-t_red = 10    #0-255
-t_green= 10   #0-255
-t_blue = 220   #0-255
-t_alpha = 255 #0-255
+t_red = 10    #0-255 text colour
+t_green= 10   #0-255 text colour 
+t_blue = 220   #0-255 text colour
+t_alpha = 255 #0-255 text opacity
 
 
 try:
