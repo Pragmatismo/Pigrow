@@ -7,10 +7,10 @@ box_name = "Pigrow -"
 temp = 9999999
 humid = 9999999
 rot_val = 90 #useful if your webcam is on it's side. 
-t_red = 10    #0-255
-t_green= 10   #0-255
-t_blue = 220   #0-255
-t_alpha = 255 #0-255
+t_red = 10    #0-255 text colour
+t_green= 10   #0-255 text colour 
+t_blue = 220   #0-255 text colour
+t_alpha = 255 #0-255 text opacity
 
 
 try:
@@ -74,13 +74,13 @@ d = ImageDraw.Draw(txt)
 temp = str(temp)[0:4]
 humid = str(humid)[0:4]
 
-d.text((10,10), box_name, font=fnt, fill=(t_red,t_green,t_blue,t_alpha))
-d.text((10,70), time_text, font=fnt, fill=(t_red,t_green,t_blue,t_alpha))
-d.text((10,120), "Temp: " + temp, font=fnt, fill=(t_red,t_green,t_blue,t_alpha))
-d.text((10,170), "Humid: " + humid, font=fnt, fill=(t_red,t_green,t_blue,t_alpha))
+d.text((800,10), box_name, font=fnt, fill=(t_red,t_green,t_blue,t_alpha))
+d.text((800,70), time_text, font=fnt, fill=(t_red,t_green,t_blue,t_alpha))
+d.text((800,120), "Temp: " + temp, font=fnt, fill=(t_red,t_green,t_blue,t_alpha))
+d.text((800,170), "Humid: " + humid, font=fnt, fill=(t_red,t_green,t_blue,t_alpha))
 
 out = Image.alpha_composite(base, txt)
 out.save("/home/pi/cam_caps/text_" + filename)
 print("Modified image saved to /home/pi/cam_caps/text_" + filename)
-#os.system("rm cap_"+filename+".jpg") #removes un modified jpg
+os.system("rm /home/pi/cam_caps/cap_"+filename+".jpg -f") #removes un modified jpg
 
