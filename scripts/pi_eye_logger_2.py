@@ -7,7 +7,7 @@ print("------Data Logger Pi-Monitor------")
 #print ("time on this computer is now: " + str(datetime.datetime.now()))
 print("")
 
-user_name = str(os.getlogin())
+user_name = "magimo" #str(os.getlogin()) #hash out when running from cron or whatever...
 path = "/pigitgrow/Pigrow/"  #remove the pigitgrow if you're not using my base unit
 
 loc_pi_list = "/home/"+user_name+path+"config/pi_list.txt"
