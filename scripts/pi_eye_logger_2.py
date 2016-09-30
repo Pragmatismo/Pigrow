@@ -44,7 +44,7 @@ def save_log(pi):
     log = log + "\n"
 
     print log
-    pi_log = "/home/"+user_name+path+"logs/TEST_pieye_log_"+str(pi[0].split(".")[-1])+".txt"
+    pi_log = "/home/"+user_name+path+"logs/pieye_log_"+str(pi[0].split(".")[-1])+".txt"
     with open(pi_log, "a") as f:
         f.write(log)
 
