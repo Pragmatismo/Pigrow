@@ -1,0 +1,2 @@
+hostname=pi@192.168.1.12>username=pi>password=raspberry
+hostname=pi@192.168.1.6>username=pi>password=raspberry
