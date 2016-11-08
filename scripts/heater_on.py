@@ -1,3 +1,6 @@
+#!/usr/bin/python
+import datetime
+
 print("")
 print("      #############################################")
 print("      ##         Turning the heater - ON         ##")
@@ -6,6 +9,7 @@ print("      ##         Turning the heater - ON         ##")
 ### user settings
 
 loc_settings = "/home/pragmo/pigitgrow/Pigrow/config/pigrow_config.txt"
+locswitchlog = '/home/pragmo/pigitgrow/Pigrow/logs/switch_log.txt'
 
 ### defining variables
 
@@ -50,3 +54,7 @@ else:
 
 print("      ##            by switching GPIO "+str(gpio_pin)+" to "+gpio_pin_on+"  ##")
 print("      #############################################")
+with open(locswitchlog, "a") as f:
+        line = 'Heater turned ON at ' + str(datetime.datetime.now()) + '\n'
+        f.write(line)
+print("Log writen:" + line)
