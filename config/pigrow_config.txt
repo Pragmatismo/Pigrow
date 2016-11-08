@@ -1,5 +1,5 @@
-box_name ="Pigrow2 - veg"
-time_lamp_on =7
+box_name="Pigrow2 - veg"
+time_lamp_on=7
 time_lamp_off=1
 heater_templow=20
 heater_temphigh=25
