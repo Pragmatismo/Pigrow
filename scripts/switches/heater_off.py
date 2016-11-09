@@ -3,8 +3,7 @@ import datetime
 
 print("")
 print("      #############################################")
-print("      ##         Turning the heater - OOFF        ##")
-
+print("      ##         Turning the Heater - OFF    ##")
 
 ### user settings
 
@@ -24,14 +23,17 @@ try:
             pi_set[s_item[0]]=s_item[1].rstrip('\n')
 except:
     print("Settings not loaded, try running pi_setup")
+    with open(locswitchlog, "a") as f:
+        line = 'HEATER failed to turn ON at ' + str(datetime.datetime.now()) + ' - ettings file error\n'
+        f.write(line)
+    print("Log writen:" + line)
     raise
 
 # Using settings to do whatever it's supposed to do with them...
 
-gpio_pin = int(pi_set['gpio_heater'])
-gpio_pin_on = pi_set['gpio_heater_on']
-
 if 'gpio_heater' in pi_set and not pi_set['gpio_heater'] == '':
+    gpio_pin = int(pi_set['gpio_heater'])
+    gpio_pin_on = pi_set['gpio_heater_on']
     #import RPi.GPIO as GPIO
     #GPIO.setmode(GPIO.BCM)
     #GPIO.setup(gpio_pin, GPIO.OUT)
@@ -43,20 +45,30 @@ if 'gpio_heater' in pi_set and not pi_set['gpio_heater'] == '':
     elif gpio_pin_on == "high":
         gpio_pin_dir = 'LOW'
         #GPIO.output(gpio_pin, GPIO.LOW)
-        print("skipping settubg gpio HIGH as TESTING TEST TEST TEST")
+        print("skipping setting gpio HIGH as TESTING TEST TEST TEST")
     else:
         print("      !!       CAN'T DETERMINE GPIO DIRECTION   !!")
         print("      !!  run config program or edit config.txt !!")
         print("      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+        with open(locswitchlog, "a") as f:
+            line = 'Heater failed to turn OFF at ' + str(datetime.datetime.now()) + ' - no direction set in config\n'
+            f.write(line)
+        print("Log writen:" + line)
+        exit()
 
 else:
-            print("      !!               NO HEATER SET            !!")
-            print("      !!  run config program or edit config.txt !!")
-            print("      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+    print("      !!               NO Heater SET        !!")
+    print("      !!  run config program or edit config.txt !!")
+    print("      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+    with open(locswitchlog, "a") as f:
+        line = 'Heater failed to turn OFF at ' + str(datetime.datetime.now()) + ' due to none set in config\n'
+        f.write(line)
+    print("Log writen:" + line)
+    exit()
 
 print("      ##            by switching GPIO "+str(gpio_pin)+" to "+gpio_pin_dir+"  ##")
 print("      #############################################")
 with open(locswitchlog, "a") as f:
-        line = 'Heater turned ON at ' + str(datetime.datetime.now()) + '\n'
+        line = 'Heater turned OFF at ' + str(datetime.datetime.now()) + '\n'
         f.write(line)
 print("Log writen:" + line)
