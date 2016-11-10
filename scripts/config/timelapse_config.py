@@ -7,6 +7,7 @@ import os
 #script_path = '/home/pragmo/pigitgrow/Pigrow/scripts/cron/'
 script_path = '/home/pi/Pigrow/scripts/cron/'
 cappath = "/home/pi/cam_caps/"
+archive_path = '/home/pi/archive/'    #folder in which to store archived old image sets
 cron = CronTab('root')  #generally leave user as 'root' but 'pi' or whatever will work also if that user can run the camcap sctipt
 
 #### PROGRAM
@@ -206,7 +207,29 @@ def show_cron_menu():
         add_job()
         #show_cron_menu()
     elif option == "5":
-        print("NOT IMPLIMENTS! NOT IMPLEMENTS! YOU GO NOW!")
+        name_o = raw_input("choose name for archive folder, or leave blank to delete them perminently ;")
+        if name_o == "":
+            sure = raw_input("are you sure you want to DELETE ALL FILES IN "+cappath+"? Type Y to continue;")
+            if sure == "Y" or sure == "y":
+                os.system("rm "+cappath+"*.*")
+        else:
+            try:
+                if not os.path.exists(archive_path+name_o):
+                    os.makedirs(archive_path+name_o)
+                else:
+                    print("Folder already exists, ")
+                    merge_o = raw_input("   - type M to merge or return to cancel;")
+                    if merge_o == "M" or merge_o == 'm':
+                        print("merging folders")
+                    else:
+                        sys.exit()
+                print(" - Copying files from "+cappath+" to "+archive_path+name_o )
+                os.system("mv "+cappath+'*.* '+archive_path+name_o)
+                print("Moved")
+            except:
+                print(" - Directory system fail, nothing happening")
+
+
 #        ()
 #cappath = "/home/pi/cam_caps/"
 #        show_cron_menu()
