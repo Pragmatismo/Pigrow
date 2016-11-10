@@ -7,7 +7,10 @@ b_val = "60"
 x_dim = 1280
 y_dim = 720
 additonal_commands = "-d/dev/video0 -w"
-loc_settings = "/home/pi/Pigrow/config/camera_settings.txt"
+loc_settings = "/home/pi/Pigrow/config/"
+if not os.path.exists(loc_settings):
+    os.makedirs(loc_settings)
+loc_settings = loc_settings + "camera_settings.txt"
 
 start_v = 10 #between 1-255
 end_v = 250 #between 1-255
@@ -17,19 +20,19 @@ try:
     with open(loc_settings, "r") as f:
         for line in f:
             s_item = line.split("=")
-            if s_item[0] == "s_val": 
+            if s_item[0] == "s_val":
                 s_val = s_item[1].split("\n")[0]
-            elif s_item[0] == "c_val": 
+            elif s_item[0] == "c_val":
                 c_val = s_item[1].split("\n")[0]
-            elif s_item[0] == "g_val": 
+            elif s_item[0] == "g_val":
                 g_val = s_item[1].split("\n")[0]
-            elif s_item[0] == "b_val": 
+            elif s_item[0] == "b_val":
                 b_val = s_item[1].split("\n")[0]
-            elif s_item[0] == "x_dim": 
+            elif s_item[0] == "x_dim":
                 x_dim = s_item[1].split("\n")[0]
-            elif s_item[0] == "y_dim": 
+            elif s_item[0] == "y_dim":
                 y_dim = s_item[1].split("\n")[0]
-            elif s_item[0] == "additonal_commands": 
+            elif s_item[0] == "additonal_commands":
                 additonal_commands = s_item[1].split("\n")[0]
 except:
     pass
@@ -44,7 +47,7 @@ def show_menu():
     print("---Camera test and config---")
     print("----------------------------")
     print("This will take a series of images with the camera")
-    print("varying one of the settings to create a range from")  
+    print("varying one of the settings to create a range from")
     print("which you can select the best configuration.")
     print("")
     print("Current settings; S = " + str(s_val) + "  C = " + str(c_val) + "  G = " + str(g_val) + "  B = " + str(b_val))
@@ -84,7 +87,7 @@ def show_menu():
         for s in range(start_v,end_v,skip_v):
             print("---Doing: sudo uvccapture "+additonal_commands +" -S"+str(s)+" -C" + c_val + " -G"+ g_val +" -B"+ b_val +" -x"+str(x_dim)+" -y"+str(y_dim)+" -v -t0 -otest_range_s_"+str(s)+".jpg")
             os.system("sudo uvccapture "+additonal_commands +" -S"+str(s)+" -C" + c_val + " -G"+ g_val +" -B"+ b_val +" -x"+str(x_dim)+" -y"+str(y_dim)+" -v -t0 -otest_range_s_"+str(s)+".jpg")
-        print("Range captured, view and select best value..") 
+        print("Range captured, view and select best value..")
         os.system("gpicview test_range_s_"+str(start_v)+".jpg")
         s_val = raw_input("Input value to use for Saturation..")
         show_menu()
@@ -94,7 +97,7 @@ def show_menu():
         for c in range(start_v,end_v,skip_v):
             print("---Doing: sudo uvccapture "+additonal_commands +" -S"+s_val+" -C" + str(c) + " -G"+ g_val +" -B"+ b_val +" -x"+str(x_dim)+" -y"+str(y_dim)+" -v -t0 -otest_range_c_"+str(c)+".jpg")
             os.system("sudo uvccapture "+additonal_commands+" -S"+s_val+" -C" + str(c) + " -G"+ g_val +" -B"+ b_val +" -x"+str(x_dim)+" -y"+str(y_dim)+" -v -t0 -otest_range_c_"+str(c)+".jpg")
-        print("Range captured, view and select best value..") 
+        print("Range captured, view and select best value..")
         os.system("gpicview test_range_c_"+str(start_v)+".jpg")
         c_val = raw_input("Input value to use for Contrast..")
         show_menu()
@@ -104,7 +107,7 @@ def show_menu():
         for g in range(start_v,end_v,skip_v):
             print("---Doing: sudo uvccapture "+additonal_commands +" -S"+s_val+" -C" + c_val + " -G"+ str(g) +" -B"+ b_val +" -x"+str(x_dim)+" -y"+str(y_dim)+" -v -t0 -otest_range_c_"+str(g)+".jpg")
             os.system("sudo uvccapture "+additonal_commands+" -S"+s_val+" -C" + c_val + " -G"+ str(g) +" -B"+ b_val +" -x"+str(x_dim)+" -y"+str(y_dim)+" -v -t0 -otest_range_g_"+str(g)+".jpg")
-        print("Range captured, view and select best value..") 
+        print("Range captured, view and select best value..")
         os.system("gpicview test_range_g_"+str(start_v)+".jpg")
         g_val = raw_input("Input value to use for Gain..")
         show_menu()
@@ -114,7 +117,7 @@ def show_menu():
         for b in range(start_v,end_v,skip_v):
             print("---Doing: sudo uvccapture "+additonal_commands +" -S"+s_val+" -C" + c_val + " -G"+ g_val +" -B"+ str(b) +" -x"+str(x_dim)+" -y"+str(y_dim)+" -v -t0 -otest_range_b_"+str(b)+".jpg")
             os.system("sudo uvccapture "+additonal_commands+" -S"+s_val+" -C" + c_val + " -G"+ g_val +" -B"+ str(b) +" -x"+str(x_dim)+" -y"+str(y_dim)+" -v -t0 -otest_range_b_"+str(b)+".jpg")
-        print("Range captured, view and select best value..") 
+        print("Range captured, view and select best value..")
         os.system("gpicview test_range_b_"+str(start_v)+".jpg")
         b_val = raw_input("Input value to use for Brightness..")
         show_menu()
@@ -122,7 +125,7 @@ def show_menu():
     elif option == "0":
         os.system("sudo rm test_range_*.jpg")
         print("Images deleted")
-        show_menu() 
+        show_menu()
     elif option == "t":
         print("Using current configuration to take image...")
         os.system("sudo uvccapture "+additonal_commands+" -S"+s_val+" -C" + c_val + " -G"+ g_val +" -B"+ b_val +" -x"+str(x_dim)+" -y"+str(y_dim)+" -v -t0 -otest_range_test.jpg")
@@ -145,11 +148,11 @@ def show_menu():
             f.write("b_val="+b_val+"\n")
             f.write("x_dim="+str(x_dim)+"\n")
             f.write("y_dim="+str(y_dim)+"\n")
-            f.write("additonal_commands="+additonal_commands+ "\n") 
+            f.write("additonal_commands="+additonal_commands+ "\n")
         print("Config Saved")
-        show_menu() 
+        show_menu()
     elif option == "q" or option == "Q" or option == "":
-        exit() 
+        exit()
     else:
         print("That wasn't an option...")
         show_menu()
@@ -157,4 +160,3 @@ def show_menu():
 show_menu()
 
 print "done"
-
