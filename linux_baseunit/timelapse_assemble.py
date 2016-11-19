@@ -9,9 +9,7 @@ darksize =75000   #all smaller files are removed assumed to be useless 75000 is 
 outfps = 10       #10 is a good value, between 2 and 60 is acceptable
 capsdir = "/home/pragmo/camcaps/"
 listfile = "/home/pragmo/ffTL.txt"
-outfile = "/home/pragmo/timelapse16.mkv" #directory to save output to default "/timelapse/timelapse.mkv" -this is a relative path starting one directiory above /caps
-#          /../timelapse/outfile.mkv #would put the files in a directory called timelapse beside the one the script was run from
-#   to use absolute directories to position the outfile alter line 41 removing the .. before "+outfile
+outfile = "/home/pragmo/timelapse16.mkv" #directory to save output
 #end of user settings
 
 filelist = []
