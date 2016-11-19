@@ -1,7 +1,22 @@
 #!/bin/bash
 import os
 import sys
-#This sctipt downloads all the images and the most recent log files
+import matplotlib.pyplot as plt
+import datetime
+import numpy as np
+
+#This sctipt downloads all the images and the most recent log files and creates graphs from the data
+
+#humid
+dangerlow = 30
+toolow = 40
+toohigh = 70
+dangerhigh = 80
+#temp
+dangercold = 15
+toocold = 23
+toohot = 30
+dangerhot = 36
 
 graph_length_h = 24*7*52 #time in hours to show on graphs
 hours_to_show_pitime = 24*6
@@ -59,21 +74,7 @@ def download_logs(target_hostname, target_password):
         print("Files not grabbed!")
         raise
 
-###humidity
 
-import matplotlib.pyplot as plt
-import datetime
-import numpy as np
-#humid
-dangerlow = 30
-toolow = 40
-toohigh = 70
-dangerhigh = 80
-#temp
-dangercold = 15
-toocold = 23
-toohot = 30
-dangerhot = 36
 
 def make_dht_graph(target_hostname, hours_to_show):
     if not os.path.exists(from_pipath+target_hostname+"/graphs/"):
@@ -394,10 +395,18 @@ try:
         print("\n")
         print(" ------- Working on;")
         print("    ----------" + pi[0])
-        #download_images(pi[0],pi[2])
-        #download_logs(pi[0],pi[2])
-        make_dht_graph(pi[0], graph_length_h)
-        make_photo_graph(pi[0])
+        download_images(pi[0],pi[2])
+        download_logs(pi[0],pi[2])
+        try:
+             make_dht_graph(pi[0], graph_length_h)
+        except Exception as e:
+            print("Skipping graphing photos due to error, probably none there")
+            print("Exception is " + str(e)+ " if that helps")
+        try:
+            make_photo_graph(pi[0])
+        except Exception as e:
+            print("Skipping graphing photos due to error, probably none there")
+            print("Exception is " + str(e)+ " if that helps")
         try:
             make_pieye_graph(pi[0])
         except Exception as e:

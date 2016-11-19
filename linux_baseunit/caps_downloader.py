@@ -11,10 +11,10 @@ print("      ----------------------------------------")
 
 #user_name = "USERNAME" #can be used instead of the following
 user_name = str(os.getlogin())  #hash this line out if it causes problem, autograbs username
-capsdir = "/home/"+user_name+"/camcaps_collector/caps/" #it's best to use //PROGRAM_FILES/caps/ with nothing else in the caps folder
+capsdir = "/home/"+user_name+"/camcaps/"
 print "Copying images to "+capsdir
 
-target_address = "pi@192.168.1.12"
+target_address = "pi@192.168.1.2"
 target_pass = "raspberry"
 target_files = "/home/pi/cam_caps/text_*.jpg"
 #end of user settings

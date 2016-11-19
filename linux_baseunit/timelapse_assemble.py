@@ -3,13 +3,13 @@ import os
 
 ###  Requires MPV to be installed, use - sudo apt install mpv
 
-#user settnigs
+#user settings
 time_jump = 1 #when making timelapse uses every Nth frame so 4 is 4x faster
-darksize = 5000   #all smaller files are removed assumed to be useless 75000 is a good value
+darksize =75000   #all smaller files are removed assumed to be useless 75000 is a good value
 outfps = 10       #10 is a good value, between 2 and 60 is acceptable
-capsdir = "/home/pi/cam_caps/"
-listfile = "/home/pi/ffTL.txt"
-outfile = "/home/pi/timelapse.mkv" #directory to save output to default "/timelapse/timelapse.mkv" -this is a relative path starting one directiory above /caps
+capsdir = "/home/pragmo/camcaps/"
+listfile = "/home/pragmo/ffTL.txt"
+outfile = "/home/pragmo/timelapse16.mkv" #directory to save output to default "/timelapse/timelapse.mkv" -this is a relative path starting one directiory above /caps
 #          /../timelapse/outfile.mkv #would put the files in a directory called timelapse beside the one the script was run from
 #   to use absolute directories to position the outfile alter line 41 removing the .. before "+outfile
 #end of user settings
@@ -47,6 +47,6 @@ print "we have " + str(len(faster)) + " files in the faster version..."
 print "making you a timelapse video..."
 os.system("mpv mf://@"+listfile+" -mf-fps="+str(outfps)+" --ovc libx264 --ovcopts=bitrate=1200:threads=2 -o "+outfile)
 if os.path.isfile(outfile) == True:
-    print "there you go; ."+outfile+" ready to roll.."
+    print "there you go; "+outfile+" ready to roll.."
 else:
     print "for some reason the file wasn't created, sorry..."
