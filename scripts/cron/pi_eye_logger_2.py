@@ -7,10 +7,12 @@ print("------Data Logger Pi-Monitor------")
 #print ("time on this computer is now: " + str(datetime.datetime.now()))
 print("")
 
-user_name = "magimo" #str(os.getlogin()) #hash out when running from cron or whatever...
+#user_name = "magimo"
+user_name = str(os.getlogin()) #hash out when running from cron or whatever...
 path = "/pigitgrow/Pigrow/"  #remove the pigitgrow if you're not using my base unit
 
 loc_pi_list = "/home/"+user_name+path+"config/pi_list.txt"
+
 pi_list = []
 with open(loc_pi_list, "r") as f:
     pi_settings = f.read()
@@ -34,7 +36,7 @@ def save_log(pi):
     print "space_left = " + str(space_left)
     print("")
 
-    log = "host="+hostname
+    log = "host="+str(pi[0])
     log = log + ">pitime="+str(pitime)
     log = log + ">comptime="+str(datetime.datetime.now())[0:19]
     log = log + ">deviation="+str(datetime.datetime.now() - pitime)
@@ -95,7 +97,8 @@ def log_into_pi(pi):
     #just keeps hammering away every fifteen secs until manages to connect, no timeout yet
     connected = False
     global s
-    while connected == False:
+    counter_log = 0
+    while connected == False and not counter_log >= 2:
         try:
             s = pxssh.pxssh()
             s.login (hostname, username, password)
@@ -103,8 +106,10 @@ def log_into_pi(pi):
             connected = True
         except:
             print("exception: ... will try again,")
+            counter_log += 1
             time.sleep(10)
             print("trying again...")
+            return('FAILED')
     try:
         get_pi_times()
         save_log(pi)
@@ -118,10 +123,10 @@ def log_into_pi(pi):
 def connect_to_pi(pi):
     counter = 0
     some_error = True
-    while some_error == True and counter != 9:
+    while some_error == True and not counter >= 9:
         if some_error ==  True:
             counter = counter + 1
-            #print("Preparting to check up on; " + str(pi[0]))
+            #print("Preparing to check up on; " + str(pi[0]))
             log_into_pi(pi)
             some_error = False  #this is so it loops until it gets good results then stops
         else:

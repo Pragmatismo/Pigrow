@@ -5,11 +5,11 @@ print("  -----------------------------------")
 print("------Pi Spy Py Pi Uptime-Monitor------")
 print("  -----------------------------------")
 print ("time on this computer is now: " + str(datetime.datetime.now()))
-pi_eye_log = '/home/pi/Pigrow/logs/pi_eye_log.txt'
-graph_path = '/home/pi/Pigrow/graphs/'
+pi_eye_log = '/home/pragmo/pigitgrow/Pigrow/logs/pieye_log_2.txt'
+graph_path = '/home/pragmo/pigitgrow/Pigrow/graphs/'
 
 log_date = []
-log_cm_date = [] 
+log_cm_date = []
 log_comp_diff = []
 log_diff_pitime = []
 log_up_date = []
@@ -35,7 +35,7 @@ for item in logitem:
             cm_date = item[2] #output of this computer's date output
             cm_log_date = cm_date.split("=")[1]
             cm_log_date = datetime.datetime.strptime(cm_log_date, '%Y-%m-%d %H:%M:%S')
-            log_cm_date.append(cm_log_date) 
+            log_cm_date.append(cm_log_date)
 
             up_date = item[5] #output of uptime on pi
             up_log_date = up_date.split("=")[1]
@@ -65,16 +65,16 @@ for x in range(0, len(log_date)):
     #make list of differing times between both computers
     comps_time_diff = log_cm_date[x] - log_date[x] #to account for bst# - datetime.timedelta(hours=1)
     comps_time_diff = int(comps_time_diff.total_seconds())
-    log_comp_diff.append(comps_time_diff) 
+    log_comp_diff.append(comps_time_diff)
 #make list of uptime differences between each log entry
 for x in range(1, len(log_up_date_ago)):
     cur_upt = log_up_date_ago[x]
     las_upt = log_up_date_ago[x-1]
-    uptim_diff = cur_upt - las_upt 
+    uptim_diff = cur_upt - las_upt
     uptim_diff_log.append(uptim_diff)
 print('We now have ' + str(len(uptim_diff_log)) + ' up time differnces from the pi to work with.')
 
-###The Graph Making Routines 
+###The Graph Making Routines
 # time as reported by pi
 def make_pi_time_graph():
     plt.figure(1)
@@ -86,17 +86,17 @@ def make_pi_time_graph():
     plt.savefig (graph_path + "consecutive_pi_time_graph.png")
 
 # time diff of most recent and first entry in log as reported by pi
-def make_step_graph():    
+def make_step_graph():
     plt.figure(2)
     ax = plt.subplot()
     ax.bar(log_date, log_diff_pitime, width=0.001, color='green', linewidth = 0.05)
     plt.title("Time from start of log")
-    plt.ylabel("seconds")   
+    plt.ylabel("seconds")
     plt.gcf().autofmt_xdate()
     plt.savefig (graph_path + "step_graph.png")
 
-# uptime of pi in seconds  
-def make_up_graph():    
+# uptime of pi in seconds
+def make_up_graph():
     plt.figure(3)
     ax = plt.subplot()
     ax.bar(log_date, log_up_date_ago, width=0.001, color='green', linewidth = 0)
@@ -106,8 +106,8 @@ def make_up_graph():
     plt.gcf().autofmt_xdate()
     plt.savefig(graph_path + "sec_since_up_graph.png")
 
-# time between each logged uptime  
-def make_upd_graph():    
+# time between each logged uptime
+def make_upd_graph():
     plt.figure(4)
     ax = plt.subplot()
     ax.plot(log_date[1:], uptim_diff_log, color='darkblue', lw=3)
@@ -116,10 +116,10 @@ def make_upd_graph():
     plt.gcf().autofmt_xdate()
     plt.savefig(graph_path + "sec_between_up_graph.png")
 
-# time between both computers time  
-def make_c_time_graph():    
+# time between both computers time
+def make_c_time_graph():
     plt.figure(5)
-    ax = plt.subplot()   
+    ax = plt.subplot()
     ax.plot(log_date, log_comp_diff, color='darkblue', lw=3) #choice of this, below line or both.
     ax.bar(log_date, log_comp_diff, width=0.001, color='green', linewidth = 0.05) #optional
     plt.title("Time difference between both computers")
@@ -133,7 +133,7 @@ make_upd_graph()
 make_c_time_graph()
 make_pi_time_graph()
 
-#Graphs made and saved so moving on to making the final composite image, 
+#Graphs made and saved so moving on to making the final composite image,
 
 from PIL import Image, ImageDraw, ImageFont
 
@@ -150,12 +150,12 @@ base.paste(g4,(1500,-25))
 base.paste(g3,(1500,520))
 
 #Header Text
-fnt = ImageFont.truetype('Caslon.ttf', 75)
+fnt = ImageFont.truetype('../cron/Caslon.ttf', 75)
 d = ImageDraw.Draw(base)
 d.text((800,3), "Pigrow2 Health Monitor", font=fnt, fill=(10,90,30,190))
-fnt = ImageFont.truetype('Caslon.ttf', 40)
+fnt = ImageFont.truetype('../cron/Caslon.ttf', 40)
 d.text((875,65), " - " + str(str(logitem[0]).split(">")[0]), font=fnt, fill=(30,50,40,100))
-fnt = ImageFont.truetype('Caslon.ttf', 30)
+fnt = ImageFont.truetype('../cron/Caslon.ttf', 30)
 #Data defined text
 d.text((800,110), "Pigrow last seen; " + str(log_cm_date[-1]), font=fnt, fill=(10,10,10,190))
 seenago = str((datetime.datetime.now() - log_cm_date[-1])).split(".")[0]
@@ -186,7 +186,3 @@ d.text((920,450), "Last failed: " + str(msg_t), font=fnt, fill=colour)
 #save and/or show
 base.save(graph_path + "pigrow_health.png")
 base.show()
-
-
-
-

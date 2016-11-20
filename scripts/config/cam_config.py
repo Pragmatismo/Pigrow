@@ -13,7 +13,7 @@ if not os.path.exists(loc_settings):
 loc_settings = loc_settings + "camera_settings.txt"
 
 start_v = 10 #between 1-255
-end_v = 250 #between 1-255
+end_v = 100 #between 1-255
 skip_v = 10 #ten represents value increase by ten
 
 try:
