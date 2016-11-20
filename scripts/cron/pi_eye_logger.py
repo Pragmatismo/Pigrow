@@ -1,93 +1,140 @@
 from pexpect import pxssh
 import time
 import datetime
+import os
 print("----------------------------------")
 print("------Data Logger Pi-Monitor------")
 #print ("time on this computer is now: " + str(datetime.datetime.now()))
 print("")
-loc_pi_settings = '/home/pi/Pigrow/config/pi_eye_settings.txt'
-pi_log = '/home/pi/Pigrow/logs/pi_eye_log.txt'
 
-some_error = False
-#load settings from file and log in to pi
-with open(loc_pi_settings, "r") as f:
+#user_name = "magimo"
+user_name = str(os.getlogin()) #hash out when running from cron or whatever...
+path = "/pigitgrow/Pigrow/"  #remove the pigitgrow if you're not using my base unit
+
+loc_pi_list = "/home/"+user_name+path+"config/pi_list.txt"
+
+pi_list = []
+with open(loc_pi_list, "r") as f:
     pi_settings = f.read()
     pi_settings = pi_settings.split("\n")
-    hostname = (pi_settings[0].split("="))[1]
-    username = (pi_settings[1].split("="))[1]
-    password = (pi_settings[2].split("="))[1]
+    for line in pi_settings[0:-1]:
+        line = line.split(">")
+        hostname = (line[0].split("="))[1]
+        username = (line[1].split("="))[1]
+        password = (line[2].split("="))[1]
+        pi_list.append([hostname, username, password])
+        print hostname
 
-#just keeps hammering away every ten secs until manages to connect, no timeout yet
-connected = False
-while connected == False:
-    try:
-        s = pxssh.pxssh()
-        s.login (hostname, username, password)
-        print("Connected to " + hostname + " ready to interrogate it...")
-        connected = True 
-    except:
-        print("exception: ... will try again,")
-        time.sleep(10)
-        print("trying again...")
+def save_log(pi):
+    print("")
+    print "pitime   = " + str(pitime)
+    print "comptime = " + str(datetime.datetime.now())[0:19]
+    print "time differnce = " + str(datetime.datetime.now() - pitime)
+    print("")
+    print "pi's uptime = " + str(uptime)
+    print "duration = " + str(pitime - uptime)[0:17]
+    print "space_left = " + str(space_left)
+    print("")
 
+    log = "host="+str(pi[0])
+    log = log + ">pitime="+str(pitime)
+    log = log + ">comptime="+str(datetime.datetime.now())[0:19]
+    log = log + ">deviation="+str(datetime.datetime.now() - pitime)
+    log = log + ">duration="+str(pitime-uptime)
+    log = log + ">uptime="+str(uptime)
+    log = log + ">space_left="+str(space_left)
+    log = log + "\n"
+
+    print log
+    pi_log = "/home/"+user_name+path+"logs/pieye_log_"+str(pi[0].split(".")[-1])+".txt"
+    with open(pi_log, "a") as f:
+        f.write(log)
 
 def get_pi_times():
     global pitime
     global uptime
+    global space_left
     global some_error
     #get uptime from pi
     try:
         s.sendline('uptime -s')
         s.prompt()
-        frompi = s.before  
+        frompi = s.before
         frompi = str(frompi)[11:30]
         uptime = datetime.datetime.strptime(frompi, '%Y-%m-%d %H:%M:%S')
         #print "LAST BOOT TIME (uptime) READ AS:" + str   (uptime)
     except:
-        print("uptime date error")
+        print("error reading pi uptime")
         some_error = True
+        raise
     #get current date time from pi
     try:
         s.sendline("date +%d:%b_%Y_%H:%M:%S")
         s.prompt()
         pitime = s.before
         pitime = str(pitime)[25:45]
+        print pitime
         pitime = datetime.datetime.strptime(pitime, '%d:%b_%Y_%H:%M:%S')
         #print "CURRENT PI DATE TIME READ AS:" + str(pitime)
     except:
-        print("pi date error") 
+        print("error reading pi date")
         some_error = True
-get_pi_times()
-s.logout()
+    try:
+        s.sendline('df -l --output=avail /')
+        s.prompt()
+        space_left = s.before
+        print space_left
+        space_left = space_left.split("\n")[2]
+    except:
+        print("error reading pi disk fullness")
+        some_error = True
 
-counter = 0
-while some_error == True and counter != 9:
-    if some_error ==  True:  
-        print("Trying again...")
-        counter = counter + 1
+def log_into_pi(pi):
+    #load settings from file and log in to pi
+    hostname = pi[0]
+    username = pi[1]
+    password = pi[2]
+    #just keeps hammering away every fifteen secs until manages to connect, no timeout yet
+    connected = False
+    global s
+    counter_log = 0
+    while connected == False and not counter_log >= 2:
+        try:
+            s = pxssh.pxssh()
+            s.login (hostname, username, password)
+            print("Connected to " + hostname + " ready to interrogate it...")
+            connected = True
+        except:
+            print("exception: ... will try again,")
+            counter_log += 1
+            time.sleep(10)
+            print("trying again...")
+            return('FAILED')
+    try:
         get_pi_times()
-    else:
-        print("had enough goes now")
-        pitime = 0
-        uptime = "failed to respond" 
-        break
+        save_log(pi)
+        s.logout()
+    except:
+        print("Couldn't get proper log recordings but did manage to log in...")
+        s.logout()
+        raise
 
 
-
-print("")
-print "pitime   = " + str(pitime)
-print "comptime = " + str(datetime.datetime.now())[0:19]
-print "time differnce = " + str(datetime.datetime.now() - pitime)
-print("")
-print "pi's uptime = " + str(uptime)
-print "duration = " + str(pitime - uptime)[0:17]
-print("")
-
-log = "host="+hostname+">pitime="+str(pitime)+">comptime="+str(datetime.datetime.now())[0:19]+">deviation="+str(datetime.datetime.now() - pitime)+">duration="+str(pitime-uptime)+">uptime="+str(uptime)+"\n"
-
-print log
-
-with open(pi_log, "a") as f:
-    f.write(log)
+def connect_to_pi(pi):
+    counter = 0
+    some_error = True
+    while some_error == True and not counter >= 9:
+        if some_error ==  True:
+            counter = counter + 1
+            #print("Preparing to check up on; " + str(pi[0]))
+            log_into_pi(pi)
+            some_error = False  #this is so it loops until it gets good results then stops
+        else:
+            print("had enough goes now")
+            pitime = 0
+            uptime = "failed to respond"
+            break
 
 
+for pi in pi_list:
+    connect_to_pi(pi)
