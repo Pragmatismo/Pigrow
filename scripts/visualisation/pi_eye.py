@@ -24,8 +24,17 @@ for argu in sys.argv:
     elif  str(argu).split('=')[0] == 'o':
         graph_path = str(argu).split('=')[1]
 
+if not os.path.exists(graph_path):
+    gq = raw_input("directory doens't exist, create it?")
+    if gq == 'Y' or gq == 'y':
+        os.makedirs(graph_path)
+    else:
+        print("Ok, ending program")
+        sys.exit()
 
-
+if not os.path.exists(pi_eye_log):
+     print("Log file doesn't seem to exist, sorry...")
+     sys.exit()
 
 log_date = []
 log_cm_date = []
