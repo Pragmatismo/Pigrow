@@ -12,9 +12,9 @@ toohot = 30
 dangerhot = 36
 ##Change the above numbers as required,
 
-hours_to_show = 24*5 #hours from the end of the log, use absurdly high number to see all
+hours_to_show = 24*7*52 #hours from the end of the log, use absurdly high number to see all
 log_location = "/home/pi/Pigrow/logs/fht22_.txt"
-graph_path = "../../graphs/saved_humid_fig.jpg"       #default use o= to set via command line
+graph_path = "../../graphs/temp_graph.png"       #default use o= to set via command line
 
 
 for argu in sys.argv:

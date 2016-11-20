@@ -14,7 +14,7 @@ dangerhigh = 80
 
 hours_to_show = 24*7*52 #hours from the end of the log, use absurdly high number to see all #default use argument h= to set
 log_location = "/home/pi/Pigrow/logs/dht22_log.txt"   #default use log= option to change it via command line
-graph_path = "../../graphs/saved_humid_fig.jpg"       #default use o= to set via command line
+graph_path = "../../graphs/humid_graph.png"       #default use o= to set via command line
 
 
 for argu in sys.argv:
@@ -28,11 +28,11 @@ for argu in sys.argv:
 
 #This code is designed to work with a pigrow using a dht22 sensor, but use it for whatever you like,,,
 
-
 log_humid = []
 log_date = []
 cut_list_date = []
 thetime = datetime.datetime.now()
+
 print "----------------------------------"
 print "-------Preparing To Graph---------"
 print "-------------Humidity-------------"
