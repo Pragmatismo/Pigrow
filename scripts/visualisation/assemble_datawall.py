@@ -17,6 +17,9 @@ g4 = "../../graphs/humid_graph.png"
 g5 = "../../graphs/consecutive_pi_time_graph.png"
 g6 = "../../graphs/sec_between_comps.png"
 
+photo_basewidth = 800
+graph_basewidth = 450
+
 for argu in sys.argv:
     thearg = str(argu).split('=')[0]
     if  thearg == 'o':
@@ -35,6 +38,10 @@ for argu in sys.argv:
             g6 = str(argu).split('=')[1]
     elif thearg == "caps":
             caps_path = str(argu).split('=')[1]
+    elif thearg == "pbw":
+            photo_basewidth = int(str(argu).split('=')[1])
+    elif thearg == "gbw":
+            graph_basewidth = int(str(argu).split('=')[1])
 
 if not os.path.exists(caps_path):
     print("Unable to locate graph directory, is the path correct?")
@@ -51,15 +58,13 @@ newest_photo = str(caps_path+filelist[-1])
 ##Making The Image
 
 
-photo_basewidth = 800
-
 newest_photo = Image.open(newest_photo)
 wpercent = (photo_basewidth/float(newest_photo.size[0]))
 hsize = int((float(newest_photo.size[1])*float(wpercent)))
 newest_photo = newest_photo.resize((photo_basewidth,hsize), Image.ANTIALIAS)
 
 
-graph_basewidth = 450
+
 
 g1 = Image.open(g1)
 wpercent = (graph_basewidth/float(g1.size[0]))
