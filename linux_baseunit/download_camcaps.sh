@@ -23,16 +23,4 @@ echo ---------
 rsync --ignore-existing -ratlz --rsh="/usr/bin/sshpass -p $rasppas ssh -o StrictHostKeyChecking=no -l $remote_add" $remote_add:/home/pi/cam_caps/text_*.jpg $local_dir
 # To see what it's doing after --ignore-existing add --progress
 
-#lists the most recent file after download
-echo ----------
-echo most recent...
-lastfile=$(ls $local_dir | sort -V | tail -n 1)
-echo $lastfile
-
-echo ------------
-echo updaiting background
-# this bit allows it to work from cron
-PID=$(pgrep gnome-session)
-export DBUS_SESSION_BUS_ADDRESS=$(grep -z DBUS_SESSION_BUS_ADDRESS /proc/$PID/environ|cut -d= -f2-)
-# set's the background in gnome, unity and derivitives
-gsettings set org.gnome.desktop.background picture-uri file://$local_dir$lastfile
+echo downloaded
