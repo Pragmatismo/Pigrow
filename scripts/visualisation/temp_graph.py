@@ -115,4 +115,4 @@ print "----------------------------------"
 #make_graph(log_date, log_temp)
 make_graph(cut_list_date, log_temp[-len(cut_list_date):])
 
-print("Graph of last " + str(hours_to_show) + " hours of humidity data created and saved to " + graph_path)
+print("Graph of last " + str(hours_to_show) + " hours of temp data created and saved to " + graph_path)
