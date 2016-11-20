@@ -1,12 +1,31 @@
 import datetime
 import matplotlib.pyplot as plt
+import os
+import sys
+
 print("    -------------------------------")
 print("  -----------------------------------")
 print("------Pi Spy Py Pi Uptime-Monitor------")
 print("  -----------------------------------")
 print ("time on this computer is now: " + str(datetime.datetime.now()))
-pi_eye_log = '/home/pragmo/pigitgrow/Pigrow/logs/pieye_log_2.txt'
-graph_path = '/home/pragmo/pigitgrow/Pigrow/graphs/'
+
+#user_name = "your username goes here"
+user_name = str(os.getlogin())  #hash this line out if it causes problem, autograbs username replace with username = "magimo" (or whatever)
+                                #it will cause problems if for any reason you run this script via cron as root for example
+fontloc = "/home/" + user_name +     "/pigitgrow/Pigrow/resources/Caslon.ttf"
+
+#print 'Argument List:', str(sys.argv)
+graph_path = "/home/" + user_name +  "/pigitgrow/Pigrow/graphs/"
+pi_eye_log = "/home/" + user_name +  "/pigitgrow/Pigrow/logs/pieye_log_2.txt"
+
+for argu in sys.argv:
+    if str(argu).split('=')[0] == 'log':
+        pi_eye_log = str(argu).split('=')[1]
+    elif  str(argu).split('=')[0] == 'o':
+        graph_path = str(argu).split('=')[1]
+
+
+
 
 log_date = []
 log_cm_date = []
@@ -150,12 +169,12 @@ base.paste(g4,(1500,-25))
 base.paste(g3,(1500,520))
 
 #Header Text
-fnt = ImageFont.truetype('../cron/Caslon.ttf', 75)
+fnt = ImageFont.truetype(fontloc, 75)
 d = ImageDraw.Draw(base)
 d.text((800,3), "Pigrow2 Health Monitor", font=fnt, fill=(10,90,30,190))
-fnt = ImageFont.truetype('../cron/Caslon.ttf', 40)
+fnt = ImageFont.truetype(fontloc, 40)
 d.text((875,65), " - " + str(str(logitem[0]).split(">")[0]), font=fnt, fill=(30,50,40,100))
-fnt = ImageFont.truetype('../cron/Caslon.ttf', 30)
+fnt = ImageFont.truetype(fontloc, 30)
 #Data defined text
 d.text((800,110), "Pigrow last seen; " + str(log_cm_date[-1]), font=fnt, fill=(10,10,10,190))
 seenago = str((datetime.datetime.now() - log_cm_date[-1])).split(".")[0]
