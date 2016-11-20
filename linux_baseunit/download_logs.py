@@ -416,3 +416,4 @@ try:
 except Exception as e:
     print("Exception is ---"+str(e)+"---- so there's that.")
     raise
+print(" All tasks complete, images and graphs ready for use")
