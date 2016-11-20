@@ -2,19 +2,29 @@
 import matplotlib.pyplot as plt
 import datetime
 import numpy as np
-
+import sys
 ##User Settings  -- It's ok to change these
-##Temperature measured in C 
+##Temperature measured in C
 
-dangerlow = 30 
+dangerlow = 30
 toolow = 40
 toohigh = 70
 dangerhigh = 80
-hours_to_show = 48 #hours from the end of the log, use absurdly high number to see all
-#log_location = "home/pi/Pigrow/logs/sensor_log.txt"
-log_location = "/home/pi/pigrow3/logs/glog.txt"
+##Change the above numbers as required,
 
-##Change the above numbers as required, 
+hours_to_show = 24*7*52 #hours from the end of the log, use absurdly high number to see all #default use argument h= to set
+log_location = "/home/pi/Pigrow/logs/dht22_log.txt"   #default use log= option to change it via command line
+graph_path = "../../graphs/saved_humid_fig.jpg"       #default use o= to set via command line
+
+
+for argu in sys.argv:
+    thearg = str(argu).split('=')[0]
+    if  thearg == 'log':
+        log_location = str(argu).split('=')[1]
+    elif thearg == 'o':
+        graph_path = str(argu).split('=')[1]
+    elif thearg == "h":
+        hours_to_show = int(str(argu).split('=')[1])
 
 #This code is designed to work with a pigrow using a dht22 sensor, but use it for whatever you like,,,
 
@@ -44,7 +54,7 @@ def add_log(linktolog):
             date = datetime.datetime.strptime(date[0], '%Y-%m-%d %H:%M:%S')
             if date < oldest_allowed_date:
                 break
-            
+
             hum = float(item[1])
             log_humid.append(hum)
             log_date.append(date)
@@ -82,15 +92,17 @@ def make_graph(da,ta):
     fig.canvas.set_window_title('Humidity Graph')
     maxh = ta
     fig.autofmt_xdate()
-    plt.show()
-    #plt.savefig("./saved_humid_fig.jpg")
+    #plt.show()
+    plt.savefig(graph_path)
 
 add_log(log_location)
 
 print "----------------------------------"
 secago = thetime - log_date[-1]
-print "most recent humidity - " + str(log_humid[-1])[0:4] + " - " + str(secago) + " seconds ago" 
+print "most recent humidity - " + str(log_humid[-1])[0:4] + " - " + str(secago) + " seconds ago"
 print "----------------------------------"
 make_graph(log_date, log_humid)
-#make_graph(cut_list_date, log_humid[-len(cut_list_date):])
 
+print("Graph of last " + str(hours_to_show) + " hours of humidity data created and saved to " + graph_path)
+
+#make_graph(cut_list_date, log_humid[-len(cut_list_date):])
