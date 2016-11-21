@@ -1,11 +1,24 @@
 #!/bin/bash
+
+import matplotlib as mpl
+mpl.use('Agg')
+
 import os
 import sys
 import matplotlib.pyplot as plt
 import datetime
 import numpy as np
 
+
+
 #This sctipt downloads all the images and the most recent log files and creates graphs from the data
+
+errorlog = '/home/pragmo/TESTAFILEAOUTPUTSEE.txt'
+tolog = True
+if tolog == False:
+    with open(errorlog, "a") as f:
+        line = '\n  - download_logs.py - started a run for '+str(os.getlogin())+' - '
+        f.write(line)
 
 #humid
 dangerlow = 30
@@ -20,12 +33,13 @@ dangerhot = 36
 
 graph_length_h = 24*7*52 #time in hours to show on graphs
 hours_to_show_pitime = 24*6
-loc_pi_list = "../config/pi_list.txt"
+loc_pi_list = "/home/pragmo/pigitgrow/Pigrow/config/pi_list.txt"
 
 print("------ Pigrow -------")
+print("  --Log Downloader--")
 print("   --Graph Maker--")
-print("      --------")
 
+#username = 'USERNAME'
 user_name = str(os.getlogin())  #hash this line out if it causes problem, autograbs username replace with username = "magimo" (or whatever)
                                 #it will cause problems if for any reason you run this script via cron for example
 from_pipath = "/home/" + user_name + "/pigitgrow/Pigrow/frompi/" #obviously remove the pigitgrow folder if you're not me ;)
@@ -44,33 +58,53 @@ with open(loc_pi_list, "r") as f:
 
 def download_images(target_hostname, target_password):
     if not os.path.exists(from_pipath+target_hostname+"/caps/"):
+        if tolog == True:
+            with open(errorlog, "a") as f:
+                line = '\n...Caps folder doesn\'t exist, attempting to create it... '
+                f.write(line)
         os.makedirs(from_pipath+target_hostname+"/caps/")
 
     try:
+        if tolog == True:
+            with open('/home/pragmo/TESTAFILEAOUTPUTSEE.txt', "a") as f:
+                line = 'seeking out caps files... '
+                f.write(line)
         target_files = "/home/pi/cam_caps/text_*.jpg"
         capsdir = from_pipath+target_hostname+"/caps/"
         print("Grabbing files, this might take some time...")
-        os.system("sudo rsync --ignore-existing -ratlz --rsh=\"/usr/bin/sshpass -p "+target_password+" ssh -o StrictHostKeyChecking=no -l "+target_hostname+"\" "+target_hostname+":"+target_files+" "+capsdir)
+        os.system("rsync --ignore-existing -ratlz --rsh=\"/usr/bin/sshpass -p "+target_password+" ssh -o StrictHostKeyChecking=no -l "+target_hostname+"\" "+target_hostname+":"+target_files+" "+capsdir)
         print("Files Grabbed")
-    except:
+    except exception as e:
+        if tolog == True:
+            with open(errorlog, "a") as f:
+                line = '...FAIL CAPS NOT GRABBED- '+str(e)+'... '
+                f.write(line)
         print("Files not grabbed!")
         pass
 
 def download_logs(target_hostname, target_password):
+    if tolog == True:
+        with open('/home/pragmo/TESTAFILEAOUTPUTSEE.txt', "a") as f:
+            line = 'seeking out log files for '+str(target_hostname)+'... '
+            f.write(line)
     if not os.path.exists(from_pipath+target_hostname+"/log/"):
         os.makedirs(from_pipath+target_hostname+"/log/")
     try:
         target_files = "/home/pi/logs/*.txt"
         #temporary hax to fix dev work in progress
-        if target_hostname == "pi@192.168.1.12":
-            target_files = "/home/pi/pigrow3/logs/*.txt"
-        elif target_hostname == "pi@192.168.1.6":
-            target_files = "/glog4.txt"
+        #if target_hostname == "pi@192.168.1.12":
+        #    target_files = "/home/pi/pigrow3/logs/*.txt"
+        #elif target_hostname == "pi@192.168.1.6":
+        #    target_files = "/glog4.txt"
         logdir = from_pipath+target_hostname+"/log/"
         print("Grabbing logs, this shouldn't take as long...")
-        os.system("sudo rsync -ratlz --rsh=\"/usr/bin/sshpass -p "+target_password+" ssh -o StrictHostKeyChecking=no -l "+target_hostname+"\" "+target_hostname+":"+target_files+" "+logdir)
+        os.system("rsync -ratlz --rsh=\"/usr/bin/sshpass -p "+target_password+" ssh -o StrictHostKeyChecking=no -l "+target_hostname+"\" "+target_hostname+":"+target_files+" "+logdir)
         print("local logs updated")
-    except:
+    except exception as e:
+        if tolog == True:
+            with open(errorlog, "a") as f:
+                line = '...FAIL LOGS NOT GRABBED - '+str(e)+'... '
+                f.write(line)
         print("Files not grabbed!")
         raise
 
@@ -109,6 +143,10 @@ def make_dht_graph(target_hostname, hours_to_show):
             curr_line = curr_line - 1
     log_humid.reverse()
     log_date.reverse()
+    if tolog == True:
+        with open(errorlog, "a") as f:
+            line = '\n...LOGS UNDERSTOOD - We have '+str(len(log_temp))+' temp and '+str(len(log_humid))+' humidity readings, plus '+str(len(log_date))+' to work with.'
+            f.write(line)
     print('We have '+str(len(log_temp))+' temp and '+str(len(log_humid))+' humidity readings, plus '+str(len(log_date))+' to work with.')
     #print('Log starts - ' + str(log_date[0].strftime("%b-%d %H:%M")) + ' to ' + str(log_date[-1].strftime("%b-%d %H:%M")))
 ##
@@ -390,6 +428,8 @@ def make_pieye_graph(target_hostname):
 ###  Loops through the list of pis in the config file and does everything...
 #####
 
+
+
 try:
     for pi in pi_list:
         print("\n")
@@ -402,6 +442,9 @@ try:
         except Exception as e:
             print("Skipping graphing photos due to error, probably none there")
             print("Exception is " + str(e)+ " if that helps")
+            with open('/home/pragmo/TESTAFILEAOUTPUTSEE.txt', "a") as f:
+                line = 'I dun a run and this happen... '+str(e)+'\n'
+                f.write(line)
         try:
             make_photo_graph(pi[0])
         except Exception as e:

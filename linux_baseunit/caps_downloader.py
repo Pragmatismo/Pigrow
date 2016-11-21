@@ -9,7 +9,8 @@ print("   ----------------------------------------------")
 print("      ----------------------------------------")
 #user settings
 
-#user_name = "USERNAME" #can be used instead of the following
+
+#user_name = "pragmo" #can be used instead of the following
 user_name = str(os.getlogin())  #hash this line out if it causes problem, autograbs username
 capsdir = "/home/"+user_name+"/camcaps/"
 print "Copying images to "+capsdir
@@ -17,6 +18,8 @@ print "Copying images to "+capsdir
 target_address = "pi@192.168.1.2"
 target_pass = "raspberry"
 target_files = "/home/pi/cam_caps/text_*.jpg"
+
+graph_dir = "/home/"+user_name+"/pigitgrow/Pigrow/frompi/pi@192.168.1.2/graphs/"
 #end of user settings
 
 
@@ -30,7 +33,7 @@ print "Starting with; " + str(fcounter)
 #Grabbing Files from pi
 try:
     #os.system("rsync -a --password-file=pipass.txt --ignore-existing pi@192.168.1.12:/home/pi/cam_caps/*.txt ./")
-    os.system("sudo rsync --ignore-existing -ratlz --rsh=\"/usr/bin/sshpass -p "+target_pass+" ssh -o StrictHostKeyChecking=no -l "+target_address+"\" "+target_address+":"+target_files+" "+capsdir)
+    os.system("rsync --ignore-existing -ratlz --rsh=\"/usr/bin/sshpass -p "+target_pass+" ssh -o StrictHostKeyChecking=no -l "+target_address+"\" "+target_address+":"+target_files+" "+capsdir)
     print("Files Grabbed")
 except OSError as err:
     print("OS error: {0}".format(err))
@@ -78,8 +81,8 @@ def file_size_graph():
     plt.ylabel("filesize")
     plt.xlabel("file number")
     #plt.show() #hash this line out to stop it shoinw the plot, unhash tp show plot
-    plt.savefig ("./file_size_graph.png") #will be blank if plt.show is active
-    print("Graph saved to ./file_size_graph.png")
+    plt.savefig (graph_dir+"file_size_graph.png") #will be blank if plt.show is active
+    print("Graph saved to"+graph_dir+" file_size_graph.png")
 
 
 #optional time difference between captured image graph
@@ -102,8 +105,8 @@ def image_time_diff_graph():
     plt.ylabel("seconds between images")
     plt.xlabel("file number")
     #plt.show() #hash this line out to stop it shoinw the plot, unhash to show plot
-    plt.savefig ("./file_time_diff_graph.png") #will be blank if plt.show is active
-    print("Graph saved to ./file_time_diff_graph.png")
+    plt.savefig (graph_dir+"file_time_diff_graph.png") #will be blank if plt.show is active
+    print("Graph saved to "+graph_dir+"file_time_diff_graph.png")
 
 #optionally updates the ububtu background with the most recent script.
 def update_ubuntu_background():

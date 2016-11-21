@@ -22,10 +22,8 @@ export DBUS_SESSION_BUS_ADDRESS=$(grep -z DBUS_SESSION_BUS_ADDRESS /proc/$PID/en
 # set's the background in gnome, unity and derivitives
 gsettings set org.gnome.desktop.background picture-uri file://$local_dir$lastfile
 
-
 fi
-
-
-
+PID=$(pgrep gnome-session)
+export DBUS_SESSION_BUS_ADDRESS=$(grep -z DBUS_SESSION_BUS_ADDRESS /proc/$PID/environ|cut -d= -f2-)
 gsettings set org.gnome.desktop.background picture-uri file://$1
 echo updated wallpaper

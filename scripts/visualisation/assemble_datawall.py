@@ -8,7 +8,7 @@ print("  --Data Wall Assembler--")
 print("   -- --------------- --")
 
 output_path = "./datawall.jpg"       #default use o= to set via command line
-caps_path = "/home/pragmo/camcaps/"
+caps_path = "/home/pragmo/pigitgrow/Pigrow/frompi/pi@192.168.1.2/caps/"
 
 g1 = "../../graphs/temp_graph.png"
 g2 = "../../graphs/sec_since_up_graph.png"
@@ -111,4 +111,4 @@ base.paste(g6,(graph_basewidth+photo_basewidth+30,g4.size[1]+g5.size[1]+1))
 
 base.save(output_path)
 print("File saved to " + str(output_path))
-base.show()
+#base.show()
