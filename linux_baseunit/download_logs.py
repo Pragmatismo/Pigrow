@@ -14,8 +14,8 @@ import numpy as np
 #This sctipt downloads all the images and the most recent log files and creates graphs from the data
 
 errorlog = '/home/pragmo/TESTAFILEAOUTPUTSEE.txt'
-tolog = True
-if tolog == False:
+tolog = False #verbose and annoying, use only for testing
+if tolog == True:
     with open(errorlog, "a") as f:
         line = '\n  - download_logs.py - started a run for '+str(os.getlogin())+' - '
         f.write(line)
@@ -442,9 +442,9 @@ try:
         except Exception as e:
             print("Skipping graphing photos due to error, probably none there")
             print("Exception is " + str(e)+ " if that helps")
-            with open('/home/pragmo/TESTAFILEAOUTPUTSEE.txt', "a") as f:
-                line = 'I dun a run and this happen... '+str(e)+'\n'
-                f.write(line)
+            #with open('/home/pragmo/TESTAFILEAOUTPUTSEE.txt', "a") as f:
+            #    line = 'I dun a run and this happen... '+str(e)+'\n'
+            #    f.write(line)
         try:
             make_photo_graph(pi[0])
         except Exception as e:
