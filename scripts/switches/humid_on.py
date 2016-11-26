@@ -24,7 +24,7 @@ try:
 except:
     print("Settings not loaded, try running pi_setup")
     with open(locswitchlog, "a") as f:
-        line = 'HUMIDIFIER failed to turn ON at ' + str(datetime.datetime.now()) + ' - ettings file error\n'
+        line = 'humid_on.py @' + str(datetime.datetime.now()) + '@ Failed - settings file error\n'
         f.write(line)
     print("Log writen:" + line)
     raise
@@ -49,7 +49,7 @@ if 'gpio_humid' in pi_set and not pi_set['gpio_humid'] == '':
         print("      !!  run config program or edit config.txt  !!")
         print("      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
         with open(locswitchlog, "a") as f:
-            line = 'HUMIDIFIER failed to turn ON at ' + str(datetime.datetime.now()) + ' - no direction set in config\n'
+            line = 'humid_on.py @' + str(datetime.datetime.now()) + '@ Failed - no direction set in config\n'
             f.write(line)
         print("Log writen:" + line)
         exit()
@@ -59,7 +59,7 @@ else:
     print("      !!  run config program or edit config.txt  !!")
     print("      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
     with open(locswitchlog, "a") as f:
-        line = 'HUMIDIFIER failed to turn ON at ' + str(datetime.datetime.now()) + ' due to none set in config\n'
+        line = 'humid_on.py @' + str(datetime.datetime.now()) + '@ Failed - due to none set in config\n'
         f.write(line)
     print("Log writen:" + line)
     exit()
@@ -67,6 +67,6 @@ else:
 print("      ##            by switching GPIO "+str(gpio_pin)+" to "+gpio_pin_on+"  ##")
 print("      #############################################")
 with open(locswitchlog, "a") as f:
-        line = 'HUMIDIFIER turned ON at ' + str(datetime.datetime.now()) + '\n'
+        line = 'humid_on.py @' + str(datetime.datetime.now()) + '@ Humidifier Turned on  \n'
         f.write(line)
 print("Log writen:" + line)
