@@ -1,8 +1,8 @@
 #!/usr/bin/python
 import datetime
 import praw           #pip install praw
-import OAuth2Util     #pip install praw-oauth2util
 import os
+import sys
 from PIL import Image, ImageDraw, ImageFont
 print("")
 print("        #############################################")
@@ -10,33 +10,68 @@ print("      ##       Automatic Reddit Grow Info Updater    ##")
 print("")
 #print reddit.read_only
 
-## REMEMBER TO REMOVE PASSWORD IF SHARING THE CODE!!!!
+loc_locs = '/home/pi/Pigrow/config/dirlocs.txt'
 
 #sizes
 photo_basewidth = 600
 graph_basewidth = 400
-#logs
-link_dht_log = '/home/pragmo/pigitgrow/Pigrow/frompi/pi@192.168.1.2/log/dht22_log.txt'
-#caps
-caps_path = "/home/pragmo/pigitgrow/Pigrow/frompi/pi@192.168.1.2/caps/"
+
+graph_path="/home/pragmo/pigitgrow/Pigrow/frompi/pi@192.168.1.2/graphs/"
+
 #graphs
-img_graph2 ="/home/pragmo/pigitgrow/Pigrow/frompi/pi@192.168.1.2/graphs//Humidity.png"
-img_graph3 ="/home/pragmo/pigitgrow/Pigrow/frompi/pi@192.168.1.2/graphs/Temperature.png"
+img_graph1 = graph_path + "Humidity.png"
+img_graph2 = graph_path + "Temperature.png"
 #sys graphs
-img_graph4 ="/home/pragmo/pigitgrow/Pigrow/frompi/pi@192.168.1.2/graphs/sec_since_up_graph.png"
-img_graph5 ="/home/pragmo/pigitgrow/Pigrow/frompi/pi@192.168.1.2/graphs//step_graph.png"
-img_graph6 ="/home/pragmo/pigitgrow/Pigrow/frompi/pi@192.168.1.2/graphs//sec_between_up_graph.png"
-img_graph7 ="/home/pragmo/pigitgrow/Pigrow/frompi/pi@192.168.1.2/graphs//sec_between_comps_graph.png"
+img_graph3 = graph_path + "sec_since_up_graph.png"
+img_graph4 = graph_path + "step_graph.png"
+img_graph5 = graph_path + "sec_between_up_graph.png"
+img_graph6 = graph_path + "sec_between_comps_graph.png"
 #cam graphs
-img_graph1 ="/home/pragmo/pigitgrow/Pigrow/frompi/pi@192.168.1.2/graphs//file_size_graph.png"
-img_graph8 ="/home/pragmo/pigitgrow/Pigrow/frompi/pi@192.168.1.2/graphs/file_time_diff_graph.png"
+img_graph7 = graph_path + "file_size_graph.png"
+img_graph8 = graph_path + "file_time_diff_graph.png"
 
 
-###     DON'T UPLOAD TO GITHUB WITH ALL THE SECRET CODES IN!
-##       THESE WILL BE STORED AS A CONFIG FILE OR SOMETHING
-#           in plaintext becaues no one givees a damn about stoopid reddit
+#print(" if you're me -    python update_reddit.py loc_locs=/home/pragmo/pigitgrow/Pigrow/config/dirlocs.txt ")
+for argu in sys.argv:
+    thearg = str(argu).split('=')[0]
+    if thearg == 'loc_locs':
+        loc_locs = str(argu).split('=')[1]
+        #print("\n\n LOCS LOGS = " + str(loc_locs) + "'\n\n")
 
+#default values
+loc_dht_log = '/home/pragmo/pigitgrow/Pigrow/frompi/pi@192.168.1.2/log/dht22_log.txt'
+caps_path = "/home/pragmo/pigitgrow/Pigrow/frompi/pi@192.168.1.2/caps/"
+err_log = './err_log.txt'
 
+loc_dic = {}
+def load_locs():
+    print("Loading location details")
+    try:
+        with open(loc_locs, "r") as f:
+            for line in f:
+                s_item = line.split("=")
+                loc_dic[s_item[0]]=s_item[1].rstrip('\n') #adds each setting to dictionary
+    except:
+        print("Settings not loaded, try running pi_setup")
+        with open(err_log, "a") as ef:
+            line = 'update_reddit.py @' + str(datetime.datetime.now()) + '@ dir locs file load error\n'
+            ef.write(line)
+        print("Log writen:" + line)
+load_locs()
+if 'loc_dht_log' in loc_dic: loc_switchlog = loc_dic['loc_dht_log']
+if 'loc_settings' in loc_dic: loc_settings = loc_dic['loc_settings']
+if 'err_log' in loc_dic: err_log = loc_dic['err_log']
+my_user_agent= 'Pigrow updater tester thing V0.5 (by /u/The3rdWorld)'
+try:
+    my_client_id = loc_dic['my_client_id']
+    my_client_secret = loc_dic['my_client_secret']
+    my_username = loc_dic['my_username']
+    my_password = loc_dic['my_password']
+    subreddit = loc_dic["subreddit"]
+    live_wiki_title = loc_dic['wiki_title']
+except:
+    print("REDDIT SETTINGS NOT SET - EDIT THE FILE " + str(loc_locs))
+    raise
 
 print("logging in")
 reddit = praw.Reddit(user_agent=my_user_agent,
@@ -44,12 +79,13 @@ reddit = praw.Reddit(user_agent=my_user_agent,
                      client_secret=my_client_secret,
                      username=my_username,
                      password=my_password)
-subreddit = reddit.subreddit("Pigrow")
+subreddit = reddit.subreddit(subreddit)
 print(subreddit.title)
+
 
 # Getting most recent temp and humid reading
 try:
-    with open(link_dht_log, "r") as f:
+    with open(loc_dht_log, "r") as f:
         logitem = f.read()
         logitem = logitem.split("\n")
     print('Adding ' + str(len(logitem)) + ' readings from log.')
@@ -104,7 +140,9 @@ wpercent = (photo_basewidth/float(photo.size[0]))
 hsize = int((float(photo.size[1])*float(wpercent)))
 photo = photo.resize((photo_basewidth,hsize), Image.ANTIALIAS)
 photo.save(res_photo)
-phota_loc = reddit.subreddit('Pigrow').stylesheet.upload('photo', res_photo)
+#phota_loc = reddit.subreddit('Pigrow').stylesheet.upload('photo', res_photo)
+#phota_loc = subreddit.stylesheet.upload('photo', res_photo)
+
 page_text += '![most recent photo](%%photo%%)  \n'
 
 ### Graphs
@@ -165,14 +203,15 @@ grapha = grapha.resize((graph_basewidth,hsize), Image.ANTIALIAS)
 grapha.save(res_f_s_d)
 
 
-graph1 = reddit.subreddit('Pigrow').stylesheet.upload('test', resizeda)
-graph2 = reddit.subreddit('Pigrow').stylesheet.upload('temp', res_temp)
-graph3 = reddit.subreddit('Pigrow').stylesheet.upload('humid', res_humid)
-graph4 = reddit.subreddit('Pigrow').stylesheet.upload('ssup', res_up)
-graph5 = reddit.subreddit('Pigrow').stylesheet.upload('step', res_step)
-graph6 = reddit.subreddit('Pigrow').stylesheet.upload('sbu', res_s_b_u)
-graph7 = reddit.subreddit('Pigrow').stylesheet.upload('sbc', res_s_b_c)
-graph8 = reddit.subreddit('Pigrow').stylesheet.upload('fsd', res_f_s_d)
+
+graph1 = subreddit.stylesheet.upload('temp', res_temp)
+graph2 = subreddit.stylesheet.upload('humid', res_humid)
+graph3 = subreddit.stylesheet.upload('ssup', res_up)
+graph4 = subreddit.stylesheet.upload('step', res_step)
+graph5 = subreddit.stylesheet.upload('sbu', res_s_b_u)
+graph6 = subreddit.stylesheet.upload('sbc', res_s_b_c)
+graph7 = subreddit.stylesheet.upload('fsd', res_f_s_d)
+graph8 = subreddit.stylesheet.upload('test', resizeda)
 
 page_text += '\n\n##Graphs \n  \n'
 page_text += '![temp](%%temp%%) '
@@ -187,7 +226,7 @@ page_text += 'This is a graph of the file sizes  \n ![file sizes of the camera i
 page_text += '![file time dif](%%fsd%%)  \n'
 page_text += '  \nIf you can\'t tell this is a very much inprogress bit of work here...'
 
-praw.models.WikiPage(reddit, subreddit, 'livegrow_test').edit(page_text)
+praw.models.WikiPage(reddit, subreddit, live_wiki_title).edit(page_text)
 
 
 #praw.models.Redditor(reddit, 'The3rdWorld').message('this is the subject', 'tesing bot', from_subreddit='Pigrow')
