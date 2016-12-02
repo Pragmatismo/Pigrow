@@ -1,0 +1,9 @@
+loc_settings=/home/pragmo/pigitgrow/Pigrow/config/pigrow_config.txt
+loc_switchlog=/home/pragmo/pigitgrow/Pigrow/logs/switch_log.txt
+err_log=./err_log.txt
+my_client_id=
+my_client_secret=
+my_username=Pigrow_salad
+my_password=
+subreddit=Pigrow
+wiki_title=livegrow_test_settings

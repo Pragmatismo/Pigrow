@@ -4,30 +4,69 @@ import praw           #pip install --pre praw   #remove the --pre if it's now th
 import os
 import time
 import socket
+import sys
 print("")
 print("        #############################################")
 print("      ##       Listens for reddit messages           ##")
 print("")
 
+
 trusted_users = ['The3rdWorld', 'Pigrow_salad']
+loc_locs = '/home/pi/Pigrow/config/dirlocs.txt'
 
-#print reddit.read_only
+print(" - If you're me then maybe...")
+print(" -    python rediit_settings_ear.py to=The3rdWorld loc_locs=/home/pragmo/pigitgrow/Pigrow/config/dirlocs.txt ")
+print(" - is the command you need, maybe?")
 
-## REMEMBER TO REMOVE PASSWORD IF SHARING THE CODE!!!!
-thetime = datetime.datetime.now()
-#logs
-loc_settings = "/home/pi/Pigrow/config/pigrow_config.txt"
-loc_switchlog = '/home/pi/Pigrow/logs/switch_log.txt'
-err_log = './err_log.txt'
+commander = '' #default user to msg on script start set to '' for none
+for argu in sys.argv:
+    thearg = str(argu).split('=')[0]
+    if  thearg == 'to':
+        commander = str(argu).split('=')[1]
+    elif thearg == 'loc_locs':
+        loc_locs = str(argu).split('=')[1]
+        print("\n\n LOCS LOGS = " + str(loc_locs) + "'\n\n")
+############################
 
 #Settings for validation rules
 hour_only = ['time_lamp_off', 'time_lamp_on'] #name os script that only accepts hours
-valid_gpio=[8,12,21]  #valid gpio numbers using the gpio NOT the board numbering system
+valid_gpio=[2,3,4,17,27,22,10,9,11,0,5,6,13,19,26,14,15,18,23,24,25,8,7,1,12,16,20,21]  #valid gpio numbers using the gpio (BCM) NOT the board numbering system
 intonly= ['heater_templow','heater_temphigh','log_frequency']
 
-###     DON'T UPLOAD TO GITHUB WITH ALL THE SECRET CODES IN!
-##       THESE WILL BE STORED AS A CONFIG FILE OR SOMETHING
-#
+#logs default values
+loc_settings = "/home/pi/Pigrow/config/pigrow_config.txt"
+loc_switchlog = '/home/pi/Pigrow/logs/switch_log.txt'
+err_log = './err_log.txt'
+loc_dic = {}
+def load_locs():
+    print("Loading location details")
+    try:
+        with open(loc_locs, "r") as f:
+            for line in f:
+                s_item = line.split("=")
+                loc_dic[s_item[0]]=s_item[1].rstrip('\n') #adds each setting to dictionary
+    except:
+        print("Settings not loaded, try running pi_setup")
+        with open(err_log, "a") as ef:
+            line = 'update_reddit.py @' + str(datetime.datetime.now()) + '@ dir locs file load error\n'
+            ef.write(line)
+        print("Log writen:" + line)
+load_locs()
+if 'loc_switchlog' in loc_dic: loc_switchlog = loc_dic['loc_switchlog']
+if 'loc_settings' in loc_dic: loc_settings = loc_dic['loc_settings']
+if 'err_log' in loc_dic: err_log = loc_dic['err_log']
+my_user_agent= 'Pigrow updater tester thing V0.5 (by /u/The3rdWorld)''
+try:
+    my_client_id = loc_dic['my_client_id']
+    my_client_secret = loc_dic['my_client_secret']
+    my_username = loc_dic['my_username']
+    my_password = loc_dic['my_password']
+    subreddit = loc_dic["subreddit"]
+    wiki_title = loc_dic['wiki_title']
+except:
+    print("REDDIT SETTINGS NOT SET - EDIT THE FILE " + str(loc_locs))
+    raise
+
 
 
 reddit = praw.Reddit(user_agent=my_user_agent,
@@ -36,12 +75,10 @@ reddit = praw.Reddit(user_agent=my_user_agent,
                      username=my_username,
                      password=my_password)
 print("logging in")
-subreddit = reddit.subreddit("Pigrow")
-wiki_title='livegrow_test_settings'
 print(subreddit.title)
 inbox = reddit.inbox
+subreddit = reddit.subreddit(subreddit)
 
-pi_set = {}
 def load_settings():
     print("Loading current Settings")
     try:
@@ -126,7 +163,7 @@ def change_setting(setting,value):
         save_settings()
         return("Set to " + str(value))
 
-def write_set_wiki():
+def write_set(whereto='wiki'):
     page_text = '#Pigrow Settings  \n\n'
     page_text += 'This displays the current settings from the pigrow,  \n'
     page_text += 'to change these settings you can message your pigrow via reddit by simply clicking on the link in the table  \n'
@@ -157,7 +194,7 @@ def write_set_wiki():
             line = 'update_reddit.py @' + str(datetime.datetime.now()) + '@ switch log file error\n'
             f.write(line)
         print("Log writen:" + line)
-        raise
+        return("FAILED DUE TO NO SWTICH LOG FILE")
 
     while curr_line >= 0:
         try:
@@ -189,15 +226,22 @@ def write_set_wiki():
     ###
 
     page_text += '  \n'
-    page_text += ' to change a setting message your pigrow (i\'m still writing this bit so...) at /u/Pigrow_salad  \n'
+    page_text += '  \n'
     #determine local ip - apparently this works on macs if you change the 0 to a 1 but i don't buy apple products so...
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     s.connect(('8.8.8.8', 0))  # connecting to a UDP address doesn't send packets
     local_ip_address = s.getsockname()[0]
     page_text += 'Current local network IP ' + str(local_ip_address)
-
     print page_text
-    praw.models.WikiPage(reddit, subreddit, wiki_title).edit(page_text)
+    #return page_text
+    if whereto == 'wiki':
+        praw.models.WikiPage(reddit, subreddit, wiki_title).edit(page_text[0:524288])
+    else:
+        try:
+            whereto = praw.models.Redditor(reddit, name=whereto, _data=None)
+            whereto.message('Pigrow Settings', page_text[0:10000])   #, from_subreddit=subreddit)
+        except:
+            print("meh, some bullshit happened.")
 
 
 def check_msg():
@@ -211,19 +255,33 @@ def check_msg():
             text = msg.subject
             if text in pi_set:
                 reply = change_setting(str(msg.subject),str(msg.body))
-                write_set_wiki()
-                print reply
+                write_set('wiki')
+                print(reply)
+            elif text == "update wiki":
+                print("wants me to update wiki... should do it themselves.")
+            elif text == "msg_settings":
+                write_set(msg.author)
         else:
-            print("THIS IS NOT A TRUSTED USED - THEY CAN NOT EDIT SETTINGS!")
+            print("THIS IS NOT A TRUSTED USER - THEY CAN NOT EDIT SETTINGS!")
             print("")
         msg.mark_read()
 
 
+###
+##         Main Loop
+#
+pi_set = {}
+#print reddit.read_only
+thetime = datetime.datetime.now()
+
 load_settings()
+if not commander == '':
+    write_set(commander)
 while True:
     try:
         check_msg()
-        time.sleep(6)
-        print("Looping again...")
+        time.sleep(30)
+        print("all messages replied to, Looping again...")
     except:
         print("There was an error in the loop, trying again")
+        raise
