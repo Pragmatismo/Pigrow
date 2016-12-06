@@ -8,7 +8,7 @@ import os
 script_path = '/home/pi/Pigrow/scripts/cron/'
 cappath = "/home/pi/cam_caps/"
 archive_path = '/home/pi/archive/'    #folder in which to store archived old image sets
-cron = CronTab('root')  #generally leave user as 'root' but 'pi' or whatever will work also if that user can run the camcap sctipt
+cron = CronTab(user=True)  #generally leave user as 'root' but 'pi' or whatever will work also if that user can run the camcap sctipt
 
 #### PROGRAM
 

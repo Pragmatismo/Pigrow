@@ -1,5 +1,8 @@
 #!/usr/bin/python
 import os
+from crontab import CronTab   #  pip install python-crontab
+cron = CronTab(user=True)  #generally leave user as 'root' but 'pi' or whatever will work also if that user can run the camcap sctipt
+
 
 print("##################################")
 print("##   Pigrow Setup Utility       ##")
@@ -7,6 +10,10 @@ print("")
 
 config_path = "/home/pi/Pigrow/config/"
 loc_locs    = "/home/pi/Pigrow/config/dirlocs.txt"
+
+autorun_path = "/home/pragmo/pigitgrow/Pigrow/scripts/autorun/"
+cron_path = "/home/pragmo/pigitgrow/Pigrow/scripts/cron/"
+
 valid_gpio=[2,3,4,17,27,22,10,9,11,0,5,6,13,19,26,14,15,18,23,24,25,8,7,1,12,16,20,21]
 used_gpio_num=[]
 # Defaults
@@ -247,7 +254,86 @@ def show_gpio_menu():
 def show_start_script_menu():
     print("\n\nhahahahahahahahahaahaha NO.")
 def show_cron_menu():
-    print("\n\nuse crontab you bum")
+    print("   ##############################################")
+    print("   ####  Cron Scripts                        ####")
+    print("   ####     1  -  Add start up script        ####")
+    print("   ####                                      ####")
+    print("   ####     2  -  Add Timed Switch           ####")
+    print("   ####                                      ####")
+    print("   ####     3  -  Add Repeating script       ####")
+    print("   ####                        s = show cron ####")
+    option = raw_input("Select option and press return;")
+    if option == "1":
+        print("   #### Choose script to run on start up,")
+        print("   ####    -NOTE: This should be considered an alternative way")
+        print("   ####            it's not as robust as starting a service")
+        print("   #### ")
+        count = -1
+        for x in os.listdir(autorun_path):
+            count = count + 1
+            print("   #### " + str(count) + " - " + x)
+        option = raw_input("Select script to add;")
+        job = autorun_path + os.listdir(autorun_path)[int(option)]
+        job = cron.new(command=job, comment='Pigrow')
+        job.every_reboot()
+        cron.write()
+
+
+    elif option == "2":
+        print("   #### Choose script you want to trigger at a set time")
+
+
+
+
+
+
+    elif option == "3":
+        count = -1
+        print("")
+        print("   #### Choose script you want to trigger periodically")
+        for x in os.listdir(cron_path):
+            count = count + 1
+            print("   #### " + str(count) + " - " + x)
+        print("   ####   ")
+        option = raw_input("Select script to add;")
+        job = cron_path + os.listdir(cron_path)[int(option)]
+        job = cron.new(command=job, comment='Pigrow')
+        print ("")
+        print(" Set frequency in,")
+        print("  1 - minute")
+        print("  2 - hour")
+        print("  3 - day")
+        print("  4 - week")
+        print("  5 - month")
+        freqin = raw_input(" ; ")
+        freq = raw_input("How frequently do you want it to trigger")
+        freq = int(freq)
+        if freqin == "1":
+            job.minute.every(freq)
+        elif freqin == "2":
+            job.hour.every(freq)
+        elif freqin == "3":
+            job.day.every(freq)
+        elif freqin == "4":
+            job.week.every(freq)
+        elif freqin == "5":
+            job.month.every(freq)
+        cron.write()
+        print("   -----------")
+        print(" -- Job added --")
+        show_main_menu()
+    elif option == "s":
+        print("   ###########")
+        for line in cron:
+            #if job.command=="Pigrow":
+            print("   #### " + str(line)) #s.command)
+
+               #
+             # #                                                                              REMOVE THIS WHEN DONE HERE
+    exit()  ##############################################################################################################################
+             # #
+               #
+
 def show_reddit_menu():
     print("\n\nnah - text file it.")
 def show_restore_default_menu():
