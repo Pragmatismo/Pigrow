@@ -7,8 +7,8 @@ print("")
 
 config_path = "/home/pi/Pigrow/config/"
 loc_locs    = "/home/pi/Pigrow/config/dirlocs.txt"
-
-
+valid_gpio=[2,3,4,17,27,22,10,9,11,0,5,6,13,19,26,14,15,18,23,24,25,8,7,1,12,16,20,21]
+used_gpio_num=[]
 # Defaults
 
 loc_settings    = "/home/pi/Pigrow/config/pigrow_config.txt"
@@ -105,8 +105,39 @@ def guided_setup():
     make_dirs()
 
     print("That's as far as we've got with that.... yeah, not that impressive so far... ")
+
+def bind_realy(device):
+    setting = raw_input("Select GPIO pin to use;")
+    if setting in used_gpio_num:
+        print("")
+        print("That GPIO pin is already in use!")
+    else:
+        if int(setting) in valid_gpio:
+            print("Setting " + device + " to use GPIO " + setting)
+            print("")
+            print(" Select Normal State;")
+            print("    type 0, L or low  --OR--   1, H, or high")
+            print(" This relates to if current can flow through the relay when it's powered down ")
+            print("  -- It's perfectly safe to get this wrong as long as you're using he right GPIO number --")
+            print("           --- if you've got it backwards turningi on will instead turn it off..  ---")
+            direction = raw_input("Input option;")
+            if direction.lower() in ["0", "l", "low", "down", "off"]:
+                print("Direction set to LOW")
+                pi_set[device+"_on"] = "low"
+                pi_set[device] = setting
+                save_settings()
+            elif direction.lower() in ["1", "h", "high", "up", "on" ]:
+                print("Direction set to HIGH")
+                pi_set[device+"_on"] = 'high"'
+                pi_set[device] = setting
+                save_settings()
+                print("Set " + device + " to " + setting + " with it's normal state as " + direction)
+            else:
+                print("All those options and you still messaed up...")
+
 def show_gpio_menu():
     used_gpio=[]
+    used_gpio_num=[]
     print("")
     print("   ##############################################")
     print("   ####          GPIO SETTINGS               ####")
@@ -117,6 +148,7 @@ def show_gpio_menu():
             if len(asplit) == 2:
                 #print("   ####   " + asplit[1])
                 used_gpio.append([a,b])
+                used_gpio_num.append(b)
     print("   #### Currently Used gpio pins; ")
     print("   ####    GPIO     DEVICE")
     for x in range(0,len(used_gpio)):
@@ -128,10 +160,60 @@ def show_gpio_menu():
     print("   ####   2  - Remove device                 ####")
     print("   ####                                      ####")
     print("   ####   3  - Test device                   ####")
-    print("   ####                                      ####")
+    print("   ####                        m - main menu ####")
+    print("   ####                        q - quit      ####")
     option = raw_input("Type the number and press return;")
     if option == "1":
+        print("Select device to add;")
+        print("   Sensors;")
+        print("  1   - DHT22 Temp and Humidity")
+        print("")
+        print("   Relay Bindings;")
+        print(" 2 - Lamp")
+        print(" 3 - Heater")
+        print(" 4 - Fan in")
+        print(" 5 - Fan out")
+        print(" 6 - Humid")
+        print(" 7 - Dehumid")
+        print(" 8 - Co2")
+        print("")
+        option = raw_input("Type the number and press return; ")
+        if option == "1":
+            setting = raw_input("Select GPIO pin to use; ")
+            try:
+                setting = int(setting)
+            except:
+                print("Should use a number")
+
+            print used_gpio_num
+            if setting in used_gpio_num:
+                print("")
+                print("That GPIO pin is already in use!")
+            else:
+                if setting in valid_gpio:
+                    print("")
+                    print("Setting DHT22 Sensor on pin " + str(setting))
+                    pi_set['gpio_dht22sensor'] = setting
+                    save_settings()
+                else:
+                    print("Sorry that doesn't seem to be a valid pin... ")
+        elif option == "2":
+            bind_realy('gpio_lamp')
+        elif option == "3":
+            bind_realy('gpio_heater')
+        elif option == "4":
+            bind_realy('gpio_fanin')
+        elif option == "5":
+            bind_realy('gpio_fanout')
+        elif option == "6":
+            bind_realy('gpio_humid')
+        elif option == "7":
+            bind_realy('gpio_dehumid')
+        elif option == "8":
+            bind_realy('gpio_CO2')
         show_gpio_menu()
+
+
     elif option == "2":
         print(" ")
         print(" Choose Device to remove;")
@@ -140,18 +222,27 @@ def show_gpio_menu():
                 print("   ####     " + str(x) + "        " + str(used_gpio[x][0].split("_")[1] + "  "))
         option = raw_input("Type the number and press return;")
         try:
+            option = int(option)
             setting = used_gpio[int(option)]
             print setting
             pi_set[setting[0]] = ''
+            used_gpio = []
+            used_gpio_num = []
             save_settings()
             show_gpio_menu()
+            #show_gpio_menu()
         except:
-            print("meh")
-            raise
-        #show_gpio_menu()
+            print("Should use numbers for this,,,")
+            show_gpio_menu()
     elif option == "3":
         show_gpio_menu()
         #show_gpio_menu()
+    elif option == "m":
+        show_main_menu()
+    elif option == "q":
+        exit()
+    else:
+        show_gpio_menu()
 
 def show_start_script_menu():
     print("\n\nhahahahahahahahahaahaha NO.")
