@@ -102,6 +102,7 @@ def save_settings():
                 try:
                     s_line = str(a) +"="+ str(b) +"\n"
                     f.write(s_line)
+                    print(" - Settings saved to file - ")
                     #print s_line
                 except:
                     print("ERROR SETTINGS FILE ERROR SETTING NOT SAVED _ SERIOUS FAULT!")
@@ -284,4 +285,4 @@ while True:
         print("all messages replied to, Looping again...")
     except:
         print("There was an error in the loop, trying again")
-        raise
+        #raise
