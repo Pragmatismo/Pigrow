@@ -55,7 +55,7 @@ load_locs()
 if 'loc_switchlog' in loc_dic: loc_switchlog = loc_dic['loc_switchlog']
 if 'loc_settings' in loc_dic: loc_settings = loc_dic['loc_settings']
 if 'err_log' in loc_dic: err_log = loc_dic['err_log']
-my_user_agent= 'Pigrow updater tester thing V0.5 (by /u/The3rdWorld)''
+my_user_agent= 'Pigrow updater tester thing V0.5 (by /u/The3rdWorld)'
 try:
     my_client_id = loc_dic['my_client_id']
     my_client_secret = loc_dic['my_client_secret']
