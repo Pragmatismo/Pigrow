@@ -1,5 +1,5 @@
 #!/usr/bin/python
-import os
+import os, sys
 from crontab import CronTab   #  pip install python-crontab
 cron = CronTab(user=True)  #generally leave user as 'root' but 'pi' or whatever will work also if that user can run the camcap sctipt
 
@@ -11,9 +11,15 @@ print("")
 config_path = "/home/pi/Pigrow/config/"
 loc_locs    = "/home/pi/Pigrow/config/dirlocs.txt"
 
-autorun_path = "/home/pragmo/pigitgrow/Pigrow/scripts/autorun/"
-cron_path = "/home/pragmo/pigitgrow/Pigrow/scripts/cron/"
-switch_path = "/home/pragmo/pigitgrow/Pigrow/scripts/switches/"
+
+#folders that get looked in for the scripts to add to cron
+autorun_path = "/home/pi/Pigrow/scripts/autorun/"    #reboot scripts'
+cron_path    = "/home/pi/Pigrow/scripts/cron/"       #repeting scripts
+switch_path  = "/home/pi/Pigrow/scripts/switches/"   #timed scripts
+
+autorun_path = "/home/pragmo/pigitgrow/Pigrow/scripts/autorun/"      #reboot scripts'           #######
+cron_path    = "/home/pragmo/pigitgrow/Pigrow/scripts/cron/"         #repeting scripts      ################   THESE ARE FOR ME ONLY!!!!
+switch_path  = "/home/pragmo/pigitgrow/Pigrow/scripts/switches/"     #timed scripts             ########
 
 valid_gpio=[2,3,4,17,27,22,10,9,11,0,5,6,13,19,26,14,15,18,23,24,25,8,7,1,12,16,20,21]
 used_gpio_num=[]
@@ -42,37 +48,96 @@ def load_locs():
             s_item = line.split("=")
             loc_dic[s_item[0]]=s_item[1].rstrip('\n') #adds each setting to dictionary
 
-config_path = "/home/pragmo/pigitgrow/Pigrow/config/"
-loc_locs    = "/home/pragmo/pigitgrow/Pigrow/config/dirlocs.txt"
+for argu in sys.argv:
+    thearg = str(argu).split('=')[0]
+    if  thearg == 'locs':
+        loc_locs = str(argu).split('=')[1]
+    elif  thearg == '-pragmo':
+        loc_locs = "/home/pragmo/pigitgrow/Pigrow/config/dirlocs.txt"
 
-
-if not os.path.exists(loc_locs):
-    if not os.path.exists(config_path):
-        os.makedirs(config_path)
-    print("Locations and passes file not found, creating default one...")
-                     #
-                     #          THIS LINE ONLY FOR TESTING PHASE ONLY REPLACE ONCE EVERYTHING IS FINAL WITH A SENSIBLE AND TIDY LINE
-    default_settings = "loc_settings=/home/pi/Pigrow/config/pigrow_config.txt\nloc_switchlog=/home/pi/Pigrow/logs/switch_log.txt\nloc_dht_log=/home/pi/Pigrow/log/dht22_log.txt\nerr_log=/home/pi/Pigrow/log/err_log.txt/\ncaps_path=/home/pi/Pigrow/caps/\ngraph_path=/home/pi/Pigrow/graphs/\nmy_client_id=\nmy_client_secret=\nmy_username=Pigrow_salad\nmy_password=\nsubreddit=Pigrow\nwiki_title=livegrow_test_settings\nloc_dht_log=/home/pi/Pigrow/logs/dht22_log.txt\ngraph_path=/home/pi/Pigrow/graphs/\nlog_path=/home/pi/Pigrow/logs/"
-                     #
-                     #
+def write_loclocs():
     with open(loc_locs, "w") as f:
-        f.write(default_settings)
-else:
-    load_locs()
-    loc_settings    = loc_dic['loc_settings']
-    loc_switchlog   = loc_dic['loc_switchlog']
-    loc_dht_log     = loc_dic['loc_dht_log']
-    err_log         = loc_dic['err_log']
-    caps_path    = loc_dic['caps_path']
-    graph_path   = loc_dic['graph_path']
-    log_path     = loc_dic['log_path']
-    my_client_id     = loc_dic['my_client_id']
-    my_client_secret = loc_dic['my_client_secret']
-    my_username      = loc_dic['my_username']
-    my_password      = loc_dic['my_password']
-    subreddit       = loc_dic['subreddit']
-    wiki_title      = loc_dic['wiki_title']
-    live_wiki_title = loc_dic['live_wiki_title']
+        for a,b in loc_dic.iteritems():
+            try:
+                s_line = str(a) +"="+ str(b) +"\n"
+                f.write(s_line)
+                #print s_line
+            except:
+                print("ERROR SETTINGS FILE ERROR SETTING NOT SAVED _ SERIOUS FAULT!")
+
+def set_locs_and_passes():
+    global loc_settings, loc_switchlog, loc_dht_log, loc_dht_log, err_log, caps_path, graph_path, log_path, my_client_id, my_client_secret, my_username, my_password, subreddit, wiki_title, live_wiki_title
+    try:
+        load_locs()
+    except:
+        print(" Couldn't Load the logs")
+    try:
+        #print loc_settings
+        loc_settings    = loc_dic['loc_settings']
+        #print loc_settings
+    except:
+        print("IMPORTANT - Location of Settings File not included in file, adding default - " + loc_settings)
+        loc_dic['loc_settings']=loc_settings
+    try:
+        loc_switchlog    = loc_dic['loc_switchlog']
+    except:
+        print("IMPORTANT - Location of switch log not included in file, adding default - " + loc_switchlog)
+        loc_dic['loc_switchlog']=loc_switchlog
+    try:
+        loc_dht_log    = loc_dic['loc_dht_log']
+    except:
+        print("IMPORTANT - Location of DHT log not included in file, adding default - " + loc_dht_log)
+        loc_dic['loc_dht_log']=loc_dht_log
+    try:
+        err_log    = loc_dic['err_log']
+    except:
+        print("IMPORTANT - Location of Error log not included in file, adding default - " + err_log)
+        loc_dic['err_log']=err_log
+    try:
+        caps_path    = loc_dic['caps_path']
+    except:
+        print("IMPORTANT - Location of caps path not included in file, adding default - " + caps_path)
+        loc_dic['caps_path']=caps_path
+    try:
+        graph_path    = loc_dic['graph_path']
+    except:
+        print("IMPORTANT - Location of Graph path not included in file, adding default - " + graph_path)
+        loc_dic['graph_path']=graph_path
+    try:
+        log_path    = loc_dic['log_path']
+    except:
+        print("IMPORTANT - Location of log path not included in file, adding default - " + log_path)
+        loc_dic['log_path']=log_path
+
+    try:
+        my_client_id     = loc_dic['my_client_id']
+        my_client_secret = loc_dic['my_client_secret']
+        my_username      = loc_dic['my_username']
+        my_password      = loc_dic['my_password']
+    except:
+        print(" Reddit Login details NOT SET set them if you want to use them...")
+        my_client_id     = ''
+        my_client_secret = ''
+        my_username      = ''
+        my_password      = ''
+    try:
+        subreddit        = loc_dic['subreddit']
+        wiki_title       = loc_dic['wiki_title']
+        live_wiki_title  = loc_dic['live_wiki_title']
+        watcher_username = loc_dic['watcher_name']
+    except:
+        print("Subreddit details not set, leaving blank")
+        subreddit        = ''
+        wiki_title       = ''
+        live_wiki_title  = ''
+        watcher_username = ''
+
+    if not os.path.exists(loc_locs):
+        print("Locations and passes file not found, creating default one...")
+        write_loclocs()
+        print(" - Settings saved to file - " + str(loc_locs))
+set_locs_and_passes()
+
 
 pi_set={}
 with open(loc_settings, "r") as f:
@@ -363,7 +428,6 @@ def show_cron_menu():
         cron.write()
         show_cron_menu()
 
-
     elif option == "s":
         print("   ###########")
         for line in cron:
@@ -376,7 +440,41 @@ def show_cron_menu():
         show_main_menu()
 
 def show_reddit_menu():
-    print("\n\nnah - text file it.")
+    print("\n\n")
+    print("   ##############################################")
+    print("   ####                                      ####")
+    print("   ####    Reddit passwords and stuff        ####")
+    print("   ####                                      ####")
+    print("   ####      1  -  Add Login Info            ####")
+    print("   ####                                      ####")
+    print("   ####      2  -  Send test message         ####")
+    print("   ####                                      ####")
+    print("   ####      3  -  Test wiki write           ####")
+    print("   ####                                      ####")
+    option = raw_input("Selection option;")
+    if option == "1":
+        print(" Guided settings setter...")
+        print("      - leave blank if not using them -")
+        my_username       =raw_input("Input the reddit username of your bot; ")
+        my_password       =raw_input("Input reddit password; ")
+        my_client_id      =raw_input("Input Client Id (the Shorter gibberish); ")
+        my_client_secret  =raw_input("Input Client secret code (the longer gibberish); ")
+        subreddit         =raw_input("Input name of subreddit; ")
+        wiki_title        =raw_input("Input name of wiki page for settings; ")
+        live_wiki_title   =raw_input("Input name wiki to use for live updates; ")
+        watcher_username  =raw_input("Input usename for person to recieve messages")
+        loc_dic['my_client_id']=my_client_id
+        loc_dic['my_client_secret']=my_client_secret
+        loc_dic['my_username']=my_username
+        loc_dic['my_password']=my_password
+        loc_dic['subreddit']=subreddit
+        loc_dic['wiki_title']=wiki_title
+        loc_dic['live_wiki_title']=live_wiki_title
+        loc_dic['watcher_name']=watcher_username
+        print("added them to the dictionary, and discarded that...")
+
+    elif option == "2":
+        print("Attempting to send a message to" + loc_dic['watcher_name'])
 
 
                #
@@ -389,6 +487,7 @@ def show_reddit_menu():
 
 def show_restore_default_menu():
     print("\n\nnope if you've messed up that bad just rm it all")
+    print("                                 maybe i'll add them later...")
 
 def show_main_menu():
     print("")
