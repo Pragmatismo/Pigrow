@@ -7,8 +7,9 @@ import sys
 #default user settings
 time_skip = 1 #when making timelapse uses every Nth frame so 4 is 4x faster
 darksize =75000   #all smaller files are removed assumed to be useless 75000 is a good value
-outfps = 10       #10 is a good value, between 2 and 60 is acceptable
-capsdir = "/home/pi/pigrow/camcaps/"
+infps = 10       #10 is a good value, between 2 and 60 is acceptable
+outfps = 25      #frame-rate of output video
+capsdir = "/home/pi/Pigrow/camcaps/"
 listfile = "/home/pi/ffTL.txt"
 outfile = "/home/pi/timelapse.mp4" #directory to save output
 file_type = "jpg"
@@ -24,6 +25,8 @@ for argu in sys.argv:
     elif thearg == "of":
         outfile = str(argu).split('=')[1]
     elif thearg == "fps":
+        infps = str(argu).split('=')[1]
+    elif thearg == "ofps":
         outfps = str(argu).split('=')[1]
     elif thearg == "darksize" or thearg == 'ds':
         darksize = int(str(argu).split('=')[1])
@@ -39,13 +42,14 @@ for argu in sys.argv:
         outpoint = int(str(argu).split('=')[1])
     elif thearg == "-h" or thearg == '--help':
         print(" Pigrow Timelapse maker thingy")
-        print("
+        print("")
         print("   caps=DIR         -folder to turn into a movie")
         print("   of=FILENAME      -location and name of outfile")
-        print("   fps=NUMBER       -frames per second of the out file")
+        print("   fps=NUMBER       -how long to show each photo in frames per second")
+        print("   ofps=NUMBER      -frames per second of the out file, same as fps works well")
         print("   ds=SIZE          -SIZE in bites below which files are ignored")
         print("   ts=NUMBER        -uses every Nth frame")
-        print("   ft=JPG/PNG/etc   -file type of images to look for, default jpg
+        print("   ft=JPG/PNG/etc   -file type of images to look for, default jpg")
         print(" ---   DISABLED  --- ovc=CODEC        -codec to use for video, normally defined by file type")
         print("   inp=NUMBER       -starts at the Nth file, can use -N to count backwards from the end")
         print("   op=NUMBER        -ends at the Nth file, can use -N to count backwards.  obvs can't be before inp")
@@ -88,7 +92,7 @@ ffTL.close()
 print "we have " + str(len(faster)) + " files in the faster version..."
 #runs the video encouder
 print "making you a timelapse video..."
-os.system("mpv mf://@"+listfile+" -mf-fps="+str(outfps)+" -o "+outfile) # --ovc "+outvidc+" --ovcopts=bitrate=1200:threads=2 --ovc 'gif' --ovcopts=bitrate=1200:threads=2
+os.system("mpv mf://@"+listfile+" -mf-fps="+str(infps)+" -o "+outfile) --ofps="+outfps)
 if os.path.isfile(outfile) == True:
     print "there you go; "+outfile+" ready to roll.."
 else:
