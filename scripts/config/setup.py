@@ -13,6 +13,7 @@ loc_locs    = "/home/pi/Pigrow/config/dirlocs.txt"
 
 autorun_path = "/home/pragmo/pigitgrow/Pigrow/scripts/autorun/"
 cron_path = "/home/pragmo/pigitgrow/Pigrow/scripts/cron/"
+switch_path = "/home/pragmo/pigitgrow/Pigrow/scripts/switches/"
 
 valid_gpio=[2,3,4,17,27,22,10,9,11,0,5,6,13,19,26,14,15,18,23,24,25,8,7,1,12,16,20,21]
 used_gpio_num=[]
@@ -220,7 +221,6 @@ def show_gpio_menu():
             bind_realy('gpio_CO2')
         show_gpio_menu()
 
-
     elif option == "2":
         print(" ")
         print(" Choose Device to remove;")
@@ -253,6 +253,10 @@ def show_gpio_menu():
 
 def show_start_script_menu():
     print("\n\nhahahahahahahahahaahaha NO.")
+    print("             ok, coming soon....")
+
+
+
 def show_cron_menu():
     print("   ##############################################")
     print("   ####  Cron Scripts                        ####")
@@ -261,7 +265,10 @@ def show_cron_menu():
     print("   ####     2  -  Add Timed Switch           ####")
     print("   ####                                      ####")
     print("   ####     3  -  Add Repeating script       ####")
+    print("   ####                                      ####")
+    print("   ####     4  -  Remove job from Cron       ####")
     print("   ####                        s = show cron ####")
+    print("   ####                        m = main menu ####")
     option = raw_input("Select option and press return;")
     if option == "1":
         print("   #### Choose script to run on start up,")
@@ -278,14 +285,29 @@ def show_cron_menu():
         job.every_reboot()
         cron.write()
 
-
     elif option == "2":
         print("   #### Choose script you want to trigger at a set time")
-
-
-
-
-
+        count = 0
+        for x in os.listdir(switch_path):
+            count = count + 1
+            print("   #### " + str(count) + " - " + x)
+        print("   ####   ")
+        option = raw_input("Select script to add;")
+        hour = raw_input("Input hour to trigger (0-23)")
+        minpast = raw_input("How man min past the hour? (0-59)")
+        try:
+            job = switch_path + os.listdir(switch_path)[int(option)]
+            hour = int(hour)
+            minpast = int(minpast)
+        except:
+            print("")
+            print(" those needed to both be numbers...")
+            show_cron_menu()
+        job = cron.new(command=job, comment='Pigrow')
+        job.hour.on(hour)
+        job.minute.on(minpast)
+        cron.write()
+        show_cron_menu()
 
     elif option == "3":
         count = -1
@@ -321,12 +343,41 @@ def show_cron_menu():
         cron.write()
         print("   -----------")
         print(" -- Job added --")
-        show_main_menu()
+        show_cron_menu()
+
+    elif option == "4":
+        print(" Choose script to remove;")
+        count = 0
+        for job in cron:
+            print("  "+str(count)+"  - " + str(job))
+            count = count + 1
+        torem = raw_input("Type number and press return;")
+        try:
+            torem = int(torem)
+        except:
+            print("\n\n THAT WAS NOT A NUMBER \n\n")
+            show_cron_menu()
+        print("Removing --" + str(cron[torem]))
+        print("")
+        cron.remove(cron[torem])
+        cron.write()
+        show_cron_menu()
+
+
     elif option == "s":
         print("   ###########")
         for line in cron:
             #if job.command=="Pigrow":
             print("   #### " + str(line)) #s.command)
+        raw_input("hit return to continue...")
+        show_cron_menu()
+    elif option == "m":
+        print("   #################")
+        show_main_menu()
+
+def show_reddit_menu():
+    print("\n\nnah - text file it.")
+
 
                #
              # #                                                                              REMOVE THIS WHEN DONE HERE
@@ -334,8 +385,8 @@ def show_cron_menu():
              # #
                #
 
-def show_reddit_menu():
-    print("\n\nnah - text file it.")
+
+
 def show_restore_default_menu():
     print("\n\nnope if you've messed up that bad just rm it all")
 
