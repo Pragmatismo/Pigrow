@@ -8,13 +8,13 @@ import sys
 time_skip = 1 #when making timelapse uses every Nth frame so 4 is 4x faster
 darksize =75000   #all smaller files are removed assumed to be useless 75000 is a good value
 outfps = 10       #10 is a good value, between 2 and 60 is acceptable
-capsdir = "/home/pragmo/camcaps/"
-listfile = "/home/pragmo/ffTL.txt"
-outfile = "/home/pragmo/timelapse16.mkv" #directory to save output
+capsdir = "/home/pi/pigrow/camcaps/"
+listfile = "/home/pi/ffTL.txt"
+outfile = "/home/pi/timelapse.mp4" #directory to save output
 file_type = "jpg"
-outvidc = "libx264"
+outvidc = "libx264"  #DISABLED
 inpoint=0
-outpoint=0 #use -10 to end at ten befor the end, 0 to show the whole thign and 10 to shopw only ten frames
+outpoint=0 #use -10 to end at ten befor the end, 0 to show the whole thing and 10 to shopw only ten frames
 #end of user settings
 
 for argu in sys.argv:
@@ -37,6 +37,23 @@ for argu in sys.argv:
         inpoint = int(str(argu).split('=')[1])
     elif thearg == "op" or thearg == 'outpoint':
         outpoint = int(str(argu).split('=')[1])
+    elif thearg == "-h" or thearg == '--help':
+        print(" Pigrow Timelapse maker thingy")
+        print("
+        print("   caps=DIR         -folder to turn into a movie")
+        print("   of=FILENAME      -location and name of outfile")
+        print("   fps=NUMBER       -frames per second of the out file")
+        print("   ds=SIZE          -SIZE in bites below which files are ignored")
+        print("   ts=NUMBER        -uses every Nth frame")
+        print("   ft=JPG/PNG/etc   -file type of images to look for, default jpg
+        print(" ---   DISABLED  --- ovc=CODEC        -codec to use for video, normally defined by file type")
+        print("   inp=NUMBER       -starts at the Nth file, can use -N to count backwards from the end")
+        print("   op=NUMBER        -ends at the Nth file, can use -N to count backwards.  obvs can't be before inp")
+        print("   -h               -this menus obviously.")
+        print("")
+        print("   Add arguments in any order, no spaces anywhere in them exceot to seperate them please.")
+        print("             For more information visit www.reddit.com/r/pigrow")
+
 
 filelist = []
 no_dark = []
@@ -71,7 +88,7 @@ ffTL.close()
 print "we have " + str(len(faster)) + " files in the faster version..."
 #runs the video encouder
 print "making you a timelapse video..."
-os.system("mpv mf://@"+listfile+" -mf-fps="+str(outfps)+" -o "+outfile) # --ovc "+outvidc+" --ovcopts=bitrate=1200:threads=2 --ovc 'gif' --ovcopts=bitrate=1200:threads=2 
+os.system("mpv mf://@"+listfile+" -mf-fps="+str(outfps)+" -o "+outfile) # --ovc "+outvidc+" --ovcopts=bitrate=1200:threads=2 --ovc 'gif' --ovcopts=bitrate=1200:threads=2
 if os.path.isfile(outfile) == True:
     print "there you go; "+outfile+" ready to roll.."
 else:
