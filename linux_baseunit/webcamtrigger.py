@@ -7,7 +7,7 @@ print("")
 print("")
 print(" USE l=3 to take a photo every 3 somethings")
 print("      t  to take triggered photos ")
-print("     cap=/home/pi/folder/ to set caps path other than current dir
+print("     cap=/home/pi/folder/ to set caps path other than current dir")
 print("      ")
 pi_paper = True  #updates pi wall paper, use -nopaper to turn it off.
 s_val = "20"
@@ -20,6 +20,7 @@ additonal_commands = "-d/dev/video0 -w"
 
 try:
     cappath = os.getcwd()
+    cappath += '/'
 except:
     cappath = "/home/pi/webcamview/"
 
