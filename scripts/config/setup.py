@@ -1,8 +1,7 @@
 #!/usr/bin/python
 import os, sys
 from crontab import CronTab   #  pip install python-crontab
-cron = CronTab(user=True)  #generally leave user as 'root' but 'pi' or whatever will work also if that user can run the camcap sctipt
-
+cron = CronTab(user=True)  #can be user+True, 'yourusername' or 'root' all work.
 
 print("##################################")
 print("##   Pigrow Setup Utility       ##")
@@ -11,8 +10,7 @@ print("")
 config_path = "/home/pi/Pigrow/config/"
 loc_locs    = "/home/pi/Pigrow/config/dirlocs.txt"
 
-
-#folders that get looked in for the scripts to add to cron
+#folders that get looked in for the scripts to add to cron  - will deduce thes from main path to take usernames into account when i get round to it
 autorun_path = "/home/pi/Pigrow/scripts/autorun/"    #reboot scripts'
 cron_path    = "/home/pi/Pigrow/scripts/cron/"       #repeting scripts
 switch_path  = "/home/pi/Pigrow/scripts/switches/"   #timed scripts
@@ -25,20 +23,24 @@ valid_gpio=[2,3,4,17,27,22,10,9,11,0,5,6,13,19,26,14,15,18,23,24,25,8,7,1,12,16,
 used_gpio_num=[]
 # Defaults
 
-loc_settings    = "/home/pi/Pigrow/config/pigrow_config.txt"
-loc_switchlog   = "/home/pi/Pigrow/logs/switch_log.txt"
-loc_dht_log     = "/home/pi/Pigrow/logs/dht22_log.txt"
-err_log         = "/home/pi/Pigrow/logs/err_log.txt"
-caps_path    = "/home/pi/Pigrow/caps/"
-graph_path   = "/home/pi/Pigrow/graphs/"
-log_path     = "/home/pi/Pigrow/logs/"
-my_client_id      = ""
-my_client_secret  = ""
-my_username       = ""
-my_password       = ""
-subreddit       = "Pigrow"
-wiki_title      = "livegrow_test_settings"
-live_wiki_title = "livegrow_test"
+def set_defaults():
+    global watcher_name, loc_settings, loc_switchlog, loc_dht_log, loc_dht_log, err_log, caps_path, graph_path, log_path, my_client_id, my_client_secret, my_username, my_password, subreddit, wiki_title, live_wiki_title
+    loc_settings    = "/home/pi/Pigrow/config/pigrow_config.txt"
+    loc_switchlog   = "/home/pi/Pigrow/logs/switch_log.txt"
+    loc_dht_log     = "/home/pi/Pigrow/logs/dht22_log.txt"
+    err_log         = "/home/pi/Pigrow/logs/err_log.txt"
+    caps_path    = "/home/pi/Pigrow/caps/"
+    graph_path   = "/home/pi/Pigrow/graphs/"
+    log_path     = "/home/pi/Pigrow/logs/"
+    my_client_id      = " "
+    my_client_secret  = " "
+    my_username       = " "
+    my_password       = " "
+    subreddit       = "Pigrow"
+    wiki_title      = "livegrow_test_settings"
+    live_wiki_title = "livegrow_test"
+    watcher_name    = ' '
+set_defaults()
 
 loc_dic = {}
 def load_locs():
@@ -558,8 +560,11 @@ def show_reddit_menu():
         show_reddit_menu()
 
 def show_restore_default_menu():
-    print("\n\nnope if you've messed up that bad just rm it all")
-    print("                                 maybe i'll add them later...")
+    print("\n\nThis will errase all settings and reset to default values")
+    print("                                .")
+    if raw_input("Type yes to contnie") == "yes":
+        set_defaults()
+        save_settings()
 
 def show_main_menu():
     print("")
