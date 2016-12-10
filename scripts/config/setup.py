@@ -66,7 +66,7 @@ def write_loclocs():
                 print("ERROR SETTINGS FILE ERROR SETTING NOT SAVED _ SERIOUS FAULT!")
 
 def set_locs_and_passes():
-    global loc_settings, loc_switchlog, loc_dht_log, loc_dht_log, err_log, caps_path, graph_path, log_path, my_client_id, my_client_secret, my_username, my_password, subreddit, wiki_title, live_wiki_title
+    global watcher_name, loc_settings, loc_switchlog, loc_dht_log, loc_dht_log, err_log, caps_path, graph_path, log_path, my_client_id, my_client_secret, my_username, my_password, subreddit, wiki_title, live_wiki_title
     try:
         load_locs()
     except:
@@ -116,21 +116,24 @@ def set_locs_and_passes():
         my_password      = loc_dic['my_password']
     except:
         print(" Reddit Login details NOT SET set them if you want to use them...")
-        my_client_id     = ''
-        my_client_secret = ''
-        my_username      = ''
-        my_password      = ''
+        my_client_id     = ' '
+        my_client_secret = ' '
+        my_username      = ' '
+        my_password      = ' '
     try:
         subreddit        = loc_dic['subreddit']
         wiki_title       = loc_dic['wiki_title']
         live_wiki_title  = loc_dic['live_wiki_title']
-        watcher_username = loc_dic['watcher_name']
     except:
         print("Subreddit details not set, leaving blank")
-        subreddit        = ''
-        wiki_title       = ''
-        live_wiki_title  = ''
-        watcher_username = ''
+        subreddit        = ' '
+        wiki_title       = ' '
+        live_wiki_title  = ' '
+    try:
+        watcher_name     = loc_dic['watcher_name']
+    except:
+        print("No Reddit user set to recieve mail and issue commands")
+        watcher_name     = ' '
 
     if not os.path.exists(loc_locs):
         print("Locations and passes file not found, creating default one...")
@@ -144,6 +147,7 @@ with open(loc_settings, "r") as f:
     for line in f:
         s_item = line.split("=")
         pi_set[s_item[0]]=s_item[1].rstrip('\n')
+
 
 def save_settings():
     print("Saving Settings...")
@@ -440,50 +444,118 @@ def show_cron_menu():
         show_main_menu()
 
 def show_reddit_menu():
+    global watcher_name, loc_settings, loc_switchlog, loc_dht_log, loc_dht_log, err_log, caps_path, graph_path, log_path, my_client_id, my_client_secret, my_username, my_password, subreddit, wiki_title, live_wiki_title
+
     print("\n\n")
     print("   ##############################################")
     print("   ####                                      ####")
     print("   ####    Reddit passwords and stuff        ####")
+    print("   ####        bot: " + my_username)
+    print("   ####        sub: " + subreddit)
+    print("   ####       user: " + watcher_name)
+    print("   ####  Settings;                           ####")
+    print("   ####      1  -  Bot Login Info            ####")
+    print("   ####      2  -  Wiki Details              ####")
+    print("   ####      3  -  User to recieve messages  ####")
+    print("   ####  Test;                               ####")
+    print("   ####      4  -  Send test message         ####")
+    print("   ####      5  -  Test wiki write           ####")
     print("   ####                                      ####")
-    print("   ####      1  -  Add Login Info            ####")
+    print("   ####              s - Show Reddit Details ####")
     print("   ####                                      ####")
-    print("   ####      2  -  Send test message         ####")
-    print("   ####                                      ####")
-    print("   ####      3  -  Test wiki write           ####")
-    print("   ####                                      ####")
+
     option = raw_input("Selection option;")
     if option == "1":
-        print(" Guided settings setter...")
-        print("      - leave blank if not using them -")
-        my_username       =raw_input("Input the reddit username of your bot; ")
-        my_password       =raw_input("Input reddit password; ")
-        my_client_id      =raw_input("Input Client Id (the Shorter gibberish); ")
-        my_client_secret  =raw_input("Input Client secret code (the longer gibberish); ")
+        print(" These are the login details of your bot account, not your main reddit account...")
+        print("                    -- best not to use the same for both, it'd mess up your messages")
+        print("              ")
+        print("leave blank to keep seetings or input a single space ' ' to blank them;")
+        i_my_username       =raw_input("Input the reddit username of your bot; ")
+        i_my_password       =raw_input("Input reddit password; ")
+        i_my_client_id      =raw_input("Input Client Id (the Shorter gibberish); ")
+        i_my_client_secret  =raw_input("Input Client secret code (the longer gibberish); ")
+
+        if i_my_username == '':
+            print("Leaving username set to; " + my_username)
+        else:
+            loc_dic['my_username']=i_my_username
+            my_username = i_my_username
+
+        if i_my_password == '':
+            print("Leaving password set to; " + my_password)
+        else:
+            loc_dic['my_password']=i_my_password
+            my_password = i_my_password
+
+        if i_my_client_id == '':
+            print("Leaving Client ID set to; " + my_client_id)
+        else:
+            loc_dic['my_client_id']=i_my_client_id
+            my_client_id = i_my_client_id
+
+        if i_my_client_secret == '':
+            print("Leaving Client Secret set to; " + my_client_secret  + " yeah, means nothing to me either...")
+        else:
+            loc_dic['my_client_secret']=i_my_client_secret
+            my_client_secret == i_my_client_secret
+
+        write_loclocs()
+        print("")
+        print(" Login Details Saved;")
+        show_reddit_menu()
+    elif option == "2":
+        print("")
         subreddit         =raw_input("Input name of subreddit; ")
         wiki_title        =raw_input("Input name of wiki page for settings; ")
         live_wiki_title   =raw_input("Input name wiki to use for live updates; ")
-        watcher_username  =raw_input("Input usename for person to recieve messages")
-        loc_dic['my_client_id']=my_client_id
-        loc_dic['my_client_secret']=my_client_secret
-        loc_dic['my_username']=my_username
-        loc_dic['my_password']=my_password
         loc_dic['subreddit']=subreddit
         loc_dic['wiki_title']=wiki_title
         loc_dic['live_wiki_title']=live_wiki_title
-        loc_dic['watcher_name']=watcher_username
-        print("added them to the dictionary, and discarded that...")
+        write_loclocs()
+        print("Subreddit Details Saved,")
+        show_reddit_menu()
+    elif option == "3":
+        print(" Input the name of the account you want to be in control of your Pigrow")
+        print("       - this user will be able to alter settings and recieve updates.")
+        i_watcher_name  =raw_input("Input just he username, press return to leave it the same or add a space to blank it: ")
+        print("")
+        if i_watcher_name == '':
+            print("No change made")
+        else:
+            loc_dic['watcher_name']=i_watcher_name
+            watcher_name = i_watcher_name
+            write_loclocs()
+            print("Watcher Username set and saved.")
+        show_reddit_menu()
 
-    elif option == "2":
+    elif option == "4":
         print("Attempting to send a message to" + loc_dic['watcher_name'])
+        print("                actually this module isn't written...")
+
+    elif option == "5":
+        print("Atempting to update the wiki pages..")
+        print("                actually this module isn't written.")
 
 
-               #
-             # #                                                                              REMOVE THIS WHEN DONE HERE
-    exit()  ##############################################################################################################################
-             # #
-               #
-
-
+    elif option == 's' or option == 'S':
+        print("  Reddit Log in details;")
+        print("      ")
+        print("Pigrow Bot Account; ")
+        print("   Username; " + my_username)
+        print("   Password; " + my_password)
+        print("  Client id; " + my_client_id)
+        print("  Secret id; " + my_client_secret)
+        print("")
+        print("Wiki Information;")
+        print("     Subreddit; " + subreddit)
+        print(" Settings Wiki; " + wiki_title)
+        print("     Live Wiki; " + live_wiki_title)
+        print("")
+        print("Person who is in control,")
+        print("  Watcher/Commander; " + watcher_name)
+        print("")
+        raw_input("Press return to continue...")
+        show_reddit_menu()
 
 def show_restore_default_menu():
     print("\n\nnope if you've messed up that bad just rm it all")
