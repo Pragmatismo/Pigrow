@@ -16,7 +16,9 @@ def heater_off(set_dic, switch_log):
         GPIO.setup(gpio_pin, GPIO.OUT)
         if gpio_pin_on == "low":
             GPIO.output(gpio_pin, GPIO.HIGH)
+            gpio_pin_dir = high
         elif gpio_pin_on == "high":
+            gpio_pin_dir = low
             GPIO.output(gpio_pin, GPIO.LOW)
         else:
             print("      !!       CAN'T DETERMINE GPIO DIRECTION   !!")
