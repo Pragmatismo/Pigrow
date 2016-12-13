@@ -1,5 +1,5 @@
 #!/usr/bin/python
-import datetime
+import datetime, sys
 sys.path.append('/home/pi/Pigrow/scripts/')
 import pigrow_defs
 
