@@ -5,6 +5,8 @@ import datetime
 import Adafruit_DHT
 sys.path.append('/home/pi/Pigrow/scripts/')
 import pigrow_defs
+sys.path.append('/home/pi/Pigrow/scripts/switches/')
+import heater_on
 loc_dic = pigrow_defs.load_locs("/home/pi/Pigrow/config/dirlocs.txt")
 set_dic = pigrow_defs.load_settings(loc_dic['loc_settings'], err_log=loc_dic['err_log'],)
 #print set_dic
@@ -27,15 +29,18 @@ def heater_control(temp):
     #checks to see if current temp should result in heater on or off
     templow  = set_dic['heater_templow']
     temphigh = set_dic['heater_temphigh']
-    if temp < templow:
-        message = "It's bloody cold"
-        write_log(script, message)
-    elif temp > temphigh:
-        message = "fucking 'ell it's well hot in here"
-        write_log(script, message)
+    if temp > templow:
+        message = "It's bloody cold," + str(temp) + " degrees! the limit is " + str(templow)
+        pigrow_defs.write_log(script, message,loc_dic['loc_switchlog'])
+        heater_on.heater_on(set_dic, loc_dic['loc_switchlog'])
+    elif temp < temphigh:
+        message = "fucking 'ell it's well hot in here," + str(temp) + " degrees! the limit is " + str(temphigh)
+        pigrow_defs.write_log(script, message,loc_dic['loc_switchlog'])
+
     else:
-        message = "This is a nice temperateure, no it is, don't you think?"
+        message = "This is a nice temperateure, no it is, don't you think?" + str(temp) + " degrees"
         print(" --not worth logging but, " + message)
+
 
 
 hum, temp, timno = read_and_log()

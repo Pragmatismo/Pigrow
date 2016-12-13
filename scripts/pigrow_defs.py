@@ -44,9 +44,9 @@ def load_settings(loc_settings, err_log="./err.log"):
                 f.write(line)
             print("Log writen:" + line)
 
-def write_log(script, message):
+def write_log(script, message, switch_log):
     line = script + "@" + str(datetime.datetime.now()) + "@" + message
-    with open(loc_dic['loc_switchlog'], "a") as f:
+    with open(switch_log, "a") as f:
         f.write(line)
     print("Log writen:" + line)
 

@@ -3,14 +3,9 @@ import datetime, sys
 sys.path.append('/home/pi/Pigrow/scripts/')
 import pigrow_defs
 
-
-
 print("")
 print("      #############################################")
 print("      ##         Turning the heater - ON         ##")
-
-
-
 
 def heater_on(set_dic, switch_log):
     if 'gpio_heater' in set_dic and not set_dic['gpio_heater'] == '':

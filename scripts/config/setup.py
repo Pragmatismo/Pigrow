@@ -363,11 +363,11 @@ def show_cron_menu():
             count = count + 1
             print("   #### " + str(count) + " - " + x)
         print("   ####   ")
-        option = raw_input("Select script to add;")
-        hour = raw_input("Input hour to trigger (0-23)")
-        minpast = raw_input("How man min past the hour? (0-59)")
+        option = raw_input("Select script to add; ")
+        hour = raw_input("Input hour to trigger (0-23); ")
+        minpast = raw_input("How man min past the hour? (0-59); ")
         try:
-            job = switch_path + os.listdir(switch_path)[int(option)]
+            job = switch_path + os.listdir(switch_path)[int(option)-1]
             hour = int(hour)
             minpast = int(minpast)
         except:
