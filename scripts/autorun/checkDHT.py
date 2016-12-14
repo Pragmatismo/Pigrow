@@ -37,14 +37,15 @@ def heater_control(temp):
     #checks to see if current temp should result in heater on or off
     templow  = set_dic['heater_templow']
     temphigh = set_dic['heater_temphigh']
-    if temp < templow and heater_state != 'on':
+    message = "doing nothing, it's " + str(temp) + " degrees and the heater is " + heater_state
+    if temp > templow and heater_state != 'on':
         message = "It's bloody cold," + str(temp) + " degrees! the low limit is " + str(templow)
         if heater_state == 'unknown':
             message = "Script initialised, it's " + str(temp) + " degrees! the low limit is " + str(templow) + " so checking it's on"
         pigrow_defs.write_log(script, message,loc_dic['loc_switchlog'])
         heater_on.heater_on(set_dic, loc_dic['loc_switchlog'])
         heater_state = 'on'
-    elif temp > temphigh and heater_state != 'off':
+    elif temp < temphigh and heater_state != 'off':
         message = "fucking 'ell it's well hot in here, " + str(temp) + " degrees! the high limit is " + str(temphigh)
         if heater_state == 'unknown':
             message = "Script initialised, it's " + str(temp) + " degrees! the low limit is " + str(templow) + " so checking it's off"
@@ -52,29 +53,41 @@ def heater_control(temp):
         heater_off.heater_off(set_dic, loc_dic['loc_switchlog'])
         heater_state = 'off'
     else:
-        message = "doing nothing, it's " + str(temp) + " degrees and the heater is " + heater_state
         print(" --not worth logging but, " + message)
 
 def humid_contol(humid):
-    global humid_state
+    global humid_state, dehumid_state
     humid_low  = set_dic['humid_low']
     humid_high = set_dic['humid_high']
-    if humid < humid_low and humid_state != 'up_on':
-        print('should turn the humidifer on..')
+
+    if humid > humid_low and humid_state != 'up_on':
+        print("lol should turn the humidifer on, it's " + str(humid) + " and the low limit is " + str(humid_low))
         humid_state = 'up_on'
-    elif humid > humid_low and humid_state !='up_off':
-        print("should turn the humidifier off")
+    elif humid < humid_low and humid_state !='up_off':
+        print("should turn the humidifier off, it's " + str(humid) + " and the low limit is " + str(humid_low))
         humid_state = 'up_off'
 
+    if humid > humid_high and dehumid_state != 'down_on':
+        print("should turn dehumidifer on, it's " + str(humid) + " and the high limit is " + str(humid_high))
+        dehumid_state = 'down_on'
+    elif humid < humid_high and dehumid_state != 'down_off':
+        print("should turn dehumid off, it's " + str(humid) + " and the high limit is " + str(humid_high))
+        dehumid_state = 'down_off'
 
+
+
+dehumid_state = 'unknown'
 humid_state = 'unknown'
 heater_state = 'unknown'
+
+##needs to check light is in correct state on restart
+
 while True:
     humid, temp, timno = read_and_log(loc_dic)
     print(" -- " + str(timno) + ' temp: ' + str(temp) + ' humid: ' + str(humid))
     if not timno == '-1':
-        if not set_dic['gpio_heater'] == '':
-            heater_control(temp)
+        #if not set_dic['gpio_heater'] == '': #(silences if no heater but probably nicer to know, rite?)
+        heater_control(temp)
         humid_contol(humid)
         time.sleep(15)
     else:
