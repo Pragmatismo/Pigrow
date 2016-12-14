@@ -5,9 +5,9 @@ import pigrow_defs
 
 
 def heater_off(set_dic, switch_log):
-    print("")
-    print("      #############################################")
-    print("      ##         Turning the Heater - OFF        ##")
+    msg =("\n")
+    msg +=("      #############################################\n")
+    msg +=("      ##         Turning the Heater - OFF        ##\n")
     if 'gpio_heater' in set_dic and not set_dic['gpio_heater'] == '':
         gpio_pin = int(set_dic['gpio_heater'])
         gpio_pin_on = set_dic['gpio_heater_on']
@@ -21,20 +21,20 @@ def heater_off(set_dic, switch_log):
             gpio_pin_dir = 'low'
             GPIO.output(gpio_pin, GPIO.LOW)
         else:
-            print("      !!       CAN'T DETERMINE GPIO DIRECTION   !!")
-            print("      !!  run config program or edit config.txt !!")
-            print("      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+            msg +=("      !!       CAN'T DETERMINE GPIO DIRECTION   !!\n")
+            msg +=("      !!  run config program or edit config.txt !!\n")
+            msg +=("      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n")
             pigrow_defs.write_log('heater_off.py', 'Failed - no direction set in config', switch_log)
             exit()
     else:
-        print("      !!               NO Heater SET            !!")
-        print("      !!  run config program or edit config.txt !!")
-        print("      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+        msg +=("      !!               NO Heater SET            !!\n")
+        msg +=("      !!  run config program or edit config.txt !!\n")
+        msg +=("      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n")
         pigrow_defs.write_log('heater_off.py', 'Failed - due to none set in config', switch_log)
         exit()
 
-    print("      ##            by switching GPIO "+str(gpio_pin)+" to "+gpio_pin_dir+"  ##")
-    print("      #############################################")
+    msg +=("      ##            by switching GPIO "+str(gpio_pin)+" to "+gpio_pin_dir+"  ##\n")
+    msg +=("      #############################################\n")
     pigrow_defs.write_log('heater_off.py', 'Heater turned off', switch_log)
 
 if __name__ == '__main__':
@@ -43,3 +43,4 @@ if __name__ == '__main__':
     loc_dic = pigrow_defs.load_locs("/home/pi/Pigrow/config/dirlocs.txt")
     set_dic = pigrow_defs.load_settings(loc_dic['loc_settings'], err_log=loc_dic['err_log'],)
     heater_off(set_dic, loc_dic['loc_switchlog'])
+    print msg
