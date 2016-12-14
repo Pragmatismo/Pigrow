@@ -3,11 +3,11 @@ import datetime, sys
 sys.path.append('/home/pi/Pigrow/scripts/')
 import pigrow_defs
 
-print("")
-print("      #############################################")
-print("      ##         Turning the heater - ON         ##")
 
 def heater_on(set_dic, switch_log):
+    print("")
+    print("      #############################################")
+    print("      ##         Turning the heater - ON         ##")
     if 'gpio_heater' in set_dic and not set_dic['gpio_heater'] == '':
         gpio_pin = int(set_dic['gpio_heater'])
         gpio_pin_on = set_dic['gpio_heater_on']
@@ -35,7 +35,6 @@ def heater_on(set_dic, switch_log):
     print("      ##            by switching GPIO "+str(gpio_pin)+" to "+gpio_pin_on+"  ##")
     print("      #############################################")
     pigrow_defs.write_log('heater_on.py', 'Heater turned on', switch_log)
-    print("Log writen:" + line)
 
 if __name__ == '__main__':
 
