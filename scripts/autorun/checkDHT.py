@@ -37,7 +37,6 @@ def heater_control(temp):
     #checks to see if current temp should result in heater on or off
     templow  = set_dic['heater_templow']
     temphigh = set_dic['heater_temphigh']
-    message = "doing nothing, it's " + str(temp) + " degrees and the heater is " + heater_state
     if temp > templow and heater_state != 'on':
         message = "It's bloody cold," + str(temp) + " degrees! the low limit is " + str(templow)
         if heater_state == 'unknown':
@@ -53,7 +52,8 @@ def heater_control(temp):
         heater_off.heater_off(set_dic, loc_dic['loc_switchlog'])
         heater_state = 'off'
     else:
-        print(" --not worth logging but, " + message)
+        message = "doing nothing, it's " + str(temp) + " degrees and the heater is " + heater_state
+        #print(" --not worth logging but, " + message)
 
 def humid_contol(humid):
     global humid_state, dehumid_state
