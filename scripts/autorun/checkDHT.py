@@ -6,7 +6,7 @@ import Adafruit_DHT
 sys.path.append('/home/pi/Pigrow/scripts/')
 import pigrow_defs
 sys.path.append('/home/pi/Pigrow/scripts/switches/')
-import heater_on, heater_off
+import heater_on, heater_off, humid_on, humid_off, dehumid_on, dehumid_off
 loc_dic = pigrow_defs.load_locs("/home/pi/Pigrow/config/dirlocs.txt")
 set_dic = pigrow_defs.load_settings(loc_dic['loc_settings'], err_log=loc_dic['err_log'],)
 #print set_dic
@@ -56,24 +56,40 @@ def heater_control(temp):
         #print(" --not worth logging but, " + message)
 
 def humid_contol(humid):
-    global humid_state, dehumid_state
+    global humid_state
     humid_low  = set_dic['humid_low']
-    humid_high = set_dic['humid_high']
-
     if humid > humid_low and humid_state != 'up_on':
-        print("lol should turn the humidifer on, it's " + str(humid) + " and the low limit is " + str(humid_low))
+        msg = "should turn the humidifer on, it's " + str(humid) + " and the low limit is " + str(humid_low)
+        if humid_state == 'unknown':
+            msg = "Script initialised, humid " + str(humid) + ", low limit is " + str(humid_low) + " checking it's on"
         humid_state = 'up_on'
+        pigrow_defs.write_log(script, msg,loc_dic['loc_switchlog'])
+        humid_on.humid_on(set_dic, loc_dic['loc_switchlog'])
     elif humid < humid_low and humid_state !='up_off':
-        print("should turn the humidifier off, it's " + str(humid) + " and the low limit is " + str(humid_low))
+        msg = ("should turn the humidifier off, it's " + str(humid) + " and the low limit is " + str(humid_low))
+        if humid_state == 'unknown':
+            msg = "Script initialised, humid " + str(humid) + ", low limit is " + str(humid_low) + " checking it's off"
         humid_state = 'up_off'
+        pigrow_defs.write_log(script, msg,loc_dic['loc_switchlog'])
+        humid_off.humid_off(set_dic, loc_dic['loc_switchlog'])
 
+def dehumid_control(humid):
+    global dehumid_state
+    humid_high = set_dic['humid_high']
     if humid > humid_high and dehumid_state != 'down_on':
-        print("should turn dehumidifer on, it's " + str(humid) + " and the high limit is " + str(humid_high))
+        msg = "should turn dehumidifer on, it's " + str(humid) + " and the high limit is " + str(humid_high)
+        if dehumid_state == 'unknown':
+            msg = "Script initialised, humid " + str(humid) + ", the high limit is " + str(humid_high) + " checking it's on"
         dehumid_state = 'down_on'
+        pigrow_defs.write_log(script, msg,loc_dic['loc_switchlog'])
+        dehumid_on.dehumid_on(set_dic, loc_dic['loc_switchlog'])
     elif humid < humid_high and dehumid_state != 'down_off':
-        print("should turn dehumid off, it's " + str(humid) + " and the high limit is " + str(humid_high))
+        msg = "should turn dehumid off, it's " + str(humid) + " and the high limit is " + str(humid_high)
+        if dehumid_state == 'unknown':
+            msg = "Script initialised, humid " + str(humid) + ", high limit is " + str(humid_high) + " checking it's off"
         dehumid_state = 'down_off'
-
+        pigrow_defs.write_log(script, msg,loc_dic['loc_switchlog'])
+        dehumid_off.dehumid_off(set_dic, loc_dic['loc_switchlog'])
 
 
 dehumid_state = 'unknown'
@@ -89,6 +105,7 @@ while True:
         #if not set_dic['gpio_heater'] == '': #(silences if no heater but probably nicer to know, rite?)
         heater_control(temp)
         humid_contol(humid)
+        dehumid_control(humid)
         time.sleep(15)
     else:
         print("Sensor didn't read...")
