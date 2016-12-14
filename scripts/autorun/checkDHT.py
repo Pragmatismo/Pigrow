@@ -16,6 +16,8 @@ def read_and_log(loc_dic):
     try:
         humidity, temperature = Adafruit_DHT.read_retry(Adafruit_DHT.DHT22, set_dic['gpio_dht22sensor'])
         if humidity is not None and temperature is not None:
+            humidity = round(humidity,2)
+            temperature = round(temperature, 2)
             timno = datetime.datetime.now()
             try:
                 with open(loc_dic['loc_dht_log'], "a") as f:
@@ -35,14 +37,14 @@ def heater_control(temp):
     #checks to see if current temp should result in heater on or off
     templow  = set_dic['heater_templow']
     temphigh = set_dic['heater_temphigh']
-    if temp > templow and heater_state != 'on':
+    if temp < templow and heater_state != 'on':
         message = "It's bloody cold," + str(temp) + " degrees! the low limit is " + str(templow)
         if heater_state == 'unknown':
             message = "Script initialised, it's " + str(temp) + " degrees! the low limit is " + str(templow) + " so checking it's on"
         pigrow_defs.write_log(script, message,loc_dic['loc_switchlog'])
         heater_on.heater_on(set_dic, loc_dic['loc_switchlog'])
         heater_state = 'on'
-    elif temp < temphigh and heater_state != 'off':
+    elif temp > temphigh and heater_state != 'off':
         message = "fucking 'ell it's well hot in here, " + str(temp) + " degrees! the high limit is " + str(temphigh)
         if heater_state == 'unknown':
             message = "Script initialised, it's " + str(temp) + " degrees! the low limit is " + str(templow) + " so checking it's off"
@@ -53,12 +55,27 @@ def heater_control(temp):
         message = "doing nothing, it's " + str(temp) + " degrees and the heater is " + heater_state
         print(" --not worth logging but, " + message)
 
+def humid_contol(humid):
+    global humid_state
+    humid_low  = set_dic['humid_low']
+    humid_high = set_dic['humid_high']
+    if humid < humid_low and humid_state != 'up_on':
+        print('should turn the humidifer on..')
+        humid_state = 'up_on'
+    elif humid > humid_low and humid_state !='up_off':
+        print("should turn the humidifier off")
+        humid_state = 'up_off'
 
+
+humid_state = 'unknown'
 heater_state = 'unknown'
 while True:
-    hum, temp, timno = read_and_log(loc_dic)
+    humid, temp, timno = read_and_log(loc_dic)
+    print(" -- " + str(timno) + ' temp: ' + str(temp) + ' humid: ' + str(humid))
     if not timno == '-1':
-        heater_control(temp)
+        if not set_dic['gpio_heater'] == '':
+            heater_control(temp)
+        humid_contol(humid)
         time.sleep(15)
     else:
         print("Sensor didn't read...")
