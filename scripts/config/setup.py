@@ -23,7 +23,7 @@ valid_gpio=[2,3,4,17,27,22,10,9,11,0,5,6,13,19,26,14,15,18,23,24,25,8,7,1,12,16,
 used_gpio_num=[]
 # Defaults
 
-def set_defaults():
+def set_loc_defaults():
     global watcher_name, loc_settings, loc_switchlog, loc_dht_log, loc_dht_log, err_log, caps_path, graph_path, log_path, my_client_id, my_client_secret, my_username, my_password, subreddit, wiki_title, live_wiki_title
     loc_settings    = "/home/pi/Pigrow/config/pigrow_config.txt"
     loc_switchlog   = "/home/pi/Pigrow/logs/switch_log.txt"
@@ -40,7 +40,7 @@ def set_defaults():
     wiki_title      = "livegrow_test_settings"
     live_wiki_title = "livegrow_test"
     watcher_name    = ' '
-set_defaults()
+set_loc_defaults()
 
 loc_dic = {}
 def load_locs():
@@ -561,10 +561,12 @@ def show_reddit_menu():
 
 def show_restore_default_menu():
     print("\n\nThis will errase all settings and reset to default values")
-    print("                                .")
+    print("                          .")
     if raw_input("Type yes to contnie") == "yes":
-        set_defaults()
+        set_loc_defaults()
         save_settings()
+        print("Location settings and passes have been set to defaults")
+    print("NOTE: I need to add default settings for other settings file..")
 
 def show_main_menu():
     print("")
