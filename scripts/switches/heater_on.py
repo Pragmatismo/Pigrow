@@ -35,7 +35,7 @@ def heater_on(set_dic, switch_log):
     msg +=("      ##            by switching GPIO "+str(gpio_pin)+" to "+gpio_pin_on+"  ##")
     msg +=("      #############################################")
     pigrow_defs.write_log('heater_on.py', 'Heater turned on', switch_log)
-    return meg
+    return msg
 
 if __name__ == '__main__':
 

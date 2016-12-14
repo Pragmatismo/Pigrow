@@ -25,17 +25,18 @@ def heater_off(set_dic, switch_log):
             msg +=("      !!  run config program or edit config.txt !!\n")
             msg +=("      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n")
             pigrow_defs.write_log('heater_off.py', 'Failed - no direction set in config', switch_log)
-            exit()
+            return msg
     else:
         msg +=("      !!               NO Heater SET            !!\n")
         msg +=("      !!  run config program or edit config.txt !!\n")
         msg +=("      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n")
         pigrow_defs.write_log('heater_off.py', 'Failed - due to none set in config', switch_log)
-        exit()
+        return msg
 
     msg +=("      ##            by switching GPIO "+str(gpio_pin)+" to "+gpio_pin_dir+"  ##\n")
     msg +=("      #############################################\n")
     pigrow_defs.write_log('heater_off.py', 'Heater turned off', switch_log)
+    return msg
 
 if __name__ == '__main__':
 
