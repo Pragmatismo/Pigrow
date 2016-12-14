@@ -13,6 +13,7 @@ def heater_on(set_dic, switch_log):
         gpio_pin_on = set_dic['gpio_heater_on']
         import RPi.GPIO as GPIO
         GPIO.setmode(GPIO.BCM)
+        GPIO.setwarnings(False)
         GPIO.setup(gpio_pin, GPIO.OUT)
         if gpio_pin_on == "low":
             GPIO.output(gpio_pin, GPIO.LOW)
