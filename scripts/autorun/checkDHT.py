@@ -32,50 +32,58 @@ def read_and_log(loc_dic):
         return '-1','-1','-1'
 
 
-def heater_control(temp):
+def heater_control(temp, use_fans=True):
     global heater_state
     #checks to see if current temp should result in heater on or off
-    templow  = set_dic['heater_templow']
-    temphigh = set_dic['heater_temphigh']
+    templow  = float(set_dic['heater_templow'])
+    temphigh = float(set_dic['heater_temphigh'])
     if temp > templow and heater_state != 'on':
-        message = "It's bloody cold," + str(temp) + " degrees! the low limit is " + str(templow)
+        message = "It's cold,  temp is" + str(temp) + " degrees! the low limit is " + str(templow) " so turning heater on."
         if heater_state == 'unknown':
-            message = "Script initialised, it's " + str(temp) + " degrees! the low limit is " + str(templow) + " so checking it's on"
+            message = "Script initialised, it's " + str(temp) + " degrees! the low limit is " + str(templow) + " so checking heater's on"
         pigrow_defs.write_log(script, message,loc_dic['loc_switchlog'])
         heater_on.heater_on(set_dic, loc_dic['loc_switchlog'])
+        if use_fans == True:
+            fans_on.fans_on(set_dic, loc_dic['loc_switchlog'])
         heater_state = 'on'
     elif temp < temphigh and heater_state != 'off':
-        message = "fucking 'ell it's well hot in here, " + str(temp) + " degrees! the high limit is " + str(temphigh)
+        message = "it's warm, temp is " + str(temp) + " degrees, the high limit is " + str(temphigh) + " so turning heater off"
         if heater_state == 'unknown':
-            message = "Script initialised, it's " + str(temp) + " degrees! the low limit is " + str(templow) + " so checking it's off"
+            message = "Script initialised, it's " + str(temp) + " degrees! the low limit is " + str(templow) + " so checking heater's off"
         pigrow_defs.write_log(script, message,loc_dic['loc_switchlog'])
         heater_off.heater_off(set_dic, loc_dic['loc_switchlog'])
+        if use_fans == True:
+            fans_off.fans_off(set_dic, loc_dic['loc_switchlog'])
         heater_state = 'off'
     else:
         message = "doing nothing, it's " + str(temp) + " degrees and the heater is " + heater_state
         #print(" --not worth logging but, " + message)
 
-def humid_contol(humid):
+def humid_contol(humid,use_fans=False):
     global humid_state
-    humid_low  = set_dic['humid_low']
+    humid_low  = float(set_dic['humid_low'])
     if humid > humid_low and humid_state != 'up_on':
         msg = "should turn the humidifer on, it's " + str(humid) + " and the low limit is " + str(humid_low)
         if humid_state == 'unknown':
-            msg = "Script initialised, humid " + str(humid) + ", low limit is " + str(humid_low) + " checking it's on"
+            msg = "Script initialised, humid " + str(humid) + ", low limit is " + str(humid_low) + " checking humidifier is on"
         humid_state = 'up_on'
         pigrow_defs.write_log(script, msg,loc_dic['loc_switchlog'])
         humid_on.humid_on(set_dic, loc_dic['loc_switchlog'])
+        if use_fans == True:
+            fans_on.fans_on(set_dic, loc_dic['loc_switchlog'])
     elif humid < humid_low and humid_state !='up_off':
         msg = ("should turn the humidifier off, it's " + str(humid) + " and the low limit is " + str(humid_low))
         if humid_state == 'unknown':
-            msg = "Script initialised, humid " + str(humid) + ", low limit is " + str(humid_low) + " checking it's off"
+            msg = "Script initialised, humid " + str(humid) + ", low limit is " + str(humid_low) + " checking humidifier is off"
         humid_state = 'up_off'
         pigrow_defs.write_log(script, msg,loc_dic['loc_switchlog'])
         humid_off.humid_off(set_dic, loc_dic['loc_switchlog'])
+        if use_fans == True:
+            fans_off.fans_off(set_dic, loc_dic['loc_switchlog'])
 
-def dehumid_control(humid):
+def dehumid_control(humid,use_fans=False):
     global dehumid_state
-    humid_high = set_dic['humid_high']
+    humid_high = float(set_dic['humid_high'])
     if humid > humid_high and dehumid_state != 'down_on':
         msg = "should turn dehumidifer on, it's " + str(humid) + " and the high limit is " + str(humid_high)
         if dehumid_state == 'unknown':
@@ -83,6 +91,8 @@ def dehumid_control(humid):
         dehumid_state = 'down_on'
         pigrow_defs.write_log(script, msg,loc_dic['loc_switchlog'])
         dehumid_on.dehumid_on(set_dic, loc_dic['loc_switchlog'])
+        if use_fans == True:
+            fans_off.fans_off(set_dic, loc_dic['loc_switchlog'])
     elif humid < humid_high and dehumid_state != 'down_off':
         msg = "should turn dehumid off, it's " + str(humid) + " and the high limit is " + str(humid_high)
         if dehumid_state == 'unknown':
@@ -90,11 +100,20 @@ def dehumid_control(humid):
         dehumid_state = 'down_off'
         pigrow_defs.write_log(script, msg,loc_dic['loc_switchlog'])
         dehumid_off.dehumid_off(set_dic, loc_dic['loc_switchlog'])
+        if use_fans == True:
+            fans_on.fans_on(set_dic, loc_dic['loc_switchlog'])
+
 
 
 dehumid_state = 'unknown'
 humid_state = 'unknown'
 heater_state = 'unknown'
+log_non = False #tests switch conditions even if no switich present.
+use_heat = False
+use_humid = True
+use_dehumid = True
+humfan=False
+
 
 ##needs to check light is in correct state on restart
 
@@ -102,10 +121,15 @@ while True:
     humid, temp, timno = read_and_log(loc_dic)
     print(" -- " + str(timno) + ' temp: ' + str(temp) + ' humid: ' + str(humid))
     if not timno == '-1':
-        #if not set_dic['gpio_heater'] == '': #(silences if no heater but probably nicer to know, rite?)
-        heater_control(temp)
-        humid_contol(humid)
-        dehumid_control(humid)
+        if not str(set_dic['gpio_heater']).strip() == '' or log_non == True:
+            if use_heat == True:
+                heater_control(temp,use_fans=False)
+        if not str(set_dic['gpio_humid']).strip() == '' or log_non == True:
+            if use_humid == True:
+                humid_contol(humid,use_fans=False)
+        if not str(set_dic['gpio_dehumid']).strip() == '' or log_non == True:
+            if use_dehumid == True:
+                dehumid_control(humid, humfan)
         time.sleep(15)
     else:
         print("Sensor didn't read...")
