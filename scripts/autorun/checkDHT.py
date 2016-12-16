@@ -1,4 +1,11 @@
 
+#
+#         This script it designed to be run in a continuous loop
+#
+#
+#
+
+
 script = 'chechDHT.py'
 import os, sys
 import datetime, time
@@ -6,7 +13,7 @@ import Adafruit_DHT
 sys.path.append('/home/pi/Pigrow/scripts/')
 import pigrow_defs
 sys.path.append('/home/pi/Pigrow/scripts/switches/')
-import heater_on, heater_off, humid_on, humid_off, dehumid_on, dehumid_off
+import heater_on, heater_off, humid_on, humid_off, dehumid_on, dehumid_off, fans_on, fans_off
 loc_dic = pigrow_defs.load_locs("/home/pi/Pigrow/config/dirlocs.txt")
 set_dic = pigrow_defs.load_settings(loc_dic['loc_settings'], err_log=loc_dic['err_log'],)
 #print set_dic
@@ -36,9 +43,9 @@ def heater_control(temp, use_fans=True):
     global heater_state
     #checks to see if current temp should result in heater on or off
     templow  = float(set_dic['heater_templow'])
-    temphigh = float(set_dic['heater_temphigh'])
+    temphigh = float(set_dic['heater_templow'])  ## plan is to add buffer zones or some something
     if temp > templow and heater_state != 'on':
-        message = "It's cold,  temp is" + str(temp) + " degrees! the low limit is " + str(templow) " so turning heater on."
+        message = "It's cold,  temp is" + str(temp) + " degrees! the low limit is " + str(templow) + " so turning heater on."
         if heater_state == 'unknown':
             message = "Script initialised, it's " + str(temp) + " degrees! the low limit is " + str(templow) + " so checking heater's on"
         pigrow_defs.write_log(script, message,loc_dic['loc_switchlog'])
@@ -108,29 +115,48 @@ def dehumid_control(humid,use_fans=False):
 dehumid_state = 'unknown'
 humid_state = 'unknown'
 heater_state = 'unknown'
-log_non = False #tests switch conditions even if no switich present.
-use_heat = False
-use_humid = True
-use_dehumid = True
-humfan=False
 
+
+#defaults to be changed with args eventually
+
+
+log_time = 30
+log_non = True #tests switch conditions even if no switich present.
+
+use_heat    = True
+use_humid   = True
+use_dehumid = True
+
+heat_use_fan   = True
+dehum_use_fan  = False
+dehum_use_fan  = False
 
 ##needs to check light is in correct state on restart
 
+
+
+#
+#      THE ETERNAL LOOP
+#
+#
+
 while True:
-    humid, temp, timno = read_and_log(loc_dic)
-    print(" -- " + str(timno) + ' temp: ' + str(temp) + ' humid: ' + str(humid))
-    if not timno == '-1':
-        if not str(set_dic['gpio_heater']).strip() == '' or log_non == True:
-            if use_heat == True:
-                heater_control(temp,use_fans=False)
-        if not str(set_dic['gpio_humid']).strip() == '' or log_non == True:
-            if use_humid == True:
-                humid_contol(humid,use_fans=False)
-        if not str(set_dic['gpio_dehumid']).strip() == '' or log_non == True:
-            if use_dehumid == True:
-                dehumid_control(humid, humfan)
-        time.sleep(15)
-    else:
-        print("Sensor didn't read...")
-        time.sleep(1)
+    try:
+        humid, temp, timno = read_and_log(loc_dic)
+        print(" -- " + str(timno) + ' temp: ' + str(temp) + ' humid: ' + str(humid))
+        if not timno == '-1':
+            if not str(set_dic['gpio_heater']).strip() == '' or log_non == True or heat_use_fan == True:
+                if use_heat == True:
+                    heater_control(temp,heat_use_fan)
+            if not str(set_dic['gpio_humid']).strip() == '' or log_non == True or hum_use_fan == True:
+                if use_humid == True:
+                    humid_contol(humid,hum_use_fan)
+            if not str(set_dic['gpio_dehumid']).strip() == '' or log_non == True or dehum_use_fan == True:
+                if use_dehumid == True:
+                    dehumid_control(humid, dehum_use_fan)
+            time.sleep(log_time)
+        else:
+            print("Sensor didn't read...")
+            time.sleep(1)
+    except:
+        print("#######SOME FORM OF PIGROW ERROR Pigrow error pigrow error in checldht, probably sensor being shonk")
