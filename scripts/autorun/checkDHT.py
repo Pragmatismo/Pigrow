@@ -1,9 +1,24 @@
-
+#!/usr/bin/python
 #
 #         This script it designed to be run in a continuous loop
 #
 #
 #
+
+#defaults to be changed with args eventually
+
+
+log_time = 30
+log_non = True #tests switch conditions even if no switich present.
+
+use_heat    = True
+use_humid   = True
+use_dehumid = True
+
+heat_use_fan   = True
+hum_use_fan  = False
+dehum_use_fan  = False
+
 
 
 script = 'chechDHT.py'
@@ -13,7 +28,7 @@ import Adafruit_DHT
 sys.path.append('/home/pi/Pigrow/scripts/')
 import pigrow_defs
 sys.path.append('/home/pi/Pigrow/scripts/switches/')
-import heater_on, heater_off, humid_on, humid_off, dehumid_on, dehumid_off, fans_on, fans_off
+import heater_on, heater_off, humid_on, humid_off, dehumid_on, dehumid_off, fans_on, fans_off, lamp_on, lamp_off
 loc_dic = pigrow_defs.load_locs("/home/pi/Pigrow/config/dirlocs.txt")
 set_dic = pigrow_defs.load_settings(loc_dic['loc_settings'], err_log=loc_dic['err_log'],)
 #print set_dic
@@ -116,23 +131,44 @@ dehumid_state = 'unknown'
 humid_state = 'unknown'
 heater_state = 'unknown'
 
+## checks light is in correct state on restart
 
-#defaults to be changed with args eventually
+def check_lamp(on_time, off_time):
+    current_time = datetime.datetime.now().time()
+    msg = 'Script initialised, performing lamp state check;'
+    pigrow_defs.write_log(script, msg,loc_dic['loc_switchlog'])
+    if True:
+        if on_time > off_time:
+            if current_time > on_time or current_time < off_time:
+                lamp_on.lamp_on(set_dic, loc_dic['loc_switchlog'])
+                return 'a lamp on', True
+            else:
+                lamo_off.lamp_off(set_dic, loc_dic['loc_switchlog'])
+                return 'a lamp off', True
 
+        elif on_time < off_time:
+            if current_time > on_time and current_time < off_time:
+                lamo_on.lamp_on(set_dic, loc_dic['loc_switchlog'])
+                return 'the lamp on', True
+            else:
+                lamo_off.lamp_off(set_dic, loc_dic['loc_switchlog'])
+                return 'the lamp off', True
 
-log_time = 30
-log_non = True #tests switch conditions even if no switich present.
+        elif current_time == on_time:
+            return 'changing', False
+        return 'magness', False
 
-use_heat    = True
-use_humid   = True
-use_dehumid = True
+time_on = set_dic['time_lamp_on'].split(":")
+time_off = set_dic['time_lamp_off'].split(":")
+on_time = datetime.time(int(time_on[0]),int(time_on[1]))
+off_time = datetime.time(int(time_off[0]), int(time_off[1]))
 
-heat_use_fan   = True
-dehum_use_fan  = False
-dehum_use_fan  = False
+state, change = check_lamp(on_time, off_time)
 
-##needs to check light is in correct state on restart
-
+if change:
+    print state
+else:
+    print("Not matching, problem with time thingy! ir was " + str(state) + " having a rest then trying again...")
 
 
 #
@@ -160,3 +196,6 @@ while True:
             time.sleep(1)
     except:
         print("#######SOME FORM OF PIGROW ERROR Pigrow error pigrow error in checldht, probably sensor being shonk")
+        print("         or some file thing??       user intervention?          i'm spooked, whatever.")
+        #raise
+        time.sleep(1)
