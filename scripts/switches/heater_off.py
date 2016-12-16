@@ -9,7 +9,7 @@ def heater_off(set_dic, switch_log):
     msg =("\n")
     msg +=("      #############################################\n")
     msg +=("      ##         Turning the Heater - OFF        ##\n")
-    if 'gpio_heater' in set_dic and not set_dic['gpio_heater'] == '':
+    if 'gpio_heater' in set_dic and not str(set_dic['gpio_heater']).strip() == '':
         gpio_pin = int(set_dic['gpio_heater'])
         gpio_pin_on = set_dic['gpio_heater_on']
         import RPi.GPIO as GPIO

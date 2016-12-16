@@ -9,7 +9,7 @@ def fans_off(set_dic, switch_log):
     msg =("\n")
     msg +=("      #############################################\n")
     msg +=("      ##         Turning the fans - OFF        ##\n")
-    if 'gpio_fans' in set_dic and not set_dic['gpio_fans'] == '':
+    if 'gpio_fans' in set_dic and not str(set_dic['gpio_fans']).strip() == '':
         gpio_pin = int(set_dic['gpio_fans'])
         gpio_pin_on = set_dic['gpio_fans_on']
         import RPi.GPIO as GPIO

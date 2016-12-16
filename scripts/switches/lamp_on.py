@@ -9,7 +9,7 @@ def lamp_on(set_dic, switch_log):
     msg = ("")
     msg +=("      #############################################")
     msg +=("      ##         Turning the lamp - ON         ##")
-    if 'gpio_lamp' in set_dic and not set_dic['gpio_lamp'] == '':
+    if 'gpio_lamp' in set_dic and not str(set_dic['gpio_lamp']).strip() == '':
         gpio_pin = int(set_dic['gpio_lamp'])
         gpio_pin_on = set_dic['gpio_lamp_on']
         import RPi.GPIO as GPIO

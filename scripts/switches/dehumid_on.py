@@ -9,7 +9,7 @@ def dehumid_on(set_dic, switch_log):
     msg = ("")
     msg +=("      #############################################")
     msg +=("      ##         Turning the dehumid - ON         ##")
-    if 'gpio_dehumid' in set_dic and not set_dic['gpio_dehumid'] == '':
+    if 'gpio_dehumid' in set_dic and not str(set_dic['gpio_dehumid']).strip() == '':
         gpio_pin = int(set_dic['gpio_dehumid'])
         gpio_pin_on = set_dic['gpio_dehumid_on']
         import RPi.GPIO as GPIO
