@@ -30,14 +30,17 @@ import pigrow_defs
 sys.path.append('/home/pi/Pigrow/scripts/switches/')
 import heater_on, heater_off, humid_on, humid_off, dehumid_on, dehumid_off, fans_on, fans_off, lamp_on, lamp_off
 loc_dic = pigrow_defs.load_locs("/home/pi/Pigrow/config/dirlocs.txt")
-set_dic = pigrow_defs.load_settings(loc_dic['loc_settings'], err_log=loc_dic['err_log'],)
+set_dic = pigrow_defs.load_settings(loc_dic['loc_settings'], err_log=loc_dic['err_log'])
 #print set_dic
 
 
 def read_and_log(loc_dic):
     try:
         humidity, temperature = Adafruit_DHT.read_retry(Adafruit_DHT.DHT22, set_dic['gpio_dht22sensor'])
-        if humidity is not None and temperature is not None:
+        if humidity == None or temperature == None:
+            print("--problem reading sensor on GPIO:"+set_dic['gpio_dht22sensor']+"--")
+            return '-1','-1','-1'
+        else:
             humidity = round(humidity,2)
             temperature = round(temperature, 2)
             timno = datetime.datetime.now()
@@ -47,7 +50,7 @@ def read_and_log(loc_dic):
                     f.write(line)
             except:
                 print["-LOG ERROR-"]
-                pigrow_defs.write_log('checkDHT.py', 'writing dht failed', loc_dic['loc_switchlog'])
+                pigrow_defs.write_log('checkDHT.py', 'writing dht log failed', loc_dic['loc_switchlog'])
             return humidity, temperature, timno
     except:
         print("--problem reading sensor on GPIO:"+set_dic['gpio_dht22sensor']+"--")
