@@ -44,6 +44,25 @@ def load_settings(loc_settings, err_log="./err.log"):
                 f.write(line)
             print("Log writen:" + line)
 
+def save_settings(pi_set,loc_settings, err_log="./err.log"):
+    print("Saving Settings...")
+    try:
+        with open(loc_settings, "w") as f:
+            for a,b in pi_set.iteritems():
+                try:
+                    s_line = str(a) +"="+ str(b) +"\n"
+                    f.write(s_line)
+                    print(" - Settings saved to file - ")
+                    #print s_line
+                except:
+                    print("ERROR SETTINGS FILE ERROR SETTING NOT SAVED _ SERIOUS FAULT!")
+    except:
+        print("Settings not saved!")
+        with open(err_log, "a") as ef:
+            line = 'update_reddit.py @' + str(datetime.datetime.now()) + '@ settings file save error\n'
+            ef.write(line)
+        print("Log writen:" + line)
+
 def write_log(script, message, switch_log):
     line = script + "@" + str(datetime.datetime.now()) + "@" + message + '\n'
     with open(switch_log, "a") as f:
