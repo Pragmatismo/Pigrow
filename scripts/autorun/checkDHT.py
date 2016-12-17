@@ -84,7 +84,7 @@ def heater_control(temp, use_fans=True):
 def humid_contol(humid,use_fans=False):
     global humid_state
     humid_low  = float(set_dic['humid_low'])
-    if humid > humid_low and humid_state != 'up_on':
+    if humid < humid_low and humid_state != 'up_on':
         msg = "should turn the humidifer on, it's " + str(humid) + " and the low limit is " + str(humid_low)
         if humid_state == 'unknown':
             msg = "Script initialised, humid " + str(humid) + ", low limit is " + str(humid_low) + " checking humidifier is on"
@@ -93,7 +93,7 @@ def humid_contol(humid,use_fans=False):
         humid_on.humid_on(set_dic, loc_dic['loc_switchlog'])
         if use_fans == True:
             fans_on.fans_on(set_dic, loc_dic['loc_switchlog'])
-    elif humid < humid_low and humid_state !='up_off':
+    elif humid > humid_low and humid_state !='up_off':
         msg = ("should turn the humidifier off, it's " + str(humid) + " and the low limit is " + str(humid_low))
         if humid_state == 'unknown':
             msg = "Script initialised, humid " + str(humid) + ", low limit is " + str(humid_low) + " checking humidifier is off"
