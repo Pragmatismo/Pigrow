@@ -85,6 +85,7 @@ def is_connected():
     return False
 
 def log_in():
+    global reddit, inbox, subreddit
     try:
         print("logging in")
         reddit = praw.Reddit(user_agent=my_user_agent,
@@ -92,18 +93,29 @@ def log_in():
                              client_secret=my_client_secret,
                              username=my_username,
                              password=my_password)
-        print(subreddit.title)
         inbox = reddit.inbox
         subreddit = reddit.subreddit(subreddit)
-        message = 'Initialized and logged into reddit.'
+        print "Connected to reddit, found subreddit; " + str(subreddit.title)
+        pigrow_defs.write_log(script, 'Initialized and logged into reddit.', loc_dic['loc_switchlog'])
+        return True
     except Exception as e:
         message = 'Failed to log into reddit, ' + str(e)
     pigrow_defs.write_log(script, message, loc_dic['loc_switchlog'])
+    return False
 
-while is_connected() == False:
-    print("no internet, waiting and trying again...")
+connected = False
+while connected == False:
+    connected = is_connected()
+    if connected == False:
+        print("no internet, waiting and trying again...")
+        time.sleep(10)
+
+logged_in = False
+while logged_in == False:
+    logged_in = log_in()
+    if logged_in == False:
+        print("can't log into reddit, waiting and trying again...")
     time.sleep(10)
-    log_in()
 
 #
 #
