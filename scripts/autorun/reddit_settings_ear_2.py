@@ -337,7 +337,7 @@ while True:
         time.sleep(30)
         print("all messages replied to, Looping again...")
     except  Exception as err:
-        print("There was an error in the loop, trying again")
+        print("There was an error in the loop, " + str(err) + " trying again")
         with open(err_log, "a") as ef:
             line = 'update_reddit.py @' + str(datetime.datetime.now()) + '@ IT RUN BUT THERE WAS AN ERROR,'+str(err)+' RELOOPING...\n'
             ef.write(line)
