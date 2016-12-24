@@ -73,17 +73,38 @@ if use_wiki == False and use_watcher == False:
     pigrow_defs.write_log(script, message, loc_dic['loc_switchlog'])
     sys.exit()
 
-reddit = praw.Reddit(user_agent=my_user_agent,
-                     client_id=my_client_id,
-                     client_secret=my_client_secret,
-                     username=my_username,
-                     password=my_password)
-print("logging in")
-print(subreddit.title)
-inbox = reddit.inbox
-subreddit = reddit.subreddit(subreddit)
-message = 'Initialized and logged into reddit.'
-pigrow_defs.write_log(script, message, loc_dic['loc_switchlog'])
+
+def is_connected():
+    site = "www.reddit.com"
+    try:
+        host = socket.gethostbyname(site)
+        s = socket.create_connection((host, 80), 2)
+        return True
+    except:
+        pass
+    return False
+
+def log_in():
+    try:
+        print("logging in")
+        reddit = praw.Reddit(user_agent=my_user_agent,
+                             client_id=my_client_id,
+                             client_secret=my_client_secret,
+                             username=my_username,
+                             password=my_password)
+        print(subreddit.title)
+        inbox = reddit.inbox
+        subreddit = reddit.subreddit(subreddit)
+        message = 'Initialized and logged into reddit.'
+    except Exception as e:
+        message = 'Failed to log into reddit, ' + str(e)
+    pigrow_defs.write_log(script, message, loc_dic['loc_switchlog'])
+
+while is_connected() == False:
+    print("no internet, waiting and trying again...")
+    time.sleep(10)
+    log_in()
+
 #
 #
 #
@@ -91,9 +112,9 @@ pigrow_defs.write_log(script, message, loc_dic['loc_switchlog'])
 #
 #   we should now have all our location details set and be logged into reddit and have some messages to look at if any exist...
 #
-print("Trying to message ---"+str(watcher_name)+"--- which should be you")
-whereto = praw.models.Redditor(reddit, watcher_name, _data=None)
-whereto.message('Pigrow Settings', "Hi,just thought you'd like to know it worked this time:")
+#print("Trying to message ---"+str(watcher_name)+"--- which should be you")
+#whereto = praw.models.Redditor(reddit, watcher_name, _data=None)
+#whereto.message('Pigrow Settings', "Hi,just thought you'd like to know it worked this time:")
 
 
 
@@ -216,17 +237,10 @@ def write_set(whereto='wiki'):
 
 
 
-
-
-
     with open(err_log, "a") as ef:
         line = 'update_reddit.py @' + str(datetime.datetime.now()) + '@ about to do the socket thing... \n'
         ef.write(line)
         print line
-
-
-
-
 
 
 
@@ -255,7 +269,7 @@ def check_msg():
         print ('  - ' +msg.author)
         print ('  - ' +msg.subject)
         print ('  - ' +msg.body)
-        if msg.author in trusted_users:
+        if msg.author == watcher_name:
 
 
 
