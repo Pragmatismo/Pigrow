@@ -10,7 +10,7 @@ darksize =75000   #all smaller files are removed assumed to be useless 75000 is 
 infps = 10       #10 is a good value, between 2 and 60 is acceptable
 outfps = 25      #frame-rate of output video
 capsdir = "/home/pi/Pigrow/camcaps/"
-listfile = "/home/pi/ffTL.txt"
+listfile = "/home/pragmo/ffTL.txt"
 outfile = "/home/pi/timelapse.mp4" #directory to save output
 file_type = "jpg"
 outvidc = "libx264"  #DISABLED
@@ -92,7 +92,7 @@ ffTL.close()
 print "we have " + str(len(faster)) + " files in the faster version..."
 #runs the video encouder
 print "making you a timelapse video..."
-os.system("mpv mf://@"+listfile+" -mf-fps="+str(infps)+" -o "+outfile) --ofps="+outfps)
+os.system("mpv mf://@"+listfile+" -mf-fps="+str(infps)+" -o "+outfile+" --ofps="+str(outfps))
 if os.path.isfile(outfile) == True:
     print "there you go; "+outfile+" ready to roll.."
 else:

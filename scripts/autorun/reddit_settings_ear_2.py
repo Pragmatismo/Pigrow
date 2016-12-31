@@ -23,7 +23,7 @@ for argu in sys.argv:
         watcher_name = str(argu).split('=')[1]
     elif thearg == 'loc_locs':
         loc_locs = str(argu).split('=')[1]
-        print("\n\n LOCS LOGS = " + str(loc_locs) + "'\n\n")
+        print("\n\n -- using LOCS LOGS = " + str(loc_locs) + "'\n\n")
 
 
 #Settings for validation rules
@@ -164,16 +164,19 @@ def change_setting(setting,value):
 
     elif setting in hour_only:
         try:
-            value = int(value)
-            if value in range(0,24):
-                print("This is a valid hour setting, great job!")
+            value = value.split(":")
+            value_h = int(value[0])
+            value_m = int(value[1])
+            if value_h in range(0,24) and value_m in range(0,59):
+                print("This is a valid time setting, great job!")
+                value = str(value_h) + ":" + str(value_m)
                 pi_set[setting]=value
                 pigrow_defs.save_settings(pi_set, loc_dic['loc_settings'], err_log=loc_dic['err_log'])
-                return("Hour set to " + str(value))
+                return("time set to " + str(value))
             else:
-                return("needs to be between 0 and 24, like a clock, sorry dogstar people timezone update coming soon...")
+                return("should be in 24hour clock HH:MM format, 14:03 for example")
         except:
-            return('This setting only accepts a number')
+            return('should be in 24hour clock HH:MM format, 15:45 for example')
 
     else:
         print("No Verification rules for that setting, changing it to whatever was requested...")
@@ -245,26 +248,32 @@ def write_set(whereto='wiki'):
 
     page_text += '  \n'
     page_text += '  \n'
+
+
+
+
+
+
+
+
+
     #determine local ip - apparently this works on macs if you change the 0 to a 1 but i don't buy apple products so...
-
-
-
     with open(err_log, "a") as ef:
         line = 'update_reddit.py @' + str(datetime.datetime.now()) + '@ about to do the socket thing... \n'
         ef.write(line)
         print line
 
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(('8.8.8.8', 0))  # connecting to a UDP address doesn't send packets
+        local_ip_address = s.getsockname()[0]
+        page_text += 'Current local network IP ' + str(local_ip_address)
+    except:
+        page_text += 'Local IP not deduced, sorry...'
 
 
-    #s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    #s.connect(('8.8.8.8', 0))  # connecting to a UDP address doesn't send packets
-    #local_ip_address = s.getsockname()[0]
-    #page_text += 'Current local network IP ' + str(local_ip_address)
+    print("writing " + str(len(page_text)) + " characters to reddit"
 
-
-
-    print page_text
-    #return page_text
     if whereto == 'wiki':
         praw.models.WikiPage(reddit, subreddit, wiki_title).edit(page_text[0:524288])
     else:
@@ -272,7 +281,7 @@ def write_set(whereto='wiki'):
             whereto = praw.models.Redditor(reddit, name=whereto, _data=None)
             whereto.message('Pigrow Settings', page_text[0:10000])   #, from_subreddit=subreddit)
         except:
-            print("meh, some bullshit happened.")
+            print("meh, some bullshit happened - probably wrong redditor name?")
 
 
 def check_msg():
