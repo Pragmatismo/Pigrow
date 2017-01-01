@@ -5,7 +5,7 @@ import os
 import time
 import socket
 import sys
-sys.path.append('/home/pi/Pigrow/scripts/')
+sys.path.append('../../scripts/')
 script = 'reddit_settings_ear_2.py'
 import pigrow_defs
 
@@ -25,14 +25,13 @@ for argu in sys.argv:
         loc_locs = str(argu).split('=')[1]
         print("\n\n -- using LOCS LOGS = " + str(loc_locs) + "'\n\n")
 
-
+loc_dic = pigrow_defs.load_locs(loc_locs)
 #Settings for validation rules
 hour_only = ['time_lamp_off', 'time_lamp_on'] #name os script that only accepts hour:min
 valid_gpio=[2,3,4,17,27,22,10,9,11,0,5,6,13,19,26,14,15,18,23,24,25,8,7,1,12,16,20,21]  #valid gpio numbers using the gpio (BCM) NOT the board numbering system
 intonly= ['heater_templow','heater_temphigh','log_frequency']
 
 
-loc_dic = pigrow_defs.load_locs("/home/pi/Pigrow/config/dirlocs.txt")
 
 
 if 'loc_switchlog' in loc_dic: loc_switchlog = loc_dic['loc_switchlog']
@@ -187,8 +186,10 @@ def change_setting(setting,value):
 def write_set(whereto='wiki'):
     page_text = '#Pigrow Settings  \n\n'
     page_text += 'This displays the current settings from the pigrow,  \n'
-    page_text += 'to change these settings you can message your pigrow via reddit by simply clicking on the link in the table  \n'
-    page_text += 'leave the subject as the setting you wish to change and put the new value in the body of the message.  \n'
+    page_text += 'to change these settings you can message your pigrow'
+    page_text += 'via reddit by simply clicking on the link in the table  \n'
+    page_text += 'leave the subject as the setting you wish to change and'
+    page_text += 'put the new value in the body of the message.  \n'
     page_text += '  \n'
     page_text += '|Name|Setting|  \n'
     page_text += '|--:|---|  \n'
@@ -211,10 +212,7 @@ def write_set(whereto='wiki'):
         curr_line = len(logitem) - 1
     except:
         print("switch not loaded, try running pi_setup")
-        with open(err_log, "a") as f:
-            line = 'update_reddit.py @' + str(datetime.datetime.now()) + '@ switch log file error\n'
-            f.write(line)
-        print("Log writen:" + line)
+        pigrow_defs.write_log(script, 'switch log file error', loc_dic['err_log'])
         return("FAILED DUE TO NO SWTICH LOG FILE")
 
     while curr_line >= 0:
@@ -248,21 +246,29 @@ def write_set(whereto='wiki'):
 
     page_text += '  \n'
     page_text += '  \n'
-
-
-
-
-
-
+    page_text += '  The following settings are not yet implimented'
+    page_text += '  They will run functions found in pigrow_defs'
+    page_text += '  \n  \n'
+    page_text += '|Pi Command|Action|Notes  \n'
+    page_text += '|---|:-:|---  \n'
+    page_text += '|Power Off|Remotely shuts down the pi|passwrod protected, if enabled include password in body of text  \n'
+    page_text += '|Reboot|Remotely reboots the pi|password protected  \n'
+    page_text += '|Factory Reset|Restores Pigrow Defaults|password protected  \n'
+    page_text += '|Update Pigrow|Automatically updates software|password protected  \n'
+    page_text += '|Log an Event|Create a custom log event|Include the text of the log event in the body of the message  \n'
+    page_text += "|Archive Grow|Stores all the data for the current grow in an archive folder and starts a new grow|password protected  \n"
+    page_text += "|Generate System Report|Creates a current pigrow system report and sends it to the user|Includes diskfull, uptime, etc  \n"
+    page_text += "|Generate Data Wall|Create visual display of pigrow status from logs|  \n"
+    page_text += "|Generate Timelapse Day|Creates a timelapse gif of the current day so far, uploads it and sends a link to the user|  \n"
+    page_text += "|Generate Timelapse Week|Creates video of last week, uploads and links user|size limited due to upload restrictions  \n"
+    page_text += "|msg_settings|works for testing|  \n"
+    page_text += "\n"
+    page_text += "this section work in progress, links will be added as the functions are  \n"
+    page_text += " \n"
 
 
 
     #determine local ip - apparently this works on macs if you change the 0 to a 1 but i don't buy apple products so...
-    with open(err_log, "a") as ef:
-        line = 'update_reddit.py @' + str(datetime.datetime.now()) + '@ about to do the socket thing... \n'
-        ef.write(line)
-        print line
-
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         s.connect(('8.8.8.8', 0))  # connecting to a UDP address doesn't send packets
@@ -272,7 +278,7 @@ def write_set(whereto='wiki'):
         page_text += 'Local IP not deduced, sorry...'
 
 
-    print("writing " + str(len(page_text)) + " characters to reddit"
+    print("writing " + str(len(page_text)) + " characters to reddit")
 
     if whereto == 'wiki':
         praw.models.WikiPage(reddit, subreddit, wiki_title).edit(page_text[0:524288])
@@ -281,7 +287,7 @@ def write_set(whereto='wiki'):
             whereto = praw.models.Redditor(reddit, name=whereto, _data=None)
             whereto.message('Pigrow Settings', page_text[0:10000])   #, from_subreddit=subreddit)
         except:
-            print("meh, some bullshit happened - probably wrong redditor name?")
+            pigrow_defs.write_log(script, "couldn't contact redditor, wrong naem?", loc_dic['err_log'])
 
 
 def check_msg():
@@ -291,27 +297,21 @@ def check_msg():
         print ('  - ' +msg.subject)
         print ('  - ' +msg.body)
         if msg.author == watcher_name:
-
-
-
-            with open(err_log, "a") as ef:
-                line = 'update_reddit.py @' + str(datetime.datetime.now()) + '@ FOUND AN UNREAD MESSAGE FROM TRUSTED USER\n'
-                ef.write(line)
-
-
-
-
             print("Trusted User settings access enabled.")
             text = msg.subject
             if text in pi_set:
                 reply = change_setting(str(msg.subject),str(msg.body))
                 write_set('wiki')
-                print(reply)
-            elif text == "update wiki":
-                print("wants me to update wiki... should do it themselves.")
+                reply += "  \n  \nvisit " +"[Settings Wiki](https://www.reddit.com/r/" + str(subreddit) + "/wiki/"+str(wiki_title)+ ") for mor info"
+                whereto = praw.models.Redditor(reddit, name=msg.author, _data=None)
+                whereto.message('Pigrow Settings', reply[0:10000])
             elif text == "msg_settings":
                 write_set(msg.author)
             else:
+                reply =  "Sorry, couldn't understand what you wanted, "
+                reply += "visit " +"[Settings Wiki](https://www.reddit.com/r/" + str(subreddit) + "/wiki/"+str(wiki_title)+ ") for mor info"
+                whereto = praw.models.Redditor(reddit, name=msg.author, _data=None)
+                whereto.message('Pigrow Settings', reply[0:10000])
                 print("Didn't understand what they wanted, if they wanted anything.")
         else:
             print("THIS IS NOT A TRUSTED USER - THEY CAN NOT EDIT SETTINGS!")
