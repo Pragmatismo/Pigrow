@@ -116,6 +116,7 @@ while logged_in == False:
         print("can't log into reddit, waiting and trying again...")
     time.sleep(10)
 
+
 #
 #
 #
@@ -195,7 +196,7 @@ def write_set(whereto='wiki'):
     page_text += '|--:|---|  \n'
     for key, value in pi_set.iteritems() :
         #print key, value
-        page_text += '|['+key+'](https://www.reddit.com/message/compose/?to='+my_username+'&subject=' +str(key)+ '&message='+str(value)+')|' + str(value)  + '  \n'
+        page_text += '|['+key+'](https://www.reddit.com/message/compose/?to='+my_username+'&subject=set:' +str(key)+ '&message='+str(value)+')|' + str(value)  + '  \n'
     page_text +=("")
     page_text +=("To view an explanation of each setting go see [configuring the pigrow](wiki link goes here) in the documentation ")
     ###
@@ -240,31 +241,32 @@ def write_set(whereto='wiki'):
     page_text += '|Script|Time|Event  \n'
     page_text += '|---|:-:|---  \n'
     for a in switch_list:
-        page_text += '|'+a[0]+']|'+ str(a[1]) +'|'+a[2]+'  \n'
+        page_text += '|'+a[0]+'|'+ str(a[1]) +'|'+a[2]+'  \n'
     page_text += '  \n'
     ###
-
+    cmdlink = "(https://www.reddit.com/message/compose/?to="+my_username+"&subject=cmd:"
     page_text += '  \n'
     page_text += '  \n'
-    page_text += '  The following settings are not yet implimented'
+    page_text += '  The following settings are not yet all implimented'
     page_text += '  They will run functions found in pigrow_defs'
     page_text += '  \n  \n'
     page_text += '|Pi Command|Action|Notes  \n'
-    page_text += '|---|:-:|---  \n'
+    page_text += '|:-:|:-:|---  \n'
     page_text += '|Power Off|Remotely shuts down the pi|passwrod protected, if enabled include password in body of text  \n'
     page_text += '|Reboot|Remotely reboots the pi|password protected  \n'
     page_text += '|Factory Reset|Restores Pigrow Defaults|password protected  \n'
     page_text += '|Update Pigrow|Automatically updates software|password protected  \n'
-    page_text += '|Log an Event|Create a custom log event|Include the text of the log event in the body of the message  \n'
+    page_text += "|[Log]"+cmdlink+"log)|Create a custom log event|Include the text of the log event in the body of the message  \n"
+    page_text += "|[update_wiki]"+cmdlink+"update_wiki)|Updates or creates the settings wiki|Replies with a link to it."
     page_text += "|Archive Grow|Stores all the data for the current grow in an archive folder and starts a new grow|password protected  \n"
     page_text += "|Generate System Report|Creates a current pigrow system report and sends it to the user|Includes diskfull, uptime, etc  \n"
     page_text += "|Generate Data Wall|Create visual display of pigrow status from logs|  \n"
     page_text += "|Generate Timelapse Day|Creates a timelapse gif of the current day so far, uploads it and sends a link to the user|  \n"
     page_text += "|Generate Timelapse Week|Creates video of last week, uploads and links user|size limited due to upload restrictions  \n"
-    page_text += "|msg_settings|works for testing|  \n"
-    page_text += "\n"
-    page_text += "this section work in progress, links will be added as the functions are  \n"
-    page_text += " \n"
+    page_text += "|[send_settings]"+cmdlink+"send_settings)|Replies to the user with the settings menu|  \n"
+    page_text += "  \n  \n"
+    page_text += "*this section work in progress, links will be added as the functions are*   \n"
+    page_text += "  \n  \n"
 
 
 
@@ -291,6 +293,7 @@ def write_set(whereto='wiki'):
 
 
 def check_msg():
+    wikilink = "[Settings Wiki](https://www.reddit.com/r/" + str(subreddit) + "/wiki/"+str(wiki_title)+ ")"
     for msg in reddit.inbox.unread():
         print("")
         print ('  - ' +msg.author)
@@ -298,18 +301,40 @@ def check_msg():
         print ('  - ' +msg.body)
         if msg.author == watcher_name:
             print("Trusted User settings access enabled.")
-            text = msg.subject
-            if text in pi_set:
-                reply = change_setting(str(msg.subject),str(msg.body))
-                write_set('wiki')
-                reply += "  \n  \nvisit " +"[Settings Wiki](https://www.reddit.com/r/" + str(subreddit) + "/wiki/"+str(wiki_title)+ ") for mor info"
-                whereto = praw.models.Redditor(reddit, name=msg.author, _data=None)
-                whereto.message('Pigrow Settings', reply[0:10000])
-            elif text == "msg_settings":
-                write_set(msg.author)
+            try:
+                msgsub = msg.subject.split(":")
+            except:
+                print("Not a valid format")
+            msgfrom = praw.models.Redditor(reddit, name=msg.author, _data=None)
+
+            if msgsub[0] == "set":
+                if msgsub[1] in pi_set:
+                    reply = change_setting(str(msgsub[1]),str(msg.body))
+                    write_set('wiki')
+                    reply += "  \n  \nvisit " + wikilink + " for mor info"
+                    msgfrom.message('Pigrow Settings', reply[0:10000])
+            elif msgsub[0] == "cmd":
+                if msgsub[1] == "reboot":
+                    print("User requests reboot!")
+                elif msgsub[1] == "power off":
+                    print("User Requests Power Off!")
+                elif msgsub[1] == "restore defaults":
+                    print("User want to resotre detauls")
+                elif msgsub[1] == "update pigrow":
+                    print("User want to update pigrow!")
+                elif msgsub[1] == "log":
+                    print("User has something they want to add to the log...")
+                    pigrow_defs.write_log("User via Reddit", str(msg.body), loc_dic['loc_switchlog'])
+                elif msgsub[1] == "send_settings":
+                    print("User want to see settings!")
+                    write_set(msg.author)
+                elif msgsub[1] == "update_wiki":
+                    print("User want to see settings!")
+                    write_set('wiki')
+                    msgfrom.message('Pigrow Control', "Settings Wiki written at " + wikilink)
             else:
                 reply =  "Sorry, couldn't understand what you wanted, "
-                reply += "visit " +"[Settings Wiki](https://www.reddit.com/r/" + str(subreddit) + "/wiki/"+str(wiki_title)+ ") for mor info"
+                reply += "visit " + wikilink + " for mor info"
                 whereto = praw.models.Redditor(reddit, name=msg.author, _data=None)
                 whereto.message('Pigrow Settings', reply[0:10000])
                 print("Didn't understand what they wanted, if they wanted anything.")
@@ -326,6 +351,7 @@ def check_msg():
 #print reddit.read_only
 thetime = datetime.datetime.now()
 pi_set = pigrow_defs.load_settings(loc_dic['loc_settings'], err_log=loc_dic['err_log'])
+
 
 print("")
 print("        #############################################")
