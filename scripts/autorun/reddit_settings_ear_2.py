@@ -5,7 +5,7 @@ import os
 import time
 import socket
 import sys
-sys.path.append('../../scripts/')
+sys.path.append('/home/pi/Pigrow/scripts/')
 script = 'reddit_settings_ear_2.py'
 import pigrow_defs
 
