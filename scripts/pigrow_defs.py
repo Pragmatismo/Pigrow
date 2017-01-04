@@ -92,7 +92,7 @@ def archive_grow(loc_dic, name, compress=False):
     responce += "Log Dicrectory; " + str(len(os.listdir(log_path))) + " files.  \n"
     d_total, d_used, d_free, d_percent = disk_full(loc_dic['path'])
     responce += "Current Filesystem has " + str(d_free) + " free space, " + str(d_percent) + "% remaining.  \n"
-    archive_path = [loc_dic]('path') + "archive/" + name
+    archive_path = loc_dic['path'] + "archive/" + name
     os.mkdir(archive_path)
     responce += "Created, " + archive_path
     return responce
