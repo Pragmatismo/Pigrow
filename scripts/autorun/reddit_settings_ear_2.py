@@ -257,8 +257,8 @@ def write_set(whereto='wiki'):
     page_text += '|Factory Reset|Restores Pigrow Defaults|password protected  \n'
     page_text += '|Update Pigrow|Automatically updates software|password protected  \n'
     page_text += "|[Log]"+cmdlink+"log)|Create a custom log event|Include the text of the log event in the body of the message  \n"
-    page_text += "|[update_wiki]"+cmdlink+"update_wiki)|Updates or creates the settings wiki|Replies with a link to it."
-    page_text += "|Archive Grow"+cmdlink+"archive_grow)|Stores all the data for the current grow in an archive folder and starts a new grow|password protected  \n"
+    page_text += "|[update_wiki]"+cmdlink+"update_wiki)|Updates or creates the settings wiki|Replies with a link to it.  \n"
+    page_text += "|[Archive Grow]"+cmdlink+"archive_grow)|Stores all the data for the current grow in an archive folder and starts a new grow|password protected  \n"
     page_text += "|Generate System Report|Creates a current pigrow system report and sends it to the user|Includes diskfull, uptime, etc  \n"
     page_text += "|Generate Data Wall|Create visual display of pigrow status from logs|  \n"
     page_text += "|Generate Timelapse Day|Creates a timelapse gif of the current day so far, uploads it and sends a link to the user|  \n"
@@ -267,8 +267,6 @@ def write_set(whereto='wiki'):
     page_text += "  \n  \n"
     page_text += "*this section work in progress, links will be added as the functions are*   \n"
     page_text += "  \n  \n"
-
-
 
     #determine local ip - apparently this works on macs if you change the 0 to a 1 but i don't buy apple products so...
     try:
@@ -279,9 +277,7 @@ def write_set(whereto='wiki'):
     except:
         page_text += 'Local IP not deduced, sorry...'
 
-
     print("writing " + str(len(page_text)) + " characters to reddit")
-
     if whereto == 'wiki':
         praw.models.WikiPage(reddit, subreddit, wiki_title).edit(page_text[0:524288])
     else:
@@ -324,7 +320,7 @@ def check_msg():
                     print("User want to update pigrow!")
                 elif msgsub[1] == "archive_grow":
                     print("Archiving grow")
-                    responce  = pigrow_defs.archive_grow(str(msg.body))
+                    responce  = pigrow_defs.archive_grow(loc_dic, str(msg.body))
                     msgfrom.message('Pigrow Settings', responce)
                 elif msgsub[1] == "log":
                     print("User has something they want to add to the log...")
