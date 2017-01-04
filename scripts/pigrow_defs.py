@@ -82,6 +82,7 @@ def disk_full(path):
     return total, used, free, round(percent, 1)
 
 def archive_grow(loc_dic, name, compress=False):
+    print("DOING THIS BIT NOW")
     responce =  "Request to archive grow as " + name
     responce += "  \nCurrent Status;  \n"
     log_path = loc_dic['log_path']
@@ -89,7 +90,7 @@ def archive_grow(loc_dic, name, compress=False):
     caps_path = loc_dic['caps_path']
     responce += "Image Capture Dicrectory; " + str(len(os.listdir(caps_path))) + " files.  \n"
     responce += "Graph Dicrectory; " + str(len(os.listdir(graph_path))) + " files.  \n"
-    responce += "Log Dicrectory; " + str(len(os.listdir(caps_path))) + " files.  \n"
+    responce += "Log Dicrectory; " + str(len(os.listdir(log_path))) + " files.  \n"
     d_total, d_used, d_free, d_percent = disk_full(loc_dic['path'])
     responce += "Current Filesystem has " + str(d_free) + " free space, " + d_percent + "% remaining.  \n"
     archive_path = path + "archive/" + name

@@ -321,6 +321,7 @@ def check_msg():
                 elif msgsub[1] == "archive_grow":
                     print("Archiving grow")
                     responce = pigrow_defs.archive_grow(loc_dic, str(msg.body))
+                    print("ARCHIVE GROW THING DOING IT NOW!")
                     msgfrom.message('Pigrow Settings', responce)
                 elif msgsub[1] == "log":
                     print("User has something they want to add to the log...")
