@@ -1,3 +1,4 @@
+#!/usr/bin/python
 import os, sys
 import datetime
 
@@ -68,6 +69,33 @@ def write_log(script, message, switch_log):
     with open(switch_log, "a") as f:
         f.write(line)
     print("Log writen:" + line)
+
+def disk_full(path):
+    st = os.statvfs(path)
+    free = (st.f_bavail * st.f_frsize)
+    total = (st.f_blocks * st.f_frsize)
+    used = (st.f_blocks - st.f_bfree) * st.f_frsize
+    try:
+        percent = ret = (float(used) / total) * 100
+    except ZeroDivisionError:
+        percent = 0
+    return total, used, free, round(percent, 1)
+
+def archive_grow(loc_dic, name, compress=False):
+    responce =  "Request to archive grow as " + name
+    responce += "  \nCurrent Status;  \n"
+    log_path = loc_dic['log_path']
+    graph_path = loc_dic['graph_path']
+    caps_path = loc_dic['caps_path']
+    response += "Image Capture Dicrectory; " + str(len(os.listdir(caps_path))) + " files.  \n"
+    response += "Graph Dicrectory; " + str(len(os.listdir(graph_path))) + " files.  \n"
+    response += "Log Dicrectory; " + str(len(os.listdir(capsdir))) + " files.  \n"
+    d_total, d_used, d_free, d_percent = disk_full(loc_dic['path'])
+    responce += "Current Filesystem has " + str(d_free) + " free space, " + d_percent + "% remaining.  \n"
+    archive_path = path + "archive/" + name
+    os.mkdir(archive_path)
+    responce += "Created, " + archive_path
+    return responce
 
 if __name__ == '__main__':
     global loc_locs

@@ -258,7 +258,7 @@ def write_set(whereto='wiki'):
     page_text += '|Update Pigrow|Automatically updates software|password protected  \n'
     page_text += "|[Log]"+cmdlink+"log)|Create a custom log event|Include the text of the log event in the body of the message  \n"
     page_text += "|[update_wiki]"+cmdlink+"update_wiki)|Updates or creates the settings wiki|Replies with a link to it."
-    page_text += "|Archive Grow|Stores all the data for the current grow in an archive folder and starts a new grow|password protected  \n"
+    page_text += "|Archive Grow"+cmdlink+"archive_grow)|Stores all the data for the current grow in an archive folder and starts a new grow|password protected  \n"
     page_text += "|Generate System Report|Creates a current pigrow system report and sends it to the user|Includes diskfull, uptime, etc  \n"
     page_text += "|Generate Data Wall|Create visual display of pigrow status from logs|  \n"
     page_text += "|Generate Timelapse Day|Creates a timelapse gif of the current day so far, uploads it and sends a link to the user|  \n"
@@ -322,6 +322,10 @@ def check_msg():
                     print("User want to resotre detauls")
                 elif msgsub[1] == "update pigrow":
                     print("User want to update pigrow!")
+                elif msgsub[1] == "archive_grow":
+                    print("Archiving grow")
+                    responce  = pigrow_defs.archive_grow(str(msg.body))
+                    msgfrom.message('Pigrow Settings', responce)
                 elif msgsub[1] == "log":
                     print("User has something they want to add to the log...")
                     pigrow_defs.write_log("User via Reddit", str(msg.body), loc_dic['loc_switchlog'])
