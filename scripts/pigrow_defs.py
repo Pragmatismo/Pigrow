@@ -96,17 +96,24 @@ def archive_grow(loc_dic, name, compress=False):
     while os.path.exists(archive_path):
         archive_path += "(2)"
     responce += "Created, " + archive_path
-    from shutil import copytree
+    from shutil import copytree, move
     copytree(log_path, archive_path+"/logs/")
     responce += " and copied logs, "
     source_logs = os.listdir(log_path)
     for log in source_logs:
-        print log
         if log in os.listdir(archive_path+"/logs/"):
-            responce += "log File, " + str(log) + " copied and cleared, "
+            #responce += "log File, " + str(log) + " copied and cleared, "
             os.remove(log_path + log)
     if compress==False:
-        copytree(caps_path, archive_path+"/caps/")
+        cap_not_copy = 0
+        for pic in os.listdir(caps_path):
+            move(caps_path+pic, archive_path+"/caps/")
+            if pic in os,listdir(archive_path+"/caps/"):
+                os.remove(log_path + pic)
+            else:
+                cap_not_copy += 1
+            if cap_not_copy > 0:
+                responce += "Sorry, " + str(cap_not_copy) + " pictures didn't copy "      
         copytree(log_path, archive_path+"/graphs/")
         responce += "caps, and graphs"
     else:
