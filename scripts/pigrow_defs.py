@@ -104,7 +104,7 @@ def archive_grow(loc_dic, name, compress=False):
         if log in os.listdir(archive_path+"/logs/"):
             responce += "log File, " + str(log) + " copied and cleared, "
             os.remove(log)
-    if compress=False:
+    if compress==False:
         copytree(caps_path, archive_path+"/caps/")
         copytree(log_path, archive_path+"/graphs/")
         responce += "caps, and graphs"
