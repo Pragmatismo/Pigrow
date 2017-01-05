@@ -93,8 +93,24 @@ def archive_grow(loc_dic, name, compress=False):
     d_total, d_used, d_free, d_percent = disk_full(loc_dic['path'])
     responce += "Current Filesystem has " + str(d_free) + " free space, " + str(d_percent) + "% remaining.  \n"
     archive_path = loc_dic['path'] + "archive/" + name
-    os.makedirs(archive_path)
+    while os.path.exists(archive_path):
+        archive_path += "(2)"
     responce += "Created, " + archive_path
+    from shutil import copytree
+    copytree(log_path, archive_path+"/logs/")
+    responce += " and copied logs, "
+    source_logs = os.listdir(log_path)
+    for log in source_logs:
+        if log in os.listdir(archive_path+"/logs/")
+        responce += "log File, " + str(log) + " copied and cleared, "
+        os.remove(log)
+    if compress=False:
+        copytree(caps_path, archive_path+"/caps/")
+        copytree(log_path, archive_path+"/graphs/")
+        responce += "caps, and graphs"
+    else:
+        responce += "ignoring graohs, and compressing caps folder into a timelapse video."
+        responce += " --well actually i'm just pretending to for now, sorry..."
     return responce
 
 if __name__ == '__main__':
