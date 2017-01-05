@@ -108,12 +108,12 @@ def archive_grow(loc_dic, name, compress=False):
         cap_not_copy = 0
         for pic in os.listdir(caps_path):
             move(caps_path+pic, archive_path+"/caps/")
-            if pic in os,listdir(archive_path+"/caps/"):
+            if pic in os.listdir(archive_path+"/caps/"):
                 os.remove(log_path + pic)
             else:
                 cap_not_copy += 1
             if cap_not_copy > 0:
-                responce += "Sorry, " + str(cap_not_copy) + " pictures didn't copy "      
+                responce += "Sorry, " + str(cap_not_copy) + " pictures didn't copy "
         copytree(log_path, archive_path+"/graphs/")
         responce += "caps, and graphs"
     else:
