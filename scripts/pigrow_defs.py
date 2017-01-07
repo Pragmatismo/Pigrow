@@ -128,8 +128,7 @@ def archive_grow(loc_dic, name, compress=False):
         os.mkdir(archive_path+"/graphs/")
         for graph in os.listdir(graph_path):
             move(graph_path+graph, archive_path+"/graphs/")
-        responce += "and " + str(len(os.listdir(archive_path+"/graphs/"))) + " graphs."
-        write_log('Archive_grow', 'prior data archived under name ' + name + ' and new grow started', loc_dic['switch_log'])
+        responce += "and " + str(len(os.listdir(archive_path+"/graphs/"))) + " graphs."        
     else:
         responce += "ignoring graohs, and compressing caps folder into a timelapse video."
         responce += " --well actually i'm just pretending to for now, sorry..."

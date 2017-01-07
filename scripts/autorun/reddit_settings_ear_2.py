@@ -322,6 +322,7 @@ def check_msg():
                     print("Archiving grow")
                     responce = pigrow_defs.archive_grow(loc_dic, str(msg.body))
                     print("ARCHIVE GROW THING DOING IT NOW!")
+                    pigrow_defs.write_log(script, "Prior grow data archived.", loc_dic['loc_switchlog'])
                     msgfrom.message('Pigrow Settings', responce)
                 elif msgsub[1] == "log":
                     print("User has something they want to add to the log...")
@@ -371,16 +372,8 @@ if not watcher_name == '':
             line = 'update_reddit.py @' + str(datetime.datetime.now()) + '@ FAILED TO MESSAGE THE COMMANDER... '+str(watcher_name)+' \n'
             ef.write(line)
 
-with open(err_log, "a") as ef:
-    line = 'update_reddit.py @' + str(datetime.datetime.now()) + '@ GOT RIGHT TO THE about to start loop... \n'
-    ef.write(line)
-
-
 while True:
     try:
-        with open(err_log, "a") as ef:
-            line = 'update_reddit.py @' + str(datetime.datetime.now()) + '@ in loop ABOUT TO RUN CHECK MSG \n'
-            ef.write(line)
         check_msg()
         time.sleep(30)
         print("all messages replied to, Looping again...")
