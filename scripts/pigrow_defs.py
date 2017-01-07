@@ -121,17 +121,19 @@ def archive_grow(loc_dic, name, compress=False):
                 cap_copy += 1
             else:
                 cap_not_copy += 1
-            if cap_not_copy > 0:
-                responce += "Sorry, copied " +str(cap_copy)+" images but " + str(cap_not_copy) + " pictures didn't copy "
-            else:
-                responce += str(cap_copy) + " images copied, "
+        if cap_not_copy > 0:
+            responce += "Sorry, copied " +str(cap_copy)+" images but " + str(cap_not_copy) + " pictures didn't copy "
+        else:
+            responce += str(cap_copy) + "images copied, "
+        if len(os.listdir(caps_path)) == 0:
+            responce += 'no images to copy '
         os.mkdir(archive_path+"/graphs/")
         for graph in os.listdir(graph_path):
             move(graph_path+graph, archive_path+"/graphs/")
-        responce += "and " + str(len(os.listdir(archive_path+"/graphs/"))) + " graphs."        
+        responce += "and " + str(len(os.listdir(archive_path+"/graphs/"))) + " graphs. "
     else:
-        responce += "ignoring graohs, and compressing caps folder into a timelapse video."
-        responce += " --well actually i'm just pretending to for now, sorry..."
+        responce += "ignoring graohs, and compressing caps folder into a timelapse video. "
+        responce += " --well actually i'm just pretending to for now, sorry... "
         response += "  \n  \n I won't delete all your files tho either, so don't worry... (do a normal archive)"
     return responce
 
