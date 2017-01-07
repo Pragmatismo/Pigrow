@@ -252,7 +252,7 @@ def write_set(whereto='wiki'):
         page_text += "[modify]("+modlink+")|" + str(job) + "  \n"
         cjob=cjob+1
     page_text += "  \n  \n"
-    page_text += '[Add New Cron Job;](https://www.reddit.com/message/compose/?to='+my_username+'&subject=cmd:addcron&message=plz')
+    page_text += '[Add New Cron Job;](https://www.reddit.com/message/compose/?to='+my_username+'&subject=cmd:addcron&message=plz)'
 
 
     page_text += '  \n  \n'
