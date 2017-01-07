@@ -95,7 +95,7 @@ def show_menu():
     elif option == "5":
         print("Capturing range of Saturation images...")
         for s in range(start_v,end_v,skip_v):
-            print("---Doing:Saturation;" + str(s)
+            print("---Doing:Saturation;" + str(s))
             camera.saturation = s
             camera.capture(caps_path+filename)
         print("Range captured, view and select best value..")
