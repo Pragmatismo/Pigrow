@@ -125,9 +125,9 @@ def archive_grow(loc_dic, name, compress=False):
                 responce += "Sorry, copied " +str(cap_copy)+" images but " + str(cap_not_copy) + " pictures didn't copy "
             else:
                 responce += str(cap_copy) + " images copied, "
-        os.mkdir(archive_path+"/graph/")        
+        os.mkdir(archive_path+"/graphs/")
         for graph in os.listdir(graph_path):
-            move(graph_path+graph, archive_path+"/graph/")
+            move(graph_path+graph, archive_path+"/graphs/")
         responce += "and " + str(len(os.listdir(archive_path+"/graphs/"))) + " graphs."
         pigrow_defs.write_log('Archive_grow', 'prior data archived under name ' + name + ' and new grow started', switch_log)
     else:
