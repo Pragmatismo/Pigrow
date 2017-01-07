@@ -245,8 +245,9 @@ def write_set(whereto='wiki'):
     cjob=0
     for job in cron:
         modlink = 'https://www.reddit.com/message/compose/?to='+my_username+'&subject=cronmod:' + str(cjob) + '&message=updated_line_here'
+        enabledlink = 'https://www.reddit.com/message/compose/?to='+my_username+'&subject=crontog:' + str(cjob) + '&message='
         enabled = job.is_enabled()
-        page_text += str(enabled) + "|" + str(job.slices) + "|"
+        page_text += "["+str(enabled)+"]("+enabledlink+")|" + str(job.slices) + "|"
         page_text += str(job.command) + "|" + str(job.comment) + "|"
         page_text += "[modify]("+modlink+")|" + str(job) + "  \n"
         cjob=cjob+1
