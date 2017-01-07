@@ -323,8 +323,18 @@ def make_cron_from(income):
         else:
             #print("not a reboot script...")
             new_job.setall(cronslice)
-        new_job.enabled = cronenabled
-        return new_job
+
+            new_job.enabled = cronenabled
+            return new_job
+    elif len(cron_request) == 0:
+        print("Job not valid")
+        msgfrom.message('Pigrow Control', "Sorry, that wasn't a valid cron job")
+        return False
+    else:
+        print("Something odd happened, a problem..")
+        print cron_request
+        msgfrom.message('Pigrow Control', "Sorry, that was more than one cronjob or something odd?")
+        return False
 
 def check_msg():
     wikilink = "[Settings Wiki](https://www.reddit.com/r/" + str(subreddit) + "/wiki/"+str(wiki_title)+ ")"
@@ -386,7 +396,8 @@ def check_msg():
             elif msgsub[0] == "cronmod":
                 job = cron[int(msgsub[1])]
                 print("Attempting to alter cron job" + str(job))
-                    new_job = make_cron_from(msg.body)
+                new_job = make_cron_from(msg.body)
+                if new_job != False:
                     if job.command == new_job.command:
                         cron.remove(job)
                         cron.write()
@@ -394,13 +405,7 @@ def check_msg():
                     else:
                         cron.remove(new_job)
                         msgfrom.message('Pigrow Control', "Sorry, can't change scripts when modifying cron job, it's dangerous")
-                elif len(cron_request) == 0:
-                    print("Job not valid")
-                    msgfrom.message('Pigrow Control', "Sorry, that wasn't a valid cron job")
-                else:
-                    print("Something odd happened, a problem..")
-                    print cron_request
-                    msgfrom.message('Pigrow Control', "Sorry, that was more than one cronjob or something odd?")
+
 
             else:
                 reply =  "Sorry, couldn't understand what you wanted, "
