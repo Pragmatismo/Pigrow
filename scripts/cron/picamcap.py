@@ -26,7 +26,11 @@ try:
     camera = PiCamera()
     #camera.resolution = (2592,1944)
     camera.brightness = int(picam_dic['b_val'])
+    camera.contrast = int(picam_dic['c_val'])
     camera.resolution = (int(picam_dic['x_dim']),int(picam_dic['y_dim']))
+    #camera.shutter_speed =
+    camera.iso = 800
+    time.sleep(2)
     print ("resolution = " + str(camera.resolution))
     print ("analog_gain = " + str(camera.analog_gain))
     print ("digital_gain = " + str(camera.digital_gain))

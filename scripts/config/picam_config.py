@@ -1,4 +1,5 @@
 import os, sys
+import time
 sys.path.append('/home/pi/Pigrow/scripts/')
 script = 'picamcap.py'
 import pigrow_defs
@@ -66,13 +67,13 @@ def show_menu():
     print(" |Set value              |")
     print(" | 1 - Saturation        |")
     print(" | 2 - Contrast          |")
-    print(" | 3 - Gain              ----------------------|")
+    print(" | 3 - iso              ----------------------|")
     print(" | 4 - Brightness                              |")
     print(" |                      t - take and show test |")
     print(" |Take Range            r - range test         |")
     print(" | 5 - Saturation        ----------------------|")
     print(" | 6 - Contrast          |")
-    print(" | 7 - Gain              |")
+    print(" | 7 - iso              |")
     print(" | 8 - Brightness        |")
     print(" |                       -------------")
     print(" | s - Save Config File to Disk      |")
@@ -117,13 +118,14 @@ def show_menu():
 
     elif option == "7":
         print("Capturing range of Gain images...")
-        for g in range(start_v,end_v,skip_v):
-            print("---Doing: analog_gain=" + str(g))
+        for g in range((100,900,100)):
+            print("---Doing: analog_iso=" + str(g))
             camera.digital_gain = g
-            camera.capture(caps_path+"test_range_dg_" + str(g) + ".jpg")
+            time.sleep(2)
+            camera.capture(caps_path+"test_range_iso_" + str(g) + ".jpg")
         print("Range captured, view and select best value..")
-        os.system("gpicview "+caps_path+"test_range_dg_"+str(start_v)+".jpg")
-        g_val = raw_input("Input value to use for Gain..")
+        os.system("gpicview "+caps_path+"test_range_iso_"+str(start_v)+".jpg")
+        g_val = raw_input("Input value to use for iso..")
         show_menu()
 
     elif option == "8":
