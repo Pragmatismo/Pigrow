@@ -327,12 +327,9 @@ def make_cron_from(income):
         return new_job
     elif len(cron_request) == 0:
         print("Job not valid")
-        msgfrom.message('Pigrow Control', "Sorry, that wasn't a valid cron job")
         return False
     else:
         print("Something odd happened, a problem..")
-        print cron_request
-        msgfrom.message('Pigrow Control', "Sorry, that was more than one cronjob or something odd?")
         return False
 
 def check_msg():
@@ -405,7 +402,8 @@ def check_msg():
                     else:
                         cron.remove(new_job)
                         msgfrom.message('Pigrow Control', "Sorry, can't change scripts when modifying cron job, it's dangerous")
-
+                else:
+                    msgfrom.message('Pigrow Control', "Sorry, that wasn't a valid cron job")
 
             else:
                 reply =  "Sorry, couldn't understand what you wanted, "
