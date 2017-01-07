@@ -249,7 +249,7 @@ def write_set(whereto='wiki'):
         enabled = job.is_enabled()
         page_text += str(enabled) + "|" + str(job.slices) + "|"
         page_text += str(job.command) + "|" + str(job.comment) + "|"
-        page_text += "(modify)["modlink"]  \n"
+        page_text += "(modify)["+modlink+"]  \n"
     page_text += "  \n  \n"
     page_text += ""
 
