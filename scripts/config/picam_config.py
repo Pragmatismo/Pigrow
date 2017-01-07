@@ -98,7 +98,7 @@ def show_menu():
         for s in range(start_v,end_v,skip_v):
             print("---Doing:Saturation;" + str(s))
             camera.saturation = s
-            camera.capture(caps_path+"test_range_s=" + str(s))
+            camera.capture(caps_path+"test_range_s=" + str(s) + ".jpg")
         print("Range captured, view and select best value..")
         os.system("gpicview test_range_s_"+str(start_v)+".jpg")
         s_val = raw_input("Input value to use for Saturation..")
