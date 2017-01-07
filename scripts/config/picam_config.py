@@ -9,7 +9,7 @@ except:
     exit()
 loc_locs = '/home/pi/Pigrow/config/dirlocs.txt'
 loc_dic = pigrow_defs.load_locs(loc_locs)
-caps_path = "./"
+caps_path = loc_dic["caps_path"]
 camera = PiCamera()
 s_val = "10"
 c_val = "10"
