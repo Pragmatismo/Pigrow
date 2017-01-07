@@ -22,7 +22,8 @@ timenow = str(time.time())[0:10]
 filename= "cap_"+str(timenow)+".jpg"
 try:
     camera = PiCamera()
-    camera.resolution = (2592,1944)
+    #camera.resolution = (2592,1944)
+    camera.resolution = (1920,1080)
     print ("resolution = " + str(camera.resolution))
     print ("analog_gain = " + str(camera.analog_gain))
     print ("digital_gain = " + str(camera.digital_gain))
