@@ -120,7 +120,7 @@ def show_menu():
         print("Capturing range of Gain images...")
         for g in range(100,900,100):
             print("---Doing: analog_iso=" + str(g))
-            camera.digital_gain = g
+            camera.iso = g
             time.sleep(2)
             camera.capture(caps_path+"test_range_iso_" + str(g) + ".jpg")
         print("Range captured, view and select best value..")
