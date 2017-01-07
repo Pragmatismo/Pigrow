@@ -355,7 +355,7 @@ def check_msg():
                     write_set('wiki')
                     msgfrom.message('Pigrow Control', "Settings Wiki written at " + wikilink)
             if messub[0] == "cronmod" and len(cron) >= messub[1]:
-                job = cron[int(msgsub)[1])]
+                job = cron[int(msgsub)[1]]
                 print("Attempting to alter cron job" + str(job))
                 cron_request = CronTab(tab=msg.body)
                 if len(cron_request) == 1:
