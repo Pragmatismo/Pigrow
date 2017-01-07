@@ -93,8 +93,14 @@ def archive_grow(loc_dic, name, compress=False):
     d_total, d_used, d_free, d_percent = disk_full(loc_dic['path'])
     responce += "Current Filesystem has " + str(d_free) + " free space, " + str(d_percent) + "% remaining.  \n"
     archive_path = loc_dic['path'] + "archive/" + name
-    while os.path.exists(archive_path):
-        archive_path += "(2)"
+
+    dir_possible = str(archive_path)
+    num = 0
+    while os.path.exists(dir_possible) == True:
+        num = num + 1
+        dir_possible = dir_possible + "_"+str(num)+"_"
+    archive_path = dir_possible
+
     responce += "Created, " + archive_path
     from shutil import copytree, move
     copytree(log_path, archive_path+"/logs/")
@@ -106,20 +112,27 @@ def archive_grow(loc_dic, name, compress=False):
             os.remove(log_path + log)
     if compress==False:
         cap_not_copy = 0
+        cap_copy = 0
         os.mkdir(archive_path + "/caps/")
         for pic in os.listdir(caps_path):
             move(caps_path+pic, archive_path+"/caps/")
             if pic in os.listdir(archive_path+"/caps/"):
-                os.remove(caps_path + pic)
+                #os.remove(caps_path + pic)
+                cap_copy += 1
             else:
                 cap_not_copy += 1
             if cap_not_copy > 0:
-                responce += "Sorry, " + str(cap_not_copy) + " pictures didn't copy "
-        copytree(log_path, archive_path+"/graphs/")
-        responce += "caps, and graphs"
+                responce += "Sorry, copied " +str(cap_copy)+" images but " + str(cap_not_copy) + " pictures didn't copy "
+            else:
+                responce += str(cap_copy) + " images copied, "
+        for graph in os.listdir(graph_path):
+            move(graph_path+graph, archive_path+"/graph/")
+        responce += "and " + str(len(os.listdir(archive_path+"/graphs/"))) + " graphs."
+        pigrow_defs.write_log('Archive_grow', 'prior data archived under name ' + name + ' and new grow started', switch_log)
     else:
         responce += "ignoring graohs, and compressing caps folder into a timelapse video."
         responce += " --well actually i'm just pretending to for now, sorry..."
+        response += "  \n  \n I won't delete all your files tho either, so don't worry... (do a normal archive)"
     return responce
 
 if __name__ == '__main__':
