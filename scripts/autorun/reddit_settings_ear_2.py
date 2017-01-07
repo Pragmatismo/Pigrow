@@ -138,29 +138,29 @@ def change_setting(setting,value):
                 if value == 'low' or value == 'high':
                     pi_set[setting]=value
                     pigrow_defs.save_settings(pi_set, loc_dic['loc_settings'], err_log=loc_dic['err_log'])
-                    return("GPIO on direction set to " + str(value))
+                    return(str(setting) + "GPIO on direction set to " + str(value), "pass")
                 else:
-                    return(" BAD VALUE - not changing the setting to a bad one!")
+                    return(" BAD VALUE - not changing the setting to a bad one!", "fail")
         else:
             try:
                 if int(value) in valid_gpio:
                     #print("Valid GPIO pin selected")
                     pi_set[setting]=value
                     pigrow_defs.save_settings(pi_set, loc_dic['loc_settings'], err_log=loc_dic['err_log'])
-                    return("GPIO Pin set to " + str(value))
+                    return(setting + " GPIO Pin set to " + str(value), "pass")
                 else:
-                    return("Invalid GPIO pin, not changing anything.")
+                    return("Invalid GPIO pin, not changing anything.", "fail")
             except:
-                return("Invalid GPIO pin, has to be a number. No change")
+                return("Invalid GPIO pin, has to be a number. No change","fail")
     elif setting in intonly:
         try:
             value = int(value)
             #print("This is a number, great job!")
             pi_set[setting]=value
             pigrow_defs.save_settings(pi_set, loc_dic['loc_settings'], err_log=loc_dic['err_log'])
-            return("Set to " + str(value))
+            return(str(setting) + "set to " + str(value), "pass")
         except:
-            return("Failed because this setting requires a number")
+            return("Failed because this setting requires a number", "fail")
 
     elif setting in hour_only:
         try:
@@ -172,17 +172,17 @@ def change_setting(setting,value):
                 value = str(value_h) + ":" + str(value_m)
                 pi_set[setting]=value
                 pigrow_defs.save_settings(pi_set, loc_dic['loc_settings'], err_log=loc_dic['err_log'])
-                return("time set to " + str(value))
+                return("time set to " + str(value), "fail")
             else:
-                return("should be in 24hour clock HH:MM format, 14:03 for example")
+                return("should be in 24hour clock HH:MM format, 14:03 for example", "fail")
         except:
-            return('should be in 24hour clock HH:MM format, 15:45 for example')
+            return('should be in 24hour clock HH:MM format, 15:45 for example', "fail")
 
     else:
         print("No Verification rules for that setting, changing it to whatever was requested...")
         pi_set[setting]=value
         pigrow_defs.save_settings(pi_set, loc_dic['loc_settings'], err_log=loc_dic['err_log'])
-        return("Set to " + str(value))
+        return(str(setting) + " set to " + str(value),"pass")
 
 def write_set(whereto='wiki'):
     page_text = '#Pigrow Settings  \n\n'
@@ -305,17 +305,19 @@ def check_msg():
 
             if msgsub[0] == "set":
                 if msgsub[1] in pi_set:
-                    reply = change_setting(str(msgsub[1]),str(msg.body))
+                    reply, passed = change_setting(str(msgsub[1]),str(msg.body))
                     write_set('wiki')
-                    reply += "  \n  \nvisit " + wikilink + " for mor info"
+                    reply += "  \n  \nvisit " + wikilink + " for more info"
                     msgfrom.message('Pigrow Settings', reply[0:10000])
+                    if passed == "pass":
+                        pigrow_defs.write_log("User via Reddit", reply, loc_dic['loc_switchlog'])
             elif msgsub[0] == "cmd":
                 if msgsub[1] == "reboot":
                     print("User requests reboot!")
                 elif msgsub[1] == "power off":
                     print("User Requests Power Off!")
                 elif msgsub[1] == "restore defaults":
-                    print("User want to resotre detauls")
+                    print("User want to resotore defauls")
                 elif msgsub[1] == "update pigrow":
                     print("User want to update pigrow!")
                 elif msgsub[1] == "archive_grow":
@@ -336,7 +338,7 @@ def check_msg():
                     msgfrom.message('Pigrow Control', "Settings Wiki written at " + wikilink)
             else:
                 reply =  "Sorry, couldn't understand what you wanted, "
-                reply += "visit " + wikilink + " for mor info"
+                reply += "visit " + wikilink + " for more info"
                 whereto = praw.models.Redditor(reddit, name=msg.author, _data=None)
                 whereto.message('Pigrow Settings', reply[0:10000])
                 print("Didn't understand what they wanted, if they wanted anything.")
