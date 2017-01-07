@@ -131,7 +131,7 @@ def show_menu():
         for b in range(start_v,end_v,skip_v):
             print("---Doing: broghtness=" + str(b))
             camera.analog_brightness = b
-            camera.capture(caps_path+"test_range_b_" + str(g) + ".jpg")
+            camera.capture(caps_path+"test_range_b_" + str(b) + ".jpg")
         print("Range captured, view and select best value..")
         os.system("gpicview "+caps_path+"test_range_b_"+str(start_v)+".jpg")
         b_val = raw_input("Input value to use for Brightness..")
