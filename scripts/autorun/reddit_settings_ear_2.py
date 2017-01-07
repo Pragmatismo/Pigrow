@@ -381,7 +381,7 @@ def check_msg():
                     msgfrom.message('Pigrow Control', "Settings Wiki written at " + wikilink)
             elif msgsub[0] == "crontog":
                 job = cron[int(msgsub[1])]
-                if job.enable == True:
+                if job.enabled == True:
                     job.enable(False)
                     truefalse = "False"
                 else:
