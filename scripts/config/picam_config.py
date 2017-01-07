@@ -1,4 +1,4 @@
-import os
+import os, sys
 sys.path.append('/home/pi/Pigrow/scripts/')
 script = 'picamcap.py'
 import pigrow_defs
