@@ -98,10 +98,10 @@ def show_menu():
         print("Capturing range of Saturation images...")
         for s in range(start_v,end_v,skip_v):
             print("---Doing:Saturation;" + str(s))
-            camera.saturation = s
-            camera.contrast = c_val
-            camera.brightness = b_val
-            camera.iso = g_val
+            camera.saturation = int(s)
+            camera.contrast = int(c_val)
+            camera.brightness = int(b_val)
+            camera.iso = int(g_val)
             time.sleep(2)
             camera.capture(caps_path+"test_range_s_" + str(s) + ".jpg")
         print("Range captured, view and select best value..")
@@ -113,10 +113,10 @@ def show_menu():
         print("Capturing range of Contrast images...")
         for c in range(start_v,end_v,skip_v):
             print("---Doing: Contrast=" + str(c))
-            camera.contrast = c
-            camera.saturation = s_val
-            camera.iso = g_val
-            camera.brightness = b_val
+            camera.contrast = int(c)
+            camera.saturation = int(s_val)
+            camera.iso = int(g_val)
+            camera.brightness = int(b_val)
             time.sleep(2)
             camera.capture(caps_path+"test_range_c_" + str(c) + ".jpg")
         print("Range captured, view and select best value..")
@@ -125,13 +125,13 @@ def show_menu():
         show_menu()
 
     elif option == "7":
-        print("Capturing range of Gain images...")
+        print("Capturing range of ISO images...")
         for g in range(100,900,100):
             print("---Doing: analog_iso=" + str(g))
-            camera.saturation = s_val
-            camera.conmtrast = c_val
-            camera.brightness = b_val
-            camera.iso = g
+            camera.saturation = int(s_val)
+            camera.conmtrast = int(c_val)
+            camera.brightness = int(b_val)
+            camera.iso = int(g)
             time.sleep(2)
             camera.capture(caps_path+"test_range_iso_" + str(g) + ".jpg")
         print("Range captured, view and select best value..")
@@ -160,10 +160,10 @@ def show_menu():
         show_menu()
     elif option == "t":
         print("Using current configuration to take image...")
-        camera.saturation = s_val
-        camera.analog_gain = g_val
-        camera.analog_brightness = b_val
-        camera.saturation = c_val
+        camera.saturation = int(s_val)
+        camera.analog_gain = int(g_val)
+        camera.analog_brightness = int(b_val)
+        camera.saturation = int(c_val)
         time.sleep(2)
         camera.capture(caps_path+"test_.jpg")
         os.system("gpicview "+caps_path+"test_range_test.jpg")
@@ -171,10 +171,10 @@ def show_menu():
 
     elif option == "r":
         print("Testing stability using current configuration to take range...")
-        camera.saturation = s_val
-        camera.analog_gain = g_val
-        camera.analog_brightness = b_val
-        camera.saturation = c_val
+        camera.saturation = int(s_val)
+        camera.analog_gain = int(g_val)
+        camera.analog_brightness = int(b_val)
+        camera.saturation = int(c_val)
         for x in range(1,10):
             time.sleep(2)
             camera.capture(caps_path+"test_"+str(x)+".jpg")
