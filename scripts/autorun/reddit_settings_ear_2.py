@@ -307,6 +307,25 @@ def write_set(whereto='wiki'):
             pigrow_defs.write_log(script, "couldn't contact redditor, wrong naem?", loc_dic['err_log'])
 
 
+def make_cron_from(income):
+    cron_request = CronTab(tab=income)
+    if len(cron_request) == 1:
+        print("valid")
+        cron_request = cron_request[0]
+        cronslice = cron_request.slices
+        croncommand = cron_request.command
+        croncomment = cron_request.comment
+        cronenabled = cron_request.enabled
+        new_job = cron.new(command=croncommand,  comment=croncomment)
+        if cronslice == "@reboot":
+            #print("Reboot script")
+            new_job.every_reboot()
+        else:
+            #print("not a reboot script...")
+            new_job.setall(cronslice)
+        new_job.enabled = cronenabled
+        return new_job
+
 def check_msg():
     wikilink = "[Settings Wiki](https://www.reddit.com/r/" + str(subreddit) + "/wiki/"+str(wiki_title)+ ")"
     for msg in reddit.inbox.unread():
@@ -354,26 +373,21 @@ def check_msg():
                     print("--User want to see settings!")
                     write_set('wiki')
                     msgfrom.message('Pigrow Control', "Settings Wiki written at " + wikilink)
+            elif msgsub[0] == "crontog":
+                job = cron[int(msgsub[1])]
+                if job.enable == True:
+                    job.enable(False)
+                    truefalse = "False"
+                else:
+                    job.enable(True)
+                    truefalse = "True"
+                    cron.write()
+                msgfrom.message('Pigrow Control', "toggled to " + truefalse)
             elif msgsub[0] == "cronmod":
                 job = cron[int(msgsub[1])]
                 print("Attempting to alter cron job" + str(job))
-                cron_request = CronTab(tab=msg.body)
-                if len(cron_request) == 1:
-                    print("valid")
-                    cron_request = cron_request[0]
-                    cronslice = cron_request.slices
-                    croncommand = cron_request.command
-                    croncomment = cron_request.comment
-                    cronenabled = cron_request.enabled
-                    new_job = cron.new(command=croncommand,  comment=croncomment)
-                    if cronslice == "@reboot":
-                        #print("Reboot script")
-                        new_job.every_reboot()
-                    else:
-                        #print("not a reboot script...")
-                        new_job.setall(cronslice)
-                    new_job.enabled = cronenabled
-                    if job.command == croncommand:
+                    new_job = make_cron_from(msg.body)
+                    if job.command == new_job.command:
                         cron.remove(job)
                         cron.write()
                         msgfrom.message('Pigrow Control', "Cron job " + str(job) + " changed to " + str(new_job))
