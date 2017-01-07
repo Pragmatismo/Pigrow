@@ -143,10 +143,10 @@ def show_menu():
         print("Capturing range of Brightness images...")
         for b in range(start_v,end_v,skip_v):
             print("---Doing: broghtness=" + str(b))
-            camera.brightness = b
-            camera.saturation = s_val
-            camera.conmtrast = c_val
-            camera.iso = g_val
+            camera.brightness = int(b)
+            camera.saturation = int(s_val)
+            camera.conmtrast = int(c_val)
+            camera.iso = int(g_val)
             time.sleep(2)
             camera.capture(caps_path+"test_range_b_" + str(b) + ".jpg")
         print("Range captured, view and select best value..")
