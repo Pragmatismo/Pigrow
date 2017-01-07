@@ -386,8 +386,6 @@ def check_msg():
                     msgfrom.message('Pigrow Control', "Sorry, that was more than one cronjob or something odd?")
 
             else:
-                msgfrom.message('Pigrow Control', "Sorry, something seems to have gone wrong...")
-            else:
                 reply =  "Sorry, couldn't understand what you wanted, "
                 reply += "visit " + wikilink + " for more info"
                 whereto = praw.models.Redditor(reddit, name=msg.author, _data=None)
