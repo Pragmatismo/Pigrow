@@ -245,14 +245,14 @@ def write_set(whereto='wiki'):
     cjob=0
     for job in cron:
         modlink = 'https://www.reddit.com/message/compose/?to='+my_username+'&subject=cronmod:' + str(cjob) + '&message=updated_line_here'
-        enabledlink = 'https://www.reddit.com/message/compose/?to='+my_username+'&subject=crontog:' + str(cjob) + '&message='
+        enabledlink = 'https://www.reddit.com/message/compose/?to='+my_username+'&subject=crontog:' + str(cjob) + '&message=plz'
         enabled = job.is_enabled()
         page_text += "["+str(enabled)+"]("+enabledlink+")|" + str(job.slices) + "|"
         page_text += str(job.command) + "|" + str(job.comment) + "|"
         page_text += "[modify]("+modlink+")|" + str(job) + "  \n"
         cjob=cjob+1
     page_text += "  \n  \n"
-    page_text += ""
+    page_text += '[Add New Cron Job;](https://www.reddit.com/message/compose/?to='+my_username+'&subject=cmd:addcron&message=plz")
 
 
     page_text += '  \n  \n'
@@ -380,6 +380,15 @@ def check_msg():
                     print("--User want to see settings!")
                     write_set('wiki')
                     msgfrom.message('Pigrow Control', "Settings Wiki written at " + wikilink)
+                elif msgsub[1] == "addcron":
+                    print("User wants to add job to cron;")
+                    new_job = make_cron_from(msg.body)
+                    print new_job
+                    if new_job != False:
+                        cron.write()
+                        msgfrom.message('Pigrow Control', "Cron job " + str(new_job) + " added.")
+                    else:
+                        msgfrom.message('Pigrow Control', "Sorry, that wasn't a valid cron job")
             elif msgsub[0] == "crontog":
                 job = cron[int(msgsub[1])]
                 if job.enabled == True:
