@@ -8,6 +8,8 @@ import sys
 sys.path.append('/home/pi/Pigrow/scripts/')
 script = 'reddit_settings_ear_2.py'
 import pigrow_defs
+from crontab import CronTab   #  pip install python-crontab
+cron = CronTab(user=True)  #can be user+True, 'yourusername' or 'root' all work.
 
 #logs default values
 loc_settings = "/home/pi/Pigrow/config/pigrow_config.txt"
@@ -138,7 +140,7 @@ def change_setting(setting,value):
                 if value == 'low' or value == 'high':
                     pi_set[setting]=value
                     pigrow_defs.save_settings(pi_set, loc_dic['loc_settings'], err_log=loc_dic['err_log'])
-                    return(str(setting) + "GPIO on direction set to " + str(value), "pass")
+                    return(str(setting) + " GPIO on direction set to " + str(value), "pass")
                 else:
                     return(" BAD VALUE - not changing the setting to a bad one!", "fail")
         else:
@@ -158,7 +160,7 @@ def change_setting(setting,value):
             #print("This is a number, great job!")
             pi_set[setting]=value
             pigrow_defs.save_settings(pi_set, loc_dic['loc_settings'], err_log=loc_dic['err_log'])
-            return(str(setting) + "set to " + str(value), "pass")
+            return(str(setting) + " set to " + str(value), "pass")
         except:
             return("Failed because this setting requires a number", "fail")
 
@@ -234,6 +236,19 @@ def write_set(whereto='wiki'):
             curr_line = curr_line - 1
         #print item
         switch_item = item
+    page_text += '  \n  \n'
+    page_text += '#Cron'
+    page_text += '  \n  \n'
+    page_text += 'Current Cron file;  \n  \n'
+    page_text += 'Enabled|min|hour|day|Command|Comment  \n'
+    page_text += ':-:|---|---|---|---|---  \n'
+    for job in cron:
+        enabled = job.is_enabled()
+        page_text += str(enabled) += "|" + str(job.minute) + "|" + str(job.hour) + "|" + str(job.day) + "|"
+        page_text += str(job.command) + "|" + str(job.comment) + "  \n"
+    page_text += "  \n  \n"
+    page_text += ""
+
 
     page_text += '  \n  \n'
     page_text += '#Switch Log  \n  \n'
@@ -310,7 +325,7 @@ def check_msg():
                     reply += "  \n  \nvisit " + wikilink + " for more info"
                     msgfrom.message('Pigrow Settings', reply[0:10000])
                     if passed == "pass":
-                        pigrow_defs.write_log("User via Reddit", reply, loc_dic['loc_switchlog'])
+                        pigrow_defs.write_log(script, reply, loc_dic['loc_switchlog'])
             elif msgsub[0] == "cmd":
                 if msgsub[1] == "reboot":
                     print("User requests reboot!")
@@ -321,19 +336,18 @@ def check_msg():
                 elif msgsub[1] == "update pigrow":
                     print("User want to update pigrow!")
                 elif msgsub[1] == "archive_grow":
-                    print("Archiving grow")
+                    print("--Archiving grow")
                     responce = pigrow_defs.archive_grow(loc_dic, str(msg.body))
-                    print("ARCHIVE GROW THING DOING IT NOW!")
                     pigrow_defs.write_log(script, "Prior grow data archived.", loc_dic['loc_switchlog'])
                     msgfrom.message('Pigrow Settings', responce)
                 elif msgsub[1] == "log":
-                    print("User has something they want to add to the log...")
+                    print("--User has something they want to add to the log...")
                     pigrow_defs.write_log("User via Reddit", str(msg.body), loc_dic['loc_switchlog'])
                 elif msgsub[1] == "send_settings":
-                    print("User want to see settings!")
+                    print("--User want to see settings!")
                     write_set(msg.author)
                 elif msgsub[1] == "update_wiki":
-                    print("User want to see settings!")
+                    print("--User want to see settings!")
                     write_set('wiki')
                     msgfrom.message('Pigrow Control', "Settings Wiki written at " + wikilink)
             else:
