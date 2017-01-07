@@ -125,7 +125,7 @@ def archive_grow(loc_dic, name, compress=False):
                 responce += "Sorry, copied " +str(cap_copy)+" images but " + str(cap_not_copy) + " pictures didn't copy "
             else:
                 responce += str(cap_copy) + " images copied, "
-        os.mkdir(graph_path)        
+        os.mkdir(archive_path+"/graph/")        
         for graph in os.listdir(graph_path):
             move(graph_path+graph, archive_path+"/graph/")
         responce += "and " + str(len(os.listdir(archive_path+"/graphs/"))) + " graphs."
