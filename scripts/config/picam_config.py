@@ -62,7 +62,7 @@ def show_menu():
     print("varying one of the settings to create a range from")
     print("which you can select the best configuration.")
     print("")
-    print("Current settings; S = " + str(s_val) + "  C = " + str(c_val) + "  G = " + str(g_val) + "  B = " + str(b_val))
+    print("Current settings; S = " + str(s_val) + "  C = " + str(c_val) + "  iso = " + str(g_val) + "  B = " + str(b_val))
     print("  _______________________")
     print(" |Set value              |")
     print(" | 1 - Saturation        |")
@@ -124,7 +124,7 @@ def show_menu():
             time.sleep(2)
             camera.capture(caps_path+"test_range_iso_" + str(g) + ".jpg")
         print("Range captured, view and select best value..")
-        os.system("gpicview "+caps_path+"test_range_iso_"+str(start_v)+".jpg")
+        os.system("gpicview "+caps_path+"test_range_iso_100.jpg")
         g_val = raw_input("Input value to use for iso..")
         show_menu()
 
