@@ -62,7 +62,7 @@ def heater_control(temp, use_fans=True):
     #checks to see if current temp should result in heater on or off
     templow  = float(set_dic['heater_templow'])
     temphigh = float(set_dic['heater_templow'])  ## plan is to add buffer zones or some something
-    if temp > templow and heater_state != 'on':
+    if temp < templow and heater_state != 'on':
         message = "It's cold,  temp is" + str(temp) + " degrees! the low limit is " + str(templow) + " so turning heater on."
         if heater_state == 'unknown':
             message = "Script initialised, it's " + str(temp) + " degrees! the low limit is " + str(templow) + " so checking heater's on"
@@ -71,7 +71,7 @@ def heater_control(temp, use_fans=True):
         if use_fans == True:
             fans_on.fans_on(set_dic, loc_dic['loc_switchlog'])
         heater_state = 'on'
-    elif temp < temphigh and heater_state != 'off':
+    elif temp > temphigh and heater_state != 'off':
         message = "it's warm, temp is " + str(temp) + " degrees, the high limit is " + str(temphigh) + " so turning heater off"
         if heater_state == 'unknown':
             message = "Script initialised, it's " + str(temp) + " degrees! the low limit is " + str(templow) + " so checking heater's off"
@@ -197,8 +197,9 @@ while True:
         else:
             print("Sensor didn't read...")
             time.sleep(1)
-    except:
+    except Exception as e:
         print("#######SOME FORM OF PIGROW ERROR Pigrow error pigrow error in checldht, probably sensor being shonk")
         print("         or some file thing??       user intervention?          i'm spooked, whatever.")
-        #raise
+        print e
+        raise
         time.sleep(1)
