@@ -316,6 +316,7 @@ def check_msg():
         print ('  - ' +msg.body)
         if msg.author == watcher_name:
             print("Trusted User settings access enabled.")
+            print msg.body
             try:
                 msgsub = msg.subject.split(":")
             except:
@@ -354,7 +355,8 @@ def check_msg():
                     print("--User want to see settings!")
                     write_set('wiki')
                     msgfrom.message('Pigrow Control', "Settings Wiki written at " + wikilink)
-            elif msgsub[0] == "cronmod" and len(cron) >= msgsub[1]:
+            elif msgsub[0] == "cronmod":
+                print("cron..cron...cron")
                 job = cron[int(msgsub)[1]]
                 print("Attempting to alter cron job" + str(job))
                 cron_request = CronTab(tab=msg.body)
