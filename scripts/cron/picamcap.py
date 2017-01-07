@@ -12,18 +12,21 @@ except:
 loc_locs = '/home/pi/Pigrow/config/dirlocs.txt'
 loc_dic = pigrow_defs.load_locs(loc_locs)
 caps_path = loc_dic["caps_path"]
-#s_val = "60" c_val = "60" g_val = "60" b_val = "60" x_dim = 1600 y_dim =
-
-extra_commands = "" #"-vf "
+picam_dic = {}
+with open("/home/pi/Pigrow/config/picam_settings.txt", "r") as f:
+    for line in f:
+        s_item = line.split("=")
+        picam_dic[s_item[0]]=s_item[1].rstrip('\n')
+print picam_dic
 
 # take and save photo
-#timenow = time.time()
 timenow = str(time.time())[0:10]
 filename= "cap_"+str(timenow)+".jpg"
 try:
     camera = PiCamera()
     #camera.resolution = (2592,1944)
-    camera.resolution = (1920,1080)
+    camera.brightness = int(picam_dic['b_val'])
+    camera.resolution = (int(picam_dic['x_dim']),int(picam_dic['y_dim']))
     print ("resolution = " + str(camera.resolution))
     print ("analog_gain = " + str(camera.analog_gain))
     print ("digital_gain = " + str(camera.digital_gain))

@@ -9,7 +9,7 @@ def load_locs(loc_locs):
         for line in f:
             s_item = line.split("=")
             loc_dic[s_item[0]]=s_item[1].rstrip('\n') #adds each setting to dictionary
-    #Check for important options,
+    #Check for important options, but doe snothing at the moment...
     if 'loc_switchlog' in loc_dic:
         loc_switchlog = loc_dic['loc_switchlog']
     else:
@@ -20,13 +20,13 @@ def load_locs(loc_locs):
         loc_settings = loc_dic['loc_settings']
         print("Settings file present")
     else:
-        Print("Settings File not loaded, can't continue...")
+        print("Settings File not loaded, can't continue...")
         exit()
     if 'err_log' in loc_dic:
         err_log = loc_dic['err_log']
     else:
         err_log = "./err.log"
-        print("No error log, outputting to current directory")
+        print("No error log, outputting to current directory -but not because this code does nothing now")
     return loc_dic
 
 def load_settings(loc_settings, err_log="./err.log"):
