@@ -25,10 +25,10 @@ filename= "cap_"+str(timenow)+".jpg"
 try:
     camera = PiCamera()
     #camera.resolution = (2592,1944)
+    camera.resolution = (int(picam_dic['x_dim']),int(picam_dic['y_dim']))
     camera.brightness = int(picam_dic['b_val'])
     camera.contrast = int(picam_dic['c_val'])
-    camera.resolution = (int(picam_dic['x_dim']),int(picam_dic['y_dim']))
-    #camera.shutter_speed =
+    camera.saturation = int(picam_dic['s_val']
     camera.iso =  int(picam_dic['g_val'])
     time.sleep(2)
     print ("resolution = " + str(camera.resolution))
