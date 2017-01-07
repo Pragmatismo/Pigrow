@@ -377,7 +377,7 @@ def check_msg():
                     new_job.enabled = cronenabled
                     cron.remove(job)
                     cron.write()
-                    msgfrom.message('Pigrow Control', "Cron job " + job + " changed to " + new_job)
+                    msgfrom.message('Pigrow Control', "Cron job " + str(job) + " changed to " + str(new_job))
 
                 elif len(cron_request) == 0:
                     print("Job not valid")
