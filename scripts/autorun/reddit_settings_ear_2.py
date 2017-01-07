@@ -240,12 +240,13 @@ def write_set(whereto='wiki'):
     page_text += '#Cron'
     page_text += '  \n  \n'
     page_text += 'Current Cron file;  \n  \n'
-    page_text += 'Enabled|min|hour|day|Command|Comment  \n'
-    page_text += ':-:|---|---|---|---|---  \n'
+    page_text += 'Enabled|time|Command|Comment|-  \n'
+    page_text += ':-:|---|---|---|--:  \n'
     for job in cron:
         enabled = job.is_enabled()
-        page_text += str(enabled) + "|" + str(job.minute) + "|" + str(job.hour) + "|" + str(job.day) + "|"
-        page_text += str(job.command) + "|" + str(job.comment) + "  \n"
+        page_text += str(enabled) + "|" + str(job.slices) + "|"
+        page_text += str(job.command) + "|" + str(job.comment) + "|"
+        page_text += str("(modify)[www.notyet.com]") +  "  \n"
     page_text += "  \n  \n"
     page_text += ""
 
