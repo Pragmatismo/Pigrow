@@ -387,7 +387,7 @@ def check_msg():
                 else:
                     job.enable(True)
                     truefalse = "True"
-                    cron.write()
+                cron.write()
                 msgfrom.message('Pigrow Control', "toggled to " + truefalse)
             elif msgsub[0] == "cronmod":
                 job = cron[int(msgsub[1])]
@@ -395,13 +395,13 @@ def check_msg():
                 new_job = make_cron_from(msg.body)
                 print new_job
                 if new_job != False:
-                    if job.command == new_job.command:
-                        cron.remove(job)
-                        cron.write()
-                        msgfrom.message('Pigrow Control', "Cron job " + str(job) + " changed to " + str(new_job))
-                    else:
-                        cron.remove(new_job)
-                        msgfrom.message('Pigrow Control', "Sorry, can't change scripts when modifying cron job, it's dangerous")
+                    #if job.command == new_job.command:
+                    cron.remove(job)
+                    cron.write()
+                    msgfrom.message('Pigrow Control', "Cron job " + str(job) + " changed to " + str(new_job))
+                    #else:
+                    #    cron.remove(new_job)
+                    #    msgfrom.message('Pigrow Control', "Sorry, can't change scripts when modifying cron job, it's dangerous")
                 else:
                     msgfrom.message('Pigrow Control', "Sorry, that wasn't a valid cron job")
 
