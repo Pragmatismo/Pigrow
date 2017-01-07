@@ -240,8 +240,8 @@ def write_set(whereto='wiki'):
     page_text += '#Cron'
     page_text += '  \n  \n'
     page_text += 'Current Cron file;  \n  \n'
-    page_text += 'Enabled|time|Command|Comment|-  \n'
-    page_text += ':-:|---|---|---|--:  \n'
+    page_text += 'Enabled|time|Command|Comment|-|Line  \n'
+    page_text += ':-:|---|---|---|--:|---  \n'
     cjob=0
     for job in cron:
         cjob=cjob+1
@@ -249,7 +249,7 @@ def write_set(whereto='wiki'):
         enabled = job.is_enabled()
         page_text += str(enabled) + "|" + str(job.slices) + "|"
         page_text += str(job.command) + "|" + str(job.comment) + "|"
-        page_text += "[modify]("+modlink+")  \n"
+        page_text += "[modify]("+modlink+")|" + job + "  \n"
     page_text += "  \n  \n"
     page_text += ""
 
