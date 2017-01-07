@@ -242,11 +242,14 @@ def write_set(whereto='wiki'):
     page_text += 'Current Cron file;  \n  \n'
     page_text += 'Enabled|time|Command|Comment|-  \n'
     page_text += ':-:|---|---|---|--:  \n'
+    cjob=0
     for job in cron:
+        cjob=cjob+1
+        modlink = (https://www.reddit.com/message/compose/?to='+my_username+'&subject=cronmod:' str(cjob) + '&message=str(job))
         enabled = job.is_enabled()
         page_text += str(enabled) + "|" + str(job.slices) + "|"
         page_text += str(job.command) + "|" + str(job.comment) + "|"
-        page_text += str("(modify)[www.notyet.com]") +  "  \n"
+        page_text += "(modify)["modlink"]  \n"
     page_text += "  \n  \n"
     page_text += ""
 
@@ -351,6 +354,39 @@ def check_msg():
                     print("--User want to see settings!")
                     write_set('wiki')
                     msgfrom.message('Pigrow Control', "Settings Wiki written at " + wikilink)
+            if messub[0] == "cronmod" and len(cron) >= messub[1]:
+                job = cron[int(msgsub)[1])]
+                print("Attempting to alter cron job" + str(job))
+                cron_request = CronTab(tab=msg.body)
+                if len(cron_request) == 1:
+                    print("valid")
+                    cron_request = cron_request[0]
+                    cronslice = cron_request.slices
+                    croncommand = cron_request.command
+                    croncomment = cron_request.comment
+                    cronenabled = cron_request.enabled
+                    new_job = cron.new(command=croncommand,  comment=croncomment)
+                    if cronslice == "@reboot":
+                        #print("Reboot script")
+                        new_job.every_reboot()
+                    else:
+                        #print("not a reboot script...")
+                        new_job.setall(cronslice)
+                   new_job.enabled = cronenabled
+                   cron.remove(job)
+                   cron.write()
+                   msgfrom.message('Pigrow Control', "Cron job " + job + " changed to " + new_job)
+
+                elif len(cron_request) == 0:
+                    print("Job not valid")
+                    msgfrom.message('Pigrow Control', "Sorry, that wasn't a valid cron job")
+                else:
+                    print("Something odd happened, a problem..")
+                    print cron_request
+                    msgfrom.message('Pigrow Control', "Sorry, that was more than one cronjob or something odd?")
+
+elif messub[0] == "cronmod":
+
             else:
                 reply =  "Sorry, couldn't understand what you wanted, "
                 reply += "visit " + wikilink + " for more info"
