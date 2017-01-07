@@ -378,6 +378,7 @@ def check_msg():
                         cron.write()
                         msgfrom.message('Pigrow Control', "Cron job " + str(job) + " changed to " + str(new_job))
                     else:
+                        cron.remove(new_job)
                         msgfrom.message('Pigrow Control', "Sorry, can't change scripts when modifying cron job, it's dangerous")
                 elif len(cron_request) == 0:
                     print("Job not valid")
