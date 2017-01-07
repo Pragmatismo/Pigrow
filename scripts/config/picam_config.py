@@ -122,7 +122,7 @@ def show_menu():
             camera.analog_gain = g
             camera.capture(caps_path+"test_range_ag_" + str(g) + ".jpg")
         print("Range captured, view and select best value..")
-        os.system("gpicview "+caps_path"test_range_ag_"+str(start_v)+".jpg")
+        os.system("gpicview "+caps_path+"test_range_ag_"+str(start_v)+".jpg")
         g_val = raw_input("Input value to use for Gain..")
         show_menu()
 
