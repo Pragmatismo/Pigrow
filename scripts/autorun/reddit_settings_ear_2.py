@@ -310,7 +310,7 @@ def write_set(whereto='wiki'):
 def make_cron_from(income):
     cron_request = CronTab(tab=income)
     if len(cron_request) == 1:
-        print("valid")
+        print("requested cron is valid")
         cron_request = cron_request[0]
         cronslice = cron_request.slices
         croncommand = cron_request.command
@@ -323,9 +323,8 @@ def make_cron_from(income):
         else:
             #print("not a reboot script...")
             new_job.setall(cronslice)
-
-            new_job.enabled = cronenabled
-            return new_job
+        new_job.enabled = cronenabled
+        return new_job
     elif len(cron_request) == 0:
         print("Job not valid")
         msgfrom.message('Pigrow Control', "Sorry, that wasn't a valid cron job")
@@ -397,6 +396,7 @@ def check_msg():
                 job = cron[int(msgsub[1])]
                 print("Attempting to alter cron job" + str(job))
                 new_job = make_cron_from(msg.body)
+                print new_job
                 if new_job != False:
                     if job.command == new_job.command:
                         cron.remove(job)
