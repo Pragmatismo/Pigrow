@@ -244,7 +244,7 @@ def write_set(whereto='wiki'):
     page_text += ':-:|---|---|---|---|---  \n'
     for job in cron:
         enabled = job.is_enabled()
-        page_text += str(enabled) += "|" + str(job.minute) + "|" + str(job.hour) + "|" + str(job.day) + "|"
+        page_text += str(enabled) + "|" + str(job.minute) + "|" + str(job.hour) + "|" + str(job.day) + "|"
         page_text += str(job.command) + "|" + str(job.comment) + "  \n"
     page_text += "  \n  \n"
     page_text += ""
