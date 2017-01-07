@@ -98,57 +98,64 @@ def show_menu():
         for s in range(start_v,end_v,skip_v):
             print("---Doing:Saturation;" + str(s))
             camera.saturation = s
-            camera.capture(caps_path+"test_range_s=" + str(s) + ".jpg")
+            camera.capture(caps_path+"test_range_s_" + str(s) + ".jpg")
         print("Range captured, view and select best value..")
-        os.system("gpicview test_range_s_"+str(start_v)+".jpg")
+        os.system("gpicview "+caps_path+"test_range_s_"+str(start_v)+".jpg")
         s_val = raw_input("Input value to use for Saturation..")
         show_menu()
 
     elif option == "6":
         print("Capturing range of Contrast images...")
         for c in range(start_v,end_v,skip_v):
-            print("---Doing: sudo uvccapture "+additonal_commands +" -S"+s_val+" -C" + str(c) + " -G"+ g_val +" -B"+ b_val +" -x"+str(x_dim)+" -y"+str(y_dim)+" -v -t0 -otest_range_c_"+str(c)+".jpg")
-            os.system("sudo uvccapture "+additonal_commands+" -S"+s_val+" -C" + str(c) + " -G"+ g_val +" -B"+ b_val +" -x"+str(x_dim)+" -y"+str(y_dim)+" -v -t0 -otest_range_c_"+str(c)+".jpg")
+            print("---Doing: Contrast=" + str(c))
+            camera.saturation = c
+            camera.capture(caps_path+"test_range_c_" + str(c) + ".jpg")
         print("Range captured, view and select best value..")
-        os.system("gpicview test_range_c_"+str(start_v)+".jpg")
+        os.system("gpicview "+caps_path+"test_range_c_"+str(start_v)+".jpg")
         c_val = raw_input("Input value to use for Contrast..")
         show_menu()
 
     elif option == "7":
         print("Capturing range of Gain images...")
         for g in range(start_v,end_v,skip_v):
-            print("---Doing: sudo uvccapture "+additonal_commands +" -S"+s_val+" -C" + c_val + " -G"+ str(g) +" -B"+ b_val +" -x"+str(x_dim)+" -y"+str(y_dim)+" -v -t0 -otest_range_c_"+str(g)+".jpg")
-            os.system("sudo uvccapture "+additonal_commands+" -S"+s_val+" -C" + c_val + " -G"+ str(g) +" -B"+ b_val +" -x"+str(x_dim)+" -y"+str(y_dim)+" -v -t0 -otest_range_g_"+str(g)+".jpg")
+            print("---Doing: analog_gain=" + str(g))
+            camera.analog_gain = g
+            camera.capture(caps_path+"test_range_ag_" + str(g) + ".jpg")
         print("Range captured, view and select best value..")
-        os.system("gpicview test_range_g_"+str(start_v)+".jpg")
+        os.system("gpicview "+caps_path"test_range_ag_"+str(start_v)+".jpg")
         g_val = raw_input("Input value to use for Gain..")
         show_menu()
 
     elif option == "8":
         print("Capturing range of Brightness images...")
         for b in range(start_v,end_v,skip_v):
-            print("---Doing: sudo uvccapture "+additonal_commands +" -S"+s_val+" -C" + c_val + " -G"+ g_val +" -B"+ str(b) +" -x"+str(x_dim)+" -y"+str(y_dim)+" -v -t0 -otest_range_b_"+str(b)+".jpg")
-            os.system("sudo uvccapture "+additonal_commands+" -S"+s_val+" -C" + c_val + " -G"+ g_val +" -B"+ str(b) +" -x"+str(x_dim)+" -y"+str(y_dim)+" -v -t0 -otest_range_b_"+str(b)+".jpg")
+            print("---Doing: broghtness=" + str(b))
+            camera.analog_brightness = b
+            camera.capture(caps_path+"test_range_b_" + str(g) + ".jpg")
         print("Range captured, view and select best value..")
-        os.system("gpicview test_range_b_"+str(start_v)+".jpg")
+        os.system("gpicview "+caps_path+"test_range_b_"+str(start_v)+".jpg")
         b_val = raw_input("Input value to use for Brightness..")
         show_menu()
 
     elif option == "0":
-        os.system("sudo rm test_range_*.jpg")
+        os.system("sudo rm "+caps_path+"test_range_*.jpg")
         print("Images deleted")
         show_menu()
     elif option == "t":
         print("Using current configuration to take image...")
-        os.system("sudo uvccapture "+additonal_commands+" -S"+s_val+" -C" + c_val + " -G"+ g_val +" -B"+ b_val +" -x"+str(x_dim)+" -y"+str(y_dim)+" -v -t0 -otest_range_test.jpg")
-        os.system("gpicview test_range_test.jpg")
+        camera.saturation = s_val
+        camera.analog_gain = g_val
+        camera.analog_brightness = b_val
+        camera.saturation = c_val
+        camera.capture(caps_path+"test_.jpg")
+        os.system("gpicview "+caps_path+"test_range_test.jpg")
         show_menu()
 
     elif option == "r":
         print("Testing stability using current configuration to take range...")
         for x in range(1,10):
-            os.system("sudo uvccapture "+additonal_commands+" -S"+s_val+" -C" + c_val + " -G"+ g_val +" -B"+ b_val +" -x"+str(x_dim)+" -y"+str(y_dim)+" -v -t0 -otest_range_range_test_"+str(x)+".jpg")
-        os.system("gpicview test_range_range_test_1.jpg")
+            camera.capture(caps_path+"test_"+str(x)+".jpg")
+        os.system("gpicview "+caps_path+"test_range_range_test_1.jpg")
         show_menu()
 
     elif option == "s":
