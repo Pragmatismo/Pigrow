@@ -118,7 +118,7 @@ def show_menu():
 
     elif option == "7":
         print("Capturing range of Gain images...")
-        for g in range((100,900,100)):
+        for g in range(100,900,100):
             print("---Doing: analog_iso=" + str(g))
             camera.digital_gain = g
             time.sleep(2)
