@@ -60,3 +60,10 @@ try:
 except:
     print("Sorry, picture not taken :(")
     raise
+
+#this is just for testing
+def pic_capture:
+    timenow = str(time.time())[0:10]
+    filename= "cap_"+str(timenow)+".jpg"
+    camera.capture(caps_path+filename)
+    camera.close()
