@@ -106,6 +106,7 @@ def archive_grow(loc_dic, name, compress=False):
             os.remove(log_path + log)
     if compress==False:
         cap_not_copy = 0
+        os.mkdir(archive_path + "/caps/")
         for pic in os.listdir(caps_path):
             move(caps_path+pic, archive_path+"/caps/")
             if pic in os.listdir(archive_path+"/caps/"):
