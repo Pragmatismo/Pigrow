@@ -372,10 +372,10 @@ def check_msg():
                     else:
                         #print("not a reboot script...")
                         new_job.setall(cronslice)
-                   new_job.enabled = cronenabled
-                   cron.remove(job)
-                   cron.write()
-                   msgfrom.message('Pigrow Control', "Cron job " + job + " changed to " + new_job)
+                    new_job.enabled = cronenabled
+                    cron.remove(job)
+                    cron.write()
+                    msgfrom.message('Pigrow Control', "Cron job " + job + " changed to " + new_job)
 
                 elif len(cron_request) == 0:
                     print("Job not valid")
