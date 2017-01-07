@@ -316,7 +316,6 @@ def check_msg():
         print ('  - ' +msg.body)
         if msg.author == watcher_name:
             print("Trusted User settings access enabled.")
-            print msg.body
             try:
                 msgsub = msg.subject.split(":")
             except:
@@ -356,7 +355,6 @@ def check_msg():
                     write_set('wiki')
                     msgfrom.message('Pigrow Control', "Settings Wiki written at " + wikilink)
             elif msgsub[0] == "cronmod":
-                print("cron..cron...cron")
                 job = cron[int(msgsub[1])]
                 print("Attempting to alter cron job" + str(job))
                 cron_request = CronTab(tab=msg.body)
@@ -375,10 +373,12 @@ def check_msg():
                         #print("not a reboot script...")
                         new_job.setall(cronslice)
                     new_job.enabled = cronenabled
-                    cron.remove(job)
-                    cron.write()
-                    msgfrom.message('Pigrow Control', "Cron job " + str(job) + " changed to " + str(new_job))
-
+                    if job.command == croncommand:
+                        cron.remove(job)
+                        cron.write()
+                        msgfrom.message('Pigrow Control', "Cron job " + str(job) + " changed to " + str(new_job))
+                    else:
+                        msgfrom.message('Pigrow Control', "Sorry, can't change scripts when modifying cron job, it's dangerous")
                 elif len(cron_request) == 0:
                     print("Job not valid")
                     msgfrom.message('Pigrow Control', "Sorry, that wasn't a valid cron job")
