@@ -94,7 +94,7 @@ def check_script_running(script):
                 if line.split(':')[0] == "State":
                     script_test_status = line.split(':')[1].strip()
             try:
-                script_test_path = open(os.path.join('/proc', str(pid), 'cmdline'), 'rb').read()
+                script_test_path = open(os.path.join('/proc', str(script_test[0]), 'cmdline'), 'rb').read()
             except IOError:
                 #print("I think it died when we looked at it...")
                 return {'num_running':'0','script_status':'died','script_path':'none'}
