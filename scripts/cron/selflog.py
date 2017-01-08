@@ -62,41 +62,46 @@ def gather_data(path="./"):
             'memavail':memavail
             }
 
-
-
-scripts_to_check = ['reddit_','checkDHT']
-
-try:
-    reddit_ear = map(int,check_output(["pidof",'atom']).split())
-except:
-    reddit_ear = False
-
-if reddit_ear == False:
-    print("Reddit Monitoring Script not running!")
-else:
-    if len(reddit_ear) > 1:
-        print("There's more than one reddit monitoring script running!")
-        for pid in reddit_ear:
-
-            print pid
-
-            #print os.getpgid(pid) # Return the process group id
-            for line in open("/proc/"+ str(pid)  +"/status").readlines():
-                if line.split(':')[0] == "State":
-                    print line.split(':')[1].strip()
-
-            #os.kill(pid, sig)
+def check_script_running(script):
+    try:
+        script_test = map(int,check_output(["pidof",script]).split())
+    except:
+        script_test = False
+    if script_test == False:
+        #print(script + " not running!")
+        return {'num_running':'0','script_status':'none','script_path':'none'}
     else:
-        print("Reddit Monitoring Script is running!")
-        for line in open("/proc/"+ str(reddit_ear)  +"/status").readlines():
-            if line.split(':')[0] == "State":
-                reddit_ear_status = line.split(':')[1].strip()
-        try:
-            reddit_ear_path = open(os.path.join('/proc', str(pid), 'cmdline'), 'rb').read()
-        except IOError:
-            print("I think it died when we looked at it...")
-        print reddit_ear_path
-        print reddit_ear_status
+        if len(script_test) > 1:
+            #print("There's more than one " + script + " running!")
+            for pid in script_test:
+                #print "---"
+                #print pid
+                try:
+                    script_test_path = open(os.path.join('/proc', str(pid), 'cmdline'), 'rb').read()
+                    #print script_test_path
+                except IOError:
+                    #print("I think it died when we looked at it...")
+                    return {'num_running':'0','script_status':'died','script_path':'none'}
+                #print os.getpgid(pid) # Return the process group id
+                for line in open("/proc/"+ str(pid)  +"/status").readlines():
+                    if line.split(':')[0] == "State":
+                        script_test_status = line.split(':')[1].strip()
+                return {'num_running':str(len(script_test)),'script_status':script_test_status,'script_path':script_test_path}
+                #os.kill(pid, sig)
+        else:
+            #print(script + " is running!")
+            for line in open("/proc/"+ str(script_test)  +"/status").readlines():
+                if line.split(':')[0] == "State":
+                    script_test_status = line.split(':')[1].strip()
+            try:
+                script_test_path = open(os.path.join('/proc', str(pid), 'cmdline'), 'rb').read()
+            except IOError:
+                #print("I think it died when we looked at it...")
+                return {'num_running':'0','script_status':'died','script_path':'none'}
+            #print script_test_path
+            #print script_test_status
+            return {'num_running':'1','script_status':script_test_status,'script_path':script_path}
+
 
 
 
@@ -110,8 +115,8 @@ else:
 
 
 
-def get_pid(name):
-    return map(int,check_output(["pidof",name]).split())
+#def get_pid(name):
+#    return map(int,check_output(["pidof",name]).split())
 
 #try:
 #    pid = get_pid('doggo')
@@ -120,8 +125,23 @@ def get_pid(name):
 #    print("No program of that name running.")
 
 if __name__ == '__main__':
+    scripts_to_check = ['reddit_settings_ear_2','checkDHT']# 'chromium-browse'] #this doesn't work :( works for 'atom' and 'bash' needs fix 
     print("################################################")
     print("######### SELF CHECKING INFO LOGGER ############")
     info = gather_data(path)
+    line = ''
     for key, value in info.iteritems():
-        print str(key) + " = " + str(value)
+        line += str(key) + "=" + str(value) + ">"
+    for script in scripts_to_check:
+        script_status = check_script_running(script)
+        #print("The script " + script + " has " + script_status['num_running'] + " instances running")
+        for key, value in script_status.iteritems():
+           line += str(script + '_' + key) + "=" + str(value) + ">"
+    line += '\n'
+    print line
+    try:
+        with open(loc_dic['self_log'], "a") as f:
+            f.write(line)
+    except:
+        print["-LOG ERROR-"]
+        pigrow_defs.write_log('checkDHT.py', 'writing dht log failed', loc_dic['err_log'])
