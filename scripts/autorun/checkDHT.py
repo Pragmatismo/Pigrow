@@ -50,7 +50,7 @@ def read_and_log(loc_dic):
                     f.write(line)
             except:
                 print["-LOG ERROR-"]
-                pigrow_defs.write_log('checkDHT.py', 'writing dht log failed', loc_dic['loc_switchlog'])
+                pigrow_defs.write_log('checkDHT.py', 'writing dht log failed', loc_dic['err_log'])
             return humidity, temperature, timno
     except:
         print("--problem reading sensor on GPIO:"+set_dic['gpio_dht22sensor']+"--")
@@ -146,15 +146,15 @@ def check_lamp(on_time, off_time):
                 lamp_on.lamp_on(set_dic, loc_dic['loc_switchlog'])
                 return 'a lamp on', True
             else:
-                lamo_off.lamp_off(set_dic, loc_dic['loc_switchlog'])
+                lamp_off.lamp_off(set_dic, loc_dic['loc_switchlog'])
                 return 'a lamp off', True
 
         elif on_time < off_time:
             if current_time > on_time and current_time < off_time:
-                lamo_on.lamp_on(set_dic, loc_dic['loc_switchlog'])
+                lamp_on.lamp_on(set_dic, loc_dic['loc_switchlog'])
                 return 'the lamp on', True
             else:
-                lamo_off.lamp_off(set_dic, loc_dic['loc_switchlog'])
+                lamp_off.lamp_off(set_dic, loc_dic['loc_switchlog'])
                 return 'the lamp off', True
 
         elif current_time == on_time:
