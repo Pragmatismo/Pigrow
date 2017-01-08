@@ -100,7 +100,7 @@ def check_script_running(script):
                 return {'num_running':'0','script_status':'died','script_path':'none'}
             #print script_test_path
             #print script_test_status
-            return {'num_running':'1','script_status':script_test_status,'script_path':script_path}
+            return {'num_running':'1','script_status':script_test_status,'script_path':script_test_path}
 
 
 
