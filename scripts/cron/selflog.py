@@ -90,7 +90,7 @@ def check_script_running(script):
                 #os.kill(pid, sig)
         else:
             #print(script + " is running!")
-            for line in open("/proc/"+ str(script_test)  +"/status").readlines():
+            for line in open("/proc/"+ str(script_test[0])  +"/status").readlines():
                 if line.split(':')[0] == "State":
                     script_test_status = line.split(':')[1].strip()
             try:
