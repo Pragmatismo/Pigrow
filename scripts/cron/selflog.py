@@ -64,7 +64,7 @@ def gather_data(path="./"):
 
 def check_script_running(script):
     try:
-        script_test = map(int,check_output(["pidof",script]).split())
+        script_test = map(int,check_output(["pidof",script,"-x"]).split())
     except:
         script_test = False
     if script_test == False:
@@ -125,7 +125,7 @@ def check_script_running(script):
 #    print("No program of that name running.")
 
 if __name__ == '__main__':
-    scripts_to_check = ['reddit_settings_ear_2','checkDHT']# 'chromium-browse'] #this doesn't work :( works for 'atom' and 'bash' needs fix 
+    scripts_to_check = ['reddit_settings_ear_2.py','checkDHT.py']# 'chromium-browse'] #this doesn't work :( works for 'atom' and 'bash' needs fix
     print("################################################")
     print("######### SELF CHECKING INFO LOGGER ############")
     info = gather_data(path)
