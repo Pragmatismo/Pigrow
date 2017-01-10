@@ -25,7 +25,7 @@ disk_p = []
 disk_f = []
 disk_t = []
 disk_u = []
-
+up = []
 
 with open(loc_dic['self_log'], "r") as f:
     for line in f:
@@ -63,20 +63,23 @@ with open(loc_dic['self_log'], "r") as f:
             disk_f.append(disk_free)
             disk_t.append(disk_total)
             disk_u.append(disk_used)
-
-
+        #uptime
+            uptime = log_dic['uptime_sec']
+            up.append(uptime)
         except:
-            print("didn't parse" + str(item))
+            #print("didn't parse" + str(item))
+            pass
 
-print date
-print mem_avail
+#print date
+#print mem_avail
+#print uptime
 
-for key,value in log_dic.iteritems():
-    num_of_s = 40 - len(key)
-    spaces = str(key)
-    for x in range(0,num_of_s):
-        spaces += " "
-    print spaces + " == " + str(value)
+#for key,value in log_dic.iteritems():
+#    num_of_s = 40 - len(key)
+#    spaces = str(key)
+#    for x in range(0,num_of_s):
+#        spaces += " "
+#    print spaces + " == " + str(value)
 #print log_dic
 
 print(";;;;;;;;;;;;")
@@ -120,13 +123,20 @@ def make_disk_graphs(dates, disk_p, disk_f, disk_t, disk_u):
     ax3[0].set_title("Disk Use from " + str(dates[0].strftime("%b-%d %H:%M")) + " to " + str(dates[-1].strftime("%b-%d %H:%M")) + " UTC")
     ax3[1].plot_date(dates, disk_p, '-')
     ax3[1].set_title("Percentage of disk used")
-    plt.show()
 
-
+def graph_up(dates, up):
+    print("Attempting to make disk useage graoh")
+    fig4, ax4 = plt.subplots()
+    ax4.plot(dates, up, '-')
+    ax4.set_title("Uptime; " + str(dates[0].strftime("%b-%d %H:%M")) + " to " + str(dates[-1].strftime("%b-%d %H:%M")) + " UTC")
 
 
 print len(dates)
-print len(cpu_a1)
+#print len(cpu_a1)
 make_cpu_graph(dates, cpu_a1, cpu_a5, cpu_a15)
 make_mem_graph(dates, mem_a, mem_f, mem_t)
 make_disk_graphs(dates, disk_p, disk_f, disk_t, disk_u)
+#print len(up)
+graph_up(dates, up)
+
+plt.show()
