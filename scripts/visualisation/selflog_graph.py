@@ -6,11 +6,8 @@ sys.path.append('/home/pi/Pigrow/scripts/')
 sys.path.append('/home/pragmo/pigitgrow/Pigrow/scripts/')
 import pigrow_defs
 script = 'selflog_graph.py'
-
-#loc_locs = '/home/pi/Pigrow/config/dirlocs.txt'
-loc_locs = '/home/pragmo/pigitgrow/Pigrow/config/dirlocs.txt'
+loc_locs = '/home/pi/Pigrow/config/dirlocs.txt'
 loc_dic = pigrow_defs.load_locs(loc_locs)
-path = loc_dic["path"]
 
 log_dic = {}
 
@@ -96,7 +93,7 @@ def make_cpu_graph(dates, cpu_a1, cpu_a5, cpu_a15):
     ax[0].plot(dates, cpu_a1)
     ax[1].plot(dates, cpu_a5)
     ax[2].plot(dates, cpu_a15)
-    ax[0].set_title("CPU Load; Time Perod; " + str(dates[0].strftime("%b-%d %H:%M")) + " to " + str(dates[-1].strftime("%b-%d %H:%M")) + " UTC")
+    ax[0].set_title("CPU Load from " + str(dates[0].strftime("%b-%d %H:%M")) + " to " + str(dates[-1].strftime("%b-%d %H:%M")) + " UTC")
     #plt.subplots(2, 2)
     fig.autofmt_xdate()
     #plt.show()
@@ -104,9 +101,9 @@ def make_cpu_graph(dates, cpu_a1, cpu_a5, cpu_a15):
 def make_mem_graph(dates, mem_a, mem_f, mem_t):
     print("Attempting to make mem useage graoh")
     fig2, ax2 = plt.subplots()
-    ax2.plot_date(dates, mem_a, '-')
-    ax2.plot_date(dates, mem_f, '-')
-    ax2.plot_date(dates, mem_t, '-')
+    ax2.plot_date(dates, mem_a, '-', color='green')
+    ax2.plot_date(dates, mem_f, '-', color='blue')
+    ax2.plot_date(dates, mem_t, '-', color='black')
     ax2.set_title("Memory Use from " + str(dates[0].strftime("%b-%d %H:%M")) + " to " + str(dates[-1].strftime("%b-%d %H:%M")) + " UTC")
     plt.ylabel("Memory in MB")
     fig2.autofmt_xdate()
@@ -117,9 +114,9 @@ def make_disk_graphs(dates, disk_p, disk_f, disk_t, disk_u):
     #fig3, ax3 = plt.subplots()
     fig3, ax3 = plt.subplots(2, sharex=True)
     plt.ylabel("Disk Memory in MB")
-    ax3[0].plot_date(dates, disk_t, '-')
-    ax3[0].plot_date(dates, disk_f, '-')
-    ax3[0].plot_date(dates, disk_u, '-')
+    ax3[0].plot_date(dates, disk_t, '-', color='black')
+    ax3[0].plot_date(dates, disk_f, '-', color='green')
+    ax3[0].plot_date(dates, disk_u, '-', color='red')
     ax3[0].set_title("Disk Use from " + str(dates[0].strftime("%b-%d %H:%M")) + " to " + str(dates[-1].strftime("%b-%d %H:%M")) + " UTC")
     ax3[1].plot_date(dates, disk_p, '-')
     ax3[1].set_title("Percentage of disk used")
