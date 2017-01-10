@@ -7,6 +7,7 @@ sys.path.append('/home/pragmo/pigitgrow/Pigrow/scripts/')
 import pigrow_defs
 script = 'selflog_graph.py'
 loc_locs = '/home/pi/Pigrow/config/dirlocs.txt'
+#loc_locs = '/home/pragmo/pigitgrow/Pigrow/config/dirlocs.txt'
 loc_dic = pigrow_defs.load_locs(loc_locs)
 
 log_dic = {}
@@ -25,11 +26,14 @@ disk_u = []
 up = []
 
 with open(loc_dic['self_log'], "r") as f:
+    print loc_dic['self_log']
     for line in f:
         try:
             line = line.split('>')
             for item in line:
                 item = item.split("=")
+                if len(item) == 1:
+                    break
                 name = item[0].strip()
                 value = item[1].strip()
                 log_dic[name]=value
@@ -64,8 +68,8 @@ with open(loc_dic['self_log'], "r") as f:
             uptime = log_dic['uptime_sec']
             up.append(uptime)
         except:
-            #print("didn't parse" + str(item))
-            pass
+            print("didn't parse" + str(item))
+            #raise
 
 #print date
 #print mem_avail
