@@ -3,27 +3,28 @@ import os, sys
 import datetime
 import matplotlib.pyplot as plt
 sys.path.append('/home/pi/Pigrow/scripts/')
-sys.path.append('/home/pragmo/pigitgrow/Pigrow/scripts/')
+#sys.path.append('/home/pragmo/pigitgrow/Pigrow/scripts/')
 import pigrow_defs
 script = 'selflog_graph.py'
 loc_locs = '/home/pi/Pigrow/config/dirlocs.txt'
 #loc_locs = '/home/pragmo/pigitgrow/Pigrow/config/dirlocs.txt'
 loc_dic = pigrow_defs.load_locs(loc_locs)
+graph_path = loc_dic['graph_path']
 
-log_dic = {}
-
-dates = []
-cpu_a1 = []
-cpu_a5 = []
-cpu_a15 = []
-mem_a = []
-mem_f = []
-mem_t = []
-disk_p = []
-disk_f = []
-disk_t = []
-disk_u = []
-up = []
+log_dic = {}    # Reused for every line of the log file
+                     ## Lists used to make graphs.
+dates = []      # Used for all the graphs
+cpu_a1 = []    #
+cpu_a5 = []    #  cpu load average for one min, five min, fifteen min
+cpu_a15 = []   #
+mem_a = []      #
+mem_f = []      #  mem avail, full, total
+mem_t = []      #
+disk_p = []    #
+disk_f = []    #  Disk Percent, Full, total, used
+disk_t = []    #
+disk_u = []    #
+up = []         # uptime
 
 with open(loc_dic['self_log'], "r") as f:
     print loc_dic['self_log']
@@ -71,22 +72,9 @@ with open(loc_dic['self_log'], "r") as f:
             print("didn't parse" + str(item))
             #raise
 
-#print date
-#print mem_avail
-#print uptime
-
-#for key,value in log_dic.iteritems():
-#    num_of_s = 40 - len(key)
-#    spaces = str(key)
-#    for x in range(0,num_of_s):
-#        spaces += " "
-#    print spaces + " == " + str(value)
-#print log_dic
-
-print(";;;;;;;;;;;;")
-print str(datetime.datetime.now() - date).split('.')[0]
-
-print "there are " + str(len(cpu_a1)) + " data points for cpu graphhs"
+#
+#  Code for making the graphs.
+#
 
 def make_cpu_graph(dates, cpu_a1, cpu_a5, cpu_a15):
     print("Attempting to make cpu graph")
@@ -100,7 +88,7 @@ def make_cpu_graph(dates, cpu_a1, cpu_a5, cpu_a15):
     ax[0].set_title("CPU Load from " + str(dates[0].strftime("%b-%d %H:%M")) + " to " + str(dates[-1].strftime("%b-%d %H:%M")) + " UTC")
     #plt.subplots(2, 2)
     fig.autofmt_xdate()
-    #plt.show()
+    plt.savefig(graph_path + "Selflog_cpu_graph.png")
 
 def make_mem_graph(dates, mem_a, mem_f, mem_t):
     print("Attempting to make mem useage graoh")
@@ -111,6 +99,7 @@ def make_mem_graph(dates, mem_a, mem_f, mem_t):
     ax2.set_title("Memory Use from " + str(dates[0].strftime("%b-%d %H:%M")) + " to " + str(dates[-1].strftime("%b-%d %H:%M")) + " UTC")
     plt.ylabel("Memory in MB")
     fig2.autofmt_xdate()
+    plt.savefig(graph_path + "Selflog_mem_graph.png")
     #plt.show()
 
 def make_disk_graphs(dates, disk_p, disk_f, disk_t, disk_u):
@@ -124,20 +113,39 @@ def make_disk_graphs(dates, disk_p, disk_f, disk_t, disk_u):
     ax3[0].set_title("Disk Use from " + str(dates[0].strftime("%b-%d %H:%M")) + " to " + str(dates[-1].strftime("%b-%d %H:%M")) + " UTC")
     ax3[1].plot_date(dates, disk_p, '-')
     ax3[1].set_title("Percentage of disk used")
+    fig3.autofmt_xdate()
+    plt.savefig(graph_path + "Selflog_disk_graph.png")
 
-def graph_up(dates, up):
+def make_graph_up(dates, up):
     print("Attempting to make disk useage graoh")
     fig4, ax4 = plt.subplots()
     ax4.plot(dates, up, '-')
     ax4.set_title("Uptime; " + str(dates[0].strftime("%b-%d %H:%M")) + " to " + str(dates[-1].strftime("%b-%d %H:%M")) + " UTC")
+    fig4.autofmt_xdate()
+    plt.savefig(graph_path + "Selflog_up_graph.png")
 
 
-print len(dates)
-#print len(cpu_a1)
-make_cpu_graph(dates, cpu_a1, cpu_a5, cpu_a15)
-make_mem_graph(dates, mem_a, mem_f, mem_t)
-make_disk_graphs(dates, disk_p, disk_f, disk_t, disk_u)
-#print len(up)
-graph_up(dates, up)
 
-plt.show()
+if __name__ == '__main__':
+    print "Last log was " + str(datetime.datetime.now() - date).split('.')[0] + " ago"
+    print "there are " + str(len(cpu_a1)) + " data points for graphhs"
+    make_cpu_graph(dates, cpu_a1, cpu_a5, cpu_a15)
+    make_mem_graph(dates, mem_a, mem_f, mem_t)
+    make_disk_graphs(dates, disk_p, disk_f, disk_t, disk_u)
+    make_graph_up(dates, up)
+
+#plt.show()
+#print date
+#print len(dates)
+
+###
+##  This is for listing the things in the log.
+#
+
+#for key,value in log_dic.iteritems():
+#    num_of_s = 40 - len(key)
+#    spaces = str(key)
+#    for x in range(0,num_of_s):
+#        spaces += " "
+#    print spaces + " == " + str(value)
+#print log_dic
