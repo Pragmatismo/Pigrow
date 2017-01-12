@@ -130,7 +130,7 @@ page_text += '##Graphs \n  \n'
 
 graph_file_type = "png"
 g_filelist = []
-for filefound in os.listdir(caps_path):
+for filefound in os.listdir(graph_path):
     if filefound.endswith(graph_file_type):
         g_filelist.append(filefound)
 num = 1
