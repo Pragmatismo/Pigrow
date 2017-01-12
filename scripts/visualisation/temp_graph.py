@@ -13,10 +13,10 @@ log_location = loc_dic['loc_dht_log']
 loc_settings = loc_dic['loc_settings']
 set_dic = pigrow_defs.load_settings(loc_settings)
 
-toocold = set_dic['heater_templow']
-toohot = set_dic['heater_temphigh']
-dangercold = toocold / 100 * 85
-dangerhot = toohot / 100 * 115
+toocold = int(set_dic['heater_templow'])
+toohot = int(set_dic['heater_temphigh'])
+dangercold = int(toocold) / 100 * 85
+dangerhot = int(toohot) / 100 * 115
 
 ##User Settings  -- It's ok to change these
 #dangercold = 15
