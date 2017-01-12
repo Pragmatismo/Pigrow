@@ -14,7 +14,7 @@ loc_settings = loc_dic['loc_settings']
 set_dic = pigrow_defs.load_settings(loc_settings)
 
 toocold = set_dic['heater_templow']
-toohot = set_dic['heater_temphot']
+toohot = set_dic['heater_temphigh']
 dangercold = toocold / 100 * 85
 dangerhot = toohot / 100 * 115
 
