@@ -9,6 +9,7 @@ script = 'temp_graph.py'
 loc_locs = '/home/pi/Pigrow/config/dirlocs.txt'
 loc_dic = pigrow_defs.load_locs(loc_locs)
 graph_path = loc_dic['graph_path']
+graph_path = graph_path + "dht_temp_graph.png"
 log_location = loc_dic['loc_dht_log']
 loc_settings = loc_dic['loc_settings']
 set_dic = pigrow_defs.load_settings(loc_settings)
@@ -40,7 +41,7 @@ for argu in sys.argv[1:]:
     elif argu == 'h' or thearg == '-h' or thearg == 'help' or thearg == '--help':
         print("")
         print("  log=DIR/LOG_FILE  - point to a different log file than mentioned in dirlocs")
-        print("  out=DIR/          - folder to make graphs in, can use ./ ")
+        print("  out=DIR/NAME.png  - folder to make graphs in, can use ./ ")
         print("  hours=NUM         - Hours of the logs graph, 168 for a week")
         print("  cold=NUM          - set's the cold point at which graph colors change")
         print("  hot=NUM           - set's the hot point for graph")
@@ -49,6 +50,7 @@ for argu in sys.argv[1:]:
         print(" No idea what you mean by; " + str(argu))
 
 #This code is designed to work with a pigrow using a dht22 sensor, but use it for whatever you like,,,
+
 
 log_temp = []
 log_date = []
@@ -127,7 +129,7 @@ def make_graph(da,ta):
     maxh = ta
     fig.autofmt_xdate()
     #plt.show()
-    plt.savefig(graph_path+"dht_temp_graph.png")
+    plt.savefig(graph_path)
 
 add_log(log_location)
 cut_list_last_hours(hours_to_show)
