@@ -99,7 +99,7 @@ if date == -1:
     page_text += "No Sensor data has been collected  \n"
 else:
     page_text += "Temp:"+str(temp)+" ^o C Humid:"+str(hum)+"%  Date:" + str(date) + " UTC  \n"
-    page_text += " which was " + str(date - datetime.datetime.now()) + " ago.  \n"
+    page_text += " which was " + str(datetime.datetime.now() - date) + " ago.  \n"
 page_text += '  \n'
 page_text += '##Most Recent Photo  \n'
 
