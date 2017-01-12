@@ -25,7 +25,7 @@ dangerhot = int(toohot) / 100 * 115
 #dangerhot = 36
 hours_to_show = 24*7*52 #hours from the end of the log, use absurdly high number to see all
 
-for argu in sys.argv:
+for argu in sys.argv[1:]:
     thearg = str(argu).split('=')[0]
     if  thearg == 'log':
         log_location = str(argu).split('=')[1]
@@ -45,7 +45,7 @@ for argu in sys.argv:
         print("  cold=NUM          - set's the cold point at which graph colors change")
         print("  hot=NUM           - set's the hot point for graph")
     else:
-        print(" No idea what you mean by; " + str(argu))    
+        print(" No idea what you mean by; " + str(argu))
 
 #This code is designed to work with a pigrow using a dht22 sensor, but use it for whatever you like,,,
 
