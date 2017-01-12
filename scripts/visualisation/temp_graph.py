@@ -44,9 +44,9 @@ for argu in sys.argv[1:]:
         print("  hours=NUM         - Hours of the logs graph, 168 for a week")
         print("  cold=NUM          - set's the cold point at which graph colors change")
         print("  hot=NUM           - set's the hot point for graph")
+        sys.exit()
     else:
         print(" No idea what you mean by; " + str(argu))
-        sys.exit()
 
 #This code is designed to work with a pigrow using a dht22 sensor, but use it for whatever you like,,,
 
