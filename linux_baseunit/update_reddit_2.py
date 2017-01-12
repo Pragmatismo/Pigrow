@@ -5,11 +5,11 @@ import os
 import sys
 from PIL import Image, ImageDraw, ImageFont
 sys.path.append('/home/pi/Pigrow/scripts/')
-#sys.path.append('/home/pragmo/pigitgrow/Pigrow/scripts/')
+sys.path.append('/home/pragmo/pigitgrow/Pigrow/scripts/')
 import pigrow_defs
 script = 'selflog_graph.py'
 loc_locs = '/home/pi/Pigrow/config/dirlocs.txt'
-#loc_locs = '/home/pragmo/pigitgrow/Pigrow/config/dirlocs.txt'
+loc_locs = '/home/pragmo/pigitgrow/Pigrow/config/dirlocs.txt'
 
 
 #sizes
@@ -93,9 +93,13 @@ except:
 print("Temp:"+str(temp)+" Humid:"+str(hum)+" Date:" + str(date))
 
 page_text = '#Pigrow Live Updated Grow Tracker \n\n'
-page_text += set_dic['box_name'] + ' at ' + str(datetime.datetime.now()) + '  \n'
+page_text += '**' + set_dic['box_name'] + '** at ' + str(datetime.datetime.now()).split(".")[0][:-3] + '  \n'
 page_text += "Most recent sensor data; "
-page_text += "Temp:"+str(temp)+" ^o C Humid:"+str(hum)+"%  Date:" + str(date) + " UTC\n"
+if date == -1:
+    page_text += "No Sensor data has been collected  \n"
+else:
+    page_text += "Temp:"+str(temp)+" ^o C Humid:"+str(hum)+"%  Date:" + str(date) + " UTC  \n"
+    page_text += " which was " + str(date - datetime.datetime.now()) + " ago.  \n"
 page_text += '  \n'
 page_text += '##Most Recent Photo  \n'
 
@@ -129,13 +133,14 @@ else:
 page_text += '##Graphs \n  \n'
 
 graph_file_type = "png"
+resize = False
 g_filelist = []
 for filefound in os.listdir(graph_path):
     if filefound.endswith(graph_file_type):
         g_filelist.append(filefound)
 num = 1
 for graph_file in g_filelist:
-    g_name = 'graph_' + str(num)
+    g_name = 'graph' + str(num)
     if resize == True:
         graph = Image.open(graph_path + graph_file)
         wpercent = (graph_basewidth/float(graph.size[0]))
@@ -144,6 +149,7 @@ for graph_file in g_filelist:
         resize_name = str(graph_file).split(".")[0] + "_resized.png"
         graph.save(graph_path + resize_name)
         subreddit.stylesheet.upload(g_name, graph_path + resize_name)
+        os.remove(graph_path + resize_name)
         page_text += '![' + g_name + '](%%'+ g_name +'%%)  \n'
     else:
         subreddit.stylesheet.upload(g_name, graph_path + graph_file)
