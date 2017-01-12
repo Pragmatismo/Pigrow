@@ -39,7 +39,7 @@ try:
     my_username = loc_dic['my_username']
     my_password = loc_dic['my_password']
     subreddit = loc_dic["subreddit"]
-    live_wiki_title = loc_dic['wiki_title']
+    live_wiki_title = loc_dic['live_wiki_title']
 except:
     print("REDDIT SETTINGS NOT SET - EDIT THE FILE " + str(loc_locs))
     raise
