@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/python
 import os
 import sys
 from PIL import Image, ImageDraw, ImageFont

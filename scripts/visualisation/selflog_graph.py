@@ -1,4 +1,4 @@
-#!/bin/python
+#!/usr/bin/python
 import os, sys
 import datetime
 import matplotlib.pyplot as plt

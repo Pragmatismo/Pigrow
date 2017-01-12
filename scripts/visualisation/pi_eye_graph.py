@@ -1,3 +1,4 @@
+#!/usr/bin/python
 import datetime
 import matplotlib.pyplot as plt
 import os
