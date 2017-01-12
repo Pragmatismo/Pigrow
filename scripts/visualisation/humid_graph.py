@@ -3,28 +3,51 @@ import matplotlib.pyplot as plt
 import datetime
 import numpy as np
 import sys
+sys.path.append('/home/pi/Pigrow/scripts/')
+import pigrow_defs
+script = 'humid_graph.py'
+loc_locs = '/home/pi/Pigrow/config/dirlocs.txt'
+loc_dic = pigrow_defs.load_locs(loc_locs)
+graph_path = loc_dic['graph_path']
+graph_path = graph_path + "dht_humid_graph.png"
+log_location = loc_dic['loc_dht_log']
+loc_settings = loc_dic['loc_settings']
+set_dic = pigrow_defs.load_settings(loc_settings)
+
+toolow = int(set_dic['humid_low'])
+toohigh = int(set_dic['humid_high'])
+dangerlow = int(toolow) / 100 * 85
+dangerhigh = int(toohigh) / 100 * 115
+
 ##User Settings  -- It's ok to change these
-##Temperature measured in C
+#dangercold = 15
+#toocold = 23
+#toohot = 30
+#dangerhot = 36
+hours_to_show = 24*7*52 #hours from the end of the log, use absurdly high number to see all
 
-dangerlow = 30
-toolow = 40
-toohigh = 70
-dangerhigh = 80
-##Change the above numbers as required,
-
-hours_to_show = 24*7*52 #hours from the end of the log, use absurdly high number to see all #default use argument h= to set
-log_location = "/home/pi/Pigrow/logs/dht22_log.txt"   #default use log= option to change it via command line
-graph_path = "../../graphs/humid_graph.png"       #default use o= to set via command line
-
-
-for argu in sys.argv:
+for argu in sys.argv[1:]:
     thearg = str(argu).split('=')[0]
     if  thearg == 'log':
         log_location = str(argu).split('=')[1]
-    elif thearg == 'o':
+    elif thearg == 'out':
         graph_path = str(argu).split('=')[1]
-    elif thearg == "h":
+    elif thearg == "hours":
         hours_to_show = int(str(argu).split('=')[1])
+    elif thearg == 'cold':
+        toocold = int(str(argu).split('=')[1])
+    elif thearg == 'hot':
+        toohot = int(str(argu).split('=')[1])
+    elif argu == 'h' or thearg == '-h' or thearg == 'help' or thearg == '--help':
+        print("")
+        print("  log=DIR/LOG_FILE  - point to a different log file than mentioned in dirlocs")
+        print("  out=DIR/NAME.png  - folder to make graphs in, can use ./ ")
+        print("  hours=NUM         - Hours of the logs graph, 168 for a week")
+        print("  cold=NUM          - set's the cold point at which graph colors change")
+        print("  hot=NUM           - set's the hot point for graph")
+        sys.exit()
+    else:
+        print(" No idea what you mean by; " + str(argu))
 
 #This code is designed to work with a pigrow using a dht22 sensor, but use it for whatever you like,,,
 
