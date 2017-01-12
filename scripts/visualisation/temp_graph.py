@@ -37,13 +37,15 @@ for argu in sys.argv:
         toocold = int(str(argu).split('=')[1])
     elif thearg == 'hot':
         toohot = int(str(argu).split('=')[1])
-    elif thearg == 'h' or thearg == '-h' or thearg == 'help' or thearg == '--help':
+    elif argu == 'h' or thearg == '-h' or thearg == 'help' or thearg == '--help':
         print("")
         print("  log=DIR/LOG_FILE  - point to a different log file than mentioned in dirlocs")
         print("  out=DIR/          - folder to make graphs in, can use ./ ")
         print("  hours=NUM         - Hours of the logs graph, 168 for a week")
         print("  cold=NUM          - set's the cold point at which graph colors change")
         print("  hot=NUM           - set's the hot point for graph")
+    else:
+        print(" No idea what you mean by; " + str(argu))    
 
 #This code is designed to work with a pigrow using a dht22 sensor, but use it for whatever you like,,,
 
