@@ -137,7 +137,7 @@ num = 1
 for graph_file in g_filelist:
     g_name = 'graph_' + str(num)
     if resize == True:
-        graph = Image.open(graph_file)
+        graph = Image.open(graph_path + graph_file)
         wpercent = (graph_basewidth/float(graph.size[0]))
         hsize = int((float(graph.size[1])*float(wpercent)))
         graph = graph.resize((graph_basewidth,hsize), Image.ANTIALIAS)
