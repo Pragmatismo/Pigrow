@@ -127,7 +127,7 @@ def make_graph(da,ta):
     maxh = ta
     fig.autofmt_xdate()
     #plt.show()
-    plt.savefig(graph_path)
+    plt.savefig(graph_path+"dht_temp_graph.png")
 
 add_log(log_location)
 cut_list_last_hours(hours_to_show)
