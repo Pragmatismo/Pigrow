@@ -5,11 +5,11 @@ import os
 import sys
 from PIL import Image, ImageDraw, ImageFont
 sys.path.append('/home/pi/Pigrow/scripts/')
-sys.path.append('/home/pragmo/pigitgrow/Pigrow/scripts/')
+#sys.path.append('/home/pragmo/pigitgrow/Pigrow/scripts/')
 import pigrow_defs
 script = 'selflog_graph.py'
 loc_locs = '/home/pi/Pigrow/config/dirlocs.txt'
-loc_locs = '/home/pragmo/pigitgrow/Pigrow/config/dirlocs.txt'
+#loc_locs = '/home/pragmo/pigitgrow/Pigrow/config/dirlocs.txt'
 
 
 #sizes
