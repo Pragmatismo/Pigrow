@@ -150,9 +150,11 @@ for graph_file in g_filelist:
         graph.save(graph_path + resize_name)
         subreddit.stylesheet.upload(g_name, graph_path + resize_name)
         os.remove(graph_path + resize_name)
+        page_text += "#####"+graph_file+"  \n"
         page_text += '![' + g_name + '](%%'+ g_name +'%%)  \n'
     else:
         subreddit.stylesheet.upload(g_name, graph_path + graph_file)
+        page_text += "#####"+graph_file+"  \n"
         page_text += '![' + g_name + '](%%'+ g_name +'%%)  \n'
     num = num + 1
 
