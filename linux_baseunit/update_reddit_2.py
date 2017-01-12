@@ -144,10 +144,10 @@ for graph_file in g_filelist:
         resize_name = str(graph_file).split(".")[0] + "_resized.png"
         graph.save(graph_path + resize_name)
         subreddit.stylesheet.upload(g_name, graph_path + resize_name)
-        page_text += '![' + g_name + '](%%"+ g_name +"%%)  \n'
+        page_text += '![' + g_name + '](%%'+ g_name +'%%)  \n'
     else:
         subreddit.stylesheet.upload(g_name, graph_path + graph_file)
-        page_text += '![' + g_name + '](%%"+ g_name +"%%)  \n'
+        page_text += '![' + g_name + '](%%'+ g_name +'%%)  \n'
     num = num + 1
 
 if len(g_filelist) == 0:
