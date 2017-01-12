@@ -46,6 +46,7 @@ for argu in sys.argv[1:]:
         print("  hot=NUM           - set's the hot point for graph")
     else:
         print(" No idea what you mean by; " + str(argu))
+        exit()
 
 #This code is designed to work with a pigrow using a dht22 sensor, but use it for whatever you like,,,
 
