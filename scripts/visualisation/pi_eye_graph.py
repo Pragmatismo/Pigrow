@@ -8,6 +8,10 @@ print("    -------------------------------")
 print("  -----------------------------------")
 print("------Pi Spy Py Pi Uptime-Monitor------")
 print("  -----------------------------------")
+
+print(" -- still in basic version, doesn't use settings or etc yet -- ")
+
+
 print ("time on this computer is now: " + str(datetime.datetime.now()))
 
 #user_name = "your username goes here"

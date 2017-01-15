@@ -7,9 +7,10 @@ print("--------- Pigrow -------")
 print("  --Data Wall Assembler--")
 print("   -- --------------- --")
 
-output_path = "./datawall.jpg"       #default use o= to set via command line
-caps_path = "/home/pragmo/pigitgrow/Pigrow/frompi/pi@192.168.1.2/caps/"
+print(" -- Still in basic version, doesn't use settings files or etc --")
 
+output_path = "../../graphs/datawall.jpg"       #default use o= to set via command line
+caps_path = "../../caps/"
 g1 = "../../graphs/temp_graph.png"
 g2 = "../../graphs/sec_since_up_graph.png"
 g3 = "../../graphs/sec_between_up_graph.png"
