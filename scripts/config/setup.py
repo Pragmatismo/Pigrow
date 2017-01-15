@@ -461,7 +461,7 @@ def show_reddit_menu():
     print("   ####      3  -  User to recieve messages  ####")
     print("   ####  Test;                               ####")
     print("   ####      4  -  Send test message         ####")
-    print("   ####      5  -  Test wiki write           ####")
+    print("   ####      5  -  Start Reddit settings ear ####")
     print("   ####                                      ####")
     print("   ####              s - Show Reddit Details ####")
     print("   ####                                      ####")
@@ -531,12 +531,59 @@ def show_reddit_menu():
         show_reddit_menu()
 
     elif option == "4":
+        import praw
+        import socket
         print("Attempting to send a message to" + loc_dic['watcher_name'])
-        print("                actually this module isn't written...")
+        try:
+            my_client_id = loc_dic['my_client_id']
+            my_client_secret = loc_dic['my_client_secret']
+            my_username = loc_dic['my_username']
+            my_password = loc_dic['my_password']
+            watcher_name = loc_dic['watcher_name']
+        except:
+            print("You need to set reddit login details and a trusted user to receive mail first")
+            exit()
+        try:
+            reddit = praw.Reddit(user_agent="pigrow config script test message",
+                                 client_id=my_client_id,
+                                 client_secret=my_client_secret,
+                                 username=my_username,
+                                 password=my_password)
+        except:
+            print("Couldn't log into Reddit.")
+            raise
+            try:
+                print(" - Checking conneciton..")
+                host = socket.gethostbyname("www.reddit.com")
+                s = socket.create_connection((host, 80), 2)
+                print(" -- Connected to the internet and reddit is up.")
+                print("check you login details")
+            except:
+                print("We don't appear to be able to connect to reddit, check your connection and try again...")
+            exit()
+        print("Logged into reddit, trying to send message to " + str(watcher_name))
+        try:
+            whereto = praw.models.Redditor(reddit, name=watcher_name)
+            whereto.message('Test message from setup.py', "Congratulations, you have a working pigrow!")
+            print("The message has been sent, it should appear in your inbox any second...")
+            print(" If you don't get the message check your login details and reddit settings")
+            print("   -also it might be worth checking you can send messages from the bot account")
+            print("    log into it from reddit and send your main account a hello")
+        except Exception as e:
+            print("Sorry it didn't work this time, check your login details and username")
+            print("The exception was; " + str(e))
+            print("")
+            print("A 403 means bad login details or reddit issues, 404 means connection issues or reddit issues")
+            print("If everything seems correct then check you can post on reddit from the bot account normally")
+        print("")
+        raw_input("Press return to continue...")
 
     elif option == "5":
-        print("Atempting to update the wiki pages..")
+        print("Reddit Settings Ear is the program that listens for reddit messages,")
+        print(" -use the cron start-up script menu to enable it on boot up")
+        print("Checking it's not already running..")
         print("                actually this module isn't written.")
+        print(" just start it manually if you want to, you run this script run that one.")
 
 
     elif option == 's' or option == 'S':
