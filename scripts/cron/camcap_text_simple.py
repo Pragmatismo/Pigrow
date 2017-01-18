@@ -72,7 +72,18 @@ else:
 
 #--captures image
 
-cam_choice == 'pi_py'
+cam_choice = 'uvc'
+for argu in sys.argv:
+    thearg = str(argu).split('=')[0]
+    try:
+        theset = str(argu).split('=')[1]
+    except:
+        pass
+    if  thearg == 'cam':
+        cam_choice = theset
+    if argu == "-h" or argu == "--help":
+        print("Pigrow image text addition tool")
+        print("  to chose camera to use set cam=uvc,pi_py, or pi_ras")   
 
 if cam_choice == 'uvc':
     import camcap
