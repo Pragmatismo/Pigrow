@@ -36,7 +36,7 @@ try:
     sensor = Adafruit_DHT.DHT22
     pin = sensor_gpio
     count = 0
-    while humidity = None and count <= 5:
+    while humidity == None and count <= 5:
         humidity, temperature = Adafruit_DHT.read_retry(sensor, pin)
         count = count + 1
     if humidity is not None and temperature is not None:
