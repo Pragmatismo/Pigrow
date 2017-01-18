@@ -73,5 +73,5 @@ d.text((800,170), "Humid: " + humid, font=fnt, fill=(t_red,t_green,t_blue,t_alph
 out = Image.alpha_composite(base, txt)
 out.save(caps_path + "text_" + filename)
 print("Modified image saved to " + caps_path + "text_" + filename)
-if rmfile = True:
+if rmfile == True:
     os.system("rm " + caps_path + filename + " -f" ) #removes un modified jpg, -f means it doesn't ever prompt for user input
