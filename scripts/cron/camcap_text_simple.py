@@ -83,7 +83,7 @@ for argu in sys.argv:
         cam_choice = theset
     if argu == "-h" or argu == "--help":
         print("Pigrow image text addition tool")
-        print("  to chose camera to use set cam=uvc,pi_py, or pi_ras")   
+        print("  to chose camera to use set cam=uvc,pi_py, or pi_ras")
 
 if cam_choice == 'uvc':
     import camcap
@@ -96,7 +96,7 @@ elif cam_choice == 'pi_py':
 elif cam_choice == 'pi_ras':
     import picamcap
     picam_dic = picamcap.load_picam_set(setloc="/home/pi/Pigrow/config/picam_settings.txt")
-    filename = take_picam_raspistill(picam_dic, caps_path)
+    filename = picamcap.take_picam_raspistill(picam_dic, caps_path)
 
 
 
