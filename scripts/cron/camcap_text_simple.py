@@ -3,74 +3,65 @@ from PIL import Image, ImageDraw, ImageFont
 import time
 import os
 
-box_name = "Pigrow -"
-temp = 9999999
-humid = 9999999
-rot_val = 90 #useful if your webcam is on it's side. 
+sys.path.append('/home/pi/Pigrow/scripts/')
+sys.path.append('/home/pi/Pigrow/scripts/cron/')
+import pigrow_defs
+import camcap
+script = 'temp_graph.py'
+loc_locs = '/home/pi/Pigrow/config/dirlocs.txt'
+loc_dic = pigrow_defs.load_locs(loc_locs)
+graph_path = loc_dic['graph_path']
+graph_path = graph_path + "dht_temp_graph.png"
+log_location = loc_dic['loc_dht_log']
+loc_settings = loc_dic['loc_settings']
+set_dic = pigrow_defs.load_settings(loc_settings)
+
+box_name = "Pigrow -"  #needs to use settings file
+sensor_gpio = 18   #need to use settings file
+caps_path = "/home/pi/Pigrow/cam_caps/"
+
+rot_val = 90 #useful if your webcam is on it's side.
 t_red = 10    #0-255 text colour
-t_green= 10   #0-255 text colour 
+t_green= 10   #0-255 text colour
 t_blue = 220   #0-255 text colour
 t_alpha = 255 #0-255 text opacity
+font_name = '/home/pi/Pigrow/resources/Caslon.ttf'
+font_size = 55
+rmfile = True  #if True then removes the unannotated image set to False to keep them
 
-
+temp = 9999999
+humid = 9999999
 try:
     import Adafruit_DHT
     sensor = Adafruit_DHT.DHT22
-    pin = 18
-    humidity, temperature = Adafruit_DHT.read_retry(sensor, pin)
+    pin = sensor_gpio
+    count = 0
+    while humidity = None and count <= 5:
+        humidity, temperature = Adafruit_DHT.read_retry(sensor, pin)
+        count = count + 1
     if humidity is not None and temperature is not None:
         temp = temperature
         humid = humidity
 except:
     print("Sensor software not installed")
 
-s_val = "60"
-c_val = "60"
-g_val = "60"
-b_val = "60"
-x_dim = 1600
-y_dim = 1200
-additonal_commands = "-d/dev/video0 -w"
-loc_settings = "/home/pi/Pigrow/config/camera_settings.txt"
-try:
-    with open(loc_settings, "r") as f:
-        for line in f:
-            s_item = line.split("=")
-            if s_item[0] == "s_val": 
-                s_val = s_item[1].split("\n")[0]
-            elif s_item[0] == "c_val": 
-                c_val = s_item[1].split("\n")[0]
-            elif s_item[0] == "g_val": 
-                g_val = s_item[1].split("\n")[0]
-            elif s_item[0] == "b_val": 
-                b_val = s_item[1].split("\n")[0]
-            elif s_item[0] == "x_dim": 
-                x_dim = s_item[1].split("\n")[0]
-            elif s_item[0] == "y_dim": 
-                y_dim = s_item[1].split("\n")[0]
-            elif s_item[0] == "additonal_commands": 
-                additonal_commands = s_item[1].split("\n")[0]
-except:
-    print("No config file for camera, using defalt")
+#-------------------
 
-# take and save photo
-timenow = time.time()
-timenow = str(timenow)[0:10]
-filename= "cap_"+str(timenow)+".jpg"
-os.system("sudo uvccapture "+additonal_commands+" -S"+s_val+" -C" + c_val + " -G"+ g_val +" -B"+ b_val +" -x"+str(x_dim)+" -y"+str(y_dim)+" -v -t0 -o/home/pi/cam_caps/" + filename)
-
+s_val, c_val, g_val, b_val, x_dim, y_dim, additonal_commands, caps_path = camcap.load_camera_settings(loc_dic)
+caps_path, filename = camcap.take_with_uvccapture(s_val, c_val, g_val, b_val, x_dim, y_dim, additonal_commands, caps_path)
 
 # load the image
-source = Image.open("/home/pi/cam_caps/" + filename).convert('RGBA')
+source = Image.open(caps_path + filename).convert('RGBA')
 base = source.rotate(rot_val)
-
-timeofpic = float(timenow)
+timeofpic = float(str(filename).split("_")[1].split(".")[0])
 time_text = str(time.strftime('%H:%M %d-%b-%Y', time.localtime(timeofpic)))
 
 txt = Image.new('RGBA', base.size, (255,255,255,0))
-fnt = ImageFont.truetype('/home/pi/Pigrow/scripts/Caslon.ttf', 55)
+fnt = ImageFont.truetype(font_name, font_size)
 d = ImageDraw.Draw(txt)
 
+#temp = temp.round()
+#humid = humid.round()
 temp = str(temp)[0:4]
 humid = str(humid)[0:4]
 
@@ -80,7 +71,7 @@ d.text((800,120), "Temp: " + temp, font=fnt, fill=(t_red,t_green,t_blue,t_alpha)
 d.text((800,170), "Humid: " + humid, font=fnt, fill=(t_red,t_green,t_blue,t_alpha))
 
 out = Image.alpha_composite(base, txt)
-out.save("/home/pi/cam_caps/text_" + filename)
-print("Modified image saved to /home/pi/cam_caps/text_" + filename)
-os.system("rm /home/pi/cam_caps/cap_"+filename+".jpg -f") #removes un modified jpg
-
+out.save(caps_path + "text_" + filename)
+print("Modified image saved to " + caps_path + "text_" + filename)
+if rmfile = True:
+    os.system("rm " + caps_path + filename + " -f" ) #removes un modified jpg, -f means it doesn't ever prompt for user input
