@@ -34,7 +34,7 @@ font_size = 55
 leftdist = 3 # percentage left of image to start text
 downdist = 4 # [ercentage down the image to start test]
 rmfile = True  #if True then removes the unannotated image set to False to keep them
-show_anyway = "text" #set to 'text' or 'num' to show sensor data even when none readings
+show_anyway = "blank" #set to 'text' or 'num' to show sensor data even when none readings
                      #     -this stops anoying blinking if sensor isn't reliable
 
 #get the current sensor data using adafruits's dht module
@@ -78,8 +78,8 @@ ypos = base.size[1] / 100 * downdist
 
 d.text((xpos,ypos), box_name, font=fnt, fill=(t_red,t_green,t_blue,t_alpha))
 d.text((xpos,ypos+font_size), time_text, font=fnt, fill=(t_red,t_green,t_blue,t_alpha))
-sensorshow=True
-if not dht22_sensor_pin == None or sensorshow==True:
+nulsensorshow=True #when True shows sensor even when it's not enabled  
+if not dht22_sensor_pin == None or nulsensorshow==True:
     if not temp == 99999:
         temp = round(temp,2)
         huimid = round(humid,2)
@@ -91,7 +91,7 @@ if not dht22_sensor_pin == None or sensorshow==True:
     elif show_anyway == "text":
         d.text((xpos,ypos+(font_size*2)), "Temp: no data", font=fnt, fill=(t_red,t_green,t_blue,t_alpha))
         d.text((xpos,ypos+(font_size*3)), "Humid: no data", font=fnt, fill=(t_red,t_green,t_blue,t_alpha))
-    else:
+    elif show_anyway == "blank":
         d.text((xpos,ypos+(font_size*2)), "Temp: ", font=fnt, fill=(t_red,t_green,t_blue,t_alpha))
         d.text((xpos,ypos+(font_size*3)), "Humid: ", font=fnt, fill=(t_red,t_green,t_blue,t_alpha))
 
