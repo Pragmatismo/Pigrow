@@ -6,7 +6,7 @@ import os, sys
 sys.path.append('/home/pi/Pigrow/scripts/')
 sys.path.append('/home/pi/Pigrow/scripts/cron/')
 import pigrow_defs
-import camcap
+#import camcap
 script = 'camcap_text_simple.py'
 loc_locs = '/home/pi/Pigrow/config/dirlocs.txt'
 loc_dic = pigrow_defs.load_locs(loc_locs)
@@ -70,9 +70,24 @@ if not dht22_sensor_pin == None:
 else:
     print("Skipping reading sensor...")
 
-#--captures image using camcap.py module
-s_val, c_val, g_val, b_val, x_dim, y_dim, additonal_commands, caps_path = camcap.load_camera_settings(loc_dic)
-caps_path, filename = camcap.take_with_uvccapture(s_val, c_val, g_val, b_val, x_dim, y_dim, additonal_commands, caps_path)
+#--captures image
+
+cam_choice == 'pi_py'
+
+if cam_choice == 'uvc':
+    import camcap
+    s_val, c_val, g_val, b_val, x_dim, y_dim, additonal_commands, caps_path = camcap.load_camera_settings(loc_dic)
+    filename = camcap.take_with_uvccapture(s_val, c_val, g_val, b_val, x_dim, y_dim, additonal_commands, caps_path)
+elif cam_choice == 'pi_py':
+    import picamcap
+    picam_dic = picamcap.load_picam_set(setloc="/home/pi/Pigrow/config/picam_settings.txt")
+    filename = picamcap.take_picam_py(picam_dic, caps_path)
+elif cam_choice == 'pi_ras':
+    import picamcap
+    picam_dic = picamcap.load_picam_set(setloc="/home/pi/Pigrow/config/picam_settings.txt")
+    filename = take_picam_raspistill(picam_dic, caps_path)
+
+
 
 # load the image
 source = Image.open(caps_path + filename).convert('RGBA')

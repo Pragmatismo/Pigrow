@@ -4,10 +4,10 @@ import os, sys
 
 def load_camera_settings(loc_dic):
     #defaults for when config file not found
-    s_val = "60"
-    c_val = "60"
-    g_val = "60"
-    b_val = "60"
+    s_val = "20"
+    c_val = "20"
+    g_val = "20"
+    b_val = "50"
     x_dim = 1600
     y_dim = 1200
     additonal_commands = "-d/dev/video0 -w"
@@ -58,7 +58,7 @@ def take_with_uvccapture(s_val="20", c_val="20", g_val="20", b_val="20", x_dim=1
     filename= "cap_"+str(timenow)+".jpg"
     os.system("uvccapture "+additonal_commands+" -S"+s_val+" -C" + c_val + " -G"+ g_val +" -B"+ b_val +" -x"+str(x_dim)+" -y"+str(y_dim)+" -v -t0 -o"+caps_path+filename)
     print("Image taken and saved to "+caps_path+filename)
-    return caps_path, filename
+    return filename
 
 if __name__ == '__main__':
 
@@ -69,4 +69,4 @@ if __name__ == '__main__':
     loc_dic = pigrow_defs.load_locs(loc_locs)
 
     s_val, c_val, g_val, b_val, x_dim, y_dim, additonal_commands, caps_path = load_camera_settings(loc_dic)
-    caps_path, filename = take_with_uvccapture(s_val, c_val, g_val, b_val, x_dim, y_dim, additonal_commands, caps_path)
+    filename = take_with_uvccapture(s_val, c_val, g_val, b_val, x_dim, y_dim, additonal_commands, caps_path)
