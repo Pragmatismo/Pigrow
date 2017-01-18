@@ -10,6 +10,7 @@ def load_camera_settings(loc_dic):
     x_dim = 1600
     y_dim = 1200
     additonal_commands = "-d/dev/video0 -w"
+    loc_settings = "/home/pi/Pigrow/config/camera_settings.txt"
     try:
         caps_path = loc_dic['caps_path']
     except:
@@ -19,11 +20,11 @@ def load_camera_settings(loc_dic):
         else:
             caps_path = "./"
             print("default path doesn't work, using current directory (sorry)")
+        raise    
     try:
         loc_setting = loc_dic['camera_settings']
         print("using camera settings file as directed by dirlocs file.")
     except:
-        loc_settings = "/home/pi/Pigrow/config/camera_settings.txt"
         print("camera settings file not mentioned in dirlocs file, using defaults.")
     try:
         with open(loc_settings, "r") as f:
