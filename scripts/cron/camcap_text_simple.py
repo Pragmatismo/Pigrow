@@ -65,22 +65,15 @@ d = ImageDraw.Draw(txt)
 temp = str(temp)[0:4]
 humid = str(humid)[0:4]
 
-leftdist = 25 # percentage left of image to start text
-downdist = 25 # [ercentage down the image to start test]
+leftdist = 10 # percentage left of image to start text
+downdist = 10 # [ercentage down the image to start test]
 xpos = base.size[0] / 100 * leftdist
 ypos = base.size[1] / 100 * downdist
 
-print font_size
-fstep = int(font_size)
-print (fstep      )
-print (ypos + (fstep     ))
-print (ypos + (fstep * 2 ))
-print (ypos + (fstep * 3 ))
-
 d.text((xpos,ypos), box_name, font=fnt, fill=(t_red,t_green,t_blue,t_alpha))
-d.text((xpos,ypos+fstep), time_text, font=fnt, fill=(t_red,t_green,t_blue,t_alpha))
-d.text((xpos,ypos+(fstep*2)), "Temp: " + temp, font=fnt, fill=(t_red,t_green,t_blue,t_alpha))
-d.text((xpos,ypos+(fstep*3)), "Humid: " + humid, font=fnt, fill=(t_red,t_green,t_blue,t_alpha))
+d.text((xpos,ypos+font_size), time_text, font=fnt, fill=(t_red,t_green,t_blue,t_alpha))
+d.text((xpos,ypos+(font_size*2)), "Temp: " + temp, font=fnt, fill=(t_red,t_green,t_blue,t_alpha))
+d.text((xpos,ypos+(font_size*3)), "Humid: " + humid, font=fnt, fill=(t_red,t_green,t_blue,t_alpha))
 
 out = Image.alpha_composite(base, txt)
 out.save(caps_path + "text_" + filename)
