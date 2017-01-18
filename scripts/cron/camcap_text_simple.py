@@ -78,10 +78,36 @@ for argu in sys.argv:
     try:
         theset = str(argu).split('=')[1]
     except:
+        theset = ""
         pass
     if  thearg == 'cam':
         cam_choice = theset
-    if argu == "-h" or argu == "--help":
+    elif thearg == "rot":
+        rot_val = int(theset)
+    elif thearg == "t_red":
+        t_red = int(theset)
+    elif thearg == "t_green":
+        t_green = int(theset)
+    elif thearg == "t_blue":
+        t_blue = int(theset)
+    elif thearg == "t_alpha":
+        t_alpha = int(theset)
+    elif thearg == "font":
+        font_name = theset
+    elif thearg == "font_size":
+        font_size = int(theset)
+    elif thearg == "leftdist":
+        leftdist = int(theset)
+    elif thearg == "leftdist":
+        downdist = int(theset)
+    elif thearg == "rmfile":
+        if theset = "True":
+            rmfile = True
+        else:
+            rmfile = False
+    elif thearg == "show_anyway":
+        show_anyway = theset
+    elif argu == "-h" or argu == "--help":
         print("Pigrow image text addition tool")
         print("  to chose camera to use set cam=uvc,pi_py, or pi_ras")
 
