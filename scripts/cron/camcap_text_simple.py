@@ -79,9 +79,9 @@ d = ImageDraw.Draw(txt)
 xpos = base.size[0] / 100 * leftdist
 ypos = base.size[1] / 100 * downdist
 
-d.text((xpos-1, ypos-1), box_name, font=fnt, fill="K")
+d.text((xpos-1, ypos-1), box_name, font=fnt, fill=(0,0,0,t_alpha))
 d.text((xpos,ypos), box_name, font=fnt, fill=(t_red,t_green,t_blue,t_alpha))
-d.text((xpos-1, ypos+font_size-1), time_text, font=fnt, fill="K")
+d.text((xpos-1, ypos+font_size-1), time_text, font=fnt, fill=(0,0,0,t_alpha))
 d.text((xpos,ypos+font_size), time_text, font=fnt, fill=(t_red,t_green,t_blue,t_alpha))
 
 if not dht22_sensor_pin == None or nulsensorshow==True:
