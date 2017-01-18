@@ -42,8 +42,8 @@ nulsensorshow=False #when True shows sensor even when it's not enabled, when Fal
 
 #get the current sensor data using adafruits's dht module
 # -this shoul be swapped out into a module...
-temp = 99999
-humid = 99999
+temp = "99999"
+humid = "99999"
 if not dht22_sensor_pin == None:
     try:
         import Adafruit_DHT
@@ -93,7 +93,7 @@ d.text((xpos-1, ypos+font_size-1), time_text, font=fnt, fill=(0,0,0,t_alpha))
 d.text((xpos,ypos+font_size), time_text, font=fnt, fill=(t_red,t_green,t_blue,t_alpha))
 
 if not dht22_sensor_pin == None or nulsensorshow==True:
-    if not temp == 99999:
+    if not temp == "99999":
         temp = str(round(temp,2))
         huimid = str(round(humid,2))
         d.text((xpos,ypos+(font_size*2)), "Temp: " + temp, font=fnt, fill=(0,0,0,t_alpha))
