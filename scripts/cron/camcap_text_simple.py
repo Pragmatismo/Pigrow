@@ -12,7 +12,6 @@ loc_locs = '/home/pi/Pigrow/config/dirlocs.txt'
 loc_dic = pigrow_defs.load_locs(loc_locs)
 loc_settings = loc_dic['loc_settings']
 set_dic = pigrow_defs.load_settings(loc_settings)
-
 caps_path = loc_dic['caps_path']
 box_name = set_dic['box_name']
 try:
@@ -74,22 +73,27 @@ time_text = str(time.strftime('%H:%M %d-%b-%Y', time.localtime(timeofpic)))
 txt = Image.new('RGBA', base.size, (255,255,255,0))
 fnt = ImageFont.truetype(font_name, font_size)
 d = ImageDraw.Draw(txt)
-temp = round(temp,2)
-huimid = round(humid,2)
 xpos = base.size[0] / 100 * leftdist
 ypos = base.size[1] / 100 * downdist
 
 d.text((xpos,ypos), box_name, font=fnt, fill=(t_red,t_green,t_blue,t_alpha))
 d.text((xpos,ypos+font_size), time_text, font=fnt, fill=(t_red,t_green,t_blue,t_alpha))
-if not temp == 99999:
-    d.text((xpos,ypos+(font_size*2)), "Temp: " + temp, font=fnt, fill=(t_red,t_green,t_blue,t_alpha))
-    d.text((xpos,ypos+(font_size*3)), "Humid: " + humid, font=fnt, fill=(t_red,t_green,t_blue,t_alpha))
-elif show_anyway == "num":
-        d.text((xpos,ypos+(font_size*2)), "Temp: " + temp, font=fnt, fill=(t_red,t_green,t_blue,t_alpha/50))
-        d.text((xpos,ypos+(font_size*3)), "Humid: " + humid, font=fnt, fill=(t_red,t_green,t_blue,t_alpha/50))
-elif show_anyway == "text":
-        d.text((xpos,ypos+(font_size*2)), "Temp: no data", font=fnt, fill=(t_red,t_green,t_blue,t_alpha/50))
-        d.text((xpos,ypos+(font_size*3)), "Humid: no data", font=fnt, fill=(t_red,t_green,t_blue,t_alpha/50))
+sensorshow=True
+if not dht22_sensor_pin == None or sensorshow==True:
+    if not temp == 99999:
+        temp = round(temp,2)
+        huimid = round(humid,2)
+        d.text((xpos,ypos+(font_size*2)), "Temp: " + temp, font=fnt, fill=(t_red,t_green,t_blue,t_alpha))
+        d.text((xpos,ypos+(font_size*3)), "Humid: " + humid, font=fnt, fill=(t_red,t_green,t_blue,t_alpha))
+    elif show_anyway == "num":
+        d.text((xpos,ypos+(font_size*2)), "Temp: " + temp, font=fnt, fill=(t_red,t_green,t_blue,t_alpha))
+        d.text((xpos,ypos+(font_size*3)), "Humid: " + humid, font=fnt, fill=(t_red,t_green,t_blue,t_alpha))
+    elif show_anyway == "text":
+        d.text((xpos,ypos+(font_size*2)), "Temp: no data", font=fnt, fill=(t_red,t_green,t_blue,t_alpha))
+        d.text((xpos,ypos+(font_size*3)), "Humid: no data", font=fnt, fill=(t_red,t_green,t_blue,t_alpha))
+    else
+        d.text((xpos,ypos+(font_size*2)), "Temp: ", font=fnt, fill=(t_red,t_green,t_blue,t_alpha))
+        d.text((xpos,ypos+(font_size*3)), "Humid: ", font=fnt, fill=(t_red,t_green,t_blue,t_alpha))
 
 
 #save image to filesystem
