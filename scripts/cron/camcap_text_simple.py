@@ -25,8 +25,8 @@ if dht22_sensor_pin.strip() == "":
 
 
 rot_val = 90 #useful if your webcam is on it's side.
-t_red = 100    #0-255 text colour
-t_green= 100   #0-255 text colour
+t_red = 220    #0-255 text colour
+t_green= 220   #0-255 text colour
 t_blue = 220   #0-255 text colour
 t_alpha = 255 #0-255 text opacity
 font_name = loc_dic['path'] + '/resources/Caslon.ttf'
@@ -38,7 +38,7 @@ show_anyway = "blank" #set to 'text' or 'num' to show sensor data even when none
                      #     -this stops anoying blinking if sensor isn't reliable
 nulsensorshow=False #when True shows sensor even when it's not enabled, when False hides sensors not enabled in settings
                     #       -if it stil shows it means it's got a gpio address listed but no sensor connected
-                    #        in this case set show_anway to false.  
+                    #        in this case set show_anyway to false.
 
 #get the current sensor data using adafruits's dht module
 # -this shoul be swapped out into a module...
