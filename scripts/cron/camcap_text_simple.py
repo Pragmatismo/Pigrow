@@ -17,7 +17,7 @@ caps_path = loc_dic['caps_path']
 box_name = set_dic['box_name']
 try:
     dht22_sensor_pin = set_dic['gpio_dht22sensor']   #need to use settings file
-else:
+except:
     print("No sensor pin set...")
     dht22_sensor_pin = None
 if dht22_sensor_pin.strip() == "":
