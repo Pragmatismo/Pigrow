@@ -40,6 +40,8 @@ show_anyway = "text" #set to 'text' or 'num' to show sensor data even when none 
 
 #get the current sensor data using adafruits's dht module
 # -this shoul be swapped out into a module...
+temp = 99999
+humid = 99999
 if not dht22_sensor_pin == None:
     try:
         import Adafruit_DHT
@@ -53,14 +55,10 @@ if not dht22_sensor_pin == None:
             humid = humidity
         else:
             print("no reading from sensor...")
-            temp = None
-            humid = None
     except:
         print("Sensor software not installed")
 else:
     print("Skipping reading sensor...")
-    temp = None
-    humid = None
 
 #--captures image using camcap.py module
 s_val, c_val, g_val, b_val, x_dim, y_dim, additonal_commands, caps_path = camcap.load_camera_settings(loc_dic)
@@ -83,7 +81,7 @@ ypos = base.size[1] / 100 * downdist
 
 d.text((xpos,ypos), box_name, font=fnt, fill=(t_red,t_green,t_blue,t_alpha))
 d.text((xpos,ypos+font_size), time_text, font=fnt, fill=(t_red,t_green,t_blue,t_alpha))
-if not temp == None:
+if not temp == 99999:
     d.text((xpos,ypos+(font_size*2)), "Temp: " + temp, font=fnt, fill=(t_red,t_green,t_blue,t_alpha))
     d.text((xpos,ypos+(font_size*3)), "Humid: " + humid, font=fnt, fill=(t_red,t_green,t_blue,t_alpha))
 elif show_anyway == "num":
