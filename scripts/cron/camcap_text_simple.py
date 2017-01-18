@@ -47,6 +47,9 @@ humid = 99999
 if not dht22_sensor_pin == None:
     try:
         import Adafruit_DHT
+    except:
+        print("sensor software not installed")
+    try:
         sensor = Adafruit_DHT.DHT22
         count = 0
         while humidity == None and count <= 5:
@@ -59,7 +62,7 @@ if not dht22_sensor_pin == None:
         else:
             print("no reading from sensor...")
     except:
-        print("Sensor software not installed")
+        print("error while trying to read software")
 else:
     print("Skipping reading sensor...")
 
