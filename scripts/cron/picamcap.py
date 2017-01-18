@@ -65,6 +65,7 @@ def take_picam_raspistill(picam_dic, caps_path):
     except:
         extra_commands = ''
     os.system("raspistill -o "+caps_path+filename+" "+extra_commands)
+    return filename 
 
 
 if __name__ == '__main__':
