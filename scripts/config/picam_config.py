@@ -80,18 +80,18 @@ def show_menu():
     print(" | 0 - Delete Images       q to quit |")
     print("  ___________________________________|")
     print("")
-    option = raw_input("Type the number and press return;")
+    option = raw_input("Type the number and press return; ")
     if option == "1":
-        s_val = raw_input("Input value to use for Saturation..")
+        s_val = raw_input("Input value to use for Saturation.. ")
         show_menu()
     elif option == "2":
-        c_val = raw_input("Input value to use for Contrast..")
+        c_val = raw_input("Input value to use for Contrast.. ")
         show_menu()
     elif option == "3":
-        g_val = raw_input("Input value to use for Gain..")
+        g_val = raw_input("Input value to use for ISO (100 to 900).. ")
         show_menu()
     elif option == "4":
-        b_val = raw_input("Input value to use for Brightness..")
+        b_val = raw_input("Input value to use for Brightness.. ")
         show_menu()
 
     elif option == "5":
@@ -106,7 +106,7 @@ def show_menu():
             camera.capture(caps_path+"test_range_s_" + str(s) + ".jpg")
         print("Range captured, view and select best value..")
         os.system("gpicview "+caps_path+"test_range_s_"+str(start_v)+".jpg")
-        s_val = raw_input("Input value to use for Saturation..")
+        s_val = raw_input("Input value to use for Saturation.. ")
         show_menu()
 
     elif option == "6":
@@ -161,8 +161,8 @@ def show_menu():
     elif option == "t":
         print("Using current configuration to take image...")
         camera.saturation = int(s_val)
-        camera.analog_gain = int(g_val)
-        camera.analog_brightness = int(b_val)
+        camera.iso = int(g_val)
+        camera.brightness = int(b_val)
         camera.saturation = int(c_val)
         time.sleep(2)
         camera.capture(caps_path+"test_.jpg")
@@ -172,8 +172,8 @@ def show_menu():
     elif option == "r":
         print("Testing stability using current configuration to take range...")
         camera.saturation = int(s_val)
-        camera.analog_gain = int(g_val)
-        camera.analog_brightness = int(b_val)
+        camera.iso = int(g_val)
+        camera.brightness = int(b_val)
         camera.saturation = int(c_val)
         for x in range(1,10):
             time.sleep(2)
