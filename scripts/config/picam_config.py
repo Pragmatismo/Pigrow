@@ -165,8 +165,8 @@ def show_menu():
         camera.brightness = int(b_val)
         camera.saturation = int(c_val)
         time.sleep(2)
-        camera.capture(caps_path+"test_.jpg")
-        os.system("gpicview "+caps_path+"test_range_test.jpg")
+        camera.capture(caps_path+"test_range_.jpg")
+        os.system("gpicview "+caps_path+"test_range_.jpg")
         show_menu()
 
     elif option == "r":
@@ -177,8 +177,8 @@ def show_menu():
         camera.saturation = int(c_val)
         for x in range(1,10):
             time.sleep(2)
-            camera.capture(caps_path+"test_"+str(x)+".jpg")
-        os.system("gpicview "+caps_path+"test_range_range_test_1.jpg")
+            camera.capture(caps_path+"test_range_"+str(x)+".jpg")
+        os.system("gpicview "+caps_path+"test_range_1.jpg")
         show_menu()
 
     elif option == "s":
