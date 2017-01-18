@@ -40,7 +40,7 @@ show_anyway = "text" #set to 'text' or 'num' to show sensor data even when none 
 
 #get the current sensor data using adafruits's dht module
 # -this shoul be swapped out into a module...
-if not dht22_sensor_pin == None
+if not dht22_sensor_pin == None:
     try:
         import Adafruit_DHT
         sensor = Adafruit_DHT.DHT22
