@@ -36,6 +36,9 @@ downdist = 4 # [ercentage down the image to start test]
 rmfile = True  #if True then removes the unannotated image set to False to keep them
 show_anyway = "blank" #set to 'text' or 'num' to show sensor data even when none readings
                      #     -this stops anoying blinking if sensor isn't reliable
+nulsensorshow=False #when True shows sensor even when it's not enabled, when False hides sensors not enabled in settings
+                    #       -if it stil shows it means it's got a gpio address listed but no sensor connected
+                    #        in this case set show_anway to False also this will blank the lines when they have no data  
 
 #get the current sensor data using adafruits's dht module
 # -this shoul be swapped out into a module...
@@ -78,7 +81,7 @@ ypos = base.size[1] / 100 * downdist
 
 d.text((xpos,ypos), box_name, font=fnt, fill=(t_red,t_green,t_blue,t_alpha))
 d.text((xpos,ypos+font_size), time_text, font=fnt, fill=(t_red,t_green,t_blue,t_alpha))
-nulsensorshow=True #when True shows sensor even when it's not enabled  
+
 if not dht22_sensor_pin == None or nulsensorshow==True:
     if not temp == 99999:
         temp = round(temp,2)
