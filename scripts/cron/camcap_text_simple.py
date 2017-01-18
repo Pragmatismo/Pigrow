@@ -13,10 +13,17 @@ loc_dic = pigrow_defs.load_locs(loc_locs)
 loc_settings = loc_dic['loc_settings']
 set_dic = pigrow_defs.load_settings(loc_settings)
 
-
-box_name = set_dic['box_name']
-dht22_sensor_pin = set_dic['dht22_sensor_pin']   #need to use settings file
 caps_path = loc_dic['caps_path']
+box_name = set_dic['box_name']
+try:
+    dht22_sensor_pin = set_dic['gpio_dht22sensor']   #need to use settings file
+else:
+    print("No sensor pin set...")
+    dht22_sensor_pin = None
+if dht22_sensor_pin.strip() == "":
+    dht22_sensor_pin = None
+
+
 
 rot_val = 90 #useful if your webcam is on it's side.
 t_red = 100    #0-255 text colour
@@ -30,23 +37,30 @@ downdist = 4 # [ercentage down the image to start test]
 rmfile = True  #if True then removes the unannotated image set to False to keep them
 show_anyway = "text" #set to 'text' or 'num' to show sensor data even when none readings
                      #     -this stops anoying blinking if sensor isn't reliable
+
 #get the current sensor data using adafruits's dht module
-try:
-    import Adafruit_DHT
-    sensor = Adafruit_DHT.DHT22
-    count = 0
-    while humidity == None and count <= 5:
-        humidity, temperature = Adafruit_DHT.read_retry(sensor, dht22_sensor_pin)
-        count = count + 1
-    if humidity is not None and temperature is not None:
-        temp = temperature
-        humid = humidity
-    else:
-        print("no reading from sensor...")
-        temp = None
-        humid = None
-except:
-    print("Sensor software not installed")
+# -this shoul be swapped out into a module...
+if not dht22_sensor_pin == None
+    try:
+        import Adafruit_DHT
+        sensor = Adafruit_DHT.DHT22
+        count = 0
+        while humidity == None and count <= 5:
+            humidity, temperature = Adafruit_DHT.read_retry(sensor, dht22_sensor_pin)
+            count = count + 1
+        if humidity is not None and temperature is not None:
+            temp = temperature
+            humid = humidity
+        else:
+            print("no reading from sensor...")
+            temp = None
+            humid = None
+    except:
+        print("Sensor software not installed")
+else:
+    print("Skipping reading sensor...")
+    temp = None
+    humid = None
 
 #--captures image using camcap.py module
 s_val, c_val, g_val, b_val, x_dim, y_dim, additonal_commands, caps_path = camcap.load_camera_settings(loc_dic)
