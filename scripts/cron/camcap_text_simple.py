@@ -71,8 +71,8 @@ xpos = base.size[0] / 100 * leftdist
 ypos = base.size[1] / 100 * downdist
 
 print font_size
-fstep = font_size / 100 * 210
-print (ypos +  fstep      )
+fstep = (int(font_size) / 100 * 110)
+print (fstep      )
 print (ypos + (fstep     ))
 print (ypos + (fstep * 2 ))
 print (ypos + (fstep * 3 ))
