@@ -101,7 +101,7 @@ for argu in sys.argv:
     elif thearg == "leftdist":
         downdist = int(theset)
     elif thearg == "rmfile":
-        if theset = "True":
+        if theset == "True":
             rmfile = True
         else:
             rmfile = False
