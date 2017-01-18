@@ -1,6 +1,6 @@
 #!/usr/bin/python
 import time
-import os
+import os, sys
 
 def load_camera_settings(loc_dic):
     s_val = "60"
@@ -64,6 +64,6 @@ if __name__ == '__main__':
     #script = 'camcap.py'  #used with logging module
     loc_locs = '/home/pi/Pigrow/config/dirlocs.txt'
     loc_dic = pigrow_defs.load_locs(loc_locs)
-    
+
     s_val, c_val, g_val, b_val, x_dim, y_dim, additonal_commands, caps_path = load_camera_settings(loc_dic)
     take_with_uvccapture(s_val, c_val, g_val, b_val, x_dim, y_dim, additonal_commands, caps_path)
