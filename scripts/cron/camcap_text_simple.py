@@ -65,15 +65,17 @@ d = ImageDraw.Draw(txt)
 temp = str(temp)[0:4]
 humid = str(humid)[0:4]
 
-leftdist = 50 # percentage left of screen to start text
+leftdist = 25 # percentage left of image to start text
+downdist = 25 # [ercentage down the image to start test]
 xpos = base.size[0] / 100 * leftdist
-ypos = 10 # pixels from top
+ypos = base.size[1] / 100 * downdist
+
 print font_size
 fstep = font_size / 100 * 210
-print ypos +  fstep
-print ypos + (fstep     )
-print ypos + (fstep * 2 )
-print ypos + (fstep * 3 )
+print (ypos +  fstep      )
+print (ypos + (fstep     ))
+print (ypos + (fstep * 2 ))
+print (ypos + (fstep * 3 ))
 
 d.text((xpos,ypos), box_name, font=fnt, fill=(t_red,t_green,t_blue,t_alpha))
 d.text((xpos,ypos+fstep), time_text, font=fnt, fill=(t_red,t_green,t_blue,t_alpha))
