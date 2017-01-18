@@ -60,6 +60,10 @@ def take_picam_raspistill(picam_dic, caps_path):
     # take and save photo
     timenow = str(time.time())[0:10]
     filename= "cap_"+str(timenow)+".jpg"
+    try:
+        extra_commands = picam_dic['extra_commands']
+    except:
+        extra_commands = ''
     os.system("raspistill -o "+caps_path+filename+" "+extra_commands)
 
 
