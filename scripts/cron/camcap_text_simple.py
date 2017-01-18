@@ -21,8 +21,8 @@ sensor_gpio = 18   #need to use settings file
 caps_path = "/home/pi/Pigrow/cam_caps/"
 
 rot_val = 90 #useful if your webcam is on it's side.
-t_red = 10    #0-255 text colour
-t_green= 10   #0-255 text colour
+t_red = 100    #0-255 text colour
+t_green= 100   #0-255 text colour
 t_blue = 220   #0-255 text colour
 t_alpha = 255 #0-255 text opacity
 font_name = '/home/pi/Pigrow/resources/Caslon.ttf'
@@ -65,11 +65,15 @@ d = ImageDraw.Draw(txt)
 temp = str(temp)[0:4]
 humid = str(humid)[0:4]
 
-leftdist = 10 # percentage left of screen to start text
+leftdist = 50 # percentage left of screen to start text
 xpos = base.size[0] / 100 * leftdist
 ypos = 10 # pixels from top
-fstep = font_size / 100 * 110
-
+print font_size
+fstep = font_size / 100 * 210
+print ypos +  fstep
+print ypos + (fstep     )
+print ypos + (fstep * 2 )
+print ypos + (fstep * 3 )
 
 d.text((xpos,ypos), box_name, font=fnt, fill=(t_red,t_green,t_blue,t_alpha))
 d.text((xpos,ypos+fstep), time_text, font=fnt, fill=(t_red,t_green,t_blue,t_alpha))
