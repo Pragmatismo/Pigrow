@@ -3,6 +3,7 @@ import time
 import os, sys
 
 def load_camera_settings(loc_dic):
+    #defaults for when config file not found
     s_val = "60"
     c_val = "60"
     g_val = "60"
@@ -11,16 +12,15 @@ def load_camera_settings(loc_dic):
     y_dim = 1200
     additonal_commands = "-d/dev/video0 -w"
     loc_settings = "/home/pi/Pigrow/config/camera_settings.txt"
+    caps_path = "/home/pi/Pigrow/caps/" 
     try:
         caps_path = loc_dic['caps_path']
     except:
-        caps_path = "/home/pi/Pigrow/caps/"
         if os.exists(caps_path):
             print("Using default")
         else:
             caps_path = "./"
             print("default path doesn't work, using current directory (sorry)")
-        raise    
     try:
         loc_setting = loc_dic['camera_settings']
         print("using camera settings file as directed by dirlocs file.")
