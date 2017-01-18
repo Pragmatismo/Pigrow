@@ -1,7 +1,7 @@
 #!/usr/bin/python
 from PIL import Image, ImageDraw, ImageFont
 import time
-import os
+import os, sys
 
 sys.path.append('/home/pi/Pigrow/scripts/')
 sys.path.append('/home/pi/Pigrow/scripts/cron/')
