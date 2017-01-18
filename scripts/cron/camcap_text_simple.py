@@ -65,10 +65,16 @@ d = ImageDraw.Draw(txt)
 temp = str(temp)[0:4]
 humid = str(humid)[0:4]
 
-d.text((800,10), box_name, font=fnt, fill=(t_red,t_green,t_blue,t_alpha))
-d.text((800,70), time_text, font=fnt, fill=(t_red,t_green,t_blue,t_alpha))
-d.text((800,120), "Temp: " + temp, font=fnt, fill=(t_red,t_green,t_blue,t_alpha))
-d.text((800,170), "Humid: " + humid, font=fnt, fill=(t_red,t_green,t_blue,t_alpha))
+leftdist = 10 # percentage left of screen to start text
+xpos = base.size[0] / 100 * leftdist
+ypos = 10 # pixels from top
+fstep = font_size / 100 * 110
+
+
+d.text((xpos,ypos), box_name, font=fnt, fill=(t_red,t_green,t_blue,t_alpha))
+d.text((xpos,ypos+fstep), time_text, font=fnt, fill=(t_red,t_green,t_blue,t_alpha))
+d.text((xpos,ypos+(fstep*2)), "Temp: " + temp, font=fnt, fill=(t_red,t_green,t_blue,t_alpha))
+d.text((xpos,ypos+(fstep*3)), "Humid: " + humid, font=fnt, fill=(t_red,t_green,t_blue,t_alpha))
 
 out = Image.alpha_composite(base, txt)
 out.save(caps_path + "text_" + filename)
