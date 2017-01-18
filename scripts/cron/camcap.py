@@ -30,21 +30,22 @@ def load_camera_settings(loc_dic):
             for line in f:
                 s_item = line.split("=")
                 if s_item[0] == "s_val":
-                    s_val = s_item[1].split("\n")[0]
+                    s_val = s_item[1].strip()
                 elif s_item[0] == "c_val":
-                    c_val = s_item[1].split("\n")[0]
+                    c_val = s_item[1].strip()
                 elif s_item[0] == "g_val":
-                    g_val = s_item[1].split("\n")[0]
+                    g_val = s_item[1].strip()
                 elif s_item[0] == "b_val":
-                    b_val = s_item[1].split("\n")[0]
+                    b_val = s_item[1].strip()
                 elif s_item[0] == "x_dim":
-                    x_dim = s_item[1].split("\n")[0]
+                    x_dim = s_item[1].strip()
                 elif s_item[0] == "y_dim":
-                    y_dim = s_item[1].split("\n")[0]
+                    y_dim = s_item[1].strip()
                 elif s_item[0] == "additonal_commands":
-                    additonal_commands = s_item[1].split("\n")[0]
+                    additonal_commands = s_item[1].strip()
     except:
-        print("couldn't find config file for camera, using default")
+        print("looked at " + loc_settings)
+        print("but couldn't find config file for camera, so default values")
         print("  - Run cam_config.py to create one")
         print("     - or edit dirlocs config file to point to the config file.")
     return (s_val, c_val, g_val, b_val, x_dim, y_dim, additonal_commands, caps_path)
@@ -68,4 +69,3 @@ if __name__ == '__main__':
 
     s_val, c_val, g_val, b_val, x_dim, y_dim, additonal_commands, caps_path = load_camera_settings(loc_dic)
     caps_path, filename = take_with_uvccapture(s_val, c_val, g_val, b_val, x_dim, y_dim, additonal_commands, caps_path)
-    

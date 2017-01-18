@@ -38,7 +38,7 @@ show_anyway = "blank" #set to 'text' or 'num' to show sensor data even when none
                      #     -this stops anoying blinking if sensor isn't reliable
 nulsensorshow=False #when True shows sensor even when it's not enabled, when False hides sensors not enabled in settings
                     #       -if it stil shows it means it's got a gpio address listed but no sensor connected
-                    #        in this case set show_anway to False also this will blank the lines when they have no data  
+                    #        in this case set show_anway to false.  
 
 #get the current sensor data using adafruits's dht module
 # -this shoul be swapped out into a module...
