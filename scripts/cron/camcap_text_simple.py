@@ -52,6 +52,7 @@ if not dht22_sensor_pin == None:
         while humidity == None and count <= 5:
             humidity, temperature = Adafruit_DHT.read_retry(sensor, dht22_sensor_pin)
             count = count + 1
+            print("failed to read sensor")
         if humidity is not None and temperature is not None:
             temp = temperature
             humid = humidity
