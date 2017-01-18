@@ -54,8 +54,9 @@ def take_with_uvccapture(s_val="20", c_val="20", g_val="20", b_val="20", x_dim=1
     timenow = time.time()
     timenow = str(timenow)[0:10]
     filename= "cap_"+str(timenow)+".jpg"
-    os.system("sudo uvccapture "+additonal_commands+" -S"+s_val+" -C" + c_val + " -G"+ g_val +" -B"+ b_val +" -x"+str(x_dim)+" -y"+str(y_dim)+" -v -t0 -o"+cappath+filename)
-    print("Image taken and saved to "+cappath+filename)
+    os.system("sudo uvccapture "+additonal_commands+" -S"+s_val+" -C" + c_val + " -G"+ g_val +" -B"+ b_val +" -x"+str(x_dim)+" -y"+str(y_dim)+" -v -t0 -o"+caps_path+filename)
+    print("Image taken and saved to "+caps_path+filename)
+    return caps_path, filename
 
 if __name__ == '__main__':
 
@@ -66,4 +67,5 @@ if __name__ == '__main__':
     loc_dic = pigrow_defs.load_locs(loc_locs)
 
     s_val, c_val, g_val, b_val, x_dim, y_dim, additonal_commands, caps_path = load_camera_settings(loc_dic)
-    take_with_uvccapture(s_val, c_val, g_val, b_val, x_dim, y_dim, additonal_commands, caps_path)
+    caps_path, filename = take_with_uvccapture(s_val, c_val, g_val, b_val, x_dim, y_dim, additonal_commands, caps_path)
+    
