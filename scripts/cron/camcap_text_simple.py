@@ -52,9 +52,12 @@ if not dht22_sensor_pin == None:
     try:
         sensor = Adafruit_DHT.DHT22
         count = 0
-        while humidity == None and count <= 5:
+        while count => 5:
             humidity, temperature = Adafruit_DHT.read_retry(sensor, dht22_sensor_pin)
-            count = count + 1
+            if humidity == None:
+                count = count + 1
+            else:
+                break
             print("failed to read sensor")
         if humidity is not None and temperature is not None:
             temp = temperature
@@ -62,7 +65,8 @@ if not dht22_sensor_pin == None:
         else:
             print("no reading from sensor...")
     except:
-        print("error while trying to read software")
+        print("error while trying to read sensor")
+        raise
 else:
     print("Skipping reading sensor...")
 
