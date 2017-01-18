@@ -91,7 +91,7 @@ if not dht22_sensor_pin == None or sensorshow==True:
     elif show_anyway == "text":
         d.text((xpos,ypos+(font_size*2)), "Temp: no data", font=fnt, fill=(t_red,t_green,t_blue,t_alpha))
         d.text((xpos,ypos+(font_size*3)), "Humid: no data", font=fnt, fill=(t_red,t_green,t_blue,t_alpha))
-    else
+    else:
         d.text((xpos,ypos+(font_size*2)), "Temp: ", font=fnt, fill=(t_red,t_green,t_blue,t_alpha))
         d.text((xpos,ypos+(font_size*3)), "Humid: ", font=fnt, fill=(t_red,t_green,t_blue,t_alpha))
 
