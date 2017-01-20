@@ -153,7 +153,7 @@ def grab_folder(capsdir='./', inpoint=0, outpoint=0, file_type='jpg', datecheck=
         if filefound.endswith(file_type):
             fcounter = fcounter + 1
             if not datecheck == False:
-                picdate = float(filefound.split(".")[0].split("_")[1])
+                picdate = float(filefound.split(".")[0].split("_")[-1])
                 picdate = datetime.datetime.utcfromtimestamp(picdate)
                 if picdate >= datecheck:
                     filelist.append(filefound)
