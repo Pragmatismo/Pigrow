@@ -7,8 +7,8 @@ import pigrow_defs
 def lamp_on(set_dic, switch_log):
     script = 'lamp_on.py'
     msg = ("")
-    msg +=("      #############################################")
-    msg +=("      ##         Turning the lamp - ON         ##")
+    msg +=("      #############################################\n")
+    msg +=("      ##         Turning the lamp - ON         ##\n")
     if 'gpio_lamp' in set_dic and not str(set_dic['gpio_lamp']).strip() == '':
         gpio_pin = int(set_dic['gpio_lamp'])
         gpio_pin_on = set_dic['gpio_lamp_on']
@@ -21,21 +21,21 @@ def lamp_on(set_dic, switch_log):
         elif gpio_pin_on == "high":
             GPIO.output(gpio_pin, GPIO.HIGH)
         else:
-            msg +=("      !!       CAN'T DETERMINE GPIO DIRECTION    !!")
-            msg +=("      !!  run config program or edit config.txt  !!")
-            msg +=("      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+            msg +=("      !!       CAN'T DETERMINE GPIO DIRECTION    !!\n")
+            msg +=("      !!  run config program or edit config.txt  !!\n")
+            msg +=("      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n")
             pigrow_defs.write_log(script, 'Failed - no direction set in config', switch_log)
             return msg
 
     else:
-        msg +=("      !!               NO lamp SET             !!")
-        msg +=("      !!  run config program or edit config.txt  !!")
-        msg +=("      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+        msg +=("      !!               NO lamp SET             !!\n")
+        msg +=("      !!  run config program or edit config.txt  !!\n")
+        msg +=("      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n")
         pigrow_defs.write_log(script, 'Failed - due to none set in config', switch_log)
         return msg
 
-    msg +=("      ##            by switching GPIO "+str(gpio_pin)+" to "+gpio_pin_on+"  ##")
-    msg +=("      #############################################")
+    msg +=("      ##            by switching GPIO "+str(gpio_pin)+" to "+gpio_pin_on+"  ##\n")
+    msg +=("      #############################################\n")
     pigrow_defs.write_log(script, 'lamp turned on', switch_log)
     return msg
 
