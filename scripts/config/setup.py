@@ -207,7 +207,7 @@ def bind_realy(device):
                 save_settings()
             elif direction.lower() in ["1", "h", "high", "up", "on" ]:
                 print("Direction set to HIGH")
-                pi_set[device+"_on"] = 'high"'
+                pi_set[device+"_on"] = 'high'
                 pi_set[device] = setting
                 save_settings()
                 print("Set " + device + " to " + setting + " with it's normal state as " + direction)
