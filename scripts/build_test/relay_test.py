@@ -1,11 +1,12 @@
 #!/usr/bin/python
 
 print("This program will test the relays")
+print(" -- uses gpio pins 23,8,12,21 -- "
 print(" each will turn on one after the other")
 print(" until all are lit, then they'll start")
 print(" to turn off one after the other.")
 print("")
-print("note- all on or all off relates to") 
+print("note- all on or all off relates to")
 print("the internal relays not the socket")
 print("this is dependent on the wiring of")
 print("the relays, i.e. normally open or closed")
