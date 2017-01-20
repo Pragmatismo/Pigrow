@@ -250,11 +250,12 @@ def show_gpio_menu():
         print("   Relay Bindings;")
         print(" 2 - Lamp")
         print(" 3 - Heater")
-        print(" 4 - Fan in")
-        print(" 5 - Fan out")
-        print(" 6 - Humid")
-        print(" 7 - Dehumid")
-        print(" 8 - Co2")
+        print(" 4 - Fans")
+        print(" 5 - Humid")
+        print(" 6 - Dehumid")
+        print(" 7 - Co2")
+        print(" 8 - Fan out")
+        print(" 9 - Fan in")
         print("")
         option = raw_input("Type the number and press return; ")
         if option == "1":
@@ -281,15 +282,17 @@ def show_gpio_menu():
         elif option == "3":
             bind_realy('gpio_heater')
         elif option == "4":
-            bind_realy('gpio_fanin')
+            bind_realy('gpio_fans')
         elif option == "5":
-            bind_realy('gpio_fanout')
-        elif option == "6":
             bind_realy('gpio_humid')
-        elif option == "7":
+        elif option == "6":
             bind_realy('gpio_dehumid')
-        elif option == "8":
+        elif option == "7":
             bind_realy('gpio_CO2')
+        elif option == "8":
+            bind_realy('gpio_fanout')
+        elif option == "9":
+            bind_realy('gpio_fanin')
         show_gpio_menu()
 
     elif option == "2":
