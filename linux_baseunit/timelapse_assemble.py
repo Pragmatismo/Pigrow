@@ -1,7 +1,7 @@
 #!/usr/bin/python
 import os
 import sys
-
+import datetime
 ###  Requires MPV to be installed, use - sudo apt install mpv
 
 #default user settings
@@ -37,6 +37,11 @@ for argu in sys.argv:
         outfps = theset
     elif thearg == "darksize" or thearg == 'ds':
         darksize = int(theset)
+    elif thearg == "datecheck" or thearg == 'dc':
+        if not theset.lower() == "false":
+            datecheck = theset
+        else:
+            datecheck=False
     elif thearg == "ts" or thearg == 'timeskip':
         time_skip = int(theset)
     elif thearg == "ft" or thearg == 'filetype':
@@ -80,6 +85,10 @@ for argu in sys.argv:
         print("   ds=SIZE")
         print("         SIZE in bites below which files are ignored")
 
+        print("   dc=hour1  -- or day1, week1, month1")
+        print("         datecheck's images before loading them")
+        print("           hour1 shows last hour, hour5 last five hours, etc.")
+
         print("   ts=NUMBER")
         print("         uses every Nth frame")
 
@@ -115,8 +124,27 @@ listfile = capsdir + "filelist.txt"
 
 print(" ## ############################################ ##")
 
-def grab_folder(capsdir='./', inpoint=0, outpoint=0, file_type='jpg'):
+def grab_folder(capsdir='./', inpoint=0, outpoint=0, file_type='jpg', datecheck=False):
     #grab all the files in caps directory
+    if datecheck[0:3] == "day":
+        days = int(datecheck[3:])
+        datecheck=datetime.timedelta(days=days)
+        datecheck=datetime.datetime.now() - datecheck
+    elif datecheck[0:4] == "hour":
+        hours = int(datecheck[4:])
+        datecheck=datetime.timedelta(hours=hours)
+        datecheck=datetime.datetime.now() - datecheck
+    elif datecheck[0:4] == "week":
+        weeks = int(datecheck[4:])
+        datecheck=datetime.timedelta(weeks=weeks)
+        datecheck=datetime.datetime.now() - datecheck
+    elif datecheck[0:5] == "month":
+        months = int(datecheck[5:])*4
+        datecheck=datetime.timedelta(weeks=months)
+        datecheck=datetime.datetime.now() - datecheck
+    else:
+        print(" !!!! couldn't understand datecheck flag, ignoring")
+        datecheck = False
     filelist = []
     fcounter = 0
     if outpoint == 0:
@@ -124,11 +152,26 @@ def grab_folder(capsdir='./', inpoint=0, outpoint=0, file_type='jpg'):
     for filefound in os.listdir(capsdir):
         if filefound.endswith(file_type):
             fcounter = fcounter + 1
-            filelist.append(filefound)
+            if not datecheck == False:
+                picdate = float(filefound.split(".")[0].split("_")[1])
+                picdate = datetime.datetime.utcfromtimestamp(picdate)
+                if picdate >= datecheck:
+                    filelist.append(filefound)
+            elif datecheck == False:
+                filelist.append(filefound)
+
     print " ##  Counted total; " + str(fcounter)
     filelist.sort()
-    print " ##  Using: " + str(len(filelist[inpoint:outpoint]))
+    print " ##  Active timezone contains : " + str(len(filelist[inpoint:outpoint]))
+    if len(filelist) >= 1:
+        print " ##     -Starting  " + str(datetime.datetime.utcfromtimestamp(float(filelist[0].split(".")[0].split("_")[1])))
+        print " ##     -Finishing " + str(datetime.datetime.utcfromtimestamp(float(filelist[-1].split(".")[0].split("_")[1])))
+    else:
+        print(" !!!! No files to make timelapse with...")
+        exit()
     return filelist[inpoint:outpoint]
+
+
 
 def discard_dark(filelist):
     # make list ignoring the small images
@@ -138,7 +181,7 @@ def discard_dark(filelist):
         statinfo = os.stat(capsdir + x)
         if statinfo.st_size >= darksize: #increase or decrese as needed, 75000 works well for most
             no_dark.append(x)
-    print(" ## After removing dark; " + str(len(no_dark)) + " using " +str(darksize)+" threashold")
+    print(" ##  After removing dark; " + str(len(no_dark)) + " remain    (using " +str(darksize)+" byte threashold)")
     return no_dark
 
 def skip_every(no_dark, time_skip=0):
@@ -146,7 +189,7 @@ def skip_every(no_dark, time_skip=0):
     #make list every Nth file
     for x in range(0, len(no_dark), time_skip):
         faster.append(no_dark[x])
-    print(" ##  After timeskip left with; " + str(len(faster)))
+    print(" ##  Timeskip using every " + str(time_skip) + " frame, leaves us with; " + str(len(faster)))
     return faster
 
 def write_listfile(final_list, capsdir):
@@ -156,7 +199,7 @@ def write_listfile(final_list, capsdir):
     for x in final_list:
         ffTL.write(x + "\n")
     ffTL.close()
-    print(" ##     -filelist written")
+    print(" ##             -filelist written")
 
 
 def next_filename(outfile):
@@ -207,11 +250,15 @@ def check_already_outfile(outfile):
 
 
 outfile = check_already_outfile(outfile)
-filelist = grab_folder(capsdir, inpoint, outpoint, file_type)
+filelist = grab_folder(capsdir, inpoint, outpoint, file_type, datecheck)
 no_dark = discard_dark(filelist)
 faster = skip_every(no_dark, time_skip)
-write_listfile(faster, capsdir)
-
+if len(faster) >= 1:
+    print(" ##  Creating list file...")
+    write_listfile(faster, capsdir)
+else:
+    print(" !!  There are no files to make a timelapse from...")
+    exit()
 
 #runs the video encouder
 print " ##  making you a timelapse video..."
