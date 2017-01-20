@@ -355,7 +355,7 @@ def show_cron_menu():
             job = autorun_path + os.listdir(autorun_path)[int(option)]
         except:
             print("Sorry, that doesn't seem to have been a valid option")
-            exit() #or should this be break? or return None or something?    
+            break #? or return None or something?    
         job = cron.new(command=job, comment='Pigrow')
         job.every_reboot()
         cron.write()
