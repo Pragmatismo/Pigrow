@@ -355,7 +355,8 @@ def show_cron_menu():
             job = autorun_path + os.listdir(autorun_path)[int(option)]
         except:
             print("Sorry, that doesn't seem to have been a valid option")
-            break #? or return None or something?    
+            show_cron_menu()
+            exit()
         job = cron.new(command=job, comment='Pigrow')
         job.every_reboot()
         cron.write()
@@ -378,6 +379,7 @@ def show_cron_menu():
             print("")
             print(" those needed to both be numbers...")
             show_cron_menu()
+            exit()
         job = cron.new(command=job, comment='Pigrow')
         job.hour.on(hour)
         job.minute.on(minpast)
