@@ -315,6 +315,7 @@ def show_gpio_menu():
         except:
             print("Should use numbers for this,,,")
             show_gpio_menu()
+            exit()
     elif option == "3":
         show_gpio_menu()
         #show_gpio_menu()
@@ -324,6 +325,7 @@ def show_gpio_menu():
         exit()
     else:
         show_gpio_menu()
+        exit()
 
 def show_start_script_menu():
     print("\n\nhahahahahahahahahaahaha NO.")
