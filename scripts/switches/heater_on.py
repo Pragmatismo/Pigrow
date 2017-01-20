@@ -7,8 +7,8 @@ import pigrow_defs
 def heater_on(set_dic, switch_log):
     script = 'heater_on.py'
     msg = ("")
-    msg +=("      #############################################")
-    msg +=("      ##         Turning the heater - ON         ##")
+    msg +=("      #############################################\n")
+    msg +=("      ##         Turning the heater - ON         ##\n")
     if 'gpio_heater' in set_dic and not str(set_dic['gpio_heater']).strip() == '':
         gpio_pin = int(set_dic['gpio_heater'])
         gpio_pin_on = set_dic['gpio_heater_on']
@@ -21,21 +21,21 @@ def heater_on(set_dic, switch_log):
         elif gpio_pin_on == "high":
             GPIO.output(gpio_pin, GPIO.HIGH)
         else:
-            msg +=("      !!       CAN'T DETERMINE GPIO DIRECTION    !!")
-            msg +=("      !!  run config program or edit config.txt  !!")
-            msg +=("      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+            msg +=("      !!       CAN'T DETERMINE GPIO DIRECTION    !!\n")
+            msg +=("      !!  run config program or edit config.txt  !!\n")
+            msg +=("      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n")
             pigrow_defs.write_log(script, 'Failed - no direction set in config', switch_log)
             return msg
 
     else:
-        msg +=("      !!               NO HEATER SET             !!")
-        msg +=("      !!  run config program or edit config.txt  !!")
-        msg +=("      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+        msg +=("      !!               NO HEATER SET             !!\n")
+        msg +=("      !!  run config program or edit config.txt  !!\n")
+        msg +=("      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n")
         pigrow_defs.write_log(script, 'Failed - due to none set in config', switch_log)
         return msg
 
     msg +=("      ##            by switching GPIO "+str(gpio_pin)+" to "+gpio_pin_on+"  ##")
-    msg +=("      #############################################")
+    msg +=("      #############################################\n")
     pigrow_defs.write_log(script, 'Heater turned on', switch_log)
     return msg
 
