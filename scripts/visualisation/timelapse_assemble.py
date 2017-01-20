@@ -164,8 +164,8 @@ def grab_folder(capsdir='./', inpoint=0, outpoint=0, file_type='jpg', datecheck=
     filelist.sort()
     print " ##  Active timezone contains : " + str(len(filelist[inpoint:outpoint]))
     if len(filelist) >= 1:
-        print " ##     -Starting  " + str(datetime.datetime.utcfromtimestamp(float(filelist[0].split(".")[0].split("_")[1])))
-        print " ##     -Finishing " + str(datetime.datetime.utcfromtimestamp(float(filelist[-1].split(".")[0].split("_")[1])))
+        print " ##     -Starting  " + str(datetime.datetime.utcfromtimestamp(float(filelist[0].split(".")[0].split("_")[-1])))
+        print " ##     -Finishing " + str(datetime.datetime.utcfromtimestamp(float(filelist[-1].split(".")[0].split("_")[-1])))
     else:
         print(" !!!! No files to make timelapse with...")
         exit()
