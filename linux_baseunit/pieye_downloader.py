@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/python
 
 import matplotlib as mpl
 mpl.use('Agg')
