@@ -1,10 +1,9 @@
 #!/bin/bash
 
 #downlaod from pi
-/home/pragmo/pigitgrow/Pigrow/linux_baseunit/caps_downloader.py
+/home/pragmo/pigitgrow/Pigrow/linux_baseunit/caps_downloader.py ta=pi@192.168.1.10
 /home/pragmo/pigitgrow/Pigrow/linux_baseunit/logs_downloader.py ta=pi@192.168.1.10
 #make graphs
-# --> make caps graph
 /home/pragmo/pigitgrow/Pigrow/scripts/visualisation/caps_graph.py caps=/home/pragmo/frompigrow/caps/ out=/home/pragmo/frompigrow/
 /home/pragmo/pigitgrow/Pigrow/scripts/visualisation/temp_graph.py log=/home/pragmo/frompigrow/logs/dht22_log.txt out=/home/pragmo/frompigrow/dht_temp_graph.png
 /home/pragmo/pigitgrow/Pigrow/scripts/visualisation/humid_graph.py log=/home/pragmo/frompigrow/logs/dht22_log.txt out=/home/pragmo/frompigrow/dht_humid_graph.png
