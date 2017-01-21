@@ -53,7 +53,7 @@ def count_folder(capsdir="./", cap_type="jpg"):
 #images taken in darkness have a significantly lower filesize than full images
 def file_size_graph(datelst, fsize_log, graph_path="./"):
     fcounter_log = []
-    gname = graph_path+"file_size_graph.png"
+    gname = graph_path+"caps_filesize_graph.png"
     for x in range(0,len(fsize_log)):
         fcounter_log.append(x)
     plt.figure(1)
@@ -65,14 +65,14 @@ def file_size_graph(datelst, fsize_log, graph_path="./"):
     plt.ylabel("filesize")
     plt.xlabel("file number")
     #plt.show() #hash this line out to stop it shoinw the plot, unhash tp show plot
-    plt.savefig (gname) #will be blank if plt.show is active
+    plt.savefig(gname) #will be blank if plt.show is active
     print("Graph saved to "+gname)
     return gname
 
 
 #optional time difference between captured image graph
 def image_time_diff_graph(datelist, graph_path="/."):
-    gname = graph_path+"file_time_diff_graph.png"
+    gname = graph_path+"caps_timediff_graph.png"
     pic_dif_log = []
     fcounter_log = []
     print("Gathering data for time diff graph")
