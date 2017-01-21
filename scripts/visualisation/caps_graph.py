@@ -83,7 +83,7 @@ def image_time_diff_graph(datelist, graph_path="/."):
         pic_dif_log.append(pic_dif)
         fcounter_log.append(x)
     print('We now have ' + str(len(pic_dif_log)) + ' up time differnces from the pictures to work with.')
-    print('most recent date: ' + str(datelist[-1]))
+    print('most recent date: ' + str(datelist[-1]).strftime("%b-%d %H:%M")
     plt.figure(2)
     ax = plt.subplot()
     #ax.plot(fcounter_log, fsize_log, color='darkblue', lw=3)
