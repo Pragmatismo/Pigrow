@@ -42,12 +42,7 @@ except:
 
 
 #Making lists of the files on local computer we have now
-filelist = []
 facounter = 0
-fsize_log = []
-facounter_log = []
-datelist = []
-
 for filefound in os.listdir(capsdir):
     if filefound.endswith(cap_type):
         facounter = facounter + 1
@@ -55,8 +50,6 @@ for filefound in os.listdir(capsdir):
 #output info to the command line
 print "Now got; " + str(facounter)
 print "so that's " + str(facounter - fcounter) + " more than we had before"
-print "with a list of file sizes " + str(len(fsize_log)) + " long!"
-print "and " + str(len(datelist)) + " dates taken from the filename's"
 
 #optionally updates the ububtu background with the most recent script.
 def update_ubuntu_background():
