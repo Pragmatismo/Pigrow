@@ -24,6 +24,11 @@ for argu in sys.argv[1:]:
     elif thearg == 'graph':
         graph_path = str(argu).split('=')[1]
 
+if capsdir[-1] == '/':
+    pass
+else:
+    capsdir = capsdir + '/'
+
 def count_folder(capsdir="./", cap_type="jpg"):
     filelist = []
     facounter = 0
