@@ -18,23 +18,23 @@ nullimg = loc_dic["path"] + "resources/null.png"
 output_path = graph_path + "datawall.jpg"       #default use o= to set via command line
 caps_path = loc_dic['caps_path']
 #left side
-g1 = graph_path + "temp_graph.png"
+g1 = graph_path + "dht_temp_graph.png"
 if not os.path.exists(g1):
     g1 = nullimg
-g2 = graph_path + "sec_since_up_graph.png"
+g2 = graph_path + "caps_filesize_graph.png"
 if not os.path.exists(g2):
     g2 = nullimg
-g3 = graph_path + "sec_between_up_graph.png"
+g3 = graph_path + "Selflog_disk_graph.png"
 if not os.path.exists(g3):
     g3 = nullimg
 #right side
-g4 = graph_path + "humid_graph.png"
+g4 = graph_path + "dht_humid_graph.png"
 if not os.path.exists(g4):
     g4 = nullimg
-g5 = graph_path + "consecutive_pi_time_graph.png"
+g5 = graph_path + " Selflog_up_graph.png"
 if not os.path.exists(g5):
     g5 = nullimg
-g6 = graph_path + "sec_between_comps.png"
+g6 = graph_path + "Selflog_cpu_graph.png"
 if not os.path.exists(g6):
     g6 = nullimg
 
