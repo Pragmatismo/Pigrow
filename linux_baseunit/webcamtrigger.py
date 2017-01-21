@@ -8,7 +8,7 @@ print("")
 print(" USE l=3 to take a photo every 3 somethings")
 print("      t  to take triggered photos ")
 print("     cap=/home/pi/folder/ to set caps path other than current dir")
-print("      ")
+print("      np to stop it trying to change the wallpaper")
 pi_paper = True  #updates pi wall paper, use -nopaper to turn it off.
 s_val = "20"
 c_val = "20"
@@ -53,7 +53,7 @@ def photo():
     timenow = time.time()
     timenow = str(timenow)[0:10]
     filename= "cap_"+str(timenow)+".jpg"
-    os.system("sudo uvccapture "+additonal_commands+" -S"+s_val+" -C" + c_val + " -G"+ g_val +" -B"+ b_val +" -x"+str(x_dim)+" -y"+str(y_dim)+" -v -t0 -o"+cappath+filename)
+    os.system("uvccapture "+additonal_commands+" -S"+s_val+" -C" + c_val + " -G"+ g_val +" -B"+ b_val +" -x"+str(x_dim)+" -y"+str(y_dim)+" -v -t0 -o"+cappath+filename)
     print("Image taken and saved to "+cappath+filename)
     #os.system("gpicview " + cappath+filename)
     if pi_paper == True:
