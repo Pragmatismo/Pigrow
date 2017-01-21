@@ -3,19 +3,26 @@ import matplotlib.pyplot as plt
 import datetime
 import numpy as np
 import sys
-sys.path.append('/home/pi/Pigrow/scripts/')
-import pigrow_defs
-script = 'temp_graph.py'
-loc_locs = '/home/pi/Pigrow/config/dirlocs.txt'
-loc_dic = pigrow_defs.load_locs(loc_locs)
-graph_path = loc_dic['graph_path']
-graph_path = graph_path + "dht_temp_graph.png"
-log_location = loc_dic['loc_dht_log']
-loc_settings = loc_dic['loc_settings']
-set_dic = pigrow_defs.load_settings(loc_settings)
 
-toocold = int(set_dic['heater_templow'])
-toohot = int(set_dic['heater_temphigh'])
+try:
+    sys.path.append('/home/pi/Pigrow/scripts/')
+    import pigrow_defs
+    script = 'temp_graph.py'
+    loc_locs = '/home/pi/Pigrow/config/dirlocs.txt'
+    loc_dic = pigrow_defs.load_locs(loc_locs)
+    graph_path = loc_dic['graph_path']
+    graph_path = graph_path + "dht_temp_graph.png"
+    log_location = loc_dic['loc_dht_log']
+    loc_settings = loc_dic['loc_settings']
+    set_dic = pigrow_defs.load_settings(loc_settings)
+    toocold = int(set_dic['heater_templow'])
+    toohot = int(set_dic['heater_temphigh'])
+except:
+    graph_path = "./dht_temp_graph.png"
+    log_location = "./dht22_log.txt"
+    toocold = 17
+    toohot = 30
+
 dangercold = int(toocold) / 100 * 85
 dangerhot = int(toohot) / 100 * 115
 
