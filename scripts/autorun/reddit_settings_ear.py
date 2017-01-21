@@ -281,8 +281,10 @@ def write_set(whereto='wiki'):
     page_text += "|[Archive Grow]"+cmdlink+"archive_grow)|Stores all the data for the current grow in an archive folder and starts a new grow|password protected  \n"
     page_text += "|Generate System Report|Creates a current pigrow system report and sends it to the user|Includes diskfull, uptime, etc  \n"
     page_text += "|Generate Data Wall|Create visual display of pigrow status from logs|  \n"
-    page_text += "|Generate Timelapse Day|Creates a timelapse gif of the current day so far, uploads it and sends a link to the user|  \n"
-    page_text += "|Generate Timelapse Week|Creates video of last week, uploads and links user|size limited due to upload restrictions  \n"
+    page_text += "|[Generate Timelapse Hour]"+cmdlink+"timelapse_day)|Creates a timelapse gif of the current day so far, uploads it and sends a link to the user|  \n"
+    page_text += "|[Generate Timelapse 5Hours]"+cmdlink+"timelapse_5hour)|Creates video of last five hours, uploads and links user|size limited due to upload restrictions  \n"
+    page_text += "|[Generate Timelapse day]"+cmdlink+"timelapse_day)|Creates video of last day, applies timeskip to limit size.  \n"
+    page_text += "|[Generate Timelapse week]"+cmdlink+"timelapse_week)|Creates video of last week, applies large timeskip to limit size.  \n"
     page_text += "|[send_settings]"+cmdlink+"send_settings)|Replies to the user with the settings menu|  \n"
     page_text += "  \n  \n"
     page_text += "*this section work in progress, links will be added as the functions are*   \n"
@@ -380,6 +382,22 @@ def check_msg():
                     print("--User want to see settings!")
                     write_set('wiki')
                     msgfrom.message('Pigrow Control', "Settings Wiki written at " + wikilink)
+                elif msgsub[1] == "timelapse_hour":
+                    print("Generating the last hour into a timelapse, this will take a while...")
+                    os.system(path+"/scripts/visualisation/timelapse_assemble.py of=home/pi/Pigrow/graphs/hour.gif dc=hour1 ds=1 fps=5")
+                    msgfrom.message('Pigrow Control', "Gif created ")#at " + giflink)
+                elif msgsub[1] == "timelapse_5hours":
+                    print("Generating the last five hours into a timelapse, this will take a while...")
+                    os.system(path+"/scripts/visualisation/timelapse_assemble.py of=home/pi/Pigrow/graphs/5hours.gif dc=hour5 ds=1 fps=5")
+                    msgfrom.message('Pigrow Control', "Gif created ")#at " + giflink)
+                elif msgsub[1] == "timelapse_day":
+                    print("Generating the last day into a timelapse, this will take a while...")
+                    os.system(path+"/scripts/visualisation/timelapse_assemble.py of=home/pi/Pigrow/graphs/5hours.gif dc=day1 ds=1 fps=5 ts=8")
+                    msgfrom.message('Pigrow Control', "Gif created ")#at " + giflink)
+                elif msgsub[1] == "timelapse_week":
+                    print("Generating the last week into a timelapse, this will take a while...")
+                    os.system(path+"/scripts/visualisation/timelapse_assemble.py of=home/pi/Pigrow/graphs/5hours.gif dc=hour5 ds=1 fps=5")
+                    msgfrom.message('Pigrow Control', "Gif created ")#at " + giflink)
                 elif msgsub[1] == "addcron":
                     print("User wants to add job to cron;")
                     new_job = make_cron_from(msg.body)
