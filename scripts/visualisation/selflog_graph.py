@@ -16,7 +16,7 @@ except:
 
 for argu in sys.argv[1:]:
     thearg = str(argu).split('=')[0]
-    if  thearg == 'gp':
+    if  thearg == 'gp' or thearg == 'out':
         graph_path = str(argu).split('=')[1]
     elif thearg == 'log':
         self_log = str(argu).split('=')[1]

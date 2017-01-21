@@ -3,11 +3,12 @@ import datetime, time
 import os, sys
 from subprocess import check_output
 sys.path.append('/home/pi/Pigrow/scripts/')
+sys.path.append('/home/pragmo/pigitgrow/Pigrow/scripts/')
 import pigrow_defs
 script = 'selflog.py'
 
 loc_locs = '/home/pi/Pigrow/config/dirlocs.txt'
-#loc_locs = '/home/pragmo/pigitgrow/Pigrow/config/dirlocs.txt'
+loc_locs = '/home/pragmo/pigitgrow/Pigrow/config/dirlocs.txt'
 loc_dic = pigrow_defs.load_locs(loc_locs)
 path = loc_dic["path"]
 

@@ -2,21 +2,35 @@
 import os
 import sys
 from PIL import Image, ImageDraw, ImageFont
-sys.path.append('/home/pi/Pigrow/scripts/')
-import pigrow_defs
+
 
 
 print("--------- Pigrow -------")
 print("  --Data Wall Assembler--")
 print("   -- --------------- --")
+try:
+    sys.path.append('/home/pi/Pigrow/scripts/')
+    import pigrow_defs
+    loc_locs = '/home/pi/Pigrow/config/dirlocs.txt'
+    loc_dic = pigrow_defs.load_locs(loc_locs)
+    graph_path = loc_dic['graph_path']
+    nullimg = loc_dic["path"] + "resources/null.png"
+    output_path = graph_path + "datawall.jpg"       #default use o= to set via command line
+    caps_path = loc_dic['caps_path']
+except:
+    nullimg = "../../resources/null.png"
+    graph_path = "./"
+    output_path = "./datawall.jpg"
+    caps_path = "./"
 
-print(" -- Still in basic version, doesn't use settings files or etc --")
-loc_locs = '/home/pi/Pigrow/config/dirlocs.txt'
-loc_dic = pigrow_defs.load_locs(loc_locs)
-graph_path = loc_dic['graph_path']
-nullimg = loc_dic["path"] + "resources/null.png"
-output_path = graph_path + "datawall.jpg"       #default use o= to set via command line
-caps_path = loc_dic['caps_path']
+for argu in sys.argv:
+    thearg = str(argu).split('=')[0]
+    if  thearg == 'gp':
+        graph_path = str(argu).split('=')[1]
+    elif thearg == "null":
+        nullimg = str(argu).split('=')[1]
+    #there are more of these below the graph path defaults
+
 #left side
 g1 = graph_path + "dht_temp_graph.png"
 if not os.path.exists(g1):
@@ -31,7 +45,7 @@ if not os.path.exists(g3):
 g4 = graph_path + "dht_humid_graph.png"
 if not os.path.exists(g4):
     g4 = nullimg
-g5 = graph_path + " Selflog_up_graph.png"
+g5 = graph_path + "Selflog_up_graph.png"
 if not os.path.exists(g5):
     g5 = nullimg
 g6 = graph_path + "Selflog_cpu_graph.png"
@@ -43,26 +57,27 @@ graph_width = 450
 
 for argu in sys.argv:
     thearg = str(argu).split('=')[0]
-    if  thearg == 'o':
+    if  thearg == 'o' or thearg == 'out':
         output_path = str(argu).split('=')[1]
     elif thearg == "g1":
-            g1 = str(argu).split('=')[1]
+        g1 = str(argu).split('=')[1]
     elif thearg == "g2":
-            g2 = str(argu).split('=')[1]
+        g2 = str(argu).split('=')[1]
     elif thearg == "g3":
-            g3 = str(argu).split('=')[1]
+        g3 = str(argu).split('=')[1]
     elif thearg == "g4":
-            g4 = str(argu).split('=')[1]
+        g4 = str(argu).split('=')[1]
     elif thearg == "g5":
-            g5 = str(argu).split('=')[1]
+        g5 = str(argu).split('=')[1]
     elif thearg == "g6":
-            g6 = str(argu).split('=')[1]
+        g6 = str(argu).split('=')[1]
     elif thearg == "caps":
-            caps_path = str(argu).split('=')[1]
+        caps_path = str(argu).split('=')[1]
     elif thearg == "pw":
-            photo_width = int(str(argu).split('=')[1])
+        photo_width = int(str(argu).split('=')[1])
     elif thearg == "gw":
-            graph_width = int(str(argu).split('=')[1])
+        graph_width = int(str(argu).split('=')[1])
+
 
 if not os.path.exists(caps_path):
     print("Unable to locate graph directory, is the path correct?")
