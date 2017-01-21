@@ -2,15 +2,28 @@
 import os, sys
 import datetime
 import matplotlib.pyplot as plt
-sys.path.append('/home/pi/Pigrow/scripts/')
-#sys.path.append('/home/pragmo/pigitgrow/Pigrow/scripts/')
-import pigrow_defs
-script = 'selflog_graph.py'
-loc_locs = '/home/pi/Pigrow/config/dirlocs.txt'
-#loc_locs = '/home/pragmo/pigitgrow/Pigrow/config/dirlocs.txt'
-loc_dic = pigrow_defs.load_locs(loc_locs)
-graph_path = loc_dic['graph_path']
+try:
+    sys.path.append('/home/pi/Pigrow/scripts/')
+    #sys.path.append('/home/pragmo/pigitgrow/Pigrow/scripts/')
+    import pigrow_defs
+    loc_locs = '/home/pi/Pigrow/config/dirlocs.txt'
+    loc_dic = pigrow_defs.load_locs(loc_locs)
+    graph_path = loc_dic['graph_path']
+    self_log = loc_dic['self_log']
+except:
+    graph_path = './'
+    self_log =  "./selflog.txt"
 
+for argu in sys.argv[1:]:
+    thearg = str(argu).split('=')[0]
+    if  thearg == 'gp':
+        graph_path = str(argu).split('=')[1]
+    elif thearg == 'log':
+        self_log = str(argu).split('=')[1]
+    elif thearg == '-h' or thearg == '--help':
+        print(" selflog_graph maker;")
+        print("  gp=PATH    = PATH to save graphs to e,g, /home/pi/Pigrow/graphs/ ")
+        print(" log=PATH    = PATH to self_log to e,g, /home/pi/Pigrow/logs/selflog.txt ")
 log_dic = {}    # Reused for every line of the log file
                      ## Lists used to make graphs.
 dates = []      # Used for all the graphs
@@ -26,8 +39,8 @@ disk_t = []    #
 disk_u = []    #
 up = []         # uptime
 
-with open(loc_dic['self_log'], "r") as f:
-    print loc_dic['self_log']
+with open(self_log, "r") as f:
+    print self_log
     for line in f:
         try:
             line = line.split('>')
