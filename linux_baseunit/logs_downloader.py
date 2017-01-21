@@ -24,7 +24,7 @@ for argu in sys.argv[1:]:
         target_address = str(argu).split('=')[1]
     elif thearg == 'tp':
         target_pass = str(argu).split('=')[1]
-    elif thearg == 'tp':
+    elif thearg == 'tl':
         target_path = str(argu).split('=')[1]
 
 def download_logs(target_address, target_pass, target_path, logsdir):

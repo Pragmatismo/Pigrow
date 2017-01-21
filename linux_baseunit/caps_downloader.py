@@ -15,6 +15,17 @@ target_pass = "raspberry"
 target_files = "/home/pi/Pigrow/caps/text_*.jpg"
 cap_type = "jpg"
 
+for argu in sys.argv[1:]:
+    thearg = str(argu).split('=')[0]
+    if  thearg == 'to' or thearg == 'logsdir':
+        logsdir = str(argu).split('=')[1]
+    elif thearg == 'ta':
+        target_address = str(argu).split('=')[1]
+    elif thearg == 'tp':
+        target_pass = str(argu).split('=')[1]
+    elif thearg == 'tl':
+        target_files = str(argu).split('=')[1]
+
 capsdir = "/home/"+user_name+"/frompigrow/caps/"
 if not os.path.exists(capsdir):
     os.makedirs(capsdir)
