@@ -8,28 +8,19 @@ print("---Pigrow Timelapse Image Download and Graph Tool---")
 print("   ----------------------------------------------")
 print("      ----------------------------------------")
 #user settings
-
-
 #user_name = "pragmo" #can be used instead of the following
 user_name = str(os.getlogin())  #hash this line out if it causes problem, autograbs username
-
-
-
 target_address = "pi@192.168.1.10"
 target_pass = "raspberry"
 target_files = "/home/pi/Pigrow/caps/text_*.jpg"
 cap_type = "jpg"
 
 capsdir = "/home/"+user_name+"/frompigrow/caps/"
-graph_dir = "/home/"+user_name+"/frompigrow/graphs/"
 if not os.path.exists(capsdir):
     os.makedirs(capsdir)
-if not os.path.exists(graph_dir):
-    os.makedirs(graph_dir)
 #end of user settings
 
 print "Copying images to "+capsdir
-
 #finding how many files there are to start with on the local computer
 fcounter = 0
 for filefound in os.listdir(capsdir):
@@ -39,6 +30,7 @@ print "Starting with; " + str(fcounter)
 
 #Grabbing Files from pi
 try:
+    print("Copying files...   (this may time some time)")
     #os.system("rsync -a --password-file=pipass.txt --ignore-existing pi@192.168.1.12:/home/pi/cam_caps/*.txt ./")
     os.system("rsync --ignore-existing -ratlz --rsh=\"/usr/bin/sshpass -p "+target_pass+" ssh -o StrictHostKeyChecking=no -l "+target_address+"\" "+target_address+":"+target_files+" "+capsdir)
     print("Files Grabbed")
@@ -50,7 +42,6 @@ except:
 
 
 #Making lists of the files on local computer we have now
-
 filelist = []
 facounter = 0
 fsize_log = []
@@ -59,61 +50,13 @@ datelist = []
 
 for filefound in os.listdir(capsdir):
     if filefound.endswith(cap_type):
-        filelist.append(filefound)
-filelist.sort()
-
-for thefile in filelist:
-    datelist.append(int(str(thefile).split(".")[0].split('_')[2]))
-    thefile = os.stat(capsdir + thefile)
-    fsize = thefile.st_size
-    facounter = facounter + 1
-    fsize_log.append(fsize)
-    facounter_log.append(facounter)
+        facounter = facounter + 1
 
 #output info to the command line
 print "Now got; " + str(facounter)
 print "so that's " + str(facounter - fcounter) + " more than we had before"
 print "with a list of file sizes " + str(len(fsize_log)) + " long!"
 print "and " + str(len(datelist)) + " dates taken from the filename's"
-
-
-#optional file size of captured image graph
-#images taken in darkness have a significantly lower filesize than full images
-def file_size_graph():
-    plt.figure(1)
-    ax = plt.subplot()
-    #ax.plot(facounter_log, fsize_log, color='darkblue', lw=3)
-    ax.bar(facounter_log, fsize_log, width=0.1, color='green')
-    plt.title("filesize")
-    plt.ylabel("filesize")
-    plt.xlabel("file number")
-    #plt.show() #hash this line out to stop it shoinw the plot, unhash tp show plot
-    plt.savefig (graph_dir+"file_size_graph.png") #will be blank if plt.show is active
-    print("Graph saved to "+graph_dir+"file_size_graph.png")
-
-
-#optional time difference between captured image graph
-pic_dif_log = []
-def image_time_diff_graph():
-    global pic_dif_log
-    print("Gathering data for time diff graph")
-    for x in range(1, len(datelist)):
-        cur_pic = datelist[x]
-        las_pic = datelist[x-1]
-        pic_dif = cur_pic - las_pic
-        pic_dif_log.append(pic_dif)
-    print('We now have ' + str(len(pic_dif_log)) + ' up time differnces from the pictures to work with.')
-    print('most recent date: ' + str(datelist[-1]))
-    plt.figure(2)
-    ax = plt.subplot()
-    #ax.plot(facounter_log, fsize_log, color='darkblue', lw=3)
-    ax.bar(facounter_log[1:], pic_dif_log, width=0.1, color='green')
-    plt.title("Time Diff Between Images")
-    plt.ylabel("seconds between images")
-    plt.xlabel("file number")
-    #plt.show() #hash this line out to stop it shoinw the plot, unhash to show plot
-    plt.savefig (graph_dir+"file_time_diff_graph.png") #will be blank if plt.show is active
-    print("Graph saved to "+graph_dir+"file_time_diff_graph.png")
 
 #optionally updates the ububtu background with the most recent script.
 def update_ubuntu_background():
@@ -126,7 +69,7 @@ def update_ubuntu_background():
     print cmd
     os.system(cmd)
 
-#but a hash [#] before the following to stop them happening;
-image_time_diff_graph()
-file_size_graph()
+#you can graph the downloaded caps using
+#        /Pigrow/scripts/visualisation/caps_graph.py
+#
 #update_ubuntu_background() use the cron script instead it works better.
