@@ -12,21 +12,28 @@ print("      ----------------------------------------")
 
 #user_name = "pragmo" #can be used instead of the following
 user_name = str(os.getlogin())  #hash this line out if it causes problem, autograbs username
-capsdir = "/home/"+user_name+"/camcaps/"
-print "Copying images to "+capsdir
 
-target_address = "pi@192.168.1.2"
+
+
+target_address = "pi@192.168.1.10"
 target_pass = "raspberry"
-target_files = "/home/pi/cam_caps/text_*.jpg"
+target_files = "/home/pi/Pigrow/caps/text_*.jpg"
+cap_type = "jpg"
 
-graph_dir = "/home/"+user_name+"/pigitgrow/Pigrow/frompi/pi@192.168.1.2/graphs/"
+capsdir = "/home/"+user_name+"/frompigrow/caps/"
+graph_dir = "/home/"+user_name+"/frompigrow/graphs/"
+if not os.path.exists(capsdir):
+    os.makedirs(capsdir)
+if not os.path.exists(graph_dir):
+    os.makedirs(graph_dir)
 #end of user settings
 
+print "Copying images to "+capsdir
 
 #finding how many files there are to start with on the local computer
 fcounter = 0
 for filefound in os.listdir(capsdir):
-    if filefound.endswith("jpg"):
+    if filefound.endswith(cap_type):
         fcounter = fcounter + 1
 print "Starting with; " + str(fcounter)
 
@@ -51,7 +58,7 @@ facounter_log = []
 datelist = []
 
 for filefound in os.listdir(capsdir):
-    if filefound.endswith("jpg"):
+    if filefound.endswith(cap_type):
         filelist.append(filefound)
 filelist.sort()
 
@@ -82,7 +89,7 @@ def file_size_graph():
     plt.xlabel("file number")
     #plt.show() #hash this line out to stop it shoinw the plot, unhash tp show plot
     plt.savefig (graph_dir+"file_size_graph.png") #will be blank if plt.show is active
-    print("Graph saved to"+graph_dir+" file_size_graph.png")
+    print("Graph saved to "+graph_dir+"file_size_graph.png")
 
 
 #optional time difference between captured image graph
