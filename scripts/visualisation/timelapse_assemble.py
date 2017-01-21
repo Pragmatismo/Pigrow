@@ -3,20 +3,26 @@ import os
 import sys
 import datetime
 ###  Requires MPV to be installed, use - sudo apt install mpv
+try:
+    sys.path.append('/home/pi/Pigrow/scripts/')
+    import pigrow_defs
+    script = 'timelapse_assemble.py'
+    loc_locs = '/home/pi/Pigrow/config/dirlocs.txt'
+    loc_dic = pigrow_defs.load_locs(loc_locs)
+    capsdir = loc_dic['caps_path']
+except:
+    print("Pigrow config not detected, using defaults")
+    capsdir = "./"
 
 #default user settings
 time_skip = 1 #when making timelapse uses every Nth frame so 4 is 4x faster
 darksize =50000   #all smaller files are removed assumed to be useless 50-75000 is a good value
 infps = 10       #10 is a good value, between 2 and 60 is acceptable
 outfps = 25      #frame-rate of output video
-capsdir = "./"
-
 outfile = "./timelapse.mp4" #directory to save output
 file_type = "jpg"
-
 already_existing = 'ask'
-
-outvidc = "libx264"  #DISABLED
+#outvidc = "libx264"  #DISABLED
 inpoint=0
 outpoint=0 #use -10 to end at ten befor the end, 0 to show the whole thing and 10 to shopw only ten frames
 #end of user settings
