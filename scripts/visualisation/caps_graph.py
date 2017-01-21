@@ -28,6 +28,10 @@ if capsdir[-1] == '/':
     pass
 else:
     capsdir = capsdir + '/'
+if graph_path[-1] == '/':
+    pass
+else:
+    graph_path = graph_path + '/'    
 
 def count_folder(capsdir="./", cap_type="jpg"):
     filelist = []
