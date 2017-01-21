@@ -339,6 +339,7 @@ def make_cron_from(income):
         return False
 
 def check_msg():
+    path = '/home/pi/Pigrow/'
     wikilink = "[Settings Wiki](https://www.reddit.com/r/" + str(subreddit) + "/wiki/"+str(wiki_title)+ ")"
     for msg in reddit.inbox.unread():
         print("")
