@@ -3,19 +3,25 @@ import matplotlib.pyplot as plt
 import datetime
 import numpy as np
 import sys
-sys.path.append('/home/pi/Pigrow/scripts/')
-import pigrow_defs
-script = 'humid_graph.py'
-loc_locs = '/home/pi/Pigrow/config/dirlocs.txt'
-loc_dic = pigrow_defs.load_locs(loc_locs)
-graph_path = loc_dic['graph_path']
-graph_path = graph_path + "dht_humid_graph.png"
-log_location = loc_dic['loc_dht_log']
-loc_settings = loc_dic['loc_settings']
-set_dic = pigrow_defs.load_settings(loc_settings)
+try:
+    sys.path.append('/home/pi/Pigrow/scripts/')
+    import pigrow_defs
+    script = 'humid_graph.py'
+    loc_locs = '/home/pi/Pigrow/config/dirlocs.txt'
+    loc_dic = pigrow_defs.load_locs(loc_locs)
+    graph_path = loc_dic['graph_path']
+    graph_path = graph_path + "dht_humid_graph.png"
+    log_location = loc_dic['loc_dht_log']
+    loc_settings = loc_dic['loc_settings']
+    set_dic = pigrow_defs.load_settings(loc_settings)
+    toolow = int(set_dic['humid_low'])
+    toohigh = int(set_dic['humid_high'])
+except:
+    graph_path = "./dht_temp_graph.png"
+    log_location = "./dht22_log.txt"
+    toolow = 30
+    toohigh = 70
 
-toolow = int(set_dic['humid_low'])
-toohigh = int(set_dic['humid_high'])
 dangerlow = int(toolow) / 100 * 85
 dangerhigh = int(toohigh) / 100 * 115
 
