@@ -206,6 +206,7 @@ def write_set(whereto='wiki'):
     #
     switch_list = []
     days_to_show = 7
+    switch_list_limit = 10
     try:
         with open(loc_switchlog, "r") as f:
             logitem = f.read()
@@ -229,6 +230,8 @@ def write_set(whereto='wiki'):
             if date < oldest_allowed_date:
                 break
             switch_list.append([w_script, switch_date, err_detail])
+            if len(switch_list) >= switch_list_limit:
+                break
             curr_line = curr_line - 1
 
         except:
