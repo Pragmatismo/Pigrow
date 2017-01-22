@@ -614,7 +614,6 @@ def show_reddit_menu():
                 os.system("pkill reddit_set")
                 os.system("nohup "+autorun_path+"reddit_settings_ear.py &")
         except:
-            raise
             print("reddit_settings_ear.py doesn't appear to be running...")
             print autorun_path+"reddit_settings_ear.py"
             os.system("nohup "+autorun_path+"reddit_settings_ear.py &")
