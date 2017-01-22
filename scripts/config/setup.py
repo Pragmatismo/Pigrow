@@ -609,7 +609,7 @@ def show_reddit_menu():
             print(" Found "+str(len(script_test))+" running versions.")
         except:
             print("reddit_settings_ear.py doesn't appear to be running...")
-            os.system(autorun_path+"reddit_settings_ear.py")
+            os.system(autorun_path+"reddit_settings_ear.py &&")
 
         print("                actually this module isn't written.")
         print(" just start it manually if you want to, you run this script run that one.")
