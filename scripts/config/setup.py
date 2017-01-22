@@ -15,9 +15,9 @@ autorun_path = "/home/pi/Pigrow/scripts/autorun/"    #reboot scripts'
 cron_path    = "/home/pi/Pigrow/scripts/cron/"       #repeting scripts
 switch_path  = "/home/pi/Pigrow/scripts/switches/"   #timed scripts
 
-#autorun_path = "/home/pragmo/pigitgrow/Pigrow/scripts/autorun/"      #reboot scripts'           #######
-#cron_path    = "/home/pragmo/pigitgrow/Pigrow/scripts/cron/"         #repeting scripts      ################   THESE ARE FOR ME ONLY!!!!
-#switch_path  = "/home/pragmo/pigitgrow/Pigrow/scripts/switches/"     #timed scripts             ########
+autorun_path = "/home/pragmo/pigitgrow/Pigrow/scripts/autorun/"      #reboot scripts'           #######
+cron_path    = "/home/pragmo/pigitgrow/Pigrow/scripts/cron/"         #repeting scripts      ################   THESE ARE FOR ME ONLY!!!!
+switch_path  = "/home/pragmo/pigitgrow/Pigrow/scripts/switches/"     #timed scripts             ########
 
 valid_gpio=[2,3,4,17,27,22,10,9,11,0,5,6,13,19,26,14,15,18,23,24,25,8,7,1,12,16,20,21]
 used_gpio_num=[]
@@ -605,9 +605,13 @@ def show_reddit_menu():
         print("Checking it's not already running..")
 
         try:
-            script_test = map(int,check_output(["pidof",autorun_path+"reddit_settings_ear.py","-x"]).split())
+            from subprocess import check_output
+            script = autorun_path+"reddit_settings_ear.py"
+            script_test = map(int,check_output(["pidof",script,"-x"]).split())
+            print script_test
             print(" Found "+str(len(script_test))+" running versions.")
         except:
+            raise
             print("reddit_settings_ear.py doesn't appear to be running...")
             print autorun_path+"reddit_settings_ear.py"
             os.system("nohup "+autorun_path+"reddit_settings_ear.py &")
