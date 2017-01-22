@@ -1,5 +1,6 @@
 #!/usr/bin/python
 import os, sys
+from subprocess import check_output
 from crontab import CronTab   #  pip install python-crontab
 cron = CronTab(user=True)  #can be user+True, 'yourusername' or 'root' all work.
 
@@ -605,20 +606,23 @@ def show_reddit_menu():
         print("Checking it's not already running..")
 
         try:
-            from subprocess import check_output
             script = autorun_path+"reddit_settings_ear.py"
             script_test = map(int,check_output(["pidof",script,"-x"]).split())
-            print script_test
             print(" Found "+str(len(script_test))+" running versions.")
+            killorignore = raw_input("Do you want to kill these and restart the script? Y/n")
+            if killorignore == "y" or killorignore == "Y":
+                os.system("pkill reddit_set")
+                os.system("nohup "+autorun_path+"reddit_settings_ear.py &")
         except:
             raise
             print("reddit_settings_ear.py doesn't appear to be running...")
             print autorun_path+"reddit_settings_ear.py"
             os.system("nohup "+autorun_path+"reddit_settings_ear.py &")
 
-        print("                actually this module isn't written.")
-        print(" just start it manually if you want to, you run this script run that one.")
-
+        print(" ")
+        print(" Press return to continue")
+        raw_input("...")
+        show_reddit_menu()
 
     elif option == 's' or option == 'S':
         print("  Reddit Log in details;")
