@@ -15,9 +15,9 @@ autorun_path = "/home/pi/Pigrow/scripts/autorun/"    #reboot scripts'
 cron_path    = "/home/pi/Pigrow/scripts/cron/"       #repeting scripts
 switch_path  = "/home/pi/Pigrow/scripts/switches/"   #timed scripts
 
-#autorun_path = "/home/pragmo/pigitgrow/Pigrow/scripts/autorun/"      #reboot scripts'           #######
-#cron_path    = "/home/pragmo/pigitgrow/Pigrow/scripts/cron/"         #repeting scripts      ################   THESE ARE FOR ME ONLY!!!!
-#switch_path  = "/home/pragmo/pigitgrow/Pigrow/scripts/switches/"     #timed scripts             ########
+autorun_path = "/home/pragmo/pigitgrow/Pigrow/scripts/autorun/"      #reboot scripts'           #######
+cron_path    = "/home/pragmo/pigitgrow/Pigrow/scripts/cron/"         #repeting scripts      ################   THESE ARE FOR ME ONLY!!!!
+switch_path  = "/home/pragmo/pigitgrow/Pigrow/scripts/switches/"     #timed scripts             ########
 
 valid_gpio=[2,3,4,17,27,22,10,9,11,0,5,6,13,19,26,14,15,18,23,24,25,8,7,1,12,16,20,21]
 used_gpio_num=[]
@@ -317,7 +317,16 @@ def show_gpio_menu():
             show_gpio_menu()
             exit()
     elif option == "3":
+        print("Select device to test;")
+        count = 0
+        for x in os.listdir(switch_path):
+            count = count + 1
+            print("   #### " + str(count) + " - " + x)
+        print("   ####   ")
+        choice = raw_input("Select device to test;")
+        os.system(switch_path+os.listdir(switch_path)[int(choice)])
         show_gpio_menu()
+        exit()
         #show_gpio_menu()
     elif option == "m":
         show_main_menu()
