@@ -320,8 +320,9 @@ def show_gpio_menu():
         print("Select device to test;")
         count = 0
         for x in os.listdir(switch_path):
+            if x.endswith("py"):
+                print("   #### " + str(count) + " - " + x)
             count = count + 1
-            print("   #### " + str(count) + " - " + x)
         print("   ####   ")
         choice = raw_input("Select device to test;")
         os.system(switch_path+os.listdir(switch_path)[int(choice)])
