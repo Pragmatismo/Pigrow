@@ -603,6 +603,13 @@ def show_reddit_menu():
         print("Reddit Settings Ear is the program that listens for reddit messages,")
         print(" -use the cron start-up script menu to enable it on boot up")
         print("Checking it's not already running..")
+
+        try:
+            script_test = map(int,check_output(["pidof",autorun_path+"reddit_settings_ear.py","-x"]).split())
+            print(" Found "+str(len(script_test))+" running versions.")
+        except:
+            print("reddit_settings_ear.py doesn't appear to be running...")
+
         print("                actually this module isn't written.")
         print(" just start it manually if you want to, you run this script run that one.")
 
