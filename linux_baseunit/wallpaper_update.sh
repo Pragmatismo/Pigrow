@@ -1,8 +1,7 @@
 #!/bin/bash
+caps_dir=/home/pragmo/frompigrow/caps/
+#caps_dir=/home/pragmo/pigitgrow/Pigrow/graphs/
 
-local_dir=/home/pragmo/frompigrow/caps/
-#local_dir=/home/pragmo/pigitgrow/Pigrow/graphs/
-caps_dir=$local_dir
 mode="folder"
 feh="false"
 while [[ $# -gt 0 ]]
@@ -10,7 +9,6 @@ do
 key="$1"
 case $key in
     -feh|--feh)
-    lol="$2"
     echo "using feh to set wallpaper"
     feh="true"
     shift # past argument
@@ -42,8 +40,8 @@ then
   #lists the most recent file after download
   echo ----------
   echo "most recent..."
-  #lastfile=$(ls $local_dir | sort -V | tail -n 1)
-  #echo $local_dir$lastfile
+  #lastfile=$(ls $caps_dir | sort -V | tail -n 1)
+  #echo $caps_dir$lastfile
   lastfile=$(ls $caps_dir | sort -V | tail -n 1)
   echo $caps_dir$lastfile
   echo ------------
@@ -54,7 +52,7 @@ then
     PID=$(pgrep gnome-session)
     export DBUS_SESSION_BUS_ADDRESS=$(grep -z DBUS_SESSION_BUS_ADDRESS /proc/$PID/environ|cut -d= -f2-)
     # set's the background in gnome, unity and derivitives
-    #gsettings set org.gnome.desktop.background picture-uri file://$local_dir$lastfile
+    #gsettings set org.gnome.desktop.background picture-uri file://$caps_dir$lastfile
     gsettings set org.gnome.desktop.background picture-uri file://"$caps_dir$lastfile"
     echo "updated with gsettings"
   else
