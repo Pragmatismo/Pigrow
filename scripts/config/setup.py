@@ -603,6 +603,7 @@ def show_reddit_menu():
     elif option == "5":
         print("Reddit Settings Ear is the program that listens for reddit messages,")
         print(" -use the cron start-up script menu to enable it on boot up")
+        print("")
         print("Checking it's not already running..")
 
         try:
@@ -612,7 +613,9 @@ def show_reddit_menu():
             killorignore = raw_input("Do you want to kill these and restart the script? Y/n")
             if killorignore == "y" or killorignore == "Y":
                 os.system("pkill reddit_set")
+                print("Old scripts killed")
                 os.system("nohup "+autorun_path+"reddit_settings_ear.py &")
+                print("new script started.")
         except:
             print("reddit_settings_ear.py doesn't appear to be running...")
             print autorun_path+"reddit_settings_ear.py"
