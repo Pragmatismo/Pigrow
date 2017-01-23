@@ -11,4 +11,4 @@
 #make data wall
 /home/pragmo/pigitgrow/Pigrow/scripts/visualisation/assemble_datawall.py gp=/home/pragmo/frompigrow/ caps=/home/pragmo/frompigrow/caps/ o=/home/pragmo/frompigrow/datawall.png null=/home/pragmo/pigitgrow/Pigrow/resources/null.png
 #update wallpaper
-/home/pragmo/pigitgrow/Pigrow/linux_baseunit/wallpaper_update.sh /home/pragmo/pigitgrow/Pigrow/graphs/datawall.png
+/home/pragmo/pigitgrow/Pigrow/linux_baseunit/wallpaper_update.sh /home/pragmo/frompigrow/datawall.png -feh
