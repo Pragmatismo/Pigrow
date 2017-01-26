@@ -286,7 +286,7 @@ def write_set(whereto='wiki'):
     page_text += '|Reboot|Remotely reboots the pi|password protected  \n'
     page_text += '|Factory Reset|Restores Pigrow Defaults|password protected  \n'
     page_text += '|Update Pigrow|Automatically updates software|password protected  \n'
-    page_text += '|[Send Command]'+cmdlink+'send_cmd)|Send a bash command directly to the pi (dangerous)|lets you do almost anything, which is dangerous.. PASS|COMMAND \n'
+    page_text += '|[Send Command]'+cmdlink+'send_cmd&message=PASSWORD|CMD &)|Send a bash command directly to the pi (dangerous)|lets you do almost anything, which is dangerous.. end command with an & if you don\'t want reddit_ear to wait for it to finish PASS|COMMAND \n'
     page_text += "|[Log]"+cmdlink+"log)|Create a custom log event|Include the text of the log event in the body of the message  \n"
     page_text += "|[update_wiki]"+cmdlink+"update_wiki)|Updates or creates the settings wiki|Replies with a link to it.  \n"
     page_text += "|[Archive Grow]"+cmdlink+"archive_grow)|Stores all the data for the current grow in an archive folder and starts a new grow|password protected  \n"
