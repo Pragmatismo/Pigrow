@@ -1,5 +1,5 @@
 #!/usr/bin/python
-import os
+import os, sys
 import matplotlib.pyplot as plt
 #import time #only used for line below
 #time.sleep(30) #delay to give pi a chance to make the image before you download it
