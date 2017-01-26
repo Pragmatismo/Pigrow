@@ -96,8 +96,11 @@ def add_log(linktolog):
     log_date.reverse()
 
     print('We have ' + str(len(log_humid)) + ' humidity readings to work with.')
-    print('Log starts - ' + str(log_date[0].strftime("%b-%d %H:%M")) + ' to ' + str(log_date[-1].strftime("%b-%d %H:%M")))
-
+    if len(log_date) >= 1:
+        print('Log starts - ' + str(log_date[0].strftime("%b-%d %H:%M")) + ' to ' + str(log_date[-1].strftime("%b-%d %H:%M")))
+    else:
+        print("No data, no graph...")
+        exit()   
 
 def make_graph(da,ta):
     plt.figure(1)

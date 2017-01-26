@@ -389,12 +389,12 @@ def check_msg():
                 elif msgsub[1] == 'datawall':
                     print("--User want's a datawall!")
                     datawalllink = "[Settings Wiki](https://www.reddit.com/r/" + str(subreddit) + "/wiki/"+str(wiki_title)+ "datawall)"
-                    os.system(path+"/scripts/visualisation/caps_graph.py")
-                    os.system(path+"/scripts/visualisation/temp_graph.py hours=24")
-                    os.system(path+"/scripts/visualisation/humid_graph.py hours=24")
-                    os.system(path+"/scripts/visualisation/selflog_graph.py")
-                    os.system(path+"/scripts/visualisation/assemble_datawall.py")
-                    photo_loc = subreddit.stylesheet.upload('datawall', path+"graphs/datawall.png")
+                    os.system(path+"scripts/visualisation/caps_graph.py")
+                    os.system(path+"scripts/visualisation/temp_graph.py hour=24")
+                    os.system(path+"scripts/visualisation/humid_graph.py hour=24")
+                    os.system(path+"scripts/visualisation/selflog_graph.py")
+                    os.system(path+"scripts/visualisation/assemble_datawall.py")
+                    photo_loc = subreddit.stylesheet.upload('datawall', path+"graphs/datawall.jpg")
                     page_text = "#Datawall  \n  \n"
                     page_text += '![datawall](%%datawall%%)  \n  \n'
                     praw.models.WikiPage(reddit, subreddit, datawalllink).edit(page_text)
