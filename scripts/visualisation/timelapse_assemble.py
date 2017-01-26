@@ -22,6 +22,7 @@ outfps = 25      #frame-rate of output video
 outfile = "./timelapse.mp4" #directory to save output
 file_type = "jpg"
 already_existing = 'ask'
+extra_commands = ''
 #outvidc = "libx264"  #DISABLED
 inpoint=0
 outpoint=0 #use -10 to end at ten befor the end, 0 to show the whole thing and 10 to shopw only ten frames
@@ -42,6 +43,8 @@ for argu in sys.argv:
         infps = theset
     elif thearg == "ofps":
         outfps = theset
+    elif thearg == "extra":
+        extra_commands = theset
     elif thearg == "darksize" or thearg == 'ds':
         darksize = int(theset)
     elif thearg == "datecheck" or thearg == 'dc':
@@ -88,6 +91,9 @@ for argu in sys.argv:
 
         print("   ofps=NUMBER")
         print("         frames per second of the out file, same as fps works well")
+
+        print("   extra=CMD")
+        print("         additional commands for MVP, --of=mpjpeg for example.")
 
         print("   ds=SIZE")
         print("         SIZE in bites below which files are ignored")
@@ -270,7 +276,7 @@ else:
 
 #runs the video encouder
 print " ##  making you a timelapse video..."
-os.system("mpv mf://@"+listfile+" -mf-fps="+str(infps)+" -o "+outfile+" --ofps="+str(outfps))
+os.system("mpv mf://@"+listfile+" -mf-fps="+str(infps)+" -o "+outfile+" --ofps="+str(outfps)+" " + extra_commands)
 
 try:
     os.remove(listfile)
