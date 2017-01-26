@@ -93,8 +93,8 @@ for argu in sys.argv:
         print("         frames per second of the out file, same as fps works well")
 
         print("   extra=CMD")
-        print("         additional commands for MVP, --of=mpjpeg for example.")
-        print("       !!When using this it must be the last argument in the command")
+        print("         additional commands for MVP, eg; --of=mpjpeg ")
+        print("                                          --vf=scale=480:270 ")
 
         print("   ds=SIZE")
         print("         SIZE in bites below which files are ignored")
