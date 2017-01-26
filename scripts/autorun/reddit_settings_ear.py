@@ -23,6 +23,8 @@ for argu in sys.argv:
     thearg = str(argu).split('=')[0]
     if  thearg == 'to':
         watcher_name = str(argu).split('=')[1]
+    elif thearg == 'codeword':
+        codeword = str(argu).split('=')[1]
     elif thearg == 'loc_locs':
         loc_locs = str(argu).split('=')[1]
         print("\n\n -- using LOCS LOGS = " + str(loc_locs) + "'\n\n")
@@ -69,6 +71,11 @@ except:
     use_watcher = False
     message = "No trusted user provided, can't recieve orderes"
     pigrow_defs.write_log(script, message, loc_dic['loc_switchlog'])
+try:
+    codeword = loc_dic['watcher_name']
+except:
+    codeword = "please"
+
 if use_wiki == False and use_watcher == False:
     message = "Sorry but without a wiki OR a trusted user there's nothing i can do..."
     pigrow_defs.write_log(script, message, loc_dic['loc_switchlog'])
