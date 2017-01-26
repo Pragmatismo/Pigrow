@@ -383,7 +383,7 @@ def check_msg():
                 elif msgsub[1] == "send_cmd":
                     print("Oh gosh, the user has a command for us...")
                     msg_codeword = str(msg.body).split("|")[0]
-                    msg_cmd = str(str(msg.body).split("|")[1:])[1:-2]
+                    msg_cmd = str(str(msg.body).split("|")[1:])[2:-2]
                     if codeword == codeword:
                         print("hmmm, they knew the secret code word... we should let them....")
                         try:
