@@ -146,8 +146,8 @@ if not dht22_sensor_pin == None or nulsensorshow==True:
         humid = str(round(humid,2))
         d.text((xpos,+ 1 + ypos+(font_size*2)), "Temp: " + temp, font=fnt, fill=(0,0,0,t_alpha))
         d.text((xpos,+ 1 + ypos+(font_size*3)), "Humid: " + humid, font=fnt, fill=(0,0,0,t_alpha))
-        d.text((xpos,--1 + ypos+(font_size*2)), "Temp: " + temp, font=fnt, fill=(0,0,0,t_alpha))
-        d.text((xpos,--1 + ypos+(font_size*3)), "Humid: " + humid, font=fnt, fill=(0,0,0,t_alpha))
+        d.text((xpos,- 1 + ypos+(font_size*2)), "Temp: " + temp, font=fnt, fill=(0,0,0,t_alpha))
+        d.text((xpos,- 1 + ypos+(font_size*3)), "Humid: " + humid, font=fnt, fill=(0,0,0,t_alpha))
         d.text((xpos,ypos+(font_size*2)), "Temp: " + temp, font=fnt, fill=(t_red,t_green,t_blue,t_alpha))
         d.text((xpos,ypos+(font_size*3)), "Humid: " + humid, font=fnt, fill=(t_red,t_green,t_blue,t_alpha))
     elif temp == "99999" and show_anyway == "num":
@@ -158,21 +158,25 @@ if not dht22_sensor_pin == None or nulsensorshow==True:
         d.text((xpos,ypos+(font_size*2)), "Temp: " + temp, font=fnt, fill=(t_red,t_green,t_blue,t_alpha))
         d.text((xpos,ypos+(font_size*3)), "Humid: " + humid, font=fnt, fill=(t_red,t_green,t_blue,t_alpha))
     elif temp == "99999" and show_anyway == "text":
-        d.text((xpos,ypos+(font_size*2)), "Temp: no data", font=fnt, fill=(0,0,0,t_alpha))
-        d.text((xpos,ypos+(font_size*3)), "Humid: no data", font=fnt, fill=(0,0,0,t_alpha))
+        d.text((xpos,ypos+1+(font_size*2)), "Temp: no data", font=fnt, fill=(0,0,0,t_alpha))
+        d.text((xpos,ypos+1+(font_size*3)), "Humid: no data", font=fnt, fill=(0,0,0,t_alpha))
+        d.text((xpos,ypos-1+(font_size*2)), "Temp: no data", font=fnt, fill=(0,0,0,t_alpha))
+        d.text((xpos,ypos-1+(font_size*3)), "Humid: no data", font=fnt, fill=(0,0,0,t_alpha))
         d.text((xpos,ypos+(font_size*2)), "Temp: no data", font=fnt, fill=(t_red,t_green,t_blue,t_alpha))
         d.text((xpos,ypos+(font_size*3)), "Humid: no data", font=fnt, fill=(t_red,t_green,t_blue,t_alpha))
     elif temp == "99999" and show_anyway == "blank":
-        d.text((xpos,ypos+(font_size*2)), "Temp: ", font=fnt, fill=(0,0,0,t_alpha))
-        d.text((xpos,ypos+(font_size*3)), "Humid: ", font=fnt, fill=(0,0,0,t_alpha))
+        d.text((xpos,ypos+1+(font_size*2)), "Temp: ", font=fnt, fill=(0,0,0,t_alpha))
+        d.text((xpos,ypos+1+(font_size*3)), "Humid: ", font=fnt, fill=(0,0,0,t_alpha))
+        d.text((xpos,ypos-1+(font_size*2)), "Temp: ", font=fnt, fill=(0,0,0,t_alpha))
+        d.text((xpos,ypos-1+(font_size*3)), "Humid: ", font=fnt, fill=(0,0,0,t_alpha))
         d.text((xpos,ypos+(font_size*2)), "Temp: ", font=fnt, fill=(t_red,t_green,t_blue,t_alpha))
         d.text((xpos,ypos+(font_size*3)), "Humid: ", font=fnt, fill=(t_red,t_green,t_blue,t_alpha))
 
 
 #save image to filesystem
 out = Image.alpha_composite(base, txt)
+out.save(caps_path + "text_" + filename)
 
-out.convert('RGB').save(caps_path + "text_" + filename)
 print("Modified image saved to " + caps_path + "text_" + filename)
 if rmfile == True:
     os.system("rm " + caps_path + filename + " -f" ) #removes un modified jpg, -f means it doesn't ever prompt for user input
