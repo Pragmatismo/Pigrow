@@ -55,7 +55,7 @@ def load_camera_settings(loc_dic):
 def take_with_uvccapture(s_val="20", c_val="20", g_val="20", b_val="20", x_dim=1600, y_dim=1200, additonal_commands="", caps_path="./"):
     timenow = time.time()
     timenow = str(timenow)[0:10]
-    filename= "cap_"+str(timenow)+".jpg"
+    filename= "cap_"+str(timenow)+".gif"
     os.system("uvccapture "+additonal_commands+" -S"+s_val+" -C" + c_val + " -G"+ g_val +" -B"+ b_val +" -x"+str(x_dim)+" -y"+str(y_dim)+" -v -t0 -o"+caps_path+filename)
     print("Image taken and saved to "+caps_path+filename)
     return filename
