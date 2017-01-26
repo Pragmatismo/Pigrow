@@ -27,6 +27,7 @@ inpoint=0
 outpoint=0 #use -10 to end at ten befor the end, 0 to show the whole thing and 10 to shopw only ten frames
 #end of user settings
 
+datecheck = False
 for argu in sys.argv:
     thearg = str(argu).split('=')[0]
     try:
@@ -132,25 +133,26 @@ print(" ## ############################################ ##")
 
 def grab_folder(capsdir='./', inpoint=0, outpoint=0, file_type='jpg', datecheck=False):
     #grab all the files in caps directory
-    if datecheck[0:3] == "day":
-        days = int(datecheck[3:])
-        datecheck=datetime.timedelta(days=days)
-        datecheck=datetime.datetime.now() - datecheck
-    elif datecheck[0:4] == "hour":
-        hours = int(datecheck[4:])
-        datecheck=datetime.timedelta(hours=hours)
-        datecheck=datetime.datetime.now() - datecheck
-    elif datecheck[0:4] == "week":
-        weeks = int(datecheck[4:])
-        datecheck=datetime.timedelta(weeks=weeks)
-        datecheck=datetime.datetime.now() - datecheck
-    elif datecheck[0:5] == "month":
-        months = int(datecheck[5:])*4
-        datecheck=datetime.timedelta(weeks=months)
-        datecheck=datetime.datetime.now() - datecheck
-    else:
-        print(" !!!! couldn't understand datecheck flag, ignoring")
-        datecheck = False
+    if not datecheck == False:
+        if datecheck[0:3] == "day":
+            days = int(datecheck[3:])
+            datecheck=datetime.timedelta(days=days)
+            datecheck=datetime.datetime.now() - datecheck
+        elif datecheck[0:4] == "hour":
+            hours = int(datecheck[4:])
+            datecheck=datetime.timedelta(hours=hours)
+            datecheck=datetime.datetime.now() - datecheck
+        elif datecheck[0:4] == "week":
+            weeks = int(datecheck[4:])
+            datecheck=datetime.timedelta(weeks=weeks)
+            datecheck=datetime.datetime.now() - datecheck
+        elif datecheck[0:5] == "month":
+            months = int(datecheck[5:])*4
+            datecheck=datetime.timedelta(weeks=months)
+            datecheck=datetime.datetime.now() - datecheck
+        else:
+            print(" !!!! couldn't understand datecheck flag, ignoring")
+            datecheck = False
     filelist = []
     fcounter = 0
     if outpoint == 0:
