@@ -44,7 +44,7 @@ for argu in sys.argv:
     elif thearg == "ofps":
         outfps = theset
     elif thearg == "extra":
-        extra_commands = theset
+        extra_commands = str(argu).split('=')[1:]
     elif thearg == "darksize" or thearg == 'ds':
         darksize = int(theset)
     elif thearg == "datecheck" or thearg == 'dc':
@@ -94,6 +94,7 @@ for argu in sys.argv:
 
         print("   extra=CMD")
         print("         additional commands for MVP, --of=mpjpeg for example.")
+        print("       !!When using this it must be the last argument in the command")
 
         print("   ds=SIZE")
         print("         SIZE in bites below which files are ignored")
