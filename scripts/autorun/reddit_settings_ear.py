@@ -428,7 +428,13 @@ def check_msg():
                 elif msgsub[1] == "timelapse_hour":
                     print("Generating the last hour into a timelapse, this will take a while...")
                     os.system(path+"scripts/visualisation/timelapse_assemble.py of=/home/pi/Pigrow/graphs/hour.gif dc=hour1 ds=1 fps=5 ow=r")
-                    msgfrom.message('Pigrow Control', "Gif created /home/pi/Pigrow/graphs/hour.gif")#at " + giflink)
+                    #msgfrom.message('Pigrow Control', "Gif created /home/pi/Pigrow/graphs/hour.gif")#at " + giflink)
+                    photo_loc = subreddit.stylesheet.upload('onehour', path+"graphs/hour.gif")
+                    page_text = "#Last Hour  \n  \n"
+                    page_text += '![onehour](%%onehour%%)  \n  \n'
+                    praw.models.WikiPage(reddit, subreddit, live_wiki_title).edit(page_text)
+                    live_wikilink = "[Timelapse](https://www.reddit.com/r/" + str(subreddit) + "/wiki/"+str(live_wiki_title)+ ")"
+                    msgfrom.message('Pigrow Control', "Last hour timelapse gif uploaded to " + str(live_wikilink))
                 elif msgsub[1] == "timelapse_5hours":
                     print("Generating the last five hours into a timelapse, this will take a while...")
                     os.system(path+"scripts/visualisation/timelapse_assemble.py of=/home/pi/Pigrow/graphs/5hours.gif dc=hour5 ds=1 fps=5 ow=r")
