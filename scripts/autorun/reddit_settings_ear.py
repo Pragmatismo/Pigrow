@@ -397,8 +397,9 @@ def check_msg():
                     photo_loc = subreddit.stylesheet.upload('datawall', path+"graphs/datawall.jpg")
                     page_text = "#Datawall  \n  \n"
                     page_text += '![datawall](%%datawall%%)  \n  \n'
-                    praw.models.WikiPage(reddit, subreddit, datawalllink).edit(page_text)
-                    msgfrom.message('Pigrow Control', "Datawall uploaded to " + str(datawalllink) + " or " + str(photo_loc))
+                    praw.models.WikiPage(reddit, subreddit, live_wiki_title).edit(page_text)
+                    live_wikilink = "[Settings Wiki](https://www.reddit.com/r/" + str(subreddit) + "/wiki/"+str(live_wiki_title)+ ")"
+                    msgfrom.message('Pigrow Control', "Datawall uploaded to " + str(live_wikilink))
 
                 elif msgsub[1] == "timelapse_hour":
                     print("Generating the last hour into a timelapse, this will take a while...")
