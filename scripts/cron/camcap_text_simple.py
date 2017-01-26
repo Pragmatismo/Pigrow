@@ -6,7 +6,7 @@ import os, sys
 sys.path.append('/home/pi/Pigrow/scripts/')
 sys.path.append('/home/pi/Pigrow/scripts/cron/')
 import pigrow_defs
-#import camcap, picamcap #this now happens after camera choice is made. 
+#import camcap, picamcap #this now happens after camera choice is made.
 script = 'camcap_text_simple.py'
 loc_locs = '/home/pi/Pigrow/config/dirlocs.txt'
 loc_dic = pigrow_defs.load_locs(loc_locs)
@@ -144,13 +144,17 @@ if not dht22_sensor_pin == None or nulsensorshow==True:
     if not temp == "99999":
         temp = str(round(temp,2))
         humid = str(round(humid,2))
-        d.text((xpos,ypos+(font_size*2)), "Temp: " + temp, font=fnt, fill=(0,0,0,t_alpha))
-        d.text((xpos,ypos+(font_size*3)), "Humid: " + humid, font=fnt, fill=(0,0,0,t_alpha))
+        d.text((xpos,+ 1 + ypos+(font_size*2)), "Temp: " + temp, font=fnt, fill=(0,0,0,t_alpha))
+        d.text((xpos,+ 1 + ypos+(font_size*3)), "Humid: " + humid, font=fnt, fill=(0,0,0,t_alpha))
+        d.text((xpos,--1 + ypos+(font_size*2)), "Temp: " + temp, font=fnt, fill=(0,0,0,t_alpha))
+        d.text((xpos,--1 + ypos+(font_size*3)), "Humid: " + humid, font=fnt, fill=(0,0,0,t_alpha))
         d.text((xpos,ypos+(font_size*2)), "Temp: " + temp, font=fnt, fill=(t_red,t_green,t_blue,t_alpha))
         d.text((xpos,ypos+(font_size*3)), "Humid: " + humid, font=fnt, fill=(t_red,t_green,t_blue,t_alpha))
     elif temp == "99999" and show_anyway == "num":
-        d.text((xpos,ypos+(font_size*2)), "Temp: " + temp, font=fnt, fill=(0,0,0,t_alpha))
-        d.text((xpos,ypos+(font_size*3)), "Humid: " + humid, font=fnt, fill=(0,0,0,t_alpha))
+        d.text((xpos,ypos+1+(font_size*2)), "Temp: " + temp, font=fnt, fill=(0,0,0,t_alpha))
+        d.text((xpos,ypos+1+(font_size*3)), "Humid: " + humid, font=fnt, fill=(0,0,0,t_alpha))
+        d.text((xpos,ypos-1+(font_size*2)), "Temp: " + temp, font=fnt, fill=(0,0,0,t_alpha))
+        d.text((xpos,ypos-1+(font_size*3)), "Humid: " + humid, font=fnt, fill=(0,0,0,t_alpha))
         d.text((xpos,ypos+(font_size*2)), "Temp: " + temp, font=fnt, fill=(t_red,t_green,t_blue,t_alpha))
         d.text((xpos,ypos+(font_size*3)), "Humid: " + humid, font=fnt, fill=(t_red,t_green,t_blue,t_alpha))
     elif temp == "99999" and show_anyway == "text":
@@ -167,7 +171,8 @@ if not dht22_sensor_pin == None or nulsensorshow==True:
 
 #save image to filesystem
 out = Image.alpha_composite(base, txt)
-out.save(caps_path + "text_" + filename)
+
+out..convert('RGB').save(caps_path + "text_" + filename)
 print("Modified image saved to " + caps_path + "text_" + filename)
 if rmfile == True:
     os.system("rm " + caps_path + filename + " -f" ) #removes un modified jpg, -f means it doesn't ever prompt for user input
