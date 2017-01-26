@@ -172,7 +172,7 @@ if not dht22_sensor_pin == None or nulsensorshow==True:
 #save image to filesystem
 out = Image.alpha_composite(base, txt)
 
-out..convert('RGB').save(caps_path + "text_" + filename)
+out.convert('RGB').save(caps_path + "text_" + filename)
 print("Modified image saved to " + caps_path + "text_" + filename)
 if rmfile == True:
     os.system("rm " + caps_path + filename + " -f" ) #removes un modified jpg, -f means it doesn't ever prompt for user input
