@@ -98,7 +98,11 @@ def add_log(linktolog):
     log_date.reverse()
 
     print('We now have ' + str(len(log_temp)) + ' temp readings to work with.')
-    print('Log starts - ' + str(log_date[0].strftime("%b-%d %H:%M")) + ' to ' + str(log_date[-1].strftime("%b-%d %H:%M")))
+    if len(log_date) >= 1:
+        print('Log starts - ' + str(log_date[0].strftime("%b-%d %H:%M")) + ' to ' + str(log_date[-1].strftime("%b-%d %H:%M")))
+    else:
+        print("No data, no graph...")
+        exit()
 
 def cut_list_last_hours(hours_to_show):
     print("Shortening list to show only last " + str(hours_to_show) + " hours")
