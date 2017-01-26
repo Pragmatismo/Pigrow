@@ -390,8 +390,8 @@ def check_msg():
                     print("--User want's a datawall!")
                     datawalllink = "[Settings Wiki](https://www.reddit.com/r/" + str(subreddit) + "/wiki/"+str(wiki_title)+ "datawall)"
                     os.system(path+"scripts/visualisation/caps_graph.py")
-                    os.system(path+"scripts/visualisation/temp_graph.py hour=24")
-                    os.system(path+"scripts/visualisation/humid_graph.py hour=24")
+                    os.system(path+"scripts/visualisation/temp_graph.py hours=24")
+                    os.system(path+"scripts/visualisation/humid_graph.py hours=24")
                     os.system(path+"scripts/visualisation/selflog_graph.py")
                     os.system(path+"scripts/visualisation/assemble_datawall.py")
                     photo_loc = subreddit.stylesheet.upload('datawall', path+"graphs/datawall.jpg")
@@ -402,19 +402,19 @@ def check_msg():
 
                 elif msgsub[1] == "timelapse_hour":
                     print("Generating the last hour into a timelapse, this will take a while...")
-                    os.system(path+"/scripts/visualisation/timelapse_assemble.py of=/home/pi/Pigrow/graphs/hour.gif dc=hour1 ds=1 fps=5 ow=r")
+                    os.system(path+"scripts/visualisation/timelapse_assemble.py of=/home/pi/Pigrow/graphs/hour.gif dc=hour1 ds=1 fps=5 ow=r")
                     msgfrom.message('Pigrow Control', "Gif created ")#at " + giflink)
                 elif msgsub[1] == "timelapse_5hours":
                     print("Generating the last five hours into a timelapse, this will take a while...")
-                    os.system(path+"/scripts/visualisation/timelapse_assemble.py of=/home/pi/Pigrow/graphs/5hours.gif dc=hour5 ds=1 fps=5 ow=r")
+                    os.system(path+"scripts/visualisation/timelapse_assemble.py of=/home/pi/Pigrow/graphs/5hours.gif dc=hour5 ds=1 fps=5 ow=r")
                     msgfrom.message('Pigrow Control', "Gif created ")#at " + giflink)
                 elif msgsub[1] == "timelapse_day":
                     print("Generating the last day into a timelapse, this will take a while...")
-                    os.system(path+"/scripts/visualisation/timelapse_assemble.py of=/home/pi/Pigrow/graphs/day.gif dc=day1 ds=1 fps=5 ts=8 ow=r")
+                    os.system(path+"scripts/visualisation/timelapse_assemble.py of=/home/pi/Pigrow/graphs/day.gif dc=day1 ds=1 fps=5 ts=8 ow=r")
                     msgfrom.message('Pigrow Control', "Gif created ")#at " + giflink)
                 elif msgsub[1] == "timelapse_week":
                     print("Generating the last week into a timelapse, this will take a while...")
-                    os.system(path+"/scripts/visualisation/timelapse_assemble.py of=/home/pi/Pigrow/graphs/week.gif dc=hour5 ds=1 fps=5 ow=r")
+                    os.system(path+"scripts/visualisation/timelapse_assemble.py of=/home/pi/Pigrow/graphs/week.gif dc=hour5 ds=1 fps=5 ow=r")
                     msgfrom.message('Pigrow Control', "Gif created ")#at " + giflink)
                 elif msgsub[1] == "addcron":
                     print("User wants to add job to cron;")
