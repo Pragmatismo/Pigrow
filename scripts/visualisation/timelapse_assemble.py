@@ -44,7 +44,7 @@ for argu in sys.argv:
     elif thearg == "ofps":
         outfps = theset
     elif thearg == "extra":
-        extra_commands = str(str(argu).split('=')[1:])
+        extra_commands = (argu)[7:]
     elif thearg == "darksize" or thearg == 'ds':
         darksize = int(theset)
     elif thearg == "datecheck" or thearg == 'dc':
