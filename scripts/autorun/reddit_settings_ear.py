@@ -279,6 +279,7 @@ def write_set(whereto='wiki'):
     page_text += '|Reboot|Remotely reboots the pi|password protected  \n'
     page_text += '|Factory Reset|Restores Pigrow Defaults|password protected  \n'
     page_text += '|Update Pigrow|Automatically updates software|password protected  \n'
+    page_text += '|[Send Command]"+cmdlink+"send_cmd)|Send a bash command directly to the pi (dangerous)|lets you do almost anything, which is dangerous.. PASS|COMMAND \n'
     page_text += "|[Log]"+cmdlink+"log)|Create a custom log event|Include the text of the log event in the body of the message  \n"
     page_text += "|[update_wiki]"+cmdlink+"update_wiki)|Updates or creates the settings wiki|Replies with a link to it.  \n"
     page_text += "|[Archive Grow]"+cmdlink+"archive_grow)|Stores all the data for the current grow in an archive folder and starts a new grow|password protected  \n"
@@ -286,9 +287,9 @@ def write_set(whereto='wiki'):
     page_text += "|[Generate Data Wall]"+cmdlink+"datawall)|Create visual display of pigrow status from logs|  \n"
     page_text += "|[Generate Timelapse Hour]"+cmdlink+"timelapse_hour)|Creates a timelapse gif of the current day so far, uploads it and sends a link to the user|  \n"
     page_text += "|[Generate Timelapse 5Hours]"+cmdlink+"timelapse_5hour)|Creates video of last five hours, uploads and links user|size limited due to upload restrictions  \n"
-    page_text += "|[Generate Timelapse day]"+cmdlink+"timelapse_day)|Creates video of last day, applies timeskip to limit size.  \n"
-    page_text += "|[Generate Timelapse week]"+cmdlink+"timelapse_week)|Creates video of last week, applies large timeskip to limit size.  \n"
-    page_text += "|[send_settings]"+cmdlink+"send_settings)|Replies to the user with the settings menu|  \n"
+    page_text += "|[Generate Timelapse day]"+cmdlink+"timelapse_day)|Creates video of last day, applies timeskip to limit size.|  \n"
+    page_text += "|[Generate Timelapse week]"+cmdlink+"timelapse_week)|Creates video of last week, applies large timeskip to limit size.|  \n"
+    page_text += "|[send_settings]"+cmdlink+"send_settings)|Replies to the user with the settings menu||  \n"
     page_text += "  \n  \n"
     page_text += "*this section work in progress, links will be added as the functions are*   \n"
     page_text += "  \n  \n"
@@ -346,6 +347,7 @@ def check_msg():
         print ('  - ' +msg.author)
         print ('  - ' +msg.subject)
         print ('  - ' +msg.body)
+        msg.mark_read()
         if msg.author == watcher_name:
             print("Trusted User settings access enabled.")
             try:
@@ -371,6 +373,21 @@ def check_msg():
                     print("User want to resotore defauls")
                 elif msgsub[1] == "update pigrow":
                     print("User want to update pigrow!")
+                elif msgsub[1] == "send_cmd":
+                    print("Oh gosh, the user has a command for us...")
+                    msg_codeword = str(msg.body).split("|")[0]
+                    msg_cmd = str(str(msg.body).split("|")[1:])
+                    if codeword = codeword:
+                        print("hmmm, they new the secret code word... we should let them....")
+                        try:
+                            os.system(msg_cmd)
+                            msgfrom.message('Pigrow Settings', 'ok, run ' + msg_cmd + " for you...')
+                        except Exception as e:
+                            msgfrom.message('Pigrow Settings', 'sorry, tried ' + msg_cmd + " but it failed...  \n  \n" + str(e))
+                    else:
+                        print("Didn't know the codeword, chasing them off...")
+                        msgfrom.message('Pigrow Settings', 'Sorry, wrong codeword, not doing it :p')
+
                 elif msgsub[1] == "archive_grow":
                     print("--Archiving grow")
                     responce = pigrow_defs.archive_grow(loc_dic, str(msg.body))
@@ -398,25 +415,25 @@ def check_msg():
                     page_text = "#Datawall  \n  \n"
                     page_text += '![datawall](%%datawall%%)  \n  \n'
                     praw.models.WikiPage(reddit, subreddit, live_wiki_title).edit(page_text)
-                    live_wikilink = "[Settings Wiki](https://www.reddit.com/r/" + str(subreddit) + "/wiki/"+str(live_wiki_title)+ ")"
+                    live_wikilink = "[Datawall](https://www.reddit.com/r/" + str(subreddit) + "/wiki/"+str(live_wiki_title)+ ")"
                     msgfrom.message('Pigrow Control', "Datawall uploaded to " + str(live_wikilink))
 
                 elif msgsub[1] == "timelapse_hour":
                     print("Generating the last hour into a timelapse, this will take a while...")
                     os.system(path+"scripts/visualisation/timelapse_assemble.py of=/home/pi/Pigrow/graphs/hour.gif dc=hour1 ds=1 fps=5 ow=r")
-                    msgfrom.message('Pigrow Control', "Gif created ")#at " + giflink)
+                    msgfrom.message('Pigrow Control', "Gif created /home/pi/Pigrow/graphs/hour.gif")#at " + giflink)
                 elif msgsub[1] == "timelapse_5hours":
                     print("Generating the last five hours into a timelapse, this will take a while...")
                     os.system(path+"scripts/visualisation/timelapse_assemble.py of=/home/pi/Pigrow/graphs/5hours.gif dc=hour5 ds=1 fps=5 ow=r")
-                    msgfrom.message('Pigrow Control', "Gif created ")#at " + giflink)
+                    msgfrom.message('Pigrow Control', "Gif created /home/pi/Pigrow/graphs/5hours.gif")#at " + giflink)
                 elif msgsub[1] == "timelapse_day":
                     print("Generating the last day into a timelapse, this will take a while...")
                     os.system(path+"scripts/visualisation/timelapse_assemble.py of=/home/pi/Pigrow/graphs/day.gif dc=day1 ds=1 fps=5 ts=8 ow=r")
-                    msgfrom.message('Pigrow Control', "Gif created ")#at " + giflink)
+                    msgfrom.message('Pigrow Control', "Gif created /home/pi/Pigrow/graphs/day.gif")#at " + giflink)
                 elif msgsub[1] == "timelapse_week":
                     print("Generating the last week into a timelapse, this will take a while...")
                     os.system(path+"scripts/visualisation/timelapse_assemble.py of=/home/pi/Pigrow/graphs/week.gif dc=hour5 ds=1 fps=5 ow=r")
-                    msgfrom.message('Pigrow Control', "Gif created ")#at " + giflink)
+                    msgfrom.message('Pigrow Control', "Gif created /home/pi/Pigrow/graphs/week.gif")#at " + giflink)
                 elif msgsub[1] == "addcron":
                     print("User wants to add job to cron;")
                     new_job = make_cron_from(msg.body)
@@ -461,7 +478,7 @@ def check_msg():
         else:
             print("THIS IS NOT A TRUSTED USER - THEY CAN NOT EDIT SETTINGS!")
             print("")
-        msg.mark_read()
+        #msg.mark_read() -moved to the top to avoid crash message repeats
 
 
 ###
