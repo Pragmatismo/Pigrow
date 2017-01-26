@@ -75,7 +75,6 @@ if __name__ == '__main__':
     loc_locs = '/home/pi/Pigrow/config/dirlocs.txt'
     loc_dic = pigrow_defs.load_locs(loc_locs)
     caps_path = loc_dic["caps_path"]
-
     picam_dic = load_picam_set(setloc="/home/pi/Pigrow/config/picam_settings.txt")
     filename = take_picam_py(picam_dic, caps_path)
     #filename = take_picam_raspistill(picam_dic, caps_path)

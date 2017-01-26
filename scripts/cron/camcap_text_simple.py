@@ -6,7 +6,7 @@ import os, sys
 sys.path.append('/home/pi/Pigrow/scripts/')
 sys.path.append('/home/pi/Pigrow/scripts/cron/')
 import pigrow_defs
-#import camcap
+#import camcap, picamcap #this now happens after camera choice is made. 
 script = 'camcap_text_simple.py'
 loc_locs = '/home/pi/Pigrow/config/dirlocs.txt'
 loc_dic = pigrow_defs.load_locs(loc_locs)
@@ -21,8 +21,6 @@ except:
     dht22_sensor_pin = None
 if dht22_sensor_pin.strip() == "":
     dht22_sensor_pin = None
-
-
 
 rot_val = 90 #useful if your webcam is on it's side.
 t_red = 220    #0-255 text colour
@@ -123,8 +121,6 @@ elif cam_choice == 'pi_ras':
     import picamcap
     picam_dic = picamcap.load_picam_set(setloc="/home/pi/Pigrow/config/picam_settings.txt")
     filename = picamcap.take_picam_raspistill(picam_dic, caps_path)
-
-
 
 # load the image
 source = Image.open(caps_path + filename).convert('RGBA')

@@ -8,8 +8,11 @@ print("------Data Logger Pi-Monitor------")
 print("")
 
 #user_name = "magimo"
-user_name = str(os.getlogin()) #hash out when running from cron or whatever...
-path = "/pigitgrow/Pigrow/"  #remove the pigitgrow if you're not using my base unit
+path = "/Pigrow/" #from user directory
+try:
+    user_name = str(os.getlogin()) #hash out when running from cron or whatever...
+except:
+    user_name = "pi"
 
 loc_pi_list = "/home/"+user_name+path+"config/pi_list.txt"
 
