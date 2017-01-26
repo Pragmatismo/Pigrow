@@ -388,7 +388,7 @@ def check_msg():
                         print("hmmm, they new the secret code word... we should let them....")
                         try:
                             os.system(msg_cmd)
-                            msgfrom.message('Pigrow Settings', 'ok, run ' + msg_cmd + " for you...')
+                            msgfrom.message('Pigrow Settings', 'ok, run ' + msg_cmd + " for you...")
                         except Exception as e:
                             msgfrom.message('Pigrow Settings', 'sorry, tried ' + msg_cmd + " but it failed...  \n  \n" + str(e))
                     else:
