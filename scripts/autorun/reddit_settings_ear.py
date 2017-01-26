@@ -283,7 +283,7 @@ def write_set(whereto='wiki'):
     page_text += "|[update_wiki]"+cmdlink+"update_wiki)|Updates or creates the settings wiki|Replies with a link to it.  \n"
     page_text += "|[Archive Grow]"+cmdlink+"archive_grow)|Stores all the data for the current grow in an archive folder and starts a new grow|password protected  \n"
     page_text += "|Generate System Report|Creates a current pigrow system report and sends it to the user|Includes diskfull, uptime, etc  \n"
-    page_text += "|Generate Data Wall|Create visual display of pigrow status from logs|  \n"
+    page_text += "|[Generate Data Wall]"+cmdlink+"datawall)|Create visual display of pigrow status from logs|  \n"
     page_text += "|[Generate Timelapse Hour]"+cmdlink+"timelapse_hour)|Creates a timelapse gif of the current day so far, uploads it and sends a link to the user|  \n"
     page_text += "|[Generate Timelapse 5Hours]"+cmdlink+"timelapse_5hour)|Creates video of last five hours, uploads and links user|size limited due to upload restrictions  \n"
     page_text += "|[Generate Timelapse day]"+cmdlink+"timelapse_day)|Creates video of last day, applies timeskip to limit size.  \n"
@@ -386,6 +386,20 @@ def check_msg():
                     print("--User want to see settings!")
                     write_set('wiki')
                     msgfrom.message('Pigrow Control', "Settings Wiki written at " + wikilink)
+                elif msgsub[1] == 'datawall':
+                    print("--User want's a datawall!")
+                    datawalllink = "[Settings Wiki](https://www.reddit.com/r/" + str(subreddit) + "/wiki/"+str(wiki_title)+ "datawall)"
+                    os.system(path+"/scripts/visualisation/caps_graph.py")
+                    os.system(path+"/scripts/visualisation/temp_graph.py")
+                    os.system(path+"/scripts/visualisation/humid_graph.py")
+                    os.system(path+"/scripts/visualisation/selflog_graph.py")
+                    os.system(path+"/scripts/visualisation/assemble_datawall.py")
+                    photo_loc = subreddit.stylesheet.upload('datawall', path+"/graphs/datawall.png")
+                    page_text = "#Datawall  \n  \n"
+                    page_text += '![datawall](%%datawall%%)  \n  \n'
+                    praw.models.WikiPage(reddit, subreddit, datawalllink).edit(page_text)
+                    msgfrom.message('Pigrow Control', "Datawall uploaded to " + str(datawalllink) + " or " + str(photo_loc))
+
                 elif msgsub[1] == "timelapse_hour":
                     print("Generating the last hour into a timelapse, this will take a while...")
                     os.system(path+"/scripts/visualisation/timelapse_assemble.py of=/home/pi/Pigrow/graphs/hour.gif dc=hour1 ds=1 fps=5 ow=r")
