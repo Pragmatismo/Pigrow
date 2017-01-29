@@ -1,12 +1,12 @@
 #!/usr/bin/python
 import datetime
-import praw           #pip install --pre praw   #remove the --pre if it's now the future and praw4 is standard
+import praw           #pip install praw   #remove the --pre if it's now the future and praw4 is standard
 import os
 import time
 import socket
 import sys
 sys.path.append('/home/pi/Pigrow/scripts/')
-script = 'reddit_settings_ear_2.py'
+script = 'reddit_settings_ear.py'
 import pigrow_defs
 from crontab import CronTab   #  pip install python-crontab
 cron = CronTab(user=True)  #can be user+True, 'yourusername' or 'root' all work.

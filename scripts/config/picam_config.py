@@ -1,3 +1,4 @@
+#!/usr/bin/python
 import os, sys
 import time
 sys.path.append('/home/pi/Pigrow/scripts/')
