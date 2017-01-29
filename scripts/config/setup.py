@@ -1,9 +1,11 @@
 #!/usr/bin/python
 import os, sys
 from subprocess import check_output
-from crontab import CronTab   #  pip install python-crontab
-cron = CronTab(user=True)  #can be user+True, 'yourusername' or 'root' all work.
-
+try:
+    from crontab import CronTab   #  pip install python-crontab
+    cron = CronTab(user=True)  #can be user+True, 'yourusername' or 'root' all work.
+except:
+    print(" crontab not installed, run guided set up")
 print("##################################")
 print("##   Pigrow Setup Utility       ##")
 print("")
@@ -217,17 +219,40 @@ def guided_setup():
                 print(" Try running this script again, if not then")
                 print(" follow the manual install instructions above")
                 print(" and then try this script again...")
-                raise
+                print("")
+                opt = raw_input("q to show error and quit, return to continue;")
+                if opt == "q":
+                    raise
+                else:
+                    print("Ignoring, you won't be able to use temp or humid sensors until this works.")
         except:
             print("Install failed, use the install instructions linked above to do it manually.")
             raise
-        print("")
-        print(" Installing dependencies for pigrow code...")
-        print(" ...ok not yet")
-        exit()
-
-
-    print("That's as far as we've got with that.... yeah, not that impressive so far... ")
+    print("")
+    print(" Installing dependencies for pigrow code...")
+    print(" - Using pip")
+    try:
+        import praw, matplotlib, pexpect
+        from crontab import CronTab
+        print(" Required dependencies already installed.")
+    except:
+        try:
+            print(" Required dependencies not installed, attempting to install...")
+            os.system("sudo pip install crontab praw matplotlib pexpect")
+        except:
+            print("Sorry, -- sudo pip install python-crontab praw matplotlib pexpect -- didn't work, try it manually.")
+            print("")
+            raise
+    print(" - Using apt-get")
+    print("")
+    try:
+        os.system("sudo apt-get install uvccapture mpv sshpass")
+    except:
+        print("Sorry, -- sudo apt-get install uvccapture mpv sshpass -- didn't work, try it manually..")
+        raise
+    print("Install process complete, all dependencies installed.")
+    print("")
+    raw_input("Press return to continue;")
 
 def bind_realy(device):
     setting = raw_input("Select GPIO pin to use;")
@@ -696,6 +721,10 @@ def show_restore_default_menu():
         set_loc_defaults()
         save_settings()
         print("Location settings and passes have been set to defaults")
+    if raw_input("Do you want to empty [delete] the default directories? type yes") == "yes":
+        os.system("sudo rm /home/pi/Pigrow/logs/*.*")
+        os.system("sudo rm /home/pi/Pigrow/graphs/*.*")
+        os.system("sudo rm /home/pi/Pigrow/caps/*.*")
     print("NOTE: I need to add default settings for other settings file..")
 
 def show_main_menu():
@@ -704,7 +733,7 @@ def show_main_menu():
     print("   ####                                      ####")
     print("   ####     Pigrow Setup                     ####")
     print("   ####                                      ####")
-    print("   ####        1 - Guided Set up             ####")
+    print("   ####        1 - Install Dependencies      ####")
     print("   ####                                      ####")
     print("   ####        2 - GPIO set up               ####")
     #print("   ####                                      ####")
