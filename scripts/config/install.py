@@ -1,4 +1,18 @@
 #!/usr/bin/python
+
+def is_connected():
+    site = "www.reddit.com"
+    try:
+        host = socket.gethostbyname(site)
+        s = socket.create_connection((host, 80), 2)
+        return True
+    except:
+        pass
+    return False
+
+while is_connected() == False:
+    time.sleep(10)
+
 try:
     if not os.path.exists('/home/pi/Pigrow/caps/'):
         os.makedirs('/home/pi/Pigrow/caps/')
@@ -9,7 +23,7 @@ try:
 except:
     print("Couldn't make dirs, possinly not a pi...")
 
-path = "/home/pragmo/pigitgrow/Pigrow/resources/"
+path = "/home/pi/Pigrow/resources/"
 
 print("Checking Dependencies...")
 print("  - DHT Sensor;")
@@ -31,8 +45,8 @@ except:
         os.system("git clone https://github.com/adafruit/Adafruit_Python_DHT.git")
         os.chdir( path + "Adafruit_Python_DHT/")
         print("- Updating your apt list and installing dependencies,")
-        os.system("sudo apt-get update")
-        os.system("sudo apt-get install build-essential python-dev python-openssl")
+        os.system("sudo apt-get update --yes")
+        os.system("sudo apt-get install --yes build-essential python-dev python-openssl")
         print("- Dependencies installed, running --: sudo python setup.py install :--")
         os.system("sudo python setup.py install")
         print("- Done! ")
@@ -47,7 +61,7 @@ except:
             print("")
     except:
         print("Install failed, use the install instructions linked above to do it manually.")
-        raise
+        #raise
 os.chdir(path)
 print("")
 print(" Installing dependencies for pigrow code...")
@@ -63,13 +77,13 @@ except:
     except:
         print("Sorry, -- sudo pip install python-crontab praw matplotlib pexpect -- didn't work, try it manually.")
         print("")
-        raise
+        #raise
 print(" - Using apt-get")
 print("")
 try:
-    os.system("sudo apt-get install sshpass uvccapture mpv")
+    os.system("sudo apt-get --yes install sshpass uvccapture mpv")
 except:
     print("Sorry, -- sudo apt-get install sshpass uvccapture mpv -- didn't work, try it manually..")
-    raise
+    #raise
 print("Install process complete, all dependencies installed.")
 print("")
