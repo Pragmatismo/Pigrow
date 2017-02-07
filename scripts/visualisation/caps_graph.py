@@ -1,5 +1,7 @@
 #!/usr/bin/python
 import os, sys
+import matplotlib as mpl
+mpl.use('Agg')
 import matplotlib.pyplot as plt
 try:
     sys.path.append('/home/pi/Pigrow/scripts/')

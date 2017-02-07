@@ -1,4 +1,6 @@
 #!/usr/bin/python
+import matplotlib as mpl
+mpl.use('Agg')
 import matplotlib.pyplot as plt
 import datetime
 import numpy as np
@@ -100,7 +102,7 @@ def add_log(linktolog):
         print('Log starts - ' + str(log_date[0].strftime("%b-%d %H:%M")) + ' to ' + str(log_date[-1].strftime("%b-%d %H:%M")))
     else:
         print("No data, no graph...")
-        exit()   
+        exit()
 
 def make_graph(da,ta):
     plt.figure(1)
