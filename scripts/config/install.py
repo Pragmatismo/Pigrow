@@ -1,4 +1,7 @@
 #!/usr/bin/python
+import time
+import socket
+import os
 
 def is_connected():
     site = "www.reddit.com"
@@ -12,6 +15,8 @@ def is_connected():
 
 while is_connected() == False:
     time.sleep(10)
+
+print("Found reddit, internet is up")
 
 try:
     if not os.path.exists('/home/pi/Pigrow/caps/'):
@@ -43,12 +48,13 @@ except:
         os.chdir(path)
         print("- Downloading Adafruit_Python_DHT from Github")
         os.system("git clone https://github.com/adafruit/Adafruit_Python_DHT.git")
-        os.chdir( path + "Adafruit_Python_DHT/")
+        ada_path = path + "Adafruit_Python_DHT/"
+        os.chdir( ada_path)
         print("- Updating your apt list and installing dependencies,")
         os.system("sudo apt-get update --yes")
         os.system("sudo apt-get install --yes build-essential python-dev python-openssl")
         print("- Dependencies installed, running --: sudo python setup.py install :--")
-        os.system("sudo python setup.py install")
+        os.system("sudo python "+ ada_path +"setup.py install")
         print("- Done! ")
         try:
             import Adafruit_DHT
@@ -67,23 +73,24 @@ print("")
 print(" Installing dependencies for pigrow code...")
 print(" - Using pip")
 try:
-    import praw, matplotlib, pexpect
-    from crontab import CronTab
+    import praw, pexpect
+    #from crontab import CronTab #python-crontab #using apt
     print(" Required dependencies already installed.")
 except:
     try:
         print(" Required dependencies not installed, attempting to install...")
-        os.system("sudo pip install crontab praw matplotlib pexpect")
+        os.system("sudo pip install praw pexpect")
     except:
-        print("Sorry, -- sudo pip install python-crontab praw matplotlib pexpect -- didn't work, try it manually.")
+        print("Sorry, -- sudo pip install praw pexpect -- didn't work, try it manually.")
         print("")
         #raise
 print(" - Using apt-get")
 print("")
 try:
-    os.system("sudo apt-get --yes install sshpass uvccapture mpv")
+    os.system("sudo apt-get --yes install python-matplotlib sshpass uvccapture mpv python-crontab")
 except:
-    print("Sorry, -- sudo apt-get install sshpass uvccapture mpv -- didn't work, try it manually..")
+    print("Sorry, -- sudo apt-get --yes install python-matplotlib sshpass uvccapture mpv python-crontab-- didn't work, try it manually..")
     #raise
-print("Install process complete, all dependencies installed.")
+print("")
+print("Install process complete, all dependencies installed (or failed...)")
 print("")
