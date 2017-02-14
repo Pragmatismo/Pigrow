@@ -10,15 +10,16 @@ print("      ----------------------------------------")
 #user settings
 #user_name = "pragmo" #can be used instead of the following
 user_name = str(os.getlogin())  #hash this line out if it causes problem, autograbs username
-target_address = "pi@192.168.1.10"
+target_address = "pi@192.168.1.6"
 target_pass = "raspberry"
-target_files = "/home/pi/Pigrow/caps/text_*.jpg"
+target_files = "/home/pi/Pigrow/caps/*.jpg"
 cap_type = "jpg"
+capsdir = "/home/"+user_name+"/frompigrow/caps/"
 
 for argu in sys.argv[1:]:
     thearg = str(argu).split('=')[0]
-    if  thearg == 'to' or thearg == 'logsdir':
-        logsdir = str(argu).split('=')[1]
+    if  thearg == 'to' or thearg == 'capsdir':
+        capsdir = str(argu).split('=')[1]
     elif thearg == 'ta':
         target_address = str(argu).split('=')[1]
     elif thearg == 'tp':
@@ -26,7 +27,7 @@ for argu in sys.argv[1:]:
     elif thearg == 'tl':
         target_files = str(argu).split('=')[1]
 
-capsdir = "/home/"+user_name+"/frompigrow/caps/"
+
 if not os.path.exists(capsdir):
     os.makedirs(capsdir)
 #end of user settings
