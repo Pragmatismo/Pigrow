@@ -75,6 +75,7 @@ def show_menu():
     print("which you can select the best configuration.")
     print("")
     print("Current settings; S = " + str(s_val) + "  C = " + str(c_val) + "  G = " + str(g_val) + "  B = " + str(b_val))
+    print("                  x = " + str(x_dim) + "  y = " + str(y_dim))
     print("  ______________________________________________")
     print(" |Set value             dim - show camera dims  |")
     print(" | 1 - Saturation         x - set x dim         |")
@@ -83,14 +84,14 @@ def show_menu():
     print(" | 4 - Brightness       t - take and show test  |")
     print(" |                      d - take camera default |")
     print(" |Take Range            r - range test          |")
-    print(" | 5 - Saturation        -----------------------|")
-    print(" | 6 - Contrast          |")
-    print(" | 7 - Gain              |")
-    print(" | 8 - Brightness        |")
-    print(" |                       -------------")
-    print(" | s - Save Config File to Disk      |")
-    print(" | 0 - Delete Images       q to quit |")
-    print("  ___________________________________|")
+    print(" | 5 - Saturation                               |")
+    print(" | 6 - Contrast         c - camera select       |")
+    print(" | 7 - Gain                                    |")
+    print(" | 8 - Brightness                             |")
+    print(" |                                           |")
+    print(" | s - Save Config File to Disk             |")
+    print(" | 0 - Delete Images               q - quit |")
+    print("  __________________________________________|")
     print("")
     option = raw_input("Type the number and press return;")
     if option == "1":
@@ -113,6 +114,18 @@ def show_menu():
         os.system('lsusb -v | egrep "Width|Height"')
         print("    ")
         raw_input("Press return to continue...")
+    elif option == "cam":
+        cam_opt = []
+        for name in in os.listdir(path):
+            if name[0:5] == "video":
+                cam_opt.append(name)
+        print("Choice of;")        
+        print cam_opt
+        cam_num = raw_input("Input camera number; ")
+        additonal_commands = "-d/dev/video" + str(cam_num)"
+
+
+
 
     elif option == "5":
         print("Capturing range of Saturation images...")
