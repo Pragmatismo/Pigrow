@@ -11,10 +11,26 @@ loc_settings = "/home/pi/Pigrow/config/"
 if not os.path.exists(loc_settings):
     os.makedirs(loc_settings)
 loc_settings = loc_settings + "camera_settings.txt"
-
-start_v = 10 #between 1-255
-end_v = 100 #between 1-255
+ #for taking ranges
+start_v = 10 #between 1-255 (depending on camera)
+end_v = 100 #between 1-255 (depnding on camera)
 skip_v = 10 #ten represents value increase by ten
+
+for argu in sys.argv:
+    thearg = str(argu).split('=')[0]
+    if  thearg == 'locpath':
+        loc_settings = str(argu).split('=')[1]
+    elif  thearg == 'loc':
+        loc_settings = loc_settings + str(argu).split('=')[1]
+    elif  thearg == 'srange':
+        start_v = int(str(argu).split('=')[1])
+    elif  thearg == 'erange':
+        end_v = int(str(argu).split('=')[1])
+    elif  thearg == 'rangejump':
+        skip_v = int(str(argu).split('=')[1])
+    elif  thearg == 'rangeS':
+        start_v = int(str(argu).split('=')[1])
+
 
 try:
     with open(loc_settings, "r") as f:
@@ -37,6 +53,14 @@ try:
 except:
     pass
 
+def capture_image(s_cap, c_cap, g_cap, b_cap, x_cap, y_cap, output_file, additonal=""):
+    cam_cmd = "sudo uvccapture " + additonal      #additional commands (camera select)
+    cam_cmd += " -S" + str(s_cap) + " -C" + str(c_cap) + " -G" + str(g_cap) + " -B" + str(b_cap)
+    cam_cmd += " -x"+str(x_cap)+" -y"+str(y_cap)  #x and y dimensions of photo
+    cam_cmd += "-v -t0 -o" + output_file          #verbose, no delay, output
+    print("---Doing: " + cam_cmd)
+    os.system(cam_cmd)
+    print("Captured, " + output_file")
 
 def show_menu():
     global s_val
@@ -128,8 +152,10 @@ def show_menu():
         show_menu()
     elif option == "t":
         print("Using current configuration to take image...")
-        os.system("sudo uvccapture "+additonal_commands+" -S"+s_val+" -C" + c_val + " -G"+ g_val +" -B"+ b_val +" -x"+str(x_dim)+" -y"+str(y_dim)+" -v -t0 -otest_range_test.jpg")
-        os.system("gpicview test_range_test.jpg")
+        output_file = "test_current.jpg"
+        capture_image(s_val, c_val, g_val, b_val, x_dim, y_dim, output_file, additonal_commands)
+        #os.system("sudo uvccapture "+additonal_commands+" -S"+s_val+" -C" + c_val + " -G"+ g_val +" -B"+ b_val +" -x"+str(x_dim)+" -y"+str(y_dim)+" -v -t0 -otest_range_test.jpg")
+        os.system("gpicview " + output_file)
         show_menu()
 
     elif option == "r":
