@@ -122,7 +122,7 @@ def show_menu():
         print("Choice of;")
         print cam_opt
         cam_num = raw_input("Input camera number; ")
-        additonal_commands = "-d/dev/video" + str(cam_num)"
+        additonal_commands = "-d/dev/video" + str(cam_num)
 
 
 
