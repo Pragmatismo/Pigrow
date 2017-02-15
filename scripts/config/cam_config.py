@@ -207,7 +207,7 @@ def show_menu():
         print("That wasn't an option...")
         show_menu()
 
-while true:
+while True:
     show_menu()
 
 print "done"
