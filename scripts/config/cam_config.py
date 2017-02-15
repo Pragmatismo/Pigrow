@@ -75,10 +75,10 @@ def show_menu():
     print("which you can select the best configuration.")
     print("")
     print("Current settings; S = " + str(s_val) + "  C = " + str(c_val) + "  G = " + str(g_val) + "  B = " + str(b_val))
-    print("  _______________________")
-    print(" |Set value              |")
-    print(" | 1 - Saturation        |")
-    print(" | 2 - Contrast          |")
+    print("  ____________________________________________")
+    print(" |Set value             d - show camera dims  |")
+    print(" | 1 - Saturation       x - set x dim |")
+    print(" | 2 - Contrast         y - set y dim |")
     print(" | 3 - Gain              ----------------------|")
     print(" | 4 - Brightness                              |")
     print(" |                      t - take and show test |")
@@ -105,12 +105,16 @@ def show_menu():
     elif option == "4":
         b_val = raw_input("Input value to use for Brightness..")
         show_menu()
+    elif option == "x":
+        x_dim = raw_input("Input value to use for X dim")
+    elif option == "y":
+        y_dim = raw_input("Input value to use for Y dim")
 
     elif option == "5":
         print("Capturing range of Saturation images...")
         for s in range(start_v,end_v,skip_v):
-            print("---Doing: sudo uvccapture "+additonal_commands +" -S"+str(s)+" -C" + c_val + " -G"+ g_val +" -B"+ b_val +" -x"+str(x_dim)+" -y"+str(y_dim)+" -v -t0 -otest_range_s_"+str(s)+".jpg")
-            os.system("sudo uvccapture "+additonal_commands +" -S"+str(s)+" -C" + c_val + " -G"+ g_val +" -B"+ b_val +" -x"+str(x_dim)+" -y"+str(y_dim)+" -v -t0 -otest_range_s_"+str(s)+".jpg")
+            output_file = "test_range_s_"+str(s)+".jpg"
+            capture_image(s, c_val, g_val, b_val, x_dim, y_dim, output_file, additonal_commands)
         print("Range captured, view and select best value..")
         os.system("gpicview test_range_s_"+str(start_v)+".jpg")
         s_val = raw_input("Input value to use for Saturation..")
@@ -119,8 +123,8 @@ def show_menu():
     elif option == "6":
         print("Capturing range of Contrast images...")
         for c in range(start_v,end_v,skip_v):
-            print("---Doing: sudo uvccapture "+additonal_commands +" -S"+s_val+" -C" + str(c) + " -G"+ g_val +" -B"+ b_val +" -x"+str(x_dim)+" -y"+str(y_dim)+" -v -t0 -otest_range_c_"+str(c)+".jpg")
-            os.system("sudo uvccapture "+additonal_commands+" -S"+s_val+" -C" + str(c) + " -G"+ g_val +" -B"+ b_val +" -x"+str(x_dim)+" -y"+str(y_dim)+" -v -t0 -otest_range_c_"+str(c)+".jpg")
+            output_file = "test_range_c_"+str(c)+".jpg"
+            capture_image(s_val, c, g_val, b_val, x_dim, y_dim, output_file, additonal_commands)
         print("Range captured, view and select best value..")
         os.system("gpicview test_range_c_"+str(start_v)+".jpg")
         c_val = raw_input("Input value to use for Contrast..")
@@ -129,8 +133,8 @@ def show_menu():
     elif option == "7":
         print("Capturing range of Gain images...")
         for g in range(start_v,end_v,skip_v):
-            print("---Doing: sudo uvccapture "+additonal_commands +" -S"+s_val+" -C" + c_val + " -G"+ str(g) +" -B"+ b_val +" -x"+str(x_dim)+" -y"+str(y_dim)+" -v -t0 -otest_range_c_"+str(g)+".jpg")
-            os.system("sudo uvccapture "+additonal_commands+" -S"+s_val+" -C" + c_val + " -G"+ str(g) +" -B"+ b_val +" -x"+str(x_dim)+" -y"+str(y_dim)+" -v -t0 -otest_range_g_"+str(g)+".jpg")
+            output_file = "test_range_g_"+str(g)+".jpg"
+            capture_image(s_val, c_val, g, b_val, x_dim, y_dim, output_file, additonal_commands)
         print("Range captured, view and select best value..")
         os.system("gpicview test_range_g_"+str(start_v)+".jpg")
         g_val = raw_input("Input value to use for Gain..")
@@ -141,8 +145,6 @@ def show_menu():
         for b in range(start_v,end_v,skip_v):
             output_file = "test_range_b_"+str(b)+".jpg"
             capture_image(s_val, c_val, g_val, b, x_dim, y_dim, output_file, additonal_commands)
-#            print("---Doing: sudo uvccapture "+additonal_commands +" -S"+s_val+" -C" + c_val + " -G"+ g_val +" -B"+ str(b) +" -x"+str(x_dim)+" -y"+str(y_dim)+" -v -t0 -otest_range_b_"+str(b)+".jpg")
-#            os.system("sudo uvccapture "+additonal_commands+" -S"+s_val+" -C" + c_val + " -G"+ g_val +" -B"+ str(b) +" -x"+str(x_dim)+" -y"+str(y_dim)+" -v -t0 -otest_range_b_"+str(b)+".jpg")
         print("Range captured, view and select best value..")
         os.system("gpicview test_range_b_"+str(start_v)+".jpg")
         b_val = raw_input("Input value to use for Brightness..")
