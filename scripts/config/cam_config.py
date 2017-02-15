@@ -180,7 +180,6 @@ def show_menu():
         print("---Doing: " + cam_cmd)
         os.system(cam_cmd)
         os.system("gpicview " + output_file)
-        show_menu()
 
     elif option == "r":
         print("Testing stability using current configuration to take range...")
@@ -208,6 +207,7 @@ def show_menu():
         print("That wasn't an option...")
         show_menu()
 
-show_menu()
+while true:
+    show_menu()
 
 print "done"
