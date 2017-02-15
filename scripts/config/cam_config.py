@@ -75,15 +75,15 @@ def show_menu():
     print("which you can select the best configuration.")
     print("")
     print("Current settings; S = " + str(s_val) + "  C = " + str(c_val) + "  G = " + str(g_val) + "  B = " + str(b_val))
-    print("  ____________________________________________")
-    print(" |Set value             d - show camera dims  |")
-    print(" | 1 - Saturation       x - set x dim |")
-    print(" | 2 - Contrast         y - set y dim |")
-    print(" | 3 - Gain              ----------------------|")
-    print(" | 4 - Brightness                              |")
-    print(" |                      t - take and show test |")
-    print(" |Take Range            r - range test         |")
-    print(" | 5 - Saturation        ----------------------|")
+    print("  ______________________________________________")
+    print(" |Set value             dim - show camera dims  |")
+    print(" | 1 - Saturation         x - set x dim         |")
+    print(" | 2 - Contrast           y - set y dim         |")
+    print(" | 3 - Gain              -----------------------|")
+    print(" | 4 - Brightness       t - take and show test  |")
+    print(" |                      d - take camera default |")
+    print(" |Take Range            r - range test          |")
+    print(" | 5 - Saturation        -----------------------|")
     print(" | 6 - Contrast          |")
     print(" | 7 - Gain              |")
     print(" | 8 - Brightness        |")
@@ -106,9 +106,19 @@ def show_menu():
         b_val = raw_input("Input value to use for Brightness..")
         show_menu()
     elif option == "x":
-        x_dim = raw_input("Input value to use for X dim")
+        x_dim = raw_input("Input value to use for X dim; ")
+        show_menu()
     elif option == "y":
-        y_dim = raw_input("Input value to use for Y dim")
+        y_dim = raw_input("Input value to use for Y dim; ")
+        show_menu()
+    elif option == "dim":
+        print("ok, this list is ugly...")
+          # if using more than one webcam at a time lsusb to find bus and device number
+          # then add -s BUS:DEVICE e.g. -s 001:005 to only search that device
+          #e.g. os.system("lsusb -s 001:002 -v | egrep "Width|Height")
+        os.system('lsusb -v | egrep "Width|Height"')
+        print("     ...and that's it.")
+        show_menu()
 
     elif option == "5":
         print("Capturing range of Saturation images...")
@@ -158,6 +168,16 @@ def show_menu():
         print("Using current configuration to take image...")
         output_file = "test_current.jpg"
         capture_image(s_val, c_val, g_val, b_val, x_dim, y_dim, output_file, additonal_commands)
+        os.system("gpicview " + output_file)
+        show_menu()
+    elif option == "d":
+        print("Using camera deafults to take image...")
+        output_file = "test_defaults.jpg"
+        cam_cmd = "sudo uvccapture " + additonal      #additional commands (camera select)
+        cam_cmd += " -x"+str(x_cap)+" -y"+str(y_cap) + " "  #x and y dimensions of photo
+        cam_cmd += "-v -t0 -o" + output_file          #verbose, no delay, output
+        print("---Doing: " + cam_cmd)
+        os.system(cam_cmd)
         os.system("gpicview " + output_file)
         show_menu()
 
