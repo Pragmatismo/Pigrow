@@ -60,7 +60,7 @@ def capture_image(s_cap, c_cap, g_cap, b_cap, x_cap, y_cap, output_file, additon
     cam_cmd += "-v -t0 -o" + output_file          #verbose, no delay, output
     print("---Doing: " + cam_cmd)
     os.system(cam_cmd)
-    print("Captured, " + output_file")
+    print("Captured, " + output_file)
 
 def show_menu():
     global s_val
