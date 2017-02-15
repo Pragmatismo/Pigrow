@@ -116,10 +116,10 @@ def show_menu():
         raw_input("Press return to continue...")
     elif option == "cam":
         cam_opt = []
-        for name in in os.listdir(path):
+        for name in os.listdir(path):
             if name[0:5] == "video":
                 cam_opt.append(name)
-        print("Choice of;")        
+        print("Choice of;")
         print cam_opt
         cam_num = raw_input("Input camera number; ")
         additonal_commands = "-d/dev/video" + str(cam_num)"
