@@ -56,7 +56,7 @@ except:
 def capture_image(s_cap, c_cap, g_cap, b_cap, x_cap, y_cap, output_file, additonal=""):
     cam_cmd = "sudo uvccapture " + additonal      #additional commands (camera select)
     cam_cmd += " -S" + str(s_cap) + " -C" + str(c_cap) + " -G" + str(g_cap) + " -B" + str(b_cap)
-    cam_cmd += " -x"+str(x_cap)+" -y"+str(y_cap)  #x and y dimensions of photo
+    cam_cmd += " -x"+str(x_cap)+" -y"+str(y_cap) + " "  #x and y dimensions of photo
     cam_cmd += "-v -t0 -o" + output_file          #verbose, no delay, output
     print("---Doing: " + cam_cmd)
     os.system(cam_cmd)
