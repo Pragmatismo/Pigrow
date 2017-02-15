@@ -164,7 +164,7 @@ def show_menu():
         b_val = raw_input("Input value to use for Brightness..")
 
     elif option == "0":
-        os.system("sudo rm test_range_*.jpg")
+        os.system("sudo rm test_*.jpg")
         print("Images deleted")
     elif option == "t":
         print("Using current configuration to take image...")
