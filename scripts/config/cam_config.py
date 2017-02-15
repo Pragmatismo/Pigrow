@@ -139,8 +139,10 @@ def show_menu():
     elif option == "8":
         print("Capturing range of Brightness images...")
         for b in range(start_v,end_v,skip_v):
-            print("---Doing: sudo uvccapture "+additonal_commands +" -S"+s_val+" -C" + c_val + " -G"+ g_val +" -B"+ str(b) +" -x"+str(x_dim)+" -y"+str(y_dim)+" -v -t0 -otest_range_b_"+str(b)+".jpg")
-            os.system("sudo uvccapture "+additonal_commands+" -S"+s_val+" -C" + c_val + " -G"+ g_val +" -B"+ str(b) +" -x"+str(x_dim)+" -y"+str(y_dim)+" -v -t0 -otest_range_b_"+str(b)+".jpg")
+            output_file = "test_range_b_"+str(b)+".jpg"
+            capture_image(s_val, c_val, g_val, b, x_dim, y_dim, output_file, additonal_commands)
+#            print("---Doing: sudo uvccapture "+additonal_commands +" -S"+s_val+" -C" + c_val + " -G"+ g_val +" -B"+ str(b) +" -x"+str(x_dim)+" -y"+str(y_dim)+" -v -t0 -otest_range_b_"+str(b)+".jpg")
+#            os.system("sudo uvccapture "+additonal_commands+" -S"+s_val+" -C" + c_val + " -G"+ g_val +" -B"+ str(b) +" -x"+str(x_dim)+" -y"+str(y_dim)+" -v -t0 -otest_range_b_"+str(b)+".jpg")
         print("Range captured, view and select best value..")
         os.system("gpicview test_range_b_"+str(start_v)+".jpg")
         b_val = raw_input("Input value to use for Brightness..")
@@ -154,15 +156,15 @@ def show_menu():
         print("Using current configuration to take image...")
         output_file = "test_current.jpg"
         capture_image(s_val, c_val, g_val, b_val, x_dim, y_dim, output_file, additonal_commands)
-        #os.system("sudo uvccapture "+additonal_commands+" -S"+s_val+" -C" + c_val + " -G"+ g_val +" -B"+ b_val +" -x"+str(x_dim)+" -y"+str(y_dim)+" -v -t0 -otest_range_test.jpg")
         os.system("gpicview " + output_file)
         show_menu()
 
     elif option == "r":
         print("Testing stability using current configuration to take range...")
         for x in range(1,10):
-            os.system("sudo uvccapture "+additonal_commands+" -S"+s_val+" -C" + c_val + " -G"+ g_val +" -B"+ b_val +" -x"+str(x_dim)+" -y"+str(y_dim)+" -v -t0 -otest_range_range_test_"+str(x)+".jpg")
-        os.system("gpicview test_range_range_test_1.jpg")
+            output_file = "test_range_"+str(x)+".jpg"
+            capture_image(s_val, c_val, g_val, b_val, x_dim, y_dim, output_file, additonal_commands)
+        os.system("gpicview test_range_1.jpg")
         show_menu()
 
     elif option == "s":
