@@ -1,5 +1,5 @@
 #!/usr/bin/python
-import os
+import os, sys
 s_val = "60"
 c_val = "60"
 g_val = "60"
