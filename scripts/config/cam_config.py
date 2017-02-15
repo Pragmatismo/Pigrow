@@ -66,7 +66,7 @@ def show_menu():
     global s_val, c_val, g_val, b_val
     global x_dim, y_dim
     global additonal_commands
-    
+
     print("----------------------------")
     print("---Camera test and config---")
     print("----------------------------")
@@ -174,8 +174,8 @@ def show_menu():
     elif option == "d":
         print("Using camera deafults to take image...")
         output_file = "test_defaults.jpg"
-        cam_cmd = "sudo uvccapture " + additonal      #additional commands (camera select)
-        cam_cmd += " -x"+str(x_cap)+" -y"+str(y_cap) + " "  #x and y dimensions of photo
+        cam_cmd = "sudo uvccapture " + additonal_commands   #additional commands (camera select)
+        cam_cmd += " -x"+str(x_dim)+" -y"+str(y_dim) + " "  #x and y dimensions of photo
         cam_cmd += "-v -t0 -o" + output_file          #verbose, no delay, output
         print("---Doing: " + cam_cmd)
         os.system(cam_cmd)
