@@ -63,10 +63,10 @@ def capture_image(s_cap, c_cap, g_cap, b_cap, x_cap, y_cap, output_file, additon
     print("Captured, " + output_file)
 
 def show_menu():
-    global s_val
-    global c_val
-    global g_val
-    global b_val
+    global s_val, c_val, g_val, b_val
+    global x_dim, y_dim
+    global additonal_commands
+    
     print("----------------------------")
     print("---Camera test and config---")
     print("----------------------------")
@@ -117,7 +117,8 @@ def show_menu():
           # then add -s BUS:DEVICE e.g. -s 001:005 to only search that device
           #e.g. os.system("lsusb -s 001:002 -v | egrep "Width|Height")
         os.system('lsusb -v | egrep "Width|Height"')
-        print("     ...and that's it.")
+        print("    ")
+        raw_input("Press return to continue...")
         show_menu()
 
     elif option == "5":
