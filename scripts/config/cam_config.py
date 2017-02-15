@@ -199,7 +199,7 @@ def show_menu():
             f.write("y_dim="+str(y_dim)+"\n")
             f.write("additonal_commands="+additonal_commands+ "\n")
         print("Config Saved")
-    elif option == "q" or option == "Q" or option == "":
+    elif option == "q" or option == "Q": # or option == "":
         exit()
     else:
         print("That wasn't an option...")
