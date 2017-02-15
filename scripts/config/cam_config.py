@@ -85,7 +85,7 @@ def show_menu():
     print(" |                      d - take camera default |")
     print(" |Take Range            r - range test          |")
     print(" | 5 - Saturation                               |")
-    print(" | 6 - Contrast         c - camera select       |")
+    print(" | 6 - Contrast         cam - camera select       |")
     print(" | 7 - Gain                                    |")
     print(" | 8 - Brightness                             |")
     print(" |                                           |")
