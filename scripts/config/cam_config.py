@@ -95,22 +95,16 @@ def show_menu():
     option = raw_input("Type the number and press return;")
     if option == "1":
         s_val = raw_input("Input value to use for Saturation..")
-        show_menu()
     elif option == "2":
         c_val = raw_input("Input value to use for Contrast..")
-        show_menu()
     elif option == "3":
         g_val = raw_input("Input value to use for Gain..")
-        show_menu()
     elif option == "4":
         b_val = raw_input("Input value to use for Brightness..")
-        show_menu()
     elif option == "x":
         x_dim = raw_input("Input value to use for X dim; ")
-        show_menu()
     elif option == "y":
         y_dim = raw_input("Input value to use for Y dim; ")
-        show_menu()
     elif option == "dim":
         print("ok, this list is ugly...")
           # if using more than one webcam at a time lsusb to find bus and device number
@@ -119,7 +113,6 @@ def show_menu():
         os.system('lsusb -v | egrep "Width|Height"')
         print("    ")
         raw_input("Press return to continue...")
-        show_menu()
 
     elif option == "5":
         print("Capturing range of Saturation images...")
@@ -129,7 +122,6 @@ def show_menu():
         print("Range captured, view and select best value..")
         os.system("gpicview test_range_s_"+str(start_v)+".jpg")
         s_val = raw_input("Input value to use for Saturation..")
-        show_menu()
 
     elif option == "6":
         print("Capturing range of Contrast images...")
@@ -139,7 +131,6 @@ def show_menu():
         print("Range captured, view and select best value..")
         os.system("gpicview test_range_c_"+str(start_v)+".jpg")
         c_val = raw_input("Input value to use for Contrast..")
-        show_menu()
 
     elif option == "7":
         print("Capturing range of Gain images...")
@@ -149,7 +140,6 @@ def show_menu():
         print("Range captured, view and select best value..")
         os.system("gpicview test_range_g_"+str(start_v)+".jpg")
         g_val = raw_input("Input value to use for Gain..")
-        show_menu()
 
     elif option == "8":
         print("Capturing range of Brightness images...")
@@ -159,18 +149,15 @@ def show_menu():
         print("Range captured, view and select best value..")
         os.system("gpicview test_range_b_"+str(start_v)+".jpg")
         b_val = raw_input("Input value to use for Brightness..")
-        show_menu()
 
     elif option == "0":
         os.system("sudo rm test_range_*.jpg")
         print("Images deleted")
-        show_menu()
     elif option == "t":
         print("Using current configuration to take image...")
         output_file = "test_current.jpg"
         capture_image(s_val, c_val, g_val, b_val, x_dim, y_dim, output_file, additonal_commands)
         os.system("gpicview " + output_file)
-        show_menu()
     elif option == "d":
         print("Using camera deafults to take image...")
         output_file = "test_defaults.jpg"
@@ -187,7 +174,6 @@ def show_menu():
             output_file = "test_range_"+str(x)+".jpg"
             capture_image(s_val, c_val, g_val, b_val, x_dim, y_dim, output_file, additonal_commands)
         os.system("gpicview test_range_1.jpg")
-        show_menu()
 
     elif option == "s":
         print("Saving configuration file...")
@@ -200,12 +186,10 @@ def show_menu():
             f.write("y_dim="+str(y_dim)+"\n")
             f.write("additonal_commands="+additonal_commands+ "\n")
         print("Config Saved")
-        show_menu()
     elif option == "q" or option == "Q" or option == "":
         exit()
     else:
         print("That wasn't an option...")
-        show_menu()
 
 while True:
     show_menu()
