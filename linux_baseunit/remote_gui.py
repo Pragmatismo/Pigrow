@@ -6,7 +6,7 @@ import datetime
 target_address = "pi@192.168.1.11"
 target_pass    = "raspberry"
 target_cap_files   = "/home/pi/Pigrow/caps/*.jpg"
-target_log_path = "/home/pi/Pigrow/logs/"
+target_log_path = "/home/pi/logs/"
 cap_type = "jpg"
 
 if sys.platform == 'win32':
@@ -113,10 +113,21 @@ def download_logs():
             raise
     dht_fa, sl_fa, err_fa, switch_fa  = log_times()
     if dht_ff == dht_fa:
-        message = "dht not found, "
+        message = " DHT log not updated, \n"
     else:
-        message = "DHT which is " + str((dht_ff - dht_fa) * 60) + " min newer "
-    # sl_ff, err_ff, switch_ff  = log_times()
+        message = " DHT log which is " + str(round(dht_fa - dht_ff)) + " sec newer \n"
+    if sl_ff == sl_fa:
+        message += " Self log not updated, \n"
+    else:
+        message += " Self log which is " + str(round(sl_fa - sl_ff)) + " min newer \n"
+    if switch_ff == switch_fa:
+        message += " Switch log not updated, \n"
+    else:
+        message += " Switch log which is " + str(round(switch_fa - switch_ff)) + " min newer \n"
+    if err_ff == err_fa:
+        message += " Error log not updated, \n"
+    else:
+        message += " Error log which is " + str(round(err_fa - err_ff)) + " min newer \n"
     return message
 
 def load_dhtlog():
@@ -214,7 +225,7 @@ class Pigrow(wx.Frame):
         cap_files = self.update_caps()
 
      #Opening the window
-        self.SetSize((600, 500))
+        self.SetSize((800, 600))
         self.SetTitle('Pigrow Control')
         self.Centre()
         self.Show(True)
