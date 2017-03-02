@@ -286,11 +286,21 @@ class Pigrow(wx.Frame):
         self.d_con.Check()
         menubar.Append(downMenu, '&Download')
         visMenu = wx.Menu()
+        self.v_scale = visMenu.Append(wx.ID_ANY, 'Resize', 'Toggle Image Resize', kind=wx.ITEM_CHECK)
+        visMenu.AppendSeparator()
         self.v_cap = visMenu.Append(wx.ID_ANY, 'Most Recent cap', 'Shows most recent image', kind=wx.ITEM_RADIO)
         self.v_hourA = visMenu.Append(wx.ID_ANY, 'Last Hour Gif', 'Shows most recent image', kind=wx.ITEM_RADIO)
         self.v_dayA = visMenu.Append(wx.ID_ANY, 'Last Day Gif', 'Shows most recent image', kind=wx.ITEM_RADIO)
-        self.v_cap = visMenu.Append(wx.ID_ANY, 'Caps Graphs', 'Self log graphs', kind=wx.ITEM_RADIO)
-        self.v_cap = visMenu.Append(wx.ID_ANY, 'Self Graphs', 'Self log graphs', kind=wx.ITEM_RADIO)
+        self.v_capgr = visMenu.Append(wx.ID_ANY, 'Caps Graphs', 'Self log graphs', kind=wx.ITEM_RADIO)
+        self.v_selfgr = visMenu.Append(wx.ID_ANY, 'Self Graphs', 'Self log graphs', kind=wx.ITEM_RADIO)
+
+        #self.Bind(wx.EVT_MENU, self.checkbox_big, self.v_cap)
+        self.Bind(wx.EVT_MENU, lambda event: self.checkbox_big(event, cap_files),  self.v_scale)
+        self.Bind(wx.EVT_MENU, lambda event: self.checkbox_big(event, cap_files),  self.v_cap)
+        self.Bind(wx.EVT_MENU, lambda event: self.checkbox_big(event, cap_files), self.v_hourA)
+        self.Bind(wx.EVT_MENU, lambda event: self.checkbox_big(event, cap_files), self.v_dayA)
+        self.Bind(wx.EVT_MENU, lambda event: self.checkbox_big(event, cap_files), self.v_capgr)
+        self.Bind(wx.EVT_MENU, lambda event: self.checkbox_big(event, cap_files), self.v_selfgr)
         menubar.Append(visMenu, 'Show')
 
         self.SetMenuBar(menubar)
@@ -409,16 +419,33 @@ class Pigrow(wx.Frame):
         self.cap_thumb.SetBitmap(wx.BitmapFromImage(scale_size_graph))
         return cap_files
 
+    def checkbox_big(self, e, cap_files):
+        self.update_bigpic(cap_files)
+
     def update_bigpic(self, cap_files):
-        pictoload = str(capsdir + cap_files[-1])
+        if self.v_cap.IsChecked():
+            pictoload = str(capsdir + cap_files[-1])
+        elif self.v_hourA.IsChecked():
+            pictoload = str(capsdir + cap_files[0])
+        elif self.v_dayA.IsChecked():
+            pictoload = str(capsdir + cap_files[1])
+        elif self.v_capgr.IsChecked():
+            pictoload = str(graphdir+'caps_filesize_graph.png')
+        elif self.v_selfgr.IsChecked():
+            pictoload = str(graphdir+'caps_timediff_graph.png')
+    #load and scale image
         bigpic = wx.Image(pictoload, wx.BITMAP_TYPE_ANY)
         pic_hight = bigpic.GetHeight()
-        pic_width = bigpic.GetWidth()
-        new_hight = 800
-        sizeratio = (pic_hight / new_hight)
-        new_width = (pic_width / sizeratio)
-        scale_bigpic = bigpic.Scale(new_hight, new_width)
-        self.bigpic.SetBitmap(wx.BitmapFromImage(scale_bigpic))
+        pic_choice = bigpic
+        if self.v_scale.IsChecked():
+            if pic_hight > 800:
+                pic_width = bigpic.GetWidth()
+                new_hight = 800
+                sizeratio = (pic_hight / new_hight)
+                new_width = (pic_width / sizeratio)
+                scale_bigpic = bigpic.Scale(new_width, new_hight)
+                pic_choice = scale_bigpic
+        self.bigpic.SetBitmap(wx.BitmapFromImage(pic_choice))
 
     def download(self, e):
         target_ip = self.tb_ip.GetValue()
