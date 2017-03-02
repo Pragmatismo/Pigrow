@@ -3,23 +3,35 @@
 import os, sys
 import wx
 import datetime
-target_address = "pi@192.168.1.11"
-target_pass    = "raspberry"
+
+#target_address = "pi@192.168.1.11"
+#target_pass    = "raspberry"
+
+
 target_cap_files   = "/home/pi/Pigrow/caps/*.jpg"
+target_graph_path = "/home/pi/Pigrow/graphs/"
 target_log_path = "/home/pi/logs/"
+target_config_path = "/home/pi/Pigrow/config/"
+#target_crontab_path = "/var/spool/cron/crontabs/pi"
 cap_type = "jpg"
+
+capsgraph = True
 
 if sys.platform == 'win32':
     OS = 'win'
     winrsyncpath = "c:\MinGW\msys\\1.0\\bin\\"
     logsdir = winrsyncpath + "logs\\"
     capsdir = winrsyncpath + "caps\\"
+    graphdir = winrsyncpath + "graph\\"
+    configdir =  winrsyncpath + "config\\"
     print(" This IS a windows 32 system, how exciting!")
 elif sys.platform == 'linux2':
 #elif sys.platform.startswith('linux'):
     print(" This is a linux system, great news! best choice!")
     logsdir = "/home/pragmo/frompigrow/logs/"
     capsdir = "/home/pragmo/frompigrow/caps/"
+    graphdir = '/home/pragmo/frompigrow/graph/'
+    configdir = '/home/pragmo/frompigrow/config/'
     OS = 'linux'
 else:
     print(" i have no idea what this is?!")
@@ -33,8 +45,6 @@ self_log   = logsdir + 'selflog.txt'
 switch_log = logsdir + 'switch_log.txt'
 err_log    = logsdir + 'err_log.txt'
 
-cap_files = []
-
 def count_caps():
     cap_files = []
     for filefound in os.listdir(capsdir):
@@ -42,8 +52,9 @@ def count_caps():
             cap_files.append(filefound)
     return cap_files
 
-def download_caps():
+def download_caps(target_ip, target_user, target_pass):
     #note this ignores existing files
+    target_address = target_user + "@" + target_ip
     if OS == 'linux':
         try:
             print("Copying files...   (this may time some time)")
@@ -88,8 +99,9 @@ def log_times():
             switch_ff = os.path.getmtime(logsdir+filefound)
     return dht_ff, sl_ff, err_ff, switch_ff
 
-def download_logs():
-    #note this overwrites existing files
+def download_logs(target_ip, target_user, target_pass):
+    #note this overwrites existing local files
+    target_address = target_user + "@" + target_ip
  #get last edit times for files
     dht_ff, sl_ff, err_ff, switch_ff  = log_times()
  #downloads the files
@@ -107,40 +119,110 @@ def download_logs():
             raise
     elif OS == 'win':
         try:
-            print("Grabbing logs, this may take a while.")
+            print("Copying files...")
+            os.chdir(winrsyncpath)
+            rsync_cmd = "rsync.exe " + target_address +":"+ target_log_path + " logs"
+            print rsync_cmd
+            os.system(rsync_cmd)
+        except OSError as err:
+            print("OS error: {0}".format(err))
         except:
-            print("dang, that fucked up")
+            print("Unexpected error:", sys.exc_info()[0])
             raise
+  #get file tiems again and check if they've changed
     dht_fa, sl_fa, err_fa, switch_fa  = log_times()
     if dht_ff == dht_fa:
-        message = " DHT log not updated, \n"
+        message = "  DHT log not updated, \n"
     else:
-        message = " DHT log which is " + str(round(dht_fa - dht_ff)) + " sec newer \n"
+        message = "  DHT log which is " + str(round(dht_fa - dht_ff)) + " sec newer \n"
     if sl_ff == sl_fa:
-        message += " Self log not updated, \n"
+        message += "  Self log not updated, \n"
     else:
-        message += " Self log which is " + str(round(sl_fa - sl_ff)) + " min newer \n"
+        message += "  Self log which is " + str(round(sl_fa - sl_ff)) + " min newer \n"
     if switch_ff == switch_fa:
-        message += " Switch log not updated, \n"
+        message += "  Switch log not updated, \n"
     else:
-        message += " Switch log which is " + str(round(switch_fa - switch_ff)) + " min newer \n"
+        message += "  Switch log which is " + str(round(switch_fa - switch_ff)) + " min newer \n"
     if err_ff == err_fa:
-        message += " Error log not updated, \n"
+        message += "  Error log not updated, \n"
     else:
-        message += " Error log which is " + str(round(err_fa - err_ff)) + " min newer \n"
+        message += "  Error log which is " + str(round(err_fa - err_ff)) + " min newer \n"
     return message
+
+def download_graphs(target_ip, target_user, target_pass):
+    #note this overwrites existing local files
+    target_address = target_user + "@" + target_ip
+    if OS == 'linux':
+        try:
+            print("Grabbing graphs, this may take a short while...")
+            cmd = "rsync -ratlz --rsh=\"/usr/bin/sshpass -p "+target_pass
+            cmd +=" ssh -o StrictHostKeyChecking=no -l "+target_address+"\" "+target_address+":"+target_graph_path+" "+graphdir
+            os.system(cmd)
+            print("local graphs updated as " + graphdir)
+        except OSError as err:
+            print("OS error: {0}".format(err))
+        except:
+            print("Unexpected error:", sys.exc_info()[0])
+            raise
+    elif OS == 'win':
+        try:
+            print("Copying graphs...")
+            os.chdir(winrsyncpath)
+            rsync_cmd = "rsync.exe " + target_address +":"+ target_graph_path + " graphs"
+            print rsync_cmd
+            os.system(rsync_cmd)
+        except OSError as err:
+            print("OS error: {0}".format(err))
+        except:
+            print("Unexpected error:", sys.exc_info()[0])
+            raise
+
+def download_config(target_ip, target_user, target_pass):
+    #note this overwrites existing local files
+    target_address = target_user + "@" + target_ip
+    if OS == 'linux':
+        try:
+            print("Grabbing config, this may take a short while...")
+            cmd = "rsync -ratlz --rsh=\"/usr/bin/sshpass -p "+target_pass
+            cmd +=" ssh -o StrictHostKeyChecking=no -l "+target_address+"\" "
+            cmd += target_address +":"+ target_config_path +" "+ configdir
+            os.system(cmd)
+            #cmd = "rsync -ratlz --rsh=\"/usr/bin/sshpass -p "+target_pass
+            #cmd +=" ssh -o StrictHostKeyChecking=no -l "+target_address+"\" "
+            #cmd += target_address +":"+ target_crontab_path +" "+ configdir
+            #os.system(cmd)
+               #The above fails becayse of file permissions on the pi...
+            print("local pi config files updated at " + configdir)
+        except OSError as err:
+            print("OS error: {0}".format(err))
+        except:
+            print("Unexpected error:", sys.exc_info()[0])
+            raise
+    elif OS == 'win':
+        try:
+            print("Copying config...")
+            os.chdir(winrsyncpath)
+            rsync_cmd = "rsync.exe " + target_address +":"+ target_config_path + " config"
+            print rsync_cmd
+            os.system(rsync_cmd)
+        except OSError as err:
+            print("OS error: {0}".format(err))
+        except:
+            print("Unexpected error:", sys.exc_info()[0])
+            raise
+    print("Config files download")
 
 def load_dhtlog():
     dht_dates = []
     dht_temps = []
     dht_humids = []
-    hours_to_show = 999999 #currently not used
+    #hours_to_show = 999999 #currently not used
     thetime = datetime.datetime.now()
     with open(dht_log, "r") as f:
         logitem = f.read()
         logitem = logitem.split("\n")
     print('Adding ' + str(len(logitem)) + ' readings from log.')
-    oldest_allowed_date = thetime - datetime.timedelta(hours=hours_to_show)
+    #oldest_allowed_date = thetime - datetime.timedelta(hours=hours_to_show)
     curr_line = len(logitem) - 1
     while curr_line >= 0:
         try:
@@ -172,16 +254,10 @@ class Pigrow(wx.Frame):
         self.InitUI()
 
     def InitUI(self):
-        pnl = wx.Panel(self)
-        font_big = wx.Font(15, wx.DEFAULT, wx.NORMAL, wx.BOLD)
-        font_small = wx.Font(15, wx.DEFAULT, wx.NORMAL, wx.BOLD)
-        heading = wx.StaticText(self, label='Pigrow Control', pos=(130, 15))
-        heading.SetFont(font_big)
 
      #menu bar
         menubar = wx.MenuBar()
         fileMenu = wx.Menu()
-
 
         menu_seek = fileMenu.Append(wx.ID_ANY, 'Seek for Pi', 'Search the local network for a pi')
         menu_settings = fileMenu.Append(wx.ID_ANY, 'Pi settings', 'Edit and update pigrow config files')
@@ -213,22 +289,60 @@ class Pigrow(wx.Frame):
         self.v_cap = visMenu.Append(wx.ID_ANY, 'Most Recent cap', 'Shows most recent image', kind=wx.ITEM_RADIO)
         self.v_hourA = visMenu.Append(wx.ID_ANY, 'Last Hour Gif', 'Shows most recent image', kind=wx.ITEM_RADIO)
         self.v_dayA = visMenu.Append(wx.ID_ANY, 'Last Day Gif', 'Shows most recent image', kind=wx.ITEM_RADIO)
+        self.v_cap = visMenu.Append(wx.ID_ANY, 'Caps Graphs', 'Self log graphs', kind=wx.ITEM_RADIO)
         self.v_cap = visMenu.Append(wx.ID_ANY, 'Self Graphs', 'Self log graphs', kind=wx.ITEM_RADIO)
         menubar.Append(visMenu, 'Show')
 
         self.SetMenuBar(menubar)
 
-     #caps
-        self.cap_len_text = wx.StaticText(self,  label='Files in caps ; ', pos=(25, 75))
-        self.cap_ff_text = wx.StaticText(self, label='First file ; ', pos=(25, 100))
-        self.cap_lf_text = wx.StaticText(self,  label='Last file  ; ', pos=(25, 125))
+     #connect pannel
+        pnl = wx.Panel(self)
+        self.Bind(wx.EVT_PAINT, self.OnPaint)
+        font_big = wx.Font(15, wx.DEFAULT, wx.NORMAL, wx.BOLD)
+        font_small = wx.Font(15, wx.DEFAULT, wx.NORMAL, wx.BOLD)
+        heading = wx.StaticText(self, label='Pigrow Control', pos=(300, 15))
+        heading.SetFont(font_big)
+
+        wx.StaticText(self,  label='address', pos=(10, 20))
+        self.tb_ip = wx.TextCtrl(self, pos=(125, 25), size=(150, 25))
+        self.tb_ip.SetValue("192.168.1.11")
+
+        wx.StaticText(self,  label='Username', pos=(10, 60))
+        self.tb_user = wx.TextCtrl(self, pos=(125, 60), size=(150, 25))
+        self.tb_user.SetValue("pi")
+
+        wx.StaticText(self,  label='Psssword', pos=(10, 95))
+        self.tb_pass = wx.TextCtrl(self, pos=(125, 95), size=(150, 25))
+        self.tb_pass.SetValue("raspberry")
+
+        self.last_acc = wx.StaticText(self,  label='Last Accessed; ', pos=(10, 140))
+     #local storage
+        self.last_acc = wx.StaticText(self,  label='Local Storage; ', pos=(10, 180))
+        self.cap_thumb = wx.StaticBitmap(self, bitmap=wx.EmptyBitmap(150, 150), pos=(85, 210))
+        self.cap_thumb.Bind(wx.EVT_LEFT_DOWN, self.clickgraph)
+        wx.StaticText(self,  label='Caps ; ', pos=(5, 210))
+        self.cap_len_text = wx.StaticText(self,  label='Caps ; ', pos=(20, 235))
+        self.cap_lf_text = wx.StaticText(self,  label=' ', pos=(10, 315))
+        self.cap_ff_text = wx.StaticText(self, label=' ', pos=(10, 340))
         cap_files = self.update_caps()
+    #
+        self.bigpic = wx.StaticBitmap(self, bitmap=wx.EmptyBitmap(500, 500), pos=(300, 0))
+        self.update_bigpic(cap_files)
+
+
+
+
+
 
      #Opening the window
         self.SetSize((800, 600))
         self.SetTitle('Pigrow Control')
         self.Centre()
         self.Show(True)
+
+    def OnPaint(self, e):
+        dc = wx.PaintDC(self)
+        dc.DrawLine(10, 170, 275, 170)
 
     def imp_caps(self, e):
         openFileDialog = wx.FileDialog(self, "Select caps folder", "", "", "JPG files (*.jpg)|*.jpg", wx.FD_OPEN | wx.FD_FILE_MUST_EXIST)
@@ -248,41 +362,94 @@ class Pigrow(wx.Frame):
         print("Bye!")
         self.Close(True)
 
+    def clickgraph(self, e):
+        cap_size_graph = wx.Image(graphdir+'caps_filesize_graph.png', wx.BITMAP_TYPE_ANY)
+        cap_dif_graph = wx.Image(graphdir+'caps_timediff_graph.png', wx.BITMAP_TYPE_ANY)
+        hpos = cap_size_graph.GetWidth() + 5
+        self.capgraph = wx.Frame(None, title='Cap Graph', size=(hpos*2, cap_size_graph.GetHeight()))
+        self.cappic = wx.Panel(self.capgraph)
+        self.cap_top = wx.StaticBitmap(self.capgraph, bitmap=wx.EmptyBitmap(150, 150), pos=(5, 5))
+        self.cap_bot = wx.StaticBitmap(self.capgraph, bitmap=wx.EmptyBitmap(150, 150), pos=(hpos, 5))
+        self.cap_top.SetBitmap(wx.BitmapFromImage(cap_size_graph))
+        self.cap_bot.SetBitmap(wx.BitmapFromImage(cap_dif_graph))
+        self.capgraph.Show()
+
     def update_caps(self):
         cap_files = []
         for filefound in os.listdir(capsdir):
             if filefound.endswith(cap_type):
                 cap_files.append(filefound)
         if len(cap_files) > 1:
-            self.cap_len_text.SetLabel('Files in caps; ' + str(len(cap_files)))
-            self.cap_ff_text.SetLabel('Files in caps; ' + str(cap_files[1]))
-            self.cap_lf_text.SetLabel('Files in caps; ' + str(cap_files[-1]))
+            self.cap_len_text.SetLabel(' ' + str(len(cap_files)))
+            cap_files.sort()
+            lastcapdate = float(cap_files[-1].split(".")[0].split("_")[-1])
+            firstcapdate = float(cap_files[0].split(".")[0].split("_")[-1])
+            capdur = datetime.datetime.fromtimestamp(lastcapdate) - datetime.datetime.fromtimestamp(firstcapdate)
+            lastcapdate = datetime.datetime.now() - datetime.datetime.fromtimestamp(lastcapdate)
+            lastcapdate = str(lastcapdate).split(".")[0]
+            self.cap_lf_text.SetLabel("last; " + str(lastcapdate) + " ago")
+            capdur = str(capdur).split(".")[0]
+            self.cap_ff_text.SetLabel('duration; ' + capdur)
         else:
-            self.cap_len_text.SetLabel('Caps folder is empty')
+            self.cap_len_text.SetLabel('Empty')
             self.cap_ff_text.SetLabel('')
+
+        if len(cap_files) > 0 and capsgraph == True:
+            print("make graph")
+            if OS == "linux":
+                print("Yay linux")
+                #os.system("../scripts/visualisation/caps_graph.py caps="+capsdir+" out="+graphdir)
+            elif OS == 'win':
+                print("oh, windows, i prefer linux but no worries...")
+                os.system("python ../scripts/visualisation/caps_graph.py caps="+capsdir+" out="+graphdir)
+        else:
+            print("no caps to make graphs with")
+        cap_size_graph = wx.Image(graphdir+'caps_filesize_graph.png', wx.BITMAP_TYPE_ANY)
+        scale_size_graph = cap_size_graph.Scale(200, 100)
+        self.cap_thumb.SetBitmap(wx.BitmapFromImage(scale_size_graph))
         return cap_files
 
+    def update_bigpic(self, cap_files):
+        pictoload = str(capsdir + cap_files[-1])
+        bigpic = wx.Image(pictoload, wx.BITMAP_TYPE_ANY)
+        pic_hight = bigpic.GetHeight()
+        pic_width = bigpic.GetWidth()
+        new_hight = 800
+        sizeratio = (pic_hight / new_hight)
+        new_width = (pic_width / sizeratio)
+        scale_bigpic = bigpic.Scale(new_hight, new_width)
+        self.bigpic.SetBitmap(wx.BitmapFromImage(scale_bigpic))
+
     def download(self, e):
-        msg_text = "Found; "
-        if self.d_log.IsChecked():
-            message = download_logs()
-            msg_text += message
-        if self.d_gra.IsChecked():
-            #download_graphs()
-            print("graph download not enabled yet")
+        target_ip = self.tb_ip.GetValue()
+        target_user = self.tb_user.GetValue()
+        target_pass = self.tb_pass.GetValue()
+        msg_text = "Found; \n"
         if self.d_con.IsChecked():
-            print("download config not enabled yet")
+            download_config(target_ip, target_user, target_pass)
+        if self.d_log.IsChecked():
+            message = download_logs(target_ip, target_user, target_pass)
+            msg_text += message
         if self.d_cap.IsChecked():
             cap_files = self.update_caps()
             startnum = len(cap_files)
-            num = download_caps()
+            num = download_caps(target_ip, target_user, target_pass)
             cap_files = self.update_caps()
             capsnow = len(cap_files)
             capsdown = startnum - capsnow
-            msg_text += str(capsdown) + " images. "
-        if msg_text == "Found; ":
+            msg_text += str(capsdown) + " caps images. \n"
+        if self.d_gra.IsChecked():
+            download_graphs(target_ip, target_user, target_pass)
+            gcount = len(os.listdir(graphdir))
+            if gcount == 0:
+                mes_text += 'no graphs'
+            else:
+                msg_text += "\n -plus some of the ("+ str(gcount)  +") files in graphs might have been refreshed  \n"
+        if msg_text == "Found; \n":
             msg_text = "Nothing selected for download"
         wx.MessageBox(msg_text, 'Files Downloaded', wx.OK | wx.ICON_INFORMATION)
+        lastaccess = str(datetime.datetime.now()).split(".")[0].split(" ")[1]
+        self.last_acc.SetLabel("Last Accessed; " + str(lastaccess))
 
 
 
