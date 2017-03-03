@@ -326,6 +326,47 @@ def load_selflog(retdate=False):
         return "none"
 
 
+def load_switchlog(retdate=False, limit_days=False, limit_num=False):
+    print("loading switch log")
+    switchlog = []
+    if os.path.exists(logsdir + switch_log):
+
+        with open(logsdir + switch_log, "r") as f:
+            logitem = f.read()
+            logitem = logitem.split("\n")
+        print('Adding ' + str(len(logitem)) + ' readings from log.')
+        if limit_days != False:
+            oldest_allowed_date = thetime - datetime.timedelta(hours=limit_days)
+        curr_line = len(logitem) - 1
+        limit_line = curr_line - limit_num
+        while curr_line >= 0:
+            try:
+                item = logitem[curr_line]
+                item = item.split("@")
+                date = item[1].split(".")[0]
+                date = datetime.datetime.strptime(date, '%Y-%m-%d %H:%M:%S')
+                switch_script = item[0]
+                switch_message = item[2]
+                if limit_num != False:
+                    if curr_line <= limit_line:
+                        break
+                if limit_days != False:
+                    if date < oldest_allowed_date:
+                        break
+                if retdate == True:
+                    return date
+                switch_list = [switch_script, date, switch_message]
+                switchlog.append(switch_list)
+                curr_line = curr_line - 1
+            except:
+                #print("-log item "+str(curr_line)+" failed to parse, ignoring it..." + logitem[curr_line])
+                curr_line = curr_line - 1
+
+        return switchlog
+    else:
+        print("no switxg log")
+        return 'none'
+
 class Pigrow(wx.Frame):
     def __init__(self, *args, **kw):
         super(Pigrow, self).__init__(*args, **kw)
@@ -422,6 +463,7 @@ class Pigrow(wx.Frame):
         self.last_self_text = wx.StaticText(self,  label='Last Self; ', pos=(5, 405))
         self.update_selflog()
         self.last_switch_text = wx.StaticText(self,  label='Last Switch; ', pos=(5, 430))
+        self.update_switch()
         self.last_switch_text = wx.StaticText(self,  label='Last Err; ', pos=(5, 455))
 
 
@@ -434,6 +476,14 @@ class Pigrow(wx.Frame):
         self.SetTitle('Pigrow Control')
         self.Centre()
         self.Show(True)
+
+    def update_switch(self):
+        self_date = load_switchlog(retdate=True)
+        if self_date != "none":
+            self_ago = datetime.datetime.now() - self_date
+            self.last_switch_text.SetLabel('Last switch; ' + str(self_ago).split(".")[0])
+        else:
+            self.last_switch_text.SetLabel('No switch log')
 
     def update_selflog(self):
         self_date = load_selflog(retdate=True)
@@ -576,6 +626,7 @@ class Pigrow(wx.Frame):
         lastaccess = str(datetime.datetime.now()).split(".")[0].split(" ")[1]
         self.update_dht()
         self.update_selflog()
+        self.update_switch()
         self.last_acc.SetLabel("Last Accessed; " + str(lastaccess))
 
 
