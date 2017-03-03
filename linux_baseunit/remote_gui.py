@@ -44,6 +44,7 @@ dht_log    = logsdir + 'dht22_log.txt'
 self_log   = logsdir + 'selflog.txt'
 switch_log = logsdir + 'switch_log.txt'
 err_log    = logsdir + 'err_log.txt'
+conf_file  = configdir + 'pigrow_config.txt'
 
 def count_caps():
     cap_files = []
@@ -326,12 +327,11 @@ def load_selflog(retdate=False):
         return "none"
 
 
-def load_switchlog(retdate=False, limit_days=False, limit_num=False):
-    print("loading switch log")
+def load_switchlog(retdate=False, limit_days=False, limit_num=False, thelog=switch_log):
+    print("loading " + str(thelog))
     switchlog = []
-    if os.path.exists(logsdir + switch_log):
-
-        with open(logsdir + switch_log, "r") as f:
+    if os.path.exists(logsdir + thelog):
+        with open(logsdir + thelog, "r") as f:
             logitem = f.read()
             logitem = logitem.split("\n")
         print('Adding ' + str(len(logitem)) + ' readings from log.')
@@ -364,8 +364,20 @@ def load_switchlog(retdate=False, limit_days=False, limit_num=False):
 
         return switchlog
     else:
-        print("no switxg log")
+        print("no " + str(thelog))
         return 'none'
+
+def load_settings(sets=conf_file):
+    sets_dic = {}
+    try:
+        with open(sets, "r") as f:
+            for line in f:
+                s_item = line.split("=")
+                sets_dic[s_item[0]]=s_item[1].rstrip('\n') #adds each setting to dictionary
+        return sets_dic
+    except:
+        sets_dic = {'none':none}
+        return sets_dic
 
 class Pigrow(wx.Frame):
     def __init__(self, *args, **kw):
@@ -464,9 +476,15 @@ class Pigrow(wx.Frame):
         self.update_selflog()
         self.last_switch_text = wx.StaticText(self,  label='Last Switch; ', pos=(5, 430))
         self.update_switch()
-        self.last_switch_text = wx.StaticText(self,  label='Last Err; ', pos=(5, 455))
-
-
+        self.last_err_text = wx.StaticText(self,  label='Last Err; ', pos=(5, 455))
+        self.update_err()
+    #read pigrow settings file
+        self.boxname_text = wx.StaticText(self,  label='Box Name ', pos=(5, 490))
+        self.relay1_text = wx.StaticText(self,  label='Relay 1; ', pos=(5, 515))
+        self.relay2_text = wx.StaticText(self,  label='Relay 2; ', pos=(5, 540))
+        self.relay3_text = wx.StaticText(self,  label='Relay 3; ', pos=(5, 565))
+        self.relay4_text = wx.StaticText(self,  label='Relay 4; ', pos=(5, 590))
+        self.update_gpiotext()
 
 
 
@@ -476,6 +494,42 @@ class Pigrow(wx.Frame):
         self.SetTitle('Pigrow Control')
         self.Centre()
         self.Show(True)
+
+    def update_gpiotext(self):
+        setdic = load_settings(sets=conf_file)
+        if len(setdic) > 1:
+            self.boxname_text.SetLabel(setdic['box_name'])
+            gpiodevices = []
+            for key, value in setdic.iteritems():
+                if key[0:4] == 'gpio':
+                    if len(key.split('_')) == 2:
+                        if value != '':
+                            if key == 'gpio_dht22sensor':
+                                pass
+                            else:
+                                gpiodevices.append(key.split('_')[1])
+                            print key, value
+
+            if len(gpiodevices) >= 1:
+                self.relay1_text.SetLabel(gpiodevices[0])
+            if len(gpiodevices) >= 2:
+                self.relay2_text.SetLabel(gpiodevices[1])
+            if len(gpiodevices) >= 3:
+                self.relay3_text.SetLabel(gpiodevices[2])
+            if len(gpiodevices) >= 4:
+                self.relay4_text.SetLabel(gpiodevices[3])
+
+        else:
+            self.boxname_text.SetLabel('No settings file')
+            self.relay1_text.SetLabel('No Settings file')
+
+    def update_err(self):
+        self_date = load_switchlog(retdate=True, thelog=err_log)
+        if self_date != "none":
+            self_ago = datetime.datetime.now() - self_date
+            self.last_err_text.SetLabel('Last Error; ' + str(self_ago).split(".")[0])
+        else:
+            self.last_err_text.SetLabel('No Error log')
 
     def update_switch(self):
         self_date = load_switchlog(retdate=True)
