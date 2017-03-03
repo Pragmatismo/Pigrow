@@ -389,7 +389,7 @@ class Pigrow(wx.Frame):
         menubar = wx.MenuBar()
         fileMenu = wx.Menu()
 
-        self.menu_seek = fileMenu.Append(wx.ID_ANY, 'Seek for Pi', 'Search the local network for a pi')
+        self.menu_seek = fileMenu.Append(wx.ID_ANY, 'Seek next Pi', 'Search the local network for the next pi')
         self.menu_settings = fileMenu.Append(wx.ID_ANY, 'Pi settings', 'Edit and update pigrow config files')
         self.Bind(wx.EVT_MENU, self.seek_pi, self.menu_seek)
         fileMenu.AppendSeparator()
@@ -496,7 +496,44 @@ class Pigrow(wx.Frame):
         self.Show(True)
 
     def seek_pi(self, e):
+        target_ip = self.tb_ip.GetValue()
+        start_from = int(target_ip.split('.')[3]) + 1
+        target_user = self.tb_user.GetValue()
+        target_pass = self.tb_pass.GetValue()
         print("seeking pi...")
+        lastdigits = len(str(start_from))
+        hostrange = target_ip[:-lastdigits]
+        for testloc in range(start_from,255):
+            host = hostrange + str(testloc)
+            ctry = 1
+            while True:
+                print("Trying to connect to " + host)
+                try:
+                    ssh = paramiko.SSHClient()
+                    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+                    ssh.connect(host, username=target_user, password=target_pass, timeout=3)
+                    print "Connected to " + host
+                    self.tb_ip.SetValue(host)
+                    stdin, stdout, stderr = ssh.exec_command("cat /home/pi/Pigrow/config/pigrow_config.txt | grep box_name")
+                    boxname = stdout.read().strip()
+                    print "Pigrow Found; " + boxname.split("=")[1]
+                    #print stdin, stdout, stderr
+                    ssh.close()
+                    print("Pi located, disconnected ssh session")
+                    return host, boxname
+                except paramiko.AuthenticationException:
+                    print "Authentication failed when connecting to " + str(host)
+                    pass
+                except:
+                    print "Could not SSH to " + host + ", waiting for it to start"
+                    ctry += 1
+
+
+           # If we could not connect within time limit
+                if ctry == 3:
+                    print "Could not connect to " + host + " Giving up"
+                    break
+
 
     def update_gpiotext(self):
         setdic = load_settings(sets=conf_file)
