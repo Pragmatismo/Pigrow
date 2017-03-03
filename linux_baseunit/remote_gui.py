@@ -3,6 +3,7 @@
 import os, sys
 import wx
 import datetime
+import paramiko # pip install paramiko
 
 #target_address = "pi@192.168.1.11"
 #target_pass    = "raspberry"
@@ -14,8 +15,6 @@ target_log_path = "/home/pi/logs/"
 target_config_path = "/home/pi/Pigrow/config/"
 #target_crontab_path = "/var/spool/cron/crontabs/pi"
 cap_type = "jpg"
-
-capsgraph = True
 
 if sys.platform == 'win32':
     OS = 'win'
@@ -390,8 +389,9 @@ class Pigrow(wx.Frame):
         menubar = wx.MenuBar()
         fileMenu = wx.Menu()
 
-        menu_seek = fileMenu.Append(wx.ID_ANY, 'Seek for Pi', 'Search the local network for a pi')
-        menu_settings = fileMenu.Append(wx.ID_ANY, 'Pi settings', 'Edit and update pigrow config files')
+        self.menu_seek = fileMenu.Append(wx.ID_ANY, 'Seek for Pi', 'Search the local network for a pi')
+        self.menu_settings = fileMenu.Append(wx.ID_ANY, 'Pi settings', 'Edit and update pigrow config files')
+        self.Bind(wx.EVT_MENU, self.seek_pi, self.menu_seek)
         fileMenu.AppendSeparator()
         imp = wx.Menu()
         import_set = imp.Append(wx.ID_ANY, 'Import settings')
@@ -465,7 +465,7 @@ class Pigrow(wx.Frame):
         self.cap_len_text = wx.StaticText(self,  label='Caps ; ', pos=(20, 235))
         self.cap_lf_text = wx.StaticText(self,  label=' ', pos=(10, 315))
         self.cap_ff_text = wx.StaticText(self, label=' ', pos=(10, 340))
-        cap_files = self.update_caps()
+        cap_files = self.update_caps(capsgraph=False)
     # large image
         self.bigpic = wx.StaticBitmap(self, bitmap=wx.EmptyBitmap(500, 500), pos=(300, 0))
         self.update_bigpic(cap_files)
@@ -494,6 +494,9 @@ class Pigrow(wx.Frame):
         self.SetTitle('Pigrow Control')
         self.Centre()
         self.Show(True)
+
+    def seek_pi(self, e):
+        print("seeking pi...")
 
     def update_gpiotext(self):
         setdic = load_settings(sets=conf_file)
@@ -557,12 +560,17 @@ class Pigrow(wx.Frame):
         dc.DrawLine(10, 170, 275, 170)
 
     def imp_caps(self, e):
+        global capsdir
         openFileDialog = wx.FileDialog(self, "Select caps folder", "", "", "JPG files (*.jpg)|*.jpg", wx.FD_OPEN | wx.FD_FILE_MUST_EXIST)
         openFileDialog.SetMessage("Select an image from the caps folder you want to import")
         if openFileDialog.ShowModal() == wx.ID_CANCEL:
             return
         new_cap_path = openFileDialog.GetPath()
-        print new_cap_path
+        capsdir = os.path.split(new_cap_path)
+        print capsdir
+        capsdir = capsdir[0]
+        cap_files = self.update_caps()
+        print capsdir
 
     def imp_dht(self, e):
         openFileDialog = wx.FileDialog(self, "Select DHT Log file", "", "", "TXT files (*.txt)|*.txt", wx.FD_OPEN | wx.FD_FILE_MUST_EXIST)
@@ -586,7 +594,7 @@ class Pigrow(wx.Frame):
         self.cap_bot.SetBitmap(wx.BitmapFromImage(cap_dif_graph))
         self.capgraph.Show()
 
-    def update_caps(self):
+    def update_caps(self, capsgraph=True):
         cap_files = []
         for filefound in os.listdir(capsdir):
             if filefound.endswith(cap_type):
@@ -607,10 +615,10 @@ class Pigrow(wx.Frame):
             self.cap_ff_text.SetLabel('')
 
         if len(cap_files) > 0 and capsgraph == True:
-            print("make graph")
+            print("make caps graph")
             if OS == "linux":
                 print("Yay linux")
-                #os.system("../scripts/visualisation/caps_graph.py caps="+capsdir+" out="+graphdir)
+                os.system("../scripts/visualisation/caps_graph.py caps="+capsdir+" out="+graphdir)
             elif OS == 'win':
                 print("oh, windows, i prefer linux but no worries...")
                 os.system("python ../scripts/visualisation/caps_graph.py caps="+capsdir+" out="+graphdir)
