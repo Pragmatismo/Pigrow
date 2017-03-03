@@ -212,40 +212,118 @@ def download_config(target_ip, target_user, target_pass):
             raise
     print("Config files download")
 
-def load_dhtlog():
-    dht_dates = []
-    dht_temps = []
-    dht_humids = []
-    #hours_to_show = 999999 #currently not used
-    thetime = datetime.datetime.now()
-    with open(dht_log, "r") as f:
-        logitem = f.read()
-        logitem = logitem.split("\n")
-    print('Adding ' + str(len(logitem)) + ' readings from log.')
-    #oldest_allowed_date = thetime - datetime.timedelta(hours=hours_to_show)
-    curr_line = len(logitem) - 1
-    while curr_line >= 0:
-        try:
-            item = logitem[curr_line]
-            item = item.split(">")
-            date = item[2].split(".")
-            date = datetime.datetime.strptime(date[0], '%Y-%m-%d %H:%M:%S')
-            #if date < oldest_allowed_date:
-            #    break
-            hum  = float(item[1])
-            temp = float(item[0])
-            dht_humids.append(hum)
-            dht_temps.append(temp)
-            dht_dates.append(date)
-            curr_line = curr_line - 1
-        except:
-            print("-log item "+str(curr_line)+" failed to parse, ignoring it..." + logitem[curr_line])
-            curr_line = curr_line - 1
+def load_dhtlog(retdate=False, limit_days=False, limit_num=False):
+    if os.path.exists(logsdir + dht_log):
+        dht_dates = []
+        dht_temps = []
+        dht_humids = []
+        #hours_to_show = 999999 #currently not used
+        thetime = datetime.datetime.now()
+        with open(logsdir + dht_log, "r") as f:
+            logitem = f.read()
+            logitem = logitem.split("\n")
+        print('Adding ' + str(len(logitem)) + ' readings from log.')
+        if limit_days != False:
+            oldest_allowed_date = thetime - datetime.timedelta(hours=limit_days)
+        curr_line = len(logitem) - 1
+        limit_line = curr_line - limit_num
+        while curr_line >= 0:
+            try:
+                item = logitem[curr_line]
+                item = item.split(">")
+                date = item[2].split(".")
+                date = datetime.datetime.strptime(date[0], '%Y-%m-%d %H:%M:%S')
+                if limit_num != False:
+                    if curr_line <= limit_line:
+                        break
+                if limit_days != False:
+                    if date < oldest_allowed_date:
+                        break
+                if retdate == True:
+                    return date
+                hum  = float(item[1])
+                temp = float(item[0])
+                dht_humids.append(hum)
+                dht_temps.append(temp)
+                dht_dates.append(date)
+                curr_line = curr_line - 1
+            except:
+                print("-log item "+str(curr_line)+" failed to parse, ignoring it..." + logitem[curr_line])
+                curr_line = curr_line - 1
 
-    dht_humids.reverse()
-    dht_temps.reverse()
-    dht_dates.reverse()
-    return dht_humids, dht_temps, dht_dates
+        dht_humids.reverse()
+        dht_temps.reverse()
+        dht_dates.reverse()
+        return dht_humids, dht_temps, dht_dates
+    else:
+        return "none", "none", "none"
+
+def load_selflog(retdate=False):
+    log_dic = {}    # Reused for every line of the log file
+                         ## Lists used to make graphs.
+    dates = []      # Used for all the graphs
+    cpu_a1 = []    #
+    cpu_a5 = []    #  cpu load average for one min, five min, fifteen min
+    cpu_a15 = []   #
+    mem_a = []      #
+    mem_f = []      #  mem avail, full, total
+    mem_t = []      #
+    disk_p = []    #
+    disk_f = []    #  Disk Percent, Full, total, used
+    disk_t = []    #
+    disk_u = []    #
+    up = []         # uptime
+    if os.path.exists(logsdir + self_log):
+        print("Loading Selflog")
+        with open(logsdir + self_log, "r") as f:
+            for line in f:
+                try:
+                    line = line.split('>')
+                    for item in line:
+                        item = item.split("=")
+                        if len(item) == 1:
+                            break
+                        name = item[0].strip()
+                        value = item[1].strip()
+                        log_dic[name]=value
+                #time and date
+                    date = log_dic['timenow'].split('.')[0]
+                    date = datetime.datetime.strptime(date, '%Y-%m-%d %H:%M:%S')
+                    if retdate == True:
+                        return date
+                    dates.append(date)
+                #CPU LOAD AVE
+                    load_ave1 = log_dic['load_ave1']
+                    load_ave5 = log_dic['load_ave5']
+                    load_ave15 = log_dic['load_ave15']
+                    cpu_a1.append(load_ave1)
+                    cpu_a5.append(load_ave5)
+                    cpu_a15.append(load_ave15)
+                #mem space
+                    mem_avail = int(log_dic['memavail'].split(" ")[0])/1024
+                    mem_free = int(log_dic['memfree'].split(" ")[0])/1024
+                    mem_total = int(log_dic['memtotal'].split(" ")[0])/1024
+                    mem_a.append(mem_avail)
+                    mem_f.append(mem_free)
+                    mem_t.append(mem_total)
+                #Disk fullness
+                    disk_percent = log_dic['disk_percent']
+                    disk_free = int(log_dic['disk_free'])/1024/1024
+                    disk_total = int(log_dic['disk_total'])/1024/1024
+                    disk_used = int(log_dic['disk_used'])/1024/1024
+                    disk_p.append(disk_percent)
+                    disk_f.append(disk_free)
+                    disk_t.append(disk_total)
+                    disk_u.append(disk_used)
+                #uptime
+                    uptime = log_dic['uptime_sec']
+                    up.append(uptime)
+                except:
+                    print("didn't parse" + str(item))
+        return "none" #THIS NEEDS TO CHANGE WHEN THE LOG GETS USED FOR GRAPHS
+    else:
+        print("no selflog")
+        return "none"
 
 
 class Pigrow(wx.Frame):
@@ -335,9 +413,16 @@ class Pigrow(wx.Frame):
         self.cap_lf_text = wx.StaticText(self,  label=' ', pos=(10, 315))
         self.cap_ff_text = wx.StaticText(self, label=' ', pos=(10, 340))
         cap_files = self.update_caps()
-    #
+    # large image
         self.bigpic = wx.StaticBitmap(self, bitmap=wx.EmptyBitmap(500, 500), pos=(300, 0))
         self.update_bigpic(cap_files)
+    # DHT log
+        self.last_DHT_text = wx.StaticText(self,  label='Last DHT; ', pos=(5, 380))
+        self.update_dht()
+        self.last_self_text = wx.StaticText(self,  label='Last Self; ', pos=(5, 405))
+        self.update_selflog()
+        self.last_switch_text = wx.StaticText(self,  label='Last Switch; ', pos=(5, 430))
+        self.last_switch_text = wx.StaticText(self,  label='Last Err; ', pos=(5, 455))
 
 
 
@@ -349,6 +434,19 @@ class Pigrow(wx.Frame):
         self.SetTitle('Pigrow Control')
         self.Centre()
         self.Show(True)
+
+    def update_selflog(self):
+        self_date = load_selflog(retdate=True)
+        if self_date != "none":
+            self_ago = datetime.datetime.now() - self_date
+            self.last_self_text.SetLabel('Last selflog; ' + str(self_ago).split(".")[0])
+        else:
+            self.last_self_text.SetLabel('No self log')
+
+    def update_dht(self):
+        dht_date = load_dhtlog(retdate=True)
+        dht_ago = datetime.datetime.now() - dht_date
+        self.last_DHT_text.SetLabel('Last DHT; ' + str(dht_ago).split(".")[0])
 
     def OnPaint(self, e):
         dc = wx.PaintDC(self)
@@ -476,6 +574,8 @@ class Pigrow(wx.Frame):
             msg_text = "Nothing selected for download"
         wx.MessageBox(msg_text, 'Files Downloaded', wx.OK | wx.ICON_INFORMATION)
         lastaccess = str(datetime.datetime.now()).split(".")[0].split(" ")[1]
+        self.update_dht()
+        self.update_selflog()
         self.last_acc.SetLabel("Last Accessed; " + str(lastaccess))
 
 
