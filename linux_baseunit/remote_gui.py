@@ -4,33 +4,28 @@ import os, sys
 import wx
 import datetime
 import paramiko # pip install paramiko
+ssh = paramiko.SSHClient()
+ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
 #target_address = "pi@192.168.1.11"
 #target_pass    = "raspberry"
 
 
-target_cap_files   = "/home/pi/Pigrow/caps/*.jpg"
-target_graph_path = "/home/pi/Pigrow/graphs/"
-target_log_path = "/home/pi/logs/"
+target_cap_files   = "/home/pi/Pigrow/caps/" #can add *.jpg to limit
+target_graph_path  = "/home/pi/Pigrow/graphs/"
+target_log_path    = "/home/pi/Pigrow/logs/"
 target_config_path = "/home/pi/Pigrow/config/"
 #target_crontab_path = "/var/spool/cron/crontabs/pi"
 cap_type = "jpg"
 
 if sys.platform == 'win32':
     OS = 'win'
-    winrsyncpath = "c:\MinGW\msys\\1.0\\bin\\"
-    logsdir = winrsyncpath + "logs\\"
-    capsdir = winrsyncpath + "caps\\"
-    graphdir = winrsyncpath + "graph\\"
-    configdir =  winrsyncpath + "config\\"
-    print(" This IS a windows 32 system, how exciting!")
+    basepath = "c:/MinGW/msys/1.0/bin/"
+    print(" This is a windows system, how exciting!")
 elif sys.platform == 'linux2':
 #elif sys.platform.startswith('linux'):
     print(" This is a linux system, great news! best choice!")
-    logsdir = "/home/pragmo/frompigrow/logs/"
-    capsdir = "/home/pragmo/frompigrow/caps/"
-    graphdir = '/home/pragmo/frompigrow/graph/'
-    configdir = '/home/pragmo/frompigrow/config/'
+    basepath = "/home/pragmo/frompigrow/"
     OS = 'linux'
 else:
     print(" i have no idea what this is?!")
@@ -39,11 +34,30 @@ else:
     print("edit the code and add OS = 'linux' or 'win' after this bit of text")
 #here. put the os = 'linux' / 'win' here if you want to ignore the auto detect
 
-dht_log    = logsdir + 'dht22_log.txt'
-self_log   = logsdir + 'selflog.txt'
-switch_log = logsdir + 'switch_log.txt'
-err_log    = logsdir + 'err_log.txt'
-conf_file  = configdir + 'pigrow_config.txt'
+boxname = "Flower"
+
+def setfilepaths(boxname):
+    global capsdir, logsdir, graphdir, configdir
+    global dht_log, self_log, switch_log, err_log, conf_file
+    capsdir   = basepath + boxname + "/caps/"
+    logsdir   = basepath + boxname + "/logs/"
+    graphdir  = basepath + boxname + "/graph/"
+    configdir = basepath + boxname + "/config/"
+    if not os.path.exists(capsdir):
+        os.makedirs(capsdir)
+    if not os.path.exists(logsdir):
+        os.makedirs(logsdir)
+    if not os.path.exists(graphdir):
+        os.makedirs(graphdir)
+    if not os.path.exists(configdir):
+        os.makedirs(configdir)
+
+    dht_log    = logsdir + 'dht22_log.txt'
+    self_log   = logsdir + 'selflog.txt'
+    switch_log = logsdir + 'switch_log.txt'
+    err_log    = logsdir + 'err_log.txt'
+    conf_file  = configdir + 'pigrow_config.txt'
+setfilepaths(boxname)
 
 def count_caps():
     cap_files = []
@@ -52,10 +66,61 @@ def count_caps():
             cap_files.append(filefound)
     return cap_files
 
-def download_caps(target_ip, target_user, target_pass):
+def download_caps(target_ip, target_user, target_pass, theboxname):
     #note this ignores existing files
+    if os.path.exists(capsdir) == False:
+        os.makedirs(capsdir)
     target_address = target_user + "@" + target_ip
-    if OS == 'linux':
+    download_method = 'ssh'
+    if download_method == 'ssh':
+        try:
+            port = 22
+            ssh_tran = paramiko.Transport((target_ip, port))
+            print("  - connecting transport pipe... " + target_ip + " port:" + str(port))
+            ssh_tran.connect(username=target_user, password=target_pass)
+            sftp = paramiko.SFTPClient.from_transport(ssh_tran)
+            listofcaps_onpi = sftp.listdir(target_cap_files)
+            print("It has " + str(len(listofcaps_onpi)) + " in it's caps folder " + target_cap_files)
+            listofcaps_local = os.listdir(capsdir)
+            print("We have " + str(len(listofcaps_local)) + " in it's local folder " + capsdir)
+            extrapics = len(listofcaps_onpi) - len(listofcaps_local)
+            print("So there's " + str(extrapics) + " more on the pi")
+            print("-- Though they might not all be the same rememmber --")
+            newcaps = []
+            limitbreak = 0
+            ticktocken = 0
+            limitbreaklimit = -1 #currently used for testing only.
+            print("Downloading all files we don't have, this might takea while...")
+            for capfile in listofcaps_onpi:
+                if capfile not in listofcaps_local:
+                    limitbreak += 1
+                    ticktocken += 1
+                    if ticktocken > 100:
+                        print("..got a hundred more")
+                        ticktocken = 0
+                    newcaps.append(capfile)
+                    filepath = target_cap_files + capfile
+                    localpath = capsdir + capfile
+                    #print filepath, localpath
+                    sftp.get(filepath, localpath)
+                if limitbreak == limitbreaklimit:
+                    break
+            print("Found " + str(len(newcaps)) + " caps files on pi we didn't have")
+            listofcaps_after = os.listdir(capsdir)
+            print("We now have " + str(len(listofcaps_after)) + " in it's local folder " + capsdir)
+            extrapics = len(listofcaps_after) - len(listofcaps_local)
+            print("So we grabbed " + str(extrapics) + " more pictures")
+            sftp.close()
+            ssh_tran.close()
+        except:
+            print("DANG MESSSED UP")
+            raise
+        print("SSH copy loop finished")
+        #sys.exit()
+
+
+
+    elif OS == 'linux' and download_method == 'rsync':
         try:
             print("Copying files...   (this may time some time)")
             os.system("rsync --ignore-existing -ratlz --rsh=\"/usr/bin/sshpass -p "+target_pass+" ssh -o StrictHostKeyChecking=no -l "+target_address+"\" "+target_address+":"+target_cap_files+" "+capsdir)
@@ -78,10 +143,10 @@ def download_caps(target_ip, target_user, target_pass):
             print("Unexpected error:", sys.exc_info()[0])
             raise
 
-dht_log = "dht22_log.txt"
-self_log = "selflog.txt"
-err_log = "err_log.txt"
-switch_log = "switch_log.txt"
+tdht_log = "dht22_log.txt"
+tself_log = "selflog.txt"
+terr_log = "err_log.txt"
+tswitch_log = "switch_log.txt"
 
 def log_times():
     dht_ff = False
@@ -89,22 +154,26 @@ def log_times():
     err_ff = False
     switch_ff = False
     for filefound in os.listdir(logsdir):
-        if filefound == dht_log:
+        print filefound
+        if filefound == tdht_log:
             dht_ff = os.path.getmtime(logsdir+filefound)
-        elif filefound == self_log:
+        elif filefound == tself_log:
             sl_ff = os.path.getmtime(logsdir+filefound)
-        elif filefound == err_log:
+        elif filefound == terr_log:
             err_ff = os.path.getmtime(logsdir+filefound)
-        elif filefound == switch_log:
+        elif filefound == tswitch_log:
             switch_ff = os.path.getmtime(logsdir+filefound)
     return dht_ff, sl_ff, err_ff, switch_ff
 
-def download_logs(target_ip, target_user, target_pass):
+def download_logs(target_ip, target_user, target_pass, theboxname):
     #note this overwrites existing local files
     target_address = target_user + "@" + target_ip
  #get last edit times for files
     dht_ff, sl_ff, err_ff, switch_ff  = log_times()
  #downloads the files
+    logsdir = basepath + theboxname + "/logs/"
+    if os.path.exists(logsdir) == False:
+        os.makedirs(logsdir)
     if OS == 'linux':
         try:
             print("Grabbing logs, this may take a short while...")
@@ -149,8 +218,9 @@ def download_logs(target_ip, target_user, target_pass):
         message += "  Error log which is " + str(round(err_fa - err_ff)) + " min newer \n"
     return message
 
-def download_graphs(target_ip, target_user, target_pass):
+def download_graphs(target_ip, target_user, target_pass, theboxname):
     #note this overwrites existing local files
+    graphdir = basepath + theboxname + "/graph/"
     target_address = target_user + "@" + target_ip
     if OS == 'linux':
         try:
@@ -177,8 +247,9 @@ def download_graphs(target_ip, target_user, target_pass):
             print("Unexpected error:", sys.exc_info()[0])
             raise
 
-def download_config(target_ip, target_user, target_pass):
+def download_config(target_ip, target_user, target_pass, theboxname):
     #note this overwrites existing local files
+    configdir = basepath + theboxname + "/config/"
     target_address = target_user + "@" + target_ip
     if OS == 'linux':
         try:
@@ -213,16 +284,17 @@ def download_config(target_ip, target_user, target_pass):
     print("Config files download")
 
 def load_dhtlog(retdate=False, limit_days=False, limit_num=False):
-    if os.path.exists(logsdir + dht_log):
+    print("Loading dht log")
+    if os.path.exists(dht_log):
         dht_dates = []
         dht_temps = []
         dht_humids = []
         #hours_to_show = 999999 #currently not used
         thetime = datetime.datetime.now()
-        with open(logsdir + dht_log, "r") as f:
+        with open(dht_log, "r") as f:
             logitem = f.read()
             logitem = logitem.split("\n")
-        print('Adding ' + str(len(logitem)) + ' readings from log.')
+        print('Log contains ' + str(len(logitem)) + ' readings.')
         if limit_days != False:
             oldest_allowed_date = thetime - datetime.timedelta(hours=limit_days)
         curr_line = len(logitem) - 1
@@ -240,6 +312,7 @@ def load_dhtlog(retdate=False, limit_days=False, limit_num=False):
                     if date < oldest_allowed_date:
                         break
                 if retdate == True:
+                    print(" - found date of last log entry...")
                     return date
                 hum  = float(item[1])
                 temp = float(item[0])
@@ -250,11 +323,18 @@ def load_dhtlog(retdate=False, limit_days=False, limit_num=False):
             except:
                 print("-log item "+str(curr_line)+" failed to parse, ignoring it..." + logitem[curr_line])
                 curr_line = curr_line - 1
+        if retdate == True:
+            print(" - log empty, no date to return...")
+            return 'none'
 
         dht_humids.reverse()
         dht_temps.reverse()
         dht_dates.reverse()
-        return dht_humids, dht_temps, dht_dates
+        if len(dht_humids) > 0:
+            return dht_humids, dht_temps, dht_dates
+        else:
+            print("nothing found in dht file? maybe it's bad?")
+            return "none", "none", "none"
     else:
         return "none", "none", "none"
 
@@ -273,9 +353,9 @@ def load_selflog(retdate=False):
     disk_t = []    #
     disk_u = []    #
     up = []         # uptime
-    if os.path.exists(logsdir + self_log):
+    if os.path.exists(self_log):
         print("Loading Selflog")
-        with open(logsdir + self_log, "r") as f:
+        with open(self_log, "r") as f:
             for line in f:
                 try:
                     line = line.split('>')
@@ -329,8 +409,9 @@ def load_selflog(retdate=False):
 def load_switchlog(retdate=False, limit_days=False, limit_num=False, thelog=switch_log):
     print("loading " + str(thelog))
     switchlog = []
-    if os.path.exists(logsdir + thelog):
-        with open(logsdir + thelog, "r") as f:
+    if os.path.exists(thelog):
+        print("  -log found")
+        with open(thelog, "r") as f:
             logitem = f.read()
             logitem = logitem.split("\n")
         print('Adding ' + str(len(logitem)) + ' readings from log.')
@@ -338,12 +419,15 @@ def load_switchlog(retdate=False, limit_days=False, limit_num=False, thelog=swit
             oldest_allowed_date = thetime - datetime.timedelta(hours=limit_days)
         curr_line = len(logitem) - 1
         limit_line = curr_line - limit_num
+        gotdate = False
         while curr_line >= 0:
             try:
                 item = logitem[curr_line]
+                #print item
                 item = item.split("@")
                 date = item[1].split(".")[0]
                 date = datetime.datetime.strptime(date, '%Y-%m-%d %H:%M:%S')
+                gotdate = True
                 switch_script = item[0]
                 switch_message = item[2]
                 if limit_num != False:
@@ -353,15 +437,24 @@ def load_switchlog(retdate=False, limit_days=False, limit_num=False, thelog=swit
                     if date < oldest_allowed_date:
                         break
                 if retdate == True:
-                    return date
+                    if gotdate == True:
+                        return date
+                    else:
+                        print("No valid entries in the log, bad log maybe?")
+                        return 'none'
                 switch_list = [switch_script, date, switch_message]
                 switchlog.append(switch_list)
                 curr_line = curr_line - 1
             except:
                 #print("-log item "+str(curr_line)+" failed to parse, ignoring it..." + logitem[curr_line])
                 curr_line = curr_line - 1
-
-        return switchlog
+        print("Returning switch log")
+        if retdate == True:
+            return "none" #it's here because it didn't find one
+        if len(switchlog) == 0:
+            return "none"
+        else:
+            return switchlog
     else:
         print("no " + str(thelog))
         return 'none'
@@ -375,6 +468,7 @@ def load_settings(sets=conf_file):
                 sets_dic[s_item[0]]=s_item[1].rstrip('\n') #adds each setting to dictionary
         return sets_dic
     except:
+        print("could get info from settings file")
         sets_dic = {'none':none}
         return sets_dic
 
@@ -394,16 +488,26 @@ class Pigrow(wx.Frame):
         self.Bind(wx.EVT_MENU, self.seek_pi, self.menu_seek)
         fileMenu.AppendSeparator()
         imp = wx.Menu()
-        import_set = imp.Append(wx.ID_ANY, 'Import settings')
+        import_set = imp.Append(wx.ID_ANY, 'soon-Import settings')
         import_dht = imp.Append(wx.ID_ANY, 'Import sensor log')
-        import_swi = imp.Append(wx.ID_ANY, 'Import switch log')
+        import_swi = imp.Append(wx.ID_ANY, 'soon-Import switch log')
         import_cap = imp.Append(wx.ID_ANY, 'Import caps folder')
-        fileMenu.AppendMenu(wx.ID_ANY, 'I&mport', imp)
+        fileMenu.AppendMenu(wx.ID_ANY, 'Import', imp)
+        menu_upload_settings = fileMenu.Append(wx.ID_ANY, 'soon -Upload Settings', 'Upload settings to selected pi')
         menu_exit = fileMenu.Append(wx.ID_EXIT, 'Quit', 'Quit application')
         menubar.Append(fileMenu, '&File')
         self.Bind(wx.EVT_MENU, self.imp_dht, import_dht)
         self.Bind(wx.EVT_MENU, self.imp_caps, import_cap)
         self.Bind(wx.EVT_MENU, self.OnClose, menu_exit)
+        renderMenu = wx.Menu()
+        menu_render_timelapse = renderMenu.Append(wx.ID_ANY, 'Timelapse')
+        menu_render_capsgraph = renderMenu.Append(wx.ID_ANY, 'soon- Caps Graph')
+        menu_render_dhtgraph = renderMenu.Append(wx.ID_ANY, 'DHT Graph')
+        menu_render_selfgraph = renderMenu.Append(wx.ID_ANY, 'soon- Selflog Graph')
+        menu_render_report = renderMenu.Append(wx.ID_ANY, 'soon - Report')
+        self.Bind(wx.EVT_MENU, self.render_timelapse, menu_render_timelapse)
+        self.Bind(wx.EVT_MENU, self.render_dht, menu_render_dhtgraph)
+        menubar.Append(renderMenu, '&Render')
         downMenu = wx.Menu()
         menu_download = downMenu.Append(wx.ID_ANY, 'Download from Pi')
         self.Bind(wx.EVT_MENU, self.download, menu_download)
@@ -452,13 +556,15 @@ class Pigrow(wx.Frame):
         self.tb_user = wx.TextCtrl(self, pos=(125, 60), size=(150, 25))
         self.tb_user.SetValue("pi")
 
-        wx.StaticText(self,  label='Psssword', pos=(10, 95))
+        wx.StaticText(self,  label='Password', pos=(10, 95))
         self.tb_pass = wx.TextCtrl(self, pos=(125, 95), size=(150, 25))
         self.tb_pass.SetValue("raspberry")
 
         self.last_acc = wx.StaticText(self,  label='Last Accessed; ', pos=(10, 140))
      #local storage
-        self.last_acc = wx.StaticText(self,  label='Local Storage; ', pos=(10, 180))
+        wx.StaticText(self,  label='Name; ', pos=(10, 180))
+        self.boxname_text = wx.StaticText(self,  label='boxname ', pos=(90, 180))
+        self.update_boxname(boxname)
         self.cap_thumb = wx.StaticBitmap(self, bitmap=wx.EmptyBitmap(150, 150), pos=(85, 210))
         self.cap_thumb.Bind(wx.EVT_LEFT_DOWN, self.clickgraph)
         wx.StaticText(self,  label='Caps ; ', pos=(5, 210))
@@ -479,7 +585,7 @@ class Pigrow(wx.Frame):
         self.last_err_text = wx.StaticText(self,  label='Last Err; ', pos=(5, 455))
         self.update_err()
     #read pigrow settings file
-        self.boxname_text = wx.StaticText(self,  label='Box Name ', pos=(5, 490))
+        self.conf_boxname_text = wx.StaticText(self,  label='Box Name ', pos=(5, 490))
         self.relay1_text = wx.StaticText(self,  label='Relay 1; ', pos=(5, 515))
         self.relay2_text = wx.StaticText(self,  label='Relay 2; ', pos=(5, 540))
         self.relay3_text = wx.StaticText(self,  label='Relay 3; ', pos=(5, 565))
@@ -495,6 +601,26 @@ class Pigrow(wx.Frame):
         self.Centre()
         self.Show(True)
 
+    def askpi_filenums(self, host, target_user, target_pass):
+        port = 22
+        ssh_tran = paramiko.Transport((host, port))
+        print("  - connecting transport pipe... " + host + " port:" + str(port))
+        ssh_tran.connect(username=target_user, password=target_pass)
+        sftp = paramiko.SFTPClient.from_transport(ssh_tran)
+        listofcaps_onpi = sftp.listdir(target_cap_files)
+        print("It has " + str(len(listofcaps_onpi)) + " in it's caps folder " + target_cap_files)
+        if os.path.exists(capsdir):
+            listofcaps_local = os.listdir(capsdir)
+            print("We have " + str(len(listofcaps_local)) + " in it's local folder " + capsdir)
+            print("-- Though they might not all be the same rememmber --")
+        else:
+            print("No local information, download to get some..")
+        sftp.close()
+        ssh_tran.close()
+        return listofcaps_onpi, listofcaps_local
+
+
+
     def seek_pi(self, e):
         target_ip = self.tb_ip.GetValue()
         start_from = int(target_ip.split('.')[3]) + 1
@@ -509,23 +635,25 @@ class Pigrow(wx.Frame):
             while True:
                 print("Trying to connect to " + host)
                 try:
-                    ssh = paramiko.SSHClient()
-                    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
                     ssh.connect(host, username=target_user, password=target_pass, timeout=3)
                     print "Connected to " + host
                     self.tb_ip.SetValue(host)
                     stdin, stdout, stderr = ssh.exec_command("cat /home/pi/Pigrow/config/pigrow_config.txt | grep box_name")
-                    boxname = stdout.read().strip()
-                    print "Pigrow Found; " + boxname.split("=")[1]
+                    boxname = stdout.read().strip().split("=")[1]
+                    print "Pigrow Found; " + boxname
                     #print stdin, stdout, stderr
                     ssh.close()
+                    setfilepaths(boxname)
+                    listofcaps_onpi, listofcaps_local = self.askpi_filenums(host, target_user, target_pass)
                     print("Pi located, disconnected ssh session")
-                    return host, boxname
+                    self.update_boxname(boxname)
+                    return host, boxname #doens't return it to anyone at the mo
                 except paramiko.AuthenticationException:
                     print "Authentication failed when connecting to " + str(host)
                     pass
                 except:
                     print "Could not SSH to " + host + ", waiting for it to start"
+                    #raise  #this for testing only
                     ctry += 1
 
 
@@ -538,7 +666,7 @@ class Pigrow(wx.Frame):
     def update_gpiotext(self):
         setdic = load_settings(sets=conf_file)
         if len(setdic) > 1:
-            self.boxname_text.SetLabel(setdic['box_name'])
+            self.conf_boxname_text.SetLabel(setdic['box_name']) #this is now pointless
             gpiodevices = []
             for key, value in setdic.iteritems():
                 if key[0:4] == 'gpio':
@@ -572,7 +700,8 @@ class Pigrow(wx.Frame):
             self.last_err_text.SetLabel('No Error log')
 
     def update_switch(self):
-        self_date = load_switchlog(retdate=True)
+        self_date = load_switchlog(retdate=True, thelog=switch_log)
+        print self_date
         if self_date != "none":
             self_ago = datetime.datetime.now() - self_date
             self.last_switch_text.SetLabel('Last switch; ' + str(self_ago).split(".")[0])
@@ -589,7 +718,10 @@ class Pigrow(wx.Frame):
 
     def update_dht(self):
         dht_date = load_dhtlog(retdate=True)
-        dht_ago = datetime.datetime.now() - dht_date
+        if dht_date != 'none':
+            dht_ago = datetime.datetime.now() - dht_date
+        else:
+            dht_ago = 'No DHT log'
         self.last_DHT_text.SetLabel('Last DHT; ' + str(dht_ago).split(".")[0])
 
     def OnPaint(self, e):
@@ -619,9 +751,37 @@ class Pigrow(wx.Frame):
         print("Bye!")
         self.Close(True)
 
+    def render_timelapse(self, e):
+        print("This should call the module which makes the timelapse gui")
+        cmd = '../scripts/visualisation/timelapse_assemble.py caps=' + capsdir + " of=" + graphdir
+        cmd += 'guimade.mp4 ow=r dc=day3'
+        #cmd += 'guimade.gif ow=r dc=hour1'
+        print cmd
+        os.system(cmd)
+        playcmd = 'vlc ' + graphdir + 'guimade.mp4'
+        print playcmd
+        os.system(playcmd)
+
+    def render_dht(self, e):
+        print("This should call the module which makes the dht graph gui")
+        print("for now it just runs the pigrow script with arguments")
+        cmd = "../scripts/visualisation/temp_graph.py log=" + dht_log
+        cmd += " out=" + graphdir + "dht_temp_graph.png"
+        print cmd
+        os.system(cmd)
+        cmd = "../scripts/visualisation/humid_graph.py log=" + dht_log
+        cmd += " out=" + graphdir + "dht_humid_graph.png"
+        print cmd
+        os.system(cmd)
+        os.system("gpicview " + graphdir + "dht_temp_graph.png")
+
+
+
     def clickgraph(self, e):
-        cap_size_graph = wx.Image(graphdir+'caps_filesize_graph.png', wx.BITMAP_TYPE_ANY)
-        cap_dif_graph = wx.Image(graphdir+'caps_timediff_graph.png', wx.BITMAP_TYPE_ANY)
+        cap_s_path = graphdir + 'caps_filesize_graph.png'
+        cap_size_graph = wx.Image(cap_s_path, wx.BITMAP_TYPE_ANY)
+        cap_d_path = graphdir + 'caps_timediff_graph.png'
+        cap_dif_graph = wx.Image(cap_d_path, wx.BITMAP_TYPE_ANY)
         hpos = cap_size_graph.GetWidth() + 5
         self.capgraph = wx.Frame(None, title='Cap Graph', size=(hpos*2, cap_size_graph.GetHeight()))
         self.cappic = wx.Panel(self.capgraph)
@@ -630,6 +790,10 @@ class Pigrow(wx.Frame):
         self.cap_top.SetBitmap(wx.BitmapFromImage(cap_size_graph))
         self.cap_bot.SetBitmap(wx.BitmapFromImage(cap_dif_graph))
         self.capgraph.Show()
+
+    def update_boxname(self, boxname):
+        self.boxname_text.SetLabel(str(boxname))
+
 
     def update_caps(self, capsgraph=True):
         cap_files = []
@@ -649,7 +813,8 @@ class Pigrow(wx.Frame):
             self.cap_ff_text.SetLabel('duration; ' + capdur)
         else:
             self.cap_len_text.SetLabel('Empty')
-            self.cap_ff_text.SetLabel('')
+            self.cap_lf_text.SetLabel("last; --")
+            self.cap_ff_text.SetLabel('duration; --')
 
         if len(cap_files) > 0 and capsgraph == True:
             print("make caps graph")
@@ -660,10 +825,15 @@ class Pigrow(wx.Frame):
                 print("oh, windows, i prefer linux but no worries...")
                 os.system("python ../scripts/visualisation/caps_graph.py caps="+capsdir+" out="+graphdir)
         else:
-            print("no caps to make graphs with")
-        cap_size_graph = wx.Image(graphdir+'caps_filesize_graph.png', wx.BITMAP_TYPE_ANY)
-        scale_size_graph = cap_size_graph.Scale(200, 100)
-        self.cap_thumb.SetBitmap(wx.BitmapFromImage(scale_size_graph))
+            print("skipping graphing caps - disabled or no caps to make graphs with")
+        if os.path.exists(graphdir+'caps_filesize_graph.png'):
+            cap_size_graph = wx.Image(graphdir+'caps_filesize_graph.png', wx.BITMAP_TYPE_ANY)
+            scale_size_graph = cap_size_graph.Scale(200, 100)
+            self.cap_thumb.SetBitmap(wx.BitmapFromImage(scale_size_graph))
+        else:
+            print("NO CAPS GRAPH SO USING BLANK THUMB")
+            blankimg = wx.EmptyImage(width=200, height=100, clear=True)
+            self.cap_thumb.SetBitmap(wx.BitmapFromImage(blankimg))
         return cap_files
 
     def checkbox_big(self, e, cap_files):
@@ -671,7 +841,10 @@ class Pigrow(wx.Frame):
 
     def update_bigpic(self, cap_files):
         if self.v_cap.IsChecked():
-            pictoload = str(capsdir + cap_files[-1])
+            if len(cap_files) > 0:
+                pictoload = str(capsdir + cap_files[-1])
+            else:
+                pictoload = 'none'
         elif self.v_hourA.IsChecked():
             pictoload = str(capsdir + cap_files[0])
         elif self.v_dayA.IsChecked():
@@ -681,39 +854,60 @@ class Pigrow(wx.Frame):
         elif self.v_selfgr.IsChecked():
             pictoload = str(graphdir+'caps_timediff_graph.png')
     #load and scale image
-        bigpic = wx.Image(pictoload, wx.BITMAP_TYPE_ANY)
-        pic_hight = bigpic.GetHeight()
-        pic_choice = bigpic
-        if self.v_scale.IsChecked():
-            if pic_hight > 800:
-                pic_width = bigpic.GetWidth()
-                new_hight = 800
-                sizeratio = (pic_hight / new_hight)
-                new_width = (pic_width / sizeratio)
-                scale_bigpic = bigpic.Scale(new_width, new_hight)
-                pic_choice = scale_bigpic
-        self.bigpic.SetBitmap(wx.BitmapFromImage(pic_choice))
+        print("Showing -" + pictoload)
+        if os.path.exists(pictoload):
+            bigpic = wx.Image(pictoload, wx.BITMAP_TYPE_ANY)
+            pic_hight = bigpic.GetHeight()
+            pic_choice = bigpic
+            if self.v_scale.IsChecked():
+                if pic_hight > 800:
+                    pic_width = bigpic.GetWidth()
+                    new_hight = 800
+                    sizeratio = (pic_hight / new_hight)
+                    new_width = (pic_width / sizeratio)
+                    scale_bigpic = bigpic.Scale(new_width, new_hight)
+                    pic_choice = scale_bigpic
+            self.bigpic.SetBitmap(wx.BitmapFromImage(pic_choice))
+        else:
+            self.bigpic.SetBitmap(wx.EmptyBitmap(10,10))
 
     def download(self, e):
+
         target_ip = self.tb_ip.GetValue()
         target_user = self.tb_user.GetValue()
         target_pass = self.tb_pass.GetValue()
+      #ssh into the pigrow to discover it's name
+        try:
+            ssh.connect(target_ip, username=target_user, password=target_pass, timeout=3)
+            print "Connected to " + target_ip
+            self.tb_ip.SetValue(target_ip)
+            stdin, stdout, stderr = ssh.exec_command("cat /home/pi/Pigrow/config/pigrow_config.txt | grep box_name")
+            boxname = stdout.read().strip().split("=")[1]
+            print "Pigrow Found; " + boxname
+            ssh.close()
+        except:
+            print("dang - can't connect to pigrow")
+            raise
+        setfilepaths(boxname)
+        self.update_boxname(boxname)
+    #SHOULD ASK USER FOR INPUT here
+
         msg_text = "Found; \n"
         if self.d_con.IsChecked():
-            download_config(target_ip, target_user, target_pass)
+            download_config(target_ip, target_user, target_pass, boxname)
         if self.d_log.IsChecked():
-            message = download_logs(target_ip, target_user, target_pass)
+            message = download_logs(target_ip, target_user, target_pass, boxname)
             msg_text += message
         if self.d_cap.IsChecked():
-            cap_files = self.update_caps()
+            cap_files = self.update_caps(capsgraph=False)
             startnum = len(cap_files)
-            num = download_caps(target_ip, target_user, target_pass)
+            num = download_caps(target_ip, target_user, target_pass, boxname)
             cap_files = self.update_caps()
             capsnow = len(cap_files)
             capsdown = startnum - capsnow
             msg_text += str(capsdown) + " caps images. \n"
         if self.d_gra.IsChecked():
-            download_graphs(target_ip, target_user, target_pass)
+            download_graphs(target_ip, target_user, target_pass, boxname)
             gcount = len(os.listdir(graphdir))
             if gcount == 0:
                 mes_text += 'no graphs'
@@ -727,6 +921,7 @@ class Pigrow(wx.Frame):
         self.update_selflog()
         self.update_switch()
         self.last_acc.SetLabel("Last Accessed; " + str(lastaccess))
+        self.update_bigpic(cap_files)
 
 
 
