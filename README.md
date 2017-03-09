@@ -15,6 +15,42 @@ This document will be updated and finished soon but the most upto date build, in
 
      https://www.reddit.com/r/Pigrow/wiki/index
 
+#First Steps 
+  
+ Assuming you have an internet connected Pi and you're logged in via ssh or using it with a keyboard and screen attached; 
+  
+ First you need to install the software, to do that clone the git repository using the command
+ 
+     git clone https://github.com/Pragmatismo/Pigrow
+
+this will copy all the files into /home/pi/Pigrow, now run the setup program 
+
+    cd Pigrow/scripts/config
+    ./setup.py
+    
+this opens a text menu offering a number of options, the first is install dependences slect it by typeing 1 and pressing return, this will download and install all the resources and dependences for the Pigrow, it may take a while. 
+
+Your Pigrow is now ready for use. 
+
+#Setting up a Webcam and starting a Timelapse 
+
+run the webcam config script found in the /Pigrow/scripts/config/ folder and follow the instructions until you're happy with the image captured by your camera when in the lighting conditions you intend to use it in - remember SAVE your settings once you're happy with them. 
+
+run setup.py and select cron run scripts, then select repeating scripts and follow the prompts to choose the camera capture script and repeat rate of your choice -- at the moment your best choice is probably camcap.py every five min. 
+  
+once this is set your pi will start taking images every N amount of time, this will keep happening even if you restart your pi so to stop it you need to come back into setup.py and remove the cronjob which triggers the camera, this can also be done via the reddit messsage-control script and soon the remote gui.  
+  
+From the pi you can run Pigrow/scripts/visulaisation/timelapse_assemble.py to construct a timelapse, run the script with the flag -h to get a full list of command line options and some useage instructions. This script can also be run from a linux machine with MPV installed when the files have been downloaded manually or they can be automatically downloaded using the remote gui and the timelapse made using that [work in progress] 
+
+#Everything else
+
+should be fairly obvious or isn't yet finished, any questions message me on the pigrow sub.
+
+#
+
+#old and wrong stuff
+
+
 The folloeing is out of date but sections of it may still be useful,
 
 ----------
