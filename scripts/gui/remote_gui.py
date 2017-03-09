@@ -1,5 +1,4 @@
 #!/usr/bin/python
-# -*- coding: utf-8 -*-
 import os, sys
 import wx
 import datetime
@@ -9,7 +8,6 @@ ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
 #target_address = "pi@192.168.1.11"
 #target_pass    = "raspberry"
-
 
 target_cap_files   = "/home/pi/Pigrow/caps/" #can add *.jpg to limit
 target_graph_path  = "/home/pi/Pigrow/graphs/"
