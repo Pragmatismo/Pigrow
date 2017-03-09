@@ -550,7 +550,7 @@ class Pigrow(wx.Frame):
 
         wx.StaticText(self,  label='address', pos=(10, 20))
         self.tb_ip = wx.TextCtrl(self, pos=(125, 25), size=(150, 25))
-        self.tb_ip.SetValue("192.168.1.11")
+        self.tb_ip.SetValue("192.168.1.0")
 
         wx.StaticText(self,  label='Username', pos=(10, 60))
         self.tb_user = wx.TextCtrl(self, pos=(125, 60), size=(150, 25))
@@ -586,20 +586,90 @@ class Pigrow(wx.Frame):
         self.update_err()
     #read pigrow settings file
         self.conf_boxname_text = wx.StaticText(self,  label='Box Name ', pos=(5, 490))
+        self.relay1_btn = wx.Button(self, label='Relay 1', pos=(100, 500))
+        self.relay2_btn = wx.Button(self, label='Relay 2', pos=(100, 540))
+        self.relay3_btn = wx.Button(self, label='Relay 3', pos=(100, 580))
+        self.relay4_btn = wx.Button(self, label='Relay 4', pos=(100, 620))
+        self.relay1_btn.Bind(wx.EVT_BUTTON, self.relay1_btn_click)
+        self.relay2_btn.Bind(wx.EVT_BUTTON, self.relay2_btn_click)
+        self.relay3_btn.Bind(wx.EVT_BUTTON, self.relay3_btn_click)
+        self.relay4_btn.Bind(wx.EVT_BUTTON, self.relay4_btn_click)
+        #and the off buttons
+        self.relay1_btn_off = wx.Button(self, label='Off', pos=(200, 500))
+        self.relay2_btn_off = wx.Button(self, label='Off', pos=(200, 540))
+        self.relay3_btn_off = wx.Button(self, label='Off', pos=(200, 580))
+        self.relay4_btn_off = wx.Button(self, label='Off', pos=(200, 620))
+        self.relay1_btn_off.Bind(wx.EVT_BUTTON, self.relay1_btn_off_click)
+        self.relay2_btn_off.Bind(wx.EVT_BUTTON, self.relay2_btn_off_click)
+        self.relay3_btn_off.Bind(wx.EVT_BUTTON, self.relay3_btn_off_click)
+        self.relay4_btn_off.Bind(wx.EVT_BUTTON, self.relay4_btn_off_click)
+        #pointless text
         self.relay1_text = wx.StaticText(self,  label='Relay 1; ', pos=(5, 515))
-        self.relay2_text = wx.StaticText(self,  label='Relay 2; ', pos=(5, 540))
-        self.relay3_text = wx.StaticText(self,  label='Relay 3; ', pos=(5, 565))
-        self.relay4_text = wx.StaticText(self,  label='Relay 4; ', pos=(5, 590))
+        self.relay2_text = wx.StaticText(self,  label='Relay 2; ', pos=(5, 550))
+        self.relay3_text = wx.StaticText(self,  label='Relay 3; ', pos=(5, 585))
+        self.relay4_text = wx.StaticText(self,  label='Relay 4; ', pos=(5, 120))
         self.update_gpiotext()
 
 
 
 
      #Opening the window
-        self.SetSize((800, 600))
+        self.SetSize((1000, 900))
         self.SetTitle('Pigrow Control')
         self.Centre()
         self.Show(True)
+
+    def throw_switch(self, relay_device, direction):
+        print("USER Want's to flip the " + relay_device)
+        target_ip = self.tb_ip.GetValue()
+        target_user = self.tb_user.GetValue()
+        target_pass = self.tb_pass.GetValue()
+        ssh.connect(target_ip, username=target_user, password=target_pass, timeout=3)
+        print "Connected to " + target_ip
+        if direction == 'on':
+            print("Turning " + relay_device + " on...")
+            stdin, stdout, stderr = ssh.exec_command("/home/pi/Pigrow/scripts/switches/" + relay_device + "_on.py")
+        elif direction == 'off':
+            print("Turning " + relay_device + " off...")
+            stdin, stdout, stderr = ssh.exec_command("/home/pi/Pigrow/scripts/switches/" + relay_device + "_off.py")
+        else:
+            print("OI! YOU CODED THIS WRONG! YOU NEED TO TELL IT WHICH WAY TO FLIP!")
+        print stdout.read().strip()
+        ssh.close()
+
+
+    def relay1_btn_click(self, e):
+        text = self.relay1_btn.GetLabel()
+        self.throw_switch(text, 'on')
+
+    def relay2_btn_click(self, e):
+        text = self.relay2_btn.GetLabel()
+        self.throw_switch(text, 'on')
+
+    def relay3_btn_click(self, e):
+        text = self.relay3_btn.GetLabel()
+        self.throw_switch(text, 'on')
+
+    def relay4_btn_click(self, e):
+        text = self.relay4_btn.GetLabel()
+        self.throw_switch(text, 'on')
+
+#off buttons
+    def relay1_btn_off_click(self, e):
+        text = self.relay1_btn.GetLabel()
+        self.throw_switch(text, 'off')
+
+    def relay2_btn_off_click(self, e):
+        text = self.relay2_btn.GetLabel()
+        self.throw_switch(text, 'off')
+
+    def relay3_btn_off_click(self, e):
+        text = self.relay3_btn.GetLabel()
+        self.throw_switch(text, 'off')
+
+    def relay4_btn_off_click(self, e):
+        text = self.relay4_btn.GetLabel()
+        self.throw_switch(text, 'off')
 
     def askpi_filenums(self, host, target_user, target_pass):
         port = 22
@@ -664,6 +734,14 @@ class Pigrow(wx.Frame):
 
 
     def update_gpiotext(self):
+        self.relay1_btn.Disable()
+        self.relay2_btn.Disable()
+        self.relay3_btn.Disable()
+        self.relay4_btn.Disable()
+        self.relay1_btn_off.Disable()
+        self.relay2_btn_off.Disable()
+        self.relay3_btn_off.Disable()
+        self.relay4_btn_off.Disable()
         setdic = load_settings(sets=conf_file)
         if len(setdic) > 1:
             self.conf_boxname_text.SetLabel(setdic['box_name']) #this is now pointless
@@ -680,12 +758,25 @@ class Pigrow(wx.Frame):
 
             if len(gpiodevices) >= 1:
                 self.relay1_text.SetLabel(gpiodevices[0])
+                self.relay1_btn.SetLabel(gpiodevices[0])
+                self.relay1_btn.Enable()
+                self.relay1_btn_off.Enable()
             if len(gpiodevices) >= 2:
                 self.relay2_text.SetLabel(gpiodevices[1])
+                self.relay2_btn.SetLabel(gpiodevices[1])
+                self.relay2_btn.Enable()
+                self.relay2_btn_off.Enable()
             if len(gpiodevices) >= 3:
                 self.relay3_text.SetLabel(gpiodevices[2])
+                self.relay3_btn.SetLabel(gpiodevices[2])
+                self.relay3_btn.Enable()
+                self.relay3_btn_off.Enable()
             if len(gpiodevices) >= 4:
                 self.relay4_text.SetLabel(gpiodevices[3])
+                self.relay4_btn.SetLabel(gpiodevices[3])
+                self.relay4_btn.Enable()
+                self.relay4_btn_off.Enable()
+
 
         else:
             self.boxname_text.SetLabel('No settings file')
@@ -922,6 +1013,7 @@ class Pigrow(wx.Frame):
         self.update_switch()
         self.last_acc.SetLabel("Last Accessed; " + str(lastaccess))
         self.update_bigpic(cap_files)
+        self.update_gpiotext()
 
 
 
