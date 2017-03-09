@@ -4,6 +4,7 @@ import wx
 
 capsdir = 'none'
 graphdir = 'none'
+outfile = '../guitest.mp4'
 
 class Make_TL(wx.Frame):
     def __init__(self, *args, **kw):
@@ -11,13 +12,18 @@ class Make_TL(wx.Frame):
         self.InitUI()
 
     def InitUI(self):
-        global capsdir, graphdir
+        global capsdir, graphdir, outfile
+        capsdir = '/home/pragmo/frompigrow/Flower/caps/'
         if capsdir == 'none':
             capsdir, capset, cap_type = self.select_caps_folder()
-            graphdir = capsdir[:-5]
-            print graphdir
-            graphdir += "graph/"
-            print graphdir
+        else:
+            firstfile = os.listdir(capsdir)[0]
+            capset   = firstfile.split(".")[0][0:-10]  # Used to select set if more than one are present
+            cap_type = firstfile.split('.')[1]
+        graphdir = capsdir[:-5] #this is a hacky way of taking 'caps/' out of the filepath
+        print graphdir
+        graphdir += "graph/"
+        print graphdir
         cap_files = self.count_caps(capsdir, cap_type)
         print("We've got " + str(len(cap_files)))
       #Big Pictures
@@ -28,7 +34,12 @@ class Make_TL(wx.Frame):
       #graph
         self.cap_thumb = wx.StaticBitmap(self, bitmap=wx.EmptyBitmap(300, 300), pos=(500, 600))
       #lower left info
+        wx.StaticText(self,  label='Caps Folder', pos=(25, 610))
+        self.capsfolder_box = wx.TextCtrl(self, pos=(200, 610), size=(250, 30))
+        self.capsfolder_box.SetValue(str(capsdir))
         wx.StaticText(self,  label='Outfile', pos=(25, 650))
+        self.outfile_box = wx.TextCtrl(self, pos=(200, 650), size=(250, 30))
+        self.outfile_box.SetValue(str(outfile))
         wx.StaticText(self,  label='FPS (in)', pos=(25, 690))
         self.fps_in_box = wx.TextCtrl(self, pos=(200, 690), size=(100, 30))
         self.fps_in_box.SetValue("10")
@@ -41,6 +52,7 @@ class Make_TL(wx.Frame):
         wx.StaticText(self,  label='Limit to last', pos=(25, 810))
         date_opts = ['none', 'day', 'week', 'month']
         self.datecheck_combo = wx.ComboBox(self, choices = date_opts, pos=(200,810), size=(125, 30))
+        self.datecheck_combo.Bind(wx.EVT_COMBOBOX, self.datecheck_combo_go)
         self.datecheck_box = wx.TextCtrl(self, pos=(330, 810), size=(100, 30))
         self.datecheck_box.SetValue("1")
         self.datecheck_box.Disable()
@@ -58,7 +70,7 @@ class Make_TL(wx.Frame):
         self.btn_2.Bind(wx.EVT_BUTTON, self.btn_2_click)
         self.btn_3.Bind(wx.EVT_BUTTON, self.btn_3_click)
         self.btn_4.Bind(wx.EVT_BUTTON, self.btn_4_click)
-        self.btn_ren = wx.Button(self, label='old timelapse menu option', pos=(150, 600))
+        self.btn_ren = wx.Button(self, label=' Render ', pos=(250, 600), size=(50, 50))
         self.btn_ren.Bind(wx.EVT_BUTTON, self.btn_ren_click)
 
         self.updateUI(capsdir, cap_files)
@@ -66,6 +78,21 @@ class Make_TL(wx.Frame):
         self.SetTitle('Pigrow Control')
         self.Centre()
         self.Show(True)
+
+    def datecheck_combo_go(self, e):
+        if self.datecheck_combo.GetValue() == 'none':
+            print("Want's to see all of it, no datecheck")
+            self.datecheck_box.Disable()
+        elif self.datecheck_combo.GetValue() == 'day':
+            print("Want's to see only a number of days,")
+            self.datecheck_box.Enable()
+        elif self.datecheck_combo.GetValue() == 'week':
+            print("Want's to see only a number of weeks,")
+            self.datecheck_box.Enable()
+        elif self.datecheck_combo.GetValue() == 'month':
+            print("Want's to see only a number of months,")
+            self.datecheck_box.Enable()
+
 
     def scale_pic(self, pic, hnum):
         pic_hight = pic.GetHeight()
@@ -113,7 +140,7 @@ class Make_TL(wx.Frame):
 
     def btn_ren_click(self, e):
         print("old make timelapse menu option")
-        cmd = '../scripts/visualisation/timelapse_assemble.py caps=' + capsdir + " of=" + graphdir
+        cmd = '../visualisation/timelapse_assemble.py caps=' + capsdir + " of=" + graphdir
         cmd += 'guimade.mp4 ow=r dc=day3'
         #cmd += 'guimade.gif ow=r dc=hour1'
         print cmd
@@ -162,10 +189,10 @@ class Make_TL(wx.Frame):
             print("make caps graph")
             if OS == "linux":
                 print("Yay linux")
-                os.system("../scripts/visualisation/caps_graph.py caps="+capsdir+" out="+graphdir)
+                os.system("../visualisation/caps_graph.py caps="+capsdir+" out="+graphdir)
             elif OS == 'win':
                 print("oh, windows, i prefer linux but no worries...")
-                os.system("python ../scripts/visualisation/caps_graph.py caps="+capsdir+" out="+graphdir)
+                os.system("python ../visualisation/caps_graph.py caps="+capsdir+" out="+graphdir)
         else:
             print("skipping graphing caps - disabled or no caps to make graphs with")
         if os.path.exists(graphdir+'caps_filesize_graph.png'):
