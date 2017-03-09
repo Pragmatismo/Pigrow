@@ -842,7 +842,7 @@ class Pigrow(wx.Frame):
 
     def render_timelapse(self, e):
         print("This should call the module which makes the timelapse gui")
-        cmd = '../scripts/visualisation/timelapse_assemble.py caps=' + capsdir + " of=" + graphdir
+        cmd = '../visualisation/timelapse_assemble.py caps=' + capsdir + " of=" + graphdir
         cmd += 'guimade.mp4 ow=r dc=day3'
         #cmd += 'guimade.gif ow=r dc=hour1'
         print cmd
@@ -854,11 +854,11 @@ class Pigrow(wx.Frame):
     def render_dht(self, e):
         print("This should call the module which makes the dht graph gui")
         print("for now it just runs the pigrow script with arguments")
-        cmd = "../scripts/visualisation/temp_graph.py log=" + dht_log
+        cmd = "../visualisation/temp_graph.py log=" + dht_log
         cmd += " out=" + graphdir + "dht_temp_graph.png"
         print cmd
         os.system(cmd)
-        cmd = "../scripts/visualisation/humid_graph.py log=" + dht_log
+        cmd = "../visualisation/humid_graph.py log=" + dht_log
         cmd += " out=" + graphdir + "dht_humid_graph.png"
         print cmd
         os.system(cmd)
