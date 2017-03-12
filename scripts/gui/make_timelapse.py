@@ -25,6 +25,7 @@ class Make_TL(wx.Frame):
         print graphdir
         graphdir += "graph/"
         print graphdir
+        global cap_files
         cap_files = self.count_caps(capsdir, self.cap_type)
         print("We've got " + str(len(cap_files)))
       #Big Pictures
@@ -33,13 +34,13 @@ class Make_TL(wx.Frame):
         self.first_pic = wx.StaticBitmap(self, bitmap=wx.EmptyBitmap(500, 500), pos=(10, 50))
         self.last_pic = wx.StaticBitmap(self, bitmap=wx.EmptyBitmap(500, 500), pos=(520, 50))
       #graph
-        self.cap_thumb = wx.StaticBitmap(self, bitmap=wx.EmptyBitmap(300, 300), pos=(500, 600))
+        self.cap_thumb = wx.StaticBitmap(self, bitmap=wx.EmptyBitmap(300, 300), pos=(550, 600))
       #lower left info
-        wx.StaticText(self,  label='Caps Folder', pos=(25, 610))
-        self.capsfolder_box = wx.TextCtrl(self, pos=(200, 610), size=(250, 30))
+        wx.StaticText(self,  label='Caps ', pos=(25, 610))
+        self.capsfolder_box = wx.TextCtrl(self, pos=(100, 610), size=(400, 30))
         self.capsfolder_box.SetValue(str(capsdir))
         wx.StaticText(self,  label='Outfile', pos=(25, 650))
-        self.outfile_box = wx.TextCtrl(self, pos=(200, 650), size=(250, 30))
+        self.outfile_box = wx.TextCtrl(self, pos=(100, 650), size=(400, 30))
         self.outfile_box.SetValue(str(outfile))
         wx.StaticText(self,  label='FPS (in)', pos=(25, 690))
         self.fps_in_box = wx.TextCtrl(self, pos=(200, 690), size=(100, 30))
@@ -65,23 +66,54 @@ class Make_TL(wx.Frame):
       #Buttons
         self.btn_1 = wx.Button(self, label='<', pos=(150, 560), size=(30, 30))
         self.firstframe_box = wx.TextCtrl(self, pos=(190, 560), size=(100, 30))
+        self.firstframe_box.Bind(wx.EVT_TEXT, self.firstframe_change)
         self.btn_2 = wx.Button(self, label='>', pos=(300, 560), size=(30, 30))
 
         self.btn_3 = wx.Button(self, label='<', pos=(600, 560), size=(30, 30))
         self.lastframe_box = wx.TextCtrl(self, pos=(640, 560), size=(100, 30))
+        self.lastframe_box.Bind(wx.EVT_TEXT, self.lastframe_change)
         self.btn_4 = wx.Button(self, label='>', pos=(750, 560), size=(30, 30))
         self.btn_1.Bind(wx.EVT_BUTTON, self.btn_1_click)
         self.btn_2.Bind(wx.EVT_BUTTON, self.btn_2_click)
         self.btn_3.Bind(wx.EVT_BUTTON, self.btn_3_click)
         self.btn_4.Bind(wx.EVT_BUTTON, self.btn_4_click)
-        self.btn_ren = wx.Button(self, label=' Render ', pos=(250, 600), size=(50, 50))
+        self.btn_ren = wx.Button(self, label=' Render ', pos=(350, 690), size=(100, 50))
+        self.btn_play = wx.Button(self, label=' Play ', pos=(350, 750), size=(100, 50))
         self.btn_ren.Bind(wx.EVT_BUTTON, self.btn_ren_click)
+        self.btn_play.Bind(wx.EVT_BUTTON, self.btn_play_click)
 
-        self.updateUI(capsdir, cap_files)
+        self.updateUI(capsdir)
         self.SetSize((1030, 900))
         self.SetTitle('Pigrow Control')
         self.Centre()
         self.Show(True)
+
+
+    def firstframe_change(self, e):
+        try:
+            n_fframe = int(self.firstframe_box.GetValue())
+            lframe = int(self.lastframe_box.GetValue())
+        except:
+            return None
+        lol = 'LOLOLOLOLOLOL'
+        if n_fframe >= lframe:
+            n_fframe = lframe - 1
+            self.firstframe_box.SetValue(str(n_fframe))
+        self.updatefirstpic(n_fframe)
+
+    def lastframe_change(self, e):
+        try:
+            n_lframe = int(self.lastframe_box.GetValue())
+        except:
+            return None
+        try:
+            if int(n_lframe) > len(cap_files):
+                n_lframe = len(cap_files)
+                self.lastframe_box.SetValue(str(n_lframe))
+                self.updatelastpic(n_lframe)
+        except:
+            return None
+
 
     def datecheck_combo_go(self, e):
         if self.datecheck_combo.GetValue() == 'none':
@@ -108,23 +140,22 @@ class Make_TL(wx.Frame):
             scale_pic = pic.Scale(new_width, new_hight)
             return scale_pic
 
-    def updateUI(self, capsdir, cap_files):
-        print("---UPDATING USER INTERFACE ---")
-        fframe = 0
-        lframe = len(cap_files) - 1
-        last_pic  = str(capsdir + cap_files[lframe])
-        first_pic = str(capsdir + cap_files[fframe])
+    def updatelastpic(self, lframe):
+        capsdir = self.capsfolder_box.GetValue()
+        last_pic = str(capsdir + cap_files[lframe])
         if os.path.exists(last_pic):
             last_pic = wx.Image(last_pic, wx.BITMAP_TYPE_ANY)
             last_pic = self.scale_pic(last_pic, 500)
             self.last_pic.SetBitmap(wx.BitmapFromImage(last_pic))
             lpicdate = self.date_from_fn(cap_files[lframe])
             self.lpic_text.SetLabel('Frame ' + str(lframe) + '  -  ' + str(lpicdate))
-            self.firstframe_box.SetValue(str(fframe))
-            self.lastframe_box.SetValue(str(lframe))
         else:
             self.last_pic.SetBitmap(wx.EmptyBitmap(10,10))
             self.fpic_text.SetLabel('end')
+
+    def updatefirstpic(self, fframe):
+        capsdir = self.capsfolder_box.GetValue()
+        first_pic = str(capsdir + cap_files[fframe])
         if os.path.exists(first_pic):
             first_pic = wx.Image(first_pic, wx.BITMAP_TYPE_ANY)
             first_pic = self.scale_pic(first_pic, 500)
@@ -134,6 +165,24 @@ class Make_TL(wx.Frame):
         else:
             self.first_pic.SetBitmap(wx.EmptyBitmap(10,10))
             self.fpic_text.SetLabel('start')
+
+
+
+    def updateUI(self, capsdir):
+        print("---UPDATING USER INTERFACE ---")
+        capsdir = self.capsfolder_box.GetValue()
+        fframe = self.firstframe_box.GetValue()
+        lframe = self.lastframe_box.GetValue()
+        if fframe == '':
+            fframe = 0
+        if lframe == '':
+            lframe = len(cap_files) - 1
+        last_pic  = str(capsdir + cap_files[lframe])
+        first_pic = str(capsdir + cap_files[fframe])
+        self.firstframe_box.SetValue(str(fframe))
+        self.lastframe_box.SetValue(str(lframe))
+        self.updatelastpic(lframe)
+        self.updatefirstpic(fframe)
      #Cap graph
         cap_size_graph = self.graph_caps(cap_files, graphdir)
         scale_size_graph = first_pic = self.scale_pic(cap_size_graph, 300)
@@ -164,7 +213,7 @@ class Make_TL(wx.Frame):
         cmd += " ofps=" + str(fpsout)
         #cmd += " extra=" +  #additional commands for MVP (see timelapse assemble help)
         cmd += " ds=" + str(darksize)
-        if dc_1 != 'none':
+        if dc_1 != 'none' and dc_1 != '':
             cmd += " dc=" + dc_1 + str(dc_2)
         cmd += " ts=" + str(timeskip)
         cmd += " ft=" + self.cap_type
@@ -175,6 +224,9 @@ class Make_TL(wx.Frame):
         #cmd += 'guimade.gif ow=r dc=hour1'
         print cmd
         os.system(cmd)
+
+    def btn_play_click(self, e):
+        outfile = self.outfile_box.GetValue()
         playcmd = 'vlc ' + outfile
         print playcmd
         os.system(playcmd)
