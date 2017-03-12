@@ -108,10 +108,13 @@ class Make_TL(wx.Frame):
             return None
         try:
             if int(n_lframe) > len(cap_files):
-                n_lframe = len(cap_files)
+                n_lframe = len(cap_files) - 1
                 self.lastframe_box.SetValue(str(n_lframe))
-                self.updatelastpic(n_lframe)
+                print "WOOOT WOOOTTT!!!"
+            self.updatelastpic(n_lframe)
         except:
+            print "nOOOT nOOOTTT!!!"
+            raise
             return None
 
 
@@ -232,16 +235,30 @@ class Make_TL(wx.Frame):
         os.system(playcmd)
 
     def btn_1_click(self, e):
-        print("Button pressed")
+        cff = self.firstframe_box.GetValue()
+        nff = int(cff) - 1
+        if not int(nff) <= 0:
+            self.firstframe_box.SetValue(str(nff))
 
     def btn_2_click(self, e):
-        print("Button pressed")
+        lf = self.lastframe_box.GetValue()
+        cff = self.firstframe_box.GetValue()
+        nff = int(cff) + 1
+        if not int(nff) > int(lf):
+            self.firstframe_box.SetValue(str(nff))
 
     def btn_3_click(self, e):
-        print("Button pressed")
+        clf = self.lastframe_box.GetValue()
+        nlf = int(clf) - 1
+        if not int(nlf) <= 0:
+            self.lastframe_box.SetValue(str(nlf))
 
     def btn_4_click(self, e):
-        print("Button pressed")
+        lf = len(cap_files) - 1
+        clf = self.lastframe_box.GetValue()
+        nlf = int(clf) + 1
+        if not int(nlf) > int(lf):
+            self.lastframe_box.SetValue(str(nlf))
 
     def select_caps_folder(self):
         openFileDialog = wx.FileDialog(self, "Select caps folder", "", "", "JPG files (*.jpg)|*.jpg", wx.FD_OPEN | wx.FD_FILE_MUST_EXIST)
@@ -286,10 +303,6 @@ class Make_TL(wx.Frame):
             print("NOT ENOUGH CAPS GRAPH SO USING BLANK THUMB")
             blankimg = wx.EmptyImage(width=100, height=100, clear=True)
             return blankimg
-
-
-
-
 
 
 
