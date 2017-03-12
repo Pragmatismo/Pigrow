@@ -1,9 +1,11 @@
 #!/usr/bin/python
+import os
+import sys
 import time
-import os, sys
+
 
 def load_camera_settings(loc_dic):
-    #defaults for when config file not found
+    # defaults for when config file not found
     s_val = "20"
     c_val = "20"
     g_val = "20"
@@ -15,8 +17,7 @@ def load_camera_settings(loc_dic):
     caps_path = "/home/pi/Pigrow/caps/"
     try:
         caps_path = loc_dic['caps_path']
-    except:
-        if os.exists(caps_path):
+    except Exception: if os.exists(caps_path):
             print("Using default")
         else:
             caps_path = "./"
@@ -24,8 +25,7 @@ def load_camera_settings(loc_dic):
     try:
         loc_setting = loc_dic['camera_settings']
         print("using camera settings file as directed by dirlocs file.")
-    except:
-        print("camera settings file not mentioned in dirlocs file, using defaults.")
+    except Exception:        print("camera settings file not mentioned in dirlocs file, using defaults.")
     try:
         with open(loc_settings, "r") as f:
             for line in f:
@@ -44,29 +44,40 @@ def load_camera_settings(loc_dic):
                     y_dim = s_item[1].strip()
                 elif s_item[0] == "additonal_commands":
                     additonal_commands = s_item[1].strip()
-    except:
-        print("looked at " + loc_settings)
+    except Exception:        print("looked at " + loc_settings)
         print("but couldn't find config file for camera, so default values")
         print("  - Run cam_config.py to create one")
         print("     - or edit dirlocs config file to point to the config file.")
-    return (s_val, c_val, g_val, b_val, x_dim, y_dim, additonal_commands, caps_path)
+    return (s_val, c_val, g_val, b_val, x_dim,
+            y_dim, additonal_commands, caps_path)
 
 # take and save photo
+
 def take_with_uvccapture(s_val="20", c_val="20", g_val="20", b_val="20", x_dim=1600, y_dim=1200, additonal_commands="", caps_path="./"):
     timenow = time.time()
     timenow = str(timenow)[0:10]
-    filename= "cap_"+str(timenow)+".jpg"
-    os.system("uvccapture "+additonal_commands+" -S"+s_val+" -C" + c_val + " -G"+ g_val +" -B"+ b_val +" -x"+str(x_dim)+" -y"+str(y_dim)+" -v -t0 -o"+caps_path+filename)
-    print("Image taken and saved to "+caps_path+filename)
+    filename = "cap_"+str(timenow)+".jpg"
+    os.system("uvccapture "+additonal_commands+" -S"+s_val+" -C" + c_val + " -G" + g_val +" -B"+ b_val +" -x"+str(x_dim)+" -y"+str(y_dim)+" -v -t0 -o"+caps_path+filename)
+    print("Image taken and saved to " +caps_path+filename)
     return filename
+
 
 if __name__ == '__main__':
 
     sys.path.append('/home/pi/Pigrow/scripts/')
     import pigrow_defs
-    #script = 'camcap.py'  #used with logging module
+    # script = 'camcap.py'  #used with logging module
     loc_locs = '/home/pi/Pigrow/config/dirlocs.txt'
     loc_dic = pigrow_defs.load_locs(loc_locs)
 
-    s_val, c_val, g_val, b_val, x_dim, y_dim, additonal_commands, caps_path = load_camera_settings(loc_dic)
-    filename = take_with_uvccapture(s_val, c_val, g_val, b_val, x_dim, y_dim, additonal_commands, caps_path)
+    s_val, c_val, g_val, b_val, x_dim, y_dim, additonal_commands, caps_path = load_camera_settings(
+        loc_dic)
+    filename = take_with_uvccapture(
+    s_val,
+    c_val,
+    g_val,
+    b_val,
+    x_dim,
+    y_dim,
+    additonal_commands,
+     caps_path)

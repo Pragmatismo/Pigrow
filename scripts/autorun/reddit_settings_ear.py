@@ -1,27 +1,30 @@
 #!/usr/bin/python
 import datetime
-import praw           #pip install praw   #remove the --pre if it's now the future and praw4 is standard
 import os
-import time
 import socket
 import sys
+import time
+
+import pigrow_defs
+import praw  # pip install praw   #remove the --pre if it's now the future and praw4 is standard
+from crontab import CronTab  # pip install python-crontab
+
 sys.path.append('/home/pi/Pigrow/scripts/')
 script = 'reddit_settings_ear.py'
-import pigrow_defs
-from crontab import CronTab   #  pip install python-crontab
-cron = CronTab(user=True)  #can be user+True, 'yourusername' or 'root' all work.
+# can be user+True, 'yourusername' or 'root' all work.
+cron = CronTab(user=True)
 
-#logs default values
+# logs default values
 loc_settings = "/home/pi/Pigrow/config/pigrow_config.txt"
 loc_switchlog = '/home/pi/Pigrow/logs/switch_log.txt'
 err_log = './'
 loc_locs = '/home/pi/Pigrow/config/dirlocs.txt'
 
 
-watcher_name = '' #default user to msg on script start set to '' for none
+watcher_name = ''  # default user to msg on script start set to '' for none
 for argu in sys.argv:
     thearg = str(argu).split('=')[0]
-    if  thearg == 'to':
+    if thearg == 'to':
         watcher_name = str(argu).split('=')[1]
     elif thearg == 'codeword':
         codeword = str(argu).split('=')[1]
@@ -30,24 +33,54 @@ for argu in sys.argv:
         print("\n\n -- using LOCS LOGS = " + str(loc_locs) + "'\n\n")
 
 loc_dic = pigrow_defs.load_locs(loc_locs)
-#Settings for validation rules
-hour_only = ['time_lamp_off', 'time_lamp_on'] #name os script that only accepts hour:min
-valid_gpio=[2,3,4,17,27,22,10,9,11,0,5,6,13,19,26,14,15,18,23,24,25,8,7,1,12,16,20,21]  #valid gpio numbers using the gpio (BCM) NOT the board numbering system
-intonly= ['heater_templow','heater_temphigh','log_frequency']
+# Settings for validation rules
+# name os script that only accepts hour:min
+hour_only = ['time_lamp_off', 'time_lamp_on']
+valid_gpio = [
+    2,
+    3,
+    4,
+    17,
+    27,
+    22,
+    10,
+    9,
+    11,
+    0,
+    5,
+    6,
+    13,
+    19,
+    26,
+    14,
+    15,
+    18,
+    23,
+    24,
+    25,
+    8,
+    7,
+    1,
+    12,
+    16,
+    20,
+    21]  # valid gpio numbers using the gpio (BCM) NOT the board numbering system
+intonly = ['heater_templow', 'heater_temphigh', 'log_frequency']
 
 
-
-
-if 'loc_switchlog' in loc_dic: loc_switchlog = loc_dic['loc_switchlog']
-if 'loc_settings' in loc_dic: loc_settings = loc_dic['loc_settings']
-if 'err_log' in loc_dic: err_log = loc_dic['err_log']
-my_user_agent= 'Pigrow updater tester thing V0.6 (by /u/The3rdWorld)'
+if 'loc_switchlog' in loc_dic:
+    loc_switchlog = loc_dic['loc_switchlog']
+if 'loc_settings' in loc_dic:
+    loc_settings = loc_dic['loc_settings']
+if 'err_log' in loc_dic:
+    err_log = loc_dic['err_log']
+my_user_agent = 'Pigrow updater tester thing V0.6 (by /u/The3rdWorld)'
 try:
     my_client_id = loc_dic['my_client_id']
     my_client_secret = loc_dic['my_client_secret']
     my_username = loc_dic['my_username']
     my_password = loc_dic['my_password']
-except:
+except Exception:
     message = "REDDIT SETTINGS NOT FOUND IN " + str(loc_locs)
     pigrow_defs.write_log(script, message, loc_dic['loc_switchlog'])
     raise
@@ -56,7 +89,7 @@ try:
     wiki_title = loc_dic['wiki_title']
     live_wiki_title = loc_dic['live_wiki_title']
     use_wiki = True
-except:
+except Exception:
     message = "No subreddit details set, can't update live pages"
     pigrow_defs.write_log(script, message, loc_dic['loc_switchlog'])
     subreddit = ''
@@ -66,14 +99,14 @@ except:
 try:
     watcher_name = loc_dic['watcher_name']
     use_watcher = True
-except:
+except Exception:
     watcher_name = ''
     use_watcher = False
     message = "No trusted user provided, can't recieve orderes"
     pigrow_defs.write_log(script, message, loc_dic['loc_switchlog'])
 try:
     codeword = loc_dic['watcher_name']
-except:
+except Exception:
     codeword = "please"
 
 if use_wiki == False and use_watcher == False:
@@ -88,9 +121,10 @@ def is_connected():
         host = socket.gethostbyname(site)
         s = socket.create_connection((host, 80), 2)
         return True
-    except:
+    except Exception:
         pass
     return False
+
 
 def log_in():
     global reddit, inbox, subreddit
@@ -104,12 +138,16 @@ def log_in():
         inbox = reddit.inbox
         subreddit = reddit.subreddit(subreddit)
         print "Connected to reddit, found subreddit; " + str(subreddit.title)
-        pigrow_defs.write_log(script, 'Initialized and logged into reddit.', loc_dic['loc_switchlog'])
+        pigrow_defs.write_log(
+            script,
+            'Initialized and logged into reddit.',
+            loc_dic['loc_switchlog'])
         return True
     except Exception as e:
         message = 'Failed to log into reddit, ' + str(e)
     pigrow_defs.write_log(script, message, loc_dic['loc_switchlog'])
     return False
+
 
 connected = False
 while connected == False:
@@ -138,15 +176,15 @@ while logged_in == False:
 #whereto.message('Pigrow Settings', "Hi,just thought you'd like to know it worked this time:")
 
 
-
-def change_setting(setting,value):
-    if setting[0:4]=='gpio':
+def change_setting(setting, value):
+    if setting[0:4] == 'gpio':
         gpio_setting = setting.split('_')
-        if len(gpio_setting)>2:
+        if len(gpio_setting) > 2:
             if gpio_setting[2] == 'on':
                 if value == 'low' or value == 'high':
-                    pi_set[setting]=value
-                    pigrow_defs.save_settings(pi_set, loc_dic['loc_settings'], err_log=loc_dic['err_log'])
+                    pi_set[setting] = value
+                    pigrow_defs.save_settings(
+                        pi_set, loc_dic['loc_settings'], err_log=loc_dic['err_log'])
                     return(str(setting) + " GPIO on direction set to " + str(value), "pass")
                 else:
                     return(" BAD VALUE - not changing the setting to a bad one!", "fail")
@@ -154,21 +192,25 @@ def change_setting(setting,value):
             try:
                 if int(value) in valid_gpio:
                     #print("Valid GPIO pin selected")
-                    pi_set[setting]=value
-                    pigrow_defs.save_settings(pi_set, loc_dic['loc_settings'], err_log=loc_dic['err_log'])
+                    pi_set[setting] = value
+                    pigrow_defs.save_settings(
+                        pi_set, loc_dic['loc_settings'], err_log=loc_dic['err_log'])
                     return(setting + " GPIO Pin set to " + str(value), "pass")
                 else:
                     return("Invalid GPIO pin, not changing anything.", "fail")
-            except:
-                return("Invalid GPIO pin, has to be a number. No change","fail")
+            except Exception:
+                return("Invalid GPIO pin, has to be a number. No change", "fail")
     elif setting in intonly:
         try:
             value = int(value)
             #print("This is a number, great job!")
-            pi_set[setting]=value
-            pigrow_defs.save_settings(pi_set, loc_dic['loc_settings'], err_log=loc_dic['err_log'])
+            pi_set[setting] = value
+            pigrow_defs.save_settings(
+                pi_set,
+                loc_dic['loc_settings'],
+                err_log=loc_dic['err_log'])
             return(str(setting) + " set to " + str(value), "pass")
-        except:
+        except Exception:
             return("Failed because this setting requires a number", "fail")
 
     elif setting in hour_only:
@@ -176,22 +218,27 @@ def change_setting(setting,value):
             value = value.split(":")
             value_h = int(value[0])
             value_m = int(value[1])
-            if value_h in range(0,24) and value_m in range(0,59):
+            if value_h in range(0, 24) and value_m in range(0, 59):
                 print("This is a valid time setting, great job!")
                 value = str(value_h) + ":" + str(value_m)
-                pi_set[setting]=value
-                pigrow_defs.save_settings(pi_set, loc_dic['loc_settings'], err_log=loc_dic['err_log'])
+                pi_set[setting] = value
+                pigrow_defs.save_settings(
+                    pi_set, loc_dic['loc_settings'], err_log=loc_dic['err_log'])
                 return("time set to " + str(value), "fail")
             else:
                 return("should be in 24hour clock HH:MM format, 14:03 for example", "fail")
-        except:
+        except Exception:
             return('should be in 24hour clock HH:MM format, 15:45 for example', "fail")
 
     else:
         print("No Verification rules for that setting, changing it to whatever was requested...")
-        pi_set[setting]=value
-        pigrow_defs.save_settings(pi_set, loc_dic['loc_settings'], err_log=loc_dic['err_log'])
-        return(str(setting) + " set to " + str(value),"pass")
+        pi_set[setting] = value
+        pigrow_defs.save_settings(
+            pi_set,
+            loc_dic['loc_settings'],
+            err_log=loc_dic['err_log'])
+        return(str(setting) + " set to " + str(value), "pass")
+
 
 def write_set(whereto='wiki'):
     page_text = '#Pigrow Settings  \n\n'
@@ -203,13 +250,16 @@ def write_set(whereto='wiki'):
     page_text += '  \n'
     page_text += '|Name|Setting|  \n'
     page_text += '|--:|---|  \n'
-    for key, value in pi_set.iteritems() :
-        #print key, value
-        page_text += '|['+key+'](https://www.reddit.com/message/compose/?to='+my_username+'&subject=set:' +str(key)+ '&message='+str(value)+')|' + str(value)  + '  \n'
-    page_text +=("")
-    page_text +=("To view an explanation of each setting go see [configuring the pigrow](wiki link goes here) in the documentation ")
+    for key, value in pi_set.iteritems():
+        # print key, value
+        page_text += '|[' + key + '](https://www.reddit.com/message/compose/?to=' + my_username + \
+            '&subject=set:' + str(key) + '&message=' + \
+            str(value) + ')|' + str(value) + '  \n'
+    page_text += ("")
+    page_text += (
+        "To view an explanation of each setting go see [configuring the pigrow](wiki link goes here) in the documentation ")
     ###
-    ##    LOAD SWITCH FILE
+    # LOAD SWITCH FILE
     #
     switch_list = []
     days_to_show = 7
@@ -218,12 +268,16 @@ def write_set(whereto='wiki'):
         with open(loc_switchlog, "r") as f:
             logitem = f.read()
             logitem = logitem.split("\n")
-        print('There are ' + str(len(logitem)) + ' readings in the switch log.')
+        print('There are ' + str(len(logitem)) +
+              ' readings in the switch log.')
         oldest_allowed_date = thetime - datetime.timedelta(days=days_to_show)
         curr_line = len(logitem) - 1
-    except:
+    except Exception:
         print("switch not loaded, try running pi_setup")
-        pigrow_defs.write_log(script, 'switch log file error', loc_dic['err_log'])
+        pigrow_defs.write_log(
+            script,
+            'switch log file error',
+            loc_dic['err_log'])
         return("FAILED DUE TO NO SWTICH LOG FILE")
 
     while curr_line >= 0:
@@ -241,10 +295,10 @@ def write_set(whereto='wiki'):
                 break
             curr_line = curr_line - 1
 
-        except:
-            print("line"+str(curr_line)+" didn't parse, ignoring")
+        except Exception:
+            print("line" + str(curr_line) + " didn't parse, ignoring")
             curr_line = curr_line - 1
-        #print item
+        # print item
         switch_item = item
     page_text += '  \n  \n'
     page_text += '#Cron'
@@ -252,29 +306,34 @@ def write_set(whereto='wiki'):
     page_text += 'Current Cron file;  \n  \n'
     page_text += 'Enabled|time|Command|Comment|-|Line  \n'
     page_text += ':-:|---|---|---|--:|---  \n'
-    cjob=0
+    cjob = 0
     for job in cron:
-        modlink = 'https://www.reddit.com/message/compose/?to='+my_username+'&subject=cronmod:' + str(cjob) + '&message=updated_line_here'
-        enabledlink = 'https://www.reddit.com/message/compose/?to='+my_username+'&subject=crontog:' + str(cjob) + '&message=plz'
+        modlink = 'https://www.reddit.com/message/compose/?to=' + my_username + \
+            '&subject=cronmod:' + str(cjob) + '&message=updated_line_here'
+        enabledlink = 'https://www.reddit.com/message/compose/?to=' + \
+            my_username + '&subject=crontog:' + str(cjob) + '&message=plz'
         enabled = job.is_enabled()
-        page_text += "["+str(enabled)+"]("+enabledlink+")|" + str(job.slices) + "|"
+        page_text += "[" + str(enabled) + "](" + \
+            enabledlink + ")|" + str(job.slices) + "|"
         page_text += str(job.command) + "|" + str(job.comment) + "|"
-        page_text += "[modify]("+modlink+")|" + str(job) + "  \n"
-        cjob=cjob+1
+        page_text += "[modify](" + modlink + ")|" + str(job) + "  \n"
+        cjob = cjob + 1
     page_text += "  \n  \n"
-    page_text += '[Add New Cron Job;](https://www.reddit.com/message/compose/?to='+my_username+'&subject=cmd:addcron&message=plz)'
-
+    page_text += '[Add New Cron Job;](https://www.reddit.com/message/compose/?to=' + \
+        my_username + '&subject=cmd:addcron&message=plz)'
 
     page_text += '  \n  \n'
     page_text += '#Switch Log  \n  \n'
-    page_text += 'Showing '+ str(switch_list_limit) +' from the last ' + str(days_to_show) + ' days of activity.  \n  \n'
+    page_text += 'Showing ' + str(switch_list_limit) + ' from the last ' + \
+        str(days_to_show) + ' days of activity.  \n  \n'
     page_text += '|Script|Time|Event  \n'
     page_text += '|---|:-:|---  \n'
     for a in switch_list:
-        page_text += '|'+a[0]+'|'+ str(a[1]) +'|'+a[2]+'  \n'
+        page_text += '|' + a[0] + '|' + str(a[1]) + '|' + a[2] + '  \n'
     page_text += '  \n'
     ###
-    cmdlink = "(https://www.reddit.com/message/compose/?to="+my_username+"&subject=cmd:"
+    cmdlink = "(https://www.reddit.com/message/compose/?to=" + \
+        my_username + "&subject=cmd:"
     page_text += '  \n'
     page_text += '  \n'
     page_text += '  The following settings are not yet all implimented'
@@ -286,39 +345,56 @@ def write_set(whereto='wiki'):
     page_text += '|Reboot|Remotely reboots the pi|password protected  \n'
     page_text += '|Factory Reset|Restores Pigrow Defaults|password protected  \n'
     page_text += '|Update Pigrow|Automatically updates software|password protected  \n'
-    page_text += '|[Send Command]'+cmdlink+'send_cmd&message=PASSWORD pipe CMD if you don\' want reddit ear to wait finish with &)|Send a bash command directly to the pi (dangerous)|lets you do almost anything, which is dangerous.. end command with an & if you don\'t want reddit_ear to wait for it to finish PASS|COMMAND \n'
-    page_text += "|[Log]"+cmdlink+"log)|Create a custom log event|Include the text of the log event in the body of the message  \n"
-    page_text += "|[update_wiki]"+cmdlink+"update_wiki)|Updates or creates the settings wiki|Replies with a link to it.  \n"
-    page_text += "|[Archive Grow]"+cmdlink+"archive_grow)|Stores all the data for the current grow in an archive folder and starts a new grow|password protected  \n"
+    page_text += '|[Send Command]' + cmdlink + \
+        'send_cmd&message=PASSWORD pipe CMD if you don\' want reddit ear to wait finish with &)|Send a bash command directly to the pi (dangerous)|lets you do almost anything, which is dangerous.. end command with an & if you don\'t want reddit_ear to wait for it to finish PASS|COMMAND \n'
+    page_text += "|[Log]" + cmdlink + \
+        "log)|Create a custom log event|Include the text of the log event in the body of the message  \n"
+    page_text += "|[update_wiki]" + cmdlink + \
+        "update_wiki)|Updates or creates the settings wiki|Replies with a link to it.  \n"
+    page_text += "|[Archive Grow]" + cmdlink + \
+        "archive_grow)|Stores all the data for the current grow in an archive folder and starts a new grow|password protected  \n"
     page_text += "|Generate System Report|Creates a current pigrow system report and sends it to the user|Includes diskfull, uptime, etc  \n"
-    page_text += "|[Generate Data Wall]"+cmdlink+"datawall)|Create visual display of pigrow status from logs|  \n"
-    page_text += "|[Generate Timelapse Hour]"+cmdlink+"timelapse_hour)|Creates a timelapse gif of the current day so far, uploads it and sends a link to the user|  \n"
-    page_text += "|[Generate Timelapse 5Hours]"+cmdlink+"timelapse_5hour)|Creates video of last five hours, uploads and links user|size limited due to upload restrictions  \n"
-    page_text += "|[Generate Timelapse day]"+cmdlink+"timelapse_day)|Creates video of last day, applies timeskip to limit size.|  \n"
-    page_text += "|[Generate Timelapse week]"+cmdlink+"timelapse_week)|Creates video of last week, applies large timeskip to limit size.|  \n"
-    page_text += "|[send_settings]"+cmdlink+"send_settings)|Replies to the user with the settings menu||  \n"
+    page_text += "|[Generate Data Wall]" + cmdlink + \
+        "datawall)|Create visual display of pigrow status from logs|  \n"
+    page_text += "|[Generate Timelapse Hour]" + cmdlink + \
+        "timelapse_hour)|Creates a timelapse gif of the current day so far, uploads it and sends a link to the user|  \n"
+    page_text += "|[Generate Timelapse 5Hours]" + cmdlink + \
+        "timelapse_5hour)|Creates video of last five hours, uploads and links user|size limited due to upload restrictions  \n"
+    page_text += "|[Generate Timelapse day]" + cmdlink + \
+        "timelapse_day)|Creates video of last day, applies timeskip to limit size.|  \n"
+    page_text += "|[Generate Timelapse week]" + cmdlink + \
+        "timelapse_week)|Creates video of last week, applies large timeskip to limit size.|  \n"
+    page_text += "|[send_settings]" + cmdlink + \
+        "send_settings)|Replies to the user with the settings menu||  \n"
     page_text += "  \n  \n"
     page_text += "*this section work in progress, links will be added as the functions are*   \n"
     page_text += "  \n  \n"
 
-    #determine local ip - apparently this works on macs if you change the 0 to a 1 but i don't buy apple products so...
+    # determine local ip - apparently this works on macs if you change the 0
+    # to a 1 but i don't buy apple products so...
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.connect(('8.8.8.8', 0))  # connecting to a UDP address doesn't send packets
+        # connecting to a UDP address doesn't send packets
+        s.connect(('8.8.8.8', 0))
         local_ip_address = s.getsockname()[0]
         page_text += 'Current local network IP ' + str(local_ip_address)
-    except:
+    except Exception:
         page_text += 'Local IP not deduced, sorry...'
 
     print("writing " + str(len(page_text)) + " characters to reddit")
     if whereto == 'wiki':
-        praw.models.WikiPage(reddit, subreddit, wiki_title).edit(page_text[0:524288])
+        praw.models.WikiPage(reddit, subreddit, wiki_title).edit(
+            page_text[0:524288])
     else:
         try:
             whereto = praw.models.Redditor(reddit, name=whereto, _data=None)
-            whereto.message('Pigrow Settings', page_text[0:10000])   #, from_subreddit=subreddit)
-        except:
-            pigrow_defs.write_log(script, "couldn't contact redditor, wrong naem?", loc_dic['err_log'])
+            # , from_subreddit=subreddit)
+            whereto.message('Pigrow Settings', page_text[0:10000])
+        except Exception:
+            pigrow_defs.write_log(
+                script,
+                "couldn't contact redditor, wrong naem?",
+                loc_dic['err_log'])
 
 
 def make_cron_from(income):
@@ -330,7 +406,7 @@ def make_cron_from(income):
         croncommand = cron_request.command
         croncomment = cron_request.comment
         cronenabled = cron_request.enabled
-        new_job = cron.new(command=croncommand,  comment=croncomment)
+        new_job = cron.new(command=croncommand, comment=croncomment)
         if cronslice == "@reboot":
             #print("Reboot script")
             new_job.every_reboot()
@@ -346,31 +422,35 @@ def make_cron_from(income):
         print("Something odd happened, a problem..")
         return False
 
+
 def check_msg():
     path = '/home/pi/Pigrow/'
-    wikilink = "[Settings Wiki](https://www.reddit.com/r/" + str(subreddit) + "/wiki/"+str(wiki_title)+ ")"
+    wikilink = "[Settings Wiki](https://www.reddit.com/r/" + \
+        str(subreddit) + "/wiki/" + str(wiki_title) + ")"
     for msg in reddit.inbox.unread():
         print("")
-        print ('  - ' +msg.author)
-        print ('  - ' +msg.subject)
-        print ('  - ' +msg.body)
+        print ('  - ' + msg.author)
+        print ('  - ' + msg.subject)
+        print ('  - ' + msg.body)
         msg.mark_read()
         if msg.author == watcher_name:
             print("Trusted User settings access enabled.")
             try:
                 msgsub = msg.subject.split(":")
-            except:
+            except Exception:
                 print("Not a valid format")
             msgfrom = praw.models.Redditor(reddit, name=msg.author, _data=None)
 
             if msgsub[0] == "set":
                 if msgsub[1] in pi_set:
-                    reply, passed = change_setting(str(msgsub[1]),str(msg.body))
+                    reply, passed = change_setting(
+                        str(msgsub[1]), str(msg.body))
                     write_set('wiki')
                     reply += "  \n  \nvisit " + wikilink + " for more info"
                     msgfrom.message('Pigrow Settings', reply[0:10000])
                     if passed == "pass":
-                        pigrow_defs.write_log(script, reply, loc_dic['loc_switchlog'])
+                        pigrow_defs.write_log(
+                            script, reply, loc_dic['loc_switchlog'])
             elif msgsub[0] == "cmd":
                 if msgsub[1] == "reboot":
                     print("User requests reboot!")
@@ -385,77 +465,129 @@ def check_msg():
                     msg_codeword = str(msg.body).split("|")[0]
                     msg_cmd = str(str(msg.body).split("|")[1:])[2:-2]
                     if codeword == codeword:
-                        print("hmmm, they knew the secret code word... we should let them....")
+                        print(
+                            "hmmm, they knew the secret code word... we should let them....")
                         try:
                             os.system(msg_cmd)
-                            msgfrom.message('Pigrow Settings', 'ok, run ' + msg_cmd + " for you...")
+                            msgfrom.message(
+                                'Pigrow Settings', 'ok, run ' + msg_cmd + " for you...")
                         except Exception as e:
-                            msgfrom.message('Pigrow Settings', 'sorry, tried ' + msg_cmd + " but it failed...  \n  \n" + str(e))
+                            msgfrom.message(
+                                'Pigrow Settings',
+                                'sorry, tried ' +
+                                msg_cmd +
+                                " but it failed...  \n  \n" +
+                                str(e))
                     else:
                         print("Didn't know the codeword, chasing them off...")
-                        msgfrom.message('Pigrow Settings', 'Sorry, wrong codeword, not doing it :p')
+                        msgfrom.message(
+                            'Pigrow Settings',
+                            'Sorry, wrong codeword, not doing it :p')
 
                 elif msgsub[1] == "archive_grow":
                     print("--Archiving grow")
                     responce = pigrow_defs.archive_grow(loc_dic, str(msg.body))
-                    pigrow_defs.write_log(script, "Prior grow data archived.", loc_dic['loc_switchlog'])
+                    pigrow_defs.write_log(
+                        script, "Prior grow data archived.", loc_dic['loc_switchlog'])
                     msgfrom.message('Pigrow Settings', responce)
                 elif msgsub[1] == "log":
                     print("--User has something they want to add to the log...")
-                    pigrow_defs.write_log("User via Reddit", str(msg.body), loc_dic['loc_switchlog'])
+                    pigrow_defs.write_log(
+                        "User via Reddit", str(
+                            msg.body), loc_dic['loc_switchlog'])
                 elif msgsub[1] == "send_settings":
                     print("--User want to see settings!")
                     write_set(msg.author)
                 elif msgsub[1] == "update_wiki":
                     print("--User want to see settings!")
                     write_set('wiki')
-                    msgfrom.message('Pigrow Control', "Settings Wiki written at " + wikilink)
+                    msgfrom.message(
+                        'Pigrow Control',
+                        "Settings Wiki written at " +
+                        wikilink)
                 elif msgsub[1] == 'datawall':
                     print("--User want's a datawall!")
-                    datawalllink = "[Settings Wiki](https://www.reddit.com/r/" + str(subreddit) + "/wiki/"+str(wiki_title)+ "datawall)"
-                    os.system(path+"scripts/visualisation/caps_graph.py")
-                    os.system(path+"scripts/visualisation/temp_graph.py hours=24")
-                    os.system(path+"scripts/visualisation/humid_graph.py hours=24")
-                    os.system(path+"scripts/visualisation/selflog_graph.py")
-                    os.system(path+"scripts/visualisation/assemble_datawall.py")
-                    photo_loc = subreddit.stylesheet.upload('datawall', path+"graphs/datawall.jpg")
+                    datawalllink = "[Settings Wiki](https://www.reddit.com/r/" + str(
+                        subreddit) + "/wiki/" + str(wiki_title) + "datawall)"
+                    os.system(path + "scripts/visualisation/caps_graph.py")
+                    os.system(
+                        path + "scripts/visualisation/temp_graph.py hours=24")
+                    os.system(
+                        path + "scripts/visualisation/humid_graph.py hours=24")
+                    os.system(path + "scripts/visualisation/selflog_graph.py")
+                    os.system(
+                        path + "scripts/visualisation/assemble_datawall.py")
+                    photo_loc = subreddit.stylesheet.upload(
+                        'datawall', path + "graphs/datawall.jpg")
                     page_text = "#Datawall  \n  \n"
                     page_text += '![datawall](%%datawall%%)  \n  \n'
-                    praw.models.WikiPage(reddit, subreddit, live_wiki_title).edit(page_text)
-                    live_wikilink = "[Datawall](https://www.reddit.com/r/" + str(subreddit) + "/wiki/"+str(live_wiki_title)+ ")"
-                    msgfrom.message('Pigrow Control', "Datawall uploaded to " + str(live_wikilink))
+                    praw.models.WikiPage(
+                        reddit, subreddit, live_wiki_title).edit(page_text)
+                    live_wikilink = "[Datawall](https://www.reddit.com/r/" + str(
+                        subreddit) + "/wiki/" + str(live_wiki_title) + ")"
+                    msgfrom.message(
+                        'Pigrow Control',
+                        "Datawall uploaded to " +
+                        str(live_wikilink))
 
                 elif msgsub[1] == "timelapse_hour":
-                    print("Generating the last hour into a timelapse, this will take a while...")
-                    os.system(path+"scripts/visualisation/timelapse_assemble.py of=/home/pi/Pigrow/graphs/hour.gif dc=hour1 ds=1 fps=5 ow=r")
-                    #msgfrom.message('Pigrow Control', "Gif created /home/pi/Pigrow/graphs/hour.gif")#at " + giflink)
-                    photo_loc = subreddit.stylesheet.upload('onehour', path+"graphs/hour.gif")
+                    print(
+                        "Generating the last hour into a timelapse, this will take a while...")
+                    os.system(
+                        path +
+                        "scripts/visualisation/timelapse_assemble.py of=/home/pi/Pigrow/graphs/hour.gif dc=hour1 ds=1 fps=5 ow=r")
+                    # msgfrom.message('Pigrow Control', "Gif created
+                    # /home/pi/Pigrow/graphs/hour.gif")#at " + giflink)
+                    photo_loc = subreddit.stylesheet.upload(
+                        'onehour', path + "graphs/hour.gif")
                     page_text = "#Last Hour  \n  \n"
                     page_text += '![onehour](%%onehour%%)  \n  \n'
-                    praw.models.WikiPage(reddit, subreddit, live_wiki_title).edit(page_text)
-                    live_wikilink = "[Timelapse](https://www.reddit.com/r/" + str(subreddit) + "/wiki/"+str(live_wiki_title)+ ")"
-                    msgfrom.message('Pigrow Control', "Last hour timelapse gif uploaded to " + str(live_wikilink))
+                    praw.models.WikiPage(
+                        reddit, subreddit, live_wiki_title).edit(page_text)
+                    live_wikilink = "[Timelapse](https://www.reddit.com/r/" + str(
+                        subreddit) + "/wiki/" + str(live_wiki_title) + ")"
+                    msgfrom.message(
+                        'Pigrow Control',
+                        "Last hour timelapse gif uploaded to " +
+                        str(live_wikilink))
                 elif msgsub[1] == "timelapse_5hours":
-                    print("Generating the last five hours into a timelapse, this will take a while...")
-                    os.system(path+"scripts/visualisation/timelapse_assemble.py of=/home/pi/Pigrow/graphs/5hours.gif dc=hour5 ds=1 fps=5 ow=r")
-                    msgfrom.message('Pigrow Control', "Gif created /home/pi/Pigrow/graphs/5hours.gif")#at " + giflink)
+                    print(
+                        "Generating the last five hours into a timelapse, this will take a while...")
+                    os.system(
+                        path +
+                        "scripts/visualisation/timelapse_assemble.py of=/home/pi/Pigrow/graphs/5hours.gif dc=hour5 ds=1 fps=5 ow=r")
+                    msgfrom.message(
+                        'Pigrow Control',
+                        "Gif created /home/pi/Pigrow/graphs/5hours.gif")  # at " + giflink)
                 elif msgsub[1] == "timelapse_day":
-                    print("Generating the last day into a timelapse, this will take a while...")
-                    os.system(path+"scripts/visualisation/timelapse_assemble.py of=/home/pi/Pigrow/graphs/day.gif dc=day1 ds=1 fps=5 ts=8 ow=r")
-                    msgfrom.message('Pigrow Control', "Gif created /home/pi/Pigrow/graphs/day.gif")#at " + giflink)
+                    print(
+                        "Generating the last day into a timelapse, this will take a while...")
+                    os.system(
+                        path +
+                        "scripts/visualisation/timelapse_assemble.py of=/home/pi/Pigrow/graphs/day.gif dc=day1 ds=1 fps=5 ts=8 ow=r")
+                    msgfrom.message(
+                        'Pigrow Control',
+                        "Gif created /home/pi/Pigrow/graphs/day.gif")  # at " + giflink)
                 elif msgsub[1] == "timelapse_week":
-                    print("Generating the last week into a timelapse, this will take a while...")
-                    os.system(path+"scripts/visualisation/timelapse_assemble.py of=/home/pi/Pigrow/graphs/week.gif dc=hour5 ds=1 fps=5 ow=r")
-                    msgfrom.message('Pigrow Control', "Gif created /home/pi/Pigrow/graphs/week.gif")#at " + giflink)
+                    print(
+                        "Generating the last week into a timelapse, this will take a while...")
+                    os.system(
+                        path +
+                        "scripts/visualisation/timelapse_assemble.py of=/home/pi/Pigrow/graphs/week.gif dc=hour5 ds=1 fps=5 ow=r")
+                    msgfrom.message(
+                        'Pigrow Control',
+                        "Gif created /home/pi/Pigrow/graphs/week.gif")  # at " + giflink)
                 elif msgsub[1] == "addcron":
                     print("User wants to add job to cron;")
                     new_job = make_cron_from(msg.body)
                     print new_job
                     if new_job != False:
                         cron.write()
-                        msgfrom.message('Pigrow Control', "Cron job " + str(new_job) + " added.")
+                        msgfrom.message(
+                            'Pigrow Control', "Cron job " + str(new_job) + " added.")
                     else:
-                        msgfrom.message('Pigrow Control', "Sorry, that wasn't a valid cron job")
+                        msgfrom.message(
+                            'Pigrow Control', "Sorry, that wasn't a valid cron job")
             elif msgsub[0] == "crontog":
                 job = cron[int(msgsub[1])]
                 if job.enabled == True:
@@ -472,35 +604,45 @@ def check_msg():
                 new_job = make_cron_from(msg.body)
                 print new_job
                 if new_job != False:
-                    #if job.command == new_job.command:
+                    # if job.command == new_job.command:
                     cron.remove(job)
                     cron.write()
-                    msgfrom.message('Pigrow Control', "Cron job " + str(job) + " changed to " + str(new_job))
-                    #else:
+                    msgfrom.message(
+                        'Pigrow Control',
+                        "Cron job " +
+                        str(job) +
+                        " changed to " +
+                        str(new_job))
+                    # else:
                     #    cron.remove(new_job)
                     #    msgfrom.message('Pigrow Control', "Sorry, can't change scripts when modifying cron job, it's dangerous")
                 else:
-                    msgfrom.message('Pigrow Control', "Sorry, that wasn't a valid cron job")
+                    msgfrom.message(
+                        'Pigrow Control',
+                        "Sorry, that wasn't a valid cron job")
 
             else:
-                reply =  "Sorry, couldn't understand what you wanted, "
+                reply = "Sorry, couldn't understand what you wanted, "
                 reply += "visit " + wikilink + " for more info"
-                whereto = praw.models.Redditor(reddit, name=msg.author, _data=None)
+                whereto = praw.models.Redditor(
+                    reddit, name=msg.author, _data=None)
                 whereto.message('Pigrow Settings', reply[0:10000])
                 print("Didn't understand what they wanted, if they wanted anything.")
         else:
             print("THIS IS NOT A TRUSTED USER - THEY CAN NOT EDIT SETTINGS!")
             print("")
-        #msg.mark_read() -moved to the top to avoid crash message repeats
+        # msg.mark_read() -moved to the top to avoid crash message repeats
 
 
 ###
-##         Main Loop
+# Main Loop
 #
 
-#print reddit.read_only
+# print reddit.read_only
 thetime = datetime.datetime.now()
-pi_set = pigrow_defs.load_settings(loc_dic['loc_settings'], err_log=loc_dic['err_log'])
+pi_set = pigrow_defs.load_settings(
+    loc_dic['loc_settings'],
+    err_log=loc_dic['err_log'])
 
 
 print("")
@@ -511,13 +653,16 @@ print(" - If you're me then maybe...")
 print(" -    python reddit_settings_ear.py to=The3rdWorld loc_locs=/home/pragmo/pigitgrow/Pigrow/config/dirlocs.txt ")
 print(" - is the command you need, maybe?")
 
-###THIS SENDS INNITIAL MESSAGE WITH THE SETTIGNS ON EVERY BOOT
+# THIS SENDS INNITIAL MESSAGE WITH THE SETTIGNS ON EVERY BOOT
 if not watcher_name == '':
     try:
         write_set(watcher_name)
     except Exception as err:
         with open(err_log, "a") as ef:
-            line = 'update_reddit.py @' + str(datetime.datetime.now()) + '@ FAILED TO MESSAGE THE COMMANDER... '+str(watcher_name)+' \n'
+            line = 'update_reddit.py @' + \
+                str(datetime.datetime.now()) + \
+                '@ FAILED TO MESSAGE THE COMMANDER... ' + \
+                str(watcher_name) + ' \n'
             ef.write(line)
 
 while True:
@@ -525,10 +670,13 @@ while True:
         check_msg()
         time.sleep(30)
         print("all messages replied to, Looping again...")
-    except  Exception as err:
+    except Exception as err:
         print("There was an error in the loop, " + str(err) + " trying again")
         with open(err_log, "a") as ef:
-            line = 'update_reddit.py @' + str(datetime.datetime.now()) + '@ IT RUN BUT THERE WAS AN ERROR,'+str(err)+' RELOOPING...\n'
+            line = 'update_reddit.py @' + \
+                str(datetime.datetime.now()) + \
+                '@ IT RUN BUT THERE WAS AN ERROR,' + \
+                str(err) + ' RELOOPING...\n'
             ef.write(line)
         time.sleep(1)
-        #raise
+        # raise

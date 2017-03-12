@@ -1,12 +1,15 @@
 #!/usr/bin/python
-import os, sys
+import os
+import sys
 import time
+
+import pigrow_defs
+
 sys.path.append('/home/pi/Pigrow/scripts/')
 script = 'picamcap.py'
-import pigrow_defs
 try:
     from picamera import PiCamera
-except:
+except Exception:
     print("Picamera is not installed, is this even a raspberry pi?!")
     exit()
 loc_locs = '/home/pi/Pigrow/config/dirlocs.txt'
@@ -25,9 +28,9 @@ if not os.path.exists(loc_settings):
     os.makedirs(loc_settings)
 loc_settings = loc_settings + "picam_settings.txt"
 
-start_v = 10 #between 1-255
-end_v = 100 #between 1-255
-skip_v = 10 #ten represents value increase by ten
+start_v = 10  # between 1-255
+end_v = 100  # between 1-255
+skip_v = 10  # ten represents value increase by ten
 
 try:
     with open(loc_settings, "r") as f:
@@ -47,7 +50,7 @@ try:
                 y_dim = s_item[1].split("\n")[0]
             elif s_item[0] == "additonal_commands":
                 additonal_commands = s_item[1].split("\n")[0]
-except:
+except Exception:
     pass
 
 
@@ -63,7 +66,15 @@ def show_menu():
     print("varying one of the settings to create a range from")
     print("which you can select the best configuration.")
     print("")
-    print("Current settings; S = " + str(s_val) + "  C = " + str(c_val) + "  iso = " + str(g_val) + "  B = " + str(b_val))
+    print(
+        "Current settings; S = " +
+        str(s_val) +
+        "  C = " +
+        str(c_val) +
+        "  iso = " +
+        str(g_val) +
+        "  B = " +
+        str(b_val))
     print("  _______________________")
     print(" |Set value              |")
     print(" | 1 - Saturation        |")
@@ -97,66 +108,81 @@ def show_menu():
 
     elif option == "5":
         print("Capturing range of Saturation images...")
-        for s in range(start_v,end_v,skip_v):
+        for s in range(start_v, end_v, skip_v):
             print("---Doing:Saturation;" + str(s))
             camera.saturation = int(s)
             camera.contrast = int(c_val)
             camera.brightness = int(b_val)
             camera.iso = int(g_val)
             time.sleep(2)
-            camera.capture(caps_path+"test_range_s_" + str(s) + ".jpg")
+            camera.capture(caps_path + "test_range_s_" + str(s) + ".jpg")
         print("Range captured, view and select best value..")
-        os.system("gpicview "+caps_path+"test_range_s_"+str(start_v)+".jpg")
+        os.system(
+            "gpicview " +
+            caps_path +
+            "test_range_s_" +
+            str(start_v) +
+            ".jpg")
         s_val = raw_input("Input value to use for Saturation.. ")
         show_menu()
 
     elif option == "6":
         print("Capturing range of Contrast images...")
-        for c in range(start_v,end_v,skip_v):
+        for c in range(start_v, end_v, skip_v):
             print("---Doing: Contrast=" + str(c))
             camera.contrast = int(c)
             camera.saturation = int(s_val)
             camera.iso = int(g_val)
             camera.brightness = int(b_val)
             time.sleep(2)
-            camera.capture(caps_path+"test_range_c_" + str(c) + ".jpg")
+            camera.capture(caps_path + "test_range_c_" + str(c) + ".jpg")
         print("Range captured, view and select best value..")
-        os.system("gpicview "+caps_path+"test_range_c_"+str(start_v)+".jpg")
+        os.system(
+            "gpicview " +
+            caps_path +
+            "test_range_c_" +
+            str(start_v) +
+            ".jpg")
         c_val = raw_input("Input value to use for Contrast..")
         show_menu()
 
     elif option == "7":
         print("Capturing range of ISO images...")
-        for g in range(100,900,100):
+        for g in range(100, 900, 100):
             print("---Doing: analog_iso=" + str(g))
             camera.saturation = int(s_val)
             camera.conmtrast = int(c_val)
             camera.brightness = int(b_val)
             camera.iso = int(g)
             time.sleep(2)
-            camera.capture(caps_path+"test_range_iso_" + str(g) + ".jpg")
+            camera.capture(caps_path + "test_range_iso_" + str(g) + ".jpg")
         print("Range captured, view and select best value..")
-        os.system("gpicview "+caps_path+"test_range_iso_100.jpg")
+        os.system("gpicview " + caps_path + "test_range_iso_100.jpg")
         g_val = raw_input("Input value to use for iso..")
         show_menu()
 
     elif option == "8":
         print("Capturing range of Brightness images...")
-        for b in range(start_v,end_v,skip_v):
+        for b in range(start_v, end_v, skip_v):
             print("---Doing: broghtness=" + str(b))
             camera.brightness = int(b)
             camera.saturation = int(s_val)
             camera.conmtrast = int(c_val)
             camera.iso = int(g_val)
             time.sleep(2)
-            camera.capture(caps_path+"test_range_b_" + str(b) + ".jpg")
+            camera.capture(caps_path + "test_range_b_" + str(b) + ".jpg")
         print("Range captured, view and select best value..")
-        os.system("gpicview "+caps_path+"test_range_b_"+str(start_v)+".jpg")
+        os.system(
+            "gpicview " +
+            caps_path +
+            "test_range_b_" +
+            str(start_v) +
+            ".jpg")
         b_val = raw_input("Input value to use for Brightness..")
         show_menu()
 
     elif option == "0":
-        os.system("sudo rm "+caps_path+"test_range_*.jpg")
+        os.system("sudo rm " + caps_path + "test_range_*.jpg")
         print("Images deleted")
         show_menu()
     elif option == "t":
@@ -166,8 +192,8 @@ def show_menu():
         camera.brightness = int(b_val)
         camera.saturation = int(c_val)
         time.sleep(2)
-        camera.capture(caps_path+"test_range_.jpg")
-        os.system("gpicview "+caps_path+"test_range_.jpg")
+        camera.capture(caps_path + "test_range_.jpg")
+        os.system("gpicview " + caps_path + "test_range_.jpg")
         show_menu()
 
     elif option == "r":
@@ -176,22 +202,22 @@ def show_menu():
         camera.iso = int(g_val)
         camera.brightness = int(b_val)
         camera.saturation = int(c_val)
-        for x in range(1,10):
+        for x in range(1, 10):
             time.sleep(2)
-            camera.capture(caps_path+"test_range_"+str(x)+".jpg")
-        os.system("gpicview "+caps_path+"test_range_1.jpg")
+            camera.capture(caps_path + "test_range_" + str(x) + ".jpg")
+        os.system("gpicview " + caps_path + "test_range_1.jpg")
         show_menu()
 
     elif option == "s":
         print("Saving configuration file...")
         with open(loc_settings, "w") as f:
-            f.write("s_val="+s_val+"\n")
-            f.write("c_val="+c_val+"\n")
-            f.write("g_val="+g_val+"\n")
-            f.write("b_val="+b_val+"\n")
-            f.write("x_dim="+str(x_dim)+"\n")
-            f.write("y_dim="+str(y_dim)+"\n")
-            f.write("additonal_commands="+additonal_commands+ "\n")
+            f.write("s_val=" + s_val + "\n")
+            f.write("c_val=" + c_val + "\n")
+            f.write("g_val=" + g_val + "\n")
+            f.write("b_val=" + b_val + "\n")
+            f.write("x_dim=" + str(x_dim) + "\n")
+            f.write("y_dim=" + str(y_dim) + "\n")
+            f.write("additonal_commands=" + additonal_commands + "\n")
         print("Config Saved")
         show_menu()
     elif option == "q" or option == "Q" or option == "":
@@ -199,6 +225,7 @@ def show_menu():
     else:
         print("That wasn't an option...")
         show_menu()
+
 
 show_menu()
 
