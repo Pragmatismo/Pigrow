@@ -13,7 +13,9 @@ print("the relays, i.e. normally open or closed")
 print("")
 print("The sequence will repeat five times")
 from time import sleep
+
 import RPi.GPIO as GPIO
+
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(23, GPIO.OUT)
 GPIO.setup(8, GPIO.OUT)

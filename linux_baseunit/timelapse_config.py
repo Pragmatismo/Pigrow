@@ -1,16 +1,20 @@
 #!/usr/bin/python
-from crontab import CronTab   #  pip install python-crontab
 import os
 
-### USER SETTINGS
+from crontab import CronTab  # pip install python-crontab
+
+# USER SETTINGS
 
 #script_path = '/home/pragmo/pigitgrow/Pigrow/scripts/cron/'
 script_path = '/home/pi/Pigrow/scripts/cron/'
 cappath = "/home/pi/cam_caps/"
-archive_path = '/home/pi/archive/'    #folder in which to store archived old image sets
-cron = CronTab(user=True)  #generally leave user as 'root' but 'pi' or whatever will work also if that user can run the camcap sctipt
+# folder in which to store archived old image sets
+archive_path = '/home/pi/archive/'
+# generally leave user as 'root' but 'pi' or whatever will work also if
+# that user can run the camcap sctipt
+cron = CronTab(user=True)
 
-#### PROGRAM
+# PROGRAM
 
 print("  ############################################")
 print("  ##                                        ##")
@@ -23,7 +27,9 @@ for job in cron:
     if str(job).find('camcap') >= 0:
         camcap_list.append(job)
 if len(camcap_list) >= 1:
-    print("         -Found " + str(len(camcap_list))+" camcap scripts running...")
+    print("         -Found " +
+          str(len(camcap_list)) +
+          " camcap scripts running...")
 else:
     print('         -No currently running camcap jobs in cron')
 print("  ##  Checking folders;")
@@ -35,15 +41,17 @@ if not os.path.exists(cappath):
 else:
     for filefound in os.listdir(cappath):
         filelist.append(filefound)
-    print("         -"+cappath+" contains "+str(len(filelist))+" files")
+    print("         -" + cappath + " contains " + str(len(filelist)) + " files")
+
 
 def show_camcap():
     print("")
     print("")
     print("All camcap sctipt jobs currently running on cron;")
     for j in camcap_list:
-        print("  - "+ str(j))
+        print("  - " + str(j))
     print("")
+
 
 def clear_camcap():
     print("")
@@ -51,8 +59,9 @@ def clear_camcap():
         print("")
         print(" Select camcap cron job to remove;")
         for j in range(0, len(camcap_list)):
-            print("  "+str(j)+" - "+ str(camcap_list[j]))
-        option = raw_input("select job to delete or type ALL to clear all camcap jobs;")
+            print("  " + str(j) + " - " + str(camcap_list[j]))
+        option = raw_input(
+            "select job to delete or type ALL to clear all camcap jobs;")
         if option == ("ALL"):
             for j in camcap_list:
                 cron.remove(j)
@@ -66,13 +75,14 @@ def clear_camcap():
                 cron.remove(camcap_list[int(option)])
                 cron.write()
                 print("Job Removed...")
-            except:
+            except Exception:
                 print("didn't understand your input, try again;")
                 clear_camcap()
     else:
         print(" No camcap jobs to remove")
         print("")
         show_cron_menu()
+
 
 def add_job():
     print("")
@@ -93,22 +103,22 @@ def add_job():
     while asker == True:
         option = raw_input("Type the number and press return;")
         if option == "1":
-            cam_script = "python "+script_path+"camcap.py"
+            cam_script = "python " + script_path + "camcap.py"
             asker = False
         elif option == "2":
-            cam_script = "python "+script_path+"camcap_text_simple.py"
+            cam_script = "python " + script_path + "camcap_text_simple.py"
             asker = False
         elif option == "3":
-            cam_script = "python "+script_path+"camcap_text_colour.py"
+            cam_script = "python " + script_path + "camcap_text_colour.py"
             asker = False
         elif option == "4":
-            cam_script = "python "+script_path+"picamcap.py"
+            cam_script = "python " + script_path + "picamcap.py"
             asker = False
         elif option == "5":
-            cam_script = "python "+script_path+"picamcap_text_simple.py"
+            cam_script = "python " + script_path + "picamcap_text_simple.py"
             asker = False
         elif option == "6":
-            cam_script = "python "+script_path+"picamcap_text_colour.py"
+            cam_script = "python " + script_path + "picamcap_text_colour.py"
             asker = False
         elif option == "":
             print("")
@@ -119,14 +129,22 @@ def add_job():
             print("")
     while asking == True:
         try:
-            time_step = raw_input("How frequently in min do you want it to capture images? input value between 1 and 59;")
+            time_step = raw_input(
+                "How frequently in min do you want it to capture images? input value between 1 and 59;")
             time_step = int(time_step)
             asking = False
-        except:
+        except Exception:
             print("not a valid answer")
     try:
-        print("  ##  Adding Cron Job " + cam_script + " to run every " + str(time_step) + " min")
-        cron_job = cron.new(command=cam_script,comment='added by timelapse_config')
+        print(
+            "  ##  Adding Cron Job " +
+            cam_script +
+            " to run every " +
+            str(time_step) +
+            " min")
+        cron_job = cron.new(
+            command=cam_script,
+            comment='added by timelapse_config')
         cron_job.minute.every(time_step)
         cron_job.enable()
         if cron_job.is_valid() == True:
@@ -135,7 +153,7 @@ def add_job():
         else:
             print(" ! ! ! ! -Validity test FAILED - very rare that is...?")
             raise
-    except:
+    except Exception:
         print("")
         print(" _ Writing job failed  ")
         raise
@@ -144,23 +162,24 @@ def add_job():
     if not cron.render():
         print "cron error, something is wrong!"
 
+
 def job_mod():
     print("")
     if len(camcap_list) >= 1:
         print("")
         print(" Select camcap cron job to modify;")
         for j in range(0, len(camcap_list)):
-            print("  "+str(j)+" - "+ str(camcap_list[j]))
+            print("  " + str(j) + " - " + str(camcap_list[j]))
         option = raw_input("select job to modify;")
         try:
             cron.remove(camcap_list[int(option)])
-        except:
+        except Exception:
             print("")
             print("  - Input Error, try again;")
             job_mod()
         finally:
-                #cron.write()
-                add_job()
+                # cron.write()
+            add_job()
     else:
         print("No camcap jobs to modify")
         print("")
@@ -177,6 +196,7 @@ def show_all_cron():
         print(" NO CRON JOBS RUNNING")
     print(" ####################")
     print("")
+
 
 def show_cron_menu():
     print("  ####                                     ####")
@@ -199,34 +219,44 @@ def show_cron_menu():
         show_cron_menu()
     elif option == "2":
         job_mod()
-        #show_cron_menu()
+        # show_cron_menu()
     elif option == "3":
         clear_camcap()
-        #show_cron_menu()
+        # show_cron_menu()
     elif option == "4":
         add_job()
-        #show_cron_menu()
+        # show_cron_menu()
     elif option == "5":
-        name_o = raw_input("choose name for archive folder, or leave blank to delete them perminently ;")
+        name_o = raw_input(
+            "choose name for archive folder, or leave blank to delete them perminently ;")
         if name_o == "":
-            sure = raw_input("are you sure you want to DELETE ALL FILES IN "+cappath+"? Type Y to continue;")
+            sure = raw_input(
+                "are you sure you want to DELETE ALL FILES IN " +
+                cappath +
+                "? Type Y to continue;")
             if sure == "Y" or sure == "y":
-                os.system("rm "+cappath+"*.*")
+                os.system("rm " + cappath + "*.*")
         else:
             try:
-                if not os.path.exists(archive_path+name_o):
-                    os.makedirs(archive_path+name_o)
+                if not os.path.exists(archive_path + name_o):
+                    os.makedirs(archive_path + name_o)
                 else:
                     print("Folder already exists, ")
-                    merge_o = raw_input("   - type M to merge or return to cancel;")
+                    merge_o = raw_input(
+                        "   - type M to merge or return to cancel;")
                     if merge_o == "M" or merge_o == 'm':
                         print("merging folders")
                     else:
                         sys.exit()
-                print(" - Copying files from "+cappath+" to "+archive_path+name_o )
-                os.system("mv "+cappath+'*.* '+archive_path+name_o)
+                print(
+                    " - Copying files from " +
+                    cappath +
+                    " to " +
+                    archive_path +
+                    name_o)
+                os.system("mv " + cappath + '*.* ' + archive_path + name_o)
                 print("Moved")
-            except:
+            except Exception:
                 print(" - Directory system fail, nothing happening")
 
 
@@ -237,7 +267,8 @@ def show_cron_menu():
         show_all_cron()
         show_cron_menu()
 
-#show_camcap()
-#add_job()
-#show_all_cron()
+
+# show_camcap()
+# add_job()
+# show_all_cron()
 show_cron_menu()
