@@ -1,10 +1,11 @@
+#!/usr/bin/python
 import os, sys
 import datetime
 import wx
 
 capsdir = 'none'
 graphdir = 'none'
-outfile = '../guitest.mp4'
+outfile = '/home/pragmo/frompigrow/Flower/test.mp4'
 
 class Make_TL(wx.Frame):
     def __init__(self, *args, **kw):
@@ -15,16 +16,16 @@ class Make_TL(wx.Frame):
         global capsdir, graphdir, outfile
         capsdir = '/home/pragmo/frompigrow/Flower/caps/'
         if capsdir == 'none':
-            capsdir, capset, cap_type = self.select_caps_folder()
+            capsdir, capset, self.cap_type = self.select_caps_folder()
         else:
             firstfile = os.listdir(capsdir)[0]
             capset   = firstfile.split(".")[0][0:-10]  # Used to select set if more than one are present
-            cap_type = firstfile.split('.')[1]
+            self.cap_type = firstfile.split('.')[1]
         graphdir = capsdir[:-5] #this is a hacky way of taking 'caps/' out of the filepath
         print graphdir
         graphdir += "graph/"
         print graphdir
-        cap_files = self.count_caps(capsdir, cap_type)
+        cap_files = self.count_caps(capsdir, self.cap_type)
         print("We've got " + str(len(cap_files)))
       #Big Pictures
         self.fpic_text = wx.StaticText(self,  label='first pic', pos=(10, 15))
@@ -48,7 +49,7 @@ class Make_TL(wx.Frame):
         self.fps_out_box.SetValue("10")
         wx.StaticText(self,  label='Dark Threashold', pos=(25, 770))
         self.darksize_box = wx.TextCtrl(self, pos=(200, 770), size=(100, 30))
-        self.darksize_box.SetValue("10000")
+        self.darksize_box.SetValue("100000")
         wx.StaticText(self,  label='Limit to last', pos=(25, 810))
         date_opts = ['none', 'day', 'week', 'month']
         self.datecheck_combo = wx.ComboBox(self, choices = date_opts, pos=(200,810), size=(125, 30))
@@ -56,16 +57,19 @@ class Make_TL(wx.Frame):
         self.datecheck_box = wx.TextCtrl(self, pos=(330, 810), size=(100, 30))
         self.datecheck_box.SetValue("1")
         self.datecheck_box.Disable()
-        wx.StaticText(self,  label='Timeskip', pos=(25, 850))
+        wx.StaticText(self,  label='frame skip ', pos=(25, 850))
         self.timeskip_box = wx.TextCtrl(self, pos=(200, 850), size=(100, 30))
-        self.timeskip_box.SetValue("0")
+        self.timeskip_box.SetValue("1")
 
 
       #Buttons
-        self.btn_1 = wx.Button(self, label='1', pos=(50, 550))
-        self.btn_2 = wx.Button(self, label=' 2', pos=(400, 550))
-        self.btn_3 = wx.Button(self, label='3', pos=(550, 550))
-        self.btn_4 = wx.Button(self, label='4', pos=(900, 550))
+        self.btn_1 = wx.Button(self, label='<', pos=(150, 560), size=(30, 30))
+        self.firstframe_box = wx.TextCtrl(self, pos=(190, 560), size=(100, 30))
+        self.btn_2 = wx.Button(self, label='>', pos=(300, 560), size=(30, 30))
+
+        self.btn_3 = wx.Button(self, label='<', pos=(600, 560), size=(30, 30))
+        self.lastframe_box = wx.TextCtrl(self, pos=(640, 560), size=(100, 30))
+        self.btn_4 = wx.Button(self, label='>', pos=(750, 560), size=(30, 30))
         self.btn_1.Bind(wx.EVT_BUTTON, self.btn_1_click)
         self.btn_2.Bind(wx.EVT_BUTTON, self.btn_2_click)
         self.btn_3.Bind(wx.EVT_BUTTON, self.btn_3_click)
@@ -116,6 +120,8 @@ class Make_TL(wx.Frame):
             self.last_pic.SetBitmap(wx.BitmapFromImage(last_pic))
             lpicdate = self.date_from_fn(cap_files[lframe])
             self.lpic_text.SetLabel('Frame ' + str(lframe) + '  -  ' + str(lpicdate))
+            self.firstframe_box.SetValue(str(fframe))
+            self.lastframe_box.SetValue(str(lframe))
         else:
             self.last_pic.SetBitmap(wx.EmptyBitmap(10,10))
             self.fpic_text.SetLabel('end')
@@ -139,13 +145,37 @@ class Make_TL(wx.Frame):
         return fdate
 
     def btn_ren_click(self, e):
+        capsdir = self.capsfolder_box.GetValue()
+        outfile = self.outfile_box.GetValue()
+        fpsin = self.fps_in_box.GetValue()
+        fpsout = self.fps_out_box.GetValue()
+        darksize = self.darksize_box.GetValue()
+        dc_1 = self.datecheck_combo.GetValue()
+        dc_2 = self.datecheck_box.GetValue()
+        timeskip = self.timeskip_box.GetValue()
+        #ft = 'jpg'
+        inpoint = self.firstframe_box.GetValue()
+        outpoint = self.lastframe_box.GetValue()
         print("old make timelapse menu option")
-        cmd = '../visualisation/timelapse_assemble.py caps=' + capsdir + " of=" + graphdir
-        cmd += 'guimade.mp4 ow=r dc=day3'
+        cmd = '../visualisation/timelapse_assemble.py'
+        cmd += " caps=" + capsdir
+        cmd += " of=" + outfile
+        cmd += " fps=" + str(fpsin)
+        cmd += " ofps=" + str(fpsout)
+        #cmd += " extra=" +  #additional commands for MVP (see timelapse assemble help)
+        cmd += " ds=" + str(darksize)
+        if dc_1 != 'none':
+            cmd += " dc=" + dc_1 + str(dc_2)
+        cmd += " ts=" + str(timeskip)
+        cmd += " ft=" + self.cap_type
+        cmd += " inp=" + str(inpoint)
+        cmd += " op=" + str(outpoint)
+
+        cmd += " ow=r" #we can check for existing files locally and prompt for overwrite
         #cmd += 'guimade.gif ow=r dc=hour1'
         print cmd
         os.system(cmd)
-        playcmd = 'vlc ' + graphdir + 'guimade.mp4'
+        playcmd = 'vlc ' + outfile
         print playcmd
         os.system(playcmd)
 
@@ -182,6 +212,8 @@ class Make_TL(wx.Frame):
                 cap_files.append(filefound)
         cap_files.sort()
         return cap_files
+
+
 
     def graph_caps(self, cap_files, graphdir):
         OS = "linux"
