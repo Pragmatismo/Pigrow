@@ -36,15 +36,17 @@ This document will be updated and finished soon but the most up-to-date build, i
 
 # Setting up a Webcam and starting a Timelapse 
 
-1) Make sure your lightning conditions are set up as intended before beginning. 
-2) Run the webcam config script found in the /Pigrow/scripts/config/ folder. 
-3) Follow the instructions until you're happy with the image captured by your camera.
-4) Remember to SAVE your settings once you're happy with them. 
+1. Make sure your lightning conditions are set up as intended before beginning. 
+2. Run the webcam config script found in the /Pigrow/scripts/config/ folder. 
+3. Follow the instructions until you're happy with the image captured by your camera.
+4. Remember to SAVE your settings once you're happy with them. 
 
-1) Run setup.py.
-2) Select cron run scripts. 
-3) Select repeating scripts. 
-4) Follow the prompts to choose the camera capture script and repeat rate of your choice.
+Setting up: 
+
+1. Run setup.py.
+2. Select cron run scripts. 
+3. Select repeating scripts. 
+4. Follow the prompts to choose the camera capture script and repeat rate of your choice.
 
 At the moment your best choice is probably camcap.py every five min. 
   
@@ -87,7 +89,7 @@ To add a one of the following timelapse programs to cron simply use:
 
        sudo crontab -e
 
-and at the bottom of the file after the explanation of how it works add the line:
+At the bottom of the file after the explanation of how it works add the line:
 
        */1 * * * * python /home/pi/Pigrow/scripts/camcap_text_simple.py
 
@@ -134,37 +136,28 @@ This is some init.d business I'll be back to explain once the script is uploaded
 
 - Adafruit DHT sensor drivers:
 
-    git clone https://github.com/adafruit/Adafruit_Python_DHT.git
-    cd Adafruit_Python_DHT
-    sudo apt-get update
-    sudo apt-get install build-essential python-dev python-openssl
-    sudo python setup.py install
+          git clone https://github.com/adafruit/Adafruit_Python_DHT.git
+          cd Adafruit_Python_DHT
+          sudo apt-get update
+          sudo apt-get install build-essential python-dev python-openssl
+          sudo python setup.py install
 
-      -more information at, https://learn.adafruit.com/dht-humidity-sensing-on-raspberry-pi-with-gdocs-logging/software-install-updated
+More information at: https://learn.adafruit.com/dht-humidity-sensing-on-raspberry-pi-with-gdocs-logging/software-install-updated
 
 - From Linux Repository:
 
-     sudo apt-get install uvccapture           #for use with camera
-
-     sudo pip install pexpect                  #for use when logging other pigrows health
-
-     sudo apt-get install python-matplotlib    #for making graphs
-
-     sudo apt-get install sshpass              #for downloadinging images
-
-     sudo apt install mpv                      #for rendering timelapse movies
-
-     pip install python-crontab                #for config of timelapse and relay timing
-
+          sudo apt-get install uvccapture           #for use with camera
+          sudo pip install pexpect                  #for use when logging other pigrows health
+          sudo apt-get install python-matplotlib    #for making graphs
+          sudo apt-get install sshpass              #for downloadinging images
+          sudo apt install mpv                      #for rendering timelapse movies
+          pip install python-crontab                #for config of timelapse and relay timing
 
 - On systems other than Raspbian you may also need:
 
-     sudo apt-get install python-pip           #for adding python modules
-     pip install pillow                        #PIL the Python Image Library (for camera capture scripts that edit image)
-     sudo apt-get install gpicview             #used by the config program (non-vital, easy to change-out in the code)
-
-
-
+          sudo apt-get install python-pip           #for adding python modules
+          pip install pillow                        #PIL the Python Image Library (for camera capture scripts that edit image)
+          sudo apt-get install gpicview             #used by the config program (non-vital, easy to change-out in the code)
 
 # Directory Structure
 
