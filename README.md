@@ -52,27 +52,18 @@ At the moment your best choice is probably camcap.py every five min.
   
 Once this is set your PiGrow2 will start taking images at the previously defined intervals, this will keep happening even if you restart your PiGrow2.
 To stop it you'll need to start setup.py and remove the cronjob which triggers the camera.
-This can also be done via the reddit messsage-control script, manually editing the crontab with crontab -e, and soon via the remote gui.  
+This can also be done via the reddit message-control script, manually editing the crontab with crontab -e, and soon via the remote gui.  
   
-From the PiGrow2 you can run Pigrow/scripts/visulaisation/timelapse_assemble.py to construct a timelapse.
+From the PiGrow2 you can run Pigrow/scripts/visualisation/timelapse_assemble.py to construct a timelapse.
 Run the script with the flag -h to get a full list of command line options and some usage instructions. 
 This script can also be run from a linux machine with MPV installed when the files have been downloaded manually. 
 They can also be automatically downloaded using the remote gui and the timelapse made using that. [work in progress] 
 
-# Everything else
-
-should be fairly obvious or isn't yet finished, any questions message me on the pigrow sub.
-
-# Outdated Information
-
-
-The following is out-of-date but sections of it may still be useful.
-
-----------
-
 ## Install and Setup
 
 ----------
+
+The following is out-of-date but sections of it may still be useful.
 
 # Test and config scripts
 
