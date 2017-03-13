@@ -158,7 +158,7 @@ More information at: https://learn.adafruit.com/dht-humidity-sensing-on-raspberr
             mkdir /home/pi/Pigrow/graphs
             mkdir /home/pi/cam_caps
 
-# Set timed events useing cron (the semi-manual way):
+# Set timed events using cron (the semi-manual way):
 
      crontab -e
 
