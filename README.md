@@ -66,8 +66,6 @@ They can also be automatically downloaded using the remote gui and the timelapse
 
 ## Install and Setup
 
-----------
-
 The following is out-of-date but sections of it may still be useful.
 
 # Test and config scripts
@@ -125,8 +123,6 @@ Scripts to be constantly running:
 This is some init.d business I'll be back to explain once the script is uploaded...
 
           autorunlog.py - logs sensor data to file, switches heaters or fans according to sensor data
-
-------- Useful information which might be needed before release of setup scripts
 
 # Installing 3rd party software commands
 
