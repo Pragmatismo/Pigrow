@@ -329,8 +329,6 @@ def load_dhtlog(retdate=False, limit_days=False, limit_num=False):
             logitem = logitem.split("\n")
         print('Log contains ' + str(len(logitem)) + ' readings.')
         if limit_days:
-            oldest_allowed_date = thetime - \
-                datetime.timedelta(hours=limit_days)
         curr_line = len(logitem) - 1
         limit_line = curr_line - limit_num
         while curr_line >= 0:
