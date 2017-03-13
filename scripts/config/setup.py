@@ -221,6 +221,7 @@ def guided_setup():
     make_dirs()
     os.system("/home/pi/Pigrow/scripts/config/install.py")
     print("")
+    sys.exit() #needs to be roloaded now the settings are in place
     raw_input("Press return to continue;")
 
 
