@@ -1,4 +1,4 @@
-# Pigrow
+# PiGrow2
 Raspberry Pi Grow Box Control Software
 
 This is the software required to control a PiGrow2.
