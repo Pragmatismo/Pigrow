@@ -1,4 +1,7 @@
 #!/usr/bin/python
+
+from __future__ import print_function
+
 import os
 import sys
 from subprocess import check_output
@@ -23,9 +26,9 @@ autorun_path = "/home/pi/Pigrow/scripts/autorun/"  # reboot scripts'
 cron_path = "/home/pi/Pigrow/scripts/cron/"  # repeting scripts
 switch_path = "/home/pi/Pigrow/scripts/switches/"  # timed scripts
 
-#autorun_path = "/home/pragmo/pigitgrow/Pigrow/scripts/autorun/"      #reb
+# autorun_path = "/home/pragmo/pigitgrow/Pigrow/scripts/autorun/"      #reb
 # cron_path    = "/home/pragmo/pigitgrow/Pigrow/scripts/cron/"         #repeting scripts      ################   THESE ARE FOR ME ONLY!!!!
-#switch_path  = "/home/pragmo/pigitgrow/Pigrow/scripts/switches/"     #tim
+# switch_path  = "/home/pragmo/pigitgrow/Pigrow/scripts/switches/"     #tim
 
 valid_gpio = [2, 3, 4, 17, 27, 22, 10, 9, 11, 0, 5, 6, 13,
               19, 26, 14, 15, 18, 23, 24, 25, 8, 7, 1, 12, 16, 20, 21]
@@ -80,7 +83,6 @@ def write_loclocs():
             try:
                 s_line = str(a) + "=" + str(b) + "\n"
                 f.write(s_line)
-                # print s_line
             except Exception:
                 print("ERROR SETTINGS FILE ERROR SETTING NOT SAVED _ SERIOUS FAULT!")
 
@@ -92,9 +94,7 @@ def set_locs_and_passes():
     except Exception:
         print(" Couldn't Load the logs")
     try:
-        # print loc_settings
         loc_settings = loc_dic['loc_settings']
-        # print loc_settings
     except Exception:
         print(
             "IMPORTANT - Location of Settings File not included in file, adding default - " +
@@ -199,7 +199,7 @@ def save_settings():
 
 def show_settings():
     for a, b in pi_set.iteritems():
-        print str(a) + "  = " + str(b)
+        print(str(a) + "  = " + str(b))
 
 
 def make_dirs():
@@ -221,7 +221,7 @@ def guided_setup():
     make_dirs()
     os.system("/home/pi/Pigrow/scripts/config/install.py")
     print("")
-    sys.exit() #needs to be roloaded now the settings are in place
+    sys.exit()  # needs to be roloaded now the settings are in place
     raw_input("Press return to continue;")
 
 
@@ -319,7 +319,7 @@ def show_gpio_menu():
             except Exception:
                 print("Should use a number")
 
-            print used_gpio_num
+            print(used_gpio_num)
             if setting in used_gpio_num:
                 print("")
                 print("That GPIO pin is already in use!")
@@ -360,7 +360,7 @@ def show_gpio_menu():
         try:
             option = int(option)
             setting = used_gpio[int(option)]
-            print setting
+            print(setting)
             pi_set[setting[0]] = ''
             used_gpio = []
             used_gpio_num = []
@@ -467,7 +467,7 @@ def show_cron_menu():
         option = raw_input("Select script to add;")
         job = cron_path + os.listdir(cron_path)[int(option)]
         job = cron.new(command=job, comment='Pigrow')
-        print ("")
+        print("")
         print(" Set frequency in,")
         print("  1 - minute")
         print("  2 - hour")
@@ -692,7 +692,7 @@ def show_reddit_menu():
                 print("new script started.")
         except Exception:
             print("reddit_settings_ear.py doesn't appear to be running...")
-            print autorun_path + "reddit_settings_ear.py"
+            print(autorun_path + "reddit_settings_ear.py")
             os.system("nohup " + autorun_path + "reddit_settings_ear.py &")
 
         print(" ")
