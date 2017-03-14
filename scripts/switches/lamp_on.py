@@ -1,5 +1,6 @@
 #!/usr/bin/python
-import datetime, sys
+import datetime
+import sys
 sys.path.append('/home/pi/Pigrow/scripts/')
 import pigrow_defs
 
@@ -7,8 +8,8 @@ import pigrow_defs
 def lamp_on(set_dic, switch_log):
     script = 'lamp_on.py'
     msg = ("")
-    msg +=("      #############################################\n")
-    msg +=("      ##         Turning the lamp - ON         ##\n")
+    msg += ("      #############################################\n")
+    msg += ("      ##         Turning the lamp - ON         ##\n")
     if 'gpio_lamp' in set_dic and not str(set_dic['gpio_lamp']).strip() == '':
         gpio_pin = int(set_dic['gpio_lamp'])
         gpio_pin_on = set_dic['gpio_lamp_on']
@@ -21,28 +22,36 @@ def lamp_on(set_dic, switch_log):
         elif gpio_pin_on == "high":
             GPIO.output(gpio_pin, GPIO.HIGH)
         else:
-            msg +=("      !!       CAN'T DETERMINE GPIO DIRECTION    !!\n")
-            msg +=("      !!  run config program or edit config.txt  !!\n")
-            msg +=("      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n")
-            pigrow_defs.write_log(script, 'Failed - no direction set in config', switch_log)
+            msg += ("      !!       CAN'T DETERMINE GPIO DIRECTION    !!\n")
+            msg += ("      !!  run config program or edit config.txt  !!\n")
+            msg += ("      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n")
+            pigrow_defs.write_log(
+                script,
+                'Failed - no direction set in config',
+                switch_log)
             return msg
 
     else:
-        msg +=("      !!               NO lamp SET             !!\n")
-        msg +=("      !!  run config program or edit config.txt  !!\n")
-        msg +=("      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n")
-        pigrow_defs.write_log(script, 'Failed - due to none set in config', switch_log)
+        msg += ("      !!               NO lamp SET             !!\n")
+        msg += ("      !!  run config program or edit config.txt  !!\n")
+        msg += ("      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n")
+        pigrow_defs.write_log(
+            script,
+            'Failed - due to none set in config',
+            switch_log)
         return msg
 
-    msg +=("      ##            by switching GPIO "+str(gpio_pin)+" to "+gpio_pin_on+"  ##\n")
-    msg +=("      #############################################\n")
+    msg += ("      ##            by switching GPIO " +
+            str(gpio_pin) + " to " + gpio_pin_on + "  ##\n")
+    msg += ("      #############################################\n")
     pigrow_defs.write_log(script, 'lamp turned on', switch_log)
     return msg
 
 if __name__ == '__main__':
 
-    ### default settings
+    # default settings
     loc_dic = pigrow_defs.load_locs("/home/pi/Pigrow/config/dirlocs.txt")
-    set_dic = pigrow_defs.load_settings(loc_dic['loc_settings'], err_log=loc_dic['err_log'],)
+    set_dic = pigrow_defs.load_settings(
+        loc_dic['loc_settings'], err_log=loc_dic['err_log'],)
     msg = lamp_on(set_dic, loc_dic['loc_switchlog'])
     print msg
