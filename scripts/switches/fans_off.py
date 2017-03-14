@@ -1,8 +1,10 @@
 #!/usr/bin/python
 import datetime
 import sys
-sys.path.append('/home/pi/Pigrow/scripts/')
+
 import pigrow_defs
+
+sys.path.append('/home/pi/Pigrow/scripts/')
 
 
 def fans_off(set_dic, switch_log):
