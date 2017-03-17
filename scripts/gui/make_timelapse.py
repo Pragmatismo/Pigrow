@@ -4,7 +4,6 @@ import sys
 import datetime
 import wx
 
-
 class Make_TL(wx.Frame):
 
     def __init__(self, *args, **kw):
@@ -339,7 +338,6 @@ class Make_TL(wx.Frame):
             print("NOT ENOUGH CAPS GRAPH SO USING BLANK THUMB")
             blankimg = wx.EmptyImage(width=100, height=100, clear=True)
             return blankimg
-
 
 def main():
     app = wx.App()
