@@ -1,0 +1,90 @@
+<html>
+<head>
+  <title>Hydroponics!</title>
+
+  <link href="style.css" rel="stylesheet" type="text/css">
+  <link href='http://fonts.googleapis.com/css?family=Lato:300,400,700' rel='stylesheet' type='text/css'>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js" type="text/javascript"></script>
+
+  <script>
+    document.body.scroll = "no";
+    document.body.style.overflow = 'hidden';
+    document.height = window.innerHeight;
+    document.body.addEventListener('touchmove', function(e){ e.preventDefault(); });
+  </script>
+
+
+</head>
+<body>
+<script type="text/javascript">
+  function WebSocketTest() {
+    if ("WebSocket" in window) {
+      var ws = new WebSocket("ws://my.home.server:12000");
+
+      ws.onopen = function() {
+	console.log("Connected to websocket server.");
+      };
+
+      ws.onmessage = function(evt) {
+	var data = JSON.parse(evt.data);
+	console.log("Message:" + JSON.stringify(data));
+        if(data.pm) {
+    	  $('body').css('background-image', 'url('+data.image+')');
+        } else {
+    	  $('body').css('background-color', '#000000');
+        }
+        $('#temperature').text(data.temperature+"° C");
+        $('#humidity').text(data.humidity+"%");
+        $('#white_light').text("White Light: "+(data.white_light ? "On" : "Off"));
+        $('#grow_light').text("Grow Light: "+(data.grow_light ? "On" : "Off"));
+        $('#pump').text("Pump: "+(data.pump ? "On" : "Off"));
+        $('#fans').text("Fans: "+(data.fans ? "On" : "Off"));
+        $('#pm').text(data.pm ? "" : "The plants are asleep! Come back later.");
+        var timeDiff = Math.abs(Date.now() - new Date("1/31/2017"));
+        var diffDays = Math.ceil(timeDiff / (1000 * 3600 * 24));
+        $('#age').text(diffDays+" days");
+      };
+
+      ws.onclose = function() {
+        console.log("Connection is closed.");
+      };
+    } else {
+      alert("Websocket not supported by your browser... sorry.");
+    }
+  }
+
+  $(document).ready(function() {
+    WebSocketTest();
+  });
+</script>
+
+<div class="box">
+  <div class="box__header"></div>
+  <div class="box__body">
+    <div class="stats stats--main">
+      <div id="age" class="stats__amount">??? days</div>
+      <div class="stats__caption">Age</div>
+    </div>
+
+    <div class="stats">
+      <div id="temperature" class="stats__amount">???</div>
+      <div class="stats__caption">Temperature</div>
+    </div>
+
+    <div class="stats">
+      <div id="humidity" class="stats__amount">???</div>
+      <div class="stats__caption">Humidity</div>
+    </div>
+
+    <div class="stats">
+      <div id="grow_light" class="stats__caption">Grow Light</div>
+      <div id="white_light" class="stats__caption">White Light</div>
+      <div id="pump" class="stats__caption">Pump</div>
+      <div id="fans" class="stats__caption">Fans</div>
+      <div id="pm" class="stats__caption"></div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

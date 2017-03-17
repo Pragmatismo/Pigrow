@@ -1,17 +1,21 @@
 #!/usr/bin/python
-import datetime, time
-import os, sys
+import datetime
+import os
+import sys
+import time
 from subprocess import check_output
-sys.path.append('/home/pi/Pigrow/scripts/')
+
 import pigrow_defs
+
+sys.path.append('/home/pi/Pigrow/scripts/')
 script = 'selflog.py'
 loc_locs = '/home/pi/Pigrow/config/dirlocs.txt'
 loc_dic = pigrow_defs.load_locs(loc_locs)
 path = loc_dic["path"]
 
 ##
-## Raspberry Pi Self-Logger
-##    This is designed to run independently or as a module called to gather current statistics
+# Raspberry Pi Self-Logger
+# This is designed to run independently or as a module called to gather current statistics
 ##
 
 #   To be gathered;
@@ -21,6 +25,7 @@ path = loc_dic["path"]
 #
 #
 #
+
 
 def gather_data(path="./"):
     print("Interorgating pi about it's status...")
@@ -35,95 +40,107 @@ def gather_data(path="./"):
         percent = 0
     with open('/proc/uptime', 'r') as f:
         uptime_seconds = float(f.readline().split()[0])
-        uptime_string = str(datetime.timedelta(seconds = uptime_seconds))
-    load_ave1,load_ave5,load_ave15 = os.getloadavg() # system load Averages for 1, 5 and 15 min;
+        uptime_string = str(datetime.timedelta(seconds=uptime_seconds))
+    # system load Averages for 1, 5 and 15 min;
+    load_ave1, load_ave5, load_ave15 = os.getloadavg()
     with open('/proc/meminfo', 'r') as f:
         for line in f:
-            if line.split(":")[0]=="MemTotal":
+            if line.split(":")[0] == "MemTotal":
                 memtotal = line.split(":")[1].strip()
-            elif line.split(":")[0]=="MemAvailable":
+            elif line.split(":")[0] == "MemAvailable":
                 memavail = line.split(":")[1].strip()
-            elif line.split(":")[0]=="MemFree":
+            elif line.split(":")[0] == "MemFree":
                 memfree = line.split(":")[1].strip()
-    return {'disk_total':total,
-            'disk_used':used,
-            'disk_free':free,
-            'disk_percent':round(percent, 1),
-            'timenow':timenow,
-            'uptime_sec':uptime_seconds,
-            'uptime_str':uptime_string.split('.')[0],
-            'load_ave1':load_ave1,
-            'load_ave5':load_ave5,
-            'load_ave15':load_ave15,
-            'memtotal':memtotal,
-            'memfree':memfree,
-            'memavail':memavail
+    return {'disk_total': total,
+            'disk_used': used,
+            'disk_free': free,
+            'disk_percent': round(percent, 1),
+            'timenow': timenow,
+            'uptime_sec': uptime_seconds,
+            'uptime_str': uptime_string.split('.')[0],
+            'load_ave1': load_ave1,
+            'load_ave5': load_ave5,
+            'load_ave15': load_ave15,
+            'memtotal': memtotal,
+            'memfree': memfree,
+            'memavail': memavail
             }
+
 
 def check_script_running(script):
     try:
-        script_test = map(int,check_output(["pidof",script,"-x"]).split())
-    except:
+        script_test = map(int, check_output(["pidof", script, "-x"]).split())
+    except Exception:
         script_test = False
     if script_test == False:
         #print(script + " not running!")
-        return {'num_running':'0','script_status':'none','script_path':'none'}
+        return {'num_running': '0',
+                'script_status': 'none', 'script_path': 'none'}
     else:
         if len(script_test) > 1:
             #print("There's more than one " + script + " running!")
             for pid in script_test:
-                #print "---"
-                #print pid
+                # print "---"
+                # print pid
                 try:
-                    script_test_path = open(os.path.join('/proc', str(pid), 'cmdline'), 'rb').read()
-                    #print script_test_path
+                    script_test_path = open(
+                        os.path.join(
+                            '/proc',
+                            str(pid),
+                            'cmdline'),
+                        'rb').read()
+                    # print script_test_path
                 except IOError:
                     #print("I think it died when we looked at it...")
-                    return {'num_running':'0','script_status':'died','script_path':'none'}
-                #print os.getpgid(pid) # Return the process group id
-                for line in open("/proc/"+ str(pid)  +"/status").readlines():
+                    return {'num_running': '0',
+                            'script_status': 'died', 'script_path': 'none'}
+                # print os.getpgid(pid) # Return the process group id
+                for line in open("/proc/" + str(pid) + "/status").readlines():
                     if line.split(':')[0] == "State":
                         script_test_status = line.split(':')[1].strip()
-                return {'num_running':str(len(script_test)),'script_status':script_test_status,'script_path':script_test_path}
+                return {'num_running': str(len(
+                    script_test)), 'script_status': script_test_status, 'script_path': script_test_path}
                 #os.kill(pid, sig)
         else:
             #print(script + " is running!")
-            for line in open("/proc/"+ str(script_test[0])  +"/status").readlines():
+            for line in open(
+                    "/proc/" + str(script_test[0]) + "/status").readlines():
                 if line.split(':')[0] == "State":
                     script_test_status = line.split(':')[1].strip()
             try:
-                script_test_path = open(os.path.join('/proc', str(script_test[0]), 'cmdline'), 'rb').read()
+                script_test_path = open(os.path.join(
+                    '/proc', str(script_test[0]), 'cmdline'), 'rb').read()
             except IOError:
                 #print("I think it died when we looked at it...")
-                return {'num_running':'0','script_status':'died','script_path':'none'}
-            #print script_test_path
-            #print script_test_status
-            return {'num_running':'1','script_status':script_test_status,'script_path':script_test_path}
-
-
+                return {'num_running': '0',
+                        'script_status': 'died', 'script_path': 'none'}
+            # print script_test_path
+            # print script_test_status
+            return {'num_running': '1', 'script_status': script_test_status,
+                    'script_path': script_test_path}
 
 
 #pids = [pid for pid in os.listdir('/proc') if pid.isdigit()]
-#for pid in pids:
+# for pid in pids:
 #    try:
 #        print open(os.path.join('/proc', pid, 'cmdline'), 'rb').read()
 #    except IOError: # proc has already terminated
 #        continue
 
 
-
-
-#def get_pid(name):
+# def get_pid(name):
 #    return map(int,check_output(["pidof",name]).split())
 
-#try:
+# try:
 #    pid = get_pid('doggo')
 #    print pid
-#except:
+# except:
 #    print("No program of that name running.")
 
+
 if __name__ == '__main__':
-    scripts_to_check = ['reddit_settings_ear_2.py','checkDHT.py']# 'chromium-browse'] #this doesn't work :( works for 'atom' and 'bash' needs fix
+    # 'chromium-browse'] #this doesn't work :( works for 'atom' and 'bash' needs fix
+    scripts_to_check = ['reddit_settings_ear_2.py', 'checkDHT.py']
     print("################################################")
     print("######### SELF CHECKING INFO LOGGER ############")
     info = gather_data(path)
@@ -134,12 +151,15 @@ if __name__ == '__main__':
         script_status = check_script_running(script)
         #print("The script " + script + " has " + script_status['num_running'] + " instances running")
         for key, value in script_status.iteritems():
-           line += str(script + '_' + key) + "=" + str(value) + ">"
+            line += str(script + '_' + key) + "=" + str(value) + ">"
     line += '\n'
     print line
     try:
         with open(loc_dic['self_log'], "a") as f:
             f.write(line)
-    except:
+    except Exception:
         print["-LOG ERROR-"]
-        pigrow_defs.write_log('checkDHT.py', 'writing dht log failed', loc_dic['err_log'])
+        pigrow_defs.write_log(
+            'checkDHT.py',
+            'writing dht log failed',
+            loc_dic['err_log'])
