@@ -9,7 +9,8 @@ ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 #target_address = "pi@192.168.1.11"
 #target_pass    = "raspberry"
 
-target_cap_files   = "/home/pi/Pigrow/caps/" #can add *.jpg to limit
+caps_files = "/caps/" #useful to change when using more than one cam
+target_cap_files   = "/home/pi/Pigrow" + caps_files  #can add *.jpg to limit
 target_graph_path  = "/home/pi/Pigrow/graphs/"
 target_log_path    = "/home/pi/Pigrow/logs/"
 target_config_path = "/home/pi/Pigrow/config/"
@@ -37,7 +38,7 @@ boxname = "Flower"
 def setfilepaths(boxname):
     global capsdir, logsdir, graphdir, configdir
     global dht_log, self_log, switch_log, err_log, conf_file
-    capsdir   = basepath + boxname + "/caps/"
+    capsdir   = basepath + boxname + caps_files
     logsdir   = basepath + boxname + "/logs/"
     graphdir  = basepath + boxname + "/graph/"
     configdir = basepath + boxname + "/config/"
@@ -332,9 +333,9 @@ def load_dhtlog(retdate=False, limit_days=False, limit_num=False):
             return dht_humids, dht_temps, dht_dates
         else:
             print("nothing found in dht file? maybe it's bad?")
-            return "none", "none", "none"
+            return "none"
     else:
-        return "none", "none", "none"
+        return "none"
 
 def load_selflog(retdate=False):
     log_dic = {}    # Reused for every line of the log file
@@ -841,15 +842,16 @@ class Pigrow(wx.Frame):
         self.Close(True)
 
     def render_timelapse(self, e):
+
         print("This should call the module which makes the timelapse gui")
-        cmd = '../visualisation/timelapse_assemble.py caps=' + capsdir + " of=" + graphdir
-        cmd += 'guimade.mp4 ow=r dc=day3'
+        #cmd = '../visualisation/timelapse_assemble.py caps=' + capsdir + " of=" + graphdir
+        #cmd += 'guimade.mp4 ow=r dc=day3'
         #cmd += 'guimade.gif ow=r dc=hour1'
-        print cmd
-        os.system(cmd)
-        playcmd = 'vlc ' + graphdir + 'guimade.mp4'
-        print playcmd
-        os.system(playcmd)
+        #print cmd
+        #os.system(cmd)
+        #playcmd = 'vlc ' + graphdir + 'guimade.mp4'
+        #print playcmd
+        #os.system(playcmd)
 
     def render_dht(self, e):
         print("This should call the module which makes the dht graph gui")
@@ -909,10 +911,10 @@ class Pigrow(wx.Frame):
             print("make caps graph")
             if OS == "linux":
                 print("Yay linux")
-                os.system("../scripts/visualisation/caps_graph.py caps="+capsdir+" out="+graphdir)
+                os.system("../visualisation/caps_graph.py caps="+capsdir+" out="+graphdir)
             elif OS == 'win':
                 print("oh, windows, i prefer linux but no worries...")
-                os.system("python ../scripts/visualisation/caps_graph.py caps="+capsdir+" out="+graphdir)
+                os.system("python ../visualisation/caps_graph.py caps="+capsdir+" out="+graphdir)
         else:
             print("skipping graphing caps - disabled or no caps to make graphs with")
         if os.path.exists(graphdir+'caps_filesize_graph.png'):
