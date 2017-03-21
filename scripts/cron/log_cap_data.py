@@ -7,9 +7,6 @@ from PIL import Image
 cappath = '/home/pi/Pigrow/caps/'
 logpath = '/home/pi/Pigrow/logs/caps_log.txt'
 
-cappath = '/home/pragmo/frompigrow/GREENHOUSE/caps/'
-logpath = '/home/pragmo/frompigrow/caps_log.txt'
-
 for argu in sys.argv[1:]:
     try:
         thearg = str(argu).split('=')[0]
