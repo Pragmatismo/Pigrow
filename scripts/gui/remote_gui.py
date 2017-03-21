@@ -65,7 +65,50 @@ def count_caps():
             cap_files.append(filefound)
     return cap_files
 
+def get_box_name(target_ip, target_user, target_pass):
+    boxname = None
+    found_login = False
+    try:
+        ssh.connect(target_ip, username=target_user, password=target_pass, timeout=3)
+        print "Connected to " + target_ip
+        found_login = True
+        stdin, stdout, stderr = ssh.exec_command("cat /home/pi/Pigrow/config/pigrow_config.txt | grep box_name")
+        boxname = stdout.read().strip().split("=")[1]
+        print "Pigrow Found; " + boxname
+        ssh.close()
+    except:
+        print("dang - can't connect to pigrow")
+        ssh.close()
+    return found_login, boxname
+
+def clear_pis_caps(target_ip, target_user, target_pass, theboxname):
+    try:
+        port = 22
+        ssh_tran = paramiko.Transport((target_ip, port))
+        print("  - linking transport pipe... " + target_ip + " port:" + str(port))
+        ssh_tran.connect(username=target_user, password=target_pass)
+        sftp = paramiko.SFTPClient.from_transport(ssh_tran)
+        listofcaps_onpi = sftp.listdir(target_cap_files)
+        print("It has " + str(len(listofcaps_onpi)) + " in it's caps folder " + target_cap_files)
+        listofcaps_local = os.listdir(capsdir)
+        print("We have " + str(len(listofcaps_local)) + " in it's local folder " + capsdir)
+        print("-- Though they might not all be the same rememmber --")
+        newcaps = []
+        print("Clearing the pi of all images we've already downlaoded...")
+        for capfile in listofcaps_onpi:
+            if capfile in listofcaps_local:
+                filepath  = target_cap_files + capfile
+                localpath = capsdir + capfile
+                sftp.remove(filepath)
+        sftp.close()
+        ssh_tran.close()
+    except:
+        print("ooops sorrys brokes")
+        raise
+    print("SSH REMOVE loop finished")
+
 def download_caps(target_ip, target_user, target_pass, theboxname):
+    rmfrompi = False
     #note this ignores existing files
     if os.path.exists(capsdir) == False:
         os.makedirs(capsdir)
@@ -102,6 +145,8 @@ def download_caps(target_ip, target_user, target_pass, theboxname):
                     localpath = capsdir + capfile
                     #print filepath, localpath
                     sftp.get(filepath, localpath)
+                    if rmfrompi == True:
+                        sftp.remove(filepath)
                 if limitbreak == limitbreaklimit:
                     break
             print("Found " + str(len(newcaps)) + " caps files on pi we didn't have")
@@ -509,7 +554,9 @@ class Pigrow(wx.Frame):
         menubar.Append(renderMenu, '&Render')
         downMenu = wx.Menu()
         menu_download = downMenu.Append(wx.ID_ANY, 'Download from Pi')
+        menu_clear_got = downMenu.Append(wx.ID_ANY, 'clear got images from pi')
         self.Bind(wx.EVT_MENU, self.download, menu_download)
+        self.Bind(wx.EVT_MENU, self.clear_got, menu_clear_got)
         downMenu.AppendSeparator()
         self.d_cap = downMenu.Append(wx.ID_ANY, 'Caps', 'Captured Images from pigrow camera', kind=wx.ITEM_CHECK)
         self.d_log = downMenu.Append(wx.ID_ANY, 'Logs', 'Pigrow Logs', kind=wx.ITEM_CHECK)
@@ -962,23 +1009,23 @@ class Pigrow(wx.Frame):
         else:
             self.bigpic.SetBitmap(wx.EmptyBitmap(10,10))
 
-    def download(self, e):
+    def clear_got(self, e):
+        target_ip = self.tb_ip.GetValue()
+        target_user = self.tb_user.GetValue()
+        target_pass = self.tb_pass.GetValue()
+        foundpi, boxname = get_box_name(target_ip, target_user, target_pass)
+        if not boxname == None:
+            self.tb_ip.SetValue(target_ip)
+            setfilepaths(boxname)
+            clear_pis_caps(target_ip, target_user, target_pass, boxname)
 
+
+    def download(self, e):
         target_ip = self.tb_ip.GetValue()
         target_user = self.tb_user.GetValue()
         target_pass = self.tb_pass.GetValue()
       #ssh into the pigrow to discover it's name
-        try:
-            ssh.connect(target_ip, username=target_user, password=target_pass, timeout=3)
-            print "Connected to " + target_ip
-            self.tb_ip.SetValue(target_ip)
-            stdin, stdout, stderr = ssh.exec_command("cat /home/pi/Pigrow/config/pigrow_config.txt | grep box_name")
-            boxname = stdout.read().strip().split("=")[1]
-            print "Pigrow Found; " + boxname
-            ssh.close()
-        except:
-            print("dang - can't connect to pigrow")
-            raise
+        foundpi, boxname = get_box_name(target_ip, target_user, target_pass)
         setfilepaths(boxname)
         self.update_boxname(boxname)
     #SHOULD ASK USER FOR INPUT here
