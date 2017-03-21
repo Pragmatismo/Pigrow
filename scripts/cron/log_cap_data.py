@@ -19,7 +19,6 @@ for argu in sys.argv[1:]:
 
 os.chdir(cappath)
 c_photo = max(os.listdir('.'), key = os.path.getctime)
-print c_photo
 
 pil_c_photo = Image.open(c_photo)
 numpy_pic = numpy.array(pil_c_photo)
@@ -27,7 +26,8 @@ r_sum = numpy_pic[:,:,0].sum()
 g_sum = numpy_pic[:,:,1].sum()
 b_sum = numpy_pic[:,:,2].sum()
 tot_sum = r_sum + g_sum + b_sum
-print " ---- Current Photo ---"
+print " ---- Image Analysis, super basic version ---"
+print c_photo
 print "Red:" + str(r_sum)
 print "Green:" + str(g_sum)
 print "Blue:" + str(b_sum)
