@@ -95,6 +95,8 @@ for argu in sys.argv:
         print("   extra=CMD")
         print("         additional commands for MVP, eg; --of=mpjpeg ")
         print("                                          --vf=scale=480:270 ")
+        print("                                          --vf=format=rgb24")
+        print("                               --vf=format=rgb24,scale=160:120")
 
         print("   ds=SIZE")
         print("         SIZE in bites below which files are ignored")
