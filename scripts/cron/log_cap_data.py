@@ -7,8 +7,6 @@ from PIL import Image
 cappath = '/home/pi/Pigrow/caps/'
 logpath = '/home/pi/Pigrow/logs/caps_log.txt'
 
-cappath = '/home/pragmo/frompigrow/GREENHOUSE/caps/'
-
 for argu in sys.argv[1:]:
     try:
         thearg = str(argu).split('=')[0]
@@ -40,7 +38,6 @@ line += str(g_sum) + '>'
 line += str(b_sum) + '>'
 line += str(tot_sum) + '>'
 line += str(c_photo) + '\n'
-#with open(logpath, "a") as f:
-#    f.write(line)
+with open(logpath, "a") as f:
+    f.write(line)
 print("Log written; " + str(logpath))
-print line
