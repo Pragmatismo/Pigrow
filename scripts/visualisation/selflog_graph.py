@@ -108,9 +108,10 @@ def make_cpu_graph(dates, cpu_a1, cpu_a5, cpu_a15):
 def make_mem_graph(dates, mem_a, mem_f, mem_t):
     print("Attempting to make mem useage graoh")
     fig2, ax2 = plt.subplots()
-    ax2.plot_date(dates, mem_a, '-', color='green')
-    ax2.plot_date(dates, mem_f, '-', color='blue')
-    ax2.plot_date(dates, mem_t, '-', color='black')
+    ax2.plot_date(dates, mem_a, '-', color='green', label='Available')
+    ax2.plot_date(dates, mem_f, '-', color='blue', label='Free')
+    ax2.plot_date(dates, mem_t, '-', color='black', label='Total')
+    ax2.legend(loc='upper left', frameon=False)
     ax2.set_title("Memory Use from " + str(dates[0].strftime("%b-%d %H:%M")) + " to " + str(dates[-1].strftime("%b-%d %H:%M")) + " UTC")
     plt.ylabel("Memory in MB")
     fig2.autofmt_xdate()
