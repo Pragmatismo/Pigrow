@@ -129,7 +129,7 @@ def make_disk_graphs(dates, disk_p, disk_f, disk_t, disk_u):
     ax3[0].plot_date(dates, disk_t, '-', color='black',  label='Total')
     ax3[0].plot_date(dates, disk_f, '-', color='green',  label='Free')
     ax3[0].plot_date(dates, disk_u, '-', color='red',  label='Used')
-    ax3.legend(loc='upper left', frameon=False)
+    ax3[0].legend(loc='upper left', frameon=False)
     ax3[0].set_title("Disk Use from " + str(dates[0].strftime("%b-%d %H:%M")) + " to " + str(dates[-1].strftime("%b-%d %H:%M")) + " UTC")
     ax3[1].plot_date(dates, disk_p, '-')
     ax3[1].set_title("Percentage of disk used")
