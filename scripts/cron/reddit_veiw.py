@@ -159,18 +159,19 @@ for graph_file in g_filelist:
 if len(g_filelist) == 0:
     page_text += "No graphs found in " + str(graph_path)
 
-page_text += '  \n  \n#Animated Gifs'
-gif_filelist = []
-for filefound in os.listdir(graph_path):
-    if filefound.endswith('gif'):
-        gif_filelist.append(filefound)
-num = 1
-for gif_file in gif_filelist:
-    gif_name = 'gif' + str(num)
-    subreddit.stylesheet.upload(gif_name, graph_path + gif_file)
-    page_text += "#####"+gif_file+"  \n"
-    page_text += '![' + gif_name + '](%%'+ gif_name +'%%)  \n'
-    num = num + 1
+  #REDDIT STYLE SHEET TURNS GIFS INTO PNG WITH NO ANIMATION
+#page_text += '  \n  \n#Animated Gifs  \n'
+#gif_filelist = []
+#for filefound in os.listdir(graph_path):
+#    if filefound.endswith('gif'):
+#        gif_filelist.append(filefound)
+#num = 1
+#for gif_file in gif_filelist:
+#    gif_name = 'gif' + str(num)
+#    subreddit.stylesheet.upload(gif_name, graph_path + gif_file)
+#    page_text += "#####"+gif_file+"  \n"
+#    page_text += '![' + gif_name + '](%%'+ gif_name +'%%)  \n'
+#    num = num + 1
 
 praw.models.WikiPage(reddit, subreddit, live_wiki_title).edit(page_text)
 print("Updated " + str(subreddit) + " " + str(live_wiki_title))
