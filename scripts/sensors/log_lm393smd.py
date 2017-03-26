@@ -36,6 +36,11 @@ for argu in sys.argv[1:]:
             gpio_pin_list = []
             for pin in gpio_pin:
                 gpio_pin_list.append(str(pin))
+        except:
+            print(" !!!")
+            print("    Couldn't understand gpio pin list")
+            print(" !!!")
+            exit()
     elif thearg == 'log' or thearg == 'log_path':
         log_path = thevalue
     elif thearg == 'help' or thearg == '-h' or thearg == '--help':
