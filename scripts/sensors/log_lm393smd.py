@@ -77,8 +77,9 @@ def read_soil_moist_digital(gpio_pin):
 def log_soil_moist_digital(log_path, moist_list):
     timenow = str(datetime.datetime.now())
     log_entry  = timenow + ">"
-    for sensor_pin in moist_list:
-        moistness = read_soil_moist_digital(sensor_pin)
+    for value in moist_list:
+        moistness = value[0]
+        sensor_pin = value[1]
         log_entry += moistness + ":" + sensor_pin + ">"
     log_entry += log_entry[:-1] + "\n"
     with open(log_path, "a") as f:
