@@ -50,7 +50,7 @@ def read_temp_sensor(sensor):
     return temperature
 
 def log_temp_sensor(log_path, temp_list):
-    timenow = str(datetime.datetime.timenow())
+    timenow = str(datetime.datetime.now())
     log_entry  = timenow + ">"
     for temp in temp_list:
         sensor = temp[1]
@@ -69,7 +69,8 @@ def temp_c_to_f(temp_c):
 
 temp_list = []
 for sensor in list_of_sensors:
-    temp = read_temp_sensor(sensor)
+    if not sensor = 'w1_bus_master1':
+        temp = read_temp_sensor(sensor)
     if not temp == None:
         #crazy americans might want to temp =  temp_c_to_f(temp) about here.
         temp_list.append([temp, sensor])
