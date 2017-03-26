@@ -67,7 +67,7 @@ def temp_c_to_f(temp_c):
 
 for sensor in list_of_sensors:
     temp = read_temp_sensor(sensor)
-    if not temp = None:
+    if not temp == None:
         temp_list.append([temp, sensor])
 #crazy americans might want to temp =  temp_c_to_f(temp) about here.
 log_temp_sensor(log_path, temp_list)
