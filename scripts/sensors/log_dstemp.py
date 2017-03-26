@@ -1,7 +1,15 @@
-
+#!/usr/bin/python
 import os
 import time
 import datetime
+os.system('modprobe w1-gpio')
+os.system('modprobe w1-therm')
+
+try:
+    list_of_sensors = os.listdir("/sys/bus/w1/devices/")
+    print list_of_sensors
+except:
+    print("Can't list sensors, sorry.")
 
 sensor_path = "/sys/bus/w1/devices/28-000004a9f218/w1_slave"
 log_path = "/home/pi/Pigrow/logs/dstemp_log.txt"
@@ -14,7 +22,7 @@ for argu in sys.argv[1:]:
     elif thearg == 'log' or thearg == 'log_path':
         log_path = thevalue
     elif thearg == 'help' or thearg == '-h' or thearg == '--help':
-        print(" Script for logging l2c temperature sensor ")
+        print(" Script for logging one wire temperature sensor ")
         print(" ")
         print(" sp=/sys/bus/w1/devices/SENSORNUMBER/w1_slave")
         print("      - path to the temp sensor")
@@ -23,7 +31,7 @@ for argu in sys.argv[1:]:
         print("      - path to write the log")
         print("")
         print(" --You will need 1 wire support enabled on the pi")
-        print("   make sure l2c is enabled in the pi set up program")
+        print("  ")
         print("")
         exit()
 
