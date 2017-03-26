@@ -58,7 +58,7 @@ def log_temp_sensor(log_path, temp_list):
         log_entry += temp + ":" + sensor + ">"
         print("logged temp of " + temp + " from " + sensor + " at " + timenow)
     log_entry = log_entry[:-1] + "\n"
-    with open(log_path, "w") as f:
+    with open(log_path, "a") as f:
         f.write(log_entry)
     print("Written; " +  log_entry)
 
