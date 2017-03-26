@@ -90,7 +90,7 @@ if __name__ == '__main__':
     moist_list = []
     for sensor in gpio_pin_list:
         moist = read_soil_moist_digital(int(sensor))
-        if not temp == 'none':
+        if not moist == 'none':
             moist_list.append([temp, sensor])
 
     if len(moist_list) >= 1:
