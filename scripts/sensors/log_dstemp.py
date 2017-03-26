@@ -66,6 +66,8 @@ def temp_c_to_f(temp_c):
     temp_f = temp_c * 9.0 / 5.0 + 32.0
     return temp_f
 
+
+temp_list = []
 for sensor in list_of_sensors:
     temp = read_temp_sensor(sensor)
     if not temp == None:
