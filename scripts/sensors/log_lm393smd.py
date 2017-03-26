@@ -67,7 +67,7 @@ def read_soil_moist_digital(gpio_pin):
             print("!!! couldn't read sensor, error " + str(e))
             time.sleep(1)
         if not soil_value == None:
-            print(" The sensor returned a value of; " + str(soil_value))
+            print(" The sensor " +  str(gpio_pin) + " returned a value of; " + str(soil_value))
             return soil_value
         count = count + 1
         if count >= 10:
@@ -89,7 +89,7 @@ def log_soil_moist_digital(log_path, moist_list):
 if __name__ == '__main__':
     moist_list = []
     for sensor in gpio_pin_list:
-        moist = read_soil_moist_digital(sensor)
+        moist = read_soil_moist_digital(int(sensor))
         if not temp == 'none':
             moist_list.append([temp, sensor])
 
