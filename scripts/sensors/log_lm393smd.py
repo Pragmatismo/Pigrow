@@ -80,7 +80,7 @@ def log_soil_moist_digital(log_path, moist_list):
     for value in moist_list:
         moistness = value[0]
         sensor_pin = value[1]
-        log_entry += moistness + ":" + sensor_pin + ">"
+        log_entry += str(moistness) + ":" + str(sensor_pin) + ">"
     log_entry += log_entry[:-1] + "\n"
     with open(log_path, "a") as f:
         f.write(log_entry)
