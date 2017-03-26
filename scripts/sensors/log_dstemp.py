@@ -1,5 +1,6 @@
 #!/usr/bin/python
 import os
+import sys
 import time
 import datetime
 os.system('modprobe w1-gpio')
@@ -11,7 +12,7 @@ try:
 except:
     print("Can't list sensors, sorry.")
 
-sensor_path = "/sys/bus/w1/devices/28-000004a9f218/w1_slave"
+#sensor_path = "/sys/bus/w1/devices/28-000004a9f218/w1_slave"
 log_path = "/home/pi/Pigrow/logs/dstemp_log.txt"
 
 for argu in sys.argv[1:]:
@@ -36,24 +37,37 @@ for argu in sys.argv[1:]:
         exit()
 
 
-def read_temp_sensor(sensor_path):
-    with open(sensor_path, "r") as sensor_data:
-        sensor_reading = tempfile.read()
-        tempfile.close()
+def read_temp_sensor(sensor):
+    sensor_path = "/sys/bus/w1/devices/" + sensor + "/w1_slave"
+    try:
+        with open(sensor_path, "r") as sensor_data:
+            sensor_reading = sensor_data.read()
         temperature = sensor_reading.split("\n")[1].split(" ")[9]
         temperature = float(temperature[2:]) / 1000
-        return temperature
+    except:
+        return None
+    return temperature
 
-def log_temp_sensor(log_path, temp):
+def log_temp_sensor(log_path, temp_list):
     timenow = str(datetime.datetime.timenow())
+    log_entry  = timenow + ">"
+    for temp in temp_list:
+        sensor = temp[1]
+        temp = temp[0]
+        log_entry += temp + ":" + sensor + ">"
+        print("logged temp of " + temp + " from " + sensor + " at " + timenow)
+    log_entry = log_entry[:-1] + "\n"
     with open(log_path, "w") as f:
-        f.write(temp + ">" + timenow + "\n")
-    print("Saved temp of " + temp + " to the log at " + timenow)
+        f.write(log_entry)
+    print("Written; " +  log_entry)
 
 def temp_c_to_f(temp_c):
     temp_f = temp_c * 9.0 / 5.0 + 32.0
     return temp_f
 
-temp = read_temp_sensor(sensor_path)
+for sensor in list_of_sensors:
+    temp = read_temp_sensor(sensor)
+    if not temp = None:
+        temp_list.append([temp, sensor])
 #crazy americans might want to temp =  temp_c_to_f(temp) about here.
-log_temp_sensor(log_path, temp)
+log_temp_sensor(log_path, temp_list)
