@@ -23,8 +23,8 @@ try:
     gpio_pin_list = []
     for pin in gpio_pins:
         gpio_pin_list.append(str(pin))
-except:
-    print("Using Defaults")
+except Exception as e:
+    print("Using Defaults because - " + str(e))
     gpio_pin_list = ['21']
     log_path = "/home/pi/Pigrow/logs/soilmoistD_log.txt"
 
