@@ -53,8 +53,8 @@ def log_temp_sensor(log_path, temp_list):
     timenow = str(datetime.datetime.now())
     log_entry  = timenow + ">"
     for temp in temp_list:
-        sensor = temp[1]
-        temp = temp[0]
+        sensor = str(temp[1])
+        temp = str(temp[0])
         log_entry += temp + ":" + sensor + ">"
         print("logged temp of " + temp + " from " + sensor + " at " + timenow)
     log_entry = log_entry[:-1] + "\n"
