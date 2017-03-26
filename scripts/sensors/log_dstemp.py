@@ -69,7 +69,7 @@ def temp_c_to_f(temp_c):
 
 temp_list = []
 for sensor in list_of_sensors:
-    if not sensor = 'w1_bus_master1':
+    if not sensor == 'w1_bus_master1':
         temp = read_temp_sensor(sensor)
     if not temp == None:
         #crazy americans might want to temp =  temp_c_to_f(temp) about here.
