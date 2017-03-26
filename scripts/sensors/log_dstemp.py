@@ -11,6 +11,7 @@ try:
     print list_of_sensors
 except:
     print("Can't list sensors, sorry.")
+    list_of_sensors = ['']
 
 #sensor_path = "/sys/bus/w1/devices/28-000004a9f218/w1_slave"
 log_path = "/home/pi/Pigrow/logs/dstemp_log.txt"
