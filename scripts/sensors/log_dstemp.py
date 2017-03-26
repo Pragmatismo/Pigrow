@@ -26,6 +26,11 @@ for argu in sys.argv[1:]:
     elif thearg == 'help' or thearg == '-h' or thearg == '--help':
         print(" Script for logging one wire temperature sensor ")
         print(" ")
+        print(" You will need to have one wire support enabled")
+        print("  edit the file /boot/config.txt to contain the")
+        print("  line; ")
+        print("      dtoverlay=w1-gpio")
+        print(" ")
         print(" sp=/sys/bus/w1/devices/SENSORNUMBER/w1_slave")
         print("      - path to the temp sensor")
         print(" ")
