@@ -24,6 +24,7 @@ try:
     for pin in gpio_pins:
         gpio_pin_list.append(str(pin))
 except:
+    print("Using Defaults")
     gpio_pin_list = ['21']
     log_path = "/home/pi/Pigrow/logs/soilmoistD_log.txt"
 
@@ -54,6 +55,10 @@ for argu in sys.argv[1:]:
         print(" only a 1 or 0 value, set the range using the screw")
         pinnt(" on the potentiometer.")
         exit()
+
+print("GPIO pin list; " + str(gpio_pin_list))
+print("log path : " + str(log_path)
+
 
 def read_soil_moist_digital(gpio_pin):
     reading = False
