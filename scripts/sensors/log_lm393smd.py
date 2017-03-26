@@ -57,7 +57,7 @@ for argu in sys.argv[1:]:
         exit()
 
 print("GPIO pin list; " + str(gpio_pin_list))
-print("log path : " + str(log_path)
+print("log path : " + str(log_path))
 
 
 def read_soil_moist_digital(gpio_pin):
