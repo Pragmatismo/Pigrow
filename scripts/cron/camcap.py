@@ -90,7 +90,7 @@ def take_with_fswebcam(s_val="20", c_val="20", g_val="20", b_val="20", x_dim=160
     cmd += " --jpeg 90" #jpeg quality
     #cmd +=
     #cmd +=
-    cmd += " " + filename  #output filename'
+    cmd += " " + caps_path + filename  #output filename'
     os.system(cmd)
     print("Image taken and saved to "+caps_path+filename)
     return filename
