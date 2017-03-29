@@ -1,6 +1,18 @@
 #!/usr/bin/python
 import time
-import os, sys
+import os
+import sys
+
+capture_with = "uvc" # or 'fs'
+
+for argu in sys.argv:
+    try:
+        thearg = str(argu).split('=')[0]
+        theval = str(argu).split('=')[1]
+        if  thearg == 'capture_with' or thearg == 'with':
+            capture_with = theval
+    except:
+        print("Didn't undertand " + str(argu)
 
 def load_camera_settings(loc_dic):
     #defaults for when config file not found
@@ -10,7 +22,7 @@ def load_camera_settings(loc_dic):
     b_val = "50"
     x_dim = 1600
     y_dim = 1200
-    additonal_commands = "-d/dev/video0 -w"
+    additonal_commands = ""
     loc_settings = "/home/pi/Pigrow/config/camera_settings.txt"
     caps_path = "/home/pi/Pigrow/caps/"
     try:
@@ -56,7 +68,30 @@ def take_with_uvccapture(s_val="20", c_val="20", g_val="20", b_val="20", x_dim=1
     timenow = time.time()
     timenow = str(timenow)[0:10]
     filename= "cap_"+str(timenow)+".jpg"
-    os.system("uvccapture "+additonal_commands+" -S"+s_val+" -C" + c_val + " -G"+ g_val +" -B"+ b_val +" -x"+str(x_dim)+" -y"+str(y_dim)+" -v -t0 -o"+caps_path+filename)
+    cmd  = "uvccapture "+additonal_commands
+    cmd += " -S" + s_val #saturation
+    cmd += " -C" + c_val #contrast
+    cmd += " -G" + g_val #gain
+    cmd += " -B" + b_val #brightness
+    cmd += " -x" + str(x_dim) + " -y" + str(y_dim)
+    cmd += " -v -t0" #-v verbose, -t0 take single shot
+    cmd += " -o" + caps_path + filename
+    os.system(cmd)
+    print("Image taken and saved to "+caps_path+filename)
+    return filename
+
+def take_with_fswebcam(s_val="20", c_val="20", g_val="20", b_val="20", x_dim=1600, y_dim=1200, additonal_commands="", caps_path="./"):
+    timenow = time.time()
+    timenow = str(timenow)[0:10]
+    filename= "cap_"+str(timenow)+".jpg"
+    cmd  = "fswebcam -r " + str(x_dim) + "x" + str(y_dim)
+    cmd += " -D 2"      #the delay in seconds before taking photo
+    cmd += " -S 5"      #number of frames to skip before taking image
+    cmd += " --jpeg 90" #jpeg quality
+    #cmd +=
+    #cmd +=
+    cmd += " " + filename  #output filename'
+    os.system(cmd)
     print("Image taken and saved to "+caps_path+filename)
     return filename
 
@@ -69,4 +104,9 @@ if __name__ == '__main__':
     loc_dic = pigrow_defs.load_locs(loc_locs)
 
     s_val, c_val, g_val, b_val, x_dim, y_dim, additonal_commands, caps_path = load_camera_settings(loc_dic)
-    filename = take_with_uvccapture(s_val, c_val, g_val, b_val, x_dim, y_dim, additonal_commands, caps_path)
+    if capture_with == "uvc":
+        filename = take_with_uvccapture(s_val, c_val, g_val, b_val, x_dim, y_dim, additonal_commands, caps_path)
+    elif capture_with ==  "fs":
+        filename = take_with_fswebcam(s_val, c_val, g_val, b_val, x_dim, y_dim, additonal_commands, caps_path)
+    else:
+        print("You selected an invalid captuire option, use 'uvc' or 'fs'")
