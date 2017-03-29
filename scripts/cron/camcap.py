@@ -12,7 +12,7 @@ for argu in sys.argv:
         if  thearg == 'capture_with' or thearg == 'with':
             capture_with = theval
     except:
-        print("Didn't undertand " + str(argu)
+        print("Didn't undertand " + str(argu))
 
 def load_camera_settings(loc_dic):
     #defaults for when config file not found
