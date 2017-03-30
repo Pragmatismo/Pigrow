@@ -26,7 +26,7 @@ for argu in sys.argv[1:]:
         print("")
         exit()
 
-def read_chirp_sensor(sensor):
+def read_chirp_sensor():
     chirp_address = 0x20
     chirp = I2C.get_i2c_device(chirp_address)
     #print str(chirp)
@@ -55,6 +55,6 @@ def temp_c_to_f(temp_c):
     return temp_f
 
 
-moist, temp, light = read_chirp_sensor(sensor)
+moist, temp, light = read_chirp_sensor()
 #crazy americans might want to temp =  temp_c_to_f(temp) about here.
 log_chirp_sensor(log_path, moist, temp, light)
