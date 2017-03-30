@@ -157,7 +157,7 @@ print "----------------------------------"
 if make_multi == True:
     make_graph(log_date, log_humid, None, 'darkblue', 'Humidity')
     make_graph(log_date, log_light, None, 'yellow', 'Light Numbers')
-    make_graph(log_date, log_temp, graph_path, 'red'. 'Temp in Centigrade')
+    make_graph(log_date, log_temp, graph_path, 'red', 'Temp in Centigrade')
 else:
     make_graph(log_date, log_humid, humid_graph_path, 'darkblue', 'Humidity')
     fig = plt.gcf()
