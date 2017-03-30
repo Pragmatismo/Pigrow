@@ -113,7 +113,7 @@ def add_log(linktolog):
         print("No data, no graph...")
         exit()
 
-def make_graph(da,ta, path, colour='darkblue'):
+def make_graph(da,ta, path, colour='darkblue', axislabel='Chirp Sensor'):
     plt.figure(1)
     ax = plt.subplot()
   #  ax.bar(da, ta, width=0.01, color='k', linewidth = 0)
@@ -130,9 +130,9 @@ def make_graph(da,ta, path, colour='darkblue'):
     #ax.fill_between(da, ta, 0,where=ta > dangerhigh, alpha=0.6, color='darkred')
     ax.xaxis_date()
     plt.title("Time Perod; " + str(da[0].strftime("%b-%d %H:%M")) + " to " + str(da[-1].strftime("%b-%d %H:%M")) + " UTC")
-    plt.ylabel("Soil Humidity")
+    plt.ylabel(axislabel)
     fig = plt.gcf()
-    fig.canvas.set_window_title('Chirp Soil Humidity Graph')
+    fig.canvas.set_window_title('Chirp Soil Humidity Temp and Light Level Sensor')
     maxh = ta
     fig.autofmt_xdate()
     #plt.show()
@@ -154,13 +154,13 @@ print "----------------------------------"
 #put an if statement here to choose if individual or multi graphs then clear if not multi
 
 if make_multi == True:
-    make_graph(log_date, log_humid, None, 'darkblue')
-    make_graph(log_date, log_light, None, 'yellow')
-    make_graph(log_date, log_temp, graph_path, 'red')
+    make_graph(log_date, log_humid, None, 'darkblue', 'Humidity')
+    make_graph(log_date, log_light, None, 'yellow', 'Light Numbers')
+    make_graph(log_date, log_temp, graph_path, 'red'. 'Temp in Centigrade')
 else:
-    make_graph(log_date, log_humid, humid_graph_path)
+    make_graph(log_date, log_humid, humid_graph_path, 'darkblue', 'Humidity')
     fig = plt.gcf()
     ax.clf()
-    make_graph(log_date, log_light, light_graph_path)
+    make_graph(log_date, log_light, light_graph_path, 'yellow', 'Light Numbers')
     ax.clf()
-    make_graph(log_date, log_temp, temp_graph_path)
+    make_graph(log_date, log_temp, temp_graph_path, 'red'. 'Temp in Centigrade'))
