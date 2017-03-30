@@ -55,6 +55,6 @@ def temp_c_to_f(temp_c):
     return temp_f
 
 
-moist, temp, light = read_temp_sensor(sensor)
+moist, temp, light = read_chirp_sensor(sensor)
 #crazy americans might want to temp =  temp_c_to_f(temp) about here.
 log_chirp_sensor(log_path, moist, temp, light)
