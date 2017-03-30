@@ -152,14 +152,15 @@ print "----------------------------------"
 secago = thetime - log_date[-1]
 print "most recent Soil humidity - " + str(log_humid[-1])[0:4] + " - " + str(secago) + " seconds ago"
 print "----------------------------------"
-#put an if statement here to choose if individual or multi graphs then clear if not multi
+
+#Hacky messy ugly way for now will do proper multigraph option soon
 
 if make_multi == True:
-    make_graph(log_date, log_humid, None, 'darkblue', 'Humidity')
+    make_graph(log_date, log_humid, None, 'darkblue', 'Soil Humidity')
     make_graph(log_date, log_light, None, 'yellow', 'Light Numbers')
     make_graph(log_date, log_temp, graph_path, 'red', 'Temp in Centigrade')
 else:
-    make_graph(log_date, log_humid, humid_graph_path, 'darkblue', 'Humidity')
+    make_graph(log_date, log_humid, humid_graph_path, 'darkblue', 'Soil Humidity')
     fig = plt.gcf()
     fig.clf()
     make_graph(log_date, log_light, light_graph_path, 'yellow', 'Light Numbers')
