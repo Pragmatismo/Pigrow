@@ -160,7 +160,7 @@ if make_multi == True:
 else:
     make_graph(log_date, log_humid, humid_graph_path, 'darkblue', 'Humidity')
     fig = plt.gcf()
-    ax.clf()
+    fig.clf()
     make_graph(log_date, log_light, light_graph_path, 'yellow', 'Light Numbers')
-    ax.clf()
+    fig.clf()
     make_graph(log_date, log_temp, temp_graph_path, 'red'. 'Temp in Centigrade'))
