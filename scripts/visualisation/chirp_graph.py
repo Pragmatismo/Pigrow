@@ -164,4 +164,4 @@ else:
     fig.clf()
     make_graph(log_date, log_light, light_graph_path, 'yellow', 'Light Numbers')
     fig.clf()
-    make_graph(log_date, log_temp, temp_graph_path, 'red', 'Temp in Centigrade'))
+    make_graph(log_date, log_temp, temp_graph_path, 'red', 'Temp in Centigrade')
