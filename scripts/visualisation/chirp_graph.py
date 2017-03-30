@@ -20,6 +20,9 @@ try:
     toohigh = int(set_dic['chirp_high'])
 except:
     graph_path = "/home/pi/Pigrow/graphs/chirp_graph.png"
+    humid_graph_path = "/home/pi/Pigrow/graphs/chirp_hum_graph.png"
+    temp_graph_path = "/home/pi/Pigrow/graphs/chirp_temp_graph.png"
+    light_graph_path = "/home/pi/Pigrow/graphs/chirp_light_graph.png"
     log_location = "/home/pi/Pigrow/logs/chirp_log.txt"
     toolow = 30
     toohigh = 70
@@ -107,7 +110,7 @@ def add_log(linktolog):
         print("No data, no graph...")
         exit()
 
-def make_graph(da,ta):
+def make_graph(da,ta, path):
     plt.figure(1)
     ax = plt.subplot()
   #  ax.bar(da, ta, width=0.01, color='k', linewidth = 0)
@@ -130,7 +133,14 @@ def make_graph(da,ta):
     maxh = ta
     fig.autofmt_xdate()
     #plt.show()
-    plt.savefig(graph_path)
+    if not path == None:
+        plt.savefig(path)
+        info  = "Graph of last " + str(hours_to_show)
+        info += " hours of soil humidity data created and saved to "
+        info += path
+        print(info)
+    else:
+        print("Made but not saved..")
 
 add_log(log_location)
 
@@ -138,8 +148,7 @@ print "----------------------------------"
 secago = thetime - log_date[-1]
 print "most recent Soil humidity - " + str(log_humid[-1])[0:4] + " - " + str(secago) + " seconds ago"
 print "----------------------------------"
-make_graph(log_date, log_humid)
-
-print("Graph of last " + str(hours_to_show) + " hours of soil humidity data created and saved to " + graph_path)
-
-#make_graph(cut_list_date, log_humid[-len(cut_list_date):])
+#put an if statement here to choose if individual or multi graphs then clear if not multi
+make_graph(log_date, log_humid, humid_graph_path)
+make_graph(log_date, log_humid, light_graph_path)
+make_graph(log_date, log_humid, temp_graph_path)
