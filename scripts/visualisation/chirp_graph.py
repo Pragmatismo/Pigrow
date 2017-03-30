@@ -55,6 +55,8 @@ for argu in sys.argv[1:]:
 #This code is designed to work with a pigrow using a dht22 sensor, but use it for whatever you like,,,
 
 log_humid = []
+log_temp = []
+log_light = []
 log_date = []
 cut_list_date = []
 thetime = datetime.datetime.now()
@@ -83,9 +85,9 @@ def add_log(linktolog):
 
             hum = float(item[1])
             temp = float(item[2])
-            light = flost(item[3])
+            light = float(item[3])
             log_humid.append(hum)
-            log_temp.append(hum)
+            log_temp.append(temp)
             log_light.sppend(light)
             log_date.append(date)
             curr_line = curr_line - 1
