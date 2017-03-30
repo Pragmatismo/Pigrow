@@ -88,7 +88,7 @@ def add_log(linktolog):
             light = float(item[3])
             log_humid.append(hum)
             log_temp.append(temp)
-            log_light.sppend(light)
+            log_light.append(light)
             log_date.append(date)
             curr_line = curr_line - 1
         except:
