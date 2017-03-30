@@ -44,7 +44,7 @@ def log_chirp_sensor(log_path, moist, temp, light):
     timenow = str(datetime.datetime.now())
     log_entry  = timenow + ">"
     log_entry += str(moist) + ">"
-    log_entry += str(temp)) + ">"
+    log_entry += str(temp) + ">"
     log_entry += str(light) + "\n"
     with open(log_path, "a") as f:
         f.write(log_entry)
