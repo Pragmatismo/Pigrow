@@ -159,7 +159,8 @@ if make_multi == True:
     make_graph(log_date, log_temp, graph_path, 'red')
 else:
     make_graph(log_date, log_humid, humid_graph_path)
-    fig.clf()()
+    ax = plt.subplot()
+    ax.clf()
     make_graph(log_date, log_light, light_graph_path)
-    fig.clf()()
+    ax.clf()
     make_graph(log_date, log_temp, temp_graph_path)
