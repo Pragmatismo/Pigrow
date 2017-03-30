@@ -110,11 +110,11 @@ def add_log(linktolog):
         print("No data, no graph...")
         exit()
 
-def make_graph(da,ta, path):
+def make_graph(da,ta, path, colour='darkblue'):
     plt.figure(1)
     ax = plt.subplot()
   #  ax.bar(da, ta, width=0.01, color='k', linewidth = 0)
-    ax.plot(da, ta, color='darkblue', lw=3)
+    ax.plot(da, ta, color=colour, lw=3)
     ave = 0
     for x in ta:
         ave = ave + x
@@ -149,6 +149,14 @@ secago = thetime - log_date[-1]
 print "most recent Soil humidity - " + str(log_humid[-1])[0:4] + " - " + str(secago) + " seconds ago"
 print "----------------------------------"
 #put an if statement here to choose if individual or multi graphs then clear if not multi
-make_graph(log_date, log_humid, humid_graph_path)
-make_graph(log_date, log_light, light_graph_path)
-make_graph(log_date, log_temp, temp_graph_path)
+make_multi = True
+if make_multi == True:
+    make_graph(log_date, log_humid, None, 'darkblue')
+    make_graph(log_date, log_light, None, 'yellow')
+    make_graph(log_date, log_temp, graph_path, 'red')
+else:
+    make_graph(log_date, log_humid, humid_graph_path)
+    ax.clf()()
+    make_graph(log_date, log_light, light_graph_path)
+    ax.clf()()
+    make_graph(log_date, log_temp, temp_graph_path)
