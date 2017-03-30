@@ -38,7 +38,7 @@ for argu in sys.argv[1:]:
     if  thearg == 'log':
         log_location = theval
     elif thearg == 'make_multi' or thearg == 'multi':
-        make_multi = bool(theval)    
+        make_multi = bool(theval)
     elif thearg == 'out':
         graph_path = theval
     elif thearg == "hours":
@@ -159,7 +159,7 @@ if make_multi == True:
     make_graph(log_date, log_temp, graph_path, 'red')
 else:
     make_graph(log_date, log_humid, humid_graph_path)
-    ax.clf()()
+    fig.clf()()
     make_graph(log_date, log_light, light_graph_path)
-    ax.clf()()
+    fig.clf()()
     make_graph(log_date, log_temp, temp_graph_path)
