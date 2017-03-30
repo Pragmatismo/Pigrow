@@ -29,21 +29,24 @@ except:
 
 dangerlow = int(toolow) / 100 * 85
 dangerhigh = int(toohigh) / 100 * 115
-
+make_multi = False
 hours_to_show = 24*7*52 #hours from the end of the log, use absurdly high number to see all
 
 for argu in sys.argv[1:]:
     thearg = str(argu).split('=')[0]
+    theval = str(argu).split('=')[1]
     if  thearg == 'log':
-        log_location = str(argu).split('=')[1]
+        log_location = theval
+    elif thearg == 'make_multi' or thearg == 'multi':
+        make_multi = bool(theval)    
     elif thearg == 'out':
-        graph_path = str(argu).split('=')[1]
+        graph_path = theval
     elif thearg == "hours":
-        hours_to_show = int(str(argu).split('=')[1])
+        hours_to_show = int(theval)
     elif thearg == 'cold':
-        toocold = int(str(argu).split('=')[1])
+        toocold = int(theval)
     elif thearg == 'hot':
-        toohot = int(str(argu).split('=')[1])
+        toohot = int(theval)
     elif argu == 'h' or thearg == '-h' or thearg == 'help' or thearg == '--help':
         print("")
         print("  log=DIR/LOG_FILE  - point to a different log file than mentioned in dirlocs")
@@ -149,7 +152,7 @@ secago = thetime - log_date[-1]
 print "most recent Soil humidity - " + str(log_humid[-1])[0:4] + " - " + str(secago) + " seconds ago"
 print "----------------------------------"
 #put an if statement here to choose if individual or multi graphs then clear if not multi
-make_multi = True
+
 if make_multi == True:
     make_graph(log_date, log_humid, None, 'darkblue')
     make_graph(log_date, log_light, None, 'yellow')
