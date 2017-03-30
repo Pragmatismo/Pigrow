@@ -150,5 +150,5 @@ print "most recent Soil humidity - " + str(log_humid[-1])[0:4] + " - " + str(sec
 print "----------------------------------"
 #put an if statement here to choose if individual or multi graphs then clear if not multi
 make_graph(log_date, log_humid, humid_graph_path)
-make_graph(log_date, log_humid, light_graph_path)
-make_graph(log_date, log_humid, temp_graph_path)
+make_graph(log_date, log_light, light_graph_path)
+make_graph(log_date, log_temp, temp_graph_path)
