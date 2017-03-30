@@ -51,6 +51,7 @@ for argu in sys.argv[1:]:
         print("")
         print("  log=DIR/LOG_FILE  - point to a different log file than mentioned in dirlocs")
         print("  out=DIR/NAME.png  - folder to make graphs in, can use ./ ")
+        print("  make_multi=True   - Combine all into one image")
         print("  hours=NUM         - Hours of the logs graph, 168 for a week")
         print("  cold=NUM          - set's the cold point at which graph colors change")
         print("  hot=NUM           - set's the hot point for graph")
@@ -163,4 +164,4 @@ else:
     fig.clf()
     make_graph(log_date, log_light, light_graph_path, 'yellow', 'Light Numbers')
     fig.clf()
-    make_graph(log_date, log_temp, temp_graph_path, 'red'. 'Temp in Centigrade'))
+    make_graph(log_date, log_temp, temp_graph_path, 'red', 'Temp in Centigrade'))
