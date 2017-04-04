@@ -3,9 +3,10 @@ import os
 import sys
 import time
 import datetime
-from Adafruit_GPIO import I2C
+from Adafruit_GPIO import I2C #https://github.com/adafruit/Adafruit_Python_GPIO
 
 log_path = "/home/pi/Pigrow/logs/chirp_log.txt"
+chirp_address = 0x20
 
 for argu in sys.argv[1:]:
     thearg = str(argu).split('=')[0]
@@ -14,21 +15,20 @@ for argu in sys.argv[1:]:
         log_path = thevalue
     elif thearg == 'help' or thearg == '-h' or thearg == '--help':
         print(" Script for logging the Chirp Soil Moisture Sensor")
+        print("     This script uses the Adafruit_GPIO i2c interface")
         print(" ")
-        print(" ")
+        print("     You will need I2C support enabled on the pi")
+        print("            ( sudo raspi-config )")
         print(" ")
         print(" log=/home/pi/Pigrow/logs/chirp_log.txt")
         print("      - path to write the log")
         print("")
-        print(" --You will need I2C support enabled on the pi")
-        print("     (do it with sudo raspi-config ")
         print("")
         exit()
 
-def read_chirp_sensor():
-    chirp_address = 0x20
+def read_chirp_sensor(chirp_address):
     chirp = I2C.get_i2c_device(chirp_address)
-    chirp.write8( chirp_address, 0x06 ) #reset
+    chirp.write8( chirp_address, 0x06 ) #sent reset command
     time.sleep(5) #waits for reset
     chirp.write8( chirp_address, 3)
     time.sleep(3) #waits for reading
@@ -51,7 +51,7 @@ def temp_c_to_f(temp_c):
     temp_f = temp_c * 9.0 / 5.0 + 32.0
     return temp_f
 
-
-moist, temp, light = read_chirp_sensor()
-#crazy americans might want to temp =  temp_c_to_f(temp) about here.
-log_chirp_sensor(log_path, moist, temp, light)
+if __name__ == '__main__':
+    moist, temp, light = read_chirp_sensor(chirp_address)
+    #crazy americans might want to temp =  temp_c_to_f(temp) about here.
+    log_chirp_sensor(log_path, moist, temp, light)
