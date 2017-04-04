@@ -5,7 +5,6 @@ import time
 import datetime
 from Adafruit_GPIO import I2C
 
-#sensor_path = "/sys/bus/w1/devices/28-000004a9f218/w1_slave"
 log_path = "/home/pi/Pigrow/logs/chirp_log.txt"
 
 for argu in sys.argv[1:]:
@@ -29,14 +28,12 @@ for argu in sys.argv[1:]:
 def read_chirp_sensor():
     chirp_address = 0x20
     chirp = I2C.get_i2c_device(chirp_address)
-    #print str(chirp)
     chirp.write8( chirp_address, 0x06 ) #reset
     time.sleep(5) #waits for reset
-
-    chirp.write8(chirp_address, 3)
-    time.sleep(3)
+    chirp.write8( chirp_address, 3)
+    time.sleep(3) #waits for reading
     light = chirp.readU16(4, False)
-    temp = chirp.readS16(5, False)/float(10)
+    temp  = chirp.readS16(5, False)/float(10)
     moist = chirp.readU16(0, False)
     return moist, temp, light
 
