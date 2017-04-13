@@ -18,14 +18,15 @@ target_config_path = "/home/pi/Pigrow/config/"
 cap_type = "jpg"
 
 if sys.platform == 'win32':
-    OS = 'win'
+    operating_system = 'win'
     basepath = "c:/MinGW/msys/1.0/bin/"
     print(" This is a windows system, how exciting!")
 elif sys.platform == 'linux2':
 #elif sys.platform.startswith('linux'):
     print(" This is a linux system, great news! best choice!")
-    basepath = "/home/pragmo/frompigrow/"
-    OS = 'linux'
+    userhome = os.path.expanduser('~')
+    basepath = userhome + "/frompigrow/"
+    operating_system = 'linux'
 else:
     print(" i have no idea what this is?!")
     print sys.platform
@@ -164,7 +165,7 @@ def download_caps(target_ip, target_user, target_pass, theboxname):
 
 
 
-    elif OS == 'linux' and download_method == 'rsync':
+    elif operating_system == 'linux' and download_method == 'rsync':
         try:
             print("Copying files...   (this may time some time)")
             os.system("rsync --ignore-existing -ratlz --rsh=\"/usr/bin/sshpass -p "+target_pass+" ssh -o StrictHostKeyChecking=no -l "+target_address+"\" "+target_address+":"+target_cap_files+" "+capsdir)
@@ -174,7 +175,7 @@ def download_caps(target_ip, target_user, target_pass, theboxname):
         except:
             print("Unexpected error:", sys.exc_info()[0])
             raise
-    elif OS == 'win':
+    elif operating_system == 'win':
         try:
             print("Copying files...")
             os.chdir(winrsyncpath)
@@ -218,7 +219,7 @@ def download_logs(target_ip, target_user, target_pass, theboxname):
     logsdir = basepath + theboxname + "/logs/"
     if os.path.exists(logsdir) == False:
         os.makedirs(logsdir)
-    if OS == 'linux':
+    if operating_system == 'linux':
         try:
             print("Grabbing logs, this may take a short while...")
             cmd = "rsync -ratlz --rsh=\"/usr/bin/sshpass -p "+target_pass
@@ -230,7 +231,7 @@ def download_logs(target_ip, target_user, target_pass, theboxname):
         except:
             print("Unexpected error:", sys.exc_info()[0])
             raise
-    elif OS == 'win':
+    elif operating_system == 'win':
         try:
             print("Copying files...")
             os.chdir(winrsyncpath)
@@ -266,7 +267,7 @@ def download_graphs(target_ip, target_user, target_pass, theboxname):
     #note this overwrites existing local files
     graphdir = basepath + theboxname + "/graph/"
     target_address = target_user + "@" + target_ip
-    if OS == 'linux':
+    if operating_system == 'linux':
         try:
             print("Grabbing graphs, this may take a short while...")
             cmd = "rsync -ratlz --rsh=\"/usr/bin/sshpass -p "+target_pass
@@ -278,7 +279,7 @@ def download_graphs(target_ip, target_user, target_pass, theboxname):
         except:
             print("Unexpected error:", sys.exc_info()[0])
             raise
-    elif OS == 'win':
+    elif operating_system == 'win':
         try:
             print("Copying graphs...")
             os.chdir(winrsyncpath)
@@ -295,7 +296,7 @@ def download_config(target_ip, target_user, target_pass, theboxname):
     #note this overwrites existing local files
     configdir = basepath + theboxname + "/config/"
     target_address = target_user + "@" + target_ip
-    if OS == 'linux':
+    if operating_system == 'linux':
         try:
             print("Grabbing config, this may take a short while...")
             cmd = "rsync -ratlz --rsh=\"/usr/bin/sshpass -p "+target_pass
@@ -313,7 +314,7 @@ def download_config(target_ip, target_user, target_pass, theboxname):
         except:
             print("Unexpected error:", sys.exc_info()[0])
             raise
-    elif OS == 'win':
+    elif operating_system == 'win':
         try:
             print("Copying config...")
             os.chdir(winrsyncpath)
@@ -956,10 +957,10 @@ class Pigrow(wx.Frame):
 
         if len(cap_files) > 0 and capsgraph == True:
             print("make caps graph")
-            if OS == "linux":
+            if operating_system == "linux":
                 print("Yay linux")
                 os.system("../visualisation/caps_graph.py caps="+capsdir+" out="+graphdir)
-            elif OS == 'win':
+            elif operating_system == 'win':
                 print("oh, windows, i prefer linux but no worries...")
                 os.system("python ../visualisation/caps_graph.py caps="+capsdir+" out="+graphdir)
         else:
