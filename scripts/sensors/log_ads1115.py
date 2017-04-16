@@ -46,10 +46,10 @@ print("log path : " + str(log_path))
 
 def read_adc():
     try:
-        val1 = adc.read_adc(1, gain=GAIN)
-        val2 = adc.read_adc(2, gain=GAIN)
-        val3 = adc.read_adc(3, gain=GAIN)
-        val4 = adc.read_adc(4, gain=GAIN)
+        val1 = adc.read_adc(0, gain=GAIN)
+        val2 = adc.read_adc(1, gain=GAIN)
+        val3 = adc.read_adc(2, gain=GAIN)
+        val4 = adc.read_adc(3, gain=GAIN)
         print val1, val2, val3, val4
         return [val1, val2, val3, val4]
     except Exception as e:
