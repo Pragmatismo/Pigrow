@@ -53,7 +53,7 @@ for argu in sys.argv[1:]:
         print(" ")
         print(" The script reads from the DIGITAL pin and records")
         print(" only a 1 or 0 value, set the range using the screw")
-        pinnt(" on the potentiometer.")
+        print(" on the potentiometer.")
         exit()
 
 print("GPIO pin list; " + str(gpio_pin_list))
@@ -106,3 +106,11 @@ if __name__ == '__main__':
 
     if len(moist_list) >= 1:
         log_soil_moist_digital(log_path, moist_list)
+
+
+##code to do something when the value changes
+
+#GPIO.add_event_detect(gpio_pin, GPIO.RISING)
+#def sensor_change():
+#    print 'Triggered!'
+#GPIO.add_event_callback(gpio_pin, sensor_change)
