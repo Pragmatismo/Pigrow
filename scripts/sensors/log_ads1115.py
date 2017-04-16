@@ -47,11 +47,13 @@ print("log path : " + str(log_path))
 def read_adc():
     try:
         val1 = adc.read_adc(1, gain=GAIN)
+        print val1
         val2 = adc.read_adc(2, gain=GAIN)
         val3 = adc.read_adc(3, gain=GAIN)
         val4 = adc.read_adc(4, gain=GAIN)
         return [val1, val2, val3, val4]
     except:
+        print("Reading sensor failed")
         return None
 
 
