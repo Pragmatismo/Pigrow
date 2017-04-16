@@ -28,7 +28,7 @@ except Exception as e:
 for argu in sys.argv[1:]:
     thearg = str(argu).split('=')[0]
     thevalue = str(argu).split('=')[1]
-    elif thearg == 'log' or thearg == 'log_path':
+    if thearg == 'log' or thearg == 'log_path':
         log_path = thevalue
     elif thearg == 'gain':
         GAIN = int(thevalue)
