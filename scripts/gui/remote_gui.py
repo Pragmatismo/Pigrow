@@ -341,6 +341,21 @@ def download_config(target_ip, target_user, target_pass, theboxname):
             raise
     print("Config files download")
 
+def upload_config(target_ip, target_user, target_pass, theboxname):
+    #note this overwrites existing local files
+    configdir = basepath + theboxname + "/config/"
+    target_address = target_user + "@" + target_ip
+    if operating_system == 'linux':
+        print("UPLOADING config, this may take a short while...")
+        cmd =  "rsync -ratlz --rsh=\"/usr/bin/sshpass -p " + target_pass
+        cmd += " ssh -o StrictHostKeyChecking=no -l " + target_address + "\" "
+        cmd += " " + configdir + " "
+        cmd += target_address +":"+ target_config_path
+        print(cmd)
+        print("")
+        os.system(cmd)
+        print(" Config Files have probably been uploaded ")
+
 def load_dhtlog(retdate=False, limit_days=False, limit_num=False):
     print("Loading dht log")
     if os.path.exists(dht_log):
@@ -552,7 +567,8 @@ class Pigrow(wx.Frame):
         import_swi = imp.Append(wx.ID_ANY, 'soon-Import switch log')
         import_cap = imp.Append(wx.ID_ANY, 'Import caps folder')
         fileMenu.AppendMenu(wx.ID_ANY, 'Import', imp)
-        menu_upload_settings = fileMenu.Append(wx.ID_ANY, 'soon -Upload Settings', 'Upload settings to selected pi')
+        menu_upload_settings = fileMenu.Append(wx.ID_ANY, 'Upload Settings', 'Upload settings to selected pi')
+        self.Bind(wx.EVT_MENU, self.upload_settings, menu_upload_settings)
         menu_exit = fileMenu.Append(wx.ID_EXIT, 'Quit', 'Quit application')
         menubar.Append(fileMenu, '&File')
         self.Bind(wx.EVT_MENU, self.imp_dht, import_dht)
@@ -750,8 +766,6 @@ class Pigrow(wx.Frame):
         ssh_tran.close()
         return listofcaps_onpi, listofcaps_local
 
-
-
     def seek_pi(self, e):
         target_ip = self.tb_ip.GetValue()
         start_from = int(target_ip.split('.')[3]) + 1
@@ -810,6 +824,12 @@ class Pigrow(wx.Frame):
         print("   --- didn't actually do any of that")
         print("Done")
         print(" probably should update some graphical display of it when that's implimented.")
+
+    def upload_settings(self, e):
+        target_ip = self.tb_ip.GetValue()
+        target_user = self.tb_user.GetValue()
+        target_pass = self.tb_pass.GetValue()
+        upload_config(target_ip, target_user, target_pass, boxname)
 
     def update_gpiotext(self):
         self.relay1_btn.Disable()
