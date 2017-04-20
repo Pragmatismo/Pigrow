@@ -543,6 +543,7 @@ class Pigrow(wx.Frame):
 
         self.menu_seek = fileMenu.Append(wx.ID_ANY, 'Seek next Pi', 'Search the local network for the next pi')
         self.menu_settings = fileMenu.Append(wx.ID_ANY, 'Pi settings', 'Edit and update pigrow config files')
+        self.Bind(wx.EVT_MENU, self.settings_change, self.menu_settings)
         self.Bind(wx.EVT_MENU, self.seek_pi, self.menu_seek)
         fileMenu.AppendSeparator()
         imp = wx.Menu()
@@ -792,6 +793,23 @@ class Pigrow(wx.Frame):
                     print "Could not connect to " + host + " Giving up"
                     break
 
+    def settings_change(self, e):
+        print("This is just a test at the moment")
+        print("Assuming you want ot change the light times")
+        print("...that's the complex bit you see...")
+        print("We need to change the settings file AND cron")
+        print("Reading light on from settings file;")
+        print("  --- Ok, that was a lie.")
+        print("Reading light on time in cron;")
+        print("  --- Also a lie...")
+        print("Asking you for input...")
+        print("   --- no point lol")
+        print("Changing in local settings file")
+        print("Updating settings file to pi")
+        print("Changing pi's cron job")
+        print("   --- didn't actually do any of that")
+        print("Done")
+        print(" probably should update some graphical display of it when that's implimented.")
 
     def update_gpiotext(self):
         self.relay1_btn.Disable()
