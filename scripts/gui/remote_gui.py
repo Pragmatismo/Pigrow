@@ -1,8 +1,21 @@
 #!/usr/bin/python
-import os, sys
-import wx
+import os
+import sys
+try:
+    import wx
+except:
+    print(" You don't have WX installed, this draws the windows...")
+    print("on ubunru;")
+    print(" use the command ' sudo apt install python-wxgtk3.0 '")
+    exit
 import datetime
-import paramiko # pip install paramiko
+try:
+    import paramiko
+except:
+    print("  You don't have paramiko installed, this is what connects to the pi")
+    print(" on ubuntu;")
+    print(" use the command ' sudo pip install paramiko ' to install.")
+    exit
 ssh = paramiko.SSHClient()
 ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
