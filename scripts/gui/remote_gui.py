@@ -14,7 +14,7 @@ try:
 except:
     print("  You don't have paramiko installed, this is what connects to the pi")
     print(" on ubuntu;")
-    print(" use the command ' sudo pip install paramiko ' to install.")
+    print(" use the command ' pip install paramiko ' to install.")
     exit
 ssh = paramiko.SSHClient()
 ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
