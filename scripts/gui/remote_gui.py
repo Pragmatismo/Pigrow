@@ -541,8 +541,8 @@ def load_settings(sets=conf_file):
                 sets_dic[s_item[0]]=s_item[1].rstrip('\n') #adds each setting to dictionary
         return sets_dic
     except:
-        print("could get info from settings file")
-        sets_dic = {'none':none}
+        print("couldn't get info from settings file")
+        sets_dic = {'none':'none'}
         return sets_dic
 
 class Pigrow(wx.Frame):
