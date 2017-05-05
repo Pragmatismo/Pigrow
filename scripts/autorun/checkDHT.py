@@ -5,9 +5,6 @@
 #
 #
 
-#defaults to be changed with args eventually
-
-
 log_time = 30
 log_non = True #tests switch conditions even if no switich present.
 
@@ -20,10 +17,11 @@ hum_use_fan  = False
 dehum_use_fan  = False
 
 
-
 script = 'chechDHT.py'
-import os, sys
-import datetime, time
+import os
+import sys
+import datetime
+import time
 import Adafruit_DHT
 sys.path.append('/home/pi/Pigrow/scripts/')
 import pigrow_defs
@@ -32,6 +30,72 @@ import heater_on, heater_off, humid_on, humid_off, dehumid_on, dehumid_off, fans
 loc_dic = pigrow_defs.load_locs("/home/pi/Pigrow/config/dirlocs.txt")
 set_dic = pigrow_defs.load_settings(loc_dic['loc_settings'], err_log=loc_dic['err_log'])
 #print set_dic
+
+for argu in sys.argv[1:]:
+    thearg = str(argu).split('=')[0]
+    thevalue = str(argu).split('=')[1]
+    if  thearg == 'log_time' or thearg == 'delay':
+        sensor_path = int(thevalue)
+    elif thearg == 'log_non':
+        if thevalue.lower() == 'true' or thevalue == '0':
+            log_non = True
+        else:
+            log_non = False
+    elif thearg == 'use_heat':
+        if thevalue.lower() == 'true' or thevalue == '0':
+            use_heat = True
+        else:
+            use_heat = False
+    elif thearg == 'use_humid':
+        if thevalue.lower() == 'true' or thevalue == '0':
+            use_humid = True
+        else:
+            use_humid = False
+    elif thearg == 'use_dehumid':
+        if thevalue.lower() == 'true' or thevalue == '0':
+            use_dehumid = True
+        else:
+            use_dehumid = False
+    elif thearg == 'usefan':
+        if thevalue.lower() == 'heat':
+            heat_use_fan = True
+            hum_use_fan  = False
+            dehum_use_fan  = False
+        elif thevalue.lower() == 'hum' or thevalue.lower() == 'humid':
+            heat_use_fan = False
+            hum_use_fan  = True
+            dehum_use_fan  = False
+        elif thevalue.lower() == 'dehum' or thevalue.lower() == 'dehumid':
+            heat_use_fan = False
+            hum_use_fan  = False
+            dehum_use_fan  = True
+        elif thevalue.lower() == 'none':
+            heat_use_fan = False
+            hum_use_fan  = False
+            dehum_use_fan  = False
+    elif thearg == '-h' or 'help' in thearg:
+        print("")
+        print("  Pigrow DHT log and control loop")
+        print(" ")
+        print(" This is designed to be run on start-up as a continual loop")
+        print(" it reads the dht sensor, writes a log and switches heater,")
+        print(" humid, dehumid and/or fans on or off as appropriate.")
+        print("")
+        print(" Cut-off and trigger values are set in " + str(loc_dic['loc_settings']))
+        print("")
+        print(" log_time=TIME IN SECONDS   - the delay between log recordings")
+        print(" log_non=false              - doesn't log switches you don't have")
+        print("")
+        print(" use_heat=false             - disable heater control in this script")
+        print(" use_humid=false            - disable humidifier in this script")
+        print(" use dehumid=false          - disable dehumidifer in this script")
+        print(" ")
+        print(" usefan=heat                -heter controlls fan (best)")
+        print("       =humid               -humid controls fan")
+        print("       =dehumid             -dehumid controls fan")
+        print("       =none                -fan is ignored by all")
+        exit()
+
 
 
 def read_and_log(loc_dic):
