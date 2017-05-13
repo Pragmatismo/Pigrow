@@ -59,6 +59,10 @@ class Make_TL(wx.Frame):
         wx.StaticText(self,  label='frame skip ', pos=(25, 850))
         self.timeskip_box = wx.TextCtrl(self, pos=(200, 850), size=(100, 30))
         self.timeskip_box.SetValue("1")
+        wx.StaticText(self,  label='audio ', pos=(25, 890))
+        self.audio_box = wx.TextCtrl(self, pos=(100, 890), size=(400, 30))
+        self.audio_btn = wx.Button(self, label='..', pos=(560, 890), size=(30, 30))
+        self.audio_btn.Bind(wx.EVT_BUTTON, self.audio_btn_click)
 
 
       #Buttons
@@ -81,7 +85,7 @@ class Make_TL(wx.Frame):
         self.btn_play.Bind(wx.EVT_BUTTON, self.btn_play_click)
 
         self.updateUI(capsdir)
-        self.SetSize((1030, 900))
+        self.SetSize((1030, 950))
         self.SetTitle('Pigrow Control')
         self.Centre()
         self.Show(True)
@@ -93,7 +97,6 @@ class Make_TL(wx.Frame):
             lframe = int(self.lastframe_box.GetValue())
         except:
             return None
-        lol = 'LOLOLOLOLOLOL'
         if n_fframe >= lframe:
             n_fframe = lframe - 1
             self.firstframe_box.SetValue(str(n_fframe))
@@ -206,7 +209,9 @@ class Make_TL(wx.Frame):
         #ft = 'jpg'
         inpoint = self.firstframe_box.GetValue()
         outpoint = self.lastframe_box.GetValue()
-        print("old make timelapse menu option")
+        audio = self.audio_box.GetValue()
+
+        print("..backend options for make timelapse..")
         cmd = '../visualisation/timelapse_assemble.py'
         cmd += " caps=" + capsdir
         cmd += " of=" + outfile
@@ -220,6 +225,10 @@ class Make_TL(wx.Frame):
         cmd += " ft=" + self.cap_type
         cmd += " inp=" + str(inpoint)
         cmd += " op=" + str(outpoint)
+        print self.audio_box.GetValue()
+        if os.path.exists(audio):
+            cmd += " audio=" + str(audio)
+
 
         cmd += " ow=r" #we can check for existing files locally and prompt for overwrite
         #cmd += 'guimade.gif ow=r dc=hour1'
@@ -257,6 +266,14 @@ class Make_TL(wx.Frame):
         nlf = int(clf) + 1
         if not int(nlf) > int(lf):
             self.lastframe_box.SetValue(str(nlf))
+
+    def audio_btn_click(self, e):
+        openFileDialog = wx.FileDialog(self, "Select caps folder", "", "", "MP3 files (*.mp3)|*.mp3", wx.FD_OPEN | wx.FD_FILE_MUST_EXIST)
+        openFileDialog.SetMessage("Select an audio file from to use")
+        if openFileDialog.ShowModal() == wx.ID_CANCEL:
+            return 'none'
+        audio_track = openFileDialog.GetPath()
+        self.audio_box.SetValue(str(audio_track))
 
     def select_caps_folder(self):
         openFileDialog = wx.FileDialog(self, "Select caps folder", "", "", "JPG files (*.jpg)|*.jpg", wx.FD_OPEN | wx.FD_FILE_MUST_EXIST)
