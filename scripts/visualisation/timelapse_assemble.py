@@ -348,6 +348,7 @@ os.system("mpv mf://@"+listfile+" -mf-fps="+str(infps)+" -o "+outfile+" --ofps="
 try:
     os.remove(listfile)
     print(" ##     -filelist removed")
+    os.remove((capsdir + "credits.jpg"))
 except:
     print(" !!     -filelist not removed")
 
