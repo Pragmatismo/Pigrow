@@ -17,6 +17,7 @@ except:
     resources_path = "../../resources/"
 
 #default user settings
+audio_file = ""
 time_skip = 1 #when making timelapse uses every Nth frame so 4 is 4x faster
 darksize =50000   #all smaller files are removed assumed to be useless 30-75000 is a good value
 infps = 10       #10 is a good value, between 2 and 60 is acceptable
@@ -78,6 +79,8 @@ for argu in sys.argv:
             print("  !! Can't understand overwrite flag, ignoring")
     elif thearg == 'video_credits' or thearg == 'credits':
         video_credits = int(theset)
+    elif thearg == 'audio_file' or thearg == 'audio':
+        audio_file = theset
 
 ### HELP TEXT
 
@@ -128,6 +131,12 @@ for argu in sys.argv:
         print("            =r - overwrite and replace.")
         print("            =e - automatically extend filename")
         print("          What to do in the event outfile exists already")
+
+        print("   credits=NUMBER")
+        print("          number of extra frames to add as an end-buffer")
+
+        print("   audio=PATH")
+        print("          location of the audio file to use as a sound track")
 
         print("   -h   ")
         print("            This menus (obviously)")
@@ -198,7 +207,6 @@ def grab_folder(capsdir='./', inpoint=0, outpoint=0, file_type='jpg', datecheck=
         print(" !!!! No files to make timelapse with...")
         exit()
     return filelist[inpoint:outpoint]
-
 
 
 def discard_dark(filelist):
@@ -327,8 +335,6 @@ def check_already_outfile(outfile):
     return outfile
 
 
-
-
 outfile = check_already_outfile(outfile)
 filelist = grab_folder(capsdir, inpoint, outpoint, file_type, datecheck)
 no_dark = discard_dark(filelist)
@@ -343,7 +349,11 @@ else:
 
 #runs the video encouder
 print " ##  making you a timelapse video..."
-os.system("mpv mf://@"+listfile+" -mf-fps="+str(infps)+" -o "+outfile+" --ofps="+str(outfps)+" " + extra_commands)
+cmd = "mpv mf://@"+listfile+" -mf-fps="+str(infps)
+if not audio_file == '':
+    cmd += " --audiofile="+audio_file+" --frames=" + str(len(faster)+video_credits)
+cmd += " -o "+outfile+" --ofps="+str(outfps)+" " + extra_commands
+os.system(cmd)
 
 try:
     os.remove(listfile)
