@@ -10,13 +10,15 @@ try:
     loc_locs = '/home/pi/Pigrow/config/dirlocs.txt'
     loc_dic = pigrow_defs.load_locs(loc_locs)
     capsdir = loc_dic['caps_path']
+    resources_path = loc_dic['path'] + "/resources/"
 except:
     print("Pigrow config not detected, using defaults")
     capsdir = "./"
+    resources_path = "../../resources/"
 
 #default user settings
 time_skip = 1 #when making timelapse uses every Nth frame so 4 is 4x faster
-darksize =50000   #all smaller files are removed assumed to be useless 50-75000 is a good value
+darksize =50000   #all smaller files are removed assumed to be useless 30-75000 is a good value
 infps = 10       #10 is a good value, between 2 and 60 is acceptable
 outfps = 25      #frame-rate of output video
 outfile = "./timelapse.mp4" #directory to save output
@@ -27,8 +29,9 @@ extra_commands = ''
 inpoint=0
 outpoint=0 #use -10 to end at ten befor the end, 0 to show the whole thing and 10 to shopw only ten frames
 #end of user settings
-
 datecheck = False
+video_credits=30
+
 for argu in sys.argv:
     thearg = str(argu).split('=')[0]
     try:
@@ -73,6 +76,8 @@ for argu in sys.argv:
             already_existing = 'n'
         else:
             print("  !! Can't understand overwrite flag, ignoring")
+    elif thearg == 'video_credits' or thearg == 'credits':
+        video_credits = int(theset)
 
 ### HELP TEXT
 
@@ -181,8 +186,14 @@ def grab_folder(capsdir='./', inpoint=0, outpoint=0, file_type='jpg', datecheck=
     filelist.sort()
     print " ##  Active timezone contains : " + str(len(filelist[inpoint:outpoint]))
     if len(filelist) >= 1:
-        print " ##     -Starting  " + str(datetime.datetime.utcfromtimestamp(float(filelist[0].split(".")[0].split("_")[-1])))
-        print " ##     -Finishing " + str(datetime.datetime.utcfromtimestamp(float(filelist[-1].split(".")[0].split("_")[-1])))
+        try:
+            print(" ##     -Starting  " + str(datetime.datetime.utcfromtimestamp(float(filelist[0].split(".")[0].split("_")[-1]))))
+            print(" ##     -Finishing " + str(datetime.datetime.utcfromtimestamp(float(filelist[-1].split(".")[0].split("_")[-1]))))
+        except:
+            try:
+                print(" ##     -Finishing " + str(datetime.datetime.utcfromtimestamp(float(filelist[-1].split(".")[0].split("_")[-1]))))
+            except:
+                print(" ...messy caps folder,,,")
     else:
         print(" !!!! No files to make timelapse with...")
         exit()
@@ -201,13 +212,65 @@ def discard_dark(filelist):
     print(" ##  After removing dark; " + str(len(no_dark)) + " remain    (using " +str(darksize)+" byte threashold)")
     return no_dark
 
-def skip_every(no_dark, time_skip=0):
+def skip_every(image_list, time_skip=0):
     faster = []
     #make list every Nth file
-    for x in range(0, len(no_dark), time_skip):
-        faster.append(no_dark[x])
+    for x in range(0, len(image_list), time_skip):
+        faster.append(image_list[x])
     print(" ##  Timeskip using every " + str(time_skip) + " frame, leaves us with; " + str(len(faster)))
     return faster
+
+def create_credits_images(image_list, capsdir):
+  #Settings which will oneday be settings
+    credits_background_colour = "black"
+    output_path = capsdir + "credits." + file_type
+
+    persist_last_frame = True
+    t_red = 180    #0-255 text colour
+    t_green= 240   #0-255 text colour
+    t_blue = 180   #0-255 text colour
+    t_alpha = 200 #0-255 text opacity
+    font_name = resources_path + 'Caslon.ttf'
+    font_size = 45
+    leftdist = 40 # percentage left of image to start text
+    downdist = 96 # [ercentage down the image to start test]
+
+  #test if it needs to be done
+    if video_credits == 0:
+        print("skipping making video credits")
+        return image_list
+    print("Crating video credits")
+  #make the images
+    try:
+        from PIL import Image, ImageDraw, ImageFont
+    except:
+        print("loading PIL - Python Image Library failed")
+        print("  - to enable video credits install PIL ")
+        ##NEED TO ADD -- hold_final_frame = video_credits  #instead of credits persist final frame
+        return image_list
+    last_pic = capsdir + image_list[-1]
+    image_for_size = Image.open(last_pic)
+    print image_for_size.size
+    if persist_last_frame == True:
+        base = image_for_size
+    else:
+        base = Image.new("RGBA", image_for_size.size, credits_background_colour)
+ #this is where i need to add the code for writing stuff
+    #txt = Image.new('RGBA', base.size, (255,255,255,0))
+    fnt = ImageFont.truetype(font_name, font_size)
+    d = ImageDraw.Draw(base)
+    xpos = base.size[0] / 100 * leftdist
+    ypos = base.size[1] / 100 * downdist
+    d.text((xpos+2, ypos), "Created using a Pigrow", font=fnt, fill=(t_red,t_green,t_blue,t_alpha))
+
+ #Save the cedits file and add to the file list
+    base.save(output_path)
+    print("File saved to " + str(output_path))
+    for x in range(0, video_credits):
+        image_list.append(output_path)
+    print("-- Added " + str(video_credits) + " frames of credits at the end")
+    return image_list
+
 
 def write_listfile(final_list, capsdir):
     #writes the file-list for mpv video encoder to use
@@ -272,6 +335,7 @@ no_dark = discard_dark(filelist)
 faster = skip_every(no_dark, time_skip)
 if len(faster) >= 1:
     print(" ##  Creating list file...")
+    create_credits_images(faster, capsdir)
     write_listfile(faster, capsdir)
 else:
     print(" !!  There are no files to make a timelapse from...")
