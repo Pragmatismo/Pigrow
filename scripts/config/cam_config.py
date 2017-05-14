@@ -174,7 +174,7 @@ def show_menu():
     elif option == "d":
         print("Using camera deafults to take image...")
         output_file = "test_defaults.jpg"
-        cam_cmd = "sudo uvccapture " + additonal_commands   #additional commands (camera select)
+        cam_cmd = "uvccapture " + additonal_commands   #additional commands (camera select)
         cam_cmd += " -x"+str(x_dim)+" -y"+str(y_dim) + " "  #x and y dimensions of photo
         cam_cmd += "-v -t0 -o" + output_file          #verbose, no delay, output
         print("---Doing: " + cam_cmd)
