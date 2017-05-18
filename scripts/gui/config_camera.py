@@ -14,7 +14,10 @@ try:
 except:
     print("  You don't have paramiko installed, this is what connects to the pi")
     print(" on ubuntu;")
-    print(" use the command ' pip install paramiko ' to install.")
+    print("    pip install paramiko ")
+    print(" on windows;")
+    print("    python -m pip install paramiko")
+    print(" if it fails update your pip with 'python -m pip install -U pip'")
     exit
 ssh = paramiko.SSHClient()
 ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -55,8 +58,8 @@ def take_unset_test_image(target_ip, target_user, target_pass):
         found_login = True
 
         additonal_commands = ''                      #
-        x_dim = 1200                                  #  This should come from GUI boxes
-        y_dim = 1600                                  #     UPDATE COMING SOON
+        x_dim = 1600                                  #  This should come from GUI boxes
+        y_dim = 1200                                  #     UPDATE COMING SOON
         output_file = "/home/pi/test_defaults.jpg"   #
         cam_capture_choice = "fswebcam"             #
 
@@ -102,15 +105,90 @@ def get_test_pic(target_ip, target_user, target_pass, image_to_collect):
     return localpath
 
 
-connected, box_name = get_box_name(target_ip, target_user, target_pass)
-connected, camera_output, test_image = take_unset_test_image(target_ip, target_user, target_pass)
-test_img_localpath = get_test_pic(target_ip, target_user, target_pass, test_image)
-print("---------")
-print("| " + str(box_name))
-print("| " )
-print("| " + str(test_img_localpath))
-print("| ")
-if "Processing captured image" in camera_output:
-    print("| SUCCESSES!" )
-else:
-    print("| Seems to have failed...?")
+#connected, box_name = get_box_name(target_ip, target_user, target_pass)
+#connected, camera_output, test_image = take_unset_test_image(target_ip, target_user, target_pass)
+#test_img_localpath = get_test_pic(target_ip, target_user, target_pass, test_image)
+#print("---------")
+#print("| " + str(box_name))
+#print("| " )
+#print("| " + str(test_img_localpath))
+#print("| ")
+#if "Processing captured image" in camera_output:
+#    print("| SUCCESSES!" )
+#else:
+#    print("| Seems to have failed...?")
+
+class config_cam(wx.Frame):
+    def __init__(self, *args, **kw):
+        super(config_cam, self).__init__(*args, **kw)
+        self.InitUI()
+
+    def InitUI(self):
+     ## Pigrow to config and link button.
+        wx.StaticText(self,  label='address', pos=(10, 20))
+        self.tb_ip = wx.TextCtrl(self, pos=(125, 25), size=(150, 25))
+        self.tb_ip.SetValue("192.168.1.")
+        wx.StaticText(self,  label='Username', pos=(10, 60))
+        self.tb_user = wx.TextCtrl(self, pos=(125, 60), size=(150, 25))
+        self.tb_user.SetValue("pi")
+        wx.StaticText(self,  label='Password', pos=(10, 95))
+        self.tb_pass = wx.TextCtrl(self, pos=(125, 95), size=(150, 25))
+        self.tb_pass.SetValue("raspberry")
+        self.link_with_pi_btn = wx.Button(self, label='Link to Pi', pos=(50, 125), size=(175, 30))
+        self.link_with_pi_btn.Bind(wx.EVT_BUTTON, self.link_with_pi_btn_click)
+        self.link_status_text = wx.StaticText(self,  label='-- no link --', pos=(25, 160))
+     ## setup details.
+        wx.StaticText(self,  label='Cam options', pos=(50, 200))
+        wx.StaticText(self,  label='Brightness;', pos=(10, 230))
+        self.tb_b = wx.TextCtrl(self, pos=(120, 230), size=(75, 25))
+        wx.StaticText(self,  label='Contrast;', pos=(10, 260))
+        self.tb_c = wx.TextCtrl(self, pos=(120, 260), size=(75, 25))
+        wx.StaticText(self,  label='Saturation;', pos=(10, 290))
+        self.tb_s = wx.TextCtrl(self, pos=(120, 290), size=(75, 25))
+        wx.StaticText(self,  label='Gain;', pos=(10, 320))
+        self.tb_g = wx.TextCtrl(self, pos=(120, 320), size=(75, 25))
+        wx.StaticText(self,  label='X;', pos=(10, 350))
+        self.tb_x = wx.TextCtrl(self, pos=(120, 350), size=(75, 25))
+        wx.StaticText(self,  label='Y;', pos=(10, 380))
+        self.tb_y = wx.TextCtrl(self, pos=(120, 380), size=(75, 25))
+        wx.StaticText(self,  label='Extra args;', pos=(10, 410))
+        self.tb_extra = wx.TextCtrl(self, pos=(120, 410), size=(75, 25))
+
+     ## capture image buttons
+
+        self.relay1_btn = wx.Button(self, label='Relay 1', pos=(100, 500))
+        self.relay2_btn = wx.Button(self, label='Relay 2', pos=(100, 540))
+        self.relay3_btn = wx.Button(self, label='Relay 3', pos=(100, 580))
+        self.relay4_btn = wx.Button(self, label='Relay 4', pos=(100, 620))
+        #self.relay1_btn.Bind(wx.EVT_BUTTON, self.relay1_btn_click)
+        #self.relay2_btn.Bind(wx.EVT_BUTTON, self.relay2_btn_click)
+        #self.relay3_btn.Bind(wx.EVT_BUTTON, self.relay3_btn_click)
+        #self.relay4_btn.Bind(wx.EVT_BUTTON, self.relay4_btn_click)
+
+
+     ## Important wx stuff
+        self.SetSize((800, 600))
+        self.SetTitle('Pigrow Control - Camera Config')
+        self.Centre()
+        self.Show(True)
+
+    def link_with_pi_btn_click(self, e):
+        target_ip = self.tb_ip.GetValue()
+        target_user = self.tb_user.GetValue()
+        target_pass = self.tb_pass.GetValue()
+        log_on_test, boxname = get_box_name(target_ip, target_user, target_pass)
+        if log_on_test == True:
+            self.link_status_text.SetLabel("linked with - " + str(boxname))
+
+
+def main():
+    app = wx.App()
+    config_cam(None)
+    app.MainLoop()
+
+
+if __name__ == '__main__':
+    tempfolder = "~/frompigrow/temp/"
+    if not os.path.exists(tempfolder):
+        os.makedirs(tempfolder)
+    main()
