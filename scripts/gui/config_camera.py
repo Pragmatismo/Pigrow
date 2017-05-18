@@ -49,6 +49,25 @@ def get_box_name(target_ip, target_user, target_pass):
         ssh.close()
     return found_login, boxname
 
+def get_cam_config(target_ip, target_user, target_pass, cam_config_loc_on_pi):
+        config_name = cam_config_loc_on_pi.split("/")[-1]
+        localpath = tempfolder + config_name
+        try:
+            port = 22
+            ssh_tran = paramiko.Transport((target_ip, port))
+            print("  - connecting transport pipe... " + target_ip + " port:" + str(port))
+            ssh_tran.connect(username=target_user, password=target_pass)
+            sftp = paramiko.SFTPClient.from_transport(ssh_tran)
+            print("looking for " + str(cam_config_loc_on_pi))
+            sftp.get(cam_config_loc_on_pi, localpath)
+            print("--config file collected from pi--")
+            sftp.close()
+            ssh_tran.close()
+        except Exception as e:
+            print("!!! There was an issue, " + str(e))
+            return None
+        return localpath
+
 def take_unset_test_image(target_ip, target_user, target_pass):
     found_login = False
     cam_output = '!!!--NO READING--!!!'
@@ -87,7 +106,7 @@ def take_unset_test_image(target_ip, target_user, target_pass):
 
 def get_test_pic(target_ip, target_user, target_pass, image_to_collect):
     img_name = image_to_collect.split("/")[-1]
-    localpath = "/home/pragmo/pigitgrow/" + img_name
+    localpath = tempfolder + img_name
     try:
         port = 22
         ssh_tran = paramiko.Transport((target_ip, port))
@@ -152,14 +171,14 @@ class config_cam(wx.Frame):
         wx.StaticText(self,  label='Y;', pos=(10, 380))
         self.tb_y = wx.TextCtrl(self, pos=(120, 380), size=(75, 25))
         wx.StaticText(self,  label='Extra args;', pos=(10, 410))
-        self.tb_extra = wx.TextCtrl(self, pos=(120, 410), size=(75, 25))
+        self.tb_extra = wx.TextCtrl(self, pos=(10, 440), size=(200, 25))
 
      ## capture image buttons
 
-        self.relay1_btn = wx.Button(self, label='Relay 1', pos=(100, 500))
-        self.relay2_btn = wx.Button(self, label='Relay 2', pos=(100, 540))
-        self.relay3_btn = wx.Button(self, label='Relay 3', pos=(100, 580))
-        self.relay4_btn = wx.Button(self, label='Relay 4', pos=(100, 620))
+        self.relay1_btn = wx.Button(self, label='Take useing settings', pos=(100, 500))
+        self.relay2_btn = wx.Button(self, label='Take using saved settings', pos=(100, 540))
+        self.relay3_btn = wx.Button(self, label='Take using no settings', pos=(100, 580))
+        self.relay4_btn = wx.Button(self, label='take a range', pos=(100, 620))
         #self.relay1_btn.Bind(wx.EVT_BUTTON, self.relay1_btn_click)
         #self.relay2_btn.Bind(wx.EVT_BUTTON, self.relay2_btn_click)
         #self.relay3_btn.Bind(wx.EVT_BUTTON, self.relay3_btn_click)
@@ -176,9 +195,40 @@ class config_cam(wx.Frame):
         target_ip = self.tb_ip.GetValue()
         target_user = self.tb_user.GetValue()
         target_pass = self.tb_pass.GetValue()
+        cam_config_loc_on_pi = '/home/pi/Pigrow/config/camera_settings.txt'
         log_on_test, boxname = get_box_name(target_ip, target_user, target_pass)
         if log_on_test == True:
             self.link_status_text.SetLabel("linked with - " + str(boxname))
+            local_cam_settings_file = get_cam_config(target_ip, target_user, target_pass, cam_config_loc_on_pi)
+            print local_cam_settings_file
+            with open(local_cam_settings_file, "r") as f:
+                for line in f:
+                    s_item = line.split("=")
+                    if s_item[0] == "s_val":
+                        s_val = s_item[1].strip()
+                    elif s_item[0] == "c_val":
+                        c_val = s_item[1].strip()
+                    elif s_item[0] == "g_val":
+                        g_val = s_item[1].strip()
+                    elif s_item[0] == "b_val":
+                        b_val = s_item[1].strip()
+                    elif s_item[0] == "x_dim":
+                        x_dim = s_item[1].strip()
+                    elif s_item[0] == "y_dim":
+                        y_dim = s_item[1].strip()
+                    elif s_item[0] == "additonal_commands":
+                        additonal_commands = s_item[1].strip()
+            print s_val, c_val, g_val, b_val, x_dim, y_dim, additonal_commands
+            self.tb_s.SetValue(str(s_val))
+            self.tb_c.SetValue(str(c_val))
+            self.tb_g.SetValue(str(g_val))
+            self.tb_b.SetValue(str(b_val))
+            self.tb_x.SetValue(str(x_dim))
+            self.tb_y.SetValue(str(y_dim))
+            self.tb_extra.SetValue(str(additonal_commands))
+        else:
+            print ("Failed to connect")
+
 
 
 def main():
@@ -188,7 +238,7 @@ def main():
 
 
 if __name__ == '__main__':
-    tempfolder = "~/frompigrow/temp/"
+    tempfolder = "home/pragmo/frompigrow/temp/"
     if not os.path.exists(tempfolder):
         os.makedirs(tempfolder)
     main()
