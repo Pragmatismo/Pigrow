@@ -80,6 +80,7 @@ def get_cam_config(target_ip, target_user, target_pass, cam_config_loc_on_pi):
 
 def take_test_image(target_ip, target_user, target_pass, s_val, c_val, g_val, b_val, x_dim=800, y_dim=600, additonal_commands='', cam_capture_choice='uvccapture', output_file='/home/pi/test_cam_settings.jpg'):
     found_login = False
+    focus_val = "20"
     cam_output = '!!!--NO READING--!!!'
     try:
         ssh.connect(target_ip, username=target_user, password=target_pass, timeout=3)
@@ -103,6 +104,7 @@ def take_test_image(target_ip, target_user, target_pass, s_val, c_val, g_val, b_
             cam_cmd += " --set contrast=" + c_val
             cam_cmd += " --set Saturation=" + s_val
             cam_cmd += " --set gain=" + g_val
+            cam_cmd += ' --set "Focus, Auto"=False --set "Focus (absolute)"=' + focus_val
             #cam_cmd += " --set focus_absolute=10"
             cam_cmd += " --jpeg 90" #jpeg quality
             # cam_cmd += " --info HELLO INFO TEXT"
