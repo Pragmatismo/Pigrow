@@ -85,10 +85,14 @@ def take_with_fswebcam(s_val="20", c_val="20", g_val="20", b_val="20", x_dim=160
     timenow = str(timenow)[0:10]
     filename= "cap_"+str(timenow)+".jpg"
     cmd  = "fswebcam -r " + str(x_dim) + "x" + str(y_dim)
+    cmd += " --set brightness=" + b_val
+    cmd += " --set contrast=" + c_val
+    cmd += " --set Saturation=" + s_val
+    cmd += " --set gain=" + g_val
     cmd += " -D 2"      #the delay in seconds before taking photo
     cmd += " -S 5"      #number of frames to skip before taking image
     cmd += " --jpeg 90" #jpeg quality
-    #cmd +=
+    #cmd += + --info
     #cmd +=
     cmd += " " + caps_path + filename  #output filename'
     os.system(cmd)
