@@ -2,12 +2,22 @@
 import os
 import sys
 import datetime
+import numpy
+from PIL import Image
+try:
+    import matplotlib.pyplot as plt
+except:
+    print("matplotlib is not installed, you won't be able to make graphs without it.")
+    print("on ubuntu us the command;")
+    print("   sudo apt install python-matplotlib")
+    print(" on windows try;")
+    print("   python -m pip install matplotlib")
 try:
     import wx
 except:
     print(" You don't have WX installed, this draws the windows...")
-    print("on ubunru;")
-    print(" use the command ' sudo apt install python-wxgtk3.0 '")
+    print("on ubunru use the command;")
+    print("   sudo apt install python-wxgtk3.0 ")
     exit
 try:
     import paramiko
@@ -68,7 +78,7 @@ def get_cam_config(target_ip, target_user, target_pass, cam_config_loc_on_pi):
             return None
         return localpath
 
-def take_unset_test_image(target_ip, target_user, target_pass):
+def take_test_image(target_ip, target_user, target_pass, s_val, c_val, g_val, b_val, x_dim=800, y_dim=600, additonal_commands='', cam_capture_choice='uvccapture', output_file='/home/pi/test_cam_settings.jpg'):
     found_login = False
     cam_output = '!!!--NO READING--!!!'
     try:
@@ -76,11 +86,47 @@ def take_unset_test_image(target_ip, target_user, target_pass):
         print "Connected to " + target_ip
         found_login = True
 
-        additonal_commands = ''                      #
-        x_dim = 1600                                  #  This should come from GUI boxes
-        y_dim = 1200                                  #     UPDATE COMING SOON
-        output_file = "/home/pi/test_defaults.jpg"   #
-        cam_capture_choice = "fswebcam"             #
+        print("taking test image...")
+        if cam_capture_choice == "uvccapture":
+            cam_cmd = "uvccapture " + additonal_commands   #additional commands (camera select)
+            cam_cmd += " -S" + s_val #saturation
+            cam_cmd += " -C" + c_val #contrast
+            cam_cmd += " -G" + g_val #gain
+            cam_cmd += " -B" + b_val #brightness
+            cam_cmd += " -x"+str(x_dim)+" -y"+str(y_dim) + " "  #x and y dimensions of photo
+            cam_cmd += "-v -t0 -o" + output_file                #verbose, no delay, output
+        elif cam_capture_choice == "fswebcam":
+            cam_cmd  = "fswebcam -r " + str(x_dim) + "x" + str(y_dim)
+            cam_cmd += " -D 2"      #the delay in seconds before taking photo
+            cam_cmd += " -S 5"      #number of frames to skip before taking image
+            cam_cmd += " --set brightness=" + b_val
+            cam_cmd += " --set contrast=" + c_val
+            cam_cmd += " --set Saturation=" + s_val
+            cam_cmd += " --set gain=" + g_val
+            #cam_cmd += " --set focus_absolute=10"
+            cam_cmd += " --jpeg 90" #jpeg quality
+            # cam_cmd += " --info HELLO INFO TEXT"
+            cam_cmd += " " + output_file  #output filename'
+        else:
+            print("NOT IMPLIMENTED - SELECT CAM CHOICE OF UVC OR FSWEBCAM PLZ")
+
+        print("---Doing: " + cam_cmd)
+        stdin, stdout, stderr = ssh.exec_command(cam_cmd)
+        cam_output = stderr.read().strip()
+        print "Camera output; " + cam_output
+        ssh.close()
+    except Exception as e:
+        print("Some form of problem; " + str(e))
+        ssh.close()
+    return found_login, cam_output, output_file
+
+def take_unset_test_image(target_ip, target_user, target_pass, x_dim=800, y_dim=600, additonal_commands='', cam_capture_choice='uvccapture', output_file='/home/pi/test_defaults.jpg'):
+    found_login = False
+    cam_output = '!!!--NO READING--!!!'
+    try:
+        ssh.connect(target_ip, username=target_user, password=target_pass, timeout=3)
+        print "Connected to " + target_ip
+        found_login = True
 
         print("Using camera deafults to take image...")
         if cam_capture_choice == "uvccapture":
@@ -93,6 +139,8 @@ def take_unset_test_image(target_ip, target_user, target_pass):
             cam_cmd += " -S 5"      #number of frames to skip before taking image
             cam_cmd += " --jpeg 90" #jpeg quality
             cam_cmd += " " + output_file  #output filename'
+        else:
+            print("not yet implimented please select uv or fs webcam as you option")
 
         print("---Doing: " + cam_cmd)
         stdin, stdout, stderr = ssh.exec_command(cam_cmd)
@@ -120,22 +168,74 @@ def get_test_pic(target_ip, target_user, target_pass, image_to_collect):
     except Exception as e:
         print("!!! There was an issue, " + str(e))
         return None
-    print("SSH copy finished")
     return localpath
 
+def get_test_pic_from_list(target_ip, target_user, target_pass, image_list):
+    out_list = []
+    try:
+        port = 22
+        ssh_tran = paramiko.Transport((target_ip, port))
+        print("  - connecting transport pipe... " + target_ip + " port:" + str(port))
+        ssh_tran.connect(username=target_user, password=target_pass)
+        sftp = paramiko.SFTPClient.from_transport(ssh_tran)
+    except Exception as e:
+        print("!!! There was an issue, " + str(e))
+        return None
+    for image_to_collect in image_list:
+        print image_to_collect
+        img_name = image_to_collect.split("/")[-1]
+        localpath = tempfolder + img_name
+        print localpath
+        sftp.get(image_to_collect, localpath)
+        print("--image " + str(image_to_collect) + " collected from pi--")
+        out_list.append(localpath)
+    sftp.close()
+    ssh_tran.close()
+    return out_list
 
-#connected, box_name = get_box_name(target_ip, target_user, target_pass)
-#connected, camera_output, test_image = take_unset_test_image(target_ip, target_user, target_pass)
-#test_img_localpath = get_test_pic(target_ip, target_user, target_pass, test_image)
-#print("---------")
-#print("| " + str(box_name))
-#print("| " )
-#print("| " + str(test_img_localpath))
-#print("| ")
-#if "Processing captured image" in camera_output:
-#    print("| SUCCESSES!" )
-#else:
-#    print("| Seems to have failed...?")
+def graph_image_collection(filelist, graph_folder):
+    graph_path_tot = str(graph_folder + "combined_pixel_value.png")
+    red_list = []
+    gre_list = []
+    blu_list = []
+    tot_list = []
+    counter = []
+    count = 1
+    #work out max value
+    pil_c_photo = pil_c_photo = Image.open(filelist[0])
+    x, y = pil_c_photo.size
+    max_pixel = ((x * y) * 3) * 255
+    #tot_list.append(max_pixel)
+    #tot_list.append(0)
+    #counter.append(1)
+    #counter.append(2)
+
+
+    for image in filelist:
+        count = count + 1
+        pil_c_photo = Image.open(image)
+        numpy_pic = numpy.array(pil_c_photo)
+        r_sum = numpy_pic[:,:,0].sum()
+        g_sum = numpy_pic[:,:,1].sum()
+        b_sum = numpy_pic[:,:,2].sum()
+        tot_sum = r_sum + g_sum + b_sum
+        red_list.append(r_sum)
+        gre_list.append(g_sum)
+        blu_list.append(b_sum)
+        tot_list.append(tot_sum/max_pixel * 100)
+        counter.append(count)
+    print tot_list
+    plt.figure(1)
+    ax = plt.subplot()
+  #  ax.bar(dates, values, width=0.01, color='k', linewidth = 0)
+    ax.plot(counter, tot_list, color='darkblue', lw=3)
+    plt.title("Variation in sum of pixel values")
+    plt.ylabel("percent of maximum pixel value")
+    fig = plt.gcf()
+    plt.savefig(graph_path_tot)
+    print("Graph saved to " + str(graph_path_tot))
+    return graph_path_tot
+
 
 class config_cam(wx.Frame):
     def __init__(self, *args, **kw):
@@ -156,6 +256,8 @@ class config_cam(wx.Frame):
         self.link_with_pi_btn = wx.Button(self, label='Link to Pi', pos=(50, 125), size=(175, 30))
         self.link_with_pi_btn.Bind(wx.EVT_BUTTON, self.link_with_pi_btn_click)
         self.link_status_text = wx.StaticText(self,  label='-- no link --', pos=(25, 160))
+     ## image holder
+        self.main_image = wx.StaticBitmap(self, bitmap=wx.EmptyBitmap(1000, 1000), pos=(280, 10))
      ## setup details.
         wx.StaticText(self,  label='Cam options', pos=(50, 200))
         wx.StaticText(self,  label='Brightness;', pos=(10, 230))
@@ -172,24 +274,35 @@ class config_cam(wx.Frame):
         self.tb_y = wx.TextCtrl(self, pos=(120, 380), size=(75, 25))
         wx.StaticText(self,  label='Extra args;', pos=(10, 410))
         self.tb_extra = wx.TextCtrl(self, pos=(10, 440), size=(200, 25))
+        wx.StaticText(self,  label='capture with', pos=(15, 475))
+        cam_opts = ['uvccapture', 'fswebcam', 'picam-python', 'picam-cmdline']
+        self.cam_combo = wx.ComboBox(self, choices = cam_opts, pos=(125,470), size=(125, 30))
+        self.cam_combo.Bind(wx.EVT_COMBOBOX, self.cam_combo_go)
 
      ## capture image buttons
 
-        self.relay1_btn = wx.Button(self, label='Take useing settings', pos=(100, 500))
-        self.relay2_btn = wx.Button(self, label='Take using saved settings', pos=(100, 540))
-        self.relay3_btn = wx.Button(self, label='Take using no settings', pos=(100, 580))
-        self.relay4_btn = wx.Button(self, label='take a range', pos=(100, 620))
-        #self.relay1_btn.Bind(wx.EVT_BUTTON, self.relay1_btn_click)
-        #self.relay2_btn.Bind(wx.EVT_BUTTON, self.relay2_btn_click)
-        #self.relay3_btn.Bind(wx.EVT_BUTTON, self.relay3_btn_click)
-        #self.relay4_btn.Bind(wx.EVT_BUTTON, self.relay4_btn_click)
+        self.cap_cam_btn = wx.Button(self, label='Take useing settings', pos=(25, 500))
+        self.cap_unset_btn = wx.Button(self, label='Take using no settings', pos=(25, 540))
+        self.stability_batch_btn = wx.Button(self, label='take test batch', pos=(10, 580))
+        self.graph_batch_btn = wx.Button(self, label='graph batch', pos=(150, 580))
+        self.range_btn = wx.Button(self, label='take a range', pos=(25, 620))
+        range_opts = ['brightness', 'contrast', 'saturation', 'gain']
+        self.range_combo = wx.ComboBox(self, choices = range_opts, pos=(140,620), size=(125, 30))
+        self.cap_cam_btn.Bind(wx.EVT_BUTTON, self.capture_cam_image)
+        self.cap_unset_btn.Bind(wx.EVT_BUTTON, self.capture_unset_cam_image)
+        self.stability_batch_btn.Bind(wx.EVT_BUTTON, self.stability_batch_btn_click)
+        self.graph_batch_btn.Bind(wx.EVT_BUTTON, self.graph_batch_click)
+        self.range_btn.Bind(wx.EVT_BUTTON, self.range_btn_click)
 
 
      ## Important wx stuff
-        self.SetSize((800, 600))
+        self.SetSize((900, 800))
         self.SetTitle('Pigrow Control - Camera Config')
         self.Centre()
         self.Show(True)
+
+    def cam_combo_go(self, e):
+        print("combo box changed, which is nice")
 
     def link_with_pi_btn_click(self, e):
         target_ip = self.tb_ip.GetValue()
@@ -229,6 +342,114 @@ class config_cam(wx.Frame):
         else:
             print ("Failed to connect")
 
+    def capture_cam_image(self, e):
+        cam_capture_choice = self.cam_combo.GetValue()
+        s_val = str(self.tb_s.GetValue())
+        c_val = str(self.tb_c.GetValue())
+        g_val = str(self.tb_g.GetValue())
+        b_val = str(self.tb_b.GetValue())
+        x_dim = str(self.tb_x.GetValue())
+        y_dim = str(self.tb_y.GetValue())
+        extra_args = str(self.tb_extra.GetValue())
+        print s_val, c_val, g_val, b_val, x_dim, y_dim, extra_args, cam_capture_choice
+        found_login, cam_output, output_file = take_test_image(target_ip, target_user, target_pass, s_val, c_val, g_val, b_val, x_dim, y_dim, extra_args, cam_capture_choice)
+        photo_location = get_test_pic(target_ip, target_user, target_pass, output_file)
+        self.main_image.SetBitmap(wx.BitmapFromImage(wx.Image(photo_location, wx.BITMAP_TYPE_ANY)))
+
+    def capture_unset_cam_image(self, e):
+        target_ip = self.tb_ip.GetValue()
+        target_user = self.tb_user.GetValue()
+        target_pass = self.tb_pass.GetValue()
+        x_dim = self.tb_x.GetValue()
+        y_dim = self.tb_y.GetValue()
+        extra_args = self.tb_extra.GetValue()
+        cam_capture_choice = self.cam_combo.GetValue()
+        found_login, cam_output, output_file = take_unset_test_image(target_ip, target_user, target_pass, x_dim, y_dim, extra_args, cam_capture_choice)
+        #print cam_output
+        photo_location = get_test_pic(target_ip, target_user, target_pass, output_file)
+        #print photo_location
+        self.main_image.SetBitmap(wx.BitmapFromImage(wx.Image(photo_location, wx.BITMAP_TYPE_ANY)))
+
+    def stability_batch_btn_click(self, e):
+        target_ip = self.tb_ip.GetValue()
+        target_user = self.tb_user.GetValue()
+        target_pass = self.tb_pass.GetValue()
+        s_val = self.tb_s.GetValue()
+        c_val = self.tb_c.GetValue()
+        g_val = self.tb_g.GetValue()
+        b_val = self.tb_b.GetValue()
+        x_dim = self.tb_x.GetValue()
+        y_dim = self.tb_y.GetValue()
+        extra_args = self.tb_extra.GetValue()
+        cam_capture_choice = self.cam_combo.GetValue()
+        photo_set = []
+        for changing_range in range(0, 10):
+            filename = 'range_bat_' + str(changing_range) + '.jpg'
+            found_login, cam_output, output_file = take_test_image(target_ip, target_user, target_pass, s_val, c_val, g_val, b_val, x_dim, y_dim, extra_args, cam_capture_choice, filename)
+            photo_set.append(output_file)
+        print photo_set
+        batch_list = get_test_pic_from_list(target_ip, target_user, target_pass, photo_set)
+        print batch_list
+
+    def graph_batch_click(self, e):
+        filelist = []
+        for filefound in os.listdir(tempfolder):
+            if filefound.endswith('jpg'):
+                if filefound[0:10] == 'range_bat_':
+                    filelist.append(str(tempfolder + filefound))
+        filelist.sort(key=lambda f: int(filter(str.isdigit, f)))
+        tot_graph = graph_image_collection(filelist, tempfolder)
+        self.main_image.SetBitmap(wx.BitmapFromImage(wx.Image(tot_graph, wx.BITMAP_TYPE_ANY)))
+
+
+
+        #photo_location = get_test_pic(target_ip, target_user, target_pass, output_file)
+
+
+
+    def range_btn_click(self, e):
+        target_ip = self.tb_ip.GetValue()
+        target_user = self.tb_user.GetValue()
+        target_pass = self.tb_pass.GetValue()
+        s_val = self.tb_s.GetValue()
+        c_val = self.tb_c.GetValue()
+        g_val = self.tb_g.GetValue()
+        b_val = self.tb_b.GetValue()
+        x_dim = self.tb_x.GetValue()
+        y_dim = self.tb_y.GetValue()
+        extra_args = self.tb_extra.GetValue()
+        cam_capture_choice = self.cam_combo.GetValue()
+        range_choice = self.range_combo.GetValue()
+        range_start = 1
+        range_end = 250
+        range_jump = 10
+        photo_set = []
+        for changing_range in range(range_start, range_end, range_jump):
+            if range_choice == 'brightness':
+                filename = 'range_b_' + str(changing_range) + '.jpg'
+                found_login, cam_output, output_file = take_test_image(target_ip, target_user, target_pass, s_val, c_val, g_val, str(changing_range), x_dim, y_dim, extra_args, cam_capture_choice, filename)
+                photo_location = get_test_pic(target_ip, target_user, target_pass, output_file)
+                photo_set.append(photo_location)
+            elif range_choice == 'contrast':
+                filename = 'range_c_' + str(changing_range) + '.jpg'
+                found_login, cam_output, output_file = take_test_image(target_ip, target_user, target_pass, s_val, str(changing_range), g_val, b_val, x_dim, y_dim, extra_args, cam_capture_choice, filename)
+                photo_location = get_test_pic(target_ip, target_user, target_pass, output_file)
+                photo_set.append(photo_location)
+            elif range_choice == 'saturation':
+                filename = 'range_s_' + str(changing_range) + '.jpg'
+                found_login, cam_output, output_file = take_test_image(target_ip, target_user, target_pass, str(changing_range), c_val, g_val, b_val, x_dim, y_dim, extra_args, cam_capture_choice, filename)
+                photo_location = get_test_pic(target_ip, target_user, target_pass, output_file)
+                photo_set.append(photo_location)
+            elif range_choice == 'gain':
+                filename = 'range_g_' + str(changing_range) + '.jpg'
+                found_login, cam_output, output_file = take_test_image(target_ip, target_user, target_pass, s_val, c_val, str(changing_range), b_val, x_dim, y_dim, extra_args, cam_capture_choice, filename)
+                photo_location = get_test_pic(target_ip, target_user, target_pass, output_file)
+                photo_set.append(photo_location)
+
+        self.main_image.SetBitmap(wx.BitmapFromImage(wx.Image(photo_location, wx.BITMAP_TYPE_ANY)))
+        print photo_set
+
+
 
 
 def main():
@@ -238,7 +459,7 @@ def main():
 
 
 if __name__ == '__main__':
-    tempfolder = "home/pragmo/frompigrow/temp/"
+    tempfolder = "/home/pragmo/frompigrow/temp/"
     if not os.path.exists(tempfolder):
         os.makedirs(tempfolder)
     main()
