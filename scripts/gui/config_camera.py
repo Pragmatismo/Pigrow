@@ -284,7 +284,7 @@ class config_cam(wx.Frame):
         self.cam_combo = wx.ComboBox(self, choices = cam_opts, pos=(125,400), size=(125, 30))
         self.cam_combo.Bind(wx.EVT_COMBOBOX, self.cam_combo_go)
      ## fswebcam only controlls
-        self.fs_label = wx.StaticText(self,  label='fswebcam setting to test', pos=(10, 435))
+        self.fs_label = wx.StaticText(self,  label='fswebcam only settings', pos=(10, 435))
         self.list_fs_ctrls_btn = wx.Button(self, label='Show webcam controlls', pos=(25, 460))
         self.list_fs_ctrls_btn.Bind(wx.EVT_BUTTON, self.list_fs_ctrls_click)
 
@@ -294,9 +294,17 @@ class config_cam(wx.Frame):
         self.setting_value_tb = wx.TextCtrl(self, pos=(60, 525), size=(100, 25))
         self.add_to_cmd_btn = wx.Button(self, label='Add to cmd string', pos=(5, 550))
         #self.list_fs_ctrls_btn = wx.Button(self, label='i dunno', pos=(175, 550))
-        self.cmds_string_tb = wx.TextCtrl(self, pos=(10, 590), size=(200, 25))
+        self.cmds_string_tb = wx.TextCtrl(self, pos=(10, 590), size=(260, 100), style=wx.TE_MULTILINE)
         self.add_to_cmd_btn.Bind(wx.EVT_BUTTON, self.add_to_cmd_click)
         self.fs_label.Hide()
+        self.list_fs_ctrls_btn.Hide()
+        self.list_fs_ctrls_btn.Hide()
+        self.setting_string_label.Hide()
+        self.setting_string_tb.Hide()
+        self.setting_value_label.Hide()
+        self.setting_value_tb.Hide()
+        self.add_to_cmd_btn.Hide()
+        self.cmds_string_tb.Hide()
 
 
 
@@ -334,6 +342,8 @@ class config_cam(wx.Frame):
         cmd_str = self.cmds_string_tb.GetValue()
         cmd_str += ' --set "' + str(test_str) + '"=' + str(test_val)
         self.cmds_string_tb.SetValue(cmd_str)
+        self.setting_string_tb.SetValue('')
+        self.setting_value_tb.SetValue('')
 
     def list_fs_ctrls_click(self, e):
         print("this is supposed to fswebcam -d v4l2:/dev/video0 --list-controls on the pi")
@@ -369,6 +379,8 @@ class config_cam(wx.Frame):
             self.setting_string_tb.Show()
             self.setting_value_label.Show()
             self.setting_value_tb.Show()
+            self.add_to_cmd_btn.Show()
+            self.cmds_string_tb.Show()
         else:
             self.fs_label.Hide()
             self.list_fs_ctrls_btn.Hide()
@@ -377,6 +389,9 @@ class config_cam(wx.Frame):
             self.setting_string_tb.Hide()
             self.setting_value_label.Hide()
             self.setting_value_tb.Hide()
+            self.add_to_cmd_btn.Hide()
+            self.cmds_string_tb.Hide()
+
 
     def link_with_pi_btn_click(self, e):
         target_ip = self.tb_ip.GetValue()
@@ -388,6 +403,9 @@ class config_cam(wx.Frame):
             self.link_status_text.SetLabel("linked with - " + str(boxname))
             local_cam_settings_file = get_cam_config(target_ip, target_user, target_pass, cam_config_loc_on_pi)
             print local_cam_settings_file
+            cam_opt = None
+            fsw_extra = ''
+            uvc_extra = ''
             with open(local_cam_settings_file, "r") as f:
                 for line in f:
                     s_item = line.split("=")
@@ -403,15 +421,36 @@ class config_cam(wx.Frame):
                         x_dim = s_item[1].strip()
                     elif s_item[0] == "y_dim":
                         y_dim = s_item[1].strip()
-                    elif s_item[0] == "additonal_commands":
-                        additonal_commands = s_item[1].strip()
-            print s_val, c_val, g_val, b_val, x_dim, y_dim, additonal_commands
+                    elif s_item[0] == "cam_opt":
+                        cam_opt = s_item[1].strip()
+                    elif s_item[0] == "fsw_extra":
+                        fsw_extra = s_item[1].strip()
+                    elif s_item[0] == "uvc_extra":
+                        uvc_Extra = s_item[1].strip()
             self.tb_s.SetValue(str(s_val))
             self.tb_c.SetValue(str(c_val))
             self.tb_g.SetValue(str(g_val))
             self.tb_b.SetValue(str(b_val))
             self.tb_x.SetValue(str(x_dim))
             self.tb_y.SetValue(str(y_dim))
+            if cam_opt == None:
+                print("No camera select in config, using default")
+                cam_opt = 'fswebcam'
+            if cam_opt == 'fswebcam':
+                self.cam_combo.	SetValue('fswebcam')
+            elif cam_opt == 'uvccapture':
+                self.cam_combo.	SetValue('uvccapture')
+            elif cam_opt == 'picam-python':
+                self.cam_combo.	SetValue('picam-python')
+            elif cam_opt == 'picam-cmdline':
+                self.cam_combo.	SetValue('picam-cmdline')
+            else:
+                print("can't udnerstand cam_opt in settings file, useing default")
+                self.cam_combo.	SetValue('fswebcam')
+            self.cmds_string_tb.SetValue(fsw_extra)
+            self.cam_combo_go(None)
+
+
             #self.tb_extra.SetValue(str(additonal_commands))
         else:
             print ("Failed to connect")
@@ -467,7 +506,7 @@ class config_cam(wx.Frame):
         b_val = self.tb_b.GetValue()
         x_dim = self.tb_x.GetValue()
         y_dim = self.tb_y.GetValue()
-        extra_args = self.tb_extra.GetValue()
+        #extra_args = self.tb_extra.GetValue()
         cam_capture_choice = self.cam_combo.GetValue()
         photo_set = []
         for changing_range in range(0, 10):
