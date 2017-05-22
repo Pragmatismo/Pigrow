@@ -6,7 +6,7 @@ g_val = "60"
 b_val = "60"
 x_dim = 1280
 y_dim = 720
-additonal_commands = "-d/dev/video0 -w"
+uvc_extra = "-d/dev/video0 -w"
 loc_settings = "/home/pi/Pigrow/config/"
 if not os.path.exists(loc_settings):
     os.makedirs(loc_settings)
@@ -48,8 +48,8 @@ try:
                 x_dim = s_item[1].split("\n")[0]
             elif s_item[0] == "y_dim":
                 y_dim = s_item[1].split("\n")[0]
-            elif s_item[0] == "additonal_commands":
-                additonal_commands = s_item[1].split("\n")[0]
+            elif s_item[0] == "uvc_extra":
+                uvc_extra = s_item[1].split("\n")[0]
 except:
     pass
 
@@ -65,7 +65,7 @@ def capture_image(s_cap, c_cap, g_cap, b_cap, x_cap, y_cap, output_file, additon
 def show_menu():
     global s_val, c_val, g_val, b_val
     global x_dim, y_dim
-    global additonal_commands
+    global uvc_extra
 
     print("----------------------------")
     print("---Camera test and config---")
@@ -122,7 +122,7 @@ def show_menu():
         print("Choice of;")
         print cam_opt
         cam_num = raw_input("Input camera number; ")
-        additonal_commands = "-d/dev/video" + str(cam_num)
+        uvc_extra = "-d/dev/video" + str(cam_num)
 
 
 
@@ -131,7 +131,7 @@ def show_menu():
         print("Capturing range of Saturation images...")
         for s in range(start_v,end_v,skip_v):
             output_file = "test_range_s_"+str(s)+".jpg"
-            capture_image(s, c_val, g_val, b_val, x_dim, y_dim, output_file, additonal_commands)
+            capture_image(s, c_val, g_val, b_val, x_dim, y_dim, output_file, uvc_extra)
         print("Range captured, view and select best value..")
         os.system("gpicview test_range_s_"+str(start_v)+".jpg")
         s_val = raw_input("Input value to use for Saturation..")
@@ -140,7 +140,7 @@ def show_menu():
         print("Capturing range of Contrast images...")
         for c in range(start_v,end_v,skip_v):
             output_file = "test_range_c_"+str(c)+".jpg"
-            capture_image(s_val, c, g_val, b_val, x_dim, y_dim, output_file, additonal_commands)
+            capture_image(s_val, c, g_val, b_val, x_dim, y_dim, output_file, uvc_extra)
         print("Range captured, view and select best value..")
         os.system("gpicview test_range_c_"+str(start_v)+".jpg")
         c_val = raw_input("Input value to use for Contrast..")
@@ -149,7 +149,7 @@ def show_menu():
         print("Capturing range of Gain images...")
         for g in range(start_v,end_v,skip_v):
             output_file = "test_range_g_"+str(g)+".jpg"
-            capture_image(s_val, c_val, g, b_val, x_dim, y_dim, output_file, additonal_commands)
+            capture_image(s_val, c_val, g, b_val, x_dim, y_dim, output_file, uvc_extra)
         print("Range captured, view and select best value..")
         os.system("gpicview test_range_g_"+str(start_v)+".jpg")
         g_val = raw_input("Input value to use for Gain..")
@@ -158,7 +158,7 @@ def show_menu():
         print("Capturing range of Brightness images...")
         for b in range(start_v,end_v,skip_v):
             output_file = "test_range_b_"+str(b)+".jpg"
-            capture_image(s_val, c_val, g_val, b, x_dim, y_dim, output_file, additonal_commands)
+            capture_image(s_val, c_val, g_val, b, x_dim, y_dim, output_file, uvc_extra)
         print("Range captured, view and select best value..")
         os.system("gpicview test_range_b_"+str(start_v)+".jpg")
         b_val = raw_input("Input value to use for Brightness..")
@@ -169,12 +169,12 @@ def show_menu():
     elif option == "t":
         print("Using current configuration to take image...")
         output_file = "test_current.jpg"
-        capture_image(s_val, c_val, g_val, b_val, x_dim, y_dim, output_file, additonal_commands)
+        capture_image(s_val, c_val, g_val, b_val, x_dim, y_dim, output_file, uvc_extra)
         os.system("gpicview " + output_file)
     elif option == "d":
         print("Using camera deafults to take image...")
         output_file = "test_defaults.jpg"
-        cam_cmd = "uvccapture " + additonal_commands   #additional commands (camera select)
+        cam_cmd = "uvccapture " + uvc_extra   #additional commands (camera select)
         cam_cmd += " -x"+str(x_dim)+" -y"+str(y_dim) + " "  #x and y dimensions of photo
         cam_cmd += "-v -t0 -o" + output_file          #verbose, no delay, output
         print("---Doing: " + cam_cmd)
@@ -185,7 +185,7 @@ def show_menu():
         print("Testing stability using current configuration to take range...")
         for x in range(1,10):
             output_file = "test_range_"+str(x)+".jpg"
-            capture_image(s_val, c_val, g_val, b_val, x_dim, y_dim, output_file, additonal_commands)
+            capture_image(s_val, c_val, g_val, b_val, x_dim, y_dim, output_file, uvc_extra)
         os.system("gpicview test_range_1.jpg")
 
     elif option == "s":
@@ -197,7 +197,7 @@ def show_menu():
             f.write("b_val="+b_val+"\n")
             f.write("x_dim="+str(x_dim)+"\n")
             f.write("y_dim="+str(y_dim)+"\n")
-            f.write("additonal_commands="+additonal_commands+ "\n")
+            f.write("uvc_extra="+uvc_extra+ "\n")
         print("Config Saved")
     elif option == "q" or option == "Q": # or option == "":
         exit()

@@ -78,6 +78,21 @@ def get_cam_config(target_ip, target_user, target_pass, cam_config_loc_on_pi):
             return None
         return localpath
 
+def upload_cam_config(target_ip, target_user, target_pass, cam_config_loc_on_pi, localpath):
+        try:
+            port = 22
+            ssh_tran = paramiko.Transport((target_ip, port))
+            print("  - connecting transport pipe... " + target_ip + " port:" + str(port))
+            ssh_tran.connect(username=target_user, password=target_pass)
+            sftp = paramiko.SFTPClient.from_transport(ssh_tran)
+            sftp.put(localpath, cam_config_loc_on_pi)
+            print("--config file updated on pi--")
+            sftp.close()
+            ssh_tran.close()
+        except Exception as e:
+            print("!!! There was an issue, " + str(e))
+            return None
+
 def take_test_image(target_ip, target_user, target_pass, s_val, c_val, g_val, b_val, x_dim=800, y_dim=600, additonal_commands='', cam_capture_choice='uvccapture', output_file='/home/pi/test_cam_settings.jpg', ctrl_test_value=None, ctrl_text_string=None, cmd_str=''):
     found_login = False
     focus_val = "20"
@@ -315,7 +330,6 @@ class config_cam(wx.Frame):
 
 
      ## capture image buttons
-
         self.cap_cam_btn = wx.Button(self, label='Take useing settings', pos=(25, 700))
         self.cap_unset_btn = wx.Button(self, label='Take using no settings', pos=(25, 740))
         self.stability_batch_btn = wx.Button(self, label='take test batch', pos=(10, 780))
@@ -328,6 +342,9 @@ class config_cam(wx.Frame):
         self.stability_batch_btn.Bind(wx.EVT_BUTTON, self.stability_batch_btn_click)
         self.graph_batch_btn.Bind(wx.EVT_BUTTON, self.graph_batch_click)
         self.range_btn.Bind(wx.EVT_BUTTON, self.range_btn_click)
+     ## Upload to pi button
+        self.save_to_pi_btn = wx.Button(self, label='Save Settings to Pigrow', pos=(25,850))
+        self.save_to_pi_btn.Bind(wx.EVT_BUTTON, self.save_to_pi_click)
 
 
      ## Important wx stuff
@@ -394,6 +411,7 @@ class config_cam(wx.Frame):
 
 
     def link_with_pi_btn_click(self, e):
+        global local_cam_settings_file
         target_ip = self.tb_ip.GetValue()
         target_user = self.tb_user.GetValue()
         target_pass = self.tb_pass.GetValue()
@@ -437,13 +455,13 @@ class config_cam(wx.Frame):
                 print("No camera select in config, using default")
                 cam_opt = 'fswebcam'
             if cam_opt == 'fswebcam':
-                self.cam_combo.	SetValue('fswebcam')
+                self.cam_combo.SetValue('fswebcam')
             elif cam_opt == 'uvccapture':
-                self.cam_combo.	SetValue('uvccapture')
+                self.cam_combo.SetValue('uvccapture')
             elif cam_opt == 'picam-python':
-                self.cam_combo.	SetValue('picam-python')
+                self.cam_combo.SetValue('picam-python')
             elif cam_opt == 'picam-cmdline':
-                self.cam_combo.	SetValue('picam-cmdline')
+                self.cam_combo.SetValue('picam-cmdline')
             else:
                 print("can't udnerstand cam_opt in settings file, useing default")
                 self.cam_combo.	SetValue('fswebcam')
@@ -454,6 +472,28 @@ class config_cam(wx.Frame):
             #self.tb_extra.SetValue(str(additonal_commands))
         else:
             print ("Failed to connect")
+
+    def save_to_pi_click(self, e):
+        global local_cam_settings_file
+        target_ip = self.tb_ip.GetValue()
+        target_user = self.tb_user.GetValue()
+        target_pass = self.tb_pass.GetValue()
+        config_text = "s_val=" + str(self.tb_s.GetValue()) + "\n"
+        config_text += "c_val=" + str(self.tb_c.GetValue()) + "\n"
+        config_text += "g_val=" + str(self.tb_g.GetValue()) + "\n"
+        config_text += "b_val=" + str(self.tb_b.GetValue()) + "\n"
+        config_text += "x_dim=" + str(self.tb_x.GetValue()) + "\n"
+        config_text += "y_dim=" + str(self.tb_y.GetValue()) + "\n"
+        config_text += "cam_opt=" + str(self.cam_combo.GetValue()) + "\n"
+        config_text += "fsw_extra=" + str(self.cmds_string_tb.GetValue()) + "\n"
+        config_text += "uvc_extra=" + str("LOL NOT YET IMPLIMENTED")
+        with open(local_cam_settings_file, "w") as f:
+            f.write(config_text)
+        print("Local Settings file updated")
+        name_of_file = local_cam_settings_file.split("/")
+        cam_config_loc_on_pi = '/home/pi/Pigrow/config/' + name_of_file[-1]
+        upload_cam_config(target_ip, target_user, target_pass, cam_config_loc_on_pi, local_cam_settings_file)
+
 
     def capture_cam_image(self, e):
         cam_capture_choice = self.cam_combo.GetValue()
