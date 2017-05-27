@@ -156,7 +156,7 @@ if __name__ == '__main__':
     loc_locs = '/home/pi/Pigrow/config/dirlocs.txt'
     loc_dic = pigrow_defs.load_locs(loc_locs)
 
-    s_val, c_val, g_val, b_val, x_dim, y_dim, additonal_commands, caps_path = load_camera_settings(loc_dic, caps_path, settings_flie)
+    s_val, c_val, g_val, b_val, x_dim, y_dim, cam_num, cam_opt, fsw_extra, uvc_extra, caps_path = load_camera_settings(loc_dic, caps_path, settings_flie)
     if capture_with == "uvc":
         filename = take_with_uvccapture(s_val, c_val, g_val, b_val, x_dim, y_dim, cam_num, uvc_extra, caps_path)
     elif capture_with ==  "fs":
