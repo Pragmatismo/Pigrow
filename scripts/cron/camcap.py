@@ -3,7 +3,7 @@ import time
 import os
 import sys
 
-capture_with = "uvc" # or 'fs'
+capture_with = ""
 settings_flie = None
 caps_path = None
 
@@ -76,7 +76,11 @@ def load_camera_settings(loc_dic, caps_path, settings_flie):
                 elif s_item[0] == "cam_num":
                     cam_num = val
                 elif s_item[0] == "cam_opt":
-                    cam_opt = val
+                    if capture_with == '':
+                        print("-Ignoring settings files capture options")
+                        cam_opt = capture_with
+                    else:
+                        cam_opt = val
                 elif s_item[0] == "fsw_extra":
                     try:
                         fsw_extra = ''                  ##
@@ -95,6 +99,8 @@ def load_camera_settings(loc_dic, caps_path, settings_flie):
         print("but couldn't find config file for camera, so using default values")
         print("  - Run cam_config.py to create one")
         print("     - or edit dirlocs config file to point to the config file.")
+    if cam_opt = '':
+        cam_opt = 'fswebcam'
 #
 #
 #  done to this point
@@ -104,7 +110,7 @@ def load_camera_settings(loc_dic, caps_path, settings_flie):
     return (s_val, c_val, g_val, b_val, x_dim, y_dim, cam_num, cam_opt, fsw_extra, uvc_extra, caps_path)
 
 # take and save photo
-def take_with_uvccapture(s_val="20", c_val="20", g_val="20", b_val="20", x_dim=1600, y_dim=1200, cam_num='dev/video0', uvc_extra="", caps_path="./"):
+def take_with_uvccapture(s_val="20", c_val="20", g_val="20", b_val="20", x_dim=1600, y_dim=1200, cam_num='/dev/video0', uvc_extra="", caps_path="./"):
     timenow = time.time()
     timenow = str(timenow)[0:10]
     filename= "cap_"+str(timenow)+".jpg"
@@ -163,9 +169,9 @@ if __name__ == '__main__':
     loc_dic = pigrow_defs.load_locs(loc_locs)
 
     s_val, c_val, g_val, b_val, x_dim, y_dim, cam_num, cam_opt, fsw_extra, uvc_extra, caps_path = load_camera_settings(loc_dic, caps_path, settings_flie)
-    if capture_with == "uvc":
+    if cam_opt == "uvccapture":
         filename = take_with_uvccapture(s_val, c_val, g_val, b_val, x_dim, y_dim, cam_num, uvc_extra, caps_path)
-    elif capture_with ==  "fs":
+    elif cam_opt ==  "fswebcam":
         filename = take_with_fswebcam(s_val, c_val, g_val, b_val, x_dim, y_dim, cam_num, uvc_extra, caps_path)
     else:
-        print("You selected an invalid captuire option, use 'uvc' or 'fs'")
+        print("unknown capture option - sorry")
