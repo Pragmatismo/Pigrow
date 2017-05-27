@@ -59,6 +59,20 @@ def get_box_name(target_ip, target_user, target_pass):
         ssh.close()
     return found_login, boxname
 
+def get_cams(target_ip, target_user, target_pass):
+    cam_list = None
+    try:
+        ssh.connect(target_ip, username=target_user, password=target_pass, timeout=3)
+        print "Connected to " + target_ip
+        stdin, stdout, stderr = ssh.exec_command("ls /dev/video*")
+        cam_list = stdout.read().strip().split("\n")
+        print "Pigrow Found; " + str(cam_list)
+        ssh.close()
+    except:
+        print("dang - can't connect to pigrow or it's not a pigrow")
+        ssh.close()
+    return cam_list
+
 def clear_temp_folder():
     for filename in os.listdir(tempfolder):
         os.remove((tempfolder + filename))
@@ -98,7 +112,7 @@ def upload_cam_config(target_ip, target_user, target_pass, cam_config_loc_on_pi,
             return None
 
 def take_test_image(target_ip, target_user, target_pass, s_val, c_val, g_val, b_val, x_dim=800, y_dim=600,
-                    additonal_commands='', cam_capture_choice='uvccapture', output_file='/home/pi/test_cam_settings.jpg',
+                    cam_select='/dev/video0', cam_capture_choice='uvccapture', output_file='/home/pi/test_cam_settings.jpg',
                     ctrl_test_value=None, ctrl_text_string=None, cmd_str=''):
     found_login = False
     focus_val = "20"
@@ -110,7 +124,8 @@ def take_test_image(target_ip, target_user, target_pass, s_val, c_val, g_val, b_
 
         print("taking test image...")
         if cam_capture_choice == "uvccapture":
-            cam_cmd = "uvccapture " + additonal_commands   #additional commands (camera select)
+            additional_commands = " -d" + cam_select
+            cam_cmd = "uvccapture " + additional_commands   #additional commands (camera select)
             cam_cmd += " -S" + s_val #saturation
             cam_cmd += " -C" + c_val #contrast
             cam_cmd += " -G" + g_val #gain
@@ -119,13 +134,18 @@ def take_test_image(target_ip, target_user, target_pass, s_val, c_val, g_val, b_
             cam_cmd += "-v -t0 -o" + output_file                #verbose, no delay, output
         elif cam_capture_choice == "fswebcam":
             cam_cmd  = "fswebcam -r " + str(x_dim) + "x" + str(y_dim)
+            cam_cmd += " -d v4l2:" + cam_select
             cam_cmd += " -D 2"      #the delay in seconds before taking photo
             cam_cmd += " -S 5"      #number of frames to skip before taking image
             # to list controls use fswebcam -d v4l2:/dev/video0 --list-controls
-            cam_cmd += " --set brightness=" + b_val
-            cam_cmd += " --set contrast=" + c_val
-            cam_cmd += " --set Saturation=" + s_val
-            cam_cmd += " --set gain=" + g_val
+            if not b_val == '':
+                cam_cmd += " --set brightness=" + b_val
+            if not c_val == '':
+                cam_cmd += " --set contrast=" + c_val
+            if not s_val == '':
+                cam_cmd += " --set Saturation=" + s_val
+            if not g_val == '':
+                cam_cmd += " --set gain=" + g_val
             ##For testing camera ctrl variables
             if not ctrl_text_string == None:
                 cam_cmd += " --set " + ctrl_text_string + "=" + str(ctrl_test_value)
@@ -286,7 +306,11 @@ class config_cam(wx.Frame):
      ## image holder
         self.main_image = wx.StaticBitmap(self, bitmap=wx.EmptyBitmap(1000, 1000), pos=(280, 10))
      ## setup details.
-        wx.StaticText(self,  label='Cam options', pos=(50, 190))
+        wx.StaticText(self,  label='Cam;', pos=(10, 190))
+        cam_select = ['/dev/video0']
+        self.cam_select_cb = wx.ComboBox(self, choices = cam_select, pos=(60,185), size=(140, 30))
+        self.list_cams_btn = wx.Button(self, label='find', pos=(200, 185))
+        self.list_cams_btn.Bind(wx.EVT_BUTTON, self.list_cams_click)
         wx.StaticText(self,  label='Brightness;', pos=(10, 220))
         self.tb_b = wx.TextCtrl(self, pos=(120, 220), size=(75, 25))
         wx.StaticText(self,  label='Contrast;', pos=(10, 250))
@@ -363,6 +387,16 @@ class config_cam(wx.Frame):
         self.Centre()
         self.Show(True)
 
+    def list_cams_click(self, e):
+        print("list_cams_click is clicked")
+        target_ip = self.tb_ip.GetValue()
+        target_user = self.tb_user.GetValue()
+        target_pass = self.tb_pass.GetValue()
+        cam_list = get_cams(target_ip, target_user, target_pass)
+        self.cam_select_cb.Clear()
+        for cam in cam_list:
+            self.cam_select_cb.Append(cam)
+
     def add_to_cmd_click(self, e):
         test_str = self.setting_string_tb.GetValue()
         test_val = self.setting_value_tb.GetValue()
@@ -381,7 +415,8 @@ class config_cam(wx.Frame):
             ssh.connect(target_ip, username=target_user, password=target_pass, timeout=3)
             print "Connected to " + target_ip
             found_login = True
-            cam_cmd = "fswebcam -d v4l2:/dev/video0 --list-controls"
+            cam_choice = self.cam_select_cb.GetValue()
+            cam_cmd = "fswebcam -d v4l2:" + cam_choice + " --list-controls"
             print("---Doing: " + cam_cmd)
             stdin, stdout, stderr = ssh.exec_command(cam_cmd)
             cam_output = stderr.read().strip()
@@ -439,33 +474,30 @@ class config_cam(wx.Frame):
                 for line in f:
                     s_item = line.strip().split("=")
                     if s_item[0] == "s_val":
-                        s_val = s_item[1].strip()
+                        self.tb_s.SetValue(str(s_item[1].strip()))
                     elif s_item[0] == "c_val":
-                        c_val = s_item[1].strip()
+                        self.tb_c.SetValue(str(s_item[1].strip()))
                     elif s_item[0] == "g_val":
-                        g_val = s_item[1].strip()
+                        self.tb_g.SetValue(str(s_item[1].strip()))
                     elif s_item[0] == "b_val":
-                        b_val = s_item[1].strip()
+                        self.tb_b.SetValue(str(s_item[1].strip()))
                     elif s_item[0] == "x_dim":
-                        x_dim = s_item[1].strip()
+                        self.tb_x.SetValue(str(s_item[1].strip()))
                     elif s_item[0] == "y_dim":
-                        y_dim = s_item[1].strip()
+                        self.tb_y.SetValue(str(s_item[1].strip()))
+                    elif s_item[0] == "cam_num":
+                        self.cam_select_cb.SetValue(str(s_item[1].strip()))
                     elif s_item[0] == "cam_opt":
                         cam_opt = s_item[1].strip()
                     elif s_item[0] == "fsw_extra":
-                        fsw_extra = ''
-                        for cmdv in s_item[1:]:
-                            if not cmdv == '':
-                                fsw_extra += cmdv + "="
-                        fsw_extra = fsw_extra[:-1]
+                        fsw_extra = ''                  ##
+                        for cmdv in s_item[1:]:         ##
+                            if not cmdv == '':          ##  this just puts it
+                                fsw_extra += cmdv + "=" ##  back together again
+                        fsw_extra = fsw_extra[:-1]      ##
                     elif s_item[0] == "uvc_extra":
                         uvc_Extra = s_item[1].strip()
-            self.tb_s.SetValue(str(s_val))
-            self.tb_c.SetValue(str(c_val))
-            self.tb_g.SetValue(str(g_val))
-            self.tb_b.SetValue(str(b_val))
-            self.tb_x.SetValue(str(x_dim))
-            self.tb_y.SetValue(str(y_dim))
+
             if cam_opt == None:
                 print("No camera select in config, using default")
                 cam_opt = 'fswebcam'
@@ -499,6 +531,7 @@ class config_cam(wx.Frame):
         config_text += "b_val=" + str(self.tb_b.GetValue()) + "\n"
         config_text += "x_dim=" + str(self.tb_x.GetValue()) + "\n"
         config_text += "y_dim=" + str(self.tb_y.GetValue()) + "\n"
+        config_text += "cam_num=" + str(self.cam_select_cb.GetValue()) + "\n"
         config_text += "cam_opt=" + str(self.cam_combo.GetValue()) + "\n"
         config_text += "fsw_extra=" + str(self.cmds_string_tb.GetValue()) + "\n"
         config_text += "uvc_extra=" + str("LOL NOT YET IMPLIMENTED")
@@ -518,18 +551,27 @@ class config_cam(wx.Frame):
         b_val = str(self.tb_b.GetValue())
         x_dim = str(self.tb_x.GetValue())
         y_dim = str(self.tb_y.GetValue())
-        extra_args = '' # str(self.tb_extra.GetValue())
-        print s_val, c_val, g_val, b_val, x_dim, y_dim, extra_args, cam_capture_choice
+        cam_select = self.cam_select_cb.GetValue()
         if cam_capture_choice == 'fswebcam':
             ctrl_text_string = self.setting_string_tb.GetValue()
             ctrl_test_value = self.setting_value_tb.GetValue()
             cmd_str = self.cmds_string_tb.GetValue()
             if not ctrl_test_value == '':
-                found_login, cam_output, output_file = take_test_image(target_ip, target_user, target_pass, s_val, c_val, g_val, b_val, x_dim, y_dim, extra_args, cam_capture_choice, ctrl_test_value=ctrl_test_value, ctrl_text_string=ctrl_text_string, cmd_str=cmd_str)
+                found_login, cam_output, output_file = take_test_image(target_ip, target_user, target_pass,
+                                                                       s_val, c_val, g_val, b_val,
+                                                                       x_dim, y_dim, cam_select,
+                                                                       cam_capture_choice,
+                                                                       ctrl_test_value=ctrl_test_value, ctrl_text_string=ctrl_text_string, cmd_str=cmd_str)
             else:
-                found_login, cam_output, output_file = take_test_image(target_ip, target_user, target_pass, s_val, c_val, g_val, b_val, x_dim, y_dim, extra_args, cam_capture_choice, cmd_str=cmd_str)
+                found_login, cam_output, output_file = take_test_image(target_ip, target_user, target_pass,
+                                                                       s_val, c_val, g_val, b_val,
+                                                                       x_dim, y_dim, cam_select,
+                                                                       cam_capture_choice, cmd_str=cmd_str)
         else:
-            found_login, cam_output, output_file = take_test_image(target_ip, target_user, target_pass, s_val, c_val, g_val, b_val, x_dim, y_dim, extra_args, cam_capture_choice)
+            found_login, cam_output, output_file = take_test_image(target_ip, target_user, target_pass,
+                                                                   s_val, c_val, g_val, b_val,
+                                                                   x_dim, y_dim, cam_select,
+                                                                   cam_capture_choice)
         photo_location = get_test_pic(target_ip, target_user, target_pass, output_file)
         self.main_image.SetBitmap(wx.BitmapFromImage(wx.Image(photo_location, wx.BITMAP_TYPE_ANY)))
 
@@ -541,7 +583,7 @@ class config_cam(wx.Frame):
         y_dim = self.tb_y.GetValue()
         extra_args = '' #will be used for camera select
         cam_capture_choice = self.cam_combo.GetValue()
-        found_login, cam_output, output_file = take_unset_test_image(target_ip, target_user, target_pass, x_dim, y_dim, extra_args, cam_capture_choice)
+        found_login, cam_output, output_file = take_unset_test_image(target_ip, target_user, target_pass, x_dim, y_dim, cam_select, cam_capture_choice)
         #print cam_output
         photo_location = get_test_pic(target_ip, target_user, target_pass, output_file)
         #print photo_location
@@ -567,11 +609,11 @@ class config_cam(wx.Frame):
                 ctrl_test_value = self.setting_value_tb.GetValue()
                 cmd_str = self.cmds_string_tb.GetValue()
                 if not ctrl_test_value == '':
-                    found_login, cam_output, output_file = take_test_image(target_ip, target_user, target_pass, s_val, c_val, g_val, b_val, x_dim, y_dim, extra_args, cam_capture_choice, filename, ctrl_test_value=ctrl_test_value, ctrl_text_string=ctrl_text_string, cmd_str=cmd_str)
+                    found_login, cam_output, output_file = take_test_image(target_ip, target_user, target_pass, s_val, c_val, g_val, b_val, x_dim, y_dim, cam_select, cam_capture_choice, filename, ctrl_test_value=ctrl_test_value, ctrl_text_string=ctrl_text_string, cmd_str=cmd_str)
                 else:
-                    found_login, cam_output, output_file = take_test_image(target_ip, target_user, target_pass, s_val, c_val, g_val, b_val, x_dim, y_dim, extra_args, cam_capture_choice, filename, cmd_str=cmd_str)
+                    found_login, cam_output, output_file = take_test_image(target_ip, target_user, target_pass, s_val, c_val, g_val, b_val, x_dim, y_dim, cam_select, cam_capture_choice, filename, cmd_str=cmd_str)
             else:
-                found_login, cam_output, output_file = take_test_image(target_ip, target_user, target_pass, s_val, c_val, g_val, b_val, x_dim, y_dim, extra_args, cam_capture_choice, filename)
+                found_login, cam_output, output_file = take_test_image(target_ip, target_user, target_pass, s_val, c_val, g_val, b_val, x_dim, y_dim, cam_select, cam_capture_choice, filename)
             photo_set.append(output_file)
         #print photo_set
         batch_list = get_test_pic_from_list(target_ip, target_user, target_pass, photo_set)
@@ -621,7 +663,7 @@ class config_cam(wx.Frame):
                 filename = 'range_b_' + str(changing_range) + '.jpg'
                 found_login, cam_output, output_file = take_test_image(target_ip, target_user, target_pass,
                                                                        s_val, c_val, g_val, str(changing_range),
-                                                                       x_dim, y_dim, extra_args,
+                                                                       x_dim, y_dim, cam_select,
                                                                        cam_capture_choice, filename,
                                                                        ctrl_test_value, ctrl_text_string, cmd_str)
                 photo_set.append(output_file)
@@ -629,7 +671,7 @@ class config_cam(wx.Frame):
                 filename = 'range_c_' + str(changing_range) + '.jpg'
                 found_login, cam_output, output_file = take_test_image(target_ip, target_user, target_pass,
                                                                        s_val, str(changing_range), g_val, b_val,
-                                                                       x_dim, y_dim, extra_args,
+                                                                       x_dim, y_dim, cam_select,
                                                                        cam_capture_choice, filename,
                                                                        ctrl_test_value, ctrl_text_string, cmd_str)
                 photo_set.append(output_file)
@@ -637,7 +679,7 @@ class config_cam(wx.Frame):
                 filename = 'range_s_' + str(changing_range) + '.jpg'
                 found_login, cam_output, output_file = take_test_image(target_ip, target_user, target_pass,
                                                                        str(changing_range), c_val, g_val, b_val,
-                                                                       x_dim, y_dim, extra_args,
+                                                                       x_dim, y_dim, cam_select,
                                                                        cam_capture_choice, filename,
                                                                        ctrl_test_value, ctrl_text_string, cmd_str)
                 photo_set.append(output_file)
@@ -645,7 +687,7 @@ class config_cam(wx.Frame):
                 filename = 'range_g_' + str(changing_range) + '.jpg'
                 found_login, cam_output, output_file = take_test_image(target_ip, target_user, target_pass,
                                                                        s_val, c_val, str(changing_range), b_val,
-                                                                       x_dim, y_dim, extra_args,
+                                                                       x_dim, y_dim, cam_select,
                                                                        cam_capture_choice, filename,
                                                                        ctrl_test_value, ctrl_text_string, cmd_str)
                 photo_set.append(output_file)
@@ -653,7 +695,7 @@ class config_cam(wx.Frame):
                 filename = 'range_u_' + str(changing_range) + '.jpg'
                 found_login, cam_output, output_file = take_test_image(target_ip, target_user, target_pass,
                                                                        s_val, c_val, g_val, b_val,
-                                                                       x_dim, y_dim, extra_args,
+                                                                       x_dim, y_dim, cam_select,
                                                                        cam_capture_choice, filename,
                                                                        str(changing_range), ctrl_text_string, cmd_str)
                 #photo_location = get_test_pic(target_ip, target_user, target_pass, output_file)
