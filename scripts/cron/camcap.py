@@ -23,7 +23,7 @@ for argu in sys.argv:
 def load_camera_settings(loc_dic):
     s_val, c_val, g_val, b_val, x_dim, y_dim, cam_num, cam_opt, fsw_extra, uvc_extra = None
     # caps folder path from loc_dic file -annoying for multicam
-    if caps_path == None
+    if caps_path == None:
         try:
             caps_path = loc_dic['caps_path']
         except:
