@@ -166,6 +166,6 @@ if __name__ == '__main__':
     if cam_opt == "uvccapture":
         filename = take_with_uvccapture(s_val, c_val, g_val, b_val, x_dim, y_dim, cam_num, uvc_extra, caps_path)
     elif cam_opt ==  "fswebcam":
-        filename = take_with_fswebcam(s_val, c_val, g_val, b_val, x_dim, y_dim, cam_num, uvc_extra, caps_path)
+        filename = take_with_fswebcam(s_val, c_val, g_val, b_val, x_dim, y_dim, cam_num, fsw_extra, caps_path)
     else:
         print("unknown capture option -" + str(cam_opt) + "- sorry")
