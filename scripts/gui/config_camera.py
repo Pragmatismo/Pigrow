@@ -32,7 +32,7 @@ except:
 ssh = paramiko.SSHClient()
 ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
-print(" THIS IS A ALPHA-ALPHA STAGE SCRIPT - IT DOES ALMOST NOTHING AT THE MOMENT - UPDATES COMING SOON!")
+print(" THIS IS A ALPHA-ALPHA STAGE SCRIPT - IT DOES STUFF BUT NOT EVERYTHING - UPDATES COMING SOON!")
 ##
 ###  THE FOLLOWIING NEED TO BE SET BY GUI BOXES
 ##
@@ -58,6 +58,10 @@ def get_box_name(target_ip, target_user, target_pass):
         print("dang - can't connect to pigrow or it's not a pigrow")
         ssh.close()
     return found_login, boxname
+
+def clear_temp_folder():
+    for filename in os.listdir(tempfolder):
+        os.remove((tempfolder + filename))
 
 def get_cam_config(target_ip, target_user, target_pass, cam_config_loc_on_pi):
         config_name = cam_config_loc_on_pi.split("/")[-1]
@@ -93,7 +97,9 @@ def upload_cam_config(target_ip, target_user, target_pass, cam_config_loc_on_pi,
             print("!!! There was an issue, " + str(e))
             return None
 
-def take_test_image(target_ip, target_user, target_pass, s_val, c_val, g_val, b_val, x_dim=800, y_dim=600, additonal_commands='', cam_capture_choice='uvccapture', output_file='/home/pi/test_cam_settings.jpg', ctrl_test_value=None, ctrl_text_string=None, cmd_str=''):
+def take_test_image(target_ip, target_user, target_pass, s_val, c_val, g_val, b_val, x_dim=800, y_dim=600,
+                    additonal_commands='', cam_capture_choice='uvccapture', output_file='/home/pi/test_cam_settings.jpg',
+                    ctrl_test_value=None, ctrl_text_string=None, cmd_str=''):
     found_login = False
     focus_val = "20"
     cam_output = '!!!--NO READING--!!!'
@@ -123,10 +129,9 @@ def take_test_image(target_ip, target_user, target_pass, s_val, c_val, g_val, b_
             ##For testing camera ctrl variables
             if not ctrl_text_string == None:
                 cam_cmd += " --set " + ctrl_text_string + "=" + str(ctrl_test_value)
-            #cam_cmd += ' --set "Focus, Auto"=False --set "Focus (absolute)"=' + focus_val
             cam_cmd += cmd_str
             cam_cmd += " --jpeg 90" #jpeg quality
-            # cam_cmd += " --info HELLO INFO TEXT"
+            # cam_cmd += ' --info "HELLO INFO TEXT"'
             cam_cmd += " " + output_file  #output filename'
         else:
             print("NOT IMPLIMENTED - SELECT CAM CHOICE OF UVC OR FSWEBCAM PLZ")
@@ -141,7 +146,8 @@ def take_test_image(target_ip, target_user, target_pass, s_val, c_val, g_val, b_
         ssh.close()
     return found_login, cam_output, output_file
 
-def take_unset_test_image(target_ip, target_user, target_pass, x_dim=800, y_dim=600, additonal_commands='', cam_capture_choice='uvccapture', output_file='/home/pi/test_defaults.jpg'):
+def take_unset_test_image(target_ip, target_user, target_pass, x_dim=800, y_dim=600,
+                          additonal_commands='', cam_capture_choice='uvccapture', output_file='/home/pi/test_defaults.jpg'):
     found_login = False
     cam_output = '!!!--NO READING--!!!'
     try:
@@ -320,14 +326,9 @@ class config_cam(wx.Frame):
         self.setting_value_tb.Hide()
         self.add_to_cmd_btn.Hide()
         self.cmds_string_tb.Hide()
-
-
-
      ## uvc only contols
         #wx.StaticText(self,  label='Extra args;', pos=(10, 500))
         #self.tb_extra = wx.TextCtrl(self, pos=(10, 530), size=(200, 25))
-
-
 
      ## capture image buttons
         self.cap_cam_btn = wx.Button(self, label='Take useing settings', pos=(25, 700))
@@ -335,15 +336,24 @@ class config_cam(wx.Frame):
         self.stability_batch_btn = wx.Button(self, label='take test batch', pos=(10, 780))
         self.graph_batch_btn = wx.Button(self, label='graph batch', pos=(150, 780))
         self.range_btn = wx.Button(self, label='take a range', pos=(25,820))
-        range_opts = ['brightness', 'contrast', 'saturation', 'gain']
+        range_opts = ['brightness', 'contrast', 'saturation', 'gain', 'user']
         self.range_combo = wx.ComboBox(self, choices = range_opts, pos=(140,820), size=(125, 30))
         self.cap_cam_btn.Bind(wx.EVT_BUTTON, self.capture_cam_image)
         self.cap_unset_btn.Bind(wx.EVT_BUTTON, self.capture_unset_cam_image)
         self.stability_batch_btn.Bind(wx.EVT_BUTTON, self.stability_batch_btn_click)
         self.graph_batch_btn.Bind(wx.EVT_BUTTON, self.graph_batch_click)
         self.range_btn.Bind(wx.EVT_BUTTON, self.range_btn_click)
+        wx.StaticText(self,  label='start;', pos=(0, 860))
+        self.range_start = wx.TextCtrl(self, pos=(40, 850), size=(50, 40))
+        wx.StaticText(self,  label='end;', pos=(90, 860))
+        self.range_end = wx.TextCtrl(self, pos=(125, 850), size=(50, 40))
+        wx.StaticText(self,  label='every;', pos=(175, 860))
+        self.range_every = wx.TextCtrl(self, pos=(225, 850), size=(50, 40))
+        self.range_every.SetValue("20")
+        self.range_start.SetValue("1")
+        self.range_end.SetValue("255")
      ## Upload to pi button
-        self.save_to_pi_btn = wx.Button(self, label='Save Settings to Pigrow', pos=(25,850))
+        self.save_to_pi_btn = wx.Button(self, label='Save Settings to Pigrow', pos=(25,0))
         self.save_to_pi_btn.Bind(wx.EVT_BUTTON, self.save_to_pi_click)
 
 
@@ -412,6 +422,7 @@ class config_cam(wx.Frame):
 
     def link_with_pi_btn_click(self, e):
         global local_cam_settings_file
+        clear_temp_folder()
         target_ip = self.tb_ip.GetValue()
         target_user = self.tb_user.GetValue()
         target_pass = self.tb_pass.GetValue()
@@ -426,7 +437,7 @@ class config_cam(wx.Frame):
             uvc_extra = ''
             with open(local_cam_settings_file, "r") as f:
                 for line in f:
-                    s_item = line.split("=")
+                    s_item = line.strip().split("=")
                     if s_item[0] == "s_val":
                         s_val = s_item[1].strip()
                     elif s_item[0] == "c_val":
@@ -442,7 +453,11 @@ class config_cam(wx.Frame):
                     elif s_item[0] == "cam_opt":
                         cam_opt = s_item[1].strip()
                     elif s_item[0] == "fsw_extra":
-                        fsw_extra = s_item[1].strip()
+                        fsw_extra = ''
+                        for cmdv in s_item[1:]:
+                            if not cmdv == '':
+                                fsw_extra += cmdv + "="
+                        fsw_extra = fsw_extra[:-1]
                     elif s_item[0] == "uvc_extra":
                         uvc_Extra = s_item[1].strip()
             self.tb_s.SetValue(str(s_val))
@@ -509,10 +524,6 @@ class config_cam(wx.Frame):
             ctrl_text_string = self.setting_string_tb.GetValue()
             ctrl_test_value = self.setting_value_tb.GetValue()
             cmd_str = self.cmds_string_tb.GetValue()
-            print("+++++++++++++++++++++++++++=")
-            print(ctrl_test_value)
-            print(ctrl_text_string)
-            print('===========')
             if not ctrl_test_value == '':
                 found_login, cam_output, output_file = take_test_image(target_ip, target_user, target_pass, s_val, c_val, g_val, b_val, x_dim, y_dim, extra_args, cam_capture_choice, ctrl_test_value=ctrl_test_value, ctrl_text_string=ctrl_text_string, cmd_str=cmd_str)
             else:
@@ -528,7 +539,7 @@ class config_cam(wx.Frame):
         target_pass = self.tb_pass.GetValue()
         x_dim = self.tb_x.GetValue()
         y_dim = self.tb_y.GetValue()
-        extra_args = self.tb_extra.GetValue()
+        extra_args = '' #will be used for camera select
         cam_capture_choice = self.cam_combo.GetValue()
         found_login, cam_output, output_file = take_unset_test_image(target_ip, target_user, target_pass, x_dim, y_dim, extra_args, cam_capture_choice)
         #print cam_output
@@ -546,16 +557,25 @@ class config_cam(wx.Frame):
         b_val = self.tb_b.GetValue()
         x_dim = self.tb_x.GetValue()
         y_dim = self.tb_y.GetValue()
-        #extra_args = self.tb_extra.GetValue()
+        extra_args = '' # self.tb_extra.GetValue()
         cam_capture_choice = self.cam_combo.GetValue()
         photo_set = []
-        for changing_range in range(0, 10):
+        for changing_range in range(1, 11):
             filename = 'range_bat_' + str(changing_range) + '.jpg'
-            found_login, cam_output, output_file = take_test_image(target_ip, target_user, target_pass, s_val, c_val, g_val, b_val, x_dim, y_dim, extra_args, cam_capture_choice, filename)
+            if cam_capture_choice == 'fswebcam':
+                ctrl_text_string = self.setting_string_tb.GetValue()
+                ctrl_test_value = self.setting_value_tb.GetValue()
+                cmd_str = self.cmds_string_tb.GetValue()
+                if not ctrl_test_value == '':
+                    found_login, cam_output, output_file = take_test_image(target_ip, target_user, target_pass, s_val, c_val, g_val, b_val, x_dim, y_dim, extra_args, cam_capture_choice, filename, ctrl_test_value=ctrl_test_value, ctrl_text_string=ctrl_text_string, cmd_str=cmd_str)
+                else:
+                    found_login, cam_output, output_file = take_test_image(target_ip, target_user, target_pass, s_val, c_val, g_val, b_val, x_dim, y_dim, extra_args, cam_capture_choice, filename, cmd_str=cmd_str)
+            else:
+                found_login, cam_output, output_file = take_test_image(target_ip, target_user, target_pass, s_val, c_val, g_val, b_val, x_dim, y_dim, extra_args, cam_capture_choice, filename)
             photo_set.append(output_file)
-        print photo_set
+        #print photo_set
         batch_list = get_test_pic_from_list(target_ip, target_user, target_pass, photo_set)
-        print batch_list
+        #print batch_list
 
     def graph_batch_click(self, e):
         filelist = []
@@ -583,37 +603,65 @@ class config_cam(wx.Frame):
         b_val = self.tb_b.GetValue()
         x_dim = self.tb_x.GetValue()
         y_dim = self.tb_y.GetValue()
-        extra_args = self.tb_extra.GetValue()
+        cam_capture_choice = self.cam_combo.GetValue()
+        if cam_capture_choice == 'fswebcam':
+            ctrl_text_string = self.setting_string_tb.GetValue()
+            ctrl_test_value = self.setting_value_tb.GetValue()
+            cmd_str = self.cmds_string_tb.GetValue()
+        extra_args = '' #self.tb_extra.GetValue()
         cam_capture_choice = self.cam_combo.GetValue()
         range_choice = self.range_combo.GetValue()
-        range_start = 1
-        range_end = 250
-        range_jump = 10
+        range_every = int(self.range_every.GetValue())
+        range_start = int(self.range_start.GetValue())
+        range_end = int(self.range_end.GetValue())
         photo_set = []
-        for changing_range in range(range_start, range_end, range_jump):
+
+        for changing_range in range(range_start, range_end, range_every):
             if range_choice == 'brightness':
                 filename = 'range_b_' + str(changing_range) + '.jpg'
-                found_login, cam_output, output_file = take_test_image(target_ip, target_user, target_pass, s_val, c_val, g_val, str(changing_range), x_dim, y_dim, extra_args, cam_capture_choice, filename)
-                photo_location = get_test_pic(target_ip, target_user, target_pass, output_file)
-                photo_set.append(photo_location)
+                found_login, cam_output, output_file = take_test_image(target_ip, target_user, target_pass,
+                                                                       s_val, c_val, g_val, str(changing_range),
+                                                                       x_dim, y_dim, extra_args,
+                                                                       cam_capture_choice, filename,
+                                                                       ctrl_test_value, ctrl_text_string, cmd_str)
+                photo_set.append(output_file)
             elif range_choice == 'contrast':
                 filename = 'range_c_' + str(changing_range) + '.jpg'
-                found_login, cam_output, output_file = take_test_image(target_ip, target_user, target_pass, s_val, str(changing_range), g_val, b_val, x_dim, y_dim, extra_args, cam_capture_choice, filename)
-                photo_location = get_test_pic(target_ip, target_user, target_pass, output_file)
-                photo_set.append(photo_location)
+                found_login, cam_output, output_file = take_test_image(target_ip, target_user, target_pass,
+                                                                       s_val, str(changing_range), g_val, b_val,
+                                                                       x_dim, y_dim, extra_args,
+                                                                       cam_capture_choice, filename,
+                                                                       ctrl_test_value, ctrl_text_string, cmd_str)
+                photo_set.append(output_file)
             elif range_choice == 'saturation':
                 filename = 'range_s_' + str(changing_range) + '.jpg'
-                found_login, cam_output, output_file = take_test_image(target_ip, target_user, target_pass, str(changing_range), c_val, g_val, b_val, x_dim, y_dim, extra_args, cam_capture_choice, filename)
-                photo_location = get_test_pic(target_ip, target_user, target_pass, output_file)
-                photo_set.append(photo_location)
+                found_login, cam_output, output_file = take_test_image(target_ip, target_user, target_pass,
+                                                                       str(changing_range), c_val, g_val, b_val,
+                                                                       x_dim, y_dim, extra_args,
+                                                                       cam_capture_choice, filename,
+                                                                       ctrl_test_value, ctrl_text_string, cmd_str)
+                photo_set.append(output_file)
             elif range_choice == 'gain':
                 filename = 'range_g_' + str(changing_range) + '.jpg'
-                found_login, cam_output, output_file = take_test_image(target_ip, target_user, target_pass, s_val, c_val, str(changing_range), b_val, x_dim, y_dim, extra_args, cam_capture_choice, filename)
-                photo_location = get_test_pic(target_ip, target_user, target_pass, output_file)
-                photo_set.append(photo_location)
-
-        self.main_image.SetBitmap(wx.BitmapFromImage(wx.Image(photo_location, wx.BITMAP_TYPE_ANY)))
-        print photo_set
+                found_login, cam_output, output_file = take_test_image(target_ip, target_user, target_pass,
+                                                                       s_val, c_val, str(changing_range), b_val,
+                                                                       x_dim, y_dim, extra_args,
+                                                                       cam_capture_choice, filename,
+                                                                       ctrl_test_value, ctrl_text_string, cmd_str)
+                photo_set.append(output_file)
+            elif range_choice == 'user':
+                filename = 'range_u_' + str(changing_range) + '.jpg'
+                found_login, cam_output, output_file = take_test_image(target_ip, target_user, target_pass,
+                                                                       s_val, c_val, g_val, b_val,
+                                                                       x_dim, y_dim, extra_args,
+                                                                       cam_capture_choice, filename,
+                                                                       str(changing_range), ctrl_text_string, cmd_str)
+                #photo_location = get_test_pic(target_ip, target_user, target_pass, output_file)
+                photo_set.append(output_file)
+        #print photo_set
+        batch_list = get_test_pic_from_list(target_ip, target_user, target_pass, photo_set)
+        self.main_image.SetBitmap(wx.BitmapFromImage(wx.Image(batch_list[0], wx.BITMAP_TYPE_ANY)))
+        print batch_list
 
 
 
