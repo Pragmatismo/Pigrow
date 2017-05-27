@@ -100,7 +100,7 @@ def load_camera_settings(loc_dic, caps_path, settings_flie):
         print("  - Run cam_config.py to create one")
         print("     - or edit dirlocs config file to point to the config file.")
     if cam_opt = '':
-        cam_opt = 'fswebcam'
+        cam_opt == 'fswebcam'
 #
 #
 #  done to this point
