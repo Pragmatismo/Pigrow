@@ -64,22 +64,22 @@ def load_camera_settings(loc_dic):
                 elif s_item[0] == "y_dim":
                     y_dim = val
            #updated
-                 elif s_item[0] == "cam_num":
-                     cam_num = val
-                 elif s_item[0] == "cam_opt":
-                     cam_opt = val
-                 elif s_item[0] == "fsw_extra":
-                     try:
-                         fsw_extra = ''                  ##
-                         for cmdv in s_item[1:]:         ##
-                             if not cmdv == '':          ##  this just puts it
-                                 fsw_extra += cmdv + "=" ##  back together again
-                         fsw_extra = fsw_extra[:-1]      ##
+                elif s_item[0] == "cam_num":
+                    cam_num = val
+                elif s_item[0] == "cam_opt":
+                    cam_opt = val
+                elif s_item[0] == "fsw_extra":
+                    try:
+                        fsw_extra = ''                  ##
+                        for cmdv in s_item[1:]:         ##
+                            if not cmdv == '':          ##  this just puts it
+                                fsw_extra += cmdv + "=" ##  back together again
+                        fsw_extra = fsw_extra[:-1]      ##
                     except:
                         print("couldn't read fsw extra commands, trying without...")
                         fsw_extra = ''
-                 elif s_item[0] == "uvc_extra":
-                     uvc_extra = s_item[1].strip()
+                elif s_item[0] == "uvc_extra":
+                    uvc_extra = s_item[1].strip()
 
     except:
         print("looked at " + settings_flie)
