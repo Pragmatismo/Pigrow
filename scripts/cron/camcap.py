@@ -174,4 +174,4 @@ if __name__ == '__main__':
     elif cam_opt ==  "fswebcam":
         filename = take_with_fswebcam(s_val, c_val, g_val, b_val, x_dim, y_dim, cam_num, uvc_extra, caps_path)
     else:
-        print("unknown capture option - sorry")
+        print("unknown capture option -" + str(cam_opt) + "- sorry")
