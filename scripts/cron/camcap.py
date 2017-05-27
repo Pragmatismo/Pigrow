@@ -3,24 +3,21 @@ import time
 import os
 import sys
 
-capture_with = ""
-settings_flie = None
+settings_file = None
 caps_path = None
 
 for argu in sys.argv[1:]:
     try:
         thearg = str(argu).split('=')[0]
         theval = str(argu).split('=')[1]
-        if  thearg == 'capture_with' or thearg == 'with':
-            capture_with = theval
-        elif thearg == 'settings_flie' or thearg == 'set':
-            settings_flie = theval
+        if thearg == 'settings_file' or thearg == 'set':
+            settings_file = theval
         elif thearg == 'caps_path' or thearg == 'caps':
             caps_path == theval
     except:
         print("Didn't undertand " + str(argu))
 
-def load_camera_settings(loc_dic, caps_path, settings_flie):
+def load_camera_settings(loc_dic, caps_path, settings_file):
     s_val = ''
     c_val = ''
     g_val = ''
@@ -45,18 +42,18 @@ def load_camera_settings(loc_dic, caps_path, settings_flie):
     else:
         print("saving to; " + str(caps_path))
     # finding camera settings file in loc_dic
-    if settings_flie == None:
+    if settings_file == None:
         try:
-            settings_flie = loc_dic['camera_settings']
-            print("using camera settings file as directed by dirlocs file; " + settings_flie)
+            settings_file = loc_dic['camera_settings']
+            print("using camera settings file as directed by dirlocs file; " + settings_file)
         except:
-            settings_flie = "/home/pi/Pigrow/config/camera_settings.txt"
-            print("camera settings file not mentioned in dirlocs file, using default; " + settings_flie)
+            settings_file = "/home/pi/Pigrow/config/camera_settings.txt"
+            print("camera settings file not mentioned in dirlocs file, using default; " + settings_file)
     else:
-        print("Using settings file; " + str(settings_flie))
+        print("Using settings file; " + str(settings_file))
     #Grabbing all the relevent data from the settings file
     try:
-        with open(settings_flie, "r") as f:
+        with open(settings_file, "r") as f:
             for line in f:
                 s_item = line.split("=")
                 val = s_item[1].strip()
@@ -76,10 +73,6 @@ def load_camera_settings(loc_dic, caps_path, settings_flie):
                 elif s_item[0] == "cam_num":
                     cam_num = val
                 elif s_item[0] == "cam_opt":
-                    if capture_with == '':
-                        print("-Ignoring settings files capture options")
-                        cam_opt = capture_with
-                    else:
                         cam_opt = val
                 elif s_item[0] == "fsw_extra":
                     try:
@@ -94,8 +87,9 @@ def load_camera_settings(loc_dic, caps_path, settings_flie):
                 elif s_item[0] == "uvc_extra":
                     uvc_extra = s_item[1].strip()
 
-    except:
-        print("looked at " + settings_flie)
+    except Exception as e:
+        print e
+        print("looked at " + settings_file)
         print("but couldn't find config file for camera, so using default values")
         print("  - Run cam_config.py to create one")
         print("     - or edit dirlocs config file to point to the config file.")
@@ -168,7 +162,7 @@ if __name__ == '__main__':
     loc_locs = '/home/pi/Pigrow/config/dirlocs.txt'
     loc_dic = pigrow_defs.load_locs(loc_locs)
 
-    s_val, c_val, g_val, b_val, x_dim, y_dim, cam_num, cam_opt, fsw_extra, uvc_extra, caps_path = load_camera_settings(loc_dic, caps_path, settings_flie)
+    s_val, c_val, g_val, b_val, x_dim, y_dim, cam_num, cam_opt, fsw_extra, uvc_extra, caps_path = load_camera_settings(loc_dic, caps_path, settings_file)
     if cam_opt == "uvccapture":
         filename = take_with_uvccapture(s_val, c_val, g_val, b_val, x_dim, y_dim, cam_num, uvc_extra, caps_path)
     elif cam_opt ==  "fswebcam":
