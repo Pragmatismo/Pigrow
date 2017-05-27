@@ -21,7 +21,16 @@ for argu in sys.argv:
         print("Didn't undertand " + str(argu))
 
 def load_camera_settings(loc_dic):
-    s_val, c_val, g_val, b_val, x_dim, y_dim, cam_num, cam_opt, fsw_extra, uvc_extra = ''
+    s_val = ''
+    c_val = ''
+    g_val = ''
+    b_val = ''
+    x_dim = ''
+    y_dim = ''
+    cam_num = ''
+    cam_opt = ''
+    fsw_extra = ''
+    uvc_extra = ''
     # caps folder path from loc_dic file -annoying for multicam
     if caps_path == None:
         try:
