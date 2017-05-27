@@ -7,7 +7,7 @@ capture_with = "uvc" # or 'fs'
 settings_flie = None
 caps_path = None
 
-for argu in sys.argv:
+for argu in sys.argv[1:]:
     try:
         thearg = str(argu).split('=')[0]
         theval = str(argu).split('=')[1]
@@ -117,6 +117,9 @@ def take_with_uvccapture(s_val="20", c_val="20", g_val="20", b_val="20", x_dim=1
     cmd += " " + uvc_extra
     cmd += " -v -t0" #-v verbose, -t0 take single shot
     cmd += " -o" + caps_path + filename
+    print("----")
+    print(cmd)
+    print("----")
     os.system(cmd)
     print("Image taken and saved to "+caps_path+filename)
     return filename
@@ -128,7 +131,7 @@ def take_with_fswebcam(s_val=None, c_val=None, g_val=None, b_val=None, x_dim=160
     filename= "cap_"+str(timenow)+".jpg"
 
     cam_cmd  = "fswebcam -r " + str(x_dim) + "x" + str(y_dim)
-    cam_cmd += " -d v4l2:" + cam_select
+    cam_cmd += " -d v4l2:" + cam_num
     cam_cmd += " -D 2"      #the delay in seconds before taking photo
     cam_cmd += " -S 5"      #number of frames to skip before taking image
     # to list controls use fswebcam -d v4l2:/dev/video0 --list-controls
@@ -144,6 +147,9 @@ def take_with_fswebcam(s_val=None, c_val=None, g_val=None, b_val=None, x_dim=160
     cam_cmd += " --jpeg 90" #jpeg quality
     # cam_cmd += ' --info "HELLO INFO TEXT"'
     cam_cmd += " " + caps_path + filename  #output filename'
+    print("----")
+    print(cam_cmd)
+    print("----")
     os.system(cam_cmd)
     print("Image taken and saved to " + caps_path + filename)
     return filename
