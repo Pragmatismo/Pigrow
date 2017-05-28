@@ -43,6 +43,35 @@ target_config_path = "/home/pi/Pigrow/config/"
 #target_crontab_path = "/var/spool/cron/crontabs/pi"
 cap_type = "jpg"
 
+class upload_dialog(wx.Dialog):
+
+    global local_cam_settings_file
+    def __init__(self, *args, **kw):
+        super(upload_dialog, self).__init__(*args, **kw)
+        self.InitUI()
+        self.SetSize((500, 250))
+        self.SetTitle("Upload config to pi")
+    def InitUI(self):
+        pnl = wx.Panel(self)
+        wx.StaticText(self,  label='This will overwrite you pigrows settings, continue?', pos=(20, 25))
+        wx.StaticText(self,  label='upload with file name;', pos=(10, 80))
+        self.config_name_tc = wx.TextCtrl(self, pos=(25, 120), size=(450, 25))
+        settings_file_name = local_cam_settings_file.split("/")[-1]
+        self.config_name_tc.SetValue(settings_file_name)
+        wx.StaticText(self,  label='change if using for second camera', pos=(25, 155))
+
+        okButton = wx.Button(self, label='Ok', pos=(200, 200))
+        closeButton = wx.Button(self, label='Close', pos=(300, 200))
+        okButton.Bind(wx.EVT_BUTTON, self.do_upload)
+        closeButton.Bind(wx.EVT_BUTTON, self.OnClose)
+    def do_upload(self, e):
+        self.settings_file_name = self.config_name_tc.GetValue()
+        self.Destroy()
+    def OnClose(self, e):
+        self.settings_file_name = None
+        self.Destroy()
+
+
 def get_box_name(target_ip, target_user, target_pass):
     boxname = None
     found_login = False
@@ -104,7 +133,7 @@ def upload_cam_config(target_ip, target_user, target_pass, cam_config_loc_on_pi,
             ssh_tran.connect(username=target_user, password=target_pass)
             sftp = paramiko.SFTPClient.from_transport(ssh_tran)
             sftp.put(localpath, cam_config_loc_on_pi)
-            print("--config file updated on pi--")
+            print("--config file updated on pi--" + cam_config_loc_on_pi)
             sftp.close()
             ssh_tran.close()
         except Exception as e:
@@ -300,16 +329,20 @@ class config_cam(wx.Frame):
         wx.StaticText(self,  label='Password', pos=(10, 95))
         self.tb_pass = wx.TextCtrl(self, pos=(125, 95), size=(150, 25))
         self.tb_pass.SetValue("raspberry")
-        self.link_with_pi_btn = wx.Button(self, label='Link to Pi', pos=(50, 125), size=(175, 30))
+        self.link_with_pi_btn = wx.Button(self, label='Link to Pi', pos=(10, 125), size=(175, 30))
         self.link_with_pi_btn.Bind(wx.EVT_BUTTON, self.link_with_pi_btn_click)
         self.link_status_text = wx.StaticText(self,  label='-- no link --', pos=(25, 160))
+     ## Upload to pi button
+        self.save_to_pi_btn = wx.Button(self, label='upload', pos=(190,125))
+        self.save_to_pi_btn.Disable()
+        self.save_to_pi_btn.Bind(wx.EVT_BUTTON, self.save_to_pi_click)
      ## image holder
         self.main_image = wx.StaticBitmap(self, bitmap=wx.EmptyBitmap(1000, 1000), pos=(280, 10))
      ## setup details.
         wx.StaticText(self,  label='Cam;', pos=(10, 190))
         cam_select = ['/dev/video0']
-        self.cam_select_cb = wx.ComboBox(self, choices = cam_select, pos=(60,185), size=(140, 30))
-        self.list_cams_btn = wx.Button(self, label='find', pos=(200, 185))
+        self.cam_select_cb = wx.ComboBox(self, choices = cam_select, pos=(55,185), size=(140, 30))
+        self.list_cams_btn = wx.Button(self, label='find', pos=(195, 185))
         self.list_cams_btn.Bind(wx.EVT_BUTTON, self.list_cams_click)
         wx.StaticText(self,  label='Brightness;', pos=(10, 220))
         self.tb_b = wx.TextCtrl(self, pos=(120, 220), size=(75, 25))
@@ -376,9 +409,7 @@ class config_cam(wx.Frame):
         self.range_every.SetValue("20")
         self.range_start.SetValue("1")
         self.range_end.SetValue("255")
-     ## Upload to pi button
-        self.save_to_pi_btn = wx.Button(self, label='Save Settings to Pigrow', pos=(25,0))
-        self.save_to_pi_btn.Bind(wx.EVT_BUTTON, self.save_to_pi_click)
+
 
 
      ## Important wx stuff
@@ -514,9 +545,7 @@ class config_cam(wx.Frame):
                 self.cam_combo.	SetValue('fswebcam')
             self.cmds_string_tb.SetValue(fsw_extra)
             self.cam_combo_go(None)
-
-
-            #self.tb_extra.SetValue(str(additonal_commands))
+            self.save_to_pi_btn.Enable()
         else:
             print ("Failed to connect")
 
@@ -534,13 +563,22 @@ class config_cam(wx.Frame):
         config_text += "cam_num=" + str(self.cam_select_cb.GetValue()) + "\n"
         config_text += "cam_opt=" + str(self.cam_combo.GetValue()) + "\n"
         config_text += "fsw_extra=" + str(self.cmds_string_tb.GetValue()) + "\n"
-        config_text += "uvc_extra=" + str("LOL NOT YET IMPLIMENTED")
-        with open(local_cam_settings_file, "w") as f:
-            f.write(config_text)
-        print("Local Settings file updated")
-        name_of_file = local_cam_settings_file.split("/")
-        cam_config_loc_on_pi = '/home/pi/Pigrow/config/' + name_of_file[-1]
-        upload_cam_config(target_ip, target_user, target_pass, cam_config_loc_on_pi, local_cam_settings_file)
+        config_text += "uvc_extra=" + str("")
+
+        chgdep = upload_dialog(None,
+            title='upload settings to pi')
+        chgdep.ShowModal()
+        name_of_file = chgdep.settings_file_name
+        chgdep.Destroy()
+        print name_of_file
+        if not name_of_file == None:
+            with open(local_cam_settings_file, "w") as f:
+                f.write(config_text)
+            print("Local Settings file updated")
+            cam_config_loc_on_pi = '/home/pi/Pigrow/config/' + name_of_file
+            upload_cam_config(target_ip, target_user, target_pass, cam_config_loc_on_pi, local_cam_settings_file)
+        else:
+            print("User cancelled that...")
 
 
     def capture_cam_image(self, e):
