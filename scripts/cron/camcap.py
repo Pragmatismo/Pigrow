@@ -143,7 +143,7 @@ def take_with_fswebcam(s_val=None, c_val=None, g_val=None, b_val=None, x_dim=160
         cam_cmd += " --set Saturation=" + str(s_val)
     if not g_val == '':
         cam_cmd += " --set gain=" + str(g_val)
-    cam_cmd += " " + fsw_extra
+    cam_cmd += " " + fsw_extra.strip()
     cam_cmd += " --jpeg 90" #jpeg quality
     # cam_cmd += ' --info "HELLO INFO TEXT"'
     cam_cmd += " " + caps_path + filename  #output filename'
