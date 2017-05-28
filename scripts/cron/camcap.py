@@ -114,7 +114,7 @@ def take_with_uvccapture(s_val="20", c_val="20", g_val="20", b_val="20", x_dim=1
     cmd += " -G" + g_val #gain
     cmd += " -B" + b_val #brightness
     cmd += " -x" + str(x_dim) + " -y" + str(y_dim)
-    cmd += " " + uvc_extra
+    cmd += " " + uvc_extra.strip()
     cmd += " -v -t0" #-v verbose, -t0 take single shot
     cmd += " -o" + caps_path + filename
     print("----")
