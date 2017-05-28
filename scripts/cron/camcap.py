@@ -13,7 +13,7 @@ for argu in sys.argv[1:]:
         if thearg == 'settings_file' or thearg == 'set':
             settings_file = theval
         elif thearg == 'caps_path' or thearg == 'caps':
-            caps_path == theval
+            caps_path = theval
     except:
         print("Didn't undertand " + str(argu))
 
