@@ -15,13 +15,13 @@ for argu in sys.argv[1:]:
             print("     choosing which settings file to use")
             print(" caps=<folder path>")
             print("     choose where to save the captured image")
+            exit()
         thearg = str(argu).split('=')[0]
         theval = str(argu).split('=')[1]
         if thearg == 'settings_file' or thearg == 'set':
             settings_file = theval
         elif thearg == 'caps_path' or thearg == 'caps':
             caps_path = theval
-            exit()
     except:
         print("Didn't undertand " + str(argu))
 
