@@ -14,7 +14,7 @@ for argu in sys.argv[1:]:
         print("     choosing which settings file to use")
         print(" caps=<folder path>")
         print("     choose where to save the captured image")
-        sys.exit()
+        sys.exit(0)
     try:
         thearg = str(argu).split('=')[0]
         theval = str(argu).split('=')[1]
