@@ -8,19 +8,19 @@ caps_path = None
 
 for argu in sys.argv[1:]:
     try:
-        thearg = str(argu).split('=')[0]
-        theval = str(argu).split('=')[1]
-        if thearg == 'settings_file' or thearg == 'set':
-            settings_file = theval
-        elif thearg == 'caps_path' or thearg == 'caps':
-            caps_path = theval
-        elif thearg == '-h' or thearg == '--help':
+        if argu == '-h' or argu == '--help':
             print("Pigrow Image Capture Script")
             print("")
             print(" set=<filepath>")
             print("     choosing which settings file to use")
             print(" caps=<folder path>")
             print("     choose where to save the captured image")
+        thearg = str(argu).split('=')[0]
+        theval = str(argu).split('=')[1]
+        if thearg == 'settings_file' or thearg == 'set':
+            settings_file = theval
+        elif thearg == 'caps_path' or thearg == 'caps':
+            caps_path = theval
             exit()
     except:
         print("Didn't undertand " + str(argu))
