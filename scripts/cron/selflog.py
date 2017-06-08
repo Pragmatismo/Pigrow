@@ -20,7 +20,17 @@ path = loc_dic["path"]
 #      Diskfull (total, space remaining, percentage)
 #
 #
-#
+for argu in sys.argv:
+    if argu == '-h' or argu == '--help':
+        print(" Pigrow Raspberry Pi Self-Logger")
+        print(" ")
+        print("Creates a log of several metrics that can be used to")
+        print("monitor the pigrows health.")
+        print("")
+        print("The log created can be graphed with ")
+        print("    Pigrow/scripts/visualistion/selflog_graph.py")
+        print("")
+        print(" (minor update to add args coming soon)")
 
 def gather_data(path="./"):
     print("Interorgating pi about it's status...")
@@ -99,28 +109,6 @@ def check_script_running(script):
             #print script_test_path
             #print script_test_status
             return {'num_running':'1','script_status':script_test_status,'script_path':script_test_path}
-
-
-
-
-#pids = [pid for pid in os.listdir('/proc') if pid.isdigit()]
-#for pid in pids:
-#    try:
-#        print open(os.path.join('/proc', pid, 'cmdline'), 'rb').read()
-#    except IOError: # proc has already terminated
-#        continue
-
-
-
-
-#def get_pid(name):
-#    return map(int,check_output(["pidof",name]).split())
-
-#try:
-#    pid = get_pid('doggo')
-#    print pid
-#except:
-#    print("No program of that name running.")
 
 if __name__ == '__main__':
     scripts_to_check = ['reddit_settings_ear_2.py','checkDHT.py']# 'chromium-browse'] #this doesn't work :( works for 'atom' and 'bash' needs fix

@@ -16,6 +16,27 @@ except:
 
 loc_pi_list = "/home/"+user_name+path+"config/pi_list.txt"
 
+for argu in sys.argv[1:]:
+    if argu == '-h' or argu == '--help':
+        print(" script to log other pigrows health ")
+        print)"  requires a config file with a list of pigrows in")
+        print("  each line should look like")
+        print("hostname=pi@192.168.1.6>username=pi>password=raspberry")
+        print("")
+        print("  pilist=<folderpath>")
+        print("      list of pi's to look at")
+        print("")
+        print(" -- this script is due an update, don't expect perfection --")
+        sys.exit(0)
+    try:
+        thearg = str(argu).split('=')[0]
+    except:
+        thearg = str(argu)
+    if thearg == 'pilist':
+        loc_pi_list = str(argu).split('=')[1]
+    elif thearg == 'l' or thearg == 'log':
+        logpath = str(argu).split('=')[1]
+
 pi_list = []
 with open(loc_pi_list, "r") as f:
     pi_settings = f.read()

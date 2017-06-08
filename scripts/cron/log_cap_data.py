@@ -8,6 +8,16 @@ cappath = '/home/pi/Pigrow/caps/'
 logpath = '/home/pi/Pigrow/logs/caps_log.txt'
 
 for argu in sys.argv[1:]:
+    if argu == '-h' or argu == '--help':
+        print("Script for logging the pixel values of the most ")
+        print)"recent image in a folder, for best use call directly")
+        print("adter taking an image. Use an sh script to do this.")
+        print("")
+        print(" caps=<folderpath>")
+        print("     folder to find most recent image from")
+        print(" log=<filepath>")
+        print("    file to append data into")
+        sys.exit(0)
     try:
         thearg = str(argu).split('=')[0]
     except:

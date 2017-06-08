@@ -108,6 +108,9 @@ for argu in sys.argv:
     elif argu == "-h" or argu == "--help":
         print("Pigrow image text addition tool")
         print("  to chose camera to use set cam=uvc,pi_py, or pi_ras")
+        print("  -- -- --")
+        print("this script is due a rework, ignore it for now!")
+        sys.exit(0)
 
 if cam_choice == 'uvc':
     import camcap

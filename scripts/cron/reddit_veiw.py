@@ -16,6 +16,17 @@ graph_basewidth = 400
 
 #print(" if you're me -    python update_reddit.py loc_locs=/home/pragmo/pigitgrow/Pigrow/config/dirlocs.txt ")
 for argu in sys.argv:
+    if argu == '-h' or argu == '--help':
+        print(" Reddit Live View Update script")
+        print(" ")
+        print("This updates the reddit wiki with the most recent caps image, graphs")
+        print("and any other images in the graphs folder")
+        print("")
+        print("this script is best run at the end of a sh file which first")
+        print("runs each graph making program in turn")
+        print("")
+        print(" this script is due a minor update, command line arguments coming soon") 
+
     thearg = str(argu).split('=')[0]
     if thearg == 'loc_locs':
         loc_locs = str(argu).split('=')[1]

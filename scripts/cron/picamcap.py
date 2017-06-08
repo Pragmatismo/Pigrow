@@ -7,6 +7,15 @@ except:
     print("Picamera is not installed, is this even a raspberry pi?!")
     exit()
 
+for argu in sys.argv[1:]:
+    if argu == '-h' or argu == '--help':
+        print(" picam capture script")
+        print)" ")
+        print(" this will be rewritten soon - you might need to manually edit the python code to make it do what you want")
+        print("")
+        print(" -- this script is due an update, don't expect perfection --")
+        sys.exit(0)
+
 def load_picam_set(setloc="/home/pi/Pigrow/config/picam_settings.txt"):
     picam_dic = {}
     with open(setloc, "r") as f:
