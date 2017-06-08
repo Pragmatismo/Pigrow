@@ -14,6 +14,14 @@ for argu in sys.argv[1:]:
             settings_file = theval
         elif thearg == 'caps_path' or thearg == 'caps':
             caps_path = theval
+        elif thearg == '-h' or thearg == '--help':
+            print("Pigrow Image Capture Script")
+            print("")
+            print(" set=<filepath>")
+            print("     choosing which settings file to use")
+            print(" caps=<folder path>")
+            print("     choose where to save the captured image")
+            exit()
     except:
         print("Didn't undertand " + str(argu))
 
