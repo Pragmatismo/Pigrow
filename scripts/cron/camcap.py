@@ -7,15 +7,15 @@ settings_file = None
 caps_path = None
 
 for argu in sys.argv[1:]:
+    if argu == '-h' or argu == '--help':
+        print("Pigrow Image Capture Script")
+        print("")
+        print(" set=<filepath>")
+        print("     choosing which settings file to use")
+        print(" caps=<folder path>")
+        print("     choose where to save the captured image")
+        sys.exit()
     try:
-        if argu == '-h' or argu == '--help':
-            print("Pigrow Image Capture Script")
-            print("")
-            print(" set=<filepath>")
-            print("     choosing which settings file to use")
-            print(" caps=<folder path>")
-            print("     choose where to save the captured image")
-            sys.exit()
         thearg = str(argu).split('=')[0]
         theval = str(argu).split('=')[1]
         if thearg == 'settings_file' or thearg == 'set':
