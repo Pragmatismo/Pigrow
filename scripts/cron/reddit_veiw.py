@@ -25,7 +25,8 @@ for argu in sys.argv:
         print("this script is best run at the end of a sh file which first")
         print("runs each graph making program in turn")
         print("")
-        print(" this script is due a minor update, command line arguments coming soon") 
+        print(" this script is due a minor update, command line arguments coming soon")
+        sys.exit(9)
 
     thearg = str(argu).split('=')[0]
     if thearg == 'loc_locs':
