@@ -10,7 +10,7 @@ logpath = '/home/pi/Pigrow/logs/caps_log.txt'
 for argu in sys.argv[1:]:
     if argu == '-h' or argu == '--help':
         print("Script for logging the pixel values of the most ")
-        print)"recent image in a folder, for best use call directly")
+        print("recent image in a folder, for best use call directly")
         print("adter taking an image. Use an sh script to do this.")
         print("")
         print(" caps=<folderpath>")
