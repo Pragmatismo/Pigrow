@@ -200,10 +200,10 @@ def bind_realy(device):
             print("Setting " + device + " to use GPIO " + setting)
             print("")
             print(" Select Normal State;")
-            print("    type 0, L or low  --OR--   1, H, or high")
+            print("    type on  --OR-- off")
             print(" This relates to if current can flow through the relay when it's powered down ")
             print("  -- It's perfectly safe to get this wrong as long as you're using he right GPIO number --")
-            print("           --- if you've got it backwards turningi on will instead turn it off..  ---")
+            print("           --- if you've got it backwards turning on will instead turn it off..  ---")
             direction = raw_input("Input option;")
             if direction.lower() in ["0", "l", "low", "down", "off"]:
                 print("Direction set to LOW")
