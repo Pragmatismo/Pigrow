@@ -10,7 +10,7 @@ except:
 for argu in sys.argv[1:]:
     if argu == '-h' or argu == '--help':
         print(" picam capture script")
-        print)" ")
+        print(" ")
         print(" this will be rewritten soon - you might need to manually edit the python code to make it do what you want")
         print("")
         print(" -- this script is due an update, don't expect perfection --")

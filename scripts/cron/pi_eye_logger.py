@@ -19,7 +19,7 @@ loc_pi_list = "/home/"+user_name+path+"config/pi_list.txt"
 for argu in sys.argv[1:]:
     if argu == '-h' or argu == '--help':
         print(" script to log other pigrows health ")
-        print)"  requires a config file with a list of pigrows in")
+        print("  requires a config file with a list of pigrows in")
         print("  each line should look like")
         print("hostname=pi@192.168.1.6>username=pi>password=raspberry")
         print("")
