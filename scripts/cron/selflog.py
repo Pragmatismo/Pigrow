@@ -31,7 +31,7 @@ for argu in sys.argv:
         print("    Pigrow/scripts/visualistion/selflog_graph.py")
         print("")
         print(" (minor update to add args coming soon)")
-        sys.exit(9)
+        sys.exit(0)
 
 def gather_data(path="./"):
     print("Interorgating pi about it's status...")

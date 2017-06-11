@@ -26,7 +26,7 @@ for argu in sys.argv:
         print("runs each graph making program in turn")
         print("")
         print(" this script is due a minor update, command line arguments coming soon")
-        sys.exit(9)
+        sys.exit(0)
 
     thearg = str(argu).split('=')[0]
     if thearg == 'loc_locs':
