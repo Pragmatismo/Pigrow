@@ -1,5 +1,15 @@
 #!/usr/bin/python
 
+#
+#   WORK IN PROGRESS
+#
+#  Classes already created;
+#       cron_job_dialog()    -dialogue box for edit cron job
+#
+#
+#
+#
+
 print("")
 print(" THIS IS A WORK IN PROGRESS SCRIPT (ain't they all)")
 print("     At the moment it does nothing at all beside define some dialog boxes and pannels")
@@ -259,3 +269,124 @@ class cron_job_dialog(wx.Dialog):
         self.job_min = None
         self.job_hour = None
         self.Destroy()
+
+class pi_link_pnl(wx.Panel):
+    #
+    # Creates the pannel with the raspberry pi data in it
+    # and connects ssh to the pi when button is pressed
+    #
+    target_ip = ''
+    target_user = ''
+    target_pass = ''
+    def __init__( self, parent ):
+        wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, pos = wx.DefaultPosition, size = wx.Size( 300,300 ), style = wx.TAB_TRAVERSAL )
+        self.l_ip = wx.StaticText(self,  label='address', pos=(10, 20))
+        self.tb_ip = wx.TextCtrl(self, pos=(125, 25), size=(150, 25))
+        self.tb_ip.SetValue("192.168.1.")
+        self.l_user = wx.StaticText(self,  label='Username', pos=(10, 60))
+        self.tb_user = wx.TextCtrl(self, pos=(125, 60), size=(150, 25))
+        self.tb_user.SetValue("pi")
+        self.l_pass = wx.StaticText(self,  label='Password', pos=(10, 95))
+        self.tb_pass = wx.TextCtrl(self, pos=(125, 95), size=(150, 25))
+        self.tb_pass.SetValue("raspberry")
+        self.link_with_pi_btn = wx.Button(self, label='Link to Pi', pos=(10, 125), size=(175, 30))
+        self.link_with_pi_btn.Bind(wx.EVT_BUTTON, self.link_with_pi_btn_click)
+        self.link_status_text = wx.StaticText(self,  label='-- no link --', pos=(25, 160))
+     ## Upload to pi button
+        self.seek_for_pigrows_btn = wx.Button(self, label='Seek next', pos=(190,125))
+#        self.seek_for_pigrows_btn.Bind(wx.EVT_BUTTON, self.seek_for_pigrows_click)
+        self.seek_for_pigrows_btn.Disable()
+
+    def __del__(self):
+        pass
+    def link_with_pi_btn_click(self, e):
+        if self.link_with_pi_btn.GetLabel() == 'Disconnect':
+            print("breaking ssh connection")
+            ssh.close()
+            self.link_with_pi_btn.SetLabel('Link to Pi')
+            self.tb_ip.Enable()
+            self.tb_user.Enable()
+            self.tb_pass.Enable()
+        else:
+            #clear_temp_folder()
+            pi_link_pnl.target_ip = self.tb_ip.GetValue()
+            pi_link_pnl.target_user = self.tb_user.GetValue()
+            pi_link_pnl.target_pass = self.tb_pass.GetValue()
+            try:
+                ssh.connect(pi_link_pnl.target_ip, username=pi_link_pnl.target_user, password=pi_link_pnl.target_pass, timeout=3)
+                print("Connected to " + pi_link_pnl.target_ip)
+                log_on_test = True
+            except Exception as e:
+                log_on_test = False
+                print("Failed to log on due to; " + str(e))
+            if log_on_test == True:
+                pi_link_pnl.boxname = self.get_box_name()
+            else:
+                pi_link_pnl.boxname = None
+            if not pi_link_pnl.boxname == None:
+                self.link_status_text.SetLabel("linked with - " + str(pi_link_pnl.boxname))
+                self.link_with_pi_btn.SetLabel('Disconnect')
+                self.tb_ip.Disable()
+                self.tb_user.Disable()
+                self.tb_pass.Disable()
+            elif log_on_test == False:
+                self.link_status_text.SetLabel("unable to connect")
+                ssh.close()
+            if log_on_test == True and pi_link_pnl.boxname == None:
+                self.link_status_text.SetLabel("Found raspberry pi, but not pigrow")
+                self.link_with_pi_btn.SetLabel('Disconnect')
+                self.tb_ip.Disable()
+                self.tb_user.Disable()
+                self.tb_pass.Disable()
+
+
+    def get_box_name(self):
+        boxname = None
+        try:
+            stdin, stdout, stderr = ssh.exec_command("cat /home/pi/Pigrow/config/pigrow_config.txt | grep box_name")
+            boxname = stdout.read().strip().split("=")[1]
+            print "Pigrow Found; " + boxname
+        except Exception as e:
+            print("dang - can't connect to pigrow! " + str(e))
+        if boxname == '':
+            boxname = None
+        return boxname
+
+#
+#
+#  The main bit of the program
+#           EXCITING HU?!!!?
+#
+
+class MainFrame ( wx.Frame ):
+    def __init__( self, parent ):
+        wx.Frame.__init__ ( self, parent, id = wx.ID_ANY, title = wx.EmptyString, pos = wx.DefaultPosition, size = wx.Size( 1200,800 ), style = wx.DEFAULT_FRAME_STYLE|wx.TAB_TRAVERSAL )
+        self.SetSizeHintsSz( wx.DefaultSize, wx.DefaultSize )
+        bSizer1 = wx.BoxSizer( wx.VERTICAL )
+        self.SetSizer( bSizer1 )
+        self.Layout()
+
+        self.pi_link_pannel = pi_link_pnl(self)
+        self.Centre( wx.BOTH )
+    def __del__( self ):
+        pass
+
+class MainApp(MainFrame):
+    def __init__(self, parent):
+        MainFrame.__init__(self, parent)
+        self.pi_link_pannel = pi_link_pnl(self)
+    #    self.panelTwo = Panel2(self)
+    #    self.cron_info_panel = cron_info_panel(self)
+    #    self.cron_show_panel = cron_show_panel(self)
+    #    self.panelTwo.Hide()
+    ##    self.cron_info_panel.Hide()
+    #    self.cron_show_panel.Hide()
+
+def main():
+    app = wx.App()
+    window = MainApp(None)
+    window.Show(True)
+    app.MainLoop()
+
+if __name__ == '__main__':
+    main()
