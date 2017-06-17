@@ -280,6 +280,7 @@ class pi_link_pnl(wx.Panel):
     target_pass = ''
     def __init__( self, parent ):
         wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, pos = wx.DefaultPosition, size = wx.Size( 300,300 ), style = wx.TAB_TRAVERSAL )
+     ## the three boxes for pi's connection details, IP, Username and Password
         self.l_ip = wx.StaticText(self,  label='address', pos=(10, 20))
         self.tb_ip = wx.TextCtrl(self, pos=(125, 25), size=(150, 25))
         self.tb_ip.SetValue("192.168.1.")
@@ -289,10 +290,11 @@ class pi_link_pnl(wx.Panel):
         self.l_pass = wx.StaticText(self,  label='Password', pos=(10, 95))
         self.tb_pass = wx.TextCtrl(self, pos=(125, 95), size=(150, 25))
         self.tb_pass.SetValue("raspberry")
+     ## link with pi button
         self.link_with_pi_btn = wx.Button(self, label='Link to Pi', pos=(10, 125), size=(175, 30))
         self.link_with_pi_btn.Bind(wx.EVT_BUTTON, self.link_with_pi_btn_click)
         self.link_status_text = wx.StaticText(self,  label='-- no link --', pos=(25, 160))
-     ## Upload to pi button
+     ## seek next pi button
         self.seek_for_pigrows_btn = wx.Button(self, label='Seek next', pos=(190,125))
 #        self.seek_for_pigrows_btn.Bind(wx.EVT_BUTTON, self.seek_for_pigrows_click)
         self.seek_for_pigrows_btn.Disable()
@@ -374,6 +376,7 @@ class MainFrame ( wx.Frame ):
 class MainApp(MainFrame):
     def __init__(self, parent):
         MainFrame.__init__(self, parent)
+        self.Bind(wx.EVT_CLOSE, self.OnClose)
         self.pi_link_pannel = pi_link_pnl(self)
     #    self.panelTwo = Panel2(self)
     #    self.cron_info_panel = cron_info_panel(self)
@@ -381,6 +384,11 @@ class MainApp(MainFrame):
     #    self.panelTwo.Hide()
     ##    self.cron_info_panel.Hide()
     #    self.cron_show_panel.Hide()
+    def OnClose(self, e):
+        print("Closing SSH connection")
+        ssh.close()
+        exit(0)
+
 
 def main():
     app = wx.App()
