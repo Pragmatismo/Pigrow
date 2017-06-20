@@ -3,8 +3,10 @@
 #
 #   WORK IN PROGRESS
 #
-#  Classes already created;
-#       cron_job_dialog()    -dialogue box for edit cron job
+# Classes already created;
+#    pi_link_pnl        - top-left connection box with ip, username, pass
+#    cron_list_pnl    - shows the 3 cron type lists on the right of the window  !!!NO DOUBLE CLICK FUNCTION YET
+#    cron_job_dialog    - dialogue box for edit cron job
 #
 #
 #
@@ -12,7 +14,8 @@
 
 print("")
 print(" THIS IS A WORK IN PROGRESS SCRIPT (ain't they all)")
-print("     At the moment it does nothing at all beside define some dialog boxes and pannels")
+print("     At the moment it does almost nothing at all ")
+print("     beside define some dialog boxes and pannels")
 print("  it's fuckin' sweet as tho, aye?")
 print("")
 
@@ -34,6 +37,101 @@ except:
     sys.exit(1)
 ssh = paramiko.SSHClient()
 ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+
+class cron_list_pnl(wx.Panel):
+    #
+    #  This displays the three different cron type lists on the big-pannel
+    #  double click to edit one of the jobs (not yet written)
+    #  ohter control buttons found on the cron control pannel
+    #
+    cron_index = 0  #this is used when counting the lines in cron
+                    #i can't really remember why it's here tho
+                    #rather than in the other loop
+                    #remove when read_cron is finished if unused
+
+    #none of these resize or anything at the moment
+    #consider putting into a sizer or autosizing with math
+    #--to screen size tho not to size of cronlist that'd be super messy...
+    class startup_cron_list(wx.ListCtrl):
+        def __init__(self, parent, id, pos=(5,10)):
+            wx.ListCtrl.__init__(self, parent, id, size=(900,200), style=wx.LC_REPORT, pos=pos)
+            self.InsertColumn(0, 'Line')
+            self.InsertColumn(1, 'Enabled')
+            self.InsertColumn(2, 'Task')
+            self.InsertColumn(3, 'Active')
+            self.InsertColumn(4, 'extra args')
+            self.InsertColumn(5, 'comment')
+            self.SetColumnWidth(0, 100)
+            self.SetColumnWidth(1, 75)
+            self.SetColumnWidth(2, 650)
+            self.SetColumnWidth(3, 75)
+            self.SetColumnWidth(4, 500)
+            self.SetColumnWidth(5, -1)
+
+    class repeating_cron_list(wx.ListCtrl):
+        def __init__(self, parent, id, pos=(5,245)):
+            wx.ListCtrl.__init__(self, parent, id, size=(900,200), style=wx.LC_REPORT, pos=pos)
+            self.InsertColumn(0, 'Line')
+            self.InsertColumn(1, 'Enabled')
+            self.InsertColumn(2, 'every')
+            self.InsertColumn(3, 'Task')
+            self.InsertColumn(4, 'extra args')
+            self.InsertColumn(5, 'comment')
+            self.SetColumnWidth(0, 75)
+            self.SetColumnWidth(1, 75)
+            self.SetColumnWidth(2, 100)
+            self.SetColumnWidth(3, 500)
+            self.SetColumnWidth(4, 500)
+            self.SetColumnWidth(5, -1)
+
+    class other_cron_list(wx.ListCtrl):
+        def __init__(self, parent, id, pos=(5,530)):
+            wx.ListCtrl.__init__(self, parent, id, size=(900,200), style=wx.LC_REPORT, pos=pos)
+            self.InsertColumn(0, 'Line')
+            self.InsertColumn(1, 'Enabled')
+            self.InsertColumn(2, 'Time')
+            self.InsertColumn(3, 'Task')
+            self.InsertColumn(4, 'extra args')
+            self.InsertColumn(5, 'comment')
+            self.SetColumnWidth(0, 75)
+            self.SetColumnWidth(1, 75)
+            self.SetColumnWidth(2, 100)
+            self.SetColumnWidth(3, 500)
+            self.SetColumnWidth(4, 500)
+            self.SetColumnWidth(5, -1)
+
+    def __init__( self, parent ):
+        wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, pos = (280, 5), size = wx.Size( 910,800 ), style = wx.TAB_TRAVERSAL )
+        wx.StaticText(self,  label='Cron start up;', pos=(5, 10))
+        cron_list_pnl.startup_cron = self.startup_cron_list(self, 1, (5, 40))
+        cron_list_pnl.startup_cron.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.onDoubleClick)
+        wx.StaticText(self,  label='Repeating Jobs;', pos=(5,245))
+        cron_list_pnl.repeat_cron = self.repeating_cron_list(self, 1, (5, 280))
+        cron_list_pnl.repeat_cron.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.onDoubleClick)
+        wx.StaticText(self,  label='One time triggers;', pos=(5,500))
+        cron_list_pnl.timed_cron = self.other_cron_list(self, 1, (5, 530))
+        cron_list_pnl.repeat_cron.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.onDoubleClick)
+
+    # TESTING CODE WHILE SCRIPT WRITING IS IN PROGRESS
+        # cron_list_pnl.startup_cron.InsertStringItem(0, "TESTING PERSISTANCE")
+        self.SetBackgroundColour('sea green')  ###THIS IS JUST TO TEST SIZE REMOVE TO STOP THE UGLY
+
+    def onDoubleClick(self, e):
+        #
+        # This needs to call the dialogue box for editing cron jobs
+        # once edited they need to be put back in the list and the
+        # upload button highlighted to show changes need to be made
+        # also consider haulting the exit of the program if cron jobs or
+        # other changes have yet to be upload to the pi.
+
+        #this is just testing code to be removed when done
+        obj = self.GetSelectedItemCount()
+        print str(obj)
+        print e.GetIndex(), e.GetLabel()
+
+    def __del__( self ):
+        pass
+
 
 class cron_job_dialog(wx.Dialog):
     #Dialog box for creating or editing cron scripts
@@ -296,11 +394,20 @@ class pi_link_pnl(wx.Panel):
         self.link_status_text = wx.StaticText(self,  label='-- no link --', pos=(25, 160))
      ## seek next pi button
         self.seek_for_pigrows_btn = wx.Button(self, label='Seek next', pos=(190,125))
-#        self.seek_for_pigrows_btn.Bind(wx.EVT_BUTTON, self.seek_for_pigrows_click)
-        self.seek_for_pigrows_btn.Disable()
+        self.seek_for_pigrows_btn.Bind(wx.EVT_BUTTON, self.seek_for_pigrows_click)
 
     def __del__(self):
         pass
+    def seek_for_pigrows_click(self, e):
+        print("seeking for pigrows...")
+        pi_link_pnl.target_ip = self.tb_ip.GetValue()
+        pi_link_pnl.target_user = self.tb_user.GetValue()
+        pi_link_pnl.target_pass = self.tb_pass.GetValue()
+        if pi_link_pnl.target_ip.split(".")[3] == '':
+            pi_link_pnl.target_ip = pi_link_pnl.target_ip + '0'
+        self.tb_ip.SetValue(pi_link_pnl.target_ip)
+
+
     def link_with_pi_btn_click(self, e):
         if self.link_with_pi_btn.GetLabel() == 'Disconnect':
             print("breaking ssh connection")
@@ -309,6 +416,7 @@ class pi_link_pnl(wx.Panel):
             self.tb_ip.Enable()
             self.tb_user.Enable()
             self.tb_pass.Enable()
+            self.seek_for_pigrows_btn.Enable()
         else:
             #clear_temp_folder()
             pi_link_pnl.target_ip = self.tb_ip.GetValue()
@@ -331,6 +439,7 @@ class pi_link_pnl(wx.Panel):
                 self.tb_ip.Disable()
                 self.tb_user.Disable()
                 self.tb_pass.Disable()
+                self.seek_for_pigrows_btn.Disable()
             elif log_on_test == False:
                 self.link_status_text.SetLabel("unable to connect")
                 ssh.close()
@@ -340,7 +449,7 @@ class pi_link_pnl(wx.Panel):
                 self.tb_ip.Disable()
                 self.tb_user.Disable()
                 self.tb_pass.Disable()
-
+                self.seek_for_pigrows_btn.Disable()
 
     def get_box_name(self):
         boxname = None
@@ -368,7 +477,7 @@ class MainFrame ( wx.Frame ):
         self.SetSizer( bSizer1 )
         self.Layout()
 
-        self.pi_link_pannel = pi_link_pnl(self)
+        self.pi_link_pnl = pi_link_pnl(self)
         self.Centre( wx.BOTH )
     def __del__( self ):
         pass
@@ -377,18 +486,19 @@ class MainApp(MainFrame):
     def __init__(self, parent):
         MainFrame.__init__(self, parent)
         self.Bind(wx.EVT_CLOSE, self.OnClose)
-        self.pi_link_pannel = pi_link_pnl(self)
-    #    self.panelTwo = Panel2(self)
-    #    self.cron_info_panel = cron_info_panel(self)
-    #    self.cron_show_panel = cron_show_panel(self)
-    #    self.panelTwo.Hide()
-    ##    self.cron_info_panel.Hide()
-    #    self.cron_show_panel.Hide()
+        self.pi_link_pnl = pi_link_pnl(self)
+        #
+        # switch this up so it shows based on tabs and shit, yo!
+        #
+        self.cron_list_pannel = cron_list_pnl(self)
+        # self.cron_list_pannel.Hide()
+
     def OnClose(self, e):
+        #Closes SSH connection even on quit
+        # Add 'ya sure?' question if there's unsaved data
         print("Closing SSH connection")
         ssh.close()
         exit(0)
-
 
 def main():
     app = wx.App()
