@@ -38,16 +38,192 @@ except:
 ssh = paramiko.SSHClient()
 ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
+class cron_info_pnl(wx.Panel):
+    def __init__( self, parent ):
+        wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, pos = (0, 230), size = wx.Size( 275,400 ), style = wx.TAB_TRAVERSAL )
+        wx.StaticText(self,  label='Cron Config Menu', pos=(25, 10))
+        self.read_cron_btn = wx.Button(self, label='Read Crontab', pos=(10, 40), size=(175, 30))
+        self.read_cron_btn.Bind(wx.EVT_BUTTON, self.read_cron_click)
+        self.add_cron_btn = wx.Button(self, label='Add cron job', pos=(10, 80), size=(175, 30))
+        self.add_cron_btn.Bind(wx.EVT_BUTTON, self.add_cron_click)
+        self.SetBackgroundColour('sea green') #TESTING ONLY REMOVE WHEN SIZING IS DONE AND ALL THAT BUSINESS
+
+    def read_cron_click(self, e):
+        #reads pi's crontab then puts jobs in correct table
+        try:
+            stdin, stdout, stderr = ssh.exec_command("crontab -l")
+            cron_text = stdout.read().split('\n')
+        except Exception as e:
+            print("oh - that didn't work! " + str(e))
+        #select instance of list to use
+        startup_list_instance = cron_list_pnl.startup_cron
+        repeat_list_instance = cron_list_pnl.repeat_cron
+        onetime_list_instance = cron_list_pnl.timed_cron
+        #clear lists of prior data
+        startup_list_instance.DeleteAllItems()
+        repeat_list_instance.DeleteAllItems()
+        onetime_list_instance.DeleteAllItems()
+        #sort cron info into lists
+        line_number = 0
+
+        for cron_line in cron_text:
+            line_number = line_number + 1
+            real_job = True
+            if len(cron_line) > 5:
+                cron_line.strip()
+                #determine if enabled or disabled with hash
+                if cron_line[0] == '#':
+                    job_enabled = False
+                    cron_line = cron_line[1:].strip(' ')
+                else:
+                    job_enabled = True
+                # sort for job type, split into timing string and cmd sting
+                if cron_line.find('@reboot') > -1:
+                    cron_jobtype = 'reboot'
+                    timing_string = '@reboot'
+                    cmd_string = cron_line[8:]
+                else:
+                    split_cron = cron_line.split(' ')
+                    timing_string = ''
+                    for star in split_cron[0:5]:
+                        if not star.find('*') > -1 and not star.isdigit():
+                            real_job = False
+                        timing_string += star + ' '
+                    cmd_string = ''
+
+                    for cmd in split_cron[5:]:
+                        cmd_string += cmd + ' '
+                    if timing_string.find('/') > -1:
+                        cron_jobtype = 'repeating'
+                    else:
+                        cron_jobtype = 'onetime'
+                # split cmd_string into cmd_string and comment
+                cron_comment_pos = cmd_string.find('#')
+                if cron_comment_pos > -1:
+                    cron_comment = cmd_string[cron_comment_pos:].strip(' ')
+                    cmd_string = cmd_string[:cron_comment_pos].strip(' ')
+                else:
+                    cron_comment = ''
+                # split cmd_string into task and extra args
+                cron_task = cmd_string.split(' ')[0]
+                cron_extra_args = ''
+                for arg in cmd_string.split(' ')[1:]:
+                    cron_extra_args += arg + ' '
+
+                if real_job == True and not cmd_string == '':
+                    print job_enabled, timing_string, cron_jobtype, cron_task, cron_extra_args, cron_comment
+                    if cron_jobtype == 'reboot':
+                        self.add_to_startup_list(line_number, job_enabled, cron_task, cron_extra_args, cron_comment)
+                    elif cron_jobtype == 'onetime':
+                        self.add_to_onetime_list(line_number, job_enabled, timing_string, cron_task, cron_extra_args, cron_comment)
+                    elif cron_jobtype == 'repeating':
+                        self.add_to_repeat_list(line_number, job_enabled, timing_string, cron_task, cron_extra_args, cron_comment)
+
+    def test_if_script_running(self, script):
+        stdin, stdout, stderr = ssh.exec_command("pidof -x " + str(script))
+        script_text = stdout.read().strip()
+        #error_text = stderr.read().strip()
+        if script_text == '':
+            return False
+        else:
+            #print 'pid of = ' + str(script_text)
+            return True
+
+    def add_to_startup_list(self, line_number, job_enabled, cron_task, cron_extra_args='', cron_comment=''):
+        is_running = self.test_if_script_running(cron_task)
+        cron_list_pnl.startup_cron.InsertStringItem(0, str(line_number))
+        cron_list_pnl.startup_cron.SetStringItem(0, 1, str(job_enabled))
+        cron_list_pnl.startup_cron.SetStringItem(0, 2, str(is_running))   #should test if script it currently running on pi
+        cron_list_pnl.startup_cron.SetStringItem(0, 3, cron_task)
+        cron_list_pnl.startup_cron.SetStringItem(0, 4, cron_extra_args)
+        cron_list_pnl.startup_cron.SetStringItem(0, 5, cron_comment)
+
+    def add_to_repeat_list(self, line_number, job_enabled, timing_string, cron_task, cron_extra_args='', cron_comment=''):
+        cron_list_pnl.repeat_cron.InsertStringItem(0, str(line_number))
+        cron_list_pnl.repeat_cron.SetStringItem(0, 1, str(job_enabled))
+        cron_list_pnl.repeat_cron.SetStringItem(0, 2, timing_string)   #should test if script it currently running on pi
+        cron_list_pnl.repeat_cron.SetStringItem(0, 3, cron_task)
+        cron_list_pnl.repeat_cron.SetStringItem(0, 4, cron_extra_args)
+        cron_list_pnl.repeat_cron.SetStringItem(0, 5, cron_comment)
+
+    def add_to_onetime_list(self, line_number, job_enabled, timing_string, cron_task, cron_extra_args='', cron_comment=''):
+        cron_list_pnl.timed_cron.InsertStringItem(0, str(line_number))
+        cron_list_pnl.timed_cron.SetStringItem(0, 1, str(job_enabled))
+        cron_list_pnl.timed_cron.SetStringItem(0, 2, timing_string)   #should test if script it currently running on pi
+        cron_list_pnl.timed_cron.SetStringItem(0, 3, cron_task)
+        cron_list_pnl.timed_cron.SetStringItem(0, 4, cron_extra_args)
+        cron_list_pnl.timed_cron.SetStringItem(0, 5, cron_comment)
+
+
+    def add_cron_click(self, e):
+        #define blank fields and defaults for dialogue box to read
+        cron_info_pnl.cron_path_toedit = '/home/pi/Pigrow/scripts/cron/'
+        cron_info_pnl.cron_task_toedit = 'input cron task here'
+        cron_info_pnl.cron_args_toedit = ''
+        cron_info_pnl.cron_comment_toedit = ''
+        cron_info_pnl.cron_type_toedit = 'repeating'
+        cron_info_pnl.cron_everystr_toedit = 'min'
+        cron_info_pnl.cron_everynum_toedit = '5'
+        cron_info_pnl.cron_min_toedit = '30'
+        cron_info_pnl.cron_hour_toedit = '8'
+        cron_info_pnl.cron_enabled_toedit = True
+        #make dialogue box
+        cron_dbox = cron_job_dialog(None, title='Cron Job Editor')
+        cron_dbox.ShowModal()
+        #catch any changes made if ok was pressed, if cancel all == None
+        job_type = cron_dbox.job_type
+        job_path = cron_dbox.job_path
+        job_script = cron_dbox.job_script
+        job_args = cron_dbox.job_args
+        job_comment = cron_dbox.job_comment
+        job_enabled = cron_dbox.job_enabled
+        job_repeat = cron_dbox.job_repeat
+        job_repnum = cron_dbox.job_repnum
+        job_min = cron_dbox.job_min
+        job_hour = cron_dbox.job_hour
+        #sort the job into the correct table
+        startup_list_instance = cron_list_pnl.startup_cron
+        repeat_list_instance = cron_list_pnl.repeat_cron
+        onetime_list_instance = cron_list_pnl.timed_cron
+        if not job_script == None:
+            cron_list_pnl.cron_index += 1
+            job_line = "line " + str(cron_list_pnl.cron_index)
+            if job_type == 'repeating':
+                repeat_list_instance.InsertStringItem(0, job_line)    #line num
+                repeat_list_instance.SetStringItem(0, 1, str(job_enabled)) #enabled
+                if job_repeat == 'min':
+                    time_string = '*/' + str(job_repnum) + " * * * *"
+                elif job_repeat == 'hour':
+                    time_string = '* */' + str(job_repnum) + " * * *"
+                elif job_repeat == 'day': #day of month i.e. 3 is everu 3rd of every month not every 3rd day? need to test!
+                    time_string = '* * */' + str(job_repnum) + " * *"
+                elif job_repeat == 'month': #month of year, i.e. 2 is every feb not every 2 months i think?
+                    time_string = '* * * */' + str(job_repnum) + " *"
+                repeat_list_instance.SetStringItem(0, 2, time_string) #every
+                repeat_list_instance.SetStringItem(0, 3, job_path) #task
+                repeat_list_instance.SetStringItem(0, 4, job_args) #args
+                repeat_list_instance.SetStringItem(0, 5, job_comment) #comment
+                print("Repeating job")
+            elif job_type == 'one time':
+                onetime_list_instance.InsertStringItem(0, job_line)    #line num
+                onetime_list_instance.SetStringItem(0, 1, job_enabled) #enabled
+                onetime_list_instance.SetStringItem(0, 2, str(str(job_min) + str(job_hour))) #time
+                onetime_list_instance.SetStringItem(0, 3, job_path) #task
+                onetime_list_instance.SetStringItem(0, 4, job_args) #args
+                onetime_list_instance.SetStringItem(0, 5, job_comment) #comment
+                print("one time job")
+            elif job_type == 'startup':
+                print("startup job")
+
+            print job_path, job_script, job_args, job_comment, job_type, job_min, job_hour, job_repeat, job_repnum, job_enabled
+            #THIS IS WHERE IS NEEDS TO ADD IT INTO THE CORRECT cron_list_pnl table
+
 class cron_list_pnl(wx.Panel):
     #
     #  This displays the three different cron type lists on the big-pannel
     #  double click to edit one of the jobs (not yet written)
     #  ohter control buttons found on the cron control pannel
     #
-    cron_index = 0  #this is used when counting the lines in cron
-                    #i can't really remember why it's here tho
-                    #rather than in the other loop
-                    #remove when read_cron is finished if unused
 
     #none of these resize or anything at the moment
     #consider putting into a sizer or autosizing with math
@@ -57,14 +233,14 @@ class cron_list_pnl(wx.Panel):
             wx.ListCtrl.__init__(self, parent, id, size=(900,200), style=wx.LC_REPORT, pos=pos)
             self.InsertColumn(0, 'Line')
             self.InsertColumn(1, 'Enabled')
-            self.InsertColumn(2, 'Task')
-            self.InsertColumn(3, 'Active')
+            self.InsertColumn(2, 'Active')
+            self.InsertColumn(3, 'Task')
             self.InsertColumn(4, 'extra args')
             self.InsertColumn(5, 'comment')
             self.SetColumnWidth(0, 100)
             self.SetColumnWidth(1, 75)
-            self.SetColumnWidth(2, 650)
-            self.SetColumnWidth(3, 75)
+            self.SetColumnWidth(2, 75)
+            self.SetColumnWidth(3, 650)
             self.SetColumnWidth(4, 500)
             self.SetColumnWidth(5, -1)
 
@@ -135,7 +311,7 @@ class cron_list_pnl(wx.Panel):
 
 class cron_job_dialog(wx.Dialog):
     #Dialog box for creating or editing cron scripts
-    #   takes ten variables from cron_info_panel
+    #   takes ten variables from cron_info_pnl
     #   which need to be set before it's called
     #   then it creates ten outgonig variables to
     #   be grabbed after it closes to be stored in
@@ -154,16 +330,16 @@ class cron_job_dialog(wx.Dialog):
         self.Bind(wx.EVT_CLOSE, self.OnClose)
     def InitUI(self):
         #these need to be set before the dialog is created
-        cron_path = cron_info_panel.cron_path_toedit
-        cron_task = cron_info_panel.cron_task_toedit
-        cron_args = cron_info_panel.cron_args_toedit
-        cron_comment = cron_info_panel.cron_comment_toedit
-        cron_type = cron_info_panel.cron_type_toedit
-        cron_everystr = cron_info_panel.cron_everystr_toedit
-        cron_everynum = cron_info_panel.cron_everynum_toedit
-        cron_enabled = cron_info_panel.cron_enabled_toedit
-        cron_min = cron_info_panel.cron_min_toedit
-        cron_hour = cron_info_panel.cron_hour_toedit
+        cron_path = cron_info_pnl.cron_path_toedit
+        cron_task = cron_info_pnl.cron_task_toedit
+        cron_args = cron_info_pnl.cron_args_toedit
+        cron_comment = cron_info_pnl.cron_comment_toedit
+        cron_type = cron_info_pnl.cron_type_toedit
+        cron_everystr = cron_info_pnl.cron_everystr_toedit
+        cron_everynum = cron_info_pnl.cron_everynum_toedit
+        cron_enabled = cron_info_pnl.cron_enabled_toedit
+        cron_min = cron_info_pnl.cron_min_toedit
+        cron_hour = cron_info_pnl.cron_hour_toedit
         #draw the pannel
          ## universal controls
         pnl = wx.Panel(self)
@@ -233,7 +409,7 @@ class cron_job_dialog(wx.Dialog):
         script_name = self.cron_script_cb.GetValue()
         script_to_ask = script_path + script_name
         try:
-            ssh.connect(target_ip, username=target_user, password=target_pass, timeout=3)
+        #    ssh.connect(target_ip, username=target_user, password=target_pass, timeout=3)
             print "Connected to " + target_ip
             print("running; cat " + str(script_to_ask))
             stdin, stdout, stderr = ssh.exec_command("cat " + str(script_to_ask))
@@ -246,31 +422,22 @@ class cron_job_dialog(wx.Dialog):
                 msg_text = script_to_ask + '\n\n'
                 msg_text += str(script_text)
             wx.MessageBox(msg_text, 'Info', wx.OK | wx.ICON_INFORMATION)
-            ssh.close()
         except Exception as e:
             print("oh bother, this seems wrong... " + str(e))
-        ssh.close()
 
     def get_cronable_scripts(self, script_path):
         #this opens an ssh channel and reads the files in the path provided
         #then creates a list of all .py and .sh scripts in that folder
-        target_ip = pi_link_pnl.target_ip
-        target_user = pi_link_pnl.target_user
-        target_pass = pi_link_pnl.target_pass
         cron_opts = []
         try:
-            ssh.connect(target_ip, username=target_user, password=target_pass, timeout=3)
-            print "Connected to " + target_ip
             print("reading " + str(script_path))
             stdin, stdout, stderr = ssh.exec_command("ls " + str(script_path))
             cron_dir_list = stdout.read().split('\n')
             for filename in cron_dir_list:
                 if filename.endswith("py") or filename.endswith('sh'):
                     cron_opts.append(filename)
-            ssh.close()
         except Exception as e:
             print("aggghhhhh cap'ain something ain't right! " + str(e))
-        ssh.close()
         return cron_opts
     def cron_path_combo_go(self, e):
         cron_path = self.cron_path_combo.GetValue()
@@ -314,21 +481,14 @@ class cron_job_dialog(wx.Dialog):
         #WARNING
         #       If the script doesn't support -h args then it'll just run it
         #       this can cause switches to throw, photos to be taken or etc
-        target_ip = pi_link_pnl.target_ip
-        target_user = pi_link_pnl.target_user
-        target_pass = pi_link_pnl.target_pass
         if script_to_ask.endswith('sh'):
             return ("Sorry, .sh files don't support help arguments, try viewing it instead.")
         try:
-            ssh.connect(target_ip, username=target_user, password=target_pass, timeout=3)
-            print "Connected to " + target_ip
             print("reading " + str(script_to_ask))
             stdin, stdout, stderr = ssh.exec_command(str(script_to_ask) + " -h")
             helpfile = stdout.read().strip()
-            ssh.close()
         except Exception as e:
             print("sheee-it something ain't right! " + str(e))
-        ssh.close()
         return helpfile
     def show_help(self, e):
         script_path = self.cron_path_combo.GetValue()
@@ -491,7 +651,8 @@ class MainApp(MainFrame):
         # switch this up so it shows based on tabs and shit, yo!
         #
         self.cron_list_pannel = cron_list_pnl(self)
-        # self.cron_list_pannel.Hide()
+        self.cron_info_pannel = cron_info_pnl(self)
+        #self.cron_list_pannel.Hide()
 
     def OnClose(self, e):
         #Closes SSH connection even on quit
@@ -499,6 +660,7 @@ class MainApp(MainFrame):
         print("Closing SSH connection")
         ssh.close()
         exit(0)
+
 
 def main():
     app = wx.App()
