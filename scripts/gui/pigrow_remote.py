@@ -5,7 +5,8 @@
 #
 # Classes already created;
 #    pi_link_pnl        - top-left connection box with ip, username, pass
-#    cron_list_pnl    - shows the 3 cron type lists on the right of the window  !!!NO DOUBLE CLICK FUNCTION YET
+#    cron_list_pnl      - shows the 3 cron type lists on the right of the window  !!!NO DOUBLE CLICK FUNCTION YET
+#    cron_info_pnl      - shows the buttons that control the cron_list_pnl
 #    cron_job_dialog    - dialogue box for edit cron job
 #
 #
@@ -96,7 +97,7 @@ class cron_info_pnl(wx.Panel):
                     if timing_string.find('/') > -1:
                         cron_jobtype = 'repeating'
                     else:
-                        cron_jobtype = 'onetime'
+                        cron_jobtype = 'one time'
                 # split cmd_string into cmd_string and comment
                 cron_comment_pos = cmd_string.find('#')
                 if cron_comment_pos > -1:
@@ -109,12 +110,11 @@ class cron_info_pnl(wx.Panel):
                 cron_extra_args = ''
                 for arg in cmd_string.split(' ')[1:]:
                     cron_extra_args += arg + ' '
-
                 if real_job == True and not cmd_string == '':
                     print job_enabled, timing_string, cron_jobtype, cron_task, cron_extra_args, cron_comment
                     if cron_jobtype == 'reboot':
                         self.add_to_startup_list(line_number, job_enabled, cron_task, cron_extra_args, cron_comment)
-                    elif cron_jobtype == 'onetime':
+                    elif cron_jobtype == 'one time':
                         self.add_to_onetime_list(line_number, job_enabled, timing_string, cron_task, cron_extra_args, cron_comment)
                     elif cron_jobtype == 'repeating':
                         self.add_to_repeat_list(line_number, job_enabled, timing_string, cron_task, cron_extra_args, cron_comment)
@@ -154,6 +154,21 @@ class cron_info_pnl(wx.Panel):
         cron_list_pnl.timed_cron.SetStringItem(0, 4, cron_extra_args)
         cron_list_pnl.timed_cron.SetStringItem(0, 5, cron_comment)
 
+    def make_repeating_cron_timestring(self, repeat, repeat_num):
+        if repeat == 'min':
+            cron_time_string = '*/' + str(repeat_num)
+        else:
+            cron_time_string = '*'
+        if repeat == 'hour':
+            cron_time_string += ' */' + str(repeat_num)
+        else:
+            cron_time_string += ' *'
+        if repeat == 'day':
+            cron_time_string += ' */' + str(repeat_num)
+        else:
+            cron_time_string += ' *'
+        cron_time_string += ' * *'
+        return cron_time_string
 
     def add_cron_click(self, e):
         #define blank fields and defaults for dialogue box to read
@@ -171,52 +186,30 @@ class cron_info_pnl(wx.Panel):
         cron_dbox = cron_job_dialog(None, title='Cron Job Editor')
         cron_dbox.ShowModal()
         #catch any changes made if ok was pressed, if cancel all == None
-        job_type = cron_dbox.job_type
+        cron_jobtype = cron_dbox.job_type
         job_path = cron_dbox.job_path
         job_script = cron_dbox.job_script
-        job_args = cron_dbox.job_args
-        job_comment = cron_dbox.job_comment
+        cron_task = job_path + job_script
+        cron_extra_args = cron_dbox.job_args
+        cron_comment = cron_dbox.job_comment
         job_enabled = cron_dbox.job_enabled
         job_repeat = cron_dbox.job_repeat
         job_repnum = cron_dbox.job_repnum
         job_min = cron_dbox.job_min
         job_hour = cron_dbox.job_hour
-        #sort the job into the correct table
-        startup_list_instance = cron_list_pnl.startup_cron
-        repeat_list_instance = cron_list_pnl.repeat_cron
-        onetime_list_instance = cron_list_pnl.timed_cron
-        if not job_script == None:
-            cron_list_pnl.cron_index += 1
-            job_line = "line " + str(cron_list_pnl.cron_index)
-            if job_type == 'repeating':
-                repeat_list_instance.InsertStringItem(0, job_line)    #line num
-                repeat_list_instance.SetStringItem(0, 1, str(job_enabled)) #enabled
-                if job_repeat == 'min':
-                    time_string = '*/' + str(job_repnum) + " * * * *"
-                elif job_repeat == 'hour':
-                    time_string = '* */' + str(job_repnum) + " * * *"
-                elif job_repeat == 'day': #day of month i.e. 3 is everu 3rd of every month not every 3rd day? need to test!
-                    time_string = '* * */' + str(job_repnum) + " * *"
-                elif job_repeat == 'month': #month of year, i.e. 2 is every feb not every 2 months i think?
-                    time_string = '* * * */' + str(job_repnum) + " *"
-                repeat_list_instance.SetStringItem(0, 2, time_string) #every
-                repeat_list_instance.SetStringItem(0, 3, job_path) #task
-                repeat_list_instance.SetStringItem(0, 4, job_args) #args
-                repeat_list_instance.SetStringItem(0, 5, job_comment) #comment
-                print("Repeating job")
-            elif job_type == 'one time':
-                onetime_list_instance.InsertStringItem(0, job_line)    #line num
-                onetime_list_instance.SetStringItem(0, 1, job_enabled) #enabled
-                onetime_list_instance.SetStringItem(0, 2, str(str(job_min) + str(job_hour))) #time
-                onetime_list_instance.SetStringItem(0, 3, job_path) #task
-                onetime_list_instance.SetStringItem(0, 4, job_args) #args
-                onetime_list_instance.SetStringItem(0, 5, job_comment) #comment
-                print("one time job")
-            elif job_type == 'startup':
-                print("startup job")
-
-            print job_path, job_script, job_args, job_comment, job_type, job_min, job_hour, job_repeat, job_repnum, job_enabled
-            #THIS IS WHERE IS NEEDS TO ADD IT INTO THE CORRECT cron_list_pnl table
+        # make timing_string from min:hour or repeat + repeat_num
+        if cron_jobtype == 'repeating':
+            timing_string = self.make_repeating_cron_timestring(job_repeat, job_repnum)
+        elif cron_jobtype == 'one time':
+            timing_string = str(job_min) + ' ' + str(job_hour) + ' * * *'
+        # sort into the correct table
+        if not job_script == None or not job_script == '':
+            if cron_jobtype == 'startup':
+                self.add_to_startup_list('new', job_enabled, cron_task, cron_extra_args, cron_comment)
+            elif cron_jobtype == 'one time':
+                self.add_to_onetime_list('new', job_enabled, timing_string, cron_task, cron_extra_args, cron_comment)
+            elif cron_jobtype == 'repeating':
+                self.add_to_repeat_list('new', job_enabled, timing_string, cron_task, cron_extra_args, cron_comment)
 
 class cron_list_pnl(wx.Panel):
     #
@@ -280,19 +273,19 @@ class cron_list_pnl(wx.Panel):
         wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, pos = (280, 5), size = wx.Size( 910,800 ), style = wx.TAB_TRAVERSAL )
         wx.StaticText(self,  label='Cron start up;', pos=(5, 10))
         cron_list_pnl.startup_cron = self.startup_cron_list(self, 1, (5, 40))
-        cron_list_pnl.startup_cron.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.onDoubleClick)
+        cron_list_pnl.startup_cron.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.onDoubleClick_startup)
         wx.StaticText(self,  label='Repeating Jobs;', pos=(5,245))
         cron_list_pnl.repeat_cron = self.repeating_cron_list(self, 1, (5, 280))
-        cron_list_pnl.repeat_cron.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.onDoubleClick)
+        #cron_list_pnl.repeat_cron.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.onDoubleClick)
         wx.StaticText(self,  label='One time triggers;', pos=(5,500))
         cron_list_pnl.timed_cron = self.other_cron_list(self, 1, (5, 530))
-        cron_list_pnl.repeat_cron.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.onDoubleClick)
+        #cron_list_pnl.timed_cron.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.onDoubleClick)
 
     # TESTING CODE WHILE SCRIPT WRITING IS IN PROGRESS
         # cron_list_pnl.startup_cron.InsertStringItem(0, "TESTING PERSISTANCE")
         self.SetBackgroundColour('sea green')  ###THIS IS JUST TO TEST SIZE REMOVE TO STOP THE UGLY
 
-    def onDoubleClick(self, e):
+    def onDoubleClick_startup(self, e):
         #
         # This needs to call the dialogue box for editing cron jobs
         # once edited they need to be put back in the list and the
@@ -301,9 +294,15 @@ class cron_list_pnl(wx.Panel):
         # other changes have yet to be upload to the pi.
 
         #this is just testing code to be removed when done
-        obj = self.GetSelectedItemCount()
-        print str(obj)
-        print e.GetIndex(), e.GetLabel()
+        #obj = self.GetSelectedItemCount()
+        #print str(obj)
+        #rint e.
+
+        item = e.GetColumn()
+    #    print item.GetText()
+    #    index =  e.GetIndex()
+    #    print cron_list_pnl.startup_cron.
+        #print , e.GetLabel()
 
     def __del__( self ):
         pass
