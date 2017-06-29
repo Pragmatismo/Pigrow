@@ -283,10 +283,70 @@ class cron_list_pnl(wx.Panel):
         cron_list_pnl.repeat_cron.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.onDoubleClick_repeat)
         wx.StaticText(self,  label='One time triggers;', pos=(5,500))
         cron_list_pnl.timed_cron = self.other_cron_list(self, 1, (5, 530))
-        #cron_list_pnl.timed_cron.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.onDoubleClick)
+        cron_list_pnl.timed_cron.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.onDoubleClick_timed)
 
     # TESTING CODE WHILE SCRIPT WRITING IS IN PROGRESS
         self.SetBackgroundColour('sea green')  ###THIS IS JUST TO TEST SIZE REMOVE TO STOP THE UGLY
+
+    def onDoubleClick_timed(self, e):
+        index =  e.GetIndex()
+        #define blank fields and defaults for dialogue box to read
+        cmd_path = cron_list_pnl.timed_cron.GetItem(index, 3).GetText()
+        cmd = cmd_path.split('/')[-1]
+        cmd_path = cmd_path[:-len(cmd)]
+        timing_string = cron_list_pnl.timed_cron.GetItem(index, 2).GetText()
+        cron_stars = timing_string.split(' ')
+        cron_min = cron_stars[0]
+        cron_hour = cron_stars[1]
+
+        cron_info_pnl.cron_path_toedit = str(cmd_path)
+        cron_info_pnl.cron_task_toedit = str(cmd)
+        cron_info_pnl.cron_args_toedit = str(cron_list_pnl.timed_cron.GetItem(index, 4).GetText())
+        cron_info_pnl.cron_comment_toedit = str(cron_list_pnl.timed_cron.GetItem(index, 5).GetText())
+        cron_info_pnl.cron_type_toedit = 'one time'
+        cron_info_pnl.cron_everystr_toedit = 'min'
+        cron_info_pnl.cron_everynum_toedit = '5'
+        cron_info_pnl.cron_min_toedit = cron_min
+        cron_info_pnl.cron_hour_toedit = cron_hour
+        if str(cron_list_pnl.timed_cron.GetItem(index, 1).GetText()) == 'True':
+            enabled = True
+        else:
+            enabled = False
+        cron_info_pnl.cron_enabled_toedit = enabled
+        #make dialogue box
+        cron_dbox = cron_job_dialog(None, title='Cron Job Editor')
+        cron_dbox.ShowModal()
+        #catch any changes made if ok was pressed, if cancel all == None
+        cron_jobtype = cron_dbox.job_type
+        job_path = cron_dbox.job_path
+        job_script = cron_dbox.job_script
+        if not job_path == None:
+            cron_task = job_path + job_script
+        else:
+            cron_task = None
+        cron_extra_args = cron_dbox.job_args
+        cron_comment = cron_dbox.job_comment
+        job_enabled = cron_dbox.job_enabled
+        job_repeat = cron_dbox.job_repeat
+        job_repnum = cron_dbox.job_repnum
+        job_min = cron_dbox.job_min
+        job_hour = cron_dbox.job_hour
+        # make timing_string from min:hour or repeat + repeat_num
+        if cron_jobtype == 'repeating':
+            timing_string = cron_info_pnl.make_repeating_cron_timestring(MainApp.cron_info_pannel, job_repeat, job_repnum)
+        elif cron_jobtype == 'one time':
+            timing_string = str(job_min) + ' ' + str(job_hour) + ' * * *'
+        # sort into the correct table
+        if not job_script == None:
+            # remove entry
+            cron_list_pnl.timed_cron.DeleteItem(index)
+            #add new entry to correct table
+            if cron_jobtype == 'startup':
+                cron_info_pnl.add_to_startup_list(MainApp.cron_info_pannel, 'new', job_enabled, cron_task, cron_extra_args, cron_comment)
+            elif cron_jobtype == 'one time':
+                cron_info_pnl.add_to_onetime_list(MainApp.cron_info_pannel, 'new', job_enabled, timing_string, cron_task, cron_extra_args, cron_comment)
+            elif cron_jobtype == 'repeating':
+                cron_info_pnl.add_to_repeat_list(MainApp.cron_info_pannel, 'new', job_enabled, timing_string, cron_task, cron_extra_args, cron_comment)
 
     def onDoubleClick_repeat(self, e):
         index =  e.GetIndex()
@@ -307,7 +367,7 @@ class cron_list_pnl(wx.Panel):
             cron_num = cron_stars[2].split('/')[-1]
         elif '/' in cron_stars[3]:
             cron_rep = 'month'
-            cron_num = cron_stars[3].split('/')[-1]    
+            cron_num = cron_stars[3].split('/')[-1]
 
         cron_info_pnl.cron_path_toedit = str(cmd_path)
         cron_info_pnl.cron_task_toedit = str(cmd)
@@ -490,11 +550,11 @@ class cron_job_dialog(wx.Dialog):
         self.cron_every_num_tc.SetValue(cron_everynum)
         ## for one time cron jobs
         self.cron_switch = wx.StaticText(self,  label='Time; ', pos=(60, 190))
-        self.cron_switch2 = wx.StaticText(self,  label='[HH:MM]', pos=(205, 190))
+        self.cron_switch2 = wx.StaticText(self,  label='[MM:HH]', pos=(205, 190))
         self.cron_timed_min_tc = wx.TextCtrl(self, pos=(115, 190), size=(40, 25)) #limit to 0-23
-        self.cron_timed_min_tc.SetValue(cron_hour)
+        self.cron_timed_min_tc.SetValue(cron_min)
         self.cron_timed_hour_tc = wx.TextCtrl(self, pos=(160, 190), size=(40, 25)) #limit to 0-59
-        self.cron_timed_hour_tc.SetValue(cron_min)
+        self.cron_timed_hour_tc.SetValue(cron_hour)
         self.cron_switch.Hide()
         self.cron_switch2.Hide()
         self.cron_timed_min_tc.Hide()
