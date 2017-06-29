@@ -282,30 +282,63 @@ class cron_list_pnl(wx.Panel):
         #cron_list_pnl.timed_cron.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.onDoubleClick)
 
     # TESTING CODE WHILE SCRIPT WRITING IS IN PROGRESS
-        # cron_list_pnl.startup_cron.InsertStringItem(0, "TESTING PERSISTANCE")
         self.SetBackgroundColour('sea green')  ###THIS IS JUST TO TEST SIZE REMOVE TO STOP THE UGLY
 
     def onDoubleClick_startup(self, e):
-        #
-        # This needs to call the dialogue box for editing cron jobs
-        # once edited they need to be put back in the list and the
-        # upload button highlighted to show changes need to be made
-        # also consider haulting the exit of the program if cron jobs or
-        # other changes have yet to be upload to the pi.
+        index =  e.GetIndex()
+        #define blank fields and defaults for dialogue box to read
+        cmd_path = cron_list_pnl.startup_cron.GetItem(index, 3).GetText()
+        cmd = cmd_path.split('/')[-1]
+        cmd_path = cmd_path[:-len(cmd)]
+        cron_info_pnl.cron_path_toedit = str(cmd_path)
+        cron_info_pnl.cron_task_toedit = str(cmd)
+        cron_info_pnl.cron_args_toedit = str(cron_list_pnl.startup_cron.GetItem(index, 4).GetText())
+        cron_info_pnl.cron_comment_toedit = str(cron_list_pnl.startup_cron.GetItem(index, 5).GetText())
+        cron_info_pnl.cron_type_toedit = 'startup'
+        cron_info_pnl.cron_everystr_toedit = 'min'
+        cron_info_pnl.cron_everynum_toedit = '5'
+        cron_info_pnl.cron_min_toedit = '0'
+        cron_info_pnl.cron_hour_toedit = '8'
+        if str(cron_list_pnl.startup_cron.GetItem(index, 1).GetText()) == 'True':
+            enabled = True
+        else:
+            enabled = False
+        cron_info_pnl.cron_enabled_toedit = enabled
+        #make dialogue box
+        cron_dbox = cron_job_dialog(None, title='Cron Job Editor')
+        cron_dbox.ShowModal()
+        #catch any changes made if ok was pressed, if cancel all == None
+        cron_jobtype = cron_dbox.job_type
+        job_path = cron_dbox.job_path
+        job_script = cron_dbox.job_script
+        if not job_path == None:
+            cron_task = job_path + job_script
+        else:
+            cron_task = None
+        cron_extra_args = cron_dbox.job_args
+        cron_comment = cron_dbox.job_comment
+        job_enabled = cron_dbox.job_enabled
+        job_repeat = cron_dbox.job_repeat
+        job_repnum = cron_dbox.job_repnum
+        job_min = cron_dbox.job_min
+        job_hour = cron_dbox.job_hour
+        # make timing_string from min:hour or repeat + repeat_num
+        if cron_jobtype == 'repeating':
+            timing_string = self.make_repeating_cron_timestring(job_repeat, job_repnum)
+        elif cron_jobtype == 'one time':
+            timing_string = str(job_min) + ' ' + str(job_hour) + ' * * *'
+        # sort into the correct table
+        if not job_script == None:
+            # remove entry
+            cron_list_pnl.startup_cron.DeleteItem(index)
+            #add new entry to correct table
+            if cron_jobtype == 'startup':
+                cron_info_pnl.add_to_startup_list(MainApp.cron_info_pannel, 'new', job_enabled, cron_task, cron_extra_args, cron_comment)
+            elif cron_jobtype == 'one time':
+                cron_info_pnl.add_to_onetime_list(MainApp.cron_info_pannel, 'new', job_enabled, timing_string, cron_task, cron_extra_args, cron_comment)
+            elif cron_jobtype == 'repeating':
+                cron_info_pnl.add_to_repeat_list(MainApp.cron_info_pannel, 'new', job_enabled, timing_string, cron_task, cron_extra_args, cron_comment)
 
-        #this is just testing code to be removed when done
-        #obj = self.GetSelectedItemCount()
-        #print str(obj)
-        #rint e.
-
-        item = e.GetColumn()
-    #    print item.GetText()
-    #    index =  e.GetIndex()
-    #    print cron_list_pnl.startup_cron.
-        #print , e.GetLabel()
-
-    def __del__( self ):
-        pass
 
 
 class cron_job_dialog(wx.Dialog):
@@ -649,9 +682,10 @@ class MainApp(MainFrame):
         #
         # switch this up so it shows based on tabs and shit, yo!
         #
-        self.cron_list_pannel = cron_list_pnl(self)
-        self.cron_info_pannel = cron_info_pnl(self)
-        #self.cron_list_pannel.Hide()
+        MainApp.cron_list_pannel = cron_list_pnl(self)
+        MainApp.cron_info_pannel = cron_info_pnl(self)
+        #MainApp.cron_list_pannel.Hide()
+        #MainApp.cron_info_pannel.Hide()
 
     def OnClose(self, e):
         #Closes SSH connection even on quit
