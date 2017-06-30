@@ -5,7 +5,7 @@
 #
 # Classes already created;
 #    pi_link_pnl        - top-left connection box with ip, username, pass
-#    cron_list_pnl      - shows the 3 cron type lists on the right of the window  !!!NO DOUBLE CLICK FUNCTION YET
+#    cron_list_pnl      - shows the 3 cron type lists on the right of the window
 #    cron_info_pnl      - shows the buttons that control the cron_list_pnl
 #    cron_job_dialog    - dialogue box for edit cron job
 #
@@ -45,9 +45,71 @@ class cron_info_pnl(wx.Panel):
         wx.StaticText(self,  label='Cron Config Menu', pos=(25, 10))
         self.read_cron_btn = wx.Button(self, label='Read Crontab', pos=(10, 40), size=(175, 30))
         self.read_cron_btn.Bind(wx.EVT_BUTTON, self.read_cron_click)
-        self.add_cron_btn = wx.Button(self, label='Add cron job', pos=(10, 80), size=(175, 30))
-        self.add_cron_btn.Bind(wx.EVT_BUTTON, self.add_cron_click)
+        self.new_cron_btn = wx.Button(self, label='New cron job', pos=(10, 80), size=(175, 30))
+        self.new_cron_btn.Bind(wx.EVT_BUTTON, self.new_cron_click)
+        self.update_cron_btn = wx.Button(self, label='Update Cron', pos=(10, 120), size=(175, 30))
+        self.update_cron_btn.Bind(wx.EVT_BUTTON, self.update_cron_click)
         self.SetBackgroundColour('sea green') #TESTING ONLY REMOVE WHEN SIZING IS DONE AND ALL THAT BUSINESS
+
+    def update_cron_click(self, e):
+        #make a text file of all the cron jobs
+        cron_text = ''
+        startup_num = cron_list_pnl.startup_cron.GetItemCount()
+        for num in range(0, startup_num):
+            cron_line = ''
+            if cron_list_pnl.startup_cron.GetItemText(num, 1) == 'False':
+                cron_line += '#'
+            cron_line += '@reboot ' + cron_list_pnl.startup_cron.GetItemText(num, 3) # cron_task
+            cron_line += ' ' + cron_list_pnl.startup_cron.GetItemText(num, 4) # cron_extra_args
+            cron_line += ' ' + cron_list_pnl.startup_cron.GetItemText(num, 5) # cron_comment
+            cron_text += cron_line + '\n'
+        repeat_num = cron_list_pnl.repeat_cron.GetItemCount()
+        for num in range(0, repeat_num):
+            cron_line = ''
+            if cron_list_pnl.repeat_cron.GetItemText(num, 1) == 'False':
+                cron_line += '#'
+            cron_line += cron_list_pnl.repeat_cron.GetItemText(num, 2).strip(' ')
+            cron_line += ' ' + cron_list_pnl.repeat_cron.GetItemText(num, 3) # cron_task
+            cron_line += ' ' + cron_list_pnl.repeat_cron.GetItemText(num, 4) # cron_extra_args
+            cron_line += ' ' + cron_list_pnl.repeat_cron.GetItemText(num, 5) # cron_comment
+            cron_text += cron_line + '\n'
+        onetime_num = cron_list_pnl.timed_cron.GetItemCount()
+        for num in range(0, onetime_num):
+            cron_line = ''
+            if cron_list_pnl.timed_cron.GetItemText(num, 1) == 'False':
+                cron_line += '#'
+            cron_line += cron_list_pnl.timed_cron.GetItemText(num, 2).strip(' ')
+            cron_line += ' ' + cron_list_pnl.timed_cron.GetItemText(num, 3) # cron_task
+            cron_line += ' ' + cron_list_pnl.timed_cron.GetItemText(num, 4) # cron_extra_args
+            cron_line += ' ' + cron_list_pnl.timed_cron.GetItemText(num, 5) # cron_comment
+            cron_text += cron_line + '\n'
+        # ask the user if they're sure
+        msg_text = "Update cron to; \n\n" + cron_text
+        mbox = wx.MessageDialog(None, msg_text, "Are you sure?", wx.YES_NO|wx.ICON_QUESTION)
+        sure = mbox.ShowModal()
+        if sure == wx.ID_YES:
+            print "Updating remote cron"
+            # save cron text onto pigrow as text file then import into cron
+            sftp = ssh.open_sftp()
+            try:
+                tempfolder = '/home/pi/Pigrow/temp'
+                sftp.mkdir(tempfolder)
+            except IOError:
+                pass
+            f = sftp.open(tempfolder + '/remotecron.txt', 'w')
+            f.write(cron_text)
+            f.close()
+            try:
+                stdin, stdout, stderr = ssh.exec_command("crontab " + tempfolder + '/remotecron.txt')
+                responce = stdout.read()
+                error = stderr.read()
+                print responce, error
+            except Exception as e:
+                print("this ain't right, it just ain't right! " + str(e))
+        else:
+            print("Updating cron cancelled")
+        mbox.Destroy()
+
 
     def read_cron_click(self, e):
         #reads pi's crontab then puts jobs in correct table
@@ -174,7 +236,7 @@ class cron_info_pnl(wx.Panel):
         cron_time_string += ' *'
         return cron_time_string
 
-    def add_cron_click(self, e):
+    def new_cron_click(self, e):
         #define blank fields and defaults for dialogue box to read
         cron_info_pnl.cron_path_toedit = '/home/pi/Pigrow/scripts/cron/'
         cron_info_pnl.cron_task_toedit = 'input cron task here'
@@ -193,7 +255,6 @@ class cron_info_pnl(wx.Panel):
         cron_jobtype = cron_dbox.job_type
         job_path = cron_dbox.job_path
         job_script = cron_dbox.job_script
-        cron_task = job_path + job_script
         cron_extra_args = cron_dbox.job_args
         cron_comment = cron_dbox.job_comment
         job_enabled = cron_dbox.job_enabled
@@ -208,6 +269,7 @@ class cron_info_pnl(wx.Panel):
             timing_string = str(job_min) + ' ' + str(job_hour) + ' * * *'
         # sort into the correct table
         if not job_script == None or not job_script == '':
+            cron_task = job_path + job_script
             if cron_jobtype == 'startup':
                 self.add_to_startup_list('new', job_enabled, cron_task, cron_extra_args, cron_comment)
             elif cron_jobtype == 'one time':
