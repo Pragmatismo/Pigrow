@@ -109,9 +109,11 @@ class cron_info_pnl(wx.Panel):
         else:
             print("Updating cron cancelled")
         mbox.Destroy()
+        #refresh cron list
+        self.read_cron_click("event")
 
 
-    def read_cron_click(self, e):
+    def read_cron_click(self, event):
         #reads pi's crontab then puts jobs in correct table
         try:
             stdin, stdout, stderr = ssh.exec_command("crontab -l")
@@ -217,24 +219,76 @@ class cron_info_pnl(wx.Panel):
         cron_list_pnl.timed_cron.SetStringItem(0, 5, cron_comment)
 
     def make_repeating_cron_timestring(self, repeat, repeat_num):
+        #assembles timing sting for cron
+        # min (0 - 59) | hour (0 - 23) | day of month (1-31) | month (1 - 12) | day of week (0 - 6) (Sunday=0)
         if repeat == 'min':
-            cron_time_string = '*/' + str(repeat_num)
+            if int(repeat_num) in range(0,59):
+                cron_time_string = '*/' + str(repeat_num)
+            else:
+                print("Cron sting wrong, fix it before updating")
+                return 'fail'
         else:
             cron_time_string = '*'
         if repeat == 'hour':
-            cron_time_string += ' */' + str(repeat_num)
+            if int(repeat_num) in range(0,23):
+                cron_time_string += ' */' + str(repeat_num)
+            else:
+                print("Cron sting wrong, fix it before updating")
+                return 'fail'
         else:
             cron_time_string += ' *'
         if repeat == 'day':
-            cron_time_string += ' */' + str(repeat_num)
+            if int(repeat_num) in range(1,31):
+                cron_time_string += ' */' + str(repeat_num)
+            else:
+                print("Cron sting wrong, fix it before updating")
+                return 'fail'
         else:
             cron_time_string += ' *'
         if repeat == 'month':
-            cron_time_string += ' */' + str(repeat_num)
+            if int(repeat_num) in range(1,12):
+                cron_time_string += ' */' + str(repeat_num)
+            else:
+                print("Cron sting wrong, fix it before updating")
+                return 'fail'
         else:
             cron_time_string += ' *'
-        cron_time_string += ' *'
+        if repeat == 'dow':
+            if int(repeat_num) in range(1,12):
+                cron_time_string += ' */' + str(repeat_num)
+            else:
+                print("Cron sting wrong, fix it before updating")
+                return 'fail'
+        else:
+            cron_time_string += ' *'
         return cron_time_string
+
+    def make_onetime_cron_timestring(self, job_min, job_hour, job_day, job_month, job_dow):
+        # timing_string = str(job_min) + ' ' + str(job_hour) + ' * * *'
+        if job_min.isdigit():
+            timing_string = str(job_min)
+        else:
+            timing_string = '*'
+        if job_hour.isdigit():
+            timing_string += ' ' + str(job_hour)
+        else:
+            timing_string += ' *'
+        if job_day.isdigit():
+            timing_string += ' ' + str(job_day)
+        else:
+            timing_string += ' *'
+        if job_month.isdigit():
+            timing_string += ' ' + str(job_month)
+        else:
+            timing_string += ' *'
+        if job_dow.isdigit():
+            timing_string += ' ' + str(job_dow)
+        else:
+            timing_string += ' *'
+        return timing_string
+
+
+
 
     def new_cron_click(self, e):
         #define blank fields and defaults for dialogue box to read
@@ -247,6 +301,9 @@ class cron_info_pnl(wx.Panel):
         cron_info_pnl.cron_everynum_toedit = '5'
         cron_info_pnl.cron_min_toedit = '30'
         cron_info_pnl.cron_hour_toedit = '8'
+        cron_info_pnl.cron_day_toedit = ''
+        cron_info_pnl.cron_month_toedit = ''
+        cron_info_pnl.cron_dow_toedit = ''
         cron_info_pnl.cron_enabled_toedit = True
         #make dialogue box
         cron_dbox = cron_job_dialog(None, title='Cron Job Editor')
@@ -262,11 +319,14 @@ class cron_info_pnl(wx.Panel):
         job_repnum = cron_dbox.job_repnum
         job_min = cron_dbox.job_min
         job_hour = cron_dbox.job_hour
+        job_day = cron_dbox.job_day
+        job_month = cron_dbox.job_month
+        job_dow = cron_dbox.job_dow
         # make timing_string from min:hour or repeat + repeat_num
         if cron_jobtype == 'repeating':
             timing_string = self.make_repeating_cron_timestring(job_repeat, job_repnum)
         elif cron_jobtype == 'one time':
-            timing_string = str(job_min) + ' ' + str(job_hour) + ' * * *'
+            timing_string = self.make_onetime_cron_timestring(job_min, job_hour, job_day, job_month, job_dow)
         # sort into the correct table
         if not job_script == None or not job_script == '':
             cron_task = job_path + job_script
@@ -360,6 +420,9 @@ class cron_list_pnl(wx.Panel):
         cron_stars = timing_string.split(' ')
         cron_min = cron_stars[0]
         cron_hour = cron_stars[1]
+        cron_day = cron_stars[2]
+        cron_month = cron_stars[3]
+        cron_dow = cron_stars[4]
 
         cron_info_pnl.cron_path_toedit = str(cmd_path)
         cron_info_pnl.cron_task_toedit = str(cmd)
@@ -370,6 +433,9 @@ class cron_list_pnl(wx.Panel):
         cron_info_pnl.cron_everynum_toedit = '5'
         cron_info_pnl.cron_min_toedit = cron_min
         cron_info_pnl.cron_hour_toedit = cron_hour
+        cron_info_pnl.cron_day_toedit = cron_day
+        cron_info_pnl.cron_month_toedit = cron_month
+        cron_info_pnl.cron_dow_toedit = cron_dow
         if str(cron_list_pnl.timed_cron.GetItem(index, 1).GetText()) == 'True':
             enabled = True
         else:
@@ -393,11 +459,14 @@ class cron_list_pnl(wx.Panel):
         job_repnum = cron_dbox.job_repnum
         job_min = cron_dbox.job_min
         job_hour = cron_dbox.job_hour
+        job_day = cron_dbox.job_day
+        job_month = cron_dbox.job_month
+        job_dow = cron_dbox.job_dow
         # make timing_string from min:hour or repeat + repeat_num
         if cron_jobtype == 'repeating':
             timing_string = cron_info_pnl.make_repeating_cron_timestring(MainApp.cron_info_pannel, job_repeat, job_repnum)
         elif cron_jobtype == 'one time':
-            timing_string = str(job_min) + ' ' + str(job_hour) + ' * * *'
+            timing_string = cron_info_pnl.make_onetime_cron_timestring(MainApp.cron_info_pannel, job_min, job_hour, job_day, job_month, job_dow)
         # sort into the correct table
         if not job_script == None:
             # remove entry
@@ -418,18 +487,26 @@ class cron_list_pnl(wx.Panel):
         cmd_path = cmd_path[:-len(cmd)]
         timing_string = cron_list_pnl.repeat_cron.GetItem(index, 2).GetText()
         cron_stars = timing_string.split(' ')
-        if '/' in cron_stars[0]:
+        if not timing_string == 'fail':
+            if '/' in cron_stars[0]:
+                cron_rep = 'min'
+                cron_num = cron_stars[0].split('/')[-1]
+            elif '/' in cron_stars[1]:
+                cron_rep = 'hour'
+                cron_num = cron_stars[1].split('/')[-1]
+            elif '/' in cron_stars[2]:
+                cron_rep = 'day'
+                cron_num = cron_stars[2].split('/')[-1]
+            elif '/' in cron_stars[3]:
+                cron_rep = 'month'
+                cron_num = cron_stars[3].split('/')[-1]
+            elif '/' in cron_stars[4]:
+                cron_rep = 'dow'
+                cron_num = cron_stars[4].split('/')[-1]
+        else:
             cron_rep = 'min'
-            cron_num = cron_stars[0].split('/')[-1]
-        elif '/' in cron_stars[1]:
-            cron_rep = 'hour'
-            cron_num = cron_stars[1].split('/')[-1]
-        elif '/' in cron_stars[2]:
-            cron_rep = 'day'
-            cron_num = cron_stars[2].split('/')[-1]
-        elif '/' in cron_stars[3]:
-            cron_rep = 'month'
-            cron_num = cron_stars[3].split('/')[-1]
+            cron_num = '5'
+
 
         cron_info_pnl.cron_path_toedit = str(cmd_path)
         cron_info_pnl.cron_task_toedit = str(cmd)
@@ -568,6 +645,9 @@ class cron_job_dialog(wx.Dialog):
         cron_enabled = cron_info_pnl.cron_enabled_toedit
         cron_min = cron_info_pnl.cron_min_toedit
         cron_hour = cron_info_pnl.cron_hour_toedit
+        cron_day = cron_info_pnl.cron_day_toedit
+        cron_month = cron_info_pnl.cron_month_toedit
+        cron_dow = cron_info_pnl.cron_dow_toedit
         #draw the pannel
          ## universal controls
         pnl = wx.Panel(self)
@@ -603,7 +683,8 @@ class cron_job_dialog(wx.Dialog):
         ## for repeating cron jobs
         self.cron_rep_every = wx.StaticText(self,  label='Every ', pos=(60, 190))
         self.cron_every_num_tc = wx.TextCtrl(self, pos=(115, 190), size=(40, 25))  #box for number, name num only range set by repeat_opt
-        cron_repeat_opts = ['min', 'hour', 'day', 'month']
+        self.cron_every_num_tc.Bind(wx.EVT_CHAR, self.onChar)
+        cron_repeat_opts = ['min', 'hour', 'day', 'month', 'dow']
         self.cron_repeat_opts_cb = wx.ComboBox(self, choices = cron_repeat_opts, pos=(170,190), size=(100, 30))
         self.cron_rep_every.Hide()
         self.cron_every_num_tc.Hide()
@@ -612,21 +693,47 @@ class cron_job_dialog(wx.Dialog):
         self.cron_every_num_tc.SetValue(cron_everynum)
         ## for one time cron jobs
         self.cron_switch = wx.StaticText(self,  label='Time; ', pos=(60, 190))
-        self.cron_switch2 = wx.StaticText(self,  label='[MM:HH]', pos=(205, 190))
+        self.cron_switch2 = wx.StaticText(self,  label='[min : hour : day : month : day of the week]', pos=(110, 220))
         self.cron_timed_min_tc = wx.TextCtrl(self, pos=(115, 190), size=(40, 25)) #limit to 0-23
         self.cron_timed_min_tc.SetValue(cron_min)
+        self.cron_timed_min_tc.Bind(wx.EVT_CHAR, self.onChar)
         self.cron_timed_hour_tc = wx.TextCtrl(self, pos=(160, 190), size=(40, 25)) #limit to 0-59
         self.cron_timed_hour_tc.SetValue(cron_hour)
+        self.cron_timed_hour_tc.Bind(wx.EVT_CHAR, self.onChar)
+        self.cron_timed_day_tc = wx.TextCtrl(self, pos=(205, 190), size=(40, 25)) #limit to 0-59
+        self.cron_timed_day_tc.SetValue(cron_day)
+        self.cron_timed_day_tc.Bind(wx.EVT_CHAR, self.onChar)
+        self.cron_timed_month_tc = wx.TextCtrl(self, pos=(250, 190), size=(40, 25)) #limit to 0-59
+        self.cron_timed_month_tc.SetValue(cron_month)
+        self.cron_timed_month_tc.Bind(wx.EVT_CHAR, self.onChar)
+        self.cron_timed_dow_tc = wx.TextCtrl(self, pos=(295, 190), size=(40, 25)) #limit to 0-59
+        self.cron_timed_dow_tc.SetValue(cron_dow)
+        self.cron_timed_dow_tc.Bind(wx.EVT_CHAR, self.onChar)
         self.cron_switch.Hide()
         self.cron_switch2.Hide()
         self.cron_timed_min_tc.Hide()
         self.cron_timed_hour_tc.Hide()
+        self.cron_timed_day_tc.Hide()
+        self.cron_timed_month_tc.Hide()
+        self.cron_timed_dow_tc.Hide()
         self.set_control_visi() #set's the visibility of optional controls
         #Buttom Row of Buttons
         okButton = wx.Button(self, label='Ok', pos=(200, 250))
         closeButton = wx.Button(self, label='Cancel', pos=(300, 250))
         okButton.Bind(wx.EVT_BUTTON, self.do_upload)
         closeButton.Bind(wx.EVT_BUTTON, self.OnClose)
+
+    def onChar(self, event):
+        #this inhibits any non-numeric keys
+        key = event.GetKeyCode()
+        try: character = chr(key)
+        except ValueError: character = "" # arrow keys will throw this error
+        acceptable_characters = "1234567890"
+        if character in acceptable_characters or key == 13 or key == 314 or key == 316 or key == 8 or key == 127: # 13 = enter, 314 & 316 = arrows, 8 = backspace, 127 = del
+            event.Skip()
+            return
+        else:
+            return False
 
     def cat_script(self, e):
         #opens an ssh pipe and runs a cat command to get the text of the script
@@ -677,7 +784,7 @@ class cron_job_dialog(wx.Dialog):
         self.set_control_visi()
     def set_control_visi(self):
         #checks which type of cron job is set in combobox and shows or hides
-        #which ever UI elemetns are required - doesn't lose or chamge the data.
+        #which ever UI elemetns are required - doesn't lose or change the data.
         cron_type = self.cron_type_combo.GetValue()
         if cron_type == 'one time':
             self.cron_rep_every.Hide()
@@ -687,6 +794,9 @@ class cron_job_dialog(wx.Dialog):
             self.cron_switch2.Show()
             self.cron_timed_min_tc.Show()
             self.cron_timed_hour_tc.Show()
+            self.cron_timed_day_tc.Show()
+            self.cron_timed_month_tc.Show()
+            self.cron_timed_dow_tc.Show()
         elif cron_type == 'repeating':
             self.cron_rep_every.Show()
             self.cron_every_num_tc.Show()
@@ -695,6 +805,9 @@ class cron_job_dialog(wx.Dialog):
             self.cron_switch2.Hide()
             self.cron_timed_min_tc.Hide()
             self.cron_timed_hour_tc.Hide()
+            self.cron_timed_day_tc.Hide()
+            self.cron_timed_month_tc.Hide()
+            self.cron_timed_dow_tc.Hide()
         elif cron_type == 'startup':
             self.cron_rep_every.Hide()
             self.cron_every_num_tc.Hide()
@@ -703,6 +816,9 @@ class cron_job_dialog(wx.Dialog):
             self.cron_switch2.Hide()
             self.cron_timed_min_tc.Hide()
             self.cron_timed_hour_tc.Hide()
+            self.cron_timed_day_tc.Hide()
+            self.cron_timed_month_tc.Hide()
+            self.cron_timed_dow_tc.Hide()
     def get_help_text(self, script_to_ask):
         #open an ssh pipe and runs the script with a -h argument
         #
@@ -739,6 +855,9 @@ class cron_job_dialog(wx.Dialog):
         self.job_repnum = self.cron_every_num_tc.GetValue()
         self.job_min = self.cron_timed_min_tc.GetValue()
         self.job_hour = self.cron_timed_hour_tc.GetValue()
+        self.job_day = self.cron_timed_day_tc.GetValue()
+        self.job_month = self.cron_timed_month_tc.GetValue()
+        self.job_dow = self.cron_timed_dow_tc.GetValue()
         self.Destroy()
     def OnClose(self, e):
         #set all post-creation flags to zero
@@ -754,6 +873,9 @@ class cron_job_dialog(wx.Dialog):
         self.job_repnum = None
         self.job_min = None
         self.job_hour = None
+        self.job_day = None
+        self.job_month = None
+        self.job_dow = None
         self.Destroy()
 
 class pi_link_pnl(wx.Panel):
