@@ -5,6 +5,7 @@
 #
 # Classes already created;
 #    pi_link_pnl        - top-left connection box with ip, username, pass
+#    view_pnl           - allows you to select which options to view
 #    cron_list_pnl      - shows the 3 cron type lists on the right of the window
 #    cron_info_pnl      - shows the buttons that control the cron_list_pnl
 #    cron_job_dialog    - dialogue box for edit cron job
@@ -287,9 +288,6 @@ class cron_info_pnl(wx.Panel):
             timing_string += ' *'
         return timing_string
 
-
-
-
     def new_cron_click(self, e):
         #define blank fields and defaults for dialogue box to read
         cron_info_pnl.cron_path_toedit = '/home/pi/Pigrow/scripts/cron/'
@@ -396,7 +394,7 @@ class cron_list_pnl(wx.Panel):
             self.SetColumnWidth(5, -1)
 
     def __init__( self, parent ):
-        wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, pos = (280, 5), size = wx.Size( 910,800 ), style = wx.TAB_TRAVERSAL )
+        wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, pos = (285, 0), size = wx.Size( 910,800 ), style = wx.TAB_TRAVERSAL )
         wx.StaticText(self,  label='Cron start up;', pos=(5, 10))
         cron_list_pnl.startup_cron = self.startup_cron_list(self, 1, (5, 40))
         cron_list_pnl.startup_cron.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.onDoubleClick_startup)
@@ -611,7 +609,6 @@ class cron_list_pnl(wx.Panel):
                 cron_info_pnl.add_to_onetime_list(MainApp.cron_info_pannel, 'new', job_enabled, timing_string, cron_task, cron_extra_args, cron_comment)
             elif cron_jobtype == 'repeating':
                 cron_info_pnl.add_to_repeat_list(MainApp.cron_info_pannel, 'new', job_enabled, timing_string, cron_task, cron_extra_args, cron_comment)
-
 
 
 class cron_job_dialog(wx.Dialog):
@@ -887,7 +884,8 @@ class pi_link_pnl(wx.Panel):
     target_user = ''
     target_pass = ''
     def __init__( self, parent ):
-        wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, pos = wx.DefaultPosition, size = wx.Size( 300,300 ), style = wx.TAB_TRAVERSAL )
+        wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, pos = (0,0), size = wx.Size( 285,190 ), style = wx.TAB_TRAVERSAL )
+        self.SetBackgroundColour((150,230,170)) #TESTING ONLY REMOVE WHEN SIZING IS DONE AND ALL THAT BUSINESS
      ## the three boxes for pi's connection details, IP, Username and Password
         self.l_ip = wx.StaticText(self,  label='address', pos=(10, 20))
         self.tb_ip = wx.TextCtrl(self, pos=(125, 25), size=(150, 25))
@@ -927,6 +925,7 @@ class pi_link_pnl(wx.Panel):
             self.tb_user.Enable()
             self.tb_pass.Enable()
             self.seek_for_pigrows_btn.Enable()
+            MainApp.welcome_pannel.Show()
         else:
             #clear_temp_folder()
             pi_link_pnl.target_ip = self.tb_ip.GetValue()
@@ -945,6 +944,7 @@ class pi_link_pnl(wx.Panel):
                 pi_link_pnl.boxname = None
             if not pi_link_pnl.boxname == None:
                 self.link_status_text.SetLabel("linked with - " + str(pi_link_pnl.boxname))
+                MainApp.welcome_pannel.Hide()
                 self.link_with_pi_btn.SetLabel('Disconnect')
                 self.tb_ip.Disable()
                 self.tb_user.Disable()
@@ -955,6 +955,7 @@ class pi_link_pnl(wx.Panel):
                 ssh.close()
             if log_on_test == True and pi_link_pnl.boxname == None:
                 self.link_status_text.SetLabel("Found raspberry pi, but not pigrow")
+                MainApp.welcome_pannel.Hide()
                 self.link_with_pi_btn.SetLabel('Disconnect')
                 self.tb_ip.Disable()
                 self.tb_user.Disable()
@@ -973,6 +974,63 @@ class pi_link_pnl(wx.Panel):
             boxname = None
         return boxname
 
+class welcome_pnl(wx.Panel):
+    #
+    #  This displays the welcome message on start up
+    #     this explains how to get started
+    #
+    def __init__( self, parent ):
+        wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, pos = (285, 0), size = wx.Size( 910,800 ), style = wx.TAB_TRAVERSAL )
+        self.SetBackgroundColour((150,210,170)) #TESTING ONLY REMOVE WHEN SIZING IS DONE AND ALL THAT BUSINESS
+        png = wx.Image('./splash.png', wx.BITMAP_TYPE_ANY).ConvertToBitmap()
+        wx.StaticBitmap(self, -1, png, (0, 0), (png.GetWidth(), png.GetHeight()))
+
+
+class view_pnl(wx.Panel):
+    #
+    # Creates the pannel with the navigation tabs
+    # small and simple, it changes which pannels are visible
+    #
+    def __init__( self, parent ):
+        wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, pos = (0, 190), size = wx.Size( 285,35 ), style = wx.TAB_TRAVERSAL )
+        self.SetBackgroundColour((230,200,170)) #TESTING ONLY REMOVE WHEN SIZING IS DONE AND ALL THAT BUSINESS
+        view_opts = ['System Config', 'Pigrow Setup', 'Camera Config', 'Cron Timing', 'multi-script', 'Local Files', 'Timelapse', 'Graphs', 'Live View', 'pieye watcher']
+        self.view_cb = wx.ComboBox(self, choices = view_opts, pos=(10,2), size=(265, 30))
+        self.view_cb.Bind(wx.EVT_COMBOBOX, self.view_combo_go)
+    def view_combo_go(self, e):
+        display = self.view_cb.GetValue()
+        MainApp.cron_list_pannel.Hide()
+        MainApp.cron_info_pannel.Hide()
+        MainApp.welcome_pannel.Hide()
+        if display == 'System Config':
+            print("changing window display like i'm Mr Polly on jesus")
+        elif display == 'Pigrow Setup':
+            print("changing window display like i'm Mr Polly on meth")
+        elif display == 'Camera Config':
+            print("changing window display like i'm Mr Polly on weed")
+        elif display == 'Cron Timing':
+            MainApp.cron_list_pannel.Show()
+            MainApp.cron_info_pannel.Show()
+        elif display == 'Multi-script':
+            print("changing window display like i'm Mr Polly on coke")
+        elif display == 'Local Files':
+            print("changing window display like i'm Mr Polly on heroin")
+        elif display == 'Timelapse':
+            print("changing window display like i'm Mr Polly on crack")
+        elif display == 'Graphs':
+            print("changing window display like i'm Mr Polly on speed")
+        elif display == 'Live View':
+            print("changing window display like i'm Mr Polly on LSD")
+        elif display == 'pieye watcher':
+            print("changing window display like i'm Mr Polly in a daydream")
+        else:
+            print("!!! Option not recognised, this is a programming error! sorry")
+            print("          message me and tell me about it and i'll be very thankful")
+
+
+
+
+
 #
 #
 #  The main bit of the program
@@ -986,8 +1044,6 @@ class MainFrame ( wx.Frame ):
         bSizer1 = wx.BoxSizer( wx.VERTICAL )
         self.SetSizer( bSizer1 )
         self.Layout()
-
-        self.pi_link_pnl = pi_link_pnl(self)
         self.Centre( wx.BOTH )
     def __del__( self ):
         pass
@@ -997,13 +1053,16 @@ class MainApp(MainFrame):
         MainFrame.__init__(self, parent)
         self.Bind(wx.EVT_CLOSE, self.OnClose)
         self.pi_link_pnl = pi_link_pnl(self)
+        self.view_pnl = view_pnl(self)
         #
         # switch this up so it shows based on tabs and shit, yo!
         #
+        MainApp.welcome_pannel = welcome_pnl(self)
         MainApp.cron_list_pannel = cron_list_pnl(self)
         MainApp.cron_info_pannel = cron_info_pnl(self)
-        #MainApp.cron_list_pannel.Hide()
-        #MainApp.cron_info_pannel.Hide()
+        MainApp.cron_list_pannel.Hide()
+        MainApp.cron_info_pannel.Hide()
+        #self.pi_link_pnl.Hide()
 
     def OnClose(self, e):
         #Closes SSH connection even on quit
