@@ -955,6 +955,7 @@ class pi_link_pnl(wx.Panel):
             self.tb_ip.Enable()
             self.tb_user.Enable()
             self.tb_pass.Enable()
+            self.link_status_text.SetLabel("-- Disconnected --")
             self.seek_for_pigrows_btn.Enable()
             MainApp.welcome_pannel.Show()
         else:
@@ -968,11 +969,11 @@ class pi_link_pnl(wx.Panel):
                 log_on_test = True
             except Exception as e:
                 print("Failed to log on due to; " + str(e))
-        if log_on_test == True:
-            box_name = self.get_box_name()
-        else:
-            box_name = None
-        self.set_link_pi_text(log_on_test, box_name)
+            if log_on_test == True:
+                box_name = self.get_box_name()
+            else:
+                box_name = None
+            self.set_link_pi_text(log_on_test, box_name)
 
     def set_link_pi_text(self, log_on_test, box_name):
         pi_link_pnl.boxname = box_name  #to maintain persistance if needed elsewhere later
