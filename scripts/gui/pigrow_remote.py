@@ -879,13 +879,15 @@ class pi_link_pnl(wx.Panel):
     #
     # Creates the pannel with the raspberry pi data in it
     # and connects ssh to the pi when button is pressed
+    # or allows seeking
     #
-    target_ip = ''
-    target_user = ''
-    target_pass = ''
     def __init__( self, parent ):
         wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, pos = (0,0), size = wx.Size( 285,190 ), style = wx.TAB_TRAVERSAL )
         self.SetBackgroundColour((150,230,170)) #TESTING ONLY REMOVE WHEN SIZING IS DONE AND ALL THAT BUSINESS
+        pi_link_pnl.target_ip = ''
+        pi_link_pnl.target_user = ''
+        pi_link_pnl.target_pass = ''
+        pi_link_pnl.config_location_on_pi = '/home/pi/Pigrow/config/pigrow_config.txt'
      ## the three boxes for pi's connection details, IP, Username and Password
         self.l_ip = wx.StaticText(self,  label='address', pos=(10, 20))
         self.tb_ip = wx.TextCtrl(self, pos=(125, 25), size=(150, 25))
@@ -903,20 +905,49 @@ class pi_link_pnl(wx.Panel):
      ## seek next pi button
         self.seek_for_pigrows_btn = wx.Button(self, label='Seek next', pos=(190,125))
         self.seek_for_pigrows_btn.Bind(wx.EVT_BUTTON, self.seek_for_pigrows_click)
-
     def __del__(self):
+        print("psssst it did that thing, the _del_ one you like so much...")
         pass
+
     def seek_for_pigrows_click(self, e):
         print("seeking for pigrows...")
+        number_of_tries_per_host = 1
         pi_link_pnl.target_ip = self.tb_ip.GetValue()
         pi_link_pnl.target_user = self.tb_user.GetValue()
         pi_link_pnl.target_pass = self.tb_pass.GetValue()
         if pi_link_pnl.target_ip.split(".")[3] == '':
             pi_link_pnl.target_ip = pi_link_pnl.target_ip + '0'
-        self.tb_ip.SetValue(pi_link_pnl.target_ip)
-
+        start_from = pi_link_pnl.target_ip.split(".")[3]
+        lastdigits = len(str(start_from))
+        hostrange = pi_link_pnl.target_ip[:-lastdigits]
+        #Iterate through the ip_to_test and stop when  pigrow is found
+        for ip_to_test in range(int(start_from)+1,255):
+            host = hostrange + str(ip_to_test)
+            pi_link_pnl.target_ip = self.tb_ip.SetValue(host)
+            seek_attempt = 1
+            log_on_test = False
+            while True:
+                print("Trying to connect to " + host)
+                try:
+                    ssh.connect(host, username=pi_link_pnl.target_user, password=pi_link_pnl.target_pass, timeout=3)
+                    print("Connected to " + host)
+                    log_on_test = True
+                    stdin, stdout, stderr = ssh.exec_command("cat " + pi_link_pnl.config_location_on_pi  + " | grep box_name")
+                    box_name = stdout.read().strip().split("=")[1]
+                    print("Pigrow Found; " + box_name)
+                    self.set_link_pi_text(log_on_test, box_name)
+                    return box_name #this just exits the loop
+                except paramiko.AuthenticationException:
+                    print("Authentication failed when connecting to " + str(host))
+                except Exception as e:
+                    print("Could not SSH to " + host + " because:" + str(e))
+                    seek_attempt += 1
+                if seek_attempt == number_of_tries_per_host + 1:
+                    print("Could not connect to " + host + " Giving up")
+                    break #end while loop and look at next host
 
     def link_with_pi_btn_click(self, e):
+        log_on_test = False
         if self.link_with_pi_btn.GetLabel() == 'Disconnect':
             print("breaking ssh connection")
             ssh.close()
@@ -936,31 +967,34 @@ class pi_link_pnl(wx.Panel):
                 print("Connected to " + pi_link_pnl.target_ip)
                 log_on_test = True
             except Exception as e:
-                log_on_test = False
                 print("Failed to log on due to; " + str(e))
-            if log_on_test == True:
-                pi_link_pnl.boxname = self.get_box_name()
-            else:
-                pi_link_pnl.boxname = None
-            if not pi_link_pnl.boxname == None:
-                self.link_status_text.SetLabel("linked with - " + str(pi_link_pnl.boxname))
-                MainApp.welcome_pannel.Hide()
-                self.link_with_pi_btn.SetLabel('Disconnect')
-                self.tb_ip.Disable()
-                self.tb_user.Disable()
-                self.tb_pass.Disable()
-                self.seek_for_pigrows_btn.Disable()
-            elif log_on_test == False:
-                self.link_status_text.SetLabel("unable to connect")
-                ssh.close()
-            if log_on_test == True and pi_link_pnl.boxname == None:
-                self.link_status_text.SetLabel("Found raspberry pi, but not pigrow")
-                MainApp.welcome_pannel.Hide()
-                self.link_with_pi_btn.SetLabel('Disconnect')
-                self.tb_ip.Disable()
-                self.tb_user.Disable()
-                self.tb_pass.Disable()
-                self.seek_for_pigrows_btn.Disable()
+        if log_on_test == True:
+            box_name = self.get_box_name()
+        else:
+            box_name = None
+        self.set_link_pi_text(log_on_test, box_name)
+
+    def set_link_pi_text(self, log_on_test, box_name):
+        pi_link_pnl.boxname = box_name  #to maintain persistance if needed elsewhere later
+        if not box_name == None:
+            self.link_status_text.SetLabel("linked with - " + str(pi_link_pnl.boxname))
+            MainApp.welcome_pannel.Hide()
+            self.link_with_pi_btn.SetLabel('Disconnect')
+            self.tb_ip.Disable()
+            self.tb_user.Disable()
+            self.tb_pass.Disable()
+            self.seek_for_pigrows_btn.Disable()
+        elif log_on_test == False:
+            self.link_status_text.SetLabel("unable to connect")
+            ssh.close()
+        if log_on_test == True and box_name == None:
+            self.link_status_text.SetLabel("Found raspberry pi, but not pigrow")
+            MainApp.welcome_pannel.Hide()
+            self.link_with_pi_btn.SetLabel('Disconnect')
+            self.tb_ip.Disable()
+            self.tb_user.Disable()
+            self.tb_pass.Disable()
+            self.seek_for_pigrows_btn.Disable()
 
     def get_box_name(self):
         boxname = None
