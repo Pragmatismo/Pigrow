@@ -23,6 +23,7 @@ print("")
 
 try:
     import wx
+    import wx.lib.scrolledpanel
 except:
     print(" You don't have WX Python installed, this makes the gui")
     print(" google 'installing wx python' for your operating system")
@@ -40,9 +41,40 @@ except:
 ssh = paramiko.SSHClient()
 ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
+class system_ctrl_pnl(wx.Panel):
+    def __init__( self, parent ):
+        win_height = parent.GetSize()[1]
+        height_of_pannels_above = 230
+        space_left = win_height - height_of_pannels_above
+        wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, pos = (0, height_of_pannels_above), size = wx.Size(285, space_left), style = wx.TAB_TRAVERSAL )
+        wx.StaticText(self,  label='System Config Menu', pos=(25, 10))
+        self.read_system_btn = wx.Button(self, label='Read System Info', pos=(10, 70), size=(175, 30))
+        self.read_system_btn.Bind(wx.EVT_BUTTON, self.read_system_click)
+
+    def read_system_click(self, e):
+        system_info_pnl.sys_hdd_info.SetLabel("lol not even tried to check it")
+
+class system_info_pnl(wx.Panel):
+    #
+    #  This displays the system info
+    # controlled by the system_ctrl_pnl
+    #
+    def __init__( self, parent ):
+        #find size
+        win_height = parent.GetSize()[1]
+        win_width = parent.GetSize()[0]
+        w_space_left = win_width - 285
+        wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, pos = (285, 0), size = wx.Size(w_space_left , 800), style = wx.TAB_TRAVERSAL )
+        wx.StaticText(self,  label='System infiormation;', pos=(5, 10))
+        system_info_pnl.sys_hdd_info = wx.StaticText(self,  label='Disk Space;', pos=(25, 60))
+
 class cron_info_pnl(wx.Panel):
     def __init__( self, parent ):
-        wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, pos = (0, 230), size = wx.Size( 275,400 ), style = wx.TAB_TRAVERSAL )
+        win_height = parent.GetSize()[1]
+        height_of_pannels_above = 230
+        space_left = win_height - height_of_pannels_above
+
+        wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, pos = (0, height_of_pannels_above), size = wx.Size(285, space_left), style = wx.TAB_TRAVERSAL )
         wx.StaticText(self,  label='Cron Config Menu', pos=(25, 10))
         self.read_cron_btn = wx.Button(self, label='Read Crontab', pos=(10, 40), size=(175, 30))
         self.read_cron_btn.Bind(wx.EVT_BUTTON, self.read_cron_click)
@@ -51,6 +83,12 @@ class cron_info_pnl(wx.Panel):
         self.update_cron_btn = wx.Button(self, label='Update Cron', pos=(10, 120), size=(175, 30))
         self.update_cron_btn.Bind(wx.EVT_BUTTON, self.update_cron_click)
         self.SetBackgroundColour('sea green') #TESTING ONLY REMOVE WHEN SIZING IS DONE AND ALL THAT BUSINESS
+
+        bSizer = wx.BoxSizer(wx.VERTICAL)
+        bSizer.Add(self.read_cron_btn, 0, wx.ALL, 5)
+        bSizer.Add(self.new_cron_btn, 0, wx.ALL, 5)
+        bSizer.Add(self.update_cron_btn, 0, wx.ALL, 5)
+        self.SetSizer(bSizer)
 
     def update_cron_click(self, e):
         #make a text file of all the cron jobs
@@ -346,8 +384,8 @@ class cron_list_pnl(wx.Panel):
     #consider putting into a sizer or autosizing with math
     #--to screen size tho not to size of cronlist that'd be super messy...
     class startup_cron_list(wx.ListCtrl):
-        def __init__(self, parent, id, pos=(5,10)):
-            wx.ListCtrl.__init__(self, parent, id, size=(900,200), style=wx.LC_REPORT, pos=pos)
+        def __init__(self, parent, id, pos=(5,10), size=(900,200)):
+            wx.ListCtrl.__init__(self, parent, id, size=size, style=wx.LC_REPORT, pos=pos)
             self.InsertColumn(0, 'Line')
             self.InsertColumn(1, 'Enabled')
             self.InsertColumn(2, 'Active')
@@ -362,8 +400,8 @@ class cron_list_pnl(wx.Panel):
             self.SetColumnWidth(5, -1)
 
     class repeating_cron_list(wx.ListCtrl):
-        def __init__(self, parent, id, pos=(5,245)):
-            wx.ListCtrl.__init__(self, parent, id, size=(900,200), style=wx.LC_REPORT, pos=pos)
+        def __init__(self, parent, id, pos=(5,245), size=(900,200)):
+            wx.ListCtrl.__init__(self, parent, id, size=size, style=wx.LC_REPORT, pos=pos)
             self.InsertColumn(0, 'Line')
             self.InsertColumn(1, 'Enabled')
             self.InsertColumn(2, 'every')
@@ -378,8 +416,8 @@ class cron_list_pnl(wx.Panel):
             self.SetColumnWidth(5, -1)
 
     class other_cron_list(wx.ListCtrl):
-        def __init__(self, parent, id, pos=(5,530)):
-            wx.ListCtrl.__init__(self, parent, id, size=(900,200), style=wx.LC_REPORT, pos=pos)
+        def __init__(self, parent, id, pos=(5,530), size=(900,200)):
+            wx.ListCtrl.__init__(self, parent, id, size=size, style=wx.LC_REPORT, pos=pos)
             self.InsertColumn(0, 'Line')
             self.InsertColumn(1, 'Enabled')
             self.InsertColumn(2, 'Time')
@@ -394,15 +432,21 @@ class cron_list_pnl(wx.Panel):
             self.SetColumnWidth(5, -1)
 
     def __init__( self, parent ):
-        wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, pos = (285, 0), size = wx.Size( 910,800 ), style = wx.TAB_TRAVERSAL )
+        #find size
+        win_height = parent.GetSize()[1]
+        win_width = parent.GetSize()[0]
+        w_space_left = win_width - 285
+
+        wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, pos = (285, 0), size = wx.Size(w_space_left , 800), style = wx.TAB_TRAVERSAL )
+
         wx.StaticText(self,  label='Cron start up;', pos=(5, 10))
-        cron_list_pnl.startup_cron = self.startup_cron_list(self, 1, (5, 40))
+        cron_list_pnl.startup_cron = self.startup_cron_list(self, 1, pos=(5, 40), size=(w_space_left-10, 200))
         cron_list_pnl.startup_cron.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.onDoubleClick_startup)
         wx.StaticText(self,  label='Repeating Jobs;', pos=(5,245))
-        cron_list_pnl.repeat_cron = self.repeating_cron_list(self, 1, (5, 280))
+        cron_list_pnl.repeat_cron = self.repeating_cron_list(self, 1, pos=(5, 280), size=(w_space_left-10, 200))
         cron_list_pnl.repeat_cron.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.onDoubleClick_repeat)
         wx.StaticText(self,  label='One time triggers;', pos=(5,500))
-        cron_list_pnl.timed_cron = self.other_cron_list(self, 1, (5, 530))
+        cron_list_pnl.timed_cron = self.other_cron_list(self, 1, pos=(5, 530), size=(w_space_left-10, 200))
         cron_list_pnl.timed_cron.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.onDoubleClick_timed)
 
     # TESTING CODE WHILE SCRIPT WRITING IS IN PROGRESS
@@ -1034,11 +1078,14 @@ class view_pnl(wx.Panel):
         self.view_cb.Bind(wx.EVT_COMBOBOX, self.view_combo_go)
     def view_combo_go(self, e):
         display = self.view_cb.GetValue()
+        MainApp.system_ctrl_pannel.Hide()
+        MainApp.system_info_pannel.Hide()
         MainApp.cron_list_pannel.Hide()
         MainApp.cron_info_pannel.Hide()
         MainApp.welcome_pannel.Hide()
         if display == 'System Config':
-            print("changing window display like i'm Mr Polly on jesus")
+            MainApp.system_ctrl_pannel.Show()
+            MainApp.system_info_pannel.Show()
         elif display == 'Pigrow Setup':
             print("changing window display like i'm Mr Polly on meth")
         elif display == 'Camera Config':
@@ -1076,8 +1123,8 @@ class MainFrame ( wx.Frame ):
     def __init__( self, parent ):
         wx.Frame.__init__ ( self, parent, id = wx.ID_ANY, title = wx.EmptyString, pos = wx.DefaultPosition, size = wx.Size( 1200,800 ), style = wx.DEFAULT_FRAME_STYLE|wx.TAB_TRAVERSAL )
         self.SetSizeHintsSz( wx.DefaultSize, wx.DefaultSize )
-        bSizer1 = wx.BoxSizer( wx.VERTICAL )
-        self.SetSizer( bSizer1 )
+    #    bSizer1 = wx.BoxSizer( wx.VERTICAL )
+    #    self.SetSizer( bSizer1 )
         self.Layout()
         self.Centre( wx.BOTH )
     def __del__( self ):
@@ -1093,10 +1140,14 @@ class MainApp(MainFrame):
         # switch this up so it shows based on tabs and shit, yo!
         #
         MainApp.welcome_pannel = welcome_pnl(self)
+        MainApp.system_ctrl_pannel = system_ctrl_pnl(self)
+        MainApp.system_info_pannel = system_info_pnl(self)
         MainApp.cron_list_pannel = cron_list_pnl(self)
         MainApp.cron_info_pannel = cron_info_pnl(self)
         MainApp.cron_list_pannel.Hide()
         MainApp.cron_info_pannel.Hide()
+        MainApp.system_ctrl_pannel.Hide()
+        MainApp.system_info_pannel.Hide()
         #self.pi_link_pnl.Hide()
 
     def OnClose(self, e):
