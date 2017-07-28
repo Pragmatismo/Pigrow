@@ -4,11 +4,16 @@
 #   WORK IN PROGRESS
 #
 # Classes already created;
+# -app pannels
 #    pi_link_pnl        - top-left connection box with ip, username, pass
 #    view_pnl           - allows you to select which options to view
+# -main pannels
+#    system_info_pnl    - for setting up the raspberry pi system and pigrow install
+#    system_ctrl_pnl        - buttons for system_info_pnl
+#
 #    cron_list_pnl      - shows the 3 cron type lists on the right of the window
-#    cron_info_pnl      - shows the buttons that control the cron_list_pnl
-#    cron_job_dialog    - dialogue box for edit cron job
+#    cron_info_pnl          - buttons for cron_list_pnl
+#    cron_job_dialog        - dialogue box for edit cron job
 #
 #
 #
@@ -16,8 +21,8 @@
 
 print("")
 print(" THIS IS A WORK IN PROGRESS SCRIPT (ain't they all)")
-print("     At the moment it does almost nothing at all ")
-print("     beside define some dialog boxes and pannels")
+print("     At the moment it does a few useful things ")
+print("     not really enough to be useful and some might not work fully...")
 print("  it's fuckin' sweet as tho, aye?")
 print("")
 
@@ -72,6 +77,21 @@ class system_ctrl_pnl(wx.Panel):
             hdd_used = responce_list[-4]
         system_info_pnl.sys_hdd_remain.SetLabel("remaining - " + str(hdd_available))
         system_info_pnl.sys_hdd_used.SetLabel("used - " + str(hdd_used) + " (" + str(hdd_percent) + ")")
+        #check installed OS
+        try:
+            stdin, stdout, stderr = ssh.exec_command("cat /etc/os-release")
+            responce = stdout.read().strip()
+            error = stderr.read()
+            #print responce, error
+        except Exception as e:
+            print("ahhh! " + str(e))
+        for line in responce.split("\n"):
+            if "PRETTY_NAME=" in line:
+                os_name = line.split('"')[1]
+        system_info_pnl.sys_os_name.SetLabel(os_name)
+
+
+
         #check if pigrow folder exits and read size
         try:
             stdin, stdout, stderr = ssh.exec_command("du -s ~/Pigrow/")
@@ -176,9 +196,10 @@ class system_info_pnl(wx.Panel):
         wx.StaticText(self,  label='System infiormation;', pos=(5, 10))
         system_info_pnl.sys_hdd_remain = wx.StaticText(self,  label='Disk Space;', pos=(25, 60), size=(200,30))
         system_info_pnl.sys_hdd_used = wx.StaticText(self,  label='Disk Used;', pos=(25, 90), size=(200,30))
+        system_info_pnl.sys_os_name = wx.StaticText(self,  label='os installed;', pos=(25, 130), size=(200,30))
 
-        system_info_pnl.sys_pigrow_folder = wx.StaticText(self,  label='Pigrow folder;', pos=(25, 130), size=(200,30))
-        system_info_pnl.sys_pigrow_update = wx.StaticText(self,  label='Pigrow update status', pos=(25, 160), size=(200,30))
+        system_info_pnl.sys_pigrow_folder = wx.StaticText(self,  label='Pigrow folder;', pos=(25, 180), size=(200,30))
+        system_info_pnl.sys_pigrow_update = wx.StaticText(self,  label='Pigrow update status', pos=(75, 200), size=(200,30))
 
 class cron_info_pnl(wx.Panel):
     def __init__( self, parent ):
