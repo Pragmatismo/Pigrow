@@ -50,9 +50,118 @@ class system_ctrl_pnl(wx.Panel):
         wx.StaticText(self,  label='System Config Menu', pos=(25, 10))
         self.read_system_btn = wx.Button(self, label='Read System Info', pos=(10, 70), size=(175, 30))
         self.read_system_btn.Bind(wx.EVT_BUTTON, self.read_system_click)
+        self.update_pigrow_btn = wx.Button(self, label='update pigrow', pos=(10, 100), size=(175, 30))
+        self.update_pigrow_btn.Bind(wx.EVT_BUTTON, self.update_pigrow_click)
 
     def read_system_click(self, e):
-        system_info_pnl.sys_hdd_info.SetLabel("lol not even tried to check it")
+        #check for hdd space
+        try:
+            stdin, stdout, stderr = ssh.exec_command("df -l /")
+            responce = stdout.read().strip()
+            error = stderr.read()
+            #print responce, error
+        except Exception as e:
+            print("oh! " + str(e))
+        if len(responce) > 1:
+            responce_list = []
+            for item in responce.split(" "):
+                if len(item) > 0:
+                    responce_list.append(item)
+            hdd_percent = responce_list[-2]
+            hdd_available = responce_list[-3]
+            hdd_used = responce_list[-4]
+        system_info_pnl.sys_hdd_remain.SetLabel("remaining - " + str(hdd_available))
+        system_info_pnl.sys_hdd_used.SetLabel("used - " + str(hdd_used) + " (" + str(hdd_percent) + ")")
+        #check if pigrow folder exits and read size
+        try:
+            stdin, stdout, stderr = ssh.exec_command("du -s ~/Pigrow/")
+            responce = stdout.read().strip()
+            error = stderr.read()
+            #print responce, error
+        except Exception as e:
+            print("ahhh! " + str(e))
+        if not "No such file or directory" in error:
+            pigrow_size = responce.split("\t")[0]
+            #print pigrow_size
+            not_pigrow = (int(hdd_used) - int(pigrow_size))
+            #print not_pigrow
+            folder_pcent = float(pigrow_size) / float(hdd_used) * 100
+            folder_pcent = format(folder_pcent, '.2f')
+            system_info_pnl.sys_pigrow_folder.SetLabel("Pigrow folder size; " + str(pigrow_size) + " (" +str(folder_pcent) + "% of total used)")
+        else:
+            system_info_pnl.sys_pigrow_folder.SetLabel("No pigrow install detected")
+        #check git upate needed
+        update_needed = False
+        try:
+            stdin, stdout, stderr = ssh.exec_command("git -C ~/Pigrow/ remote -v update")
+            responce = stdout.read().strip()
+            error = stderr.read()
+            #print 'responce;' +  str(responce)
+            #print 'error:' + str(error)
+        except Exception as e:
+            print("ooops! " + str(e))
+        if len(error) > 1:
+            git_text = error.split("\n")
+            count = 0
+            for line in git_text:
+                if "origin/master" in line:
+                    master_branch = line
+                    count = count + 1
+            if count > 1:
+                print("ERROR ERROR TWO MASTER BRANCHES WTF?")
+            elif count == 0:
+                print("ERROR NO MASTER BRANCH?!!?!")
+            elif count == 1:
+                if "[up to date]" in master_branch:
+                    print("master branch is upto date")
+                else:
+                    print("Master branch requires updating")
+                    update_needed = True
+        print master_branch
+        try:
+            stdin, stdout, stderr = ssh.exec_command("git -C ~/Pigrow/ status --untracked-files no")
+            responce = stdout.read().strip()
+            error = stderr.read()
+            #print responce
+            #print 'error:' + str(error)
+        except Exception as e:
+            print("ooops! " + str(e))
+        if "Your branch is" in responce:
+            git_line = responce.split("\n")[1]
+            git_update = git_line.split(" ")[3]
+            if git_update == 'behind':
+                update_needed = True
+                git_num = git_line.split(" ")[6]
+            elif git_update == 'ahead':
+                update_needed = 'ahead'
+            #elif git_update == 'up-to-date':
+            #    print("says its up to date")
+        else:
+            update_needed = 'error'
+
+        if update_needed == True:
+            system_info_pnl.sys_pigrow_update.SetLabel("update required, " + str(git_num) + " updates behind")
+        elif update_needed == False:
+            system_info_pnl.sys_pigrow_update.SetLabel("master branch is upto date")
+        elif update_needed == 'ahead':
+            system_info_pnl.sys_pigrow_update.SetLabel("you've modified the core pigrow code, can't update simply")
+        elif update_needed == 'error':
+            system_info_pnl.sys_pigrow_update.SetLabel("some confusion with git, sorry.")
+
+    def update_pigrow_click(self, e):
+        try:
+            stdin, stdout, stderr = ssh.exec_command("git -C ~/Pigrow/ pull")
+            responce = stdout.read().strip()
+            error = stderr.read()
+            print responce
+            if len(error) > 0:
+                print 'error:' + str(error)
+        except Exception as e:
+            print("ooops! " + str(e))
+
+
+
+
 
 class system_info_pnl(wx.Panel):
     #
@@ -60,13 +169,16 @@ class system_info_pnl(wx.Panel):
     # controlled by the system_ctrl_pnl
     #
     def __init__( self, parent ):
-        #find size
         win_height = parent.GetSize()[1]
         win_width = parent.GetSize()[0]
         w_space_left = win_width - 285
         wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, pos = (285, 0), size = wx.Size(w_space_left , 800), style = wx.TAB_TRAVERSAL )
         wx.StaticText(self,  label='System infiormation;', pos=(5, 10))
-        system_info_pnl.sys_hdd_info = wx.StaticText(self,  label='Disk Space;', pos=(25, 60))
+        system_info_pnl.sys_hdd_remain = wx.StaticText(self,  label='Disk Space;', pos=(25, 60), size=(200,30))
+        system_info_pnl.sys_hdd_used = wx.StaticText(self,  label='Disk Used;', pos=(25, 90), size=(200,30))
+
+        system_info_pnl.sys_pigrow_folder = wx.StaticText(self,  label='Pigrow folder;', pos=(25, 130), size=(200,30))
+        system_info_pnl.sys_pigrow_update = wx.StaticText(self,  label='Pigrow update status', pos=(25, 160), size=(200,30))
 
 class cron_info_pnl(wx.Panel):
     def __init__( self, parent ):
