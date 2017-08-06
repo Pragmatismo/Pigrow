@@ -61,6 +61,7 @@ def gather_data(path="./"):
                 memfree = line.split(":")[1].strip()
     #check cpu temp with '/opt/vc/bin/vcgencmd measure_temp'
     cpu_temp = os.popen('/opt/vc/bin/vcgencmd measure_temp').read().strip()
+    cpu_temp = cpu_temp.split('=')[1]
     #send back data in a dictionary
     return {'disk_total':total,
             'disk_used':used,
