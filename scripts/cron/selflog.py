@@ -36,6 +36,7 @@ for argu in sys.argv:
 def gather_data(path="./"):
     print("Interorgating pi about it's status...")
     timenow = datetime.datetime.now()
+    #check storage space
     st = os.statvfs(path)
     free = (st.f_bavail * st.f_frsize)
     total = (st.f_blocks * st.f_frsize)
@@ -44,10 +45,12 @@ def gather_data(path="./"):
         percent = ret = (float(used) / total) * 100
     except ZeroDivisionError:
         percent = 0
+    #check up time
     with open('/proc/uptime', 'r') as f:
         uptime_seconds = float(f.readline().split()[0])
         uptime_string = str(datetime.timedelta(seconds = uptime_seconds))
     load_ave1,load_ave5,load_ave15 = os.getloadavg() # system load Averages for 1, 5 and 15 min;
+    #check memory info
     with open('/proc/meminfo', 'r') as f:
         for line in f:
             if line.split(":")[0]=="MemTotal":
@@ -56,6 +59,9 @@ def gather_data(path="./"):
                 memavail = line.split(":")[1].strip()
             elif line.split(":")[0]=="MemFree":
                 memfree = line.split(":")[1].strip()
+    #check cpu temp with '/opt/vc/bin/vcgencmd measure_temp'
+    cpu_tmp = os.popen('/opt/vc/bin/vcgencmd measure_temp').read().strip()
+    #send back data in a dictionary
     return {'disk_total':total,
             'disk_used':used,
             'disk_free':free,
@@ -68,7 +74,8 @@ def gather_data(path="./"):
             'load_ave15':load_ave15,
             'memtotal':memtotal,
             'memfree':memfree,
-            'memavail':memavail
+            'memavail':memavail,
+            'cpu_temp':cpu_temp
             }
 
 def check_script_running(script):
