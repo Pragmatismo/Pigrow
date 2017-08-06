@@ -60,7 +60,8 @@ def gather_data(path="./"):
             elif line.split(":")[0]=="MemFree":
                 memfree = line.split(":")[1].strip()
     #check cpu temp with '/opt/vc/bin/vcgencmd measure_temp'
-    send back data in a dictionary
+    cpu_temp = os.popen('/opt/vc/bin/vcgencmd measure_temp').read().strip()
+    #send back data in a dictionary
     return {'disk_total':total,
             'disk_used':used,
             'disk_free':free,
