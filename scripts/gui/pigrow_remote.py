@@ -89,9 +89,6 @@ class system_ctrl_pnl(wx.Panel):
             if "PRETTY_NAME=" in line:
                 os_name = line.split('"')[1]
         system_info_pnl.sys_os_name.SetLabel(os_name)
-
-
-
         #check if pigrow folder exits and read size
         try:
             stdin, stdout, stderr = ssh.exec_command("du -s ~/Pigrow/")
@@ -110,7 +107,7 @@ class system_ctrl_pnl(wx.Panel):
             system_info_pnl.sys_pigrow_folder.SetLabel("Pigrow folder size; " + str(pigrow_size) + " (" +str(folder_pcent) + "% of total used)")
         else:
             system_info_pnl.sys_pigrow_folder.SetLabel("No pigrow install detected")
-        #check git upate needed
+        #check if git upate needed
         update_needed = False
         try:
             stdin, stdout, stderr = ssh.exec_command("git -C ~/Pigrow/ remote -v update")
@@ -137,7 +134,8 @@ class system_ctrl_pnl(wx.Panel):
                 else:
                     print("Master branch requires updating")
                     update_needed = True
-        print master_branch
+        #print master_branch
+        #Read git status
         try:
             stdin, stdout, stderr = ssh.exec_command("git -C ~/Pigrow/ status --untracked-files no")
             responce = stdout.read().strip()
@@ -146,7 +144,9 @@ class system_ctrl_pnl(wx.Panel):
             #print 'error:' + str(error)
         except Exception as e:
             print("ooops! " + str(e))
-        if "Your branch is" in responce:
+        if "Your branch and 'origin/master' have diverged" in responce:
+            update_needed = 'diverged'
+        elif "Your branch is" in responce:
             git_line = responce.split("\n")[1]
             git_update = git_line.split(" ")[3]
             if git_update == 'behind':
@@ -161,16 +161,31 @@ class system_ctrl_pnl(wx.Panel):
 
         if update_needed == True:
             system_info_pnl.sys_pigrow_update.SetLabel("update required, " + str(git_num) + " updates behind")
+            self.update_type = "clean"
         elif update_needed == False:
             system_info_pnl.sys_pigrow_update.SetLabel("master branch is upto date")
         elif update_needed == 'ahead':
-            system_info_pnl.sys_pigrow_update.SetLabel("you've modified the core pigrow code, can't update simply")
+            system_info_pnl.sys_pigrow_update.SetLabel("you've modified the core pigrow code, caution required")
+            self.update_type = "merge"
+        elif update_needed == 'diverged':
+            system_info_pnl.sys_pigrow_update.SetLabel("you've modified the core pigrow code, caution required")
+            self.update_type = "merge"
         elif update_needed == 'error':
             system_info_pnl.sys_pigrow_update.SetLabel("some confusion with git, sorry.")
 
     def update_pigrow_click(self, e):
+        if self.update_type == "clean":
+            git_command = "git -C ~/Pigrow/ pull"
+        elif self.update_type == "merge":
+            question = raw_input("merge using ours or theres?")
+            if question == "ours":
+                git_command = "git -C ~/Pigrow/ pull "
+            elif question == "theres":
+                git_command = "git -C ~/Pigrow/ pull "
+
+
         try:
-            stdin, stdout, stderr = ssh.exec_command("git -C ~/Pigrow/ pull")
+            stdin, stdout, stderr = ssh.exec_command(git_command)
             responce = stdout.read().strip()
             error = stderr.read()
             print responce
