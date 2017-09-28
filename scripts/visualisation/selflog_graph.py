@@ -37,7 +37,7 @@ for argu in sys.argv[1:]:
             make_disk = True
         else:
             make_disk = False
-        if 'up' ub tomake:
+        if 'up' in tomake:
             make_up = True
         else:
              make_up = False
