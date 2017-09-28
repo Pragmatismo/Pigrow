@@ -87,7 +87,7 @@ with open(self_log, "r") as f:
             up.append(uptime)
         #cpu_temp
             cputemp = log_dic['cpu_temp'].split("'")[0]
-            cpu_temp.append[cputemp]
+            cpu_temp.append(cputemp)
         except Exception as e:
             print("didn't parse" + str(item) + " due to error; " + str(e))
             #raise
