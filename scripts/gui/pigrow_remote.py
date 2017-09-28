@@ -179,9 +179,9 @@ class system_ctrl_pnl(wx.Panel):
         elif self.update_type == "merge":
             question = raw_input("merge using ours or theres?")
             if question == "ours":
-                git_command = "git -C ~/Pigrow/ pull --strategy-option=ours"
+                git_command = "git -C ~/Pigrow/ pull --strategy=recursive -X=ours"
             elif question == "theres":
-                git_command = "git -C ~/Pigrow/ pull "
+                git_command = "git -C ~/Pigrow/ pull --strategy=recursive -X=theres"
 
 
         try:
