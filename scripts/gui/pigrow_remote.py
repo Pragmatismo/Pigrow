@@ -165,10 +165,10 @@ class system_ctrl_pnl(wx.Panel):
         elif update_needed == False:
             system_info_pnl.sys_pigrow_update.SetLabel("master branch is upto date")
         elif update_needed == 'ahead':
-            system_info_pnl.sys_pigrow_update.SetLabel("you've modified the core pigrow code, caution required")
+            system_info_pnl.sys_pigrow_update.SetLabel("you've modified the core pigrow code, caution required!")
             self.update_type = "merge"
         elif update_needed == 'diverged':
-            system_info_pnl.sys_pigrow_update.SetLabel("you've modified the core pigrow code, caution required")
+            system_info_pnl.sys_pigrow_update.SetLabel("you've modified the core pigrow code, caution required!")
             self.update_type = "merge"
         elif update_needed == 'error':
             system_info_pnl.sys_pigrow_update.SetLabel("some confusion with git, sorry.")
@@ -179,7 +179,7 @@ class system_ctrl_pnl(wx.Panel):
         elif self.update_type == "merge":
             question = raw_input("merge using ours or theres?")
             if question == "ours":
-                git_command = "git -C ~/Pigrow/ pull "
+                git_command = "git -C ~/Pigrow/ pull --strategy-option=ours"
             elif question == "theres":
                 git_command = "git -C ~/Pigrow/ pull "
 
