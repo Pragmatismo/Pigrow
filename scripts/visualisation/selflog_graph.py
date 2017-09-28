@@ -48,12 +48,13 @@ with open(self_log, "r") as f:
         try:
             line = line.split('>')
             for item in line:
-                item = item.split("=")
-                if len(item) == 1:
-                    break
-                name = item[0].strip()
-                value = item[1].strip()
-                log_dic[name]=value
+                if not item == '/n':
+                    item = item.split("=")
+                    if len(item) == 1:
+                        break
+                    name = item[0].strip()
+                    value = item[1].strip()
+                    log_dic[name]=value
         #time and date
             date = log_dic['timenow'].split('.')[0]
             date = datetime.datetime.strptime(date, '%Y-%m-%d %H:%M:%S')
