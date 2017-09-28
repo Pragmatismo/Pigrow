@@ -188,8 +188,7 @@ def make_cputemp_graph(dates, cpu_temp):
     ax4.plot(dates, cpu_temp, '-')
     ax4.set_title("CPU Temperature; " + str(dates[0].strftime("%b-%d %H:%M")) + " to " + str(dates[-1].strftime("%b-%d %H:%M")) + " UTC")
     fig4.autofmt_xdate()
-    plt.savefig(graph_path + "CPU_temp_graph.png")
-
+    plt.savefig(graph_path + "Selflog_cpu_temp_graph.png")
 
 if __name__ == '__main__':
     print "Last log was " + str(datetime.datetime.now() - date).split('.')[0] + " ago"
