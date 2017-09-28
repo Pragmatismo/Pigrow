@@ -5,6 +5,12 @@ import matplotlib as mpl
 mpl.use('Agg')
 import matplotlib.pyplot as plt
 
+make_cpu = True
+make_mem = True
+make_disk = True
+make_up = True
+make_cputemp = True
+
 for argu in sys.argv[1:]:
     if argu == '-h' or argu == '--help':
         print(" selflog_graph maker;")
@@ -25,7 +31,7 @@ for argu in sys.argv[1:]:
         else:
             make_cpu = False
         if 'mem' in tomake:
-            make_men = True
+            make_mem = True
         else:
             make_mem = False
         if 'disk' in tomake:
