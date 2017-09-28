@@ -177,11 +177,11 @@ class system_ctrl_pnl(wx.Panel):
         if self.update_type == "clean":
             git_command = "git -C ~/Pigrow/ pull"
         elif self.update_type == "merge":
-            question = raw_input("merge using ours or theres?")
+            question = raw_input("merge using ours or theirs?")
             if question == "ours":
-                git_command = "git -C ~/Pigrow/ pull --strategy=recursive -X=ours"
-            elif question == "theres":
-                git_command = "git -C ~/Pigrow/ pull --strategy=recursive -X=theres"
+                git_command = "git -C ~/Pigrow/ pull --strategy=ours" #if we've changed a file it ignores the remote updated one
+            elif question == "theirs":
+                git_command = "git -C ~/Pigrow/ pull -s recursive -X theirs"
 
 
         try:
