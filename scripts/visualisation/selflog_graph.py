@@ -48,13 +48,12 @@ with open(self_log, "r") as f:
         try:
             line = line.split('>')
             for item in line:
-                if not item == '/n':
-                    item = item.split("=")
-                    if len(item) == 1:
-                        break
-                    name = item[0].strip()
-                    value = item[1].strip()
-                    log_dic[name]=value
+                item = item.split("=")
+                if len(item) == 1:
+                    break
+                name = item[0].strip()
+                value = item[1].strip()
+                log_dic[name]=value
         #time and date
             date = log_dic['timenow'].split('.')[0]
             date = datetime.datetime.strptime(date, '%Y-%m-%d %H:%M:%S')
@@ -86,8 +85,8 @@ with open(self_log, "r") as f:
             uptime = log_dic['uptime_sec']
             up.append(uptime)
         #cpu_temp
-            cputemp = log_dic['cpu_temp'].split("'")[0]
-            cpu_temp.append(cputemp)
+            cputemp = log_dic['cpu_temp']
+            cpu_temp.append(cputemp.split("'")[0])
         except Exception as e:
             print("didn't parse" + str(item) + " due to error; " + str(e))
             #raise
@@ -142,7 +141,7 @@ def make_disk_graphs(dates, disk_p, disk_f, disk_t, disk_u):
     plt.savefig(graph_path + "Selflog_disk_graph.png")
 
 def make_graph_up(dates, up):
-    print("Attempting to make disk useage graoh")
+    print("Attempting to make uptime graoh")
     fig4, ax4 = plt.subplots()
     ax4.plot(dates, up, '-')
     ax4.set_title("Uptime; " + str(dates[0].strftime("%b-%d %H:%M")) + " to " + str(dates[-1].strftime("%b-%d %H:%M")) + " UTC")
@@ -161,6 +160,7 @@ def make_cputemp(dates, cpu_temp):
 if __name__ == '__main__':
     print "Last log was " + str(datetime.datetime.now() - date).split('.')[0] + " ago"
     print "there are " + str(len(cpu_a1)) + " data points for graphhs"
+    print len(cpu_temp)
     make_cpu_graph(dates, cpu_a1, cpu_a5, cpu_a15)
     make_mem_graph(dates, mem_a, mem_f, mem_t)
     make_disk_graphs(dates, disk_p, disk_f, disk_t, disk_u)
