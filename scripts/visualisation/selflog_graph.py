@@ -4,17 +4,6 @@ import datetime
 import matplotlib as mpl
 mpl.use('Agg')
 import matplotlib.pyplot as plt
-try:
-    sys.path.append('/home/pi/Pigrow/scripts/')
-    #sys.path.append('/home/pragmo/pigitgrow/Pigrow/scripts/')
-    import pigrow_defs
-    loc_locs = '/home/pi/Pigrow/config/dirlocs.txt'
-    loc_dic = pigrow_defs.load_locs(loc_locs)
-    graph_path = loc_dic['graph_path']
-    self_log = loc_dic['self_log']
-except:
-    graph_path = './'
-    self_log =  "./selflog.txt"
 
 for argu in sys.argv[1:]:
     if argu == '-h' or thearg == '--help':
@@ -51,6 +40,19 @@ for argu in sys.argv[1:]:
             make_cputemp = True
         else:
              make_cputemp = False
+#Load the settings file and locate the selflog 
+try:
+    sys.path.append('/home/pi/Pigrow/scripts/')
+    #sys.path.append('/home/pragmo/pigitgrow/Pigrow/scripts/')
+    import pigrow_defs
+    loc_locs = '/home/pi/Pigrow/config/dirlocs.txt'
+    loc_dic = pigrow_defs.load_locs(loc_locs)
+    graph_path = loc_dic['graph_path']
+    self_log = loc_dic['self_log']
+except:
+    graph_path = './'
+    self_log =  "./selflog.txt"
+
 log_dic = {}    # Reused for every line of the log file
                      ## Lists used to make graphs.
 dates = []      # Used for all the graphs
