@@ -46,7 +46,7 @@ with open(self_log, "r") as f:
     print self_log
     for line in f:
         try:
-            line = line.split('>').strip()
+            line = line.split('>')
             for item in line:
                 item = item.split("=")
                 if len(item) == 1:
