@@ -181,7 +181,8 @@ class system_ctrl_pnl(wx.Panel):
             if question == "ours":
                 git_command = "git -C ~/Pigrow/ pull --strategy=ours" #if we've changed a file it ignores the remote updated one
             elif question == "theirs":
-                git_command = "git -C ~/Pigrow/ pull -s recursive -X theirs"
+                #needs to commit or stash changes before working
+                git_command = "git -C ~/Pigrow/ pull -s recursive -X theirs" #removes any changes made locally and replaces file with remote updated one
 
 
         try:
