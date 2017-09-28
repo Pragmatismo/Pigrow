@@ -38,7 +38,6 @@ for argu in sys.argv[1:]:
             make_up = False
         if 'cputemp' in tomake:
             make_cputemp = True
-            print("making cpu temp graph")
         else:
             make_cputemp = False
 #Load the settings file and locate the selflog
@@ -197,4 +196,5 @@ if __name__ == '__main__':
     if make_up == True:
         make_graph_up(dates, up)
     if make_cputemp == True:
+        print("works here too..")
         make_cputemp(dates, cpu_temp)
