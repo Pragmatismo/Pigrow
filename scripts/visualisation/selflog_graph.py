@@ -5,6 +5,7 @@ import matplotlib as mpl
 mpl.use('Agg')
 import matplotlib.pyplot as plt
 
+#default bahaviour, change with argu make=cpu,mem,disk,up,cputemp removing any you don't need
 make_cpu = True
 make_mem = True
 make_disk = True
