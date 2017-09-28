@@ -40,6 +40,7 @@ disk_f = []    #  Disk Percent, Full, total, used
 disk_t = []    #
 disk_u = []    #
 up = []         # uptime
+cpu_temp = []  #internal temp of the CPU as mesaured by system tools
 
 with open(self_log, "r") as f:
     print self_log
@@ -83,6 +84,9 @@ with open(self_log, "r") as f:
         #uptime
             uptime = log_dic['uptime_sec']
             up.append(uptime)
+        #cpu_temp
+           cputemp = log_dic['cpu_temp']
+           cpu_temp.append[cputemp]
         except:
             print("didn't parse" + str(item))
             #raise
@@ -144,6 +148,13 @@ def make_graph_up(dates, up):
     fig4.autofmt_xdate()
     plt.savefig(graph_path + "Selflog_up_graph.png")
 
+def make_cputemp(dates, cpu_temp):
+    print("Attempting to make disk cpu temp graoh")
+    fig4, ax4 = plt.subplots()
+    ax4.plot(dates, cpu_temp, '-')
+    ax4.set_title("CPU Temperature; " + str(dates[0].strftime("%b-%d %H:%M")) + " to " + str(dates[-1].strftime("%b-%d %H:%M")) + " UTC")
+    fig4.autofmt_xdate()
+    plt.savefig(graph_path + "CPU_temp_graph.png")
 
 
 if __name__ == '__main__':
@@ -153,6 +164,7 @@ if __name__ == '__main__':
     make_mem_graph(dates, mem_a, mem_f, mem_t)
     make_disk_graphs(dates, disk_p, disk_f, disk_t, disk_u)
     make_graph_up(dates, up)
+    make_cputemp(dates, cpu_temp)
 
 #plt.show()
 #print date
