@@ -17,8 +17,9 @@ except:
     self_log =  "./selflog.txt"
 
 for argu in sys.argv[1:]:
-    thearg = str(argu).split('=')[0]
-    theval = str(argu).split('=')[1]
+    if '=' in argu:
+        thearg = str(argu).split('=')[0]
+        theval = str(argu).split('=')[1]
     if  thearg == 'gp' or thearg == 'out':
         graph_path = theval
     elif thearg == 'log':
