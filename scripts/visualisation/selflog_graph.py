@@ -152,7 +152,7 @@ def make_mem_graph(dates, mem_a, mem_f, mem_t):
     plt.savefig(graph_path + "Selflog_mem_graph.png")
     #plt.show()
 
-def make_disk_graphs(dates, disk_p, disk_f, disk_t, disk_u):
+def make_disk_graph(dates, disk_p, disk_f, disk_t, disk_u):
     print("Attempting to make disk useage graph")
     #fig3, ax3 = plt.subplots()
     fig3, ax3 = plt.subplots(2, sharex=True)
@@ -167,7 +167,7 @@ def make_disk_graphs(dates, disk_p, disk_f, disk_t, disk_u):
     fig3.autofmt_xdate()
     plt.savefig(graph_path + "Selflog_disk_graph.png")
 
-def make_graph_up(dates, up):
+def make_up_graph(dates, up):
     print("Attempting to make uptime graph")
     fig4, ax4 = plt.subplots()
     ax4.plot(dates, up, '-')
@@ -175,7 +175,7 @@ def make_graph_up(dates, up):
     fig4.autofmt_xdate()
     plt.savefig(graph_path + "Selflog_up_graph.png")
 
-def make_cputemp(dates, cpu_temp):
+def make_cputemp_graph(dates, cpu_temp):
     print("Attempting to make disk cpu temp graph")
     fig4, ax4 = plt.subplots()
     ax4.plot(dates, cpu_temp, '-')
@@ -192,9 +192,8 @@ if __name__ == '__main__':
     if make_mem == True:
         make_mem_graph(dates, mem_a, mem_f, mem_t)
     if make_disk == True:
-        make_disk_graphs(dates, disk_p, disk_f, disk_t, disk_u)
+        make_disk_graph(dates, disk_p, disk_f, disk_t, disk_u)
     if make_up == True:
-        make_graph_up(dates, up)
+        make_up_graph(dates, up)
     if make_cputemp == True:
-        print("works here too..")
-        make_cputemp(dates, cpu_temp)
+        make_cputemp_graph(dates, cpu_temp)
