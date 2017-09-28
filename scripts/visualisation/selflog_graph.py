@@ -18,14 +18,38 @@ except:
 
 for argu in sys.argv[1:]:
     thearg = str(argu).split('=')[0]
+    theval = str(argu).split('=')[1]
     if  thearg == 'gp' or thearg == 'out':
-        graph_path = str(argu).split('=')[1]
+        graph_path = theval
     elif thearg == 'log':
-        self_log = str(argu).split('=')[1]
-    elif thearg == '-h' or thearg == '--help':
+        self_log = theval
+    elif thearg == 'make':
+        tomake = theval.split(",")
+        if 'cpu' in tomake:
+            make_cpu = True
+        else:
+            make_cpu = False
+        if 'mem' in tomake:
+            make_men = True
+        else:
+            make_mem = False
+        if 'disk' in tomake:
+            make_disk = True
+        else:
+            make_disk = False
+        if 'up' ub tomake:
+            make_up = True
+        else:
+             make_up = False
+        if 'cputemp' in tomake:
+            make_cputemp = True
+        else:
+             make_cputemp = False
+    elif argu == '-h' or thearg == '--help':
         print(" selflog_graph maker;")
-        print("  gp=PATH    = PATH to save graphs to e,g, /home/pi/Pigrow/graphs/ ")
-        print(" log=PATH    = PATH to self_log to e,g, /home/pi/Pigrow/logs/selflog.txt ")
+        print("  gp=PATH    -- PATH to save graphs to e,g, /home/pi/Pigrow/graphs/ ")
+        print(" log=PATH    -- PATH to self_log to e,g, /home/pi/Pigrow/logs/selflog.txt ")
+        print(' make=cpu,mem.disk,up,cputemp  -- list the graphs you want to make seperated by a comma ')
 log_dic = {}    # Reused for every line of the log file
                      ## Lists used to make graphs.
 dates = []      # Used for all the graphs
@@ -161,24 +185,13 @@ if __name__ == '__main__':
     print "Last log was " + str(datetime.datetime.now() - date).split('.')[0] + " ago"
     print "there are " + str(len(cpu_a1)) + " data points for graphhs"
     print len(cpu_temp)
-    make_cpu_graph(dates, cpu_a1, cpu_a5, cpu_a15)
-    make_mem_graph(dates, mem_a, mem_f, mem_t)
-    make_disk_graphs(dates, disk_p, disk_f, disk_t, disk_u)
-    make_graph_up(dates, up)
-    make_cputemp(dates, cpu_temp)
-
-#plt.show()
-#print date
-#print len(dates)
-
-###
-##  This is for listing the things in the log.
-#
-
-#for key,value in log_dic.iteritems():
-#    num_of_s = 40 - len(key)
-#    spaces = str(key)
-#    for x in range(0,num_of_s):
-#        spaces += " "
-#    print spaces + " == " + str(value)
-#print log_dic
+    if make_cpu == True:
+        make_cpu_graph(dates, cpu_a1, cpu_a5, cpu_a15)
+    if make_mem == True:
+        make_mem_graph(dates, mem_a, mem_f, mem_t)
+    if make_disk == True:
+        make_disk_graphs(dates, disk_p, disk_f, disk_t, disk_u)
+    if make_up == True:
+        make_graph_up(dates, up)
+    if make_cputemp == True:
+        make_cputemp(dates, cpu_temp)
