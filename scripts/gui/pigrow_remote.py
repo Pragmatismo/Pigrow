@@ -177,6 +177,7 @@ class system_ctrl_pnl(wx.Panel):
         if self.update_type == "clean":
             git_command = "git -C ~/Pigrow/ pull"
         elif self.update_type == "merge":
+            #this can cause odd confusions 
             question = raw_input("merge using ours or theirs?")
             if question == "ours":
                 git_command = "git -C ~/Pigrow/ pull --strategy=ours" #if we've changed a file it ignores the remote updated one
