@@ -35,11 +35,12 @@ for argu in sys.argv[1:]:
         if 'up' in tomake:
             make_up = True
         else:
-             make_up = False
+            make_up = False
         if 'cputemp' in tomake:
             make_cputemp = True
+            print("making cpu temp graph")
         else:
-             make_cputemp = False
+            make_cputemp = False
 #Load the settings file and locate the selflog
 try:
     sys.path.append('/home/pi/Pigrow/scripts/')
@@ -140,7 +141,7 @@ def make_cpu_graph(dates, cpu_a1, cpu_a5, cpu_a15):
     plt.savefig(graph_path + "Selflog_cpu_graph.png")
 
 def make_mem_graph(dates, mem_a, mem_f, mem_t):
-    print("Attempting to make mem useage graoh")
+    print("Attempting to make mem useage graph")
     fig2, ax2 = plt.subplots()
     ax2.plot_date(dates, mem_a, '-', color='green', label='Available')
     ax2.plot_date(dates, mem_f, '-', color='blue', label='Free')
@@ -153,7 +154,7 @@ def make_mem_graph(dates, mem_a, mem_f, mem_t):
     #plt.show()
 
 def make_disk_graphs(dates, disk_p, disk_f, disk_t, disk_u):
-    print("Attempting to make disk useage graoh")
+    print("Attempting to make disk useage graph")
     #fig3, ax3 = plt.subplots()
     fig3, ax3 = plt.subplots(2, sharex=True)
     plt.ylabel("Disk Memory in MB")
@@ -168,7 +169,7 @@ def make_disk_graphs(dates, disk_p, disk_f, disk_t, disk_u):
     plt.savefig(graph_path + "Selflog_disk_graph.png")
 
 def make_graph_up(dates, up):
-    print("Attempting to make uptime graoh")
+    print("Attempting to make uptime graph")
     fig4, ax4 = plt.subplots()
     ax4.plot(dates, up, '-')
     ax4.set_title("Uptime; " + str(dates[0].strftime("%b-%d %H:%M")) + " to " + str(dates[-1].strftime("%b-%d %H:%M")) + " UTC")
@@ -176,7 +177,7 @@ def make_graph_up(dates, up):
     plt.savefig(graph_path + "Selflog_up_graph.png")
 
 def make_cputemp(dates, cpu_temp):
-    print("Attempting to make disk cpu temp graoh")
+    print("Attempting to make disk cpu temp graph")
     fig4, ax4 = plt.subplots()
     ax4.plot(dates, cpu_temp, '-')
     ax4.set_title("CPU Temperature; " + str(dates[0].strftime("%b-%d %H:%M")) + " to " + str(dates[-1].strftime("%b-%d %H:%M")) + " UTC")
@@ -187,7 +188,6 @@ def make_cputemp(dates, cpu_temp):
 if __name__ == '__main__':
     print "Last log was " + str(datetime.datetime.now() - date).split('.')[0] + " ago"
     print "there are " + str(len(cpu_a1)) + " data points for graphhs"
-    print len(cpu_temp)
     if make_cpu == True:
         make_cpu_graph(dates, cpu_a1, cpu_a5, cpu_a15)
     if make_mem == True:
