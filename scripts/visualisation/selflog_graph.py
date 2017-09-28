@@ -6,7 +6,7 @@ mpl.use('Agg')
 import matplotlib.pyplot as plt
 
 for argu in sys.argv[1:]:
-    if argu == '-h' or thearg == '--help':
+    if argu == '-h' or argu == '--help':
         print(" selflog_graph maker;")
         print("  gp=PATH    -- PATH to save graphs to e,g, /home/pi/Pigrow/graphs/ ")
         print(" log=PATH    -- PATH to self_log to e,g, /home/pi/Pigrow/logs/selflog.txt ")
@@ -40,7 +40,7 @@ for argu in sys.argv[1:]:
             make_cputemp = True
         else:
              make_cputemp = False
-#Load the settings file and locate the selflog 
+#Load the settings file and locate the selflog
 try:
     sys.path.append('/home/pi/Pigrow/scripts/')
     #sys.path.append('/home/pragmo/pigitgrow/Pigrow/scripts/')
