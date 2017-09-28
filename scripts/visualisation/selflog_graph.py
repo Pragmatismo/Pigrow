@@ -176,7 +176,7 @@ def make_up_graph(dates, up):
     plt.savefig(graph_path + "Selflog_up_graph.png")
 
 def make_cputemp_graph(dates, cpu_temp):
-    print("Attempting to make disk cpu temp graph")
+    print("Attempting to make cpu temp graph")
     fig4, ax4 = plt.subplots()
     ax4.plot(dates, cpu_temp, '-')
     ax4.set_title("CPU Temperature; " + str(dates[0].strftime("%b-%d %H:%M")) + " to " + str(dates[-1].strftime("%b-%d %H:%M")) + " UTC")
