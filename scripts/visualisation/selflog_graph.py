@@ -46,7 +46,7 @@ with open(self_log, "r") as f:
     print self_log
     for line in f:
         try:
-            line = line.split('>')
+            line = line.split('>').strip()
             for item in line:
                 item = item.split("=")
                 if len(item) == 1:
@@ -85,10 +85,10 @@ with open(self_log, "r") as f:
             uptime = log_dic['uptime_sec']
             up.append(uptime)
         #cpu_temp
-            cputemp = log_dic['cpu_temp']
+            cputemp = log_dic['cpu_temp'].split("'")[0]
             cpu_temp.append[cputemp]
-        except:
-            print("didn't parse" + str(item))
+        except Exception as e:
+            print("didn't parse" + str(item) + " due to error; " + str(e))
             #raise
 
 #
