@@ -17,9 +17,14 @@ except:
     self_log =  "./selflog.txt"
 
 for argu in sys.argv[1:]:
-    if '=' in argu:
-        thearg = str(argu).split('=')[0]
-        theval = str(argu).split('=')[1]
+    if argu == '-h' or thearg == '--help':
+        print(" selflog_graph maker;")
+        print("  gp=PATH    -- PATH to save graphs to e,g, /home/pi/Pigrow/graphs/ ")
+        print(" log=PATH    -- PATH to self_log to e,g, /home/pi/Pigrow/logs/selflog.txt ")
+        print(' make=cpu,mem.disk,up,cputemp  -- list the graphs you want to make seperated by a comma ')
+        sys.exit()
+    thearg = str(argu).split('=')[0]
+    theval = str(argu).split('=')[1]
     if  thearg == 'gp' or thearg == 'out':
         graph_path = theval
     elif thearg == 'log':
@@ -46,11 +51,6 @@ for argu in sys.argv[1:]:
             make_cputemp = True
         else:
              make_cputemp = False
-    elif argu == '-h' or thearg == '--help':
-        print(" selflog_graph maker;")
-        print("  gp=PATH    -- PATH to save graphs to e,g, /home/pi/Pigrow/graphs/ ")
-        print(" log=PATH    -- PATH to self_log to e,g, /home/pi/Pigrow/logs/selflog.txt ")
-        print(' make=cpu,mem.disk,up,cputemp  -- list the graphs you want to make seperated by a comma ')
 log_dic = {}    # Reused for every line of the log file
                      ## Lists used to make graphs.
 dates = []      # Used for all the graphs
