@@ -52,6 +52,7 @@ class system_ctrl_pnl(wx.Panel):
         height_of_pannels_above = 230
         space_left = win_height - height_of_pannels_above
         wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, pos = (0, height_of_pannels_above), size = wx.Size(285, space_left), style = wx.TAB_TRAVERSAL )
+        # Start drawing the UI elements
         wx.StaticText(self,  label='System Config Menu', pos=(25, 10))
         self.read_system_btn = wx.Button(self, label='Read System Info', pos=(10, 70), size=(175, 30))
         self.read_system_btn.Bind(wx.EVT_BUTTON, self.read_system_click)
@@ -75,8 +76,8 @@ class system_ctrl_pnl(wx.Panel):
             hdd_percent = responce_list[-2]
             hdd_available = responce_list[-3]
             hdd_used = responce_list[-4]
-        system_info_pnl.sys_hdd_remain.SetLabel("remaining - " + str(hdd_available))
-        system_info_pnl.sys_hdd_used.SetLabel("used - " + str(hdd_used) + " (" + str(hdd_percent) + ")")
+        system_info_pnl.sys_hdd_remain.SetLabel(str(hdd_available) + " KB")
+        system_info_pnl.sys_hdd_used.SetLabel(str(hdd_used) + " KB (" + str(hdd_percent) + ")")
         #check installed OS
         try:
             stdin, stdout, stderr = ssh.exec_command("cat /etc/os-release")
@@ -104,9 +105,9 @@ class system_ctrl_pnl(wx.Panel):
             #print not_pigrow
             folder_pcent = float(pigrow_size) / float(hdd_used) * 100
             folder_pcent = format(folder_pcent, '.2f')
-            system_info_pnl.sys_pigrow_folder.SetLabel("Pigrow folder size; " + str(pigrow_size) + " (" +str(folder_pcent) + "% of total used)")
+            system_info_pnl.sys_pigrow_folder.SetLabel(str(pigrow_size) + " KB (" +str(folder_pcent) + "% of used)")
         else:
-            system_info_pnl.sys_pigrow_folder.SetLabel("No pigrow install detected")
+            system_info_pnl.sys_pigrow_folder.SetLabel("No Pigrow folder detected")
         #check if git upate needed
         update_needed = False
         try:
@@ -172,12 +173,44 @@ class system_ctrl_pnl(wx.Panel):
             self.update_type = "merge"
         elif update_needed == 'error':
             system_info_pnl.sys_pigrow_update.SetLabel("some confusion with git, sorry.")
+        #check for low power WARNING
+        # not entirely sure if this works on all version of the pi, it looks to see if the power light is on
+        # it's normally turned off as a LOW POWER warning
+        try:
+            stdin, stdout, stderr = ssh.exec_command("cat /sys/class/leds/led1/brightness")
+            responce = stdout.read().strip()
+            error = stderr.read()
+            if responce == "255":
+                system_info_pnl.sys_power_status.SetLabel("no warning")
+            else:
+                system_info_pnl.sys_power_status.SetLabel("reads " + str(responce) + " low power warning!")
+        except Exception as e:
+            print("lookit! a problem - " + str(e))
+            system_info_pnl.sys_power_status.SetLabel("unable to read")
+        # WIFI
+        # Read the currently connected network name
+        try:
+            stdin, stdout, stderr = ssh.exec_command("/sbin/iwgetid")
+            responce = stdout.read().strip()
+            error = stderr.read()
+            print responce
+            print error
+            network_name = responce.split('"')[1]
+            system_info_pnl.sys_network_name.SetLabel(network_name)
+        except Exception as e:
+            print("fiddle and fidgets! - " + str(e))
+            system_info_pnl.sys_network_name.SetLabel("unable to read")
+
+
+
+
+
 
     def update_pigrow_click(self, e):
         if self.update_type == "clean":
             git_command = "git -C ~/Pigrow/ pull"
         elif self.update_type == "merge":
-            #this can cause odd confusions 
+            #this can cause odd confusions which requires use of 'git rebase'
             question = raw_input("merge using ours or theirs?")
             if question == "ours":
                 git_command = "git -C ~/Pigrow/ pull --strategy=ours" #if we've changed a file it ignores the remote updated one
@@ -196,10 +229,6 @@ class system_ctrl_pnl(wx.Panel):
         except Exception as e:
             print("ooops! " + str(e))
 
-
-
-
-
 class system_info_pnl(wx.Panel):
     #
     #  This displays the system info
@@ -210,13 +239,26 @@ class system_info_pnl(wx.Panel):
         win_width = parent.GetSize()[0]
         w_space_left = win_width - 285
         wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, pos = (285, 0), size = wx.Size(w_space_left , 800), style = wx.TAB_TRAVERSAL )
-        wx.StaticText(self,  label='System infiormation;', pos=(5, 10))
-        system_info_pnl.sys_hdd_remain = wx.StaticText(self,  label='Disk Space;', pos=(25, 60), size=(200,30))
-        system_info_pnl.sys_hdd_used = wx.StaticText(self,  label='Disk Used;', pos=(25, 90), size=(200,30))
-        system_info_pnl.sys_os_name = wx.StaticText(self,  label='os installed;', pos=(25, 130), size=(200,30))
+        ## Draw UI elements
+        png = wx.Image('./sysconf.png', wx.BITMAP_TYPE_ANY).ConvertToBitmap()
+        wx.StaticBitmap(self, -1, png, (0, 0), (png.GetWidth(), png.GetHeight()))
+        #SDcard details
+        system_info_pnl.sys_hdd_total = wx.StaticText(self,  label='total;', pos=(250, 185), size=(200,30))
+        system_info_pnl.sys_hdd_remain = wx.StaticText(self,  label='free;', pos=(250, 250), size=(200,30))
+        system_info_pnl.sys_hdd_used = wx.StaticText(self,  label='Used;', pos=(250, 215), size=(200,30))
+        system_info_pnl.sys_pigrow_folder = wx.StaticText(self,  label='Pigrow folder;', pos=(250, 285), size=(200,30))
+        #Software details
+        system_info_pnl.sys_os_name = wx.StaticText(self,  label='os installed;', pos=(250, 365), size=(200,30))
+        system_info_pnl.sys_pigrow_version = wx.StaticText(self,  label='pigrow version;', pos=(250, 405), size=(200,30))
+        system_info_pnl.sys_pigrow_update = wx.StaticText(self,  label='Pigrow update status', pos=(250, 450), size=(200,30))
+        #wifi deatils
+        system_info_pnl.sys_network_name = wx.StaticText(self,  label='network name', pos=(250, 535), size=(200,30))
 
-        system_info_pnl.sys_pigrow_folder = wx.StaticText(self,  label='Pigrow folder;', pos=(25, 180), size=(200,30))
-        system_info_pnl.sys_pigrow_update = wx.StaticText(self,  label='Pigrow update status', pos=(75, 200), size=(200,30))
+        #camera details
+
+        #power level warning details
+        system_info_pnl.sys_power_status = wx.StaticText(self,  label='power status', pos=(625, 390), size=(200,30))
+
 
 class cron_info_pnl(wx.Panel):
     def __init__( self, parent ):
