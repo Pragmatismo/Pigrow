@@ -73,9 +73,12 @@ class system_ctrl_pnl(wx.Panel):
             for item in responce.split(" "):
                 if len(item) > 0:
                     responce_list.append(item)
+                    print item
+            hdd_total = responce_list[-5]        
             hdd_percent = responce_list[-2]
             hdd_available = responce_list[-3]
             hdd_used = responce_list[-4]
+        system_info_pnl.sys_hdd_total.SetLabel(str(hdd_total) + " KB")
         system_info_pnl.sys_hdd_remain.SetLabel(str(hdd_available) + " KB")
         system_info_pnl.sys_hdd_used.SetLabel(str(hdd_used) + " KB (" + str(hdd_percent) + ")")
         #check installed OS
@@ -243,7 +246,7 @@ class system_info_pnl(wx.Panel):
         png = wx.Image('./sysconf.png', wx.BITMAP_TYPE_ANY).ConvertToBitmap()
         wx.StaticBitmap(self, -1, png, (0, 0), (png.GetWidth(), png.GetHeight()))
         #SDcard details
-        system_info_pnl.sys_hdd_total = wx.StaticText(self,  label='total;', pos=(250, 185), size=(200,30))
+        system_info_pnl.sys_hdd_total = wx.StaticText(self,  label='total;', pos=(250, 180), size=(200,30))
         system_info_pnl.sys_hdd_remain = wx.StaticText(self,  label='free;', pos=(250, 250), size=(200,30))
         system_info_pnl.sys_hdd_used = wx.StaticText(self,  label='Used;', pos=(250, 215), size=(200,30))
         system_info_pnl.sys_pigrow_folder = wx.StaticText(self,  label='Pigrow folder;', pos=(250, 285), size=(200,30))
