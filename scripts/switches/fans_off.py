@@ -3,6 +3,15 @@ import datetime, sys
 sys.path.append('/home/pi/Pigrow/scripts/')
 import pigrow_defs
 
+for argu in sys.argv[1:]:
+    if argu == '-h' or argu == '--help':
+        print("Pigrow Fans switch")
+        print("")
+        print("This turns the Fans OFF")
+        print("To use this program you must have the devices GPIO and wiring direction")
+        print("set in the pigrow configuration file /config/pigrow_config.txt")
+        print("use the setup tool /scripts/config/setup.py or the remote gui")
+        sys.exit()
 
 def fans_off(set_dic, switch_log):
     script = 'fans_off.py'
