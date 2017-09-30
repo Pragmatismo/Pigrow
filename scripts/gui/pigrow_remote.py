@@ -73,8 +73,7 @@ class system_ctrl_pnl(wx.Panel):
             for item in responce.split(" "):
                 if len(item) > 0:
                     responce_list.append(item)
-                    print item
-            hdd_total = responce_list[-5]        
+            hdd_total = responce_list[-5]
             hdd_percent = responce_list[-2]
             hdd_available = responce_list[-3]
             hdd_used = responce_list[-4]
@@ -204,24 +203,22 @@ class system_ctrl_pnl(wx.Panel):
             print("fiddle and fidgets! - " + str(e))
             system_info_pnl.sys_network_name.SetLabel("unable to read")
 
-
-
-
-
-
     def update_pigrow_click(self, e):
+        #checks to determine best git merge stratergy
         if self.update_type == "clean":
             git_command = "git -C ~/Pigrow/ pull"
         elif self.update_type == "merge":
+            print("WARNING WARNING _ THIS CODE IS VERY MUCH IN THE TESTING PHASE")
+            print("if you're doing odd things it's very likely to mess up!")
             #this can cause odd confusions which requires use of 'git rebase'
+            #reokace command line question with dialog box
             question = raw_input("merge using ours or theirs?")
             if question == "ours":
                 git_command = "git -C ~/Pigrow/ pull --strategy=ours" #if we've changed a file it ignores the remote updated one
             elif question == "theirs":
-                #needs to commit or stash changes before working
+                #often needs to commit or stash changes before working
                 git_command = "git -C ~/Pigrow/ pull -s recursive -X theirs" #removes any changes made locally and replaces file with remote updated one
-
-
+        #runs the git pull command using the selected stratergy
         try:
             stdin, stdout, stderr = ssh.exec_command(git_command)
             responce = stdout.read().strip()
