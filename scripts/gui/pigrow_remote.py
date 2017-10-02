@@ -1270,7 +1270,8 @@ class localfiles_ctrl_pnl(wx.Panel):
                             update_status = "unchecked"
                             localfiles_info_pnl.add_to_logs_list(MainApp.localfiles_info_pannel, thing, modified, file_age, update_status)
                 # check to see if crontab is saved locally
-                if os.path.isfile(localfiles_info_pnl.local_path + "crontab_backup.txt") == True:
+                localfiles_ctrl_pnl.cron_backup_file = localfiles_info_pnl.local_path + "crontab_backup.txt"
+                if os.path.isfile(localfiles_ctrl_pnl.cron_backup_file) == True:
                     localfiles_info_pnl.cron_info.SetLabel("local cron file exists")
                 else:
                     localfiles_info_pnl.cron_info.SetLabel("no local cron file")
@@ -1312,15 +1313,23 @@ class file_download_dialog(wx.Dialog):
         # downloading cron file and saving it as a local backup
         if self.cb_cron.GetValue() == True:
             print("including crontab file")
-        #connecting the sftp pipe
+            try:
+                stdin, stdout, stderr = ssh.exec_command("crontab -l")
+                cron_text = stdout.read()
+            except Exception as e:
+                print("failed to read cron due to;" + str(e))
+            with open(localfiles_ctrl_pnl.cron_backup_file, "w") as file_to_save:
+                file_to_save.write(cron_text)
+        ## Downloading files from the pi
+        # connecting the sftp pipe
         port = 22
         ssh_tran = paramiko.Transport((pi_link_pnl.target_ip, port))
         print("  - connecting transport pipe... " + pi_link_pnl.target_ip + " port:" + str(port))
         ssh_tran.connect(username=pi_link_pnl.target_user, password=pi_link_pnl.target_pass)
         sftp = paramiko.SFTPClient.from_transport(ssh_tran)
-        #creating a list of files to be download from the pigrow
+        # creating a list of files to be download from the pigrow
         if self.cb_all.GetValue() == False:
-        #make list using selected components to be downloaded, list contains two elemnts [remote file, local destination]
+        # make list using selected components to be downloaded, list contains two elemnts [remote file, local destination]
             if self.cb_conf.GetValue() == True:
                 local_config = localfiles_info_pnl.local_path + "config/"
                 if not os.path.isdir(local_config):
@@ -1345,10 +1354,14 @@ class file_download_dialog(wx.Dialog):
                 local_pics = localfiles_info_pnl.local_path + caps_folder + "/"
                 if not os.path.isdir(local_pics):
                     os.makedirs(local_pics)
+                #get list of pics we already have
+                listofcaps_local = os.listdir(local_pics)
+                #get list of remote images
                 target_caps_files = "/home/" + str(pi_link_pnl.target_user) + "/Pigrow/" + caps_folder + "/"
                 remote_caps = sftp.listdir(target_caps_files)
                 for item in remote_caps:
-                    files_to_download.append([target_caps_files + item, local_pics + item])
+                    if item not in local_pics:
+                        files_to_download.append([target_caps_files + item, local_pics + item])
             if self.cb_graph.GetValue() == True:
                 target_graph_files = "/home/" + str(pi_link_pnl.target_user) + "/Pigrow/graphs/"
                 local_graphs = localfiles_info_pnl.local_path + "graphs/"
@@ -1358,7 +1371,8 @@ class file_download_dialog(wx.Dialog):
                 for item in remote_graphs:
                     files_to_download.append([target_graph_files + item, local_graphs + item])
         else:
-            #make list of all ~/Pigrow/ files using os.walk
+            # make list of all ~/Pigrow/ files using os.walk
+            #    - this is for complete backups ignoring the file system.
             print("downloading entire pigrow folder")
         print files_to_download
         print(len(files_to_download))
@@ -1373,10 +1387,8 @@ class file_download_dialog(wx.Dialog):
         ssh_tran.close()
         print("train has reached the depot")
 
-
-
-
     def OnClose(self, e):
+        #closes the dialogue box
         self.Destroy()
 
 class pi_link_pnl(wx.Panel):
