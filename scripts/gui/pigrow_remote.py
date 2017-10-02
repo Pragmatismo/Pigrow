@@ -1160,13 +1160,17 @@ class localfiles_info_pnl(wx.Panel):
         wx.StaticBitmap(self, -1, png, (0, 0), (png.GetWidth(), png.GetHeight()))
         # placing the information boxes
         localfiles_info_pnl.local_path_txt = wx.StaticText(self,  label='local path', pos=(220, 90), size=(200,30))
-        localfiles_info_pnl.some_text = wx.StaticText(self,  label='some text', pos=(600, 600), size=(200,30))
-        localfiles_info_pnl.config_text = wx.StaticText(self,  label='config text', pos=(25, 410), size=(200,30))
-
+        #local photo storage info
+        localfiles_info_pnl.photo_text = wx.StaticText(self,  label='photo text', pos=(625, 175), size=(200,30))
+        #file list boxes
         localfiles_info_pnl.config_files = self.config_file_list(self, 1, pos=(5, 160), size=(600, 200))
         localfiles_info_pnl.config_files.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.onDoubleClick_config)
         localfiles_info_pnl.logs_files = self.logs_file_list(self, 1, pos=(5, 390), size=(600, 200))
         localfiles_info_pnl.logs_files.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.onDoubleClick_logs)
+        localfiles_info_pnl.config_files = self.config_file_list(self, 1, pos=(5, 160), size=(600, 200))
+        localfiles_info_pnl.config_files.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.onDoubleClick_config)
+        #cron info text
+        localfiles_info_pnl.cron_info = wx.StaticText(self,  label='cron info', pos=(625, 635), size=(200,30))
 
     class config_file_list(wx.ListCtrl):
         def __init__(self, parent, id, pos=(25, 250), size=(600,200)):
@@ -1221,6 +1225,8 @@ class localfiles_ctrl_pnl(wx.Panel):
         wx.StaticText(self,  label='Local file and backup options', pos=(25, 10))
         self.update_local_filelist_btn = wx.Button(self, label='Refresh Filelist Info', pos=(15, 60), size=(175, 30))
         self.update_local_filelist_btn.Bind(wx.EVT_BUTTON, self.update_local_filelist_click)
+        self.download_btn = wx.Button(self, label='Download files', pos=(15, 90), size=(175, 30))
+        self.download_btn.Bind(wx.EVT_BUTTON, self.download_click)
 
     def update_local_filelist_click(self, e):
         if localfiles_info_pnl.local_path == "":
@@ -1263,7 +1269,115 @@ class localfiles_ctrl_pnl(wx.Panel):
                             file_age = str(file_age).split(".")[0]
                             update_status = "unchecked"
                             localfiles_info_pnl.add_to_logs_list(MainApp.localfiles_info_pannel, thing, modified, file_age, update_status)
+                # check to see if crontab is saved locally
+                if os.path.isfile(localfiles_info_pnl.local_path + "crontab_backup.txt") == True:
+                    localfiles_info_pnl.cron_info.SetLabel("local cron file exists")
+                else:
+                    localfiles_info_pnl.cron_info.SetLabel("no local cron file")
 
+    def download_click(self, e):
+        #show download dialog boxes
+        file_dbox = file_download_dialog(None, title='Download dialog box')
+        file_dbox.ShowModal()
+
+class file_download_dialog(wx.Dialog):
+    #Dialog box for downloding files from pi to local storage folder
+    def __init__(self, *args, **kw):
+        super(file_download_dialog, self).__init__(*args, **kw)
+        self.InitUI()
+        self.SetSize((750, 300))
+        self.SetTitle("Download files from Pigrow")
+        self.Bind(wx.EVT_CLOSE, self.OnClose)
+    def InitUI(self):
+        #draw the pannel
+        wx.StaticText(self,  label='Select elements to download to local storage', pos=(15, 10))
+        self.cb_conf = wx.CheckBox(self, label='Config',pos = (60,30))
+        self.cb_logs = wx.CheckBox(self, label='Logs',pos = (60,55))
+        self.cb_cron = wx.CheckBox(self, label='Crontab',pos = (60,80))
+        self.cb_pics = wx.CheckBox(self, label='Photos',pos = (60,105))
+        self.cb_graph = wx.CheckBox(self, label='Graphs',pos = (60,130))
+        #right side
+        wx.StaticText(self,  label='saving to; '+ localfiles_info_pnl.local_path, pos=(15, 155))
+        #progress bar
+        self.cb_all = wx.CheckBox(self, label='Whole Pigrow Folder',pos = (200,120))
+        self.current_file_txt = wx.StaticText(self,  label='--', pos=(30, 190))
+        #start button
+        self.start_download_btn = wx.Button(self, label='Download files', pos=(20, 250), size=(175, 50))
+        self.start_download_btn.Bind(wx.EVT_BUTTON, self.start_download_click)
+         ## universal controls
+        pnl = wx.Panel(self)
+
+    def start_download_click(self, e):
+        files_to_download = []
+        # downloading cron file and saving it as a local backup
+        if self.cb_cron.GetValue() == True:
+            print("including crontab file")
+        #connecting the sftp pipe
+        port = 22
+        ssh_tran = paramiko.Transport((pi_link_pnl.target_ip, port))
+        print("  - connecting transport pipe... " + pi_link_pnl.target_ip + " port:" + str(port))
+        ssh_tran.connect(username=pi_link_pnl.target_user, password=pi_link_pnl.target_pass)
+        sftp = paramiko.SFTPClient.from_transport(ssh_tran)
+        #creating a list of files to be download from the pigrow
+        if self.cb_all.GetValue() == False:
+        #make list using selected components to be downloaded, list contains two elemnts [remote file, local destination]
+            if self.cb_conf.GetValue() == True:
+                local_config = localfiles_info_pnl.local_path + "config/"
+                if not os.path.isdir(local_config):
+                    os.makedirs(local_config)
+                target_config_files = "/home/" + str(pi_link_pnl.target_user) + "/Pigrow/config/"
+                remote_config = sftp.listdir(target_config_files)
+                for item in remote_config:
+                    files_to_download.append([target_config_files + item, local_config + item])
+            if self.cb_logs.GetValue() == True:
+                local_logs = localfiles_info_pnl.local_path + "logs/"
+                if not os.path.isdir(local_logs):
+                    os.makedirs(local_logs)
+                target_logs_files = "/home/" + str(pi_link_pnl.target_user) + "/Pigrow/logs/"
+                remote_logs = sftp.listdir(target_logs_files)
+                for item in remote_logs:
+                    files_to_download.append([target_logs_files + item, local_logs + item])
+            if self.cb_pics.GetValue() == True:
+                ## CHANGE TO setting
+                #
+                caps_folder = 'caps'
+                #
+                local_pics = localfiles_info_pnl.local_path + caps_folder + "/"
+                if not os.path.isdir(local_pics):
+                    os.makedirs(local_pics)
+                target_caps_files = "/home/" + str(pi_link_pnl.target_user) + "/Pigrow/" + caps_folder + "/"
+                remote_caps = sftp.listdir(target_caps_files)
+                for item in remote_caps:
+                    files_to_download.append([target_caps_files + item, local_pics + item])
+            if self.cb_graph.GetValue() == True:
+                target_graph_files = "/home/" + str(pi_link_pnl.target_user) + "/Pigrow/graphs/"
+                local_graphs = localfiles_info_pnl.local_path + "graphs/"
+                if not os.path.isdir(local_graphs):
+                    os.makedirs(local_graphs)
+                remote_graphs = sftp.listdir(target_graph_files)
+                for item in remote_graphs:
+                    files_to_download.append([target_graph_files + item, local_graphs + item])
+        else:
+            #make list of all ~/Pigrow/ files using os.walk
+            print("downloading entire pigrow folder")
+        print files_to_download
+        print(len(files_to_download))
+        for remote_file in files_to_download:
+            #grabs all files in the list and overwrites them if they already exist locally.
+            sftp.get(remote_file[0], remote_file[1])
+            print remote_file[0], remote_file[1]
+            self.current_file_txt.SetLabel(remote_file[0] + " --> " + remote_file[1])
+        self.current_file_txt.SetLabel("Done")
+        #disconnect the sftp pipe
+        sftp.close()
+        ssh_tran.close()
+        print("train has reached the depot")
+
+
+
+
+    def OnClose(self, e):
+        self.Destroy()
 
 class pi_link_pnl(wx.Panel):
     #
