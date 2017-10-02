@@ -26,6 +26,9 @@ print("     not really enough to be useful and some might not work fully...")
 print("  it's fuckin' sweet as tho, aye?")
 print("")
 
+import os
+import time
+import datetime
 try:
     import wx
     import wx.lib.scrolledpanel
@@ -101,7 +104,9 @@ class system_ctrl_pnl(wx.Panel):
         except Exception as e:
             print("ahhh! " + str(e))
         if not "No such file or directory" in error:
+            self.update_pigrow_btn.SetLabel("update pigrow")
             pigrow_size = responce.split("\t")[0]
+            self.pigrow_folder_size = pigrow_size
             #print pigrow_size
             not_pigrow = (int(hdd_used) - int(pigrow_size))
             #print not_pigrow
@@ -110,6 +115,8 @@ class system_ctrl_pnl(wx.Panel):
             system_info_pnl.sys_pigrow_folder.SetLabel(str(pigrow_size) + " KB (" +str(folder_pcent) + "% of used)")
         else:
             system_info_pnl.sys_pigrow_folder.SetLabel("No Pigrow folder detected")
+            self.update_pigrow_btn.SetLabel("install pigrow")
+
         #check if git upate needed
         update_needed = False
         try:
@@ -204,30 +211,55 @@ class system_ctrl_pnl(wx.Panel):
             system_info_pnl.sys_network_name.SetLabel("unable to read")
 
     def update_pigrow_click(self, e):
+        #reads button lable for check if update or install is required
+        if self.update_pigrow_btn.GetLabel() == "update pigrow":
+            do_upgrade = True
         #checks to determine best git merge stratergy
-        if self.update_type == "clean":
-            git_command = "git -C ~/Pigrow/ pull"
-        elif self.update_type == "merge":
-            print("WARNING WARNING _ THIS CODE IS VERY MUCH IN THE TESTING PHASE")
-            print("if you're doing odd things it's very likely to mess up!")
-            #this can cause odd confusions which requires use of 'git rebase'
-            #reokace command line question with dialog box
-            question = raw_input("merge using ours or theirs?")
-            if question == "ours":
-                git_command = "git -C ~/Pigrow/ pull --strategy=ours" #if we've changed a file it ignores the remote updated one
-            elif question == "theirs":
-                #often needs to commit or stash changes before working
-                git_command = "git -C ~/Pigrow/ pull -s recursive -X theirs" #removes any changes made locally and replaces file with remote updated one
-        #runs the git pull command using the selected stratergy
-        try:
-            stdin, stdout, stderr = ssh.exec_command(git_command)
-            responce = stdout.read().strip()
-            error = stderr.read()
-            print responce
-            if len(error) > 0:
-                print 'error:' + str(error)
-        except Exception as e:
-            print("ooops! " + str(e))
+            if self.update_type == "clean":
+                git_command = "git -C ~/Pigrow/ pull"
+            elif self.update_type == "merge":
+                print("WARNING WARNING _ THIS CODE IS VERY MUCH IN THE TESTING PHASE")
+                print("if you're doing odd things it's very likely to mess up!")
+                #this can cause odd confusions which requires use of 'git rebase'
+                #reokace command line question with dialog box
+                question = raw_input("merge using default, ours or theirs?")
+                if question == "ours":
+                    git_command = "git -C ~/Pigrow/ pull --strategy=ours" #if we've changed a file it ignores the remote updated one
+                elif question == "theirs":
+                    #often needs to commit or stash changes before working
+                    git_command = "git -C ~/Pigrow/ pull -s recursive -X theirs" #removes any changes made locally and replaces file with remote updated one
+                elif question == "default":
+                    git_command = "git -C ~/Pigrow/ pull"
+                else:
+                    print("not an option, calling the whole thing off...")
+                    do_upgrade = False
+            #runs the git pull command using the selected stratergy
+            if do_upgrade == True:
+                if raw_input("type yes if you really want to update your pigrow") == "yes":
+                    try:
+                        stdin, stdout, stderr = ssh.exec_command(git_command)
+                        responce = stdout.read().strip()
+                        error = stderr.read()
+                        print responce
+                        if len(error) > 0:
+                            print 'error:' + str(error)
+                        system_info_pnl.sys_pigrow_update.SetLabel("--UPDATED--")
+                    except Exception as e:
+                        print("ooops! " + str(e))
+                        system_info_pnl.sys_pigrow_update.SetLabel("--UPDATE ERROR--")
+        elif self.update_pigrow_btn.GetLabel() == "install pigrow":
+            print("Downloading Pigrow code onto Pi")
+            try:
+                stdin, stdout, stderr = ssh.exec_command("git clone https://github.com/Pragmatismo/Pigrow ~/")
+                responce = stdout.read().strip()
+                error = stderr.read()
+                print responce, error
+                system_info_pnl.sys_pigrow_update.SetLabel("--NEW INSTALL--")
+            except Exception as e:
+                print("installing a pigrow failed! " + str(e))
+
+
+
 
 class system_info_pnl(wx.Panel):
     #
@@ -1111,6 +1143,128 @@ class cron_job_dialog(wx.Dialog):
         self.job_dow = None
         self.Destroy()
 
+class localfiles_info_pnl(wx.Panel):
+    #
+    #  This displays the system info
+    # controlled by the system_ctrl_pnl
+    #
+    def __init__( self, parent ):
+        win_height = parent.GetSize()[1]
+        win_width = parent.GetSize()[0]
+        w_space_left = win_width - 285
+        wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, pos = (285, 0), size = wx.Size(w_space_left , 800), style = wx.TAB_TRAVERSAL )
+        #set blank variables
+        localfiles_info_pnl.local_path = ""
+        ## Draw UI elements
+        png = wx.Image('./localfiles.png', wx.BITMAP_TYPE_ANY).ConvertToBitmap()
+        wx.StaticBitmap(self, -1, png, (0, 0), (png.GetWidth(), png.GetHeight()))
+        # placing the information boxes
+        localfiles_info_pnl.local_path_txt = wx.StaticText(self,  label='local path', pos=(220, 90), size=(200,30))
+        localfiles_info_pnl.some_text = wx.StaticText(self,  label='some text', pos=(600, 600), size=(200,30))
+        localfiles_info_pnl.config_text = wx.StaticText(self,  label='config text', pos=(25, 410), size=(200,30))
+
+        localfiles_info_pnl.config_files = self.config_file_list(self, 1, pos=(5, 160), size=(600, 200))
+        localfiles_info_pnl.config_files.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.onDoubleClick_config)
+        localfiles_info_pnl.logs_files = self.logs_file_list(self, 1, pos=(5, 390), size=(600, 200))
+        localfiles_info_pnl.logs_files.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.onDoubleClick_logs)
+
+    class config_file_list(wx.ListCtrl):
+        def __init__(self, parent, id, pos=(25, 250), size=(600,200)):
+            wx.ListCtrl.__init__(self, parent, id, size=size, style=wx.LC_REPORT, pos=pos)
+            self.InsertColumn(0, 'Filename')
+            self.InsertColumn(1, 'date modified')
+            self.InsertColumn(2, 'age')
+            self.InsertColumn(3, 'updated?')
+            self.SetColumnWidth(0, 190)
+            self.SetColumnWidth(1, 150)
+            self.SetColumnWidth(2, 160)
+            self.SetColumnWidth(3, 100)
+
+    class logs_file_list(wx.ListCtrl):
+        def __init__(self, parent, id, pos=(25, 500), size=(600,200)):
+            wx.ListCtrl.__init__(self, parent, id, size=size, style=wx.LC_REPORT, pos=pos)
+            self.InsertColumn(0, 'Filename')
+            self.InsertColumn(1, 'date modified')
+            self.InsertColumn(2, 'age')
+            self.InsertColumn(3, 'updated?')
+            self.SetColumnWidth(0, 190)
+            self.SetColumnWidth(1, 150)
+            self.SetColumnWidth(2, 160)
+            self.SetColumnWidth(3, 100)
+
+    def add_to_config_list(self, name, mod_date, age, update_status):
+        localfiles_info_pnl.config_files.InsertStringItem(0, str(name))
+        localfiles_info_pnl.config_files.SetStringItem(0, 1, str(mod_date))
+        localfiles_info_pnl.config_files.SetStringItem(0, 2, str(age))
+        localfiles_info_pnl.config_files.SetStringItem(0, 3, str(update_status))
+
+    def add_to_logs_list(self, name, mod_date, age, update_status):
+        localfiles_info_pnl.logs_files.InsertStringItem(0, str(name))
+        localfiles_info_pnl.logs_files.SetStringItem(0, 1, str(mod_date))
+        localfiles_info_pnl.logs_files.SetStringItem(0, 2, str(age))
+        localfiles_info_pnl.logs_files.SetStringItem(0, 3, str(update_status))
+
+    def onDoubleClick_config(self, e):
+        print("and nothing happens")
+
+    def onDoubleClick_logs(self, e):
+        print("and nothing happens")
+
+
+class localfiles_ctrl_pnl(wx.Panel):
+    def __init__( self, parent ):
+        win_height = parent.GetSize()[1]
+        height_of_pannels_above = 230
+        space_left = win_height - height_of_pannels_above
+        wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, pos = (0, height_of_pannels_above), size = wx.Size(285, space_left), style = wx.TAB_TRAVERSAL )
+        # Start drawing the UI elements
+        wx.StaticText(self,  label='Local file and backup options', pos=(25, 10))
+        self.update_local_filelist_btn = wx.Button(self, label='Refresh Filelist Info', pos=(15, 60), size=(175, 30))
+        self.update_local_filelist_btn.Bind(wx.EVT_BUTTON, self.update_local_filelist_click)
+
+    def update_local_filelist_click(self, e):
+        if localfiles_info_pnl.local_path == "":
+            computer_username = "pragmo"
+            localfiles_info_pnl.local_path = "/home/" + computer_username + "/frompigrow/" + str(pi_link_pnl.boxname) + "/"
+            localfiles_info_pnl.local_path_txt.SetLabel(localfiles_info_pnl.local_path)
+        local_files = os.listdir(localfiles_info_pnl.local_path)
+        folder_list = []
+        #read all the folders in the pigrows local folder
+        for item in local_files:
+            if os.path.isdir(localfiles_info_pnl.local_path + item) == True:
+                folder_files = os.listdir(localfiles_info_pnl.local_path + item)
+                counter = 0
+                for thing in folder_files:
+                    counter = counter + 1
+                folder_list.append([item, counter])
+                #add local config files to list and generate info
+                if item == "config":
+                    config_list = []
+                    config_files = os.listdir(localfiles_info_pnl.local_path + item)
+                    for thing in config_files:
+                        if thing.endswith("txt"):
+                            modified = os.path.getmtime(localfiles_info_pnl.local_path + item + "/" + thing)
+                            #config_list.append([thing, modified])
+                            modified = datetime.datetime.fromtimestamp(modified)
+                            file_age = datetime.datetime.now() - modified
+                            modified = modified.strftime("%Y-%m-%d %H:%M")
+                            file_age = str(file_age).split(".")[0]
+                            update_status = "unchecked"
+                            localfiles_info_pnl.add_to_config_list(MainApp.localfiles_info_pannel, thing, modified, file_age, update_status)
+                if item == "logs":
+                    logs_list = []
+                    logs_files = os.listdir(localfiles_info_pnl.local_path + item)
+                    for thing in logs_files:
+                        if thing.endswith("txt"):
+                            modified = os.path.getmtime(localfiles_info_pnl.local_path + item + "/" + thing)
+                            modified = datetime.datetime.fromtimestamp(modified)
+                            file_age = datetime.datetime.now() - modified
+                            modified = modified.strftime("%Y-%m-%d %H:%M")
+                            file_age = str(file_age).split(".")[0]
+                            update_status = "unchecked"
+                            localfiles_info_pnl.add_to_logs_list(MainApp.localfiles_info_pannel, thing, modified, file_age, update_status)
+
+
 class pi_link_pnl(wx.Panel):
     #
     # Creates the pannel with the raspberry pi data in it
@@ -1274,6 +1428,8 @@ class view_pnl(wx.Panel):
         MainApp.system_info_pannel.Hide()
         MainApp.cron_list_pannel.Hide()
         MainApp.cron_info_pannel.Hide()
+        MainApp.localfiles_ctrl_pannel.Hide()
+        MainApp.localfiles_info_pannel.Hide()
         MainApp.welcome_pannel.Hide()
         if display == 'System Config':
             MainApp.system_ctrl_pannel.Show()
@@ -1288,7 +1444,8 @@ class view_pnl(wx.Panel):
         elif display == 'Multi-script':
             print("changing window display like i'm Mr Polly on coke")
         elif display == 'Local Files':
-            print("changing window display like i'm Mr Polly on heroin")
+            MainApp.localfiles_ctrl_pannel.Show()
+            MainApp.localfiles_info_pannel.Show()
         elif display == 'Timelapse':
             print("changing window display like i'm Mr Polly on crack")
         elif display == 'Graphs':
@@ -1336,6 +1493,10 @@ class MainApp(MainFrame):
         MainApp.system_info_pannel = system_info_pnl(self)
         MainApp.cron_list_pannel = cron_list_pnl(self)
         MainApp.cron_info_pannel = cron_info_pnl(self)
+        MainApp.localfiles_ctrl_pannel = localfiles_ctrl_pnl(self)
+        MainApp.localfiles_info_pannel = localfiles_info_pnl(self)
+        MainApp.localfiles_ctrl_pannel.Hide()
+        MainApp.localfiles_info_pannel.Hide()
         MainApp.cron_list_pannel.Hide()
         MainApp.cron_info_pannel.Hide()
         MainApp.system_ctrl_pannel.Hide()
