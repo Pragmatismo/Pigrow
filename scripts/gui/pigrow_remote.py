@@ -1272,7 +1272,28 @@ class localfiles_ctrl_pnl(wx.Panel):
                 # check to see if crontab is saved locally
                 localfiles_ctrl_pnl.cron_backup_file = localfiles_info_pnl.local_path + "crontab_backup.txt"
                 if os.path.isfile(localfiles_ctrl_pnl.cron_backup_file) == True:
-                    localfiles_info_pnl.cron_info.SetLabel("local cron file exists")
+                    #checks time of local crontab_backup and determines age
+                    modified = os.path.getmtime(localfiles_ctrl_pnl.cron_backup_file)
+                    modified = datetime.datetime.fromtimestamp(modified)
+                    file_age = datetime.datetime.now() - modified
+                    modified = modified.strftime("%Y-%m-%d %H:%M")
+                    file_age = str(file_age).split(".")[0]
+                    #checks to see if local and remote files are the same
+                    try:
+                        stdin, stdout, stderr = ssh.exec_command("crontab -l")
+                        remote_cron_text = stdout.read()
+                    except Exception as e:
+                        print("failed to read cron due to;" + str(e))
+                    #read local file
+                    with open(localfiles_ctrl_pnl.cron_backup_file, "r") as local_cron:
+                        local_cron_text = local_cron.read()
+                    #compare the two files
+                    if remote_cron_text == local_cron_text:
+                        updated = True
+                    else:
+                        updated = False
+                    cron_msg = "local cron file last updated\n    " + modified + "\n    " + file_age + " ago,\n  \n\n identical to pi version: " + str(updated)
+                    localfiles_info_pnl.cron_info.SetLabel(cron_msg)
                 else:
                     localfiles_info_pnl.cron_info.SetLabel("no local cron file")
 
