@@ -1159,9 +1159,13 @@ class localfiles_info_pnl(wx.Panel):
         png = wx.Image('./localfiles.png', wx.BITMAP_TYPE_ANY).ConvertToBitmap()
         wx.StaticBitmap(self, -1, png, (0, 0), (png.GetWidth(), png.GetHeight()))
         # placing the information boxes
-        localfiles_info_pnl.local_path_txt = wx.StaticText(self,  label='local path', pos=(220, 90), size=(200,30))
+        localfiles_info_pnl.local_path_txt = wx.StaticText(self,  label='local path', pos=(220, 80), size=(200,30))
         #local photo storage info
-        localfiles_info_pnl.photo_text = wx.StaticText(self,  label='photo text', pos=(625, 175), size=(200,30))
+        localfiles_info_pnl.caps_folder = 'caps'
+        localfiles_info_pnl.folder_text = wx.StaticText(self,  label=' ' + localfiles_info_pnl.caps_folder, pos=(770, 130), size=(200,30))
+        localfiles_info_pnl.photo_text = wx.StaticText(self,  label='photo text', pos=(625, 166), size=(170,30))
+        localfiles_info_pnl.first_photo_title = wx.StaticText(self,  label='first image', pos=(640, 245), size=(170,30))
+        localfiles_info_pnl.last_photo_title = wx.StaticText(self,  label='last image', pos=(640, 520), size=(170,30))
         #file list boxes
         localfiles_info_pnl.config_files = self.config_file_list(self, 1, pos=(5, 160), size=(600, 200))
         localfiles_info_pnl.config_files.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.onDoubleClick_config)
@@ -1170,7 +1174,7 @@ class localfiles_info_pnl(wx.Panel):
         localfiles_info_pnl.config_files = self.config_file_list(self, 1, pos=(5, 160), size=(600, 200))
         localfiles_info_pnl.config_files.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.onDoubleClick_config)
         #cron info text
-        localfiles_info_pnl.cron_info = wx.StaticText(self,  label='cron info', pos=(625, 635), size=(200,30))
+        localfiles_info_pnl.cron_info = wx.StaticText(self,  label='cron info', pos=(340, 635), size=(200,30))
 
     class config_file_list(wx.ListCtrl):
         def __init__(self, parent, id, pos=(25, 250), size=(600,200)):
@@ -1195,6 +1199,18 @@ class localfiles_info_pnl(wx.Panel):
             self.SetColumnWidth(1, 150)
             self.SetColumnWidth(2, 160)
             self.SetColumnWidth(3, 100)
+
+    def draw_photo_folder_images(self, first_pic, last_pic):
+        # load and display first image
+        first = wx.Image(first_pic, wx.BITMAP_TYPE_ANY)
+        first = first.Scale(225, 225, wx.IMAGE_QUALITY_HIGH)
+        first = first.ConvertToBitmap()
+        photo_folder_first_pic = wx.StaticBitmap(self, -1, first, (650, 270), (first.GetWidth(), first.GetHeight()))
+        # load and display last image
+        last = wx.Image(last_pic, wx.BITMAP_TYPE_ANY)
+        last = last.Scale(225, 225, wx.IMAGE_QUALITY_HIGH)
+        last = last.ConvertToBitmap()
+        photo_folder_last_pic = wx.StaticBitmap(self, -1, last, (650, 545), (last.GetWidth(), last.GetHeight()))
 
     def add_to_config_list(self, name, mod_date, age, update_status):
         localfiles_info_pnl.config_files.InsertStringItem(0, str(name))
@@ -1229,73 +1245,98 @@ class localfiles_ctrl_pnl(wx.Panel):
         self.download_btn.Bind(wx.EVT_BUTTON, self.download_click)
 
     def update_local_filelist_click(self, e):
+        #set local files path
         if localfiles_info_pnl.local_path == "":
             computer_username = "pragmo"
             localfiles_info_pnl.local_path = "/home/" + computer_username + "/frompigrow/" + str(pi_link_pnl.boxname) + "/"
-            localfiles_info_pnl.local_path_txt.SetLabel(localfiles_info_pnl.local_path)
-        local_files = os.listdir(localfiles_info_pnl.local_path)
-        folder_list = []
-        #read all the folders in the pigrows local folder
-        for item in local_files:
-            if os.path.isdir(localfiles_info_pnl.local_path + item) == True:
-                folder_files = os.listdir(localfiles_info_pnl.local_path + item)
-                counter = 0
-                for thing in folder_files:
-                    counter = counter + 1
-                folder_list.append([item, counter])
-                #add local config files to list and generate info
-                if item == "config":
-                    config_list = []
-                    config_files = os.listdir(localfiles_info_pnl.local_path + item)
-                    for thing in config_files:
-                        if thing.endswith("txt"):
-                            modified = os.path.getmtime(localfiles_info_pnl.local_path + item + "/" + thing)
-                            #config_list.append([thing, modified])
-                            modified = datetime.datetime.fromtimestamp(modified)
-                            file_age = datetime.datetime.now() - modified
-                            modified = modified.strftime("%Y-%m-%d %H:%M")
-                            file_age = str(file_age).split(".")[0]
-                            update_status = "unchecked"
-                            localfiles_info_pnl.add_to_config_list(MainApp.localfiles_info_pannel, thing, modified, file_age, update_status)
-                if item == "logs":
-                    logs_list = []
-                    logs_files = os.listdir(localfiles_info_pnl.local_path + item)
-                    for thing in logs_files:
-                        if thing.endswith("txt"):
-                            modified = os.path.getmtime(localfiles_info_pnl.local_path + item + "/" + thing)
-                            modified = datetime.datetime.fromtimestamp(modified)
-                            file_age = datetime.datetime.now() - modified
-                            modified = modified.strftime("%Y-%m-%d %H:%M")
-                            file_age = str(file_age).split(".")[0]
-                            update_status = "unchecked"
-                            localfiles_info_pnl.add_to_logs_list(MainApp.localfiles_info_pannel, thing, modified, file_age, update_status)
-                # check to see if crontab is saved locally
-                localfiles_ctrl_pnl.cron_backup_file = localfiles_info_pnl.local_path + "crontab_backup.txt"
-                if os.path.isfile(localfiles_ctrl_pnl.cron_backup_file) == True:
-                    #checks time of local crontab_backup and determines age
-                    modified = os.path.getmtime(localfiles_ctrl_pnl.cron_backup_file)
-                    modified = datetime.datetime.fromtimestamp(modified)
-                    file_age = datetime.datetime.now() - modified
-                    modified = modified.strftime("%Y-%m-%d %H:%M")
-                    file_age = str(file_age).split(".")[0]
-                    #checks to see if local and remote files are the same
-                    try:
-                        stdin, stdout, stderr = ssh.exec_command("crontab -l")
-                        remote_cron_text = stdout.read()
-                    except Exception as e:
-                        print("failed to read cron due to;" + str(e))
-                    #read local file
-                    with open(localfiles_ctrl_pnl.cron_backup_file, "r") as local_cron:
-                        local_cron_text = local_cron.read()
-                    #compare the two files
-                    if remote_cron_text == local_cron_text:
-                        updated = True
+            localfiles_info_pnl.local_path_txt.SetLabel("\n" + localfiles_info_pnl.local_path)
+        if not os.path.isdir(localfiles_info_pnl.local_path):
+            localfiles_info_pnl.local_path_txt.SetLabel("no local data, press download to create folder \n " + localfiles_info_pnl.local_path)
+        else:
+            local_files = os.listdir(localfiles_info_pnl.local_path)
+            #set caps folder
+            localfiles_info_pnl.folder_text.SetLabel(localfiles_info_pnl.caps_folder)
+            #define empty lists
+            folder_list = []
+            #read all the folders in the pigrows local folder
+            for item in local_files:
+                if os.path.isdir(localfiles_info_pnl.local_path + item) == True:
+                    folder_files = os.listdir(localfiles_info_pnl.local_path + item)
+                    counter = 0
+                    for thing in folder_files:
+                        counter = counter + 1
+                    folder_list.append([item, counter])
+                    #add local config files to list and generate info
+                    if item == "config":
+                        config_list = []
+                        config_files = os.listdir(localfiles_info_pnl.local_path + item)
+                        for thing in config_files:
+                            if thing.endswith("txt"):
+                                modified = os.path.getmtime(localfiles_info_pnl.local_path + item + "/" + thing)
+                                #config_list.append([thing, modified])
+                                modified = datetime.datetime.fromtimestamp(modified)
+                                file_age = datetime.datetime.now() - modified
+                                modified = modified.strftime("%Y-%m-%d %H:%M")
+                                file_age = str(file_age).split(".")[0]
+                                update_status = "unchecked"
+                                localfiles_info_pnl.add_to_config_list(MainApp.localfiles_info_pannel, thing, modified, file_age, update_status)
+                    if item == "logs":
+                        logs_list = []
+                        logs_files = os.listdir(localfiles_info_pnl.local_path + item)
+                        for thing in logs_files:
+                            if thing.endswith("txt"):
+                                modified = os.path.getmtime(localfiles_info_pnl.local_path + item + "/" + thing)
+                                modified = datetime.datetime.fromtimestamp(modified)
+                                file_age = datetime.datetime.now() - modified
+                                modified = modified.strftime("%Y-%m-%d %H:%M")
+                                file_age = str(file_age).split(".")[0]
+                                update_status = "unchecked"
+                                localfiles_info_pnl.add_to_logs_list(MainApp.localfiles_info_pannel, thing, modified, file_age, update_status)
+                    #read caps info and make report
+                    if item == localfiles_info_pnl.caps_folder:
+                        caps_files = os.listdir(localfiles_info_pnl.local_path + item)
+                        caps_files.sort()
+                        localfiles_info_pnl.first_photo_title.SetLabel(caps_files[0])
+                        localfiles_info_pnl.last_photo_title .SetLabel(caps_files[-1])
+                        caps_message = str(len(caps_files)) + " files locally\n"
+                        if len(caps_files) > 1:
+                            first_date = caps_files[0].split(".")[0].split("_")[-1]
+                            first_date = time.strftime('%Y-%m-%d %H:%M', time.localtime(float(first_date)))
+                            last_date = caps_files[-1].split(".")[0].split("_")[-1]
+                            last_date = time.strftime('%Y-%m-%d %H:%M', time.localtime(float(last_date)))
+                            caps_message += 'first file: ' + str(first_date)
+                            caps_message += '\nlast file: ' + str(last_date)
+                            localfiles_info_pnl.draw_photo_folder_images(MainApp.localfiles_info_pannel, localfiles_info_pnl.local_path + item + "/" + caps_files[0], localfiles_info_pnl.local_path + item + "/" + caps_files[-1])
+                        localfiles_info_pnl.photo_text.SetLabel(caps_message)
+
+
+                    # check to see if crontab is saved locally
+                    localfiles_ctrl_pnl.cron_backup_file = localfiles_info_pnl.local_path + "crontab_backup.txt"
+                    if os.path.isfile(localfiles_ctrl_pnl.cron_backup_file) == True:
+                        #checks time of local crontab_backup and determines age
+                        modified = os.path.getmtime(localfiles_ctrl_pnl.cron_backup_file)
+                        modified = datetime.datetime.fromtimestamp(modified)
+                        file_age = datetime.datetime.now() - modified
+                        modified = modified.strftime("%Y-%m-%d %H:%M")
+                        file_age = str(file_age).split(".")[0]
+                        #checks to see if local and remote files are the same
+                        try:
+                            stdin, stdout, stderr = ssh.exec_command("crontab -l")
+                            remote_cron_text = stdout.read()
+                        except Exception as e:
+                            print("failed to read cron due to;" + str(e))
+                        #read local file
+                        with open(localfiles_ctrl_pnl.cron_backup_file, "r") as local_cron:
+                            local_cron_text = local_cron.read()
+                        #compare the two files
+                        if remote_cron_text == local_cron_text:
+                            updated = True
+                        else:
+                            updated = False
+                        cron_msg = "local cron file last updated\n    " + modified + "\n    " + file_age + " ago,\n  \n\n identical to pi version: " + str(updated)
+                        localfiles_info_pnl.cron_info.SetLabel(cron_msg)
                     else:
-                        updated = False
-                    cron_msg = "local cron file last updated\n    " + modified + "\n    " + file_age + " ago,\n  \n\n identical to pi version: " + str(updated)
-                    localfiles_info_pnl.cron_info.SetLabel(cron_msg)
-                else:
-                    localfiles_info_pnl.cron_info.SetLabel("no local cron file")
+                        localfiles_info_pnl.cron_info.SetLabel("no local cron file")
 
     def download_click(self, e):
         #show download dialog boxes
@@ -1330,6 +1371,10 @@ class file_download_dialog(wx.Dialog):
         pnl = wx.Panel(self)
 
     def start_download_click(self, e):
+        #make folder if it doesn't exist
+        if not os.path.isdir(localfiles_info_pnl.local_path):
+            os.makedirs(localfiles_info_pnl.local_path)
+        #make empty lists
         files_to_download = []
         # downloading cron file and saving it as a local backup
         if self.cb_cron.GetValue() == True:
@@ -1368,10 +1413,7 @@ class file_download_dialog(wx.Dialog):
                 for item in remote_logs:
                     files_to_download.append([target_logs_files + item, local_logs + item])
             if self.cb_pics.GetValue() == True:
-                ## CHANGE TO setting
-                #
-                caps_folder = 'caps'
-                #
+                caps_folder = localfiles_info_pnl.caps_folder
                 local_pics = localfiles_info_pnl.local_path + caps_folder + "/"
                 if not os.path.isdir(local_pics):
                     os.makedirs(local_pics)
