@@ -1162,22 +1162,22 @@ class localfiles_info_pnl(wx.Panel):
         localfiles_info_pnl.local_path_txt = wx.StaticText(self,  label='local path', pos=(220, 80), size=(200,30))
         #local photo storage info
         localfiles_info_pnl.caps_folder = 'caps'
-        localfiles_info_pnl.folder_text = wx.StaticText(self,  label=' ' + localfiles_info_pnl.caps_folder, pos=(770, 130), size=(200,30))
-        localfiles_info_pnl.photo_text = wx.StaticText(self,  label='photo text', pos=(625, 166), size=(170,30))
-        localfiles_info_pnl.first_photo_title = wx.StaticText(self,  label='first image', pos=(640, 245), size=(170,30))
-        localfiles_info_pnl.last_photo_title = wx.StaticText(self,  label='last image', pos=(640, 520), size=(170,30))
+        localfiles_info_pnl.folder_text = wx.StaticText(self,  label=' ' + localfiles_info_pnl.caps_folder, pos=(720, 130), size=(200,30))
+        localfiles_info_pnl.photo_text = wx.StaticText(self,  label='photo text', pos=(575, 166), size=(170,30))
+        localfiles_info_pnl.first_photo_title = wx.StaticText(self,  label='first image', pos=(575, 290), size=(170,30))
+        localfiles_info_pnl.last_photo_title = wx.StaticText(self,  label='last image', pos=(575, 540), size=(170,30))
         #file list boxes
-        localfiles_info_pnl.config_files = self.config_file_list(self, 1, pos=(5, 160), size=(600, 200))
+        localfiles_info_pnl.config_files = self.config_file_list(self, 1, pos=(5, 160), size=(550, 200))
         localfiles_info_pnl.config_files.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.onDoubleClick_config)
-        localfiles_info_pnl.logs_files = self.logs_file_list(self, 1, pos=(5, 390), size=(600, 200))
+        localfiles_info_pnl.logs_files = self.logs_file_list(self, 1, pos=(5, 390), size=(550, 200))
         localfiles_info_pnl.logs_files.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.onDoubleClick_logs)
-        localfiles_info_pnl.config_files = self.config_file_list(self, 1, pos=(5, 160), size=(600, 200))
-        localfiles_info_pnl.config_files.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.onDoubleClick_config)
+        #localfiles_info_pnl.config_files = self.config_file_list(self, 1, pos=(5, 160), size=(550, 200))
+    #    localfiles_info_pnl.config_files.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.onDoubleClick_config)
         #cron info text
-        localfiles_info_pnl.cron_info = wx.StaticText(self,  label='cron info', pos=(340, 635), size=(200,30))
+        localfiles_info_pnl.cron_info = wx.StaticText(self,  label='cron info', pos=(290, 635), size=(200,30))
 
     class config_file_list(wx.ListCtrl):
-        def __init__(self, parent, id, pos=(25, 250), size=(600,200)):
+        def __init__(self, parent, id, pos=(25, 250), size=(550,200)):
             wx.ListCtrl.__init__(self, parent, id, size=size, style=wx.LC_REPORT, pos=pos)
             self.InsertColumn(0, 'Filename')
             self.InsertColumn(1, 'date modified')
@@ -1185,11 +1185,11 @@ class localfiles_info_pnl(wx.Panel):
             self.InsertColumn(3, 'updated?')
             self.SetColumnWidth(0, 190)
             self.SetColumnWidth(1, 150)
-            self.SetColumnWidth(2, 160)
+            self.SetColumnWidth(2, 110)
             self.SetColumnWidth(3, 100)
 
     class logs_file_list(wx.ListCtrl):
-        def __init__(self, parent, id, pos=(25, 500), size=(600,200)):
+        def __init__(self, parent, id, pos=(25, 500), size=(550,200)):
             wx.ListCtrl.__init__(self, parent, id, size=size, style=wx.LC_REPORT, pos=pos)
             self.InsertColumn(0, 'Filename')
             self.InsertColumn(1, 'date modified')
@@ -1197,7 +1197,7 @@ class localfiles_info_pnl(wx.Panel):
             self.InsertColumn(3, 'updated?')
             self.SetColumnWidth(0, 190)
             self.SetColumnWidth(1, 150)
-            self.SetColumnWidth(2, 160)
+            self.SetColumnWidth(2, 110)
             self.SetColumnWidth(3, 100)
 
     def draw_photo_folder_images(self, first_pic, last_pic):
@@ -1205,12 +1205,12 @@ class localfiles_info_pnl(wx.Panel):
         first = wx.Image(first_pic, wx.BITMAP_TYPE_ANY)
         first = first.Scale(225, 225, wx.IMAGE_QUALITY_HIGH)
         first = first.ConvertToBitmap()
-        photo_folder_first_pic = wx.StaticBitmap(self, -1, first, (650, 270), (first.GetWidth(), first.GetHeight()))
+        photo_folder_first_pic = wx.StaticBitmap(self, -1, first, (620, 310), (first.GetWidth(), first.GetHeight()))
         # load and display last image
         last = wx.Image(last_pic, wx.BITMAP_TYPE_ANY)
         last = last.Scale(225, 225, wx.IMAGE_QUALITY_HIGH)
         last = last.ConvertToBitmap()
-        photo_folder_last_pic = wx.StaticBitmap(self, -1, last, (650, 545), (last.GetWidth(), last.GetHeight()))
+        photo_folder_last_pic = wx.StaticBitmap(self, -1, last, (620, 565), (last.GetWidth(), last.GetHeight()))
 
     def add_to_config_list(self, name, mod_date, age, update_status):
         localfiles_info_pnl.config_files.InsertStringItem(0, str(name))
@@ -1296,17 +1296,37 @@ class localfiles_ctrl_pnl(wx.Panel):
                     if item == localfiles_info_pnl.caps_folder:
                         caps_files = os.listdir(localfiles_info_pnl.local_path + item)
                         caps_files.sort()
-                        localfiles_info_pnl.first_photo_title.SetLabel(caps_files[0])
-                        localfiles_info_pnl.last_photo_title .SetLabel(caps_files[-1])
-                        caps_message = str(len(caps_files)) + " files locally\n"
+                        caps_message = str(len(caps_files)) + " files locally \n"
+                        #read pi's caps folder
+                        try:
+                            stdin, stdout, stderr = ssh.exec_command("ls /home/" + pi_link_pnl.target_user + "/Pigrow/" + localfiles_info_pnl.caps_folder)
+                            remote_caps = stdout.read().splitlines()
+                        except Exception as e:
+                            print("reading remote caps folder failed; " + str(e))
+                            remote_caps = []
                         if len(caps_files) > 1:
-                            first_date = caps_files[0].split(".")[0].split("_")[-1]
-                            first_date = time.strftime('%Y-%m-%d %H:%M', time.localtime(float(first_date)))
-                            last_date = caps_files[-1].split(".")[0].split("_")[-1]
-                            last_date = time.strftime('%Y-%m-%d %H:%M', time.localtime(float(last_date)))
-                            caps_message += 'first file: ' + str(first_date)
-                            caps_message += '\nlast file: ' + str(last_date)
+                            #lable first and last image with name
+                            localfiles_info_pnl.first_photo_title.SetLabel(caps_files[0])
+                            localfiles_info_pnl.last_photo_title .SetLabel(caps_files[-1])
+                            #determine date range of images
+                            first_date, first_dt = self.filename_to_date(caps_files[0])
+                            last_date, last_dt = self.filename_to_date(caps_files[-1])
+                            caps_message += "  " + str(first_date) + " - " + str(last_date)
+                            length_of_local = last_dt - first_dt
+                            caps_message += '\n     ' + str(length_of_local)
+                            #draw first and last imagess to the screen
                             localfiles_info_pnl.draw_photo_folder_images(MainApp.localfiles_info_pannel, localfiles_info_pnl.local_path + item + "/" + caps_files[0], localfiles_info_pnl.local_path + item + "/" + caps_files[-1])
+                        caps_message += "\n" + str(len(remote_caps)) + " files on Pigrow \n"
+                        if len(remote_caps) > 1:
+                            first_remote, first_r_dt = self.filename_to_date(remote_caps[0])
+                            last_remote, last_r_dt = self.filename_to_date(remote_caps[-1])
+                            caps_message += "  " + str(first_remote) + " - " + str(last_remote)
+                            length_of_remote = last_r_dt - first_r_dt
+                            caps_message += '\n     ' + str(length_of_remote)
+                        else:
+                            caps_message += "no images on Pigrow"
+
+                        #update the caps info pannel with caps message
                         localfiles_info_pnl.photo_text.SetLabel(caps_message)
 
 
@@ -1338,6 +1358,12 @@ class localfiles_ctrl_pnl(wx.Panel):
                     else:
                         localfiles_info_pnl.cron_info.SetLabel("no local cron file")
 
+    def filename_to_date(self, filename):
+        date = float(filename.split(".")[0].split("_")[-1])
+        file_datetime = datetime.datetime.fromtimestamp(date)
+        date = time.strftime('%Y-%m-%d %H:%M', time.localtime(date))
+        return date, file_datetime
+
     def download_click(self, e):
         #show download dialog boxes
         file_dbox = file_download_dialog(None, title='Download dialog box')
@@ -1365,7 +1391,7 @@ class file_download_dialog(wx.Dialog):
         self.cb_all = wx.CheckBox(self, label='Whole Pigrow Folder',pos = (200,120))
         self.current_file_txt = wx.StaticText(self,  label='--', pos=(30, 190))
         #start button
-        self.start_download_btn = wx.Button(self, label='Download files', pos=(20, 250), size=(175, 50))
+        self.start_download_btn = wx.Button(self, label='Download files', pos=(40, 240), size=(175, 50))
         self.start_download_btn.Bind(wx.EVT_BUTTON, self.start_download_click)
          ## universal controls
         pnl = wx.Panel(self)
@@ -1444,6 +1470,7 @@ class file_download_dialog(wx.Dialog):
             sftp.get(remote_file[0], remote_file[1])
             print remote_file[0], remote_file[1]
             self.current_file_txt.SetLabel(remote_file[0] + " --> " + remote_file[1])
+            wx.Yield()
         self.current_file_txt.SetLabel("Done")
         #disconnect the sftp pipe
         sftp.close()
