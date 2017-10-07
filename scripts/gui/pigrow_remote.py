@@ -1570,7 +1570,7 @@ class upload_dialog(wx.Dialog):
                 target_graphs = "/home/" + str(pi_link_pnl.target_user) + "/Pigrow/graphs/"
                 local_graph_files = os.listdir(local_graphs)
                 for item in local_graph_files:
-                    files_to_download.append([local_graphs + item, target_graphs + item])
+                    files_to_upload.append([local_graphs + item, target_graphs + item])
             ## for photos only upload photos that don't already exost on pi
             if self.cb_pics.GetValue() == True:
                 caps_folder = localfiles_info_pnl.caps_folder
@@ -1582,19 +1582,19 @@ class upload_dialog(wx.Dialog):
                 remote_caps = sftp.listdir(target_caps_files)
                 for item in listofcaps_local:
                     if item not in remote_caps:
-                        files_to_download.append([local_pics + item, target_caps_files + item])
+                        files_to_upload.append([local_pics + item, target_caps_files + item])
         else:
             # make list of all ~/Pigrow/ files using os.walk
             #    - this is for complete backups ignoring the file system.
             print("restoring entire pigrow folder (not yet implimented)")
         print files_to_upload
         print(len(files_to_upload))
-        for remote_file in files_to_upload:
+        for upload_file in files_to_upload:
             #grabs all files in the list and overwrites them if they already exist locally.
-            self.current_file_txt.SetLabel("from; " + remote_file[0])
-            self.current_dest_txt.SetLabel("to; " + remote_file[1])
+            self.current_file_txt.SetLabel("from; " + upload_file[0])
+            self.current_dest_txt.SetLabel("to; " + upload_file[1])
             wx.Yield()
-            sftp.put(remote_file[0], remote_file[1])
+            sftp.put(upload_file[0], upload_file[1])
         self.current_file_txt.SetLabel("Done")
         self.current_dest_txt.SetLabel("--")
         #disconnect the sftp pipe
