@@ -1241,8 +1241,10 @@ class localfiles_ctrl_pnl(wx.Panel):
         wx.StaticText(self,  label='Local file and backup options', pos=(25, 10))
         self.update_local_filelist_btn = wx.Button(self, label='Refresh Filelist Info', pos=(15, 60), size=(175, 30))
         self.update_local_filelist_btn.Bind(wx.EVT_BUTTON, self.update_local_filelist_click)
-        self.download_btn = wx.Button(self, label='Download files', pos=(15, 90), size=(175, 30))
+        self.download_btn = wx.Button(self, label='Download files', pos=(15, 95), size=(175, 30))
         self.download_btn.Bind(wx.EVT_BUTTON, self.download_click)
+        self.upload_btn = wx.Button(self, label='Restore to pi', pos=(15, 130), size=(175, 30))
+        self.upload_btn.Bind(wx.EVT_BUTTON, self.upload_click)
 
     def update_local_filelist_click(self, e):
         #set local files path
@@ -1324,7 +1326,7 @@ class localfiles_ctrl_pnl(wx.Panel):
                             length_of_remote = last_r_dt - first_r_dt
                             caps_message += '\n     ' + str(length_of_remote)
                         else:
-                            caps_message += "no images on Pigrow"
+                            caps_message += " "
 
                         #update the caps info pannel with caps message
                         localfiles_info_pnl.photo_text.SetLabel(caps_message)
@@ -1368,6 +1370,10 @@ class localfiles_ctrl_pnl(wx.Panel):
         #show download dialog boxes
         file_dbox = file_download_dialog(None, title='Download dialog box')
         file_dbox.ShowModal()
+
+    def upload_click(self, e):
+        upload_dbox = upload_dialog(None, title='Upload dialog box')
+        upload_dbox.ShowModal()
 
 class file_download_dialog(wx.Dialog):
     #Dialog box for downloding files from pi to local storage folder
@@ -1452,7 +1458,7 @@ class file_download_dialog(wx.Dialog):
                 target_caps_files = "/home/" + str(pi_link_pnl.target_user) + "/Pigrow/" + caps_folder + "/"
                 remote_caps = sftp.listdir(target_caps_files)
                 for item in remote_caps:
-                    if item not in local_pics:
+                    if item not in listofcaps_local:
                         files_to_download.append([target_caps_files + item, local_pics + item])
             if self.cb_graph.GetValue() == True:
                 target_graph_files = "/home/" + str(pi_link_pnl.target_user) + "/Pigrow/graphs/"
@@ -1465,22 +1471,136 @@ class file_download_dialog(wx.Dialog):
         else:
             # make list of all ~/Pigrow/ files using os.walk
             #    - this is for complete backups ignoring the file system.
-            print("downloading entire pigrow folder")
+            print("downloading entire pigrow folder (not yet implimented)")
         print files_to_download
         print(len(files_to_download))
         for remote_file in files_to_download:
             #grabs all files in the list and overwrites them if they already exist locally.
-            sftp.get(remote_file[0], remote_file[1])
-            print remote_file[0], remote_file[1]
             self.current_file_txt.SetLabel("from; " + remote_file[0])
             self.current_dest_txt.SetLabel("to; " + remote_file[1])
             wx.Yield()
+            sftp.get(remote_file[0], remote_file[1])
         self.current_file_txt.SetLabel("Done")
         self.current_dest_txt.SetLabel("--")
         #disconnect the sftp pipe
         sftp.close()
         ssh_tran.close()
         print("train has reached the depot")
+
+    def OnClose(self, e):
+        #closes the dialogue box
+        self.Destroy()
+
+class upload_dialog(wx.Dialog):
+    #Dialog box for downloding files from pi to local storage folder
+    def __init__(self, *args, **kw):
+        super(upload_dialog, self).__init__(*args, **kw)
+        self.InitUI()
+        self.SetSize((600, 355))
+        self.SetTitle("upload files to Pigrow")
+        self.Bind(wx.EVT_CLOSE, self.OnClose)
+    def InitUI(self):
+        #draw the pannel
+        wx.StaticText(self,  label='Select elements to upload from local storage to pi\n\n   ** Warning this will overwrite current pigrow files \n                          which may result in loss of data **', pos=(30, 5))
+        self.cb_conf = wx.CheckBox(self, label='Config',pos = (80,90))
+        self.cb_logs = wx.CheckBox(self, label='Logs',pos = (80,115))
+        self.cb_cron = wx.CheckBox(self, label='Crontab',pos = (80,140))
+        self.cb_pics = wx.CheckBox(self, label='Photos',pos = (80,165))
+        self.cb_graph = wx.CheckBox(self, label='Graphs',pos = (80,190))
+        #right side
+        self.cb_all = wx.CheckBox(self, label='Restore Back up\nof whole Pigrow Folder',pos = (270,130))
+        #progress bar
+        wx.StaticText(self,  label='uploading from; '+ localfiles_info_pnl.local_path, pos=(15, 215))
+        self.current_file_txt = wx.StaticText(self,  label='--', pos=(30, 245))
+        self.current_dest_txt = wx.StaticText(self,  label='--', pos=(30, 270))
+        #buttons
+        self.start_upload_btn = wx.Button(self, label='Upload files', pos=(40, 300), size=(175, 50))
+        self.start_upload_btn.Bind(wx.EVT_BUTTON, self.start_upload_click)
+        self.close_btn = wx.Button(self, label='Close', pos=(415, 300), size=(175, 50))
+        self.close_btn.Bind(wx.EVT_BUTTON, self.OnClose)
+         ## universal controls
+        pnl = wx.Panel(self)
+
+    def start_upload_click(self, e):
+        files_to_upload  = []
+        ## connecting the sftp pipe
+        port = 22
+        ssh_tran = paramiko.Transport((pi_link_pnl.target_ip, port))
+        print("  - connecting transport pipe... " + pi_link_pnl.target_ip + " port:" + str(port))
+        ssh_tran.connect(username=pi_link_pnl.target_user, password=pi_link_pnl.target_pass)
+        sftp = paramiko.SFTPClient.from_transport(ssh_tran)
+        ## Downloading files from the pi
+        # creating a list of files to be download from the pigrow
+        if self.cb_all.GetValue() == False:
+            # uploading and installing cron file
+            temp_folder = "/home/" + pi_link_pnl.target_user + "/Pigrow/temp/"
+            cron_temp = temp_folder + "cron.txt"
+            if self.cb_cron.GetValue() == True:
+                print("including crontab file")
+                #upload cronfile to temp folder
+                try:
+                    sftp.put(localfiles_ctrl_pnl.cron_backup_file, cron_temp)
+                except IOError:
+                    sftp.mkdir(temp_folder)
+                    sftp.put(localfiles_ctrl_pnl.cron_backup_file, cron_temp)
+                self.current_file_txt.SetLabel("from; " + localfiles_ctrl_pnl.cron_backup_file)
+                self.current_dest_txt.SetLabel("to; " + cron_temp)
+                wx.Yield()
+                try:
+                    stdin, stdout, stderr = ssh.exec_command("crontab " + cron_temp)
+                except Exception as e:
+                    print("failed to read cron due to;" + str(e))
+        # make list using selected components to be uploaded, list contains two elemnts [local file, remote destination]
+            if self.cb_conf.GetValue() == True:
+                local_config = localfiles_info_pnl.local_path + "config/"
+                target_config = "/home/" + str(pi_link_pnl.target_user) + "/Pigrow/config/"
+                local_config_files = os.listdir(local_config)
+                for item in local_config_files:
+                    files_to_upload.append([local_config + item, target_config + item])
+            #do the same for the logs folder
+            if self.cb_logs.GetValue() == True:
+                local_logs = localfiles_info_pnl.local_path + "logs/"
+                target_logs = "/home/" + str(pi_link_pnl.target_user) + "/Pigrow/logs/"
+                target_logs_files = os.listdir(local_logs)
+                for item in target_logs_files:
+                    files_to_upload.append([local_logs + item, target_logs + item])
+            #and the graphs folder
+            if self.cb_graph.GetValue() == True:
+                local_graphs = localfiles_info_pnl.local_path + "graphs/"
+                target_graphs = "/home/" + str(pi_link_pnl.target_user) + "/Pigrow/graphs/"
+                local_graph_files = os.listdir(local_graphs)
+                for item in local_graph_files:
+                    files_to_download.append([local_graphs + item, target_graphs + item])
+            ## for photos only upload photos that don't already exost on pi
+            if self.cb_pics.GetValue() == True:
+                caps_folder = localfiles_info_pnl.caps_folder
+                local_pics = localfiles_info_pnl.local_path + caps_folder + "/"
+                #get list of pics we already have
+                listofcaps_local = os.listdir(local_pics)
+                #get list of remote images
+                target_caps_files = "/home/" + str(pi_link_pnl.target_user) + "/Pigrow/" + caps_folder + "/"
+                remote_caps = sftp.listdir(target_caps_files)
+                for item in listofcaps_local:
+                    if item not in remote_caps:
+                        files_to_download.append([local_pics + item, target_caps_files + item])
+        else:
+            # make list of all ~/Pigrow/ files using os.walk
+            #    - this is for complete backups ignoring the file system.
+            print("restoring entire pigrow folder (not yet implimented)")
+        print files_to_upload
+        print(len(files_to_upload))
+        for remote_file in files_to_upload:
+            #grabs all files in the list and overwrites them if they already exist locally.
+            self.current_file_txt.SetLabel("from; " + remote_file[0])
+            self.current_dest_txt.SetLabel("to; " + remote_file[1])
+            wx.Yield()
+            sftp.put(remote_file[0], remote_file[1])
+        self.current_file_txt.SetLabel("Done")
+        self.current_dest_txt.SetLabel("--")
+        #disconnect the sftp pipe
+        sftp.close()
+        ssh_tran.close()
+
 
     def OnClose(self, e):
         #closes the dialogue box
