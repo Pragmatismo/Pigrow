@@ -1374,25 +1374,28 @@ class file_download_dialog(wx.Dialog):
     def __init__(self, *args, **kw):
         super(file_download_dialog, self).__init__(*args, **kw)
         self.InitUI()
-        self.SetSize((750, 300))
+        self.SetSize((600, 300))
         self.SetTitle("Download files from Pigrow")
         self.Bind(wx.EVT_CLOSE, self.OnClose)
     def InitUI(self):
         #draw the pannel
-        wx.StaticText(self,  label='Select elements to download to local storage', pos=(15, 10))
-        self.cb_conf = wx.CheckBox(self, label='Config',pos = (60,30))
-        self.cb_logs = wx.CheckBox(self, label='Logs',pos = (60,55))
-        self.cb_cron = wx.CheckBox(self, label='Crontab',pos = (60,80))
-        self.cb_pics = wx.CheckBox(self, label='Photos',pos = (60,105))
-        self.cb_graph = wx.CheckBox(self, label='Graphs',pos = (60,130))
+        wx.StaticText(self,  label='Select elements to download to local storage', pos=(30, 5))
+        self.cb_conf = wx.CheckBox(self, label='Config',pos = (80,30))
+        self.cb_logs = wx.CheckBox(self, label='Logs',pos = (80,55))
+        self.cb_cron = wx.CheckBox(self, label='Crontab',pos = (80,80))
+        self.cb_pics = wx.CheckBox(self, label='Photos',pos = (80,105))
+        self.cb_graph = wx.CheckBox(self, label='Graphs',pos = (80,130))
         #right side
-        wx.StaticText(self,  label='saving to; '+ localfiles_info_pnl.local_path, pos=(15, 155))
+        self.cb_all = wx.CheckBox(self, label='Back up\nWhole Pigrow Folder',pos = (270,75))
         #progress bar
-        self.cb_all = wx.CheckBox(self, label='Whole Pigrow Folder',pos = (200,120))
+        wx.StaticText(self,  label='saving to; '+ localfiles_info_pnl.local_path, pos=(15, 155))
         self.current_file_txt = wx.StaticText(self,  label='--', pos=(30, 190))
-        #start button
+        self.current_dest_txt = wx.StaticText(self,  label='--', pos=(30, 215))
+        #buttons
         self.start_download_btn = wx.Button(self, label='Download files', pos=(40, 240), size=(175, 50))
         self.start_download_btn.Bind(wx.EVT_BUTTON, self.start_download_click)
+        self.close_btn = wx.Button(self, label='Close', pos=(415, 240), size=(175, 50))
+        self.close_btn.Bind(wx.EVT_BUTTON, self.OnClose)
          ## universal controls
         pnl = wx.Panel(self)
 
@@ -1469,9 +1472,11 @@ class file_download_dialog(wx.Dialog):
             #grabs all files in the list and overwrites them if they already exist locally.
             sftp.get(remote_file[0], remote_file[1])
             print remote_file[0], remote_file[1]
-            self.current_file_txt.SetLabel(remote_file[0] + " --> " + remote_file[1])
+            self.current_file_txt.SetLabel("from; " + remote_file[0])
+            self.current_dest_txt.SetLabel("to; " + remote_file[1])
             wx.Yield()
         self.current_file_txt.SetLabel("Done")
+        self.current_dest_txt.SetLabel("--")
         #disconnect the sftp pipe
         sftp.close()
         ssh_tran.close()
