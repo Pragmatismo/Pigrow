@@ -291,6 +291,33 @@ class system_info_pnl(wx.Panel):
         #power level warning details
         system_info_pnl.sys_power_status = wx.StaticText(self,  label='power status', pos=(625, 390), size=(200,30))
 
+class config_ctrl_pnl(wx.Panel):
+    #this controlls the data displayed on config_info_pnl
+    def __init__( self, parent ):
+        win_height = parent.GetSize()[1]
+        height_of_pannels_above = 230
+        space_left = win_height - height_of_pannels_above
+        wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, pos = (0, height_of_pannels_above), size = wx.Size(285, space_left), style = wx.TAB_TRAVERSAL )
+        # Start drawing the UI elements
+        wx.StaticText(self,  label='Pigrow Config', pos=(25, 10))
+        self.update_local_filelist_btn = wx.Button(self, label='config 1', pos=(15, 60), size=(175, 30))
+        #self.update_local_filelist_btn.Bind(wx.EVT_BUTTON, self._click)
+        self.download_btn = wx.Button(self, label='config 2', pos=(15, 95), size=(175, 30))
+        #self.download_btn.Bind(wx.EVT_BUTTON, self._click)
+
+class config_info_pnl(wx.Panel):
+    #  This displays the config info
+    # controlled by the config_ctrl_pnl
+    def __init__( self, parent ):
+        win_height = parent.GetSize()[1]
+        win_width = parent.GetSize()[0]
+        w_space_left = win_width - 285
+        wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, pos = (285, 0), size = wx.Size(w_space_left , 800), style = wx.TAB_TRAVERSAL )
+        ## Draw UI elements
+        png = wx.Image('./config_info.png', wx.BITMAP_TYPE_ANY).ConvertToBitmap()
+        wx.StaticBitmap(self, -1, png, (0, 0), (png.GetWidth(), png.GetHeight()))
+        #SDcard details
+        system_info_pnl.config_text = wx.StaticText(self,  label='config', pos=(250, 180), size=(200,30))
 
 class cron_info_pnl(wx.Panel):
     def __init__( self, parent ):
@@ -1606,6 +1633,8 @@ class upload_dialog(wx.Dialog):
         #closes the dialogue box
         self.Destroy()
 
+
+
 class pi_link_pnl(wx.Panel):
     #
     # Creates the pannel with the raspberry pi data in it
@@ -1754,7 +1783,7 @@ class welcome_pnl(wx.Panel):
 
 class view_pnl(wx.Panel):
     #
-    # Creates the pannel with the navigation tabs
+    # Creates the little pannel with the navigation tabs
     # small and simple, it changes which pannels are visible
     #
     def __init__( self, parent ):
@@ -1765,18 +1794,23 @@ class view_pnl(wx.Panel):
         self.view_cb.Bind(wx.EVT_COMBOBOX, self.view_combo_go)
     def view_combo_go(self, e):
         display = self.view_cb.GetValue()
+        #hide all the pannels
         MainApp.system_ctrl_pannel.Hide()
         MainApp.system_info_pannel.Hide()
+        MainApp.config_ctrl_pannel.Hide()
+        MainApp.config_info_pannel.Hide()
         MainApp.cron_list_pannel.Hide()
         MainApp.cron_info_pannel.Hide()
         MainApp.localfiles_ctrl_pannel.Hide()
         MainApp.localfiles_info_pannel.Hide()
         MainApp.welcome_pannel.Hide()
+        #show whichever pannels correlate to the option selected
         if display == 'System Config':
             MainApp.system_ctrl_pannel.Show()
             MainApp.system_info_pannel.Show()
         elif display == 'Pigrow Setup':
-            print("changing window display like i'm Mr Polly on meth")
+            MainApp.config_ctrl_pannel.Show()
+            MainApp.config_info_pannel.Show()
         elif display == 'Camera Config':
             print("changing window display like i'm Mr Polly on weed")
         elif display == 'Cron Timing':
@@ -1799,10 +1833,6 @@ class view_pnl(wx.Panel):
             print("!!! Option not recognised, this is a programming error! sorry")
             print("          message me and tell me about it and i'll be very thankful")
 
-
-
-
-
 #
 #
 #  The main bit of the program
@@ -1813,8 +1843,6 @@ class MainFrame ( wx.Frame ):
     def __init__( self, parent ):
         wx.Frame.__init__ ( self, parent, id = wx.ID_ANY, title = wx.EmptyString, pos = wx.DefaultPosition, size = wx.Size( 1200,800 ), style = wx.DEFAULT_FRAME_STYLE|wx.TAB_TRAVERSAL )
         self.SetSizeHintsSz( wx.DefaultSize, wx.DefaultSize )
-    #    bSizer1 = wx.BoxSizer( wx.VERTICAL )
-    #    self.SetSizer( bSizer1 )
         self.Layout()
         self.Centre( wx.BOTH )
     def __del__( self ):
@@ -1827,26 +1855,30 @@ class MainApp(MainFrame):
         self.pi_link_pnl = pi_link_pnl(self)
         self.view_pnl = view_pnl(self)
         #
-        # switch this up so it shows based on tabs and shit, yo!
-        #
+        # loads all the pages at the start then hides them,
+        #         maybe i should change this later but let's make it work first
         MainApp.welcome_pannel = welcome_pnl(self)
         MainApp.system_ctrl_pannel = system_ctrl_pnl(self)
         MainApp.system_info_pannel = system_info_pnl(self)
+        MainApp.config_ctrl_pannel = config_ctrl_pnl(self)
+        MainApp.config_info_pannel = config_info_pnl(self)
         MainApp.cron_list_pannel = cron_list_pnl(self)
         MainApp.cron_info_pannel = cron_info_pnl(self)
         MainApp.localfiles_ctrl_pannel = localfiles_ctrl_pnl(self)
         MainApp.localfiles_info_pannel = localfiles_info_pnl(self)
-        MainApp.localfiles_ctrl_pannel.Hide()
-        MainApp.localfiles_info_pannel.Hide()
-        MainApp.cron_list_pannel.Hide()
-        MainApp.cron_info_pannel.Hide()
+        #hide all except the welcome pannel
         MainApp.system_ctrl_pannel.Hide()
         MainApp.system_info_pannel.Hide()
-        #self.pi_link_pnl.Hide()
+        MainApp.config_ctrl_pannel.Hide()
+        MainApp.config_info_pannel.Hide()
+        MainApp.cron_list_pannel.Hide()
+        MainApp.cron_info_pannel.Hide()
+        MainApp.localfiles_ctrl_pannel.Hide()
+        MainApp.localfiles_info_pannel.Hide()
 
     def OnClose(self, e):
         #Closes SSH connection even on quit
-        # Add 'ya sure?' question if there's unsaved data
+        # need to add 'ya sure?' question if there's unsaved data
         print("Closing SSH connection")
         ssh.close()
         exit(0)
