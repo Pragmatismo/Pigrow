@@ -300,10 +300,211 @@ class config_ctrl_pnl(wx.Panel):
         wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, pos = (0, height_of_pannels_above), size = wx.Size(285, space_left), style = wx.TAB_TRAVERSAL )
         # Start drawing the UI elements
         wx.StaticText(self,  label='Pigrow Config', pos=(25, 10))
-        self.update_local_filelist_btn = wx.Button(self, label='config 1', pos=(15, 60), size=(175, 30))
-        #self.update_local_filelist_btn.Bind(wx.EVT_BUTTON, self._click)
+        self.update_config_btn = wx.Button(self, label='read config from pigrow', pos=(15, 60), size=(175, 30))
+        self.update_config_btn.Bind(wx.EVT_BUTTON, self.update_config_click)
         self.download_btn = wx.Button(self, label='config 2', pos=(15, 95), size=(175, 30))
         #self.download_btn.Bind(wx.EVT_BUTTON, self._click)
+
+    def update_config_click(self, e):
+        #define file locations
+        pigrow_config_folder = "/home/" + pi_link_pnl.target_user + "/Pigrow/config/"
+        pigrow_dirlocs = pigrow_config_folder + "dirlocs.txt"
+        #read pigrow locations file
+        try:
+            stdin, stdout, stderr = ssh.exec_command("cat " + pigrow_dirlocs)
+            dirlocs = stdout.read().splitlines()
+        except Exception as e:
+            print("reading dirlocs.txt failed; " + str(e))
+        dirlocs_dict = {}
+        if len(dirlocs) > 1:
+            for item in dirlocs:
+                try:
+                    item = item.split("=")
+                    #dirlocs_dict = {item[0]:item[1]}
+                    dirlocs_dict[item[0]] = item[1]
+                except:
+                    print("!!error reading value from dirlocs; " + str(item))
+        #We've now created dirlocs_dict with key:value for every setting:value in dirlocs
+        #now we grab some of the important ones from the dictionary
+         #folder location info (having this in a file on the pi makes it easier if doing things odd ways)
+        location_msg = ""
+        location_problems = []
+        try:
+            pigrow_path = dirlocs_dict['path']
+        #    location_msg += pigrow_path + "\n"
+        except:
+            location_msg += ("No path locaion info in pigrow dirlocs\n")
+            pigrow_path = ""
+            location_problems.append("path")
+        try:
+            pigrow_logs_path = dirlocs_dict['log_path']
+        #    location_msg += pigrow_logs_path + "\n"
+        except:
+            location_msg += ("No logs locaion info in pigrow dirlocs\n")
+            pigrow_logs_path = ""
+            location_problems.append("log_path")
+        try:
+            pigrow_graph_path = dirlocs_dict['graph_path']
+        #    location_msg += pigrow_graph_path + "\n"
+        except:
+            location_msg += ("No graph locaion info in pigrow dirlocs\n")
+            pigrow_graph_path = ""
+            location_problems.append("graph_path")
+        try:
+            pigrow_caps_path = dirlocs_dict['caps_path']
+        #    location_msg += pigrow_caps_path + "\n"
+        except:
+            location_msg += ("No caps locaion info in pigrow dirlocs\n")
+            pigrow_caps_path = ""
+            location_problems.append("caps_path")
+
+         #settings file locations
+        try:
+            pigrow_settings_path = dirlocs_dict['loc_settings']
+        except:
+            location_msg += ("No pigrow config file locaion info in pigrow dirlocs\n")
+            pigrow_settings_path = ""
+            location_problems.append("loc_settings")
+        try:
+            pigrow_cam_settings_path = dirlocs_dict['camera_settings']
+        except:
+            location_msg +=("no camera settings file locaion info in pigrow dirlocs (optional)\n")
+            pigrow_cam_settings_path = ""
+
+         # log file locations
+        try:
+            pigrow_err_log_path = dirlocs_dict['err_log']
+        except:
+            location_msg += ("No err log locaion info in pigrow dirlocs\n")
+            pigrow_err_log_path = ""
+            location_problems.append("err_log")
+        try:
+            pigrow_self_log_path = dirlocs_dict['self_log']
+        except:
+            location_msg += ("No self_log locaion info in pigrow dirlocs (optional)\n")
+            pigrow_self_log_path = ""
+        try:
+            pigrow_switchlog_path = dirlocs_dict['loc_switchlog']
+        except:
+            location_msg += "No switchlog locaion info in pigrow dirlocs (optional)\n"
+            pigrow_switchlog_path = ""
+        try:
+            pigrow_dht_log_path = dirlocs_dict['loc_dht_log']
+        except:
+            location_msg += "No DHT log locaion info in pigrow dirlocs (optional)\n"
+            pigrow_dht_log_path = ""
+        #check to see if there were problems and tell the user.
+        if len(location_problems) == 0:
+            location_msg += ("All vital locations present")
+        else:
+            location_msg += "Important location information missing! " + str(location_problems) + " not found"
+        #display on screen
+        system_info_pnl.location_text.SetLabel(location_msg)
+        #read pigrow config file
+        try:
+            stdin, stdout, stderr = ssh.exec_command("cat " + pigrow_settings_path)
+            pigrow_settings = stdout.read().splitlines()
+        except Exception as e:
+            print("reading dirlocs.txt failed; " + str(e))
+        #define empty dictionaries
+        config_dict = {}
+        gpio_dict = {}
+        gpio_on_dict = {}
+        #go through the setting file and put them in the correct dictionary
+        if len(pigrow_settings) > 1:
+            for item in pigrow_settings:
+                try:
+                    item = item.split("=")
+                    line_split = item[0].split("_")
+                    if line_split[0] == 'gpio' and not item[1] == "":
+                        if len(line_split) == 2:
+                            gpio_dict[line_split[1]] = item[1]
+                        elif len(line_split) == 3:
+                            gpio_on_dict[str(line_split[1])] = item[1]
+                    else:
+                        config_dict[item[0]] = item[1]
+                except:
+                    print("!!error reading value from config file; " + str(item))
+        # we've now created config_dict with a list of all the items in the config file
+        #   and gpio_dict and gpio_on_dict with gpio numbers and low/high pin direction info
+
+        #unpack non-gpio information from config file
+        config_problems = []
+        config_msg = ''
+        if "log_frequency" in config_dict:
+            log_frequency = config_dict["log_frequency"]
+            config_msg += "Logging dht every " + str(log_frequency) + " seconds. \n"
+        else:
+            log_frequency = ""
+            config_msg += "DHT Logging frequency not set\n"
+            config_problems.append('log_frequency')
+     #lamp timeing
+        if "lamp" in gpio_dict:
+            if "time_lamp_on" in config_dict:
+                lamp_on_hour = int(config_dict["time_lamp_on"].split(":")[0])
+                lamp_on_min = int(config_dict["time_lamp_on"].split(":")[1])
+
+            else:
+                lamp_on_time = ""
+                config_msg += "lamp on time not set\n"
+                config_problems.append('lamp')
+            if "time_lamp_off" in config_dict:
+                lamp_off_hour = int(config_dict["time_lamp_off"].split(":")[0])
+                lamp_off_min = int(config_dict["time_lamp_off"].split(":")[1])
+            else:
+                lamp_off_time = ""
+                config_msg += "lamp off time not set\n"
+                config_problems.append('lamp')
+        #    if not 'lamp' in config_problems:
+                #
+                #
+                # THIS IS WHERE IT IS BROKEN !!!
+                #
+                #
+
+            #         now = datetime.datetime.now()
+            #         today_time_lamp_on = now
+            #         today_time_lamp_off = now
+            # if today_time_lamp_on > today_time_lamp_off:
+            #     today_time_lamp_off = today_time_lamp_off + timedelta(days=1)
+            # length_lamp_on = today_time_lamp_off - today_time_lamp_on
+            # config_msg += "Lamp turning on at " + str(lamp_on_hour) + ":" + str(lamp_on_min) + " and off at " + str(lamp_off_hour) + ":" + str(lamp_off_min)
+            # config_msg += " (on " + str(length_lamp_on) # + "hours, off "  +str(aday - length_lamp_on) + ")\n"
+        else:
+            config_msg += "no lamp linked to gpio, ignoring lamp timing settings\n"
+     #heater on and off temps
+        if "heater" in gpio_dict:
+            if "heater_templow" in config_dict:
+                heater_templow =  config_dict["heater_templow"]
+            else:
+                heater_templow = ""
+                config_msg += "heater low temp not set\n"
+                config_problems.append('heater_templow')
+            if "heater_temphigh" in config_dict:
+                heater_temphigh = config_dict["heater_temphigh"]
+            else:
+                heater_temphigh = ""
+                config_msg += "heater high temp not set\n"
+                config_problems.append('heater_temphigh')
+        else:
+            config_msg += "no heater linked to gpio, ignoring heater temp settings\n"
+
+
+
+
+        #display information in config file area
+        config_msg += "We have " + str(len(gpio_dict)) + " devices linked to the GPIO\n"
+        if "dht22sensor" in gpio_dict:
+            config_msg += "DHT Sensor on pin " + str(gpio_dict['dht22sensor'] + "\n")
+        else:
+            config_msg += "DHT Sensor not linked\n"
+        gpio_count = 0
+        #checks to see if gpio devices with on directions are also linked to a gpio pin and counts them
+        for key in gpio_on_dict:
+            if key in gpio_dict:
+                gpio_count = gpio_count + 1
+        config_msg += "found " + str(gpio_count) + " relay switch linked gpio pins"
+        system_info_pnl.config_text.SetLabel(config_msg)
 
 class config_info_pnl(wx.Panel):
     #  This displays the config info
@@ -317,7 +518,8 @@ class config_info_pnl(wx.Panel):
         png = wx.Image('./config_info.png', wx.BITMAP_TYPE_ANY).ConvertToBitmap()
         wx.StaticBitmap(self, -1, png, (0, 0), (png.GetWidth(), png.GetHeight()))
         #SDcard details
-        system_info_pnl.config_text = wx.StaticText(self,  label='config', pos=(250, 180), size=(200,30))
+        system_info_pnl.location_text = wx.StaticText(self,  label='locations', pos=(25, 130), size=(200,30))
+        system_info_pnl.config_text = wx.StaticText(self,  label='config', pos=(10, 210), size=(200,30))
 
 class cron_info_pnl(wx.Panel):
     def __init__( self, parent ):
@@ -1276,7 +1478,7 @@ class localfiles_ctrl_pnl(wx.Panel):
     def update_local_filelist_click(self, e):
         #set local files path
         if localfiles_info_pnl.local_path == "":
-            computer_username = "pragmo"
+            computer_username = "pragmo" #change this to make the right path for all users and operating systems
             localfiles_info_pnl.local_path = "/home/" + computer_username + "/frompigrow/" + str(pi_link_pnl.boxname) + "/"
             localfiles_info_pnl.local_path_txt.SetLabel("\n" + localfiles_info_pnl.local_path)
         if not os.path.isdir(localfiles_info_pnl.local_path):
