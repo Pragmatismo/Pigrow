@@ -513,11 +513,12 @@ class config_ctrl_pnl(wx.Panel):
             dht_msg += "DHT Sensor not linked\n"
         gpio_count = 0
         #checks to see if gpio devices with on directions are also linked to a gpio pin and counts them
-        relay_list_text = "Device - Pin - Switch direction for power on"
+        relay_list_text = "Device - Pin - Switch direction for power on - current device state"
         for key in gpio_on_dict:
             if key in gpio_dict:
                 gpio_count = gpio_count + 1
-                relay_list_text += "\n " + str(key) + " - " + gpio_dict[key] + " - " + gpio_on_dict[key]
+                divice_status = self.check_device_status(gpio_dict[key], gpio_on_dict[key])
+                relay_list_text += "\n " + str(key) + " - " + gpio_dict[key] + " - " + gpio_on_dict[key] + " - " + divice_status
         relay_msg += "found " + str(gpio_count) + " relay switch linked gpio pins. " + relay_list_text
         #listing config problems at end of config messsage
         if len(config_problems) > 0:
@@ -528,6 +529,35 @@ class config_ctrl_pnl(wx.Panel):
         system_info_pnl.config_text.SetLabel(config_msg)
         system_info_pnl.dht_text.SetLabel(dht_msg)
         system_info_pnl.relay_text.SetLabel(relay_msg)
+
+    def check_device_status(self, gpio_pin, on_power_state):
+        #Checks if a device is on or off by reading the pin and compairing to the relay wiring direction
+        try:
+            ssh.exec_command("echo "+ str(gpio_pin) +" > /sys/class/gpio/export")
+            stdin, stdout, stderr = ssh.exec_command("cat /sys/class/gpio/gpio" + str(gpio_pin) + "/value") # returns 0 or 1
+            gpio_status = stdout.read().strip()
+            gpio_err = stderr.read().strip()
+            if gpio_status == "1":
+                if on_power_state == 'low':
+                    device_status = "OFF"
+                elif on_power_state == 'high':
+                    device_status = 'ON'
+                else:
+                    device_status = "settings error"
+            elif gpio_status == '0':
+                if on_power_state == 'low':
+                    device_status = "ON"
+                elif on_power_state == 'high':
+                    device_status = 'OFF'
+                else:
+                    device_status = "setting error"
+            else:
+                device_status = "read error -" + gpio_status + "-"
+        except Exception as e:
+            print("Error asking pi about gpio status; " + str(e))
+            return "error " + str(e)
+        return device_status
+
 
 class config_info_pnl(wx.Panel):
     #  This displays the config info
