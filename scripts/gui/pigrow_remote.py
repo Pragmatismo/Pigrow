@@ -388,11 +388,6 @@ class config_ctrl_pnl(wx.Panel):
         except:
             location_msg += "No switchlog locaion info in pigrow dirlocs (optional)\n"
             pigrow_switchlog_path = ""
-        try:
-            pigrow_dht_log_path = dirlocs_dict['loc_dht_log']
-        except:
-            location_msg += "No DHT log locaion info in pigrow dirlocs (optional)\n"
-            pigrow_dht_log_path = ""
         #check to see if there were problems and tell the user.
         if len(location_problems) == 0:
             location_msg += ("All vital locations present")
@@ -431,43 +426,34 @@ class config_ctrl_pnl(wx.Panel):
         #unpack non-gpio information from config file
         config_problems = []
         config_msg = ''
-        if "log_frequency" in config_dict:
-            log_frequency = config_dict["log_frequency"]
-            config_msg += "Logging dht every " + str(log_frequency) + " seconds. \n"
-        else:
-            log_frequency = ""
-            config_msg += "DHT Logging frequency not set\n"
-            config_problems.append('log_frequency')
-     #lamp timeing
+        dht_msg = ''
+        relay_msg = ''
+        #lamp timeing
         if "lamp" in gpio_dict:
             if "time_lamp_on" in config_dict:
                 lamp_on_hour = int(config_dict["time_lamp_on"].split(":")[0])
                 lamp_on_min = int(config_dict["time_lamp_on"].split(":")[1])
 
             else:
-                lamp_on_time = ""
                 config_msg += "lamp on time not set\n"
                 config_problems.append('lamp')
             if "time_lamp_off" in config_dict:
                 lamp_off_hour = int(config_dict["time_lamp_off"].split(":")[0])
                 lamp_off_min = int(config_dict["time_lamp_off"].split(":")[1])
             else:
-                lamp_off_time = ""
                 config_msg += "lamp off time not set\n"
                 config_problems.append('lamp')
-
+            #convert to datetime objects and add a day to the off time so that it's
+            #   working out the time on gap correctly (i.e. avoid reporting negative time)
             if not 'lamp' in config_problems:
                 on_time = datetime.time(int(lamp_on_hour),int(lamp_on_min))
                 off_time = datetime.time(int(lamp_off_hour), int(lamp_off_min))
             aday = datetime.timedelta(days=1)
             if on_time > off_time:
-                print("on time greater than off time")
                 dateoff = ((datetime.datetime.combine(datetime.date.today(), off_time) + aday))
             else:
                 dateoff = ((datetime.datetime.combine(datetime.date.today(), off_time)))
-
-            length_lamp_on = (dateoff - datetime.datetime.combine(datetime.date.today(), on_time)) #.total_seconds()) / 3600
-            #length_lamp_on = off_time - on_time
+            length_lamp_on = (dateoff - datetime.datetime.combine(datetime.date.today(), on_time))
             config_msg += "Lamp turning on at " + str(on_time)[:-3] + " and off at " + str(off_time)[:-3]
             config_msg += " (" + str(length_lamp_on)[:-3] + " on, "  +str(aday - length_lamp_on)[:-3] + " off)\n"
         else:
@@ -476,32 +462,72 @@ class config_ctrl_pnl(wx.Panel):
         if "heater" in gpio_dict:
             if "heater_templow" in config_dict:
                 heater_templow =  config_dict["heater_templow"]
+                config_msg += "Temp low; " + str(heater_templow)
             else:
-                heater_templow = ""
-                config_msg += "heater low temp not set\n"
+                config_msg += "\nheater low temp not set\n"
                 config_problems.append('heater_templow')
             if "heater_temphigh" in config_dict:
                 heater_temphigh = config_dict["heater_temphigh"]
+                config_msg += " temp high: " + str(heater_temphigh) + " (Centigrade)\n"
             else:
-                heater_temphigh = ""
                 config_msg += "heater high temp not set\n"
                 config_problems.append('heater_temphigh')
         else:
             config_msg += "no heater linked to gpio, ignoring heater temp settings\n"
+        # read humid info
+        if "humid" in gpio_dict or "dehumid" in gpio_dict:
+            if "humid_low" in config_dict:
+                humid_low = config_dict["humid_low"]
+                config_msg += "humidity low; " + str(humid_low)
+            else:
+                config_msg += "\nHumid low not set\n"
+                config_problems.append('humid_low')
+            if "humid_high" in config_dict:
+                humid_high = config_dict["humid_high"]
+                config_msg += " humidity high: " + str(humid_high) + "\n"
+            else:
+                config_msg += "humid high not set\n"
+                config_problems.append('heater_temphigh')
+        else:
+            config_msg += "no humidifier or dehumidifier linked to gpio"
 
-        #display information in config file area
+        #add gpio message to the message text
         config_msg += "We have " + str(len(gpio_dict)) + " devices linked to the GPIO\n"
         if "dht22sensor" in gpio_dict:
-            config_msg += "DHT Sensor on pin " + str(gpio_dict['dht22sensor'] + "\n")
+            dht_msg += "DHT Sensor on pin " + str(gpio_dict['dht22sensor'] + "\n")
+            if "log_frequency" in config_dict:
+                log_frequency = config_dict["log_frequency"]
+                dht_msg += "Logging dht every " + str(log_frequency) + " seconds. \n"
+            else:
+                log_frequency = ""
+                dht_msg += "DHT Logging frequency not set\n"
+                config_problems.append('dht_log_frequency')
+            #check to see if log location is set in dirlocs.txt
+            try:
+                dht_msg += "logging to; " + dirlocs_dict['loc_dht_log'] + "\n"
+            except:
+                dht_msg += "No DHT log locaion in pigrow dirlocs\n"
+                pigrow_dht_log_path = ""
+                config_problems.append('dht_log_location')
         else:
-            config_msg += "DHT Sensor not linked\n"
+            dht_msg += "DHT Sensor not linked\n"
         gpio_count = 0
         #checks to see if gpio devices with on directions are also linked to a gpio pin and counts them
+        relay_list_text = "Device - Pin - Switch direction for power on"
         for key in gpio_on_dict:
             if key in gpio_dict:
                 gpio_count = gpio_count + 1
-        config_msg += "found " + str(gpio_count) + " relay switch linked gpio pins"
+                relay_list_text += "\n " + str(key) + " - " + gpio_dict[key] + " - " + gpio_on_dict[key]
+        relay_msg += "found " + str(gpio_count) + " relay switch linked gpio pins. " + relay_list_text
+        #listing config problems at end of config messsage
+        if len(config_problems) > 0:
+            config_msg += "found " + len(config_problems) + " config problems; "
+        for item in config_problems:
+            config_msg += item + ", "
+        #putting the info on the screen
         system_info_pnl.config_text.SetLabel(config_msg)
+        system_info_pnl.dht_text.SetLabel(dht_msg)
+        system_info_pnl.relay_text.SetLabel(relay_msg)
 
 class config_info_pnl(wx.Panel):
     #  This displays the config info
@@ -517,6 +543,8 @@ class config_info_pnl(wx.Panel):
         #SDcard details
         system_info_pnl.location_text = wx.StaticText(self,  label='locations', pos=(25, 130), size=(200,30))
         system_info_pnl.config_text = wx.StaticText(self,  label='config', pos=(10, 210), size=(200,30))
+        system_info_pnl.dht_text = wx.StaticText(self,  label='dht', pos=(10, 415), size=(200,30))
+        system_info_pnl.relay_text = wx.StaticText(self,  label='relay module', pos=(10, 635), size=(200,30))
 
 class cron_info_pnl(wx.Panel):
     def __init__( self, parent ):
