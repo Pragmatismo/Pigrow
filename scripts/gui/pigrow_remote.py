@@ -455,21 +455,21 @@ class config_ctrl_pnl(wx.Panel):
                 lamp_off_time = ""
                 config_msg += "lamp off time not set\n"
                 config_problems.append('lamp')
-        #    if not 'lamp' in config_problems:
-                #
-                #
-                # THIS IS WHERE IT IS BROKEN !!!
-                #
-                #
 
-            #         now = datetime.datetime.now()
-            #         today_time_lamp_on = now
-            #         today_time_lamp_off = now
-            # if today_time_lamp_on > today_time_lamp_off:
-            #     today_time_lamp_off = today_time_lamp_off + timedelta(days=1)
-            # length_lamp_on = today_time_lamp_off - today_time_lamp_on
-            # config_msg += "Lamp turning on at " + str(lamp_on_hour) + ":" + str(lamp_on_min) + " and off at " + str(lamp_off_hour) + ":" + str(lamp_off_min)
-            # config_msg += " (on " + str(length_lamp_on) # + "hours, off "  +str(aday - length_lamp_on) + ")\n"
+            if not 'lamp' in config_problems:
+                on_time = datetime.time(int(lamp_on_hour),int(lamp_on_min))
+                off_time = datetime.time(int(lamp_off_hour), int(lamp_off_min))
+            aday = datetime.timedelta(days=1)
+            if on_time > off_time:
+                print("on time greater than off time")
+                dateoff = ((datetime.datetime.combine(datetime.date.today(), off_time) + aday))
+            else:
+                dateoff = ((datetime.datetime.combine(datetime.date.today(), off_time)))
+
+            length_lamp_on = (dateoff - datetime.datetime.combine(datetime.date.today(), on_time)) #.total_seconds()) / 3600
+            #length_lamp_on = off_time - on_time
+            config_msg += "Lamp turning on at " + str(on_time)[:-3] + " and off at " + str(off_time)[:-3]
+            config_msg += " (" + str(length_lamp_on)[:-3] + " on, "  +str(aday - length_lamp_on)[:-3] + " off)\n"
         else:
             config_msg += "no lamp linked to gpio, ignoring lamp timing settings\n"
      #heater on and off temps
@@ -488,9 +488,6 @@ class config_ctrl_pnl(wx.Panel):
                 config_problems.append('heater_temphigh')
         else:
             config_msg += "no heater linked to gpio, ignoring heater temp settings\n"
-
-
-
 
         #display information in config file area
         config_msg += "We have " + str(len(gpio_dict)) + " devices linked to the GPIO\n"
