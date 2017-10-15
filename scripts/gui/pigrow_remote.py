@@ -7,14 +7,26 @@
 # -app pannels
 #    pi_link_pnl        - top-left connection box with ip, username, pass
 #    view_pnl           - allows you to select which options to view
+#
 # -main pannels
 #    system_info_pnl    - for setting up the raspberry pi system and pigrow install
 #    system_ctrl_pnl        - buttons for system_info_pnl
+#
+#    config_info_pnl    -shows info on current pigorow config
+#    config_ctrl_pnl    -  buttons for above
 #
 #    cron_list_pnl      - shows the 3 cron type lists on the right of the window
 #    cron_info_pnl          - buttons for cron_list_pnl
 #    cron_job_dialog        - dialogue box for edit cron job
 #
+#    localfiles_info_pnl  - shows local files for spesific pigrow
+#    localfiles_ctrl_pnl  - buttons for above
+#       + uoload & download dialog box
+#
+#
+# - useful functions
+# run_on_pi(self, command)    -   Runs a command on the pigrow and returns output and error
+####    out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("ls /home/" + pi_link_pnl.target_user + "/Pigrow/")
 #
 #
 #
@@ -22,8 +34,9 @@
 print("")
 print(" THIS IS A WORK IN PROGRESS SCRIPT (ain't they all)")
 print("     At the moment it does a few useful things ")
-print("     not really enough to be useful and some might not work fully...")
-print("  it's fuckin' sweet as tho, aye?")
+print("     enough to be kinda useful but some of it might not work properly...")
+print(" !! some of it might cause problems !!")
+print("  but it's like, totally awesome tho, right?")
 print("")
 
 import os
@@ -305,6 +318,7 @@ class config_ctrl_pnl(wx.Panel):
         self.download_btn = wx.Button(self, label='config 2', pos=(15, 95), size=(175, 30))
         #self.download_btn.Bind(wx.EVT_BUTTON, self._click)
 
+
     def update_config_click(self, e):
         #define file locations
         pigrow_config_folder = "/home/" + pi_link_pnl.target_user + "/Pigrow/config/"
@@ -394,7 +408,7 @@ class config_ctrl_pnl(wx.Panel):
         else:
             location_msg += "Important location information missing! " + str(location_problems) + " not found"
         #display on screen
-        system_info_pnl.location_text.SetLabel(location_msg)
+        config_info_pnl.location_text.SetLabel(location_msg)
         #read pigrow config file
         try:
             stdin, stdout, stderr = ssh.exec_command("cat " + pigrow_settings_path)
@@ -427,7 +441,6 @@ class config_ctrl_pnl(wx.Panel):
         config_problems = []
         config_msg = ''
         dht_msg = ''
-        relay_msg = ''
         #lamp timeing
         if "lamp" in gpio_dict:
             if "time_lamp_on" in config_dict:
@@ -511,24 +524,20 @@ class config_ctrl_pnl(wx.Panel):
                 config_problems.append('dht_log_location')
         else:
             dht_msg += "DHT Sensor not linked\n"
-        gpio_count = 0
         #checks to see if gpio devices with on directions are also linked to a gpio pin and counts them
         relay_list_text = "Device - Pin - Switch direction for power on - current device state"
         for key in gpio_on_dict:
             if key in gpio_dict:
-                gpio_count = gpio_count + 1
-                divice_status = self.check_device_status(gpio_dict[key], gpio_on_dict[key])
-                relay_list_text += "\n " + str(key) + " - " + gpio_dict[key] + " - " + gpio_on_dict[key] + " - " + divice_status
-        relay_msg += "found " + str(gpio_count) + " relay switch linked gpio pins. " + relay_list_text
+                info = ''
+                self.add_to_GPIO_list(str(key), gpio_dict[key], gpio_on_dict[key], info=info)
         #listing config problems at end of config messsage
         if len(config_problems) > 0:
             config_msg += "found " + len(config_problems) + " config problems; "
         for item in config_problems:
             config_msg += item + ", "
         #putting the info on the screen
-        system_info_pnl.config_text.SetLabel(config_msg)
-        system_info_pnl.dht_text.SetLabel(dht_msg)
-        system_info_pnl.relay_text.SetLabel(relay_msg)
+        config_info_pnl.config_text.SetLabel(config_msg)
+        config_info_pnl.dht_text.SetLabel(dht_msg)
 
     def check_device_status(self, gpio_pin, on_power_state):
         #Checks if a device is on or off by reading the pin and compairing to the relay wiring direction
@@ -558,6 +567,15 @@ class config_ctrl_pnl(wx.Panel):
             return "error " + str(e)
         return device_status
 
+    def add_to_GPIO_list(self, device, gpio, wiring, currently='', info=''):
+        if currently == '':
+            currently = self.check_device_status(gpio, wiring)
+        config_info_pnl.gpio_table.InsertStringItem(0, str(device))
+        config_info_pnl.gpio_table.SetStringItem(0, 1, str(gpio))
+        config_info_pnl.gpio_table.SetStringItem(0, 2, str(wiring))
+        config_info_pnl.gpio_table.SetStringItem(0, 3, str(currently))
+        config_info_pnl.gpio_table.SetStringItem(0, 4, str(info))
+
 
 class config_info_pnl(wx.Panel):
     #  This displays the config info
@@ -571,10 +589,57 @@ class config_info_pnl(wx.Panel):
         png = wx.Image('./config_info.png', wx.BITMAP_TYPE_ANY).ConvertToBitmap()
         wx.StaticBitmap(self, -1, png, (0, 0), (png.GetWidth(), png.GetHeight()))
         #SDcard details
-        system_info_pnl.location_text = wx.StaticText(self,  label='locations', pos=(25, 130), size=(200,30))
-        system_info_pnl.config_text = wx.StaticText(self,  label='config', pos=(10, 210), size=(200,30))
-        system_info_pnl.dht_text = wx.StaticText(self,  label='dht', pos=(10, 415), size=(200,30))
-        system_info_pnl.relay_text = wx.StaticText(self,  label='relay module', pos=(10, 635), size=(200,30))
+        config_info_pnl.location_text = wx.StaticText(self,  label='locations', pos=(25, 130), size=(200,30))
+        config_info_pnl.config_text = wx.StaticText(self,  label='config', pos=(10, 210), size=(200,30))
+        config_info_pnl.dht_text = wx.StaticText(self,  label='dht', pos=(10, 415), size=(200,30))
+        config_info_pnl.gpio_table = self.GPIO_list(self, 1)
+        config_info_pnl.gpio_table.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.onDoubleClick_GPIO)
+
+    class GPIO_list(wx.ListCtrl):
+        def __init__(self, parent, id, pos=(5,635), size=(570,160)):
+            wx.ListCtrl.__init__(self, parent, id, size=size, style=wx.LC_REPORT, pos=pos)
+            self.InsertColumn(0, 'Device')
+            self.InsertColumn(1, 'GPIO')
+            self.InsertColumn(2, 'wiring')
+            self.InsertColumn(3, 'Currently')
+            self.InsertColumn(4, 'info')
+            self.SetColumnWidth(0, 150)
+            self.SetColumnWidth(1, 75)
+            self.SetColumnWidth(2, 100)
+            self.SetColumnWidth(3, 100)
+            self.SetColumnWidth(4, -1)
+
+    def onDoubleClick_GPIO(self, e):
+        index =  e.GetIndex()
+        #get info for dialogue box
+        device = config_info_pnl.gpio_table.GetItem(index, 0).GetText()
+        currently = config_info_pnl.gpio_table.GetItem(index, 3).GetText()
+        switch_path = "/home/" + pi_link_pnl.target_user + "/Pigrow/scripts/switches/"
+        if currently == "ON":
+            switch_command = switch_path + device + "_off.py"
+            future_state = "OFF"
+        elif currently == "OFF":
+            switch_command = switch_path + device + "_on.py"
+            future_state = "ON"
+        else:
+            switch_command = "Error, current state unknown"
+        #make dialogue box
+        d = wx.MessageDialog(
+            self, "Are you sure you want to switch " + device + " to the " +
+            future_state + " poisition?\n\n\n " +
+            "Note: automated control scripts might " +
+            "\n      switch this " + currently + " again " +
+            "\n      if thier trigger conditions are met. "
+            , "Switch " + device + " " + future_state + "?"
+            , wx.OK | wx.CANCEL | wx.ICON_QUESTION)
+        answer = d.ShowModal()
+        d.Destroy()
+        #if user said ok then switch device 
+        if (answer == wx.ID_OK):
+            out, error = MainApp.localfiles_ctrl_pannel.run_on_pi(switch_command)
+            print out   # shows box with pigrow info
+            if not error == "": print error
+            config_info_pnl.gpio_table.SetStringItem(index, 3, str(future_state))
 
 class cron_info_pnl(wx.Panel):
     def __init__( self, parent ):
@@ -744,7 +809,7 @@ class cron_info_pnl(wx.Panel):
         is_running = self.test_if_script_running(cron_task)
         cron_list_pnl.startup_cron.InsertStringItem(0, str(line_number))
         cron_list_pnl.startup_cron.SetStringItem(0, 1, str(job_enabled))
-        cron_list_pnl.startup_cron.SetStringItem(0, 2, str(is_running))   #should test if script it currently running on pi
+        cron_list_pnl.startup_cron.SetStringItem(0, 2, str(is_running))   #tests if script it currently running on pi
         cron_list_pnl.startup_cron.SetStringItem(0, 3, cron_task)
         cron_list_pnl.startup_cron.SetStringItem(0, 4, cron_extra_args)
         cron_list_pnl.startup_cron.SetStringItem(0, 5, cron_comment)
@@ -752,7 +817,7 @@ class cron_info_pnl(wx.Panel):
     def add_to_repeat_list(self, line_number, job_enabled, timing_string, cron_task, cron_extra_args='', cron_comment=''):
         cron_list_pnl.repeat_cron.InsertStringItem(0, str(line_number))
         cron_list_pnl.repeat_cron.SetStringItem(0, 1, str(job_enabled))
-        cron_list_pnl.repeat_cron.SetStringItem(0, 2, timing_string)   #should test if script it currently running on pi
+        cron_list_pnl.repeat_cron.SetStringItem(0, 2, timing_string)
         cron_list_pnl.repeat_cron.SetStringItem(0, 3, cron_task)
         cron_list_pnl.repeat_cron.SetStringItem(0, 4, cron_extra_args)
         cron_list_pnl.repeat_cron.SetStringItem(0, 5, cron_comment)
@@ -760,7 +825,7 @@ class cron_info_pnl(wx.Panel):
     def add_to_onetime_list(self, line_number, job_enabled, timing_string, cron_task, cron_extra_args='', cron_comment=''):
         cron_list_pnl.timed_cron.InsertStringItem(0, str(line_number))
         cron_list_pnl.timed_cron.SetStringItem(0, 1, str(job_enabled))
-        cron_list_pnl.timed_cron.SetStringItem(0, 2, timing_string)   #should test if script it currently running on pi
+        cron_list_pnl.timed_cron.SetStringItem(0, 2, timing_string)
         cron_list_pnl.timed_cron.SetStringItem(0, 3, cron_task)
         cron_list_pnl.timed_cron.SetStringItem(0, 4, cron_extra_args)
         cron_list_pnl.timed_cron.SetStringItem(0, 5, cron_comment)
@@ -1530,6 +1595,19 @@ class localfiles_ctrl_pnl(wx.Panel):
         self.upload_btn = wx.Button(self, label='Restore to pi', pos=(15, 130), size=(175, 30))
         self.upload_btn.Bind(wx.EVT_BUTTON, self.upload_click)
 
+    def run_on_pi(self, command):
+        #Runs a command on the pigrow and returns output and error
+        #  out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("ls /home/" + pi_link_pnl.target_user + "/Pigrow/")
+        try:
+            stdin, stdout, stderr = ssh.exec_command(command)
+            out = stdout.read()
+            error = stderr.read()
+        except Exception as e:
+            error = "failed running command;" + str(command) + " with error - " + str(e)
+            print(error)
+            return "", error
+        return out, error
+
     def update_local_filelist_click(self, e):
         #set local files path
         if localfiles_info_pnl.local_path == "":
@@ -2025,6 +2103,7 @@ class pi_link_pnl(wx.Panel):
         if boxname == '':
             boxname = None
         return boxname
+
 
 class welcome_pnl(wx.Panel):
     #
