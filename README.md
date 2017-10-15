@@ -1,19 +1,23 @@
 # Pigrow
 Raspberry Pi Grow Box Control Software
 
-This is the software required to control a pigrow2, if you don't
-know what a pigrow2 is then check out the videos and guides on
+The Pigrow is an automation devices designed to help gardeners monitor, log, graph and controll their grow space using a raspberry Pi, a DHT22 sensor and a few relay modules. All software, designs and content is shared with open-source licences, it's free to make and cheap to buy.
+
+For more information vist;
 
      https://www.patreon.com/Pigrow2
 
-Currently everything is at an alpha development stage, a stable release
-will happen as soon as possible, in the mean time anyone intereted in
-setting up a pigrow should message me personally and i'll help you
-directly.
+     https://www.reddit.com/r/Pigrow/
 
-This document will be updated and finished soon but the most upto date build, install and use instructions are abailable
+#Work in Progress
 
-     https://www.reddit.com/r/Pigrow/wiki/index
+The Pigrow is currently undergoing development and a full and stable release is due soon, but when soon is who knows... In the meantime the pigrow is fully working and in use on serveral boxes all giving great results. The timelapse feature, automatic controll and logging of devices and etc have all been well tested however the conguration can be complex and confusing at times. The remote gui is the current priority this will make the whole process very simple. 
+
+#How to Pigrow...
+
+First you need the hardwarre, follow the buildguide available on the www.reddit.com/r/Pigrow/wiki/index for the most recent instructions. 
+
+When you have a working raspberry pi connected to your network and the appropriate sensors and relays you can either use the GUI [work in progress] or connect to the pi via an SSH command line terminal or with the pi plugged into a screen, keyboard and mouse.
 
 #First Steps 
   
@@ -54,22 +58,6 @@ should be fairly obvious or isn't yet finished, any questions message me on the 
 The folloeing is out of date but sections of it may still be useful,
 
 ----------
-
-##Install and Setup
-
-------
-
-#Test and config scripts;
-
-- LED - test_led.py - simply turns the LED on for 30 seconds
-
-- Relay - test_relay.py - cycles the relays turning them all on then when they're all on it starts turning them off again.
-      !!!!!!!!      - config_relay.py - set's and test's which terminal (normally on or normally off) the sockets were plugged into, allows you to assign functions to relays
-
-- Camera - cam_config.py - creates the persistant settings for use when recording a timelapse or viewing the pi.
-
-
-
 
 #scripts to be called by cron;
 
@@ -152,8 +140,6 @@ This is some init.d business i'll be back to explain once the script is uploaded
      sudo apt-get install python-pip           #for adding python modules
      pip install pillow                        #PIL the Python Image Library (for camera capture scripts that edit image)
      sudo apt-get install gpicview             #used by the config program (non-vital, easy to change-out in the code)
-
-
 
 
 #directory structure
