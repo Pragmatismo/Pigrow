@@ -315,9 +315,8 @@ class config_ctrl_pnl(wx.Panel):
         wx.StaticText(self,  label='Pigrow Config', pos=(25, 10))
         self.update_config_btn = wx.Button(self, label='read config from pigrow', pos=(15, 60), size=(175, 30))
         self.update_config_btn.Bind(wx.EVT_BUTTON, self.update_config_click)
-        self.download_btn = wx.Button(self, label='config 2', pos=(15, 95), size=(175, 30))
-        #self.download_btn.Bind(wx.EVT_BUTTON, self._click)
-
+        self.new_gpio_btn = wx.Button(self, label='Add new device GPIO link', pos=(15, 95), size=(175, 30))
+        self.new_gpio_btn.Bind(wx.EVT_BUTTON, self.add_new_device_gpio)
 
     def update_config_click(self, e):
         #define file locations
@@ -539,6 +538,24 @@ class config_ctrl_pnl(wx.Panel):
         config_info_pnl.config_text.SetLabel(config_msg)
         config_info_pnl.dht_text.SetLabel(dht_msg)
 
+    def add_new_device_gpio(self, e):
+        #define as blank
+        config_ctrl_pnl.device_toedit = ""
+        config_ctrl_pnl.gpio_toedit = ""
+        config_ctrl_pnl.wiring_toedit = ""
+        #create dialogue box
+        gpio_dbox = config_gpio_dialog(None, title='Device GPIO link')
+        gpio_dbox.ShowModal()
+        #catch any changes made if ok was pressed, if cancel all == None
+        device = config_ctrl_pnl.device_new
+        gpio = config_ctrl_pnl.gpio_new
+        wiring = config_ctrl_pnl.wiring_new
+        if not device == "":
+            #update config file
+            print device, gpio, wiring
+        else:
+            print "cancelled"
+
     def check_device_status(self, gpio_pin, on_power_state):
         #Checks if a device is on or off by reading the pin and compairing to the relay wiring direction
         try:
@@ -623,7 +640,7 @@ class config_info_pnl(wx.Panel):
             future_state = "ON"
         else:
             switch_command = "Error, current state unknown"
-        #make dialogue box
+        #make dialogue box to ask if should switch the device
         d = wx.MessageDialog(
             self, "Are you sure you want to switch " + device + " to the " +
             future_state + " poisition?\n\n\n " +
@@ -634,12 +651,125 @@ class config_info_pnl(wx.Panel):
             , wx.OK | wx.CANCEL | wx.ICON_QUESTION)
         answer = d.ShowModal()
         d.Destroy()
-        #if user said ok then switch device 
+        #if user said ok then switch device
         if (answer == wx.ID_OK):
             out, error = MainApp.localfiles_ctrl_pannel.run_on_pi(switch_command)
             print out   # shows box with pigrow info
             if not error == "": print error
             config_info_pnl.gpio_table.SetStringItem(index, 3, str(future_state))
+
+class config_gpio_dialog(wx.Dialog):
+    #Dialog box for creating for adding or editing device gpio config data
+    def __init__(self, *args, **kw):
+        super(config_gpio_dialog, self).__init__(*args, **kw)
+        self.InitUI()
+        self.SetSize((750, 300))
+        self.SetTitle("Device GPIO config")
+        self.Bind(wx.EVT_CLOSE, self.OnClose)
+    def InitUI(self):
+        # these need to be set before the dialog is created
+        device = config_ctrl_pnl.device_toedit
+        gpio = config_ctrl_pnl.gpio_toedit
+        wiring = config_ctrl_pnl.wiring_toedit
+
+        # draw the pannel
+        pnl = wx.Panel(self)
+        wx.StaticText(self,  label='Device GPIO Config', pos=(20, 10))
+        #background image
+        png = wx.Image('./relaydialogue.png', wx.BITMAP_TYPE_ANY).ConvertToBitmap()
+        wx.StaticBitmap(self, -1, png, (0, 0), (png.GetWidth(), png.GetHeight()))
+        # devices combo box
+        switch_list = self.list_switch_scripts()
+        unlinked_devices = self.list_unused_devices(switch_list)
+        wx.StaticText(self,  label='Device;', pos=(20, 50))
+        self.devices_combo = wx.ComboBox(self, choices = unlinked_devices, pos=(90,50), size=(175, 25))
+        self.devices_combo.SetValue(device)
+        # gpio text box
+        wx.StaticText(self,  label='GPIO', pos=(10, 100))
+        self.gpio_tc = wx.TextCtrl(self, pos=(56, 98), size=(40, 25))
+        self.gpio_tc.SetValue(gpio)
+        self.gpio_tc.Bind(wx.EVT_CHAR, self.onChar) #limit to valid gpio numbers
+        # wiring direction combo box
+        wiring_choices = ['LOW', 'HIGH']
+        wx.StaticText(self,  label='Wiring side;', pos=(100, 100))
+        self.wiring_combo = wx.ComboBox(self, choices = wiring_choices, pos=(200,98), size=(110, 25))
+        self.wiring_combo.SetValue(wiring)
+        #
+
+
+        #Buttom Row of Buttons
+        okButton = wx.Button(self, label='Ok', pos=(200, 250))
+        closeButton = wx.Button(self, label='Cancel', pos=(300, 250))
+        okButton.Bind(wx.EVT_BUTTON, self.set_new_gpio_link)
+        closeButton.Bind(wx.EVT_BUTTON, self.OnClose)
+
+    def onChar(self, event):
+        #this inhibits any non-numeric keys
+        key = event.GetKeyCode()
+        try: character = chr(key)
+        except ValueError: character = "" # arrow keys will throw this error
+        acceptable_characters = "1234567890"
+        if character in acceptable_characters or key == 13 or key == 314 or key == 316 or key == 8 or key == 127: # 13 = enter, 314 & 316 = arrows, 8 = backspace, 127 = del
+            event.Skip()
+            return
+        else:
+            return False
+
+    def list_switch_scripts(self):
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("ls /home/" + pi_link_pnl.target_user + "/Pigrow/scripts/switches/")
+        switches = out.split("\n")
+        switch_list = []
+        for item in switches:
+            if item[-6:] == "_on.py":
+                switch_list.append(item.split("_")[0])
+        return switch_list
+
+    def list_unused_devices(self, switch_list):
+        item_count = config_info_pnl.gpio_table.GetItemCount()
+        used_devices = []
+        for num in range(0, item_count):
+            device = config_info_pnl.gpio_table.GetItem(num, 0).GetText()
+            used_devices.append(device)
+        unused_devices = []
+        for item in switch_list:
+            if not item in used_devices:
+                unused_devices.append(item)
+        return unused_devices
+
+    def list_used_gpio(self):
+        item_count = config_info_pnl.gpio_table.GetItemCount()
+        used_gpio = []
+        for num in range(0, item_count):
+            gpio = config_info_pnl.gpio_table.GetItem(num, 1).GetText()
+            used_gpio.append(gpio)
+        return used_gpio
+
+    def list_unused_gpio(self, used_gpio):
+        valid_gpio = ['2', '3', '4', '17', '27', '22', '10', '9', '11', '5',
+                      '6', '13', '19', '26', '14', '15', '18', '23', '24',
+                      '25', '8', '7', '12', '16', '20', '21']
+        unused_gpio = []
+        for item in valid_gpio:
+            if not item in used_gpio:
+                unused_gpio.append(item)
+        return unused_gpio
+
+    def set_new_gpio_link(self, e):
+        #do stuff, set new data into pigrow config file, update ui, etc
+        unused_gpio = self.list_unused_gpio(self.list_used_gpio())
+        config_ctrl_pnl.device_new = self.devices_combo.GetValue()
+        config_ctrl_pnl.gpio_new = self.gpio_tc.GetValue()
+        config_ctrl_pnl.wiring_new = self.wiring_combo.GetValue()
+        if config_ctrl_pnl.gpio_new in unused_gpio:
+            self.Destroy()
+        else:
+            wx.MessageBox('Select a valid and unused gpio pin', 'Error', wx.OK | wx.ICON_INFORMATION)
+            config_ctrl_pnl.gpio_new = self.gpio_tc.SetValue("")
+    def OnClose(self, e):
+        config_ctrl_pnl.device_new = ''
+        config_ctrl_pnl.gpio_new = ''
+        config_ctrl_pnl.wiring_new = ''
+        self.Destroy()
 
 class cron_info_pnl(wx.Panel):
     def __init__( self, parent ):
