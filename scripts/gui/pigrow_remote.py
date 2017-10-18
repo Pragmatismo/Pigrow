@@ -760,11 +760,25 @@ class config_gpio_dialog(wx.Dialog):
         config_ctrl_pnl.device_new = self.devices_combo.GetValue()
         config_ctrl_pnl.gpio_new = self.gpio_tc.GetValue()
         config_ctrl_pnl.wiring_new = self.wiring_combo.GetValue()
-        if config_ctrl_pnl.gpio_new in unused_gpio:
-            self.Destroy()
-        else:
+        #check to see if info is valid
+        should_close = True
+        # check if device is set
+        if config_ctrl_pnl.device_new == "":
+            wx.MessageBox('Select a device to link from the list', 'Error', wx.OK | wx.ICON_INFORMATION)
+            should_close = False
+        #check if gpio number is valid
+        if not config_ctrl_pnl.gpio_new in unused_gpio and should_close == True:
             wx.MessageBox('Select a valid and unused gpio pin', 'Error', wx.OK | wx.ICON_INFORMATION)
             config_ctrl_pnl.gpio_new = self.gpio_tc.SetValue("")
+            should_close = False
+        # check if wiring direction is set to a valid setting
+        if not config_ctrl_pnl.wiring_new == "LOW" and should_close == True:
+            if not config_ctrl_pnl.wiring_new == "HIGH":
+                wx.MessageBox("No wiring direction set, \nIf you don't know guess and change it if the device turns on when it should be off", 'Error', wx.OK | wx.ICON_INFORMATION)
+                should_close = False
+        # if box should be closed then close it
+        if should_close == True:
+            self.Destroy()
     def OnClose(self, e):
         config_ctrl_pnl.device_new = ''
         config_ctrl_pnl.gpio_new = ''
