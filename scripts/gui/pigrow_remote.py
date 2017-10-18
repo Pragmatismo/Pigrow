@@ -630,9 +630,67 @@ class config_info_pnl(wx.Panel):
 
     def onDoubleClick_GPIO(self, e):
         index =  e.GetIndex()
+        config_info_pnl.index = index
         #get info for dialogue box
         device = config_info_pnl.gpio_table.GetItem(index, 0).GetText()
+        gpio = config_info_pnl.gpio_table.GetItem(index, 1).GetText()
+        wiring = config_info_pnl.gpio_table.GetItem(index, 2).GetText()
         currently = config_info_pnl.gpio_table.GetItem(index, 3).GetText()
+        #set data for dialogue box to read
+        config_ctrl_pnl.device_toedit = device
+        config_ctrl_pnl.gpio_toedit = gpio
+        config_ctrl_pnl.wiring_toedit = wiring
+        config_ctrl_pnl.currently_toedit = currently
+        #create dialogue box
+        gpio_dbox = doubleclick_gpio_dialog(None, title='Device GPIO link')
+        gpio_dbox.ShowModal()
+        # read data from dbox
+        new_device = config_ctrl_pnl.device_new
+        new_gpio = config_ctrl_pnl.gpio_new
+        new_wiring = config_ctrl_pnl.wiring_new
+        new_currently = config_ctrl_pnl.currently_new
+        # if changes happened mark the ui
+        if not new_currently == config_info_pnl.gpio_table.GetItem(index, 3).GetText():
+            config_info_pnl.gpio_table.SetStringItem(index, 3, str(new_currently))
+
+
+class doubleclick_gpio_dialog(wx.Dialog):
+    #Dialog box for creating for adding or editing device gpio config data
+    def __init__(self, *args, **kw):
+        super(doubleclick_gpio_dialog, self).__init__(*args, **kw)
+        self.InitUI()
+        self.SetSize((400, 200))
+        self.SetTitle("GPIO config")
+    def InitUI(self):
+        # these need to be set before the dialog is created
+        device = config_ctrl_pnl.device_toedit
+        gpio = config_ctrl_pnl.gpio_toedit
+        wiring = config_ctrl_pnl.wiring_toedit
+        currently = config_ctrl_pnl.currently_toedit
+        msg = device + " on GPIO pin " + gpio + " wiring direction;" + wiring + "\n Currently: " + currently
+        # draw the pannel
+        pnl = wx.Panel(self)
+        wx.StaticText(self,  label='Device GPIO Config', pos=(20, 10))
+        okButton = wx.Button(self, label='Ok', pos=(25, 150))
+        edit_Button = wx.Button(self, label='Edit', pos=(150, 150))
+        switch_Button = wx.Button(self, label='Switch', pos=(275, 150))
+        okButton.Bind(wx.EVT_BUTTON, self.OnClose)
+        edit_Button.Bind(wx.EVT_BUTTON, self.OnClose)
+        switch_Button.Bind(wx.EVT_BUTTON, self.OnSwitch)
+
+    def OnClose(self, e):
+        self.Destroy()
+
+    def OnSwitch(self, e):
+        device = config_ctrl_pnl.device_toedit
+        currently = config_ctrl_pnl.currently_toedit
+        self.switch_device(device, currently)
+        if not currently == config_ctrl_pnl.currently_new:
+            # if changes happened mark the ui
+            config_info_pnl.gpio_table.SetStringItem(config_info_pnl.index, 3, str(config_ctrl_pnl.currently_new))
+
+
+    def switch_device(self, device, currently):
         switch_path = "/home/" + pi_link_pnl.target_user + "/Pigrow/scripts/switches/"
         if currently == "ON":
             switch_command = switch_path + device + "_off.py"
@@ -641,24 +699,38 @@ class config_info_pnl(wx.Panel):
             switch_command = switch_path + device + "_on.py"
             future_state = "ON"
         else:
-            switch_command = "Error, current state unknown"
-        #make dialogue box to ask if should switch the device
-        d = wx.MessageDialog(
-            self, "Are you sure you want to switch " + device + " to the " +
-            future_state + " poisition?\n\n\n " +
-            "Note: automated control scripts might " +
-            "\n      switch this " + currently + " again " +
-            "\n      if thier trigger conditions are met. "
-            , "Switch " + device + " " + future_state + "?"
-            , wx.OK | wx.CANCEL | wx.ICON_QUESTION)
-        answer = d.ShowModal()
-        d.Destroy()
-        #if user said ok then switch device
-        if (answer == wx.ID_OK):
-            out, error = MainApp.localfiles_ctrl_pannel.run_on_pi(switch_command)
-            print out   # shows box with pigrow info
-            if not error == "": print error
-            config_info_pnl.gpio_table.SetStringItem(index, 3, str(future_state))
+            switch_command = "ERROR"
+        #if error show error message
+        if not switch_command == "ERROR":
+            #make dialogue box to ask if should switch the device
+            d = wx.MessageDialog(
+                self, "Are you sure you want to switch " + device + " to the " +
+                future_state + " poisition?\n\n\n " +
+                "Note: automated control scripts might " +
+                "\n      switch this " + currently + " again " +
+                "\n      if thier trigger conditions are met. "
+                , "Switch " + device + " " + future_state + "?"
+                , wx.OK | wx.CANCEL | wx.ICON_QUESTION)
+            answer = d.ShowModal()
+            d.Destroy()
+            #if user said ok then switch device
+            if (answer == wx.ID_OK):
+                out, error = MainApp.localfiles_ctrl_pannel.run_on_pi(switch_command)
+                print out   # shows box with switch info from pigrow
+                if not error == "": print error
+                config_ctrl_pnl.currently_new = future_state
+                config_ctrl_pnl.device_new = device
+                config_ctrl_pnl.gpio_new = config_ctrl_pnl.gpio_toedit
+                config_ctrl_pnl.wiring_new = config_ctrl_pnl.wiring_toedit
+        else:
+            d = wx.MessageDialog(self, "Error, current state not determined", wx.OK | wx.ICON_ERROR)
+            answer = d.ShowModal()
+            d.Destroy()
+            return "ERROR"
+
+
+
+
 
 class config_gpio_dialog(wx.Dialog):
     #Dialog box for creating for adding or editing device gpio config data
@@ -757,7 +829,7 @@ class config_gpio_dialog(wx.Dialog):
         return unused_gpio
 
     def set_new_gpio_link(self, e):
-        #do stuff, set new data into pigrow config file, update ui, etc
+        #get data from combo boxes.
         unused_gpio = self.list_unused_gpio(self.list_used_gpio())
         config_ctrl_pnl.device_new = self.devices_combo.GetValue()
         config_ctrl_pnl.gpio_new = self.gpio_tc.GetValue()
@@ -780,12 +852,24 @@ class config_gpio_dialog(wx.Dialog):
                 should_close = False
         # if box should be closed then close it
         if should_close == True:
+            #checks to see if changes have been made and updates ui if so
+            if not config_ctrl_pnl.device_new == config_ctrl_pnl.device_toedit:
+                config_ctrl_pnl.currently_new = 'unlinked'
+            else:
+                if not config_ctrl_pnl.gpio_new == config_ctrl_pnl.gpio_toedit:
+                    config_ctrl_pnl.currently_new = 'unlinked'
+                else:
+                    if not config_ctrl_pnl.wiring_new == config_ctrl_pnl.wiring_toedit:
+                        config_ctrl_pnl.currently_new = 'unlinked'
+                    else:
+                        config_ctrl_pnl.currently_new = config_ctrl_pnl.currently_toedit
             self.Destroy()
 
     def OnClose(self, e):
         config_ctrl_pnl.device_new = ''
         config_ctrl_pnl.gpio_new = ''
         config_ctrl_pnl.wiring_new = ''
+        config_ctrl_pnl.currently_new = ''
         self.Destroy()
 
 class cron_info_pnl(wx.Panel):
