@@ -553,6 +553,7 @@ class config_ctrl_pnl(wx.Panel):
         if not device == "":
             #update config file
             print device, gpio, wiring
+            config_ctrl_pnl.add_to_GPIO_list(MainApp.config_ctrl_pannel, device, gpio, wiring, currently='UNLINKED')
         else:
             print "cancelled"
 
@@ -585,6 +586,7 @@ class config_ctrl_pnl(wx.Panel):
         return device_status
 
     def add_to_GPIO_list(self, device, gpio, wiring, currently='', info=''):
+        #config_ctrl_pnl.add_to_GPIO_list(self, device, gpio, wiring, currently='', info='')
         if currently == '':
             currently = self.check_device_status(gpio, wiring)
         config_info_pnl.gpio_table.InsertStringItem(0, str(device))
@@ -690,7 +692,7 @@ class config_gpio_dialog(wx.Dialog):
         self.gpio_tc.SetValue(gpio)
         self.gpio_tc.Bind(wx.EVT_CHAR, self.onChar) #limit to valid gpio numbers
         # wiring direction combo box
-        wiring_choices = ['LOW', 'HIGH']
+        wiring_choices = ['low', 'high']
         wx.StaticText(self,  label='Wiring side;', pos=(100, 100))
         self.wiring_combo = wx.ComboBox(self, choices = wiring_choices, pos=(200,98), size=(110, 25))
         self.wiring_combo.SetValue(wiring)
@@ -772,13 +774,14 @@ class config_gpio_dialog(wx.Dialog):
             config_ctrl_pnl.gpio_new = self.gpio_tc.SetValue("")
             should_close = False
         # check if wiring direction is set to a valid setting
-        if not config_ctrl_pnl.wiring_new == "LOW" and should_close == True:
-            if not config_ctrl_pnl.wiring_new == "HIGH":
+        if not config_ctrl_pnl.wiring_new == "low" and should_close == True:
+            if not config_ctrl_pnl.wiring_new == "high":
                 wx.MessageBox("No wiring direction set, \nIf you don't know guess and change it if the device turns on when it should be off", 'Error', wx.OK | wx.ICON_INFORMATION)
                 should_close = False
         # if box should be closed then close it
         if should_close == True:
             self.Destroy()
+
     def OnClose(self, e):
         config_ctrl_pnl.device_new = ''
         config_ctrl_pnl.gpio_new = ''
