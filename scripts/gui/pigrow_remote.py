@@ -317,6 +317,8 @@ class config_ctrl_pnl(wx.Panel):
         self.update_config_btn.Bind(wx.EVT_BUTTON, self.update_config_click)
         self.new_gpio_btn = wx.Button(self, label='Add new device GPIO link', pos=(15, 95), size=(175, 30))
         self.new_gpio_btn.Bind(wx.EVT_BUTTON, self.add_new_device_gpio)
+        self.update_settings_btn = wx.Button(self, label='update pigrow', pos=(15, 130), size=(175, 30))
+        self.update_settings_btn.Bind(wx.EVT_BUTTON, self.update_setting_click)
 
     def update_config_click(self, e):
         #define file locations
@@ -408,16 +410,18 @@ class config_ctrl_pnl(wx.Panel):
             location_msg += "Important location information missing! " + str(location_problems) + " not found"
         #display on screen
         config_info_pnl.location_text.SetLabel(location_msg)
+        #
         #read pigrow config file
+        #
         try:
             stdin, stdout, stderr = ssh.exec_command("cat " + pigrow_settings_path)
             pigrow_settings = stdout.read().splitlines()
         except Exception as e:
             print("reading dirlocs.txt failed; " + str(e))
         #define empty dictionaries
-        config_dict = {}
-        gpio_dict = {}
-        gpio_on_dict = {}
+        self.config_dict = {}
+        self.gpio_dict = {}
+        self.gpio_on_dict = {}
         #go through the setting file and put them in the correct dictionary
         if len(pigrow_settings) > 1:
             for item in pigrow_settings:
@@ -426,32 +430,32 @@ class config_ctrl_pnl(wx.Panel):
                     line_split = item[0].split("_")
                     if line_split[0] == 'gpio' and not item[1] == "":
                         if len(line_split) == 2:
-                            gpio_dict[line_split[1]] = item[1]
+                            self.gpio_dict[line_split[1]] = item[1]
                         elif len(line_split) == 3:
-                            gpio_on_dict[str(line_split[1])] = item[1]
+                            self.gpio_on_dict[str(line_split[1])] = item[1]
                     else:
-                        config_dict[item[0]] = item[1]
+                        self.config_dict[item[0]] = item[1]
                 except:
                     print("!!error reading value from config file; " + str(item))
-        # we've now created config_dict with a list of all the items in the config file
-        #   and gpio_dict and gpio_on_dict with gpio numbers and low/high pin direction info
+        # we've now created self.config_dict with a list of all the items in the config file
+        #   and self.gpio_dict and self.gpio_on_dict with gpio numbers and low/high pin direction info
 
         #unpack non-gpio information from config file
         config_problems = []
         config_msg = ''
         dht_msg = ''
         #lamp timeing
-        if "lamp" in gpio_dict:
-            if "time_lamp_on" in config_dict:
-                lamp_on_hour = int(config_dict["time_lamp_on"].split(":")[0])
-                lamp_on_min = int(config_dict["time_lamp_on"].split(":")[1])
+        if "lamp" in self.gpio_dict:
+            if "time_lamp_on" in self.config_dict:
+                lamp_on_hour = int(self.config_dict["time_lamp_on"].split(":")[0])
+                lamp_on_min = int(self.config_dict["time_lamp_on"].split(":")[1])
 
             else:
                 config_msg += "lamp on time not set\n"
                 config_problems.append('lamp')
-            if "time_lamp_off" in config_dict:
-                lamp_off_hour = int(config_dict["time_lamp_off"].split(":")[0])
-                lamp_off_min = int(config_dict["time_lamp_off"].split(":")[1])
+            if "time_lamp_off" in self.config_dict:
+                lamp_off_hour = int(self.config_dict["time_lamp_off"].split(":")[0])
+                lamp_off_min = int(self.config_dict["time_lamp_off"].split(":")[1])
             else:
                 config_msg += "lamp off time not set\n"
                 config_problems.append('lamp')
@@ -471,15 +475,15 @@ class config_ctrl_pnl(wx.Panel):
         else:
             config_msg += "no lamp linked to gpio, ignoring lamp timing settings\n"
      #heater on and off temps
-        if "heater" in gpio_dict:
-            if "heater_templow" in config_dict:
-                heater_templow =  config_dict["heater_templow"]
+        if "heater" in self.gpio_dict:
+            if "heater_templow" in self.config_dict:
+                heater_templow =  self.config_dict["heater_templow"]
                 config_msg += "Temp low; " + str(heater_templow)
             else:
                 config_msg += "\nheater low temp not set\n"
                 config_problems.append('heater_templow')
-            if "heater_temphigh" in config_dict:
-                heater_temphigh = config_dict["heater_temphigh"]
+            if "heater_temphigh" in self.config_dict:
+                heater_temphigh = self.config_dict["heater_temphigh"]
                 config_msg += " temp high: " + str(heater_temphigh) + " (Centigrade)\n"
             else:
                 config_msg += "heater high temp not set\n"
@@ -487,15 +491,15 @@ class config_ctrl_pnl(wx.Panel):
         else:
             config_msg += "no heater linked to gpio, ignoring heater temp settings\n"
         # read humid info
-        if "humid" in gpio_dict or "dehumid" in gpio_dict:
-            if "humid_low" in config_dict:
-                humid_low = config_dict["humid_low"]
+        if "humid" in self.gpio_dict or "dehumid" in self.gpio_dict:
+            if "humid_low" in self.config_dict:
+                humid_low = self.config_dict["humid_low"]
                 config_msg += "humidity low; " + str(humid_low)
             else:
                 config_msg += "\nHumid low not set\n"
                 config_problems.append('humid_low')
-            if "humid_high" in config_dict:
-                humid_high = config_dict["humid_high"]
+            if "humid_high" in self.config_dict:
+                humid_high = self.config_dict["humid_high"]
                 config_msg += " humidity high: " + str(humid_high) + "\n"
             else:
                 config_msg += "humid high not set\n"
@@ -504,11 +508,11 @@ class config_ctrl_pnl(wx.Panel):
             config_msg += "no humidifier or dehumidifier linked to gpio"
 
         #add gpio message to the message text
-        config_msg += "We have " + str(len(gpio_dict)) + " devices linked to the GPIO\n"
-        if "dht22sensor" in gpio_dict:
-            dht_msg += "DHT Sensor on pin " + str(gpio_dict['dht22sensor'] + "\n")
-            if "log_frequency" in config_dict:
-                log_frequency = config_dict["log_frequency"]
+        config_msg += "We have " + str(len(self.gpio_dict)) + " devices linked to the GPIO\n"
+        if "dht22sensor" in self.gpio_dict:
+            dht_msg += "DHT Sensor on pin " + str(self.gpio_dict['dht22sensor'] + "\n")
+            if "log_frequency" in self.config_dict:
+                log_frequency = self.config_dict["log_frequency"]
                 dht_msg += "Logging dht every " + str(log_frequency) + " seconds. \n"
             else:
                 log_frequency = ""
@@ -525,10 +529,10 @@ class config_ctrl_pnl(wx.Panel):
             dht_msg += "DHT Sensor not linked\n"
         #checks to see if gpio devices with on directions are also linked to a gpio pin and counts them
         relay_list_text = "Device - Pin - Switch direction for power on - current device state"
-        for key in gpio_on_dict:
-            if key in gpio_dict:
+        for key in self.gpio_on_dict:
+            if key in self.gpio_dict:
                 info = ''
-                self.add_to_GPIO_list(str(key), gpio_dict[key], gpio_on_dict[key], info=info)
+                self.add_to_GPIO_list(str(key), self.gpio_dict[key], self.gpio_on_dict[key], info=info)
         #listing config problems at end of config messsage
         if len(config_problems) > 0:
             config_msg += "found " + len(config_problems) + " config problems; "
@@ -594,6 +598,28 @@ class config_ctrl_pnl(wx.Panel):
         config_info_pnl.gpio_table.SetStringItem(0, 2, str(wiring))
         config_info_pnl.gpio_table.SetStringItem(0, 3, str(currently))
         config_info_pnl.gpio_table.SetStringItem(0, 4, str(info))
+
+    def update_setting_click(self, e):
+        #create updated settings file
+        #creating GPIO config block
+        item_count = config_info_pnl.gpio_table.GetItemCount()
+        gpio_config_block = ""
+        for count in range(0, item_count):
+            device = config_info_pnl.gpio_table.GetItem(count, 0).GetText()
+            gpio = config_info_pnl.gpio_table.GetItem(count, 1).GetText()
+            wiring = config_info_pnl.gpio_table.GetItem(count, 2).GetText()
+            gpio_config_block += "\ngpio_" + device + "=" + gpio
+            gpio_config_block += "\ngpio_" + device + "_on=" + wiring
+        print gpio_config_block
+        other_settings = ""
+        for key, value in sorted(self.config_dict.items()):
+            other_settings += "\n" + key + "=" + value
+        print other_settings[1:]
+
+
+
+        #show user and ask user if they relly want to update
+        #upload new config file to disk
 
 
 class config_info_pnl(wx.Panel):
