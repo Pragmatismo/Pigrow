@@ -413,11 +413,8 @@ class config_ctrl_pnl(wx.Panel):
         #
         #read pigrow config file
         #
-        try:
-            stdin, stdout, stderr = ssh.exec_command("cat " + pigrow_settings_path)
-            pigrow_settings = stdout.read().splitlines()
-        except Exception as e:
-            print("reading dirlocs.txt failed; " + str(e))
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("cat " + pigrow_settings_path)
+        pigrow_settings = out.splitlines()
         #define empty dictionaries
         self.config_dict = {}
         self.gpio_dict = {}
@@ -505,7 +502,7 @@ class config_ctrl_pnl(wx.Panel):
                 config_msg += "humid high not set\n"
                 config_problems.append('heater_temphigh')
         else:
-            config_msg += "no humidifier or dehumidifier linked to gpio"
+            config_msg += "no humidifier or dehumidifier linked to gpio, ignoring settings\n"
 
         #add gpio message to the message text
         config_msg += "We have " + str(len(self.gpio_dict)) + " devices linked to the GPIO\n"
@@ -601,25 +598,41 @@ class config_ctrl_pnl(wx.Panel):
 
     def update_setting_click(self, e):
         #create updated settings file
+        #
         #creating GPIO config block
         item_count = config_info_pnl.gpio_table.GetItemCount()
-        gpio_config_block = ""
+        # add dht22 sesnsor if present;
+        if "dht22sensor" in self.gpio_dict:
+            gpio_config_block = "\ngpio_dht22sensor=" + self.gpio_dict["dht22sensor"]
+        else:
+            gpio_config_block = ""
+        # list all devices with gpio and wiring directions
         for count in range(0, item_count):
             device = config_info_pnl.gpio_table.GetItem(count, 0).GetText()
             gpio = config_info_pnl.gpio_table.GetItem(count, 1).GetText()
             wiring = config_info_pnl.gpio_table.GetItem(count, 2).GetText()
             gpio_config_block += "\ngpio_" + device + "=" + gpio
             gpio_config_block += "\ngpio_" + device + "_on=" + wiring
-        print gpio_config_block
+        # list all non-gpio settings
         other_settings = ""
-        for key, value in sorted(self.config_dict.items()):
+        for key, value in self.config_dict.items():
             other_settings += "\n" + key + "=" + value
-        print other_settings[1:]
-
-
-
-        #show user and ask user if they relly want to update
-        #upload new config file to disk
+        config_text = other_settings[1:]
+        config_text += gpio_config_block
+        # show user and ask user if they relly want to update
+        dbox = wx.MessageDialog(self, config_text, "upload to pigrow?", wx.OK | wx.CANCEL | wx.ICON_QUESTION)
+        answer = dbox.ShowModal()
+        dbox.Destroy()
+        #if user said ok then upload file to pi
+        if (answer == wx.ID_OK):
+            #
+            # REPLACE THE FOLLOWING WITH A FUNCTION THAT ANYONE CAN CALL TO UPLOAD A FILE
+            #
+            sftp = ssh.open_sftp()
+            folder = "/home/" + str(pi_link_pnl.target_user) +  "/Pigrow/config/"
+            f = sftp.open(folder + '/pigrow_config.txt', 'w')
+            f.write(config_text)
+            f.close()
 
 
 class config_info_pnl(wx.Panel):
