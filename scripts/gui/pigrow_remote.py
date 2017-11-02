@@ -439,6 +439,7 @@ class config_ctrl_pnl(wx.Panel):
         # we've now created self.config_dict with a list of all the items in the config file
         #   and self.gpio_dict and self.gpio_on_dict with gpio numbers and low/high pin direction info
 
+
         #unpack non-gpio information from config file
         config_problems = []
         config_msg = ''
@@ -526,8 +527,65 @@ class config_ctrl_pnl(wx.Panel):
                 config_problems.append('dht_log_location')
         else:
             dht_msg += "DHT Sensor not linked\n"
-        #checks to see if check_DHT script is running, logging dht and what the settings are
-        dht_msg += "not checked check_DHT.py is running, or what commands were used to start it\n"
+
+
+
+
+        #read cron info to see if dht script is running
+        last_index = cron_list_pnl.startup_cron.GetItemCount()
+        check_dht_running = "not found"
+        extra_args = ""
+        if not last_index == 0:
+            for index in range(0, last_index):
+                 name = cron_list_pnl.startup_cron.GetItem(index, 3).GetText()
+                 if "checkDHT.py" in name:
+                     check_dht_running = cron_list_pnl.startup_cron.GetItem(index, 1).GetText()
+                     extra_args = cron_list_pnl.startup_cron.GetItem(index, 4).GetText().lower()
+        # write more to dht script messages             
+        if check_dht_running == "True":
+            dht_msg += "script check_DHT.py is currently running\n"
+        elif check_dht_running == "not found":
+            dht_msg += "script check_DHT not set to run on startup, add to cron and restart pigrow\n"
+        elif check_dht_running == "False":
+            dht_msg += "script check_DHT.py should be running but isn't - check error logs\n"
+        else:
+            dht_msg += "error reading cron info\n"
+        #extra args used to select options modes, if to ignore heater, etc.
+        dht_msg += "extra args = " + extra_args + "\n"
+        dht_msg += "checkDHT switching "
+        if "use_heat=true" in extra_args:
+            dht_msg += "heater enabled, "
+        elif "use_heat=false" in extra_args:
+            dht_msg += "heater disabled, "
+        else:
+            dht_msg += "heater enabled, "
+
+        if "use_humid" in extra_args:
+            dht_msg += "humidifier enabled, "
+        elif "use_humid=false" in extra_args:
+            dht_msg += "humidifier disabled, "
+        else:
+            dht_msg += "humidifier enabled, "
+
+        if "use_dehumid" in extra_args:
+            dht_msg += "dehumidifier enabled, "
+        elif "use_dehumid=false" in extra_args:
+            dht_msg += "dehumidifier disabled, "
+        else:
+            dht_msg += "dehumidifier enabled, "
+
+
+        if "use_fan=heat" in extra_args:
+            dht_msg += "fan switched by heater "
+        elif "use_fan=hum" in extra_args:
+            dht_msg += "fan switched by humidifer "
+        elif "use_fan=dehum" in extra_args:
+            dht_msg += "fan switched by dehumidifer "
+        elif "use_fan=hum" in extra_args:
+            dht_msg += "dht control of fan disabled "
+        else:
+            dht_msg += "fan swtiched by heater"
+
 
         #checks to see if gpio devices with on directions are also linked to a gpio pin and counts them
         relay_list_text = "Device - Pin - Switch direction for power on - current device state"
@@ -704,8 +762,6 @@ class config_info_pnl(wx.Panel):
             config_info_pnl.gpio_table.SetStringItem(index, 1, str(new_gpio))
             config_info_pnl.gpio_table.SetStringItem(index, 2, str(new_wiring))
             config_info_pnl.gpio_table.SetStringItem(index, 3, str(new_currently))
-
-
 
 class doubleclick_gpio_dialog(wx.Dialog):
     #Dialog box for creating for adding or editing device gpio config data
@@ -1064,7 +1120,6 @@ class cron_info_pnl(wx.Panel):
         #refresh cron list
         self.read_cron_click("event")
 
-
     def read_cron_click(self, event):
         #reads pi's crontab then puts jobs in correct table
         try:
@@ -1136,6 +1191,7 @@ class cron_info_pnl(wx.Panel):
                         self.add_to_repeat_list(line_number, job_enabled, timing_string, cron_task, cron_extra_args, cron_comment)
 
     def test_if_script_running(self, script):
+        #cron_info_pnl.test_if_script_running(MainApp.cron_info_pannel, script)
         stdin, stdout, stderr = ssh.exec_command("pidof -x " + str(script))
         script_text = stdout.read().strip()
         #error_text = stderr.read().strip()
@@ -1832,6 +1888,13 @@ class cron_job_dialog(wx.Dialog):
         self.job_dow = None
         self.Destroy()
 
+#
+#
+#
+## Local Files tab
+#
+#
+#
 class localfiles_info_pnl(wx.Panel):
     #
     #  This displays the system info
