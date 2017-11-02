@@ -477,34 +477,34 @@ class config_ctrl_pnl(wx.Panel):
         if "heater" in self.gpio_dict:
             if "heater_templow" in self.config_dict:
                 heater_templow =  self.config_dict["heater_templow"]
-                config_msg += "Temp low; " + str(heater_templow)
+                dht_msg += "Temp low; " + str(heater_templow)
             else:
-                config_msg += "\nheater low temp not set\n"
+                dht_msg += "\nheater low temp not set\n"
                 config_problems.append('heater_templow')
             if "heater_temphigh" in self.config_dict:
                 heater_temphigh = self.config_dict["heater_temphigh"]
-                config_msg += " temp high: " + str(heater_temphigh) + " (Centigrade)\n"
+                dht_msg += " temp high: " + str(heater_temphigh) + " (Centigrade)\n"
             else:
-                config_msg += "heater high temp not set\n"
+                dht_msg += "heater high temp not set\n"
                 config_problems.append('heater_temphigh')
         else:
-            config_msg += "no heater linked to gpio, ignoring heater temp settings\n"
+            dht_msg += "no heater linked to gpio, ignoring heater temp settings\n"
         # read humid info
         if "humid" in self.gpio_dict or "dehumid" in self.gpio_dict:
             if "humid_low" in self.config_dict:
                 humid_low = self.config_dict["humid_low"]
-                config_msg += "humidity low; " + str(humid_low)
+                dht_msg += "humidity low; " + str(humid_low)
             else:
-                config_msg += "\nHumid low not set\n"
+                dht_msg += "\nHumid low not set\n"
                 config_problems.append('humid_low')
             if "humid_high" in self.config_dict:
                 humid_high = self.config_dict["humid_high"]
-                config_msg += " humidity high: " + str(humid_high) + "\n"
+                dht_msg += " humidity high: " + str(humid_high) + "\n"
             else:
-                config_msg += "humid high not set\n"
+                dht_msg += "humid high not set\n"
                 config_problems.append('heater_temphigh')
         else:
-            config_msg += "no humidifier or dehumidifier linked to gpio, ignoring settings\n"
+            dht_msg += "no humidifier or dehumidifier linked to gpio, ignoring settings\n"
 
         #add gpio message to the message text
         config_msg += "We have " + str(len(self.gpio_dict)) + " devices linked to the GPIO\n"
@@ -526,6 +526,9 @@ class config_ctrl_pnl(wx.Panel):
                 config_problems.append('dht_log_location')
         else:
             dht_msg += "DHT Sensor not linked\n"
+        #checks to see if check_DHT script is running, logging dht and what the settings are
+        dht_msg += "not checked check_DHT.py is running, or what commands were used to start it\n"
+
         #checks to see if gpio devices with on directions are also linked to a gpio pin and counts them
         relay_list_text = "Device - Pin - Switch direction for power on - current device state"
         for key in self.gpio_on_dict:
@@ -970,7 +973,7 @@ class edit_gpio_dialog(wx.Dialog):
 
     def cancel_click(self, e):
         print("nothing happens")
-        self.Destroy()    
+        self.Destroy()
 
 
 #
