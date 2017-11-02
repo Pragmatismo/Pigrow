@@ -319,6 +319,8 @@ class config_ctrl_pnl(wx.Panel):
         self.new_gpio_btn.Bind(wx.EVT_BUTTON, self.add_new_device_gpio)
         self.update_settings_btn = wx.Button(self, label='update pigrow', pos=(15, 130), size=(175, 30))
         self.update_settings_btn.Bind(wx.EVT_BUTTON, self.update_setting_click)
+        self.config_dht_btn = wx.Button(self, label='config dht', pos=(15, 165), size=(175, 30))
+        self.config_dht_btn.Bind(wx.EVT_BUTTON, self.config_dht_click)
 
     def update_config_click(self, e):
         #define file locations
@@ -634,6 +636,10 @@ class config_ctrl_pnl(wx.Panel):
             f.write(config_text)
             f.close()
 
+    def config_dht_click(self, e):
+        dht_dbox = edit_gpio_dialog(None, title='Config DHT')
+        dht_dbox.ShowModal()
+
 
 class config_info_pnl(wx.Panel):
     #  This displays the config info
@@ -928,6 +934,50 @@ class edit_gpio_dialog(wx.Dialog):
         config_ctrl_pnl.currently_new = ''
         self.Destroy()
 
+class edit_gpio_dialog(wx.Dialog):
+    #Dialog box for creating for adding or editing device gpio config data
+    def __init__(self, *args, **kw):
+        super(edit_gpio_dialog, self).__init__(*args, **kw)
+        self.InitUI()
+        self.SetSize((500, 500))
+        self.SetTitle("Dht config")
+    def InitUI(self):
+        # draw the pannel and text
+        pnl = wx.Panel(self)
+        wx.StaticText(self,  label='DHT22 Config', pos=(20, 10))
+        dht_text = wx.StaticText(self,  label='', pos=(10, 40))
+        # gpio pin
+        # logging frequency
+        # log location
+        # test / get current reading
+        dht_msg = "Dht22 on pin --, logging every -- sec to -----------"
+        dht_text.SetLabel(dht_msg)
+        #buttons
+        #check if software installed if not change read dht to install dht and if config changes made change to confirm changes or something
+        self.read_dht_btn = wx.Button(self, label='read dht', pos=(15, 165), size=(175, 30))
+        self.read_dht_btn.Bind(wx.EVT_BUTTON, self.read_dht_click)
+        self.ok_btn = wx.Button(self, label='Ok', pos=(15, 450), size=(175, 30))
+        self.ok_btn.Bind(wx.EVT_BUTTON, self.ok_click)
+        self.cancel_btn = wx.Button(self, label='Cancel', pos=(315, 450), size=(175, 30))
+        self.cancel_btn.Bind(wx.EVT_BUTTON, self.cancel_click)
+
+    def read_dht_click(self, e):
+        print("nothing happens")
+
+    def ok_click(self, e):
+        print("nohing happens")
+        self.Destroy()
+
+    def cancel_click(self, e):
+        print("nothing happens")
+        self.Destroy()    
+
+
+#
+#
+##Chron tab
+#
+#
 class cron_info_pnl(wx.Panel):
     def __init__( self, parent ):
         win_height = parent.GetSize()[1]
