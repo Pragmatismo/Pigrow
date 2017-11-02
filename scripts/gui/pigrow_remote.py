@@ -2406,6 +2406,7 @@ class pi_link_pnl(wx.Panel):
                 print("Failed to log on due to; " + str(e))
             if log_on_test == True:
                 box_name = self.get_box_name()
+                cron_info_pnl.read_cron_click(MainApp.cron_info_pannel, "event")
             else:
                 box_name = None
             self.set_link_pi_text(log_on_test, box_name)
