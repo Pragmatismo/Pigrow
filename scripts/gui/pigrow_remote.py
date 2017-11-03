@@ -332,43 +332,43 @@ class config_ctrl_pnl(wx.Panel):
             dirlocs = stdout.read().splitlines()
         except Exception as e:
             print("reading dirlocs.txt failed; " + str(e))
-        dirlocs_dict = {}
+        self.dirlocs_dict = {}
         if len(dirlocs) > 1:
             for item in dirlocs:
                 try:
                     item = item.split("=")
-                    #dirlocs_dict = {item[0]:item[1]}
-                    dirlocs_dict[item[0]] = item[1]
+                    #self.dirlocs_dict = {item[0]:item[1]}
+                    self.dirlocs_dict[item[0]] = item[1]
                 except:
                     print("!!error reading value from dirlocs; " + str(item))
-        #We've now created dirlocs_dict with key:value for every setting:value in dirlocs
+        #We've now created self.dirlocs_dict with key:value for every setting:value in dirlocs
         #now we grab some of the important ones from the dictionary
          #folder location info (having this in a file on the pi makes it easier if doing things odd ways)
         location_msg = ""
         location_problems = []
         try:
-            pigrow_path = dirlocs_dict['path']
+            pigrow_path = self.dirlocs_dict['path']
         #    location_msg += pigrow_path + "\n"
         except:
             location_msg += ("No path locaion info in pigrow dirlocs\n")
             pigrow_path = ""
             location_problems.append("path")
         try:
-            pigrow_logs_path = dirlocs_dict['log_path']
+            pigrow_logs_path = self.dirlocs_dict['log_path']
         #    location_msg += pigrow_logs_path + "\n"
         except:
             location_msg += ("No logs locaion info in pigrow dirlocs\n")
             pigrow_logs_path = ""
             location_problems.append("log_path")
         try:
-            pigrow_graph_path = dirlocs_dict['graph_path']
+            pigrow_graph_path = self.dirlocs_dict['graph_path']
         #    location_msg += pigrow_graph_path + "\n"
         except:
             location_msg += ("No graph locaion info in pigrow dirlocs\n")
             pigrow_graph_path = ""
             location_problems.append("graph_path")
         try:
-            pigrow_caps_path = dirlocs_dict['caps_path']
+            pigrow_caps_path = self.dirlocs_dict['caps_path']
         #    location_msg += pigrow_caps_path + "\n"
         except:
             location_msg += ("No caps locaion info in pigrow dirlocs\n")
@@ -377,31 +377,31 @@ class config_ctrl_pnl(wx.Panel):
 
          #settings file locations
         try:
-            pigrow_settings_path = dirlocs_dict['loc_settings']
+            pigrow_settings_path = self.dirlocs_dict['loc_settings']
         except:
             location_msg += ("No pigrow config file locaion info in pigrow dirlocs\n")
             pigrow_settings_path = ""
             location_problems.append("loc_settings")
         try:
-            pigrow_cam_settings_path = dirlocs_dict['camera_settings']
+            pigrow_cam_settings_path = self.dirlocs_dict['camera_settings']
         except:
             location_msg +=("no camera settings file locaion info in pigrow dirlocs (optional)\n")
             pigrow_cam_settings_path = ""
 
          # log file locations
         try:
-            pigrow_err_log_path = dirlocs_dict['err_log']
+            pigrow_err_log_path = self.dirlocs_dict['err_log']
         except:
             location_msg += ("No err log locaion info in pigrow dirlocs\n")
             pigrow_err_log_path = ""
             location_problems.append("err_log")
         try:
-            pigrow_self_log_path = dirlocs_dict['self_log']
+            pigrow_self_log_path = self.dirlocs_dict['self_log']
         except:
             location_msg += ("No self_log locaion info in pigrow dirlocs (optional)\n")
             pigrow_self_log_path = ""
         try:
-            pigrow_switchlog_path = dirlocs_dict['loc_switchlog']
+            pigrow_switchlog_path = self.dirlocs_dict['loc_switchlog']
         except:
             location_msg += "No switchlog locaion info in pigrow dirlocs (optional)\n"
             pigrow_switchlog_path = ""
@@ -476,60 +476,67 @@ class config_ctrl_pnl(wx.Panel):
             config_msg += "no lamp linked to gpio, ignoring lamp timing settings\n"
      #heater on and off temps
         if "heater" in self.gpio_dict:
-            if "heater_templow" in self.config_dict:
-                heater_templow =  self.config_dict["heater_templow"]
-                dht_msg += "Temp low; " + str(heater_templow)
-            else:
-                dht_msg += "\nheater low temp not set\n"
-                config_problems.append('heater_templow')
-            if "heater_temphigh" in self.config_dict:
-                heater_temphigh = self.config_dict["heater_temphigh"]
-                dht_msg += " temp high: " + str(heater_temphigh) + " (Centigrade)\n"
-            else:
-                dht_msg += "heater high temp not set\n"
-                config_problems.append('heater_temphigh')
+            dht_msg += "heater enabled, "
         else:
-            dht_msg += "no heater linked to gpio, ignoring heater temp settings\n"
+            dht_msg += "no heater gpio, "
+        # low
+        if "heater_templow" in self.config_dict:
+            self.heater_templow =  self.config_dict["heater_templow"]
+            dht_msg += "Temp low; " + str(self.heater_templow) + " "
+        else:
+            dht_msg += "\nheater low temp not set\n"
+            config_problems.append('heater_templow')
+            self.heater_templow = None
+        # high
+        if "heater_temphigh" in self.config_dict:
+            self.heater_temphigh = self.config_dict["heater_temphigh"]
+            dht_msg += "temp high: " + str(self.heater_temphigh) + " (Centigrade)\n"
+        else:
+            dht_msg += "\nheater high temp not set\n"
+            config_problems.append('heater_temphigh')
+            self.heater_temphigh = None
+        #
         # read humid info
         if "humid" in self.gpio_dict or "dehumid" in self.gpio_dict:
-            if "humid_low" in self.config_dict:
-                humid_low = self.config_dict["humid_low"]
-                dht_msg += "humidity low; " + str(humid_low)
-            else:
-                dht_msg += "\nHumid low not set\n"
-                config_problems.append('humid_low')
-            if "humid_high" in self.config_dict:
-                humid_high = self.config_dict["humid_high"]
-                dht_msg += " humidity high: " + str(humid_high) + "\n"
-            else:
-                dht_msg += "humid high not set\n"
-                config_problems.append('heater_temphigh')
+            dht_msg += "de/humid linked, "
         else:
-            dht_msg += "no humidifier or dehumidifier linked to gpio, ignoring settings\n"
-
+            dht_msg += "de/humid NOT linked, "
+        # low
+        if "humid_low" in self.config_dict:
+            self.humid_low = self.config_dict["humid_low"]
+            dht_msg += "humidity low; " + str(self.humid_low)
+        else:
+            dht_msg += "\nHumid low not set\n"
+            config_problems.append('humid_low')
+            self.humid_low = None
+        # high
+        if "humid_high" in self.config_dict:
+            self.humid_high = self.config_dict["humid_high"]
+            dht_msg += " humidity high: " + str(self.humid_high) + "\n"
+        else:
+            dht_msg += "humid high not set\n"
+            config_problems.append('humid_high')
+            self.humid_high = None
+        #
         #add gpio message to the message text
         config_msg += "We have " + str(len(self.gpio_dict)) + " devices linked to the GPIO\n"
         if "dht22sensor" in self.gpio_dict:
             dht_msg += "DHT Sensor on pin " + str(self.gpio_dict['dht22sensor'] + "\n")
             if "log_frequency" in self.config_dict:
-                log_frequency = self.config_dict["log_frequency"]
-                dht_msg += "Logging dht every " + str(log_frequency) + " seconds. \n"
+                self.log_frequency = self.config_dict["log_frequency"]
+                dht_msg += "Logging dht every " + str(self.log_frequency) + " seconds. \n"
             else:
-                log_frequency = ""
+                self.log_frequency = ""
                 dht_msg += "DHT Logging frequency not set\n"
                 config_problems.append('dht_log_frequency')
             #check to see if log location is set in dirlocs.txt
             try:
-                dht_msg += "logging to; " + dirlocs_dict['loc_dht_log'] + "\n"
+                dht_msg += "logging to; " + self.dirlocs_dict['loc_dht_log'] + "\n"
             except:
                 dht_msg += "No DHT log locaion in pigrow dirlocs\n"
-                pigrow_dht_log_path = ""
                 config_problems.append('dht_log_location')
         else:
             dht_msg += "DHT Sensor not linked\n"
-
-
-
 
         #read cron info to see if dht script is running
         last_index = cron_list_pnl.startup_cron.GetItemCount()
@@ -541,7 +548,7 @@ class config_ctrl_pnl(wx.Panel):
                  if "checkDHT.py" in name:
                      check_dht_running = cron_list_pnl.startup_cron.GetItem(index, 1).GetText()
                      extra_args = cron_list_pnl.startup_cron.GetItem(index, 4).GetText().lower()
-        # write more to dht script messages             
+        # write more to dht script messages
         if check_dht_running == "True":
             dht_msg += "script check_DHT.py is currently running\n"
         elif check_dht_running == "not found":
@@ -552,29 +559,29 @@ class config_ctrl_pnl(wx.Panel):
             dht_msg += "error reading cron info\n"
         #extra args used to select options modes, if to ignore heater, etc.
         dht_msg += "extra args = " + extra_args + "\n"
-        dht_msg += "checkDHT switching "
+        dht_msg += ""
+         #heater
         if "use_heat=true" in extra_args:
             dht_msg += "heater enabled, "
         elif "use_heat=false" in extra_args:
             dht_msg += "heater disabled, "
         else:
             dht_msg += "heater enabled, "
-
+         #humid
         if "use_humid" in extra_args:
             dht_msg += "humidifier enabled, "
         elif "use_humid=false" in extra_args:
             dht_msg += "humidifier disabled, "
         else:
             dht_msg += "humidifier enabled, "
-
+         #dehumid
         if "use_dehumid" in extra_args:
             dht_msg += "dehumidifier enabled, "
         elif "use_dehumid=false" in extra_args:
             dht_msg += "dehumidifier disabled, "
         else:
             dht_msg += "dehumidifier enabled, "
-
-
+         #who controls fans
         if "use_fan=heat" in extra_args:
             dht_msg += "fan switched by heater "
         elif "use_fan=hum" in extra_args:
@@ -585,7 +592,6 @@ class config_ctrl_pnl(wx.Panel):
             dht_msg += "dht control of fan disabled "
         else:
             dht_msg += "fan swtiched by heater"
-
 
         #checks to see if gpio devices with on directions are also linked to a gpio pin and counts them
         relay_list_text = "Device - Pin - Switch direction for power on - current device state"
@@ -698,7 +704,7 @@ class config_ctrl_pnl(wx.Panel):
             f.close()
 
     def config_dht_click(self, e):
-        dht_dbox = edit_gpio_dialog(None, title='Config DHT')
+        dht_dbox = edit_dht_dialog(None, title='Config DHT')
         dht_dbox.ShowModal()
 
 
@@ -993,24 +999,55 @@ class edit_gpio_dialog(wx.Dialog):
         config_ctrl_pnl.currently_new = ''
         self.Destroy()
 
-class edit_gpio_dialog(wx.Dialog):
+class edit_dht_dialog(wx.Dialog):
     #Dialog box for creating for adding or editing device gpio config data
     def __init__(self, *args, **kw):
-        super(edit_gpio_dialog, self).__init__(*args, **kw)
+        super(edit_dht_dialog, self).__init__(*args, **kw)
         self.InitUI()
         self.SetSize((500, 500))
         self.SetTitle("Dht config")
     def InitUI(self):
         # draw the pannel and text
         pnl = wx.Panel(self)
+        ## basic top text
         wx.StaticText(self,  label='DHT22 Config', pos=(20, 10))
         dht_text = wx.StaticText(self,  label='', pos=(10, 40))
         # gpio pin
+        if "dht22sensor" in MainApp.config_ctrl_pannel.gpio_dict:
+            self.sensor_pin = MainApp.config_ctrl_pannel.gpio_dict['dht22sensor']
+        else:
+            self.sensor_pin = "none set"
         # logging frequency
+        log_frequency = MainApp.config_ctrl_pannel.log_frequency
         # log location
+        if "loc_dht_log" in MainApp.config_ctrl_pannel.dirlocs_dict:
+            log_location = MainApp.config_ctrl_pannel.dirlocs_dict['loc_dht_log']
+        else:
+            log_location = "none set"
         # test / get current reading
-        dht_msg = "Dht22 on pin --, logging every -- sec to -----------"
+        dht_msg = "Dht22 on pin " + str(self.sensor_pin) + ", logging every " + str(log_frequency) + " sec\n to " + log_location
         dht_text.SetLabel(dht_msg)
+        ## temp and humid live reading
+        wx.StaticText(self,  label='Temp;', pos=(10, 100))
+        wx.StaticText(self,  label='Humid;', pos=(10, 130))
+        self.temp_text = wx.StaticText(self,  label='', pos=(100, 100))
+        self.humid_text = wx.StaticText(self,  label='', pos=(100, 130))
+        # temp and humidity brackets
+        temp_low = MainApp.config_ctrl_pannel.heater_templow
+        temp_high = MainApp.config_ctrl_pannel.heater_temphigh
+        humid_low = MainApp.config_ctrl_pannel.humid_low
+        humid_high = MainApp.config_ctrl_pannel.humid_high
+        wx.StaticText(self,  label='Temp', pos=(55, 200))
+        wx.StaticText(self,  label='Humid', pos=(250, 200))
+        wx.StaticText(self,  label='high -', pos=(5, 240))
+        wx.StaticText(self,  label='high -', pos=(200, 240))
+        wx.StaticText(self,  label='low -', pos=(5, 275))
+        wx.StaticText(self,  label='low -', pos=(200, 275))
+        high_temp_text = wx.TextCtrl(self, value=temp_high, pos=(50, 235))
+        low_temp_text = wx.TextCtrl(self, value=temp_low, pos=(50, 270))
+        high_humid_text = wx.TextCtrl(self, value=humid_low, pos=(250, 235))
+        low_humid_text = wx.TextCtrl(self, value=humid_high, pos=(250, 270))
+
         #buttons
         #check if software installed if not change read dht to install dht and if config changes made change to confirm changes or something
         self.read_dht_btn = wx.Button(self, label='read dht', pos=(15, 165), size=(175, 30))
@@ -1020,8 +1057,22 @@ class edit_gpio_dialog(wx.Dialog):
         self.cancel_btn = wx.Button(self, label='Cancel', pos=(315, 450), size=(175, 30))
         self.cancel_btn.Bind(wx.EVT_BUTTON, self.cancel_click)
 
+
     def read_dht_click(self, e):
-        print("nothing happens")
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("/home/" + pi_link_pnl.target_user + "/Pigrow/scripts/build_test/test_dht.py gpio=" + self.sensor_pin)
+        out = out.strip()
+        if "temp" in out:
+            out = out.split(" ")
+            temp = out[0].split("=")[1]
+            humid = out[1].split("=")[1]
+            self.temp_text.SetLabel(temp)
+            self.humid_text.SetLabel(humid)
+        elif "failed" in out:
+            self.temp_text.SetLabel("failed")
+            self.humid_text.SetLabel("failed")
+        else:
+            self.temp_text.SetLabel("error")
+            self.humid_text.SetLabel("error")
 
     def ok_click(self, e):
         print("nohing happens")
