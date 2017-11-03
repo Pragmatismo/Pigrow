@@ -540,20 +540,20 @@ class config_ctrl_pnl(wx.Panel):
 
         #read cron info to see if dht script is running
         last_index = cron_list_pnl.startup_cron.GetItemCount()
-        check_dht_running = "not found"
+        self.check_dht_running = "not found"
         extra_args = ""
         if not last_index == 0:
             for index in range(0, last_index):
                  name = cron_list_pnl.startup_cron.GetItem(index, 3).GetText()
                  if "checkDHT.py" in name:
-                     check_dht_running = cron_list_pnl.startup_cron.GetItem(index, 1).GetText()
+                     self.check_dht_running = cron_list_pnl.startup_cron.GetItem(index, 1).GetText()
                      extra_args = cron_list_pnl.startup_cron.GetItem(index, 4).GetText().lower()
         # write more to dht script messages
-        if check_dht_running == "True":
+        if self.check_dht_running == "True":
             dht_msg += "script check_DHT.py is currently running\n"
-        elif check_dht_running == "not found":
+        elif self.check_dht_running == "not found":
             dht_msg += "script check_DHT not set to run on startup, add to cron and restart pigrow\n"
-        elif check_dht_running == "False":
+        elif self.check_dht_running == "False":
             dht_msg += "script check_DHT.py should be running but isn't - check error logs\n"
         else:
             dht_msg += "error reading cron info\n"
@@ -563,35 +563,49 @@ class config_ctrl_pnl(wx.Panel):
          #heater
         if "use_heat=true" in extra_args:
             dht_msg += "heater enabled, "
+            self.use_heat = True
         elif "use_heat=false" in extra_args:
             dht_msg += "heater disabled, "
+            self.use_heat = False
         else:
             dht_msg += "heater enabled, "
+            self.use_heat = True
          #humid
         if "use_humid" in extra_args:
             dht_msg += "humidifier enabled, "
+            self.use_humid = True
         elif "use_humid=false" in extra_args:
             dht_msg += "humidifier disabled, "
+            self.use_humid = false
         else:
             dht_msg += "humidifier enabled, "
+            self.use_humid = True
          #dehumid
         if "use_dehumid" in extra_args:
             dht_msg += "dehumidifier enabled, "
+            self.use_dehumid = True
         elif "use_dehumid=false" in extra_args:
             dht_msg += "dehumidifier disabled, "
+            self.use_dehumid = False
         else:
             dht_msg += "dehumidifier enabled, "
+            self.use_dehumid = True
          #who controls fans
         if "use_fan=heat" in extra_args:
             dht_msg += "fan switched by heater "
+            self.fans_owner = "heater"
         elif "use_fan=hum" in extra_args:
             dht_msg += "fan switched by humidifer "
+            self.fans_owner = "humid"
         elif "use_fan=dehum" in extra_args:
             dht_msg += "fan switched by dehumidifer "
+            self.fans_owner = "dehumid"
         elif "use_fan=hum" in extra_args:
             dht_msg += "dht control of fan disabled "
+            self.fans_owner = "manual"
         else:
             dht_msg += "fan swtiched by heater"
+            self.fans_owner = "heater"
 
         #checks to see if gpio devices with on directions are also linked to a gpio pin and counts them
         relay_list_text = "Device - Pin - Switch direction for power on - current device state"
@@ -1009,49 +1023,83 @@ class edit_dht_dialog(wx.Dialog):
     def InitUI(self):
         # draw the pannel and text
         pnl = wx.Panel(self)
-        ## basic top text
-        wx.StaticText(self,  label='DHT22 Config', pos=(20, 10))
-        dht_text = wx.StaticText(self,  label='', pos=(10, 40))
+        ## top text
+        wx.StaticText(self,  label='Sensor Config;', pos=(20, 10))
+        # editable info text
+        self.sensor_combo = wx.ComboBox(self, pos=(10,35), choices=['dht22', 'dht11', 'am2302'])
+        self.sensor_combo.SetValue("dht22")
+        wx.StaticText(self,  label=' on GPIO pin ', pos=(120, 40))
+        self.gpio_text = wx.TextCtrl(self, value="", pos=(230, 35))
         # gpio pin
         if "dht22sensor" in MainApp.config_ctrl_pannel.gpio_dict:
             self.sensor_pin = MainApp.config_ctrl_pannel.gpio_dict['dht22sensor']
         else:
-            self.sensor_pin = "none set"
+            self.sensor_pin = ""
+        self.gpio_text.SetValue(self.sensor_pin)
+        # read buttons
+        self.read_dht_btn = wx.Button(self, label='read sensor', pos=(5, 70), size=(150, 60))
+        self.read_dht_btn.Bind(wx.EVT_BUTTON, self.read_dht_click)
+        ## temp and humid live reading
+        wx.StaticText(self,  label='Temp;', pos=(165, 75))
+        wx.StaticText(self,  label='Humid;', pos=(165, 100))
+        self.temp_text = wx.StaticText(self,  label='', pos=(230, 75))
+        self.humid_text = wx.StaticText(self,  label='', pos=(230, 100))
+        ##
+        if MainApp.config_ctrl_pannel.check_dht_running == "True":
+            check_msg = "Active"
+        elif MainApp.config_ctrl_pannel.check_dht_running == "not found":
+            check_msg = "not set"
+        elif MainApp.config_ctrl_pannel.check_dht_running == "False":
+            check_msg = "Error"
+       # device control
+        wx.StaticText(self,  label='Device Control - checkDHT.py : ' + check_msg, pos=(10, 140))
+        wx.StaticText(self,  label='Automatic switching of device relays', pos=(5, 155))
+        self.heater_checkbox = wx.CheckBox(self, label='Heater', pos = (10,180))
+        self.humid_checkbox = wx.CheckBox(self, label='Humid', pos = (110,180))
+        self.dehumid_checkbox = wx.CheckBox(self, label='Dehumid', pos = (210,180))
+        self.heater_checkbox.SetValue(MainApp.config_ctrl_pannel.use_heat)
+        self.humid_checkbox.SetValue(MainApp.config_ctrl_pannel.use_humid)
+        self.dehumid_checkbox.SetValue(MainApp.config_ctrl_pannel.use_dehumid)
+        wx.StaticText(self,  label='fans controlled by ', pos=(10, 210))
+        self.fans_combo = wx.ComboBox(self, pos=(170,205), choices=['manual', 'heater', 'humid', 'dehumid'])
+        self.fans_combo.SetValue(MainApp.config_ctrl_pannel.fans_owner)
+
+
+        #
+        # logging info
+
+
+        wx.StaticText(self,  label='logging every ', pos=(10, 360))
+        self.log_rate_text = wx.TextCtrl(self, value="", pos=(130, 365))
+        wx.StaticText(self,  label='seconds', pos=(230, 360))
         # logging frequency
-        log_frequency = MainApp.config_ctrl_pannel.log_frequency
+        self.log_frequency = MainApp.config_ctrl_pannel.log_frequency
+        self.log_rate_text.SetValue(self.log_frequency)
         # log location
         if "loc_dht_log" in MainApp.config_ctrl_pannel.dirlocs_dict:
             log_location = MainApp.config_ctrl_pannel.dirlocs_dict['loc_dht_log']
         else:
             log_location = "none set"
-        # test / get current reading
-        dht_msg = "Dht22 on pin " + str(self.sensor_pin) + ", logging every " + str(log_frequency) + " sec\n to " + log_location
-        dht_text.SetLabel(dht_msg)
-        ## temp and humid live reading
-        wx.StaticText(self,  label='Temp;', pos=(10, 100))
-        wx.StaticText(self,  label='Humid;', pos=(10, 130))
-        self.temp_text = wx.StaticText(self,  label='', pos=(100, 100))
-        self.humid_text = wx.StaticText(self,  label='', pos=(100, 130))
+
         # temp and humidity brackets
         temp_low = MainApp.config_ctrl_pannel.heater_templow
         temp_high = MainApp.config_ctrl_pannel.heater_temphigh
         humid_low = MainApp.config_ctrl_pannel.humid_low
         humid_high = MainApp.config_ctrl_pannel.humid_high
-        wx.StaticText(self,  label='Temp', pos=(55, 200))
-        wx.StaticText(self,  label='Humid', pos=(250, 200))
-        wx.StaticText(self,  label='high -', pos=(5, 240))
-        wx.StaticText(self,  label='high -', pos=(200, 240))
-        wx.StaticText(self,  label='low -', pos=(5, 275))
-        wx.StaticText(self,  label='low -', pos=(200, 275))
-        high_temp_text = wx.TextCtrl(self, value=temp_high, pos=(50, 235))
-        low_temp_text = wx.TextCtrl(self, value=temp_low, pos=(50, 270))
-        high_humid_text = wx.TextCtrl(self, value=humid_low, pos=(250, 235))
-        low_humid_text = wx.TextCtrl(self, value=humid_high, pos=(250, 270))
+        wx.StaticText(self,  label='Temp', pos=(55, 235))
+        wx.StaticText(self,  label='Humid', pos=(250, 235))
+        wx.StaticText(self,  label='high -', pos=(5, 260))
+        wx.StaticText(self,  label='high -', pos=(200, 260))
+        wx.StaticText(self,  label='low -', pos=(5, 295))
+        wx.StaticText(self,  label='low -', pos=(200, 295))
+        high_temp_text = wx.TextCtrl(self, value=temp_high, pos=(50, 255))
+        low_temp_text = wx.TextCtrl(self, value=temp_low, pos=(50, 290))
+        high_humid_text = wx.TextCtrl(self, value=humid_low, pos=(250, 255))
+        low_humid_text = wx.TextCtrl(self, value=humid_high, pos=(250, 290))
 
         #buttons
         #check if software installed if not change read dht to install dht and if config changes made change to confirm changes or something
-        self.read_dht_btn = wx.Button(self, label='read dht', pos=(15, 165), size=(175, 30))
-        self.read_dht_btn.Bind(wx.EVT_BUTTON, self.read_dht_click)
+
         self.ok_btn = wx.Button(self, label='Ok', pos=(15, 450), size=(175, 30))
         self.ok_btn.Bind(wx.EVT_BUTTON, self.ok_click)
         self.cancel_btn = wx.Button(self, label='Cancel', pos=(315, 450), size=(175, 30))
@@ -1059,7 +1107,11 @@ class edit_dht_dialog(wx.Dialog):
 
 
     def read_dht_click(self, e):
-        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("/home/" + pi_link_pnl.target_user + "/Pigrow/scripts/build_test/test_dht.py gpio=" + self.sensor_pin)
+        self.sensor_pin = self.gpio_text.GetValue()
+        self.sensor = self.sensor_combo.GetValue()
+        args = "gpio=" + self.sensor_pin + " sensor=" + self.sensor
+        print args
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("/home/" + pi_link_pnl.target_user + "/Pigrow/scripts/build_test/test_dht.py " + args)
         out = out.strip()
         if "temp" in out:
             out = out.split(" ")
