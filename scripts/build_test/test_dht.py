@@ -1,5 +1,5 @@
 #!/usr/bin/python
-
+import sys
 sensor = ""
 
 for argu in sys.argv[1:]:
