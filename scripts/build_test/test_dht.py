@@ -46,6 +46,6 @@ except:
 humid, temp = Adafruit_DHT.read_retry(sensor, gpio)
 
 if not humid == None and not temp == None:
-    print("temp:" + temp + " humid=" + humid)
+    print("temp:" + str(temp) + " humid=" + str(humid))
 else:
     print("reading failed")
