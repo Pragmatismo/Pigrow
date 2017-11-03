@@ -28,7 +28,7 @@ except:
     print("required Adafruit DHT code not installed.")
     sys.exit()
 # set sensor for ada fruit module
-if sesnor == "dht22":
+if sensor == "dht22":
     sensor = Adafruit_DHT.DHT22
 elif sensor == "dht11":
     sensor = Adafruit_DHT.DHT11
