@@ -44,7 +44,7 @@ except:
     sys.exit()
 
 humid = None
-for range(0, 5):
+for attempt in range(0, 5):
     if humid == None:
         humid, temp = Adafruit_DHT.read(sensor, gpio)
 
