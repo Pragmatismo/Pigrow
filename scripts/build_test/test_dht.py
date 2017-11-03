@@ -43,7 +43,7 @@ except:
     print("GPIO must be a number, e.g. gpio=18")
     sys.exit()
 
-humid, temp = Adafruit_DHT.read_retry(sensor, gpio)
+humid, temp = Adafruit_DHT.read(sensor, gpio)
 
 if not humid == None and not temp == None:
     print("temp:" + str(temp) + " humid=" + str(humid))
