@@ -10,7 +10,7 @@ for argu in sys.argv[1:]:
         print("set the pin with the command line option gpio=[GPIO NUMBER]")
         print("to set the sensor use sensor=[DHT11, DHT22, AM2302]")
         print("for example;")
-        print("             ./test_dht.py gpio=18 sensor=DHT22)
+        print("             ./test_dht.py gpio=18 sensor=DHT22")
         sys.exit()
     elif argu.split('=')[0] == "gpio":
         gpio = argu.split('=')[1]
