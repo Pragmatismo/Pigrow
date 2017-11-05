@@ -1063,12 +1063,8 @@ class edit_dht_dialog(wx.Dialog):
         wx.StaticText(self,  label='fans controlled by ', pos=(10, 210))
         self.fans_combo = wx.ComboBox(self, pos=(170,205), choices=['manual', 'heater', 'humid', 'dehumid'])
         self.fans_combo.SetValue(MainApp.config_ctrl_pannel.fans_owner)
-
-
         #
         # logging info
-
-
         wx.StaticText(self,  label='logging every ', pos=(10, 360))
         self.log_rate_text = wx.TextCtrl(self, value="", pos=(130, 365))
         wx.StaticText(self,  label='seconds', pos=(230, 360))
@@ -1092,10 +1088,10 @@ class edit_dht_dialog(wx.Dialog):
         wx.StaticText(self,  label='high -', pos=(200, 260))
         wx.StaticText(self,  label='low -', pos=(5, 295))
         wx.StaticText(self,  label='low -', pos=(200, 295))
-        high_temp_text = wx.TextCtrl(self, value=temp_high, pos=(50, 255))
-        low_temp_text = wx.TextCtrl(self, value=temp_low, pos=(50, 290))
-        high_humid_text = wx.TextCtrl(self, value=humid_low, pos=(250, 255))
-        low_humid_text = wx.TextCtrl(self, value=humid_high, pos=(250, 290))
+        self.high_temp_text = wx.TextCtrl(self, value=temp_high, pos=(50, 255))
+        self.low_temp_text = wx.TextCtrl(self, value=temp_low, pos=(50, 290))
+        self.high_humid_text = wx.TextCtrl(self, value=humid_low, pos=(250, 255))
+        self.low_humid_text = wx.TextCtrl(self, value=humid_high, pos=(250, 290))
 
         #buttons
         #check if software installed if not change read dht to install dht and if config changes made change to confirm changes or something
@@ -1127,7 +1123,34 @@ class edit_dht_dialog(wx.Dialog):
             self.humid_text.SetLabel("error")
 
     def ok_click(self, e):
-        print("nohing happens")
+        #setting dht22 in config dictionary
+        if not self.gpio_text.GetValue() == "":
+            MainApp.config_ctrl_pannel.gpio_dict["dht22sensor"] = self.gpio_text.GetValue()
+        else:
+            del MainApp.config_ctrl_pannel.gpio_dict["dht22sensor"]
+        print("ignoring self.sensor_combo box because code not written for pigrow base code")
+        # logging rate in config dictionary
+        if not self.log_rate_text.GetValue() == "":
+            MainApp.config_ctrl_pannel.config_dict["log_frequency"] = self.log_rate_text.GetValue()
+        else:
+            del MainApp.config_ctrl_pannel.config_dict["log_frequency"]
+        # temp and humid min max values
+        if not self.high_temp_text.GetValue() == "":
+            MainApp.config_ctrl_pannel.config_dict["heater_temphigh"] = self.high_temp_text.GetValue()
+        else:
+            del MainApp.config_ctrl_pannel.config_dict["heater_temphigh"]
+        if not self.low_temp_text.GetValue() == "":
+            MainApp.config_ctrl_pannel.config_dict["heater_templow"] = self.low_temp_text.GetValue()
+        else:
+            del MainApp.config_ctrl_pannel.config_dict["heater_templow"]
+        if not self.high_humid_text.GetValue() == "":
+            MainApp.config_ctrl_pannel.config_dict["humid_high"] = self.high_humid_text.GetValue()
+        else:
+            del MainApp.config_ctrl_pannel.config_dict["humid_high"]
+        if not self.low_humid_text.GetValue() == "":
+            MainApp.config_ctrl_pannel.config_dict["humid_low"] = self.low_humid_text.GetValue()
+        else:
+            del MainApp.config_ctrl_pannel.config_dict["humid_low"]
         self.Destroy()
 
     def cancel_click(self, e):
