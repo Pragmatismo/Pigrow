@@ -271,9 +271,6 @@ class system_ctrl_pnl(wx.Panel):
             except Exception as e:
                 print("installing a pigrow failed! " + str(e))
 
-
-
-
 class system_info_pnl(wx.Panel):
     #
     #  This displays the system info
@@ -304,6 +301,12 @@ class system_info_pnl(wx.Panel):
         #power level warning details
         system_info_pnl.sys_power_status = wx.StaticText(self,  label='power status', pos=(625, 390), size=(200,30))
 
+#
+#
+#
+### pigrow Config pannel
+#
+#
 class config_ctrl_pnl(wx.Panel):
     #this controlls the data displayed on config_info_pnl
     def __init__( self, parent ):
@@ -315,12 +318,13 @@ class config_ctrl_pnl(wx.Panel):
         wx.StaticText(self,  label='Pigrow Config', pos=(25, 10))
         self.update_config_btn = wx.Button(self, label='read config from pigrow', pos=(15, 60), size=(175, 30))
         self.update_config_btn.Bind(wx.EVT_BUTTON, self.update_config_click)
-        self.new_gpio_btn = wx.Button(self, label='Add new device GPIO link', pos=(15, 95), size=(175, 30))
-        self.new_gpio_btn.Bind(wx.EVT_BUTTON, self.add_new_device_gpio)
-        self.update_settings_btn = wx.Button(self, label='update pigrow', pos=(15, 130), size=(175, 30))
-        self.update_settings_btn.Bind(wx.EVT_BUTTON, self.update_setting_click)
-        self.config_dht_btn = wx.Button(self, label='config dht', pos=(15, 165), size=(175, 30))
+        self.config_dht_btn = wx.Button(self, label='config dht', pos=(15, 95), size=(175, 30))
         self.config_dht_btn.Bind(wx.EVT_BUTTON, self.config_dht_click)
+        self.new_gpio_btn = wx.Button(self, label='Add new relay device', pos=(15, 130), size=(175, 30))
+        self.new_gpio_btn.Bind(wx.EVT_BUTTON, self.add_new_device_gpio)
+        self.update_settings_btn = wx.Button(self, label='update pigrow settings', pos=(15, 165), size=(175, 30))
+        self.update_settings_btn.Bind(wx.EVT_BUTTON, self.update_setting_click)
+
 
     def update_config_click(self, e):
         #define file locations
@@ -1090,8 +1094,8 @@ class edit_dht_dialog(wx.Dialog):
         wx.StaticText(self,  label='low -', pos=(200, 295))
         self.high_temp_text = wx.TextCtrl(self, value=temp_high, pos=(50, 255))
         self.low_temp_text = wx.TextCtrl(self, value=temp_low, pos=(50, 290))
-        self.high_humid_text = wx.TextCtrl(self, value=humid_low, pos=(250, 255))
-        self.low_humid_text = wx.TextCtrl(self, value=humid_high, pos=(250, 290))
+        self.high_humid_text = wx.TextCtrl(self, value=humid_high, pos=(250, 255))
+        self.low_humid_text = wx.TextCtrl(self, value=humid_low, pos=(250, 290))
 
         #buttons
         #check if software installed if not change read dht to install dht and if config changes made change to confirm changes or something
@@ -1123,34 +1127,57 @@ class edit_dht_dialog(wx.Dialog):
             self.humid_text.SetLabel("error")
 
     def ok_click(self, e):
-        #setting dht22 in config dictionary
-        if not self.gpio_text.GetValue() == "":
-            MainApp.config_ctrl_pannel.gpio_dict["dht22sensor"] = self.gpio_text.GetValue()
-        else:
-            del MainApp.config_ctrl_pannel.gpio_dict["dht22sensor"]
-        print("ignoring self.sensor_combo box because code not written for pigrow base code")
-        # logging rate in config dictionary
-        if not self.log_rate_text.GetValue() == "":
-            MainApp.config_ctrl_pannel.config_dict["log_frequency"] = self.log_rate_text.GetValue()
-        else:
-            del MainApp.config_ctrl_pannel.config_dict["log_frequency"]
-        # temp and humid min max values
-        if not self.high_temp_text.GetValue() == "":
-            MainApp.config_ctrl_pannel.config_dict["heater_temphigh"] = self.high_temp_text.GetValue()
-        else:
-            del MainApp.config_ctrl_pannel.config_dict["heater_temphigh"]
-        if not self.low_temp_text.GetValue() == "":
-            MainApp.config_ctrl_pannel.config_dict["heater_templow"] = self.low_temp_text.GetValue()
-        else:
-            del MainApp.config_ctrl_pannel.config_dict["heater_templow"]
-        if not self.high_humid_text.GetValue() == "":
-            MainApp.config_ctrl_pannel.config_dict["humid_high"] = self.high_humid_text.GetValue()
-        else:
-            del MainApp.config_ctrl_pannel.config_dict["humid_high"]
-        if not self.low_humid_text.GetValue() == "":
-            MainApp.config_ctrl_pannel.config_dict["humid_low"] = self.low_humid_text.GetValue()
-        else:
-            del MainApp.config_ctrl_pannel.config_dict["humid_low"]
+        #check for changes
+        changes_made = ""
+        # loking for changes to config options for settings file
+        if not self.gpio_text.GetValue() == MainApp.config_ctrl_pannel.gpio_dict['dht22sensor']:
+            changes_made += "Dht gpio; " + self.gpio_text.GetValue() + " "
+        if not self.log_rate_text.GetValue() == MainApp.config_ctrl_pannel.config_dict['log_frequency']:
+            changes_made += "log rate; " + self.log_rate_text.GetValue() + " "
+        if not self.high_temp_text.GetValue() == MainApp.config_ctrl_pannel.config_dict['heater_temphigh']:
+            changes_made += "temp high; " + self.high_temp_text.GetValue() + " "
+        if not self.low_temp_text.GetValue() == MainApp.config_ctrl_pannel.config_dict['heater_templow']:
+            changes_made += "temp low; " + self.low_temp_text.GetValue() + " "
+        if not self.high_humid_text.GetValue() == MainApp.config_ctrl_pannel.config_dict["humid_high"]:
+            changes_made += "humid high; " + self.high_humid_text.GetValue() + " "
+        if not self.low_humid_text.GetValue() == MainApp.config_ctrl_pannel.config_dict['humid_low']:
+            changes_made += "humid low; " + self.low_humid_text.GetValue() + " "
+        #
+        # changing settings ready for updating config file
+        #
+        if not changes_made == "":
+            #setting dht22 in config dictionary
+            if not self.gpio_text.GetValue() == "":
+                MainApp.config_ctrl_pannel.gpio_dict["dht22sensor"] = self.gpio_text.GetValue()
+            else:
+                del MainApp.config_ctrl_pannel.gpio_dict["dht22sensor"]
+            print("ignoring self.sensor_combo box because code not written for pigrow base code")
+            # logging rate in config dictionary
+            if not self.log_rate_text.GetValue() == "":
+                MainApp.config_ctrl_pannel.config_dict["log_frequency"] = self.log_rate_text.GetValue()
+            else:
+                del MainApp.config_ctrl_pannel.config_dict["log_frequency"]
+            # temp and humid min max values
+            if not self.high_temp_text.GetValue() == "":
+                MainApp.config_ctrl_pannel.config_dict["heater_temphigh"] = self.high_temp_text.GetValue()
+            else:
+                del MainApp.config_ctrl_pannel.config_dict["heater_temphigh"]
+            if not self.low_temp_text.GetValue() == "":
+                MainApp.config_ctrl_pannel.config_dict["heater_templow"] = self.low_temp_text.GetValue()
+            else:
+                del MainApp.config_ctrl_pannel.config_dict["heater_templow"]
+            if not self.high_humid_text.GetValue() == "":
+                MainApp.config_ctrl_pannel.config_dict["humid_high"] = self.high_humid_text.GetValue()
+            else:
+                del MainApp.config_ctrl_pannel.config_dict["humid_high"]
+            if not self.low_humid_text.GetValue() == "":
+                MainApp.config_ctrl_pannel.config_dict["humid_low"] = self.low_humid_text.GetValue()
+            else:
+                del MainApp.config_ctrl_pannel.config_dict["humid_low"]
+            #
+            # edit dht message text
+            MainApp.config_info_pannel.dht_text.SetLabel("changes have been made update pigrow config to use them\n" + changes_made)
+
         self.Destroy()
 
     def cancel_click(self, e):
