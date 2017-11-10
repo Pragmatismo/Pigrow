@@ -75,6 +75,17 @@ class system_ctrl_pnl(wx.Panel):
         self.read_system_btn.Bind(wx.EVT_BUTTON, self.read_system_click)
         self.update_pigrow_btn = wx.Button(self, label='update pigrow', pos=(10, 100), size=(175, 30))
         self.update_pigrow_btn.Bind(wx.EVT_BUTTON, self.update_pigrow_click)
+        self.reboot_pigrow_btn = wx.Button(self, label='reboot pigrow', pos=(10, 130), size=(175, 30))
+        self.reboot_pigrow_btn.Bind(wx.EVT_BUTTON, self.reboot_pigrow_click)
+
+    def reboot_pigrow_click(self, e):
+        dbox = wx.MessageDialog(self, "Are you sure you want to reboot the pigrow?", "reboot pigrow?", wx.OK | wx.CANCEL | wx.ICON_QUESTION)
+        answer = dbox.ShowModal()
+        dbox.Destroy()
+        if (answer == wx.ID_OK):
+            out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo reboot now")
+            MainApp.pi_link_pnl.link_with_pi_btn_click("e")
+            print out, error
 
     def read_system_click(self, e):
         #check for hdd space
@@ -264,7 +275,7 @@ class system_ctrl_pnl(wx.Panel):
         elif self.update_pigrow_btn.GetLabel() == "install pigrow":
             print("Downloading Pigrow code onto Pi")
             try:
-                stdin, stdout, stderr = ssh.exec_command("git clone https://github.com/Pragmatismo/Pigrow ~/")
+                stdin, stdout, stderr = ssh.exec_command("git clone https://github.com/Pragmatismo/Pigrow ~/Pigrow/")
                 responce = stdout.read().strip()
                 error = stderr.read()
                 print responce, error
@@ -325,6 +336,7 @@ class config_ctrl_pnl(wx.Panel):
         self.new_gpio_btn.Bind(wx.EVT_BUTTON, self.add_new_device_gpio)
         self.update_settings_btn = wx.Button(self, label='update pigrow settings', pos=(15, 165), size=(175, 30))
         self.update_settings_btn.Bind(wx.EVT_BUTTON, self.update_setting_click)
+
 
 
     def update_config_click(self, e):
@@ -1059,7 +1071,7 @@ class edit_dht_dialog(wx.Dialog):
             check_msg = "Error"
        # device control
         wx.StaticText(self,  label='Device Control - checkDHT.py : ' + check_msg, pos=(10, 140))
-        wx.StaticText(self,  label='Automatic switching of device relays', pos=(5, 155))
+        wx.StaticText(self,  label='DHT controlled switching of device relays', pos=(5, 155))
         self.heater_checkbox = wx.CheckBox(self, label='Heater', pos = (10,180))
         self.humid_checkbox = wx.CheckBox(self, label='Humid', pos = (110,180))
         self.dehumid_checkbox = wx.CheckBox(self, label='Dehumid', pos = (210,180))
@@ -1072,16 +1084,30 @@ class edit_dht_dialog(wx.Dialog):
         #
         # logging info
         wx.StaticText(self,  label='logging every ', pos=(10, 360))
-        self.log_rate_text = wx.TextCtrl(self, value="", pos=(130, 365))
+        self.log_rate_text = wx.TextCtrl(self, value="", pos=(130, 355))
         wx.StaticText(self,  label='seconds', pos=(230, 360))
         # logging frequency
         self.log_frequency = MainApp.config_ctrl_pannel.log_frequency
         self.log_rate_text.SetValue(self.log_frequency)
         # log location
+        wx.StaticText(self,  label='to; ', pos=(10, 390))
+        self.log_loc_text = wx.TextCtrl(self, value="", pos=(30, 385), size=(350, 25))
         if "loc_dht_log" in MainApp.config_ctrl_pannel.dirlocs_dict:
             log_location = MainApp.config_ctrl_pannel.dirlocs_dict['loc_dht_log']
+            print log_location
+            print ("log location")
         else:
             log_location = "none set"
+        self.log_loc_text.SetValue(log_location)
+        # if checkdht not set to run then greyout unused commands
+        if check_msg == "not set":
+            self.heater_checkbox.Enable(False)
+            self.humid_checkbox.Enable(False)
+            self.dehumid_checkbox.Enable(False)
+            self.fans_combo.Enable(False)
+            self.log_rate_text.Enable(False)
+            self.log_loc_text.Enable(False)
+
 
         # temp and humidity brackets
         temp_low = MainApp.config_ctrl_pannel.heater_templow
@@ -1171,6 +1197,8 @@ class edit_dht_dialog(wx.Dialog):
             print "extra args = " + extra_args
             index = MainApp.config_ctrl_pannel.checkdht_cronindex
             cron_list_pnl.startup_cron.SetStringItem(index, 4, str(extra_args))
+            changes_made += "\n -- Update Cron to save changes --"
+
         #
         # changing settings ready for updating config file
         #
@@ -2807,7 +2835,7 @@ class MainApp(MainFrame):
     def __init__(self, parent):
         MainFrame.__init__(self, parent)
         self.Bind(wx.EVT_CLOSE, self.OnClose)
-        self.pi_link_pnl = pi_link_pnl(self)
+        MainApp.pi_link_pnl = pi_link_pnl(self)
         self.view_pnl = view_pnl(self)
         #
         # loads all the pages at the start then hides them,
