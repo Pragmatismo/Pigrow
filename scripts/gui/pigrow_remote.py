@@ -260,7 +260,11 @@ class system_ctrl_pnl(wx.Panel):
                     do_upgrade = False
             #runs the git pull command using the selected stratergy
             if do_upgrade == True:
-                if raw_input("type yes if you really want to update your pigrow") == "yes":
+                dbox = wx.MessageDialog(self, "Are you sure you want to upgrade this pigrow?", "update pigrow?", wx.OK | wx.CANCEL | wx.ICON_QUESTION)
+                answer = dbox.ShowModal()
+                dbox.Destroy()
+                #if user said ok then upload file to pi
+                if (answer == wx.ID_OK):
                     try:
                         stdin, stdout, stderr = ssh.exec_command(git_command)
                         responce = stdout.read().strip()
