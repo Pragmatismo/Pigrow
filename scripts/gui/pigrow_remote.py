@@ -42,6 +42,7 @@ print("")
 import os
 import time
 import datetime
+from stat import S_ISDIR
 try:
     import wx
     import wx.lib.scrolledpanel
@@ -552,6 +553,7 @@ class config_ctrl_pnl(wx.Panel):
                  if "checkDHT.py" in name:
                      self.check_dht_running = cron_list_pnl.startup_cron.GetItem(index, 1).GetText()
                      extra_args = cron_list_pnl.startup_cron.GetItem(index, 4).GetText().lower()
+                     self.checkdht_cronindex = index
         # write more to dht script messages
         if self.check_dht_running == "True":
             dht_msg += "script check_DHT.py is currently running\n"
@@ -1096,10 +1098,8 @@ class edit_dht_dialog(wx.Dialog):
         self.low_temp_text = wx.TextCtrl(self, value=temp_low, pos=(50, 290))
         self.high_humid_text = wx.TextCtrl(self, value=humid_high, pos=(250, 255))
         self.low_humid_text = wx.TextCtrl(self, value=humid_low, pos=(250, 290))
-
         #buttons
-        #check if software installed if not change read dht to install dht and if config changes made change to confirm changes or something
-
+#    #    # need to add - check if software installed if not change read dht to install dht and if config changes made change to confirm changes or something
         self.ok_btn = wx.Button(self, label='Ok', pos=(15, 450), size=(175, 30))
         self.ok_btn.Bind(wx.EVT_BUTTON, self.ok_click)
         self.cancel_btn = wx.Button(self, label='Cancel', pos=(315, 450), size=(175, 30))
@@ -1142,6 +1142,35 @@ class edit_dht_dialog(wx.Dialog):
             changes_made += "humid high; " + self.high_humid_text.GetValue() + " "
         if not self.low_humid_text.GetValue() == MainApp.config_ctrl_pannel.config_dict['humid_low']:
             changes_made += "humid low; " + self.low_humid_text.GetValue() + " "
+        # looking for changes to cron options for checkDHT.py
+        extra_args = ""
+        if not changes_made == "":
+            changes_made += "\n"
+        if not self.heater_checkbox.GetValue() == MainApp.config_ctrl_pannel.use_heat:
+            changes_made += " Heater enabled;" + str(self.heater_checkbox.GetValue())
+        if self.heater_checkbox.GetValue() == False:
+            extra_args += " use_heat=false"
+        if not self.humid_checkbox.GetValue() == MainApp.config_ctrl_pannel.use_humid:
+            changes_made += " Humid enabled:" + str(self.humid_checkbox.GetValue())
+        if self.humid_checkbox.GetValue() == False:
+            extra_args += " use_humid=false"
+        if not self.dehumid_checkbox.GetValue() == MainApp.config_ctrl_pannel.use_dehumid:
+            changes_made += " Dehumid enabled;" + str(self.dehumid_checkbox.GetValue())
+        if self.dehumid_checkbox.GetValue() == False:
+            extra_args += " use_dehumid=false"
+        if not self.fans_combo.GetValue() == MainApp.config_ctrl_pannel.fans_owner:
+            changes_made += " Fans set by;" + self.fans_combo.GetValue()
+        if self.fans_combo.GetValue() == "manual":
+            extra_args += " usefan=none"
+        elif self.fans_combo.GetValue() == "humid":
+            extra_args += " usefan=hum"
+        elif self.fans_combo.GetValue() == "dehumid":
+            extra_args += " usefan=dehum"
+        if len(extra_args) > 1:
+            extra_args = extra_args[1:]
+            print "extra args = " + extra_args
+            index = MainApp.config_ctrl_pannel.checkdht_cronindex
+            cron_list_pnl.startup_cron.SetStringItem(index, 4, str(extra_args))
         #
         # changing settings ready for updating config file
         #
@@ -2345,7 +2374,7 @@ class file_download_dialog(wx.Dialog):
         ssh_tran = paramiko.Transport((pi_link_pnl.target_ip, port))
         print("  - connecting transport pipe... " + pi_link_pnl.target_ip + " port:" + str(port))
         ssh_tran.connect(username=pi_link_pnl.target_user, password=pi_link_pnl.target_pass)
-        sftp = paramiko.SFTPClient.from_transport(ssh_tran)
+        self.sftp = paramiko.SFTPClient.from_transport(ssh_tran)
         # creating a list of files to be download from the pigrow
         if self.cb_all.GetValue() == False:
         # make list using selected components to be downloaded, list contains two elemnts [remote file, local destination]
@@ -2354,7 +2383,7 @@ class file_download_dialog(wx.Dialog):
                 if not os.path.isdir(local_config):
                     os.makedirs(local_config)
                 target_config_files = "/home/" + str(pi_link_pnl.target_user) + "/Pigrow/config/"
-                remote_config = sftp.listdir(target_config_files)
+                remote_config = self.sftp.listdir(target_config_files)
                 for item in remote_config:
                     files_to_download.append([target_config_files + item, local_config + item])
             if self.cb_logs.GetValue() == True:
@@ -2362,7 +2391,7 @@ class file_download_dialog(wx.Dialog):
                 if not os.path.isdir(local_logs):
                     os.makedirs(local_logs)
                 target_logs_files = "/home/" + str(pi_link_pnl.target_user) + "/Pigrow/logs/"
-                remote_logs = sftp.listdir(target_logs_files)
+                remote_logs = self.sftp.listdir(target_logs_files)
                 for item in remote_logs:
                     files_to_download.append([target_logs_files + item, local_logs + item])
             if self.cb_pics.GetValue() == True:
@@ -2374,7 +2403,7 @@ class file_download_dialog(wx.Dialog):
                 listofcaps_local = os.listdir(local_pics)
                 #get list of remote images
                 target_caps_files = "/home/" + str(pi_link_pnl.target_user) + "/Pigrow/" + caps_folder + "/"
-                remote_caps = sftp.listdir(target_caps_files)
+                remote_caps = self.sftp.listdir(target_caps_files)
                 for item in remote_caps:
                     if item not in listofcaps_local:
                         files_to_download.append([target_caps_files + item, local_pics + item])
@@ -2383,27 +2412,60 @@ class file_download_dialog(wx.Dialog):
                 local_graphs = localfiles_info_pnl.local_path + "graphs/"
                 if not os.path.isdir(local_graphs):
                     os.makedirs(local_graphs)
-                remote_graphs = sftp.listdir(target_graph_files)
+                remote_graphs = self.sftp.listdir(target_graph_files)
                 for item in remote_graphs:
                     files_to_download.append([target_graph_files + item, local_graphs + item])
         else:
-            # make list of all ~/Pigrow/ files using os.walk
-            #    - this is for complete backups ignoring the file system.
-            print("downloading entire pigrow folder (not yet implimented)")
-        print files_to_download
-        print(len(files_to_download))
+            # this is when the backup checkbox is ticked
+            folder_name = "/Pigrow" #start with / but don't end with one.
+            target_folder = "/home/" + str(pi_link_pnl.target_user) + folder_name
+            local_folder = localfiles_info_pnl.local_path + "backup"
+            if not os.path.isdir(local_folder):
+                os.makedirs(local_folder)
+            folders, files = self.sort_folder_for_folders(target_folder)
+            while len(folders) > 0:
+                if not ".git" in folders[0]:
+                    new_folders, new_files = self.sort_folder_for_folders(folders[0])
+                    files = files + new_files
+                    folders = folders + new_folders
+                    new_folder = local_folder + "/" + folders[0].split(folder_name + "/")[1]
+                    print new_folder
+                    if not os.path.isdir(new_folder):
+                        os.makedirs(new_folder)
+                folders = folders[1:]
+
+            for item in files:
+                filename = item[len(target_folder):]
+                files_to_download.append([item, local_folder + filename])
+            #
+            print("downloading entire pigrow folder")
+        print("")
+        print("")
+        print("")
+    #    print files_to_download
+        print("downloading; " + str(len(files_to_download)))
         for remote_file in files_to_download:
             #grabs all files in the list and overwrites them if they already exist locally.
             self.current_file_txt.SetLabel("from; " + remote_file[0])
             self.current_dest_txt.SetLabel("to; " + remote_file[1])
             wx.Yield()
-            sftp.get(remote_file[0], remote_file[1])
+            self.sftp.get(remote_file[0], remote_file[1])
         self.current_file_txt.SetLabel("Done")
         self.current_dest_txt.SetLabel("--")
         #disconnect the sftp pipe
-        sftp.close()
+        self.sftp.close()
         ssh_tran.close()
         print("train has reached the depot")
+
+    def sort_folder_for_folders(self, target_folder):
+        folders = []
+        files = []
+        for f in self.sftp.listdir_attr(target_folder):
+            if S_ISDIR(f.st_mode):
+                folders.append(str(target_folder + '/' + f.filename))
+            else:
+                files.append(str(target_folder + '/' + f.filename))
+        return folders, files
 
     def OnClose(self, e):
         #closes the dialogue box
