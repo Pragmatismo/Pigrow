@@ -2169,12 +2169,12 @@ class localfiles_info_pnl(wx.Panel):
         first = wx.Image(first_pic, wx.BITMAP_TYPE_ANY)
         first = first.Scale(225, 225, wx.IMAGE_QUALITY_HIGH)
         first = first.ConvertToBitmap()
-        photo_folder_first_pic = wx.StaticBitmap(self, -1, first, (620, 310), (first.GetWidth(), first.GetHeight()))
+        localfiles_info_pnl.photo_folder_first_pic = wx.StaticBitmap(self, -1, first, (620, 310), (first.GetWidth(), first.GetHeight()))
         # load and display last image
         last = wx.Image(last_pic, wx.BITMAP_TYPE_ANY)
         last = last.Scale(225, 225, wx.IMAGE_QUALITY_HIGH)
         last = last.ConvertToBitmap()
-        photo_folder_last_pic = wx.StaticBitmap(self, -1, last, (620, 565), (last.GetWidth(), last.GetHeight()))
+        localfiles_info_pnl.photo_folder_last_pic = wx.StaticBitmap(self, -1, last, (620, 565), (last.GetWidth(), last.GetHeight()))
 
     def add_to_config_list(self, name, mod_date, age, update_status):
         localfiles_info_pnl.config_files.InsertStringItem(0, str(name))
@@ -2748,12 +2748,18 @@ class pi_link_pnl(wx.Panel):
         cron_list_pnl.startup_cron.DeleteAllItems()
         cron_list_pnl.repeat_cron.DeleteAllItems()
         cron_list_pnl.timed_cron.DeleteAllItems()
+        # clear local files text and images
         localfiles_info_pnl.cron_info.SetLabel("")
         localfiles_info_pnl.local_path_txt.SetLabel("")
         localfiles_info_pnl.folder_text.SetLabel("") ## check this updates on reconnect
         localfiles_info_pnl.photo_text.SetLabel("")
         localfiles_info_pnl.first_photo_title.SetLabel("")
         localfiles_info_pnl.last_photo_title.SetLabel("")
+
+        blank = wx.EmptyBitmap(220, 220)
+
+        localfiles_info_pnl.photo_folder_first_pic.SetBitmap(blank)
+        localfiles_info_pnl.photo_folder_last_pic.SetBitmap(blank)
         # clear local file info
         localfiles_info_pnl.local_path = ""
         localfiles_info_pnl.config_files.DeleteAllItems()
