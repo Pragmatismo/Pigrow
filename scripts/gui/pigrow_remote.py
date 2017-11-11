@@ -344,16 +344,18 @@ class config_ctrl_pnl(wx.Panel):
 
 
     def update_config_click(self, e):
-        #define file locations
+        # clear dictionaries and tables
+        self.dirlocs_dict = {}
+        self.config_dict = {}
+        self.gpio_dict = {}
+        self.gpio_on_dict = {}
+        MainApp.config_info_pannel.gpio_table.DeleteAllItems()
+        # define file locations
         pigrow_config_folder = "/home/" + pi_link_pnl.target_user + "/Pigrow/config/"
         pigrow_dirlocs = pigrow_config_folder + "dirlocs.txt"
         #read pigrow locations file
-        try:
-            stdin, stdout, stderr = ssh.exec_command("cat " + pigrow_dirlocs)
-            dirlocs = stdout.read().splitlines()
-        except Exception as e:
-            print("reading dirlocs.txt failed; " + str(e))
-        self.dirlocs_dict = {}
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("cat " + pigrow_dirlocs)
+        dirlocs = out.splitlines()
         if len(dirlocs) > 1:
             for item in dirlocs:
                 try:
@@ -438,10 +440,6 @@ class config_ctrl_pnl(wx.Panel):
         #
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("cat " + pigrow_settings_path)
         pigrow_settings = out.splitlines()
-        #define empty dictionaries
-        self.config_dict = {}
-        self.gpio_dict = {}
-        self.gpio_on_dict = {}
         #go through the setting file and put them in the correct dictionary
         if len(pigrow_settings) > 1:
             for item in pigrow_settings:
@@ -2702,6 +2700,7 @@ class pi_link_pnl(wx.Panel):
             self.tb_pass.Enable()
             self.link_status_text.SetLabel("-- Disconnected --")
             self.seek_for_pigrows_btn.Enable()
+            self.blank_settings()
             MainApp.welcome_pannel.Show()
         else:
             #clear_temp_folder()
@@ -2720,6 +2719,34 @@ class pi_link_pnl(wx.Panel):
             else:
                 box_name = None
             self.set_link_pi_text(log_on_test, box_name)
+
+    def blank_settings(self):
+        print("attempting to clear settings")
+        # clear
+        # clear config ctrl text and tables
+        MainApp.config_ctrl_pannel.dirlocs_dict.clear()
+        MainApp.config_ctrl_pannel.config_dict.clear()
+        MainApp.config_ctrl_pannel.gpio_dict.clear()
+        MainApp.config_ctrl_pannel.gpio_on_dict.clear()
+        MainApp.config_info_pannel.gpio_table.DeleteAllItems()
+        config_info_pnl.location_text.SetLabel("")
+        config_info_pnl.config_text.SetLabel("")
+        config_info_pnl.dht_text.SetLabel("")
+        # clear cron tables
+        cron_list_pnl.startup_cron.DeleteAllItems()
+        cron_list_pnl.repeat_cron.DeleteAllItems()
+        cron_list_pnl.timed_cron.DeleteAllItems()
+        localfiles_info_pnl.cron_info.SetLabel("")
+        localfiles_info_pnl.local_path_txt.SetLabel("")
+        localfiles_info_pnl.folder_text.SetLabel("") ## check this updates on reconnect
+        localfiles_info_pnl.photo_text.SetLabel("")
+        localfiles_info_pnl.first_photo_title.SetLabel("")
+        localfiles_info_pnl.last_photo_title.SetLabel("")
+        # clear local file info
+        localfiles_info_pnl.local_path = ""
+        localfiles_info_pnl.config_files.DeleteAllItems()
+        localfiles_info_pnl.logs_files.DeleteAllItems()
+
 
     def set_link_pi_text(self, log_on_test, box_name):
         pi_link_pnl.boxname = box_name  #to maintain persistance if needed elsewhere later
