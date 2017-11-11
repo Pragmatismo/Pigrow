@@ -2721,13 +2721,25 @@ class pi_link_pnl(wx.Panel):
             self.set_link_pi_text(log_on_test, box_name)
 
     def blank_settings(self):
-        print("attempting to clear settings")
-        # clear
+        print("clearing settings")
+        # clear system pannel text
+        system_info_pnl.sys_hdd_total.SetLabel("")
+        system_info_pnl.sys_hdd_remain.SetLabel("")
+        system_info_pnl.sys_hdd_used.SetLabel("")
+        system_info_pnl.sys_pigrow_folder.SetLabel("")
+        system_info_pnl.sys_os_name.SetLabel("")
+        system_info_pnl.sys_pigrow_version.SetLabel("")
+        system_info_pnl.sys_pigrow_update.SetLabel("")
+        system_info_pnl.sys_network_name.SetLabel("")
+        system_info_pnl.sys_power_status.SetLabel("")
         # clear config ctrl text and tables
-        MainApp.config_ctrl_pannel.dirlocs_dict.clear()
-        MainApp.config_ctrl_pannel.config_dict.clear()
-        MainApp.config_ctrl_pannel.gpio_dict.clear()
-        MainApp.config_ctrl_pannel.gpio_on_dict.clear()
+        try:
+            MainApp.config_ctrl_pannel.dirlocs_dict.clear()
+            MainApp.config_ctrl_pannel.config_dict.clear()
+            MainApp.config_ctrl_pannel.gpio_dict.clear()
+            MainApp.config_ctrl_pannel.gpio_on_dict.clear()
+        except:
+            pass
         MainApp.config_info_pannel.gpio_table.DeleteAllItems()
         config_info_pnl.location_text.SetLabel("")
         config_info_pnl.config_text.SetLabel("")
