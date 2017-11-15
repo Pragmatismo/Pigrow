@@ -591,17 +591,17 @@ class config_ctrl_pnl(wx.Panel):
             dht_msg += "heater enabled, "
             self.use_heat = True
          #humid
-        if "use_humid" in extra_args:
+        if "use_humid=true" in extra_args:
             dht_msg += "humidifier enabled, "
             self.use_humid = True
         elif "use_humid=false" in extra_args:
             dht_msg += "humidifier disabled, "
-            self.use_humid = false
+            self.use_humid = False
         else:
             dht_msg += "humidifier enabled, "
             self.use_humid = True
          #dehumid
-        if "use_dehumid" in extra_args:
+        if "use_dehumid=true" in extra_args:
             dht_msg += "dehumidifier enabled, "
             self.use_dehumid = True
         elif "use_dehumid=false" in extra_args:
