@@ -844,8 +844,10 @@ class config_lamp_dialog(wx.Dialog):
         # off time - third line (worked out by above or manual input)
         wx.StaticText(self,  label='off time', pos=(10, 150))
         self.off_hour_spin = wx.SpinCtrl(self, min=0, max=23, value=off_hour, pos=(80, 135), size=(60, 50))
+        self.off_hour_spin.Bind(wx.EVT_SPINCTRL, self.off_spun)
         wx.StaticText(self,  label=':', pos=(145, 150))
         self.off_min_spin = wx.SpinCtrl(self, min=0, max=59, value=off_min, pos=(155, 135), size=(60, 50))
+        self.off_min_spin.Bind(wx.EVT_SPINCTRL, self.off_spun)
         # cron timing of switches
         wx.StaticText(self,  label='Cron Timing of Switches;', pos=(10, 250))
         wx.StaticText(self,  label='this text says if cron timing is set correctly', pos=(20, 280))
@@ -858,9 +860,6 @@ class config_lamp_dialog(wx.Dialog):
         self.cancel_btn.Bind(wx.EVT_BUTTON, self.cancel_click)
 
     def on_spun(self, e):
-        self.change_ligh_period()
-
-    def change_ligh_period(self):
         # make light hour and min into time delta
         light_period_h = self.on_period_h_spin.GetValue()
         light_period_m = self.on_period_m_spin.GetValue()
@@ -874,6 +873,31 @@ class config_lamp_dialog(wx.Dialog):
         new_off_time = date_on + time_period
         self.off_hour_spin.SetValue(new_off_time.hour)
         self.off_min_spin.SetValue(new_off_time.minute)
+
+    def off_spun(self, e):
+        # make on hour and min into datetime
+        on_hour = self.on_hour_spin.GetValue()
+        on_min = self.on_min_spin.GetValue()
+        on_time = datetime.time(int(on_hour),int(on_min))
+        date_on = datetime.datetime.combine(datetime.date.today(), on_time)
+        # make off hour and min into datetime
+        off_hour = self.off_hour_spin.GetValue()
+        off_min = self.off_min_spin.GetValue()
+        off_time = datetime.time(int(off_hour),int(off_min))
+
+        if on_time > off_time:
+            dateoff = ((datetime.datetime.combine(datetime.date.today(), off_time) + datetime.timedelta(days=1)))
+        else:
+            dateoff = ((datetime.datetime.combine(datetime.date.today(), off_time)))
+        # determine lamp period
+        length_lamp_on = (dateoff - datetime.datetime.combine(datetime.date.today(), on_time))
+        length_on_in_min = length_lamp_on.seconds / 60
+        hours = length_on_in_min / 60 #because it's an int it ignores the remainder
+        mins = length_on_in_min - (hours * 60)
+        self.on_period_h_spin.SetValue(hours)
+        self.on_period_m_spin.SetValue(mins)
+
+
 
 
     def ok_click(self, e):
