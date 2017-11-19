@@ -834,8 +834,10 @@ class config_lamp_dialog(wx.Dialog):
         # length on on period - second line
         wx.StaticText(self,  label='Lamp on for ', pos=(25, 100))
         self.on_period_h_spin = wx.SpinCtrl(self, min=0, max=23, value=on_period_hour, pos=(130, 85), size=(60, 50))
+        self.on_period_h_spin.Bind(wx.EVT_SPINCTRL, self.on_period_h_spun)
         wx.StaticText(self,  label='hours and ', pos=(195, 100))
         self.on_period_m_spin = wx.SpinCtrl(self, min=0, max=59, value=on_period_min, pos=(280, 85), size=(60, 50))
+        self.on_period_m_spin.Bind(wx.EVT_SPINCTRL, self.on_period_m_spun)
         wx.StaticText(self,  label='min', pos=(345, 100))
         # off time - third line (worked out by above or manual input)
         wx.StaticText(self,  label='off time', pos=(10, 150))
@@ -852,6 +854,28 @@ class config_lamp_dialog(wx.Dialog):
         self.ok_btn.Bind(wx.EVT_BUTTON, self.ok_click)
         self.cancel_btn = wx.Button(self, label='Cancel', pos=(315, 450), size=(175, 30))
         self.cancel_btn.Bind(wx.EVT_BUTTON, self.cancel_click)
+
+    def on_period_h_spun(self, e):
+        self.change_ligh_period()
+
+    def on_period_m_spun(self, e):
+        self.change_ligh_period()
+
+    def change_ligh_period(self):
+        # make light hour and min into time delta
+        light_period_h = self.on_period_h_spin.GetValue()
+        light_period_m = self.on_period_m_spin.GetValue()
+        time_period = datetime.timedelta(hours=light_period_h, minutes=light_period_m)
+        # make on hour and min into datetime
+        on_hour = self.on_hour_spin.GetValue()
+        on_min = self.on_min_spin.GetValue()
+        on_time = datetime.time(int(on_hour),int(on_min))
+        date_on = datetime.datetime.combine(datetime.date.today(), on_time)
+        # new off time
+        new_off_time = date_on + time_period
+        self.off_hour_spin.SetValue(new_off_time.hour)
+        self.off_min_spin.SetValue(new_off_time.minute)
+
 
     def ok_click(self, e):
         print("does nothing")
