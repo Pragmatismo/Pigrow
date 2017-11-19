@@ -809,7 +809,7 @@ class config_info_pnl(wx.Panel):
             config_info_pnl.gpio_table.SetStringItem(index, 3, str(new_currently))
 
 class config_lamp_dialog(wx.Dialog):
-    #Dialog box for creating for adding or editing device gpio config data
+    #Dialog box for creating for adding or editing the lamp timing settings
     def __init__(self, *args, **kw):
         super(config_lamp_dialog, self).__init__(*args, **kw)
         self.InitUI()
@@ -829,15 +829,17 @@ class config_lamp_dialog(wx.Dialog):
         # hour on - first line
         wx.StaticText(self,  label='on time', pos=(10, 50))
         self.on_hour_spin = wx.SpinCtrl(self, min=0, max=23, value=on_hour, pos=(80, 35), size=(60, 50))
+        self.on_hour_spin.Bind(wx.EVT_SPINCTRL, self.on_spun)
         wx.StaticText(self,  label=':', pos=(145, 50))
         self.on_min_spin = wx.SpinCtrl(self, min=0, max=59, value=on_min, pos=(155, 35), size=(60, 50))
+        self.on_min_spin.Bind(wx.EVT_SPINCTRL, self.on_spun)
         # length on on period - second line
         wx.StaticText(self,  label='Lamp on for ', pos=(25, 100))
         self.on_period_h_spin = wx.SpinCtrl(self, min=0, max=23, value=on_period_hour, pos=(130, 85), size=(60, 50))
-        self.on_period_h_spin.Bind(wx.EVT_SPINCTRL, self.on_period_h_spun)
+        self.on_period_h_spin.Bind(wx.EVT_SPINCTRL, self.on_spun)
         wx.StaticText(self,  label='hours and ', pos=(195, 100))
         self.on_period_m_spin = wx.SpinCtrl(self, min=0, max=59, value=on_period_min, pos=(280, 85), size=(60, 50))
-        self.on_period_m_spin.Bind(wx.EVT_SPINCTRL, self.on_period_m_spun)
+        self.on_period_m_spin.Bind(wx.EVT_SPINCTRL, self.on_spun)
         wx.StaticText(self,  label='min', pos=(345, 100))
         # off time - third line (worked out by above or manual input)
         wx.StaticText(self,  label='off time', pos=(10, 150))
@@ -855,10 +857,7 @@ class config_lamp_dialog(wx.Dialog):
         self.cancel_btn = wx.Button(self, label='Cancel', pos=(315, 450), size=(175, 30))
         self.cancel_btn.Bind(wx.EVT_BUTTON, self.cancel_click)
 
-    def on_period_h_spun(self, e):
-        self.change_ligh_period()
-
-    def on_period_m_spun(self, e):
+    def on_spun(self, e):
         self.change_ligh_period()
 
     def change_ligh_period(self):
