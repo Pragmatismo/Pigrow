@@ -334,13 +334,14 @@ class config_ctrl_pnl(wx.Panel):
         wx.StaticText(self,  label='Pigrow Config', pos=(25, 10))
         self.update_config_btn = wx.Button(self, label='read config from pigrow', pos=(15, 60), size=(175, 30))
         self.update_config_btn.Bind(wx.EVT_BUTTON, self.update_config_click)
-        self.config_dht_btn = wx.Button(self, label='config dht', pos=(15, 95), size=(175, 30))
+        self.config_lamp_btn = wx.Button(self, label='config lamp', pos=(15, 95), size=(175, 30))
+        self.config_lamp_btn.Bind(wx.EVT_BUTTON, self.config_lamp_click)
+        self.config_dht_btn = wx.Button(self, label='config dht', pos=(15, 130), size=(175, 30))
         self.config_dht_btn.Bind(wx.EVT_BUTTON, self.config_dht_click)
-        self.new_gpio_btn = wx.Button(self, label='Add new relay device', pos=(15, 130), size=(175, 30))
-        self.new_gpio_btn.Bind(wx.EVT_BUTTON, self.add_new_device_gpio)
-        self.update_settings_btn = wx.Button(self, label='update pigrow settings', pos=(15, 165), size=(175, 30))
+        self.new_gpio_btn = wx.Button(self, label='Add new relay device', pos=(15, 165), size=(175, 30))
+        self.new_gpio_btn.Bind(wx.EVT_BUTTON, self.add_new_device_relay)
+        self.update_settings_btn = wx.Button(self, label='update pigrow settings', pos=(15, 200), size=(175, 30))
         self.update_settings_btn.Bind(wx.EVT_BUTTON, self.update_setting_click)
-
 
 
     def update_config_click(self, e):
@@ -642,7 +643,15 @@ class config_ctrl_pnl(wx.Panel):
         config_info_pnl.config_text.SetLabel(config_msg)
         config_info_pnl.dht_text.SetLabel(dht_msg)
 
-    def add_new_device_gpio(self, e):
+    def config_lamp_click(self, e):
+        lamp_dbox = config_lamp_dialog(None, title='Config Lamp')
+        lamp_dbox.ShowModal()
+
+    def config_dht_click(self, e):
+        dht_dbox = edit_dht_dialog(None, title='Config DHT')
+        dht_dbox.ShowModal()
+
+    def add_new_device_relay(self, e):
         #define as blank
         config_ctrl_pnl.device_toedit = ""
         config_ctrl_pnl.gpio_toedit = ""
@@ -737,10 +746,6 @@ class config_ctrl_pnl(wx.Panel):
             f.write(config_text)
             f.close()
 
-    def config_dht_click(self, e):
-        dht_dbox = edit_dht_dialog(None, title='Config DHT')
-        dht_dbox.ShowModal()
-
 
 class config_info_pnl(wx.Panel):
     #  This displays the config info
@@ -802,6 +807,59 @@ class config_info_pnl(wx.Panel):
             config_info_pnl.gpio_table.SetStringItem(index, 1, str(new_gpio))
             config_info_pnl.gpio_table.SetStringItem(index, 2, str(new_wiring))
             config_info_pnl.gpio_table.SetStringItem(index, 3, str(new_currently))
+
+class config_lamp_dialog(wx.Dialog):
+    #Dialog box for creating for adding or editing device gpio config data
+    def __init__(self, *args, **kw):
+        super(config_lamp_dialog, self).__init__(*args, **kw)
+        self.InitUI()
+        self.SetSize((500, 500))
+        self.SetTitle("Config Lamp")
+    def InitUI(self):
+        #
+        on_hour = "4"
+        on_min = "30"
+        on_period_hour = "12"
+        on_period_min = "0"
+        off_hour = "16"
+        off_min = "30"
+        # draw the pannel and text
+        pnl = wx.Panel(self)
+        wx.StaticText(self,  label='Lamp Config;', pos=(20, 10))
+        # hour on - first line
+        wx.StaticText(self,  label='on time', pos=(10, 50))
+        self.on_hour_spin = wx.SpinCtrl(self, min=0, max=23, value=on_hour, pos=(80, 35), size=(60, 50))
+        wx.StaticText(self,  label=':', pos=(145, 50))
+        self.on_min_spin = wx.SpinCtrl(self, min=0, max=59, value=on_min, pos=(155, 35), size=(60, 50))
+        # length on on period - second line
+        wx.StaticText(self,  label='Lamp on for ', pos=(25, 100))
+        self.on_period_h_spin = wx.SpinCtrl(self, min=0, max=23, value=on_period_hour, pos=(130, 85), size=(60, 50))
+        wx.StaticText(self,  label='hours and ', pos=(195, 100))
+        self.on_period_m_spin = wx.SpinCtrl(self, min=0, max=59, value=on_period_min, pos=(280, 85), size=(60, 50))
+        wx.StaticText(self,  label='min', pos=(345, 100))
+        # off time - third line (worked out by above or manual input)
+        wx.StaticText(self,  label='off time', pos=(10, 150))
+        self.off_hour_spin = wx.SpinCtrl(self, min=0, max=23, value=off_hour, pos=(80, 135), size=(60, 50))
+        wx.StaticText(self,  label=':', pos=(145, 150))
+        self.off_min_spin = wx.SpinCtrl(self, min=0, max=59, value=off_min, pos=(155, 135), size=(60, 50))
+        # cron timing of switches
+        wx.StaticText(self,  label='Cron Timing of Switches;', pos=(10, 250))
+        wx.StaticText(self,  label='this text says if cron timing is set correctly', pos=(20, 280))
+        wx.StaticText(self,  label='it will give a button to set cron times to \nmatch config file times', pos=(20, 300))
+
+        #ok and cancel buttons
+        self.ok_btn = wx.Button(self, label='Ok', pos=(15, 450), size=(175, 30))
+        self.ok_btn.Bind(wx.EVT_BUTTON, self.ok_click)
+        self.cancel_btn = wx.Button(self, label='Cancel', pos=(315, 450), size=(175, 30))
+        self.cancel_btn.Bind(wx.EVT_BUTTON, self.cancel_click)
+
+    def ok_click(self, e):
+        print("does nothing")
+        self.Destroy()
+
+    def cancel_click(self, e):
+        print("does nothing")
+        self.Destroy()
 
 class doubleclick_gpio_dialog(wx.Dialog):
     #Dialog box for creating for adding or editing device gpio config data
@@ -1127,7 +1185,7 @@ class edit_dht_dialog(wx.Dialog):
         self.high_humid_text = wx.TextCtrl(self, value=humid_high, pos=(250, 255))
         self.low_humid_text = wx.TextCtrl(self, value=humid_low, pos=(250, 290))
         #buttons
-#    #    # need to add - check if software installed if not change read dht to install dht and if config changes made change to confirm changes or something
+        # need to add - check if software installed if not change read dht to install dht and if config changes made change to confirm changes or something
         self.ok_btn = wx.Button(self, label='Ok', pos=(15, 450), size=(175, 30))
         self.ok_btn.Bind(wx.EVT_BUTTON, self.ok_click)
         self.cancel_btn = wx.Button(self, label='Cancel', pos=(315, 450), size=(175, 30))
