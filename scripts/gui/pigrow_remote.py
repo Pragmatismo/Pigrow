@@ -817,41 +817,44 @@ class config_lamp_dialog(wx.Dialog):
         self.SetTitle("Config Lamp")
     def InitUI(self):
         #
-        on_hour = "4"
-        on_min = "30"
-        on_period_hour = "12"
-        on_period_min = "0"
-        off_hour = "16"
-        off_min = "30"
+        on_hour = int(MainApp.config_ctrl_pannel.config_dict["time_lamp_on"].split(":")[0])
+        on_min = int(MainApp.config_ctrl_pannel.config_dict["time_lamp_on"].split(":")[1])
+        off_hour = int(MainApp.config_ctrl_pannel.config_dict["time_lamp_off"].split(":")[0])
+        off_min = int(MainApp.config_ctrl_pannel.config_dict["time_lamp_off"].split(":")[1])
+
         # draw the pannel and text
         pnl = wx.Panel(self)
         wx.StaticText(self,  label='Lamp Config;', pos=(20, 10))
         # hour on - first line
         wx.StaticText(self,  label='on time', pos=(10, 50))
-        self.on_hour_spin = wx.SpinCtrl(self, min=0, max=23, value=on_hour, pos=(80, 35), size=(60, 50))
+        self.on_hour_spin = wx.SpinCtrl(self, min=0, max=23, value=str(on_hour), pos=(80, 35), size=(60, 50))
         self.on_hour_spin.Bind(wx.EVT_SPINCTRL, self.on_spun)
         wx.StaticText(self,  label=':', pos=(145, 50))
-        self.on_min_spin = wx.SpinCtrl(self, min=0, max=59, value=on_min, pos=(155, 35), size=(60, 50))
+        self.on_min_spin = wx.SpinCtrl(self, min=0, max=59, value=str(on_min), pos=(155, 35), size=(60, 50))
         self.on_min_spin.Bind(wx.EVT_SPINCTRL, self.on_spun)
         # length on on period - second line
         wx.StaticText(self,  label='Lamp on for ', pos=(25, 100))
-        self.on_period_h_spin = wx.SpinCtrl(self, min=0, max=23, value=on_period_hour, pos=(130, 85), size=(60, 50))
+        self.on_period_h_spin = wx.SpinCtrl(self, min=0, max=23, value="", pos=(130, 85), size=(60, 50))
         self.on_period_h_spin.Bind(wx.EVT_SPINCTRL, self.on_spun)
         wx.StaticText(self,  label='hours and ', pos=(195, 100))
-        self.on_period_m_spin = wx.SpinCtrl(self, min=0, max=59, value=on_period_min, pos=(280, 85), size=(60, 50))
+        self.on_period_m_spin = wx.SpinCtrl(self, min=0, max=59, value="", pos=(280, 85), size=(60, 50))
         self.on_period_m_spin.Bind(wx.EVT_SPINCTRL, self.on_spun)
         wx.StaticText(self,  label='min', pos=(345, 100))
         # off time - third line (worked out by above or manual input)
         wx.StaticText(self,  label='off time', pos=(10, 150))
-        self.off_hour_spin = wx.SpinCtrl(self, min=0, max=23, value=off_hour, pos=(80, 135), size=(60, 50))
+        self.off_hour_spin = wx.SpinCtrl(self, min=0, max=23, value=str(off_hour), pos=(80, 135), size=(60, 50))
         self.off_hour_spin.Bind(wx.EVT_SPINCTRL, self.off_spun)
         wx.StaticText(self,  label=':', pos=(145, 150))
-        self.off_min_spin = wx.SpinCtrl(self, min=0, max=59, value=off_min, pos=(155, 135), size=(60, 50))
+        self.off_min_spin = wx.SpinCtrl(self, min=0, max=59, value=str(off_min), pos=(155, 135), size=(60, 50))
         self.off_min_spin.Bind(wx.EVT_SPINCTRL, self.off_spun)
         # cron timing of switches
         wx.StaticText(self,  label='Cron Timing of Switches;', pos=(10, 250))
         wx.StaticText(self,  label='this text says if cron timing is set correctly', pos=(20, 280))
         wx.StaticText(self,  label='it will give a button to set cron times to \nmatch config file times', pos=(20, 300))
+        # set lamp period values
+        on_period_hour, on_period_min = self.calc_light_period(on_hour, on_min, off_hour, off_min)
+        self.on_period_h_spin.SetValue(on_period_hour)
+        self.on_period_m_spin.SetValue(on_period_min)
 
         #ok and cancel buttons
         self.ok_btn = wx.Button(self, label='Ok', pos=(15, 450), size=(175, 30))
@@ -878,13 +881,19 @@ class config_lamp_dialog(wx.Dialog):
         # make on hour and min into datetime
         on_hour = self.on_hour_spin.GetValue()
         on_min = self.on_min_spin.GetValue()
-        on_time = datetime.time(int(on_hour),int(on_min))
-        date_on = datetime.datetime.combine(datetime.date.today(), on_time)
-        # make off hour and min into datetime
         off_hour = self.off_hour_spin.GetValue()
         off_min = self.off_min_spin.GetValue()
-        off_time = datetime.time(int(off_hour),int(off_min))
+        hours, mins = self.calc_light_period(on_hour, on_min, off_hour, off_min)
+        self.on_period_h_spin.SetValue(hours)
+        self.on_period_m_spin.SetValue(mins)
 
+    def calc_light_period(self, on_hour, on_min, off_hour, off_min):
+        # make datetime objects
+        on_time = datetime.time(int(on_hour),int(on_min))
+        date_on = datetime.datetime.combine(datetime.date.today(), on_time)
+        off_time = datetime.time(int(off_hour),int(off_min))
+        # determine on/off cycle order and account for daily on/off cycle being inverted
+        #                        i.e. lamp turning on at 7am and off at 6am gives 23 hours of light
         if on_time > off_time:
             dateoff = ((datetime.datetime.combine(datetime.date.today(), off_time) + datetime.timedelta(days=1)))
         else:
@@ -892,16 +901,19 @@ class config_lamp_dialog(wx.Dialog):
         # determine lamp period
         length_lamp_on = (dateoff - datetime.datetime.combine(datetime.date.today(), on_time))
         length_on_in_min = length_lamp_on.seconds / 60
-        hours = length_on_in_min / 60 #because it's an int it ignores the remainder
+        hours = length_on_in_min / 60 #because it's an int it ignores the remainder thus giving only whole hours (hacky?)
         mins = length_on_in_min - (hours * 60)
-        self.on_period_h_spin.SetValue(hours)
-        self.on_period_m_spin.SetValue(mins)
-
-
+        return hours, mins
 
 
     def ok_click(self, e):
         print("does nothing")
+        time_lamp_on = str(self.on_hour_spin.GetValue()) + ":" + str(self.on_min_spin.GetValue())
+        time_lamp_off = str(self.off_hour_spin.GetValue()) + ":" + str(self.off_min_spin.GetValue())
+        MainApp.config_ctrl_pannel.config_dict["time_lamp_on"] = time_lamp_on
+        MainApp.config_ctrl_pannel.config_dict["time_lamp_off"] = time_lamp_off
+        config_msg = "Update pigrow config files to set time on to " + time_lamp_on + " and off time to " + time_lamp_off
+        MainApp.config_info_pannel.config_text.SetLabel(config_msg)
         self.Destroy()
 
     def cancel_click(self, e):
