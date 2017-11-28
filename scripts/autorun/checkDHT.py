@@ -248,15 +248,18 @@ while True:
         humid, temp, timno = read_and_log(loc_dic)
         print(" -- " + str(timno) + ' temp: ' + str(temp) + ' humid: ' + str(humid))
         if not timno == '-1':
-            if not str(set_dic['gpio_heater']).strip() == '' or log_non == True or heat_use_fan == True:
-                if use_heat == True:
-                    heater_control(temp,heat_use_fan)
-            if not str(set_dic['gpio_humid']).strip() == '' or log_non == True or hum_use_fan == True:
-                if use_humid == True:
-                    humid_contol(humid,hum_use_fan)
-            if not str(set_dic['gpio_dehumid']).strip() == '' or log_non == True or dehum_use_fan == True:
-                if use_dehumid == True:
-                    dehumid_control(humid, dehum_use_fan)
+            if 'gpio_heater' in set_dic:
+                if not str(set_dic['gpio_heater']).strip() == '' or log_non == True or heat_use_fan == True:
+                    if use_heat == True:
+                        heater_control(temp,heat_use_fan)
+            if 'gpio_humid' in set_dic:
+                if not str(set_dic['gpio_humid']).strip() == '' or log_non == True or hum_use_fan == True:
+                    if use_humid == True:
+                        humid_contol(humid,hum_use_fan)
+            if 'gpio_dehumid' in set_dic:
+                if not str(set_dic['gpio_dehumid']).strip() == '' or log_non == True or dehum_use_fan == True:
+                    if use_dehumid == True:
+                        dehumid_control(humid, dehum_use_fan)
             time.sleep(log_time)
         else:
             print("Sensor didn't read...")
@@ -265,5 +268,5 @@ while True:
         print("#######SOME FORM OF PIGROW ERROR Pigrow error pigrow error in checldht, probably sensor being shonk")
         print("         or some file thing??       user intervention?          i'm spooked, whatever.")
         print e
-        raise
+        #raise
         time.sleep(1)
