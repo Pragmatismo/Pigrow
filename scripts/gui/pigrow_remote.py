@@ -223,17 +223,29 @@ class system_ctrl_pnl(wx.Panel):
             system_info_pnl.sys_power_status.SetLabel("unable to read")
         # WIFI
         # Read the currently connected network name
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("/sbin/iwgetid")
         try:
-            stdin, stdout, stderr = ssh.exec_command("/sbin/iwgetid")
-            responce = stdout.read().strip()
-            error = stderr.read()
-            print responce
-            print error
-            network_name = responce.split('"')[1]
+            network_name = out.split('"')[1]
             system_info_pnl.sys_network_name.SetLabel(network_name)
         except Exception as e:
             print("fiddle and fidgets! - " + str(e))
             system_info_pnl.sys_network_name.SetLabel("unable to read")
+        # camera info
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("ls /dev/video*")
+        if "No such file or directory" in error:
+            cam_text = "No camera detected"
+        else:
+            camera_list = out.strip().split(" ")
+            if len(camera_list) == 1:
+                out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("udevadm info --query=all /dev/video0 |grep ID_MODEL=")
+                cam_name = out.split("=")[1].strip()
+                cam_text = cam_name
+            elif len(camera_list) > 1:
+                for cam in camera_list:
+                    out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("udevadm info --query=all " + cam + " |grep ID_MODEL=")
+                    cam_name = out.split("=")[1].strip()
+                    cam_text = cam_name + "\n       on " + cam + "\n"
+        system_info_pnl.sys_camera_info.SetLabel(cam_text)
 
     def update_pigrow_click(self, e):
         #reads button lable for check if update or install is required
@@ -313,7 +325,7 @@ class system_info_pnl(wx.Panel):
         system_info_pnl.sys_network_name = wx.StaticText(self,  label='network name', pos=(250, 535), size=(200,30))
 
         #camera details
-
+        system_info_pnl.sys_camera_info = wx.StaticText(self,  label='camera info', pos=(585, 170), size=(200,30))
         #power level warning details
         system_info_pnl.sys_power_status = wx.StaticText(self,  label='power status', pos=(625, 390), size=(200,30))
 
@@ -2958,6 +2970,7 @@ class pi_link_pnl(wx.Panel):
         system_info_pnl.sys_pigrow_update.SetLabel("")
         system_info_pnl.sys_network_name.SetLabel("")
         system_info_pnl.sys_power_status.SetLabel("")
+        system_info_pnl.sys_camera_info.SetLabel("")
         # clear config ctrl text and tables
         try:
             MainApp.config_ctrl_pannel.dirlocs_dict.clear()
