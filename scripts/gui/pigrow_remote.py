@@ -463,6 +463,7 @@ class config_ctrl_pnl(wx.Panel):
         #unpack non-gpio information from config file
         config_problems = []
         config_msg = ''
+        lamp_msg = ''
         dht_msg = ''
         #lamp timeing
         if "lamp" in self.gpio_dict:
@@ -471,13 +472,13 @@ class config_ctrl_pnl(wx.Panel):
                 lamp_on_min = int(self.config_dict["time_lamp_on"].split(":")[1])
 
             else:
-                config_msg += "lamp on time not set\n"
+                lamp_msg += "lamp on time not set\n"
                 config_problems.append('lamp')
             if "time_lamp_off" in self.config_dict:
                 lamp_off_hour = int(self.config_dict["time_lamp_off"].split(":")[0])
                 lamp_off_min = int(self.config_dict["time_lamp_off"].split(":")[1])
             else:
-                config_msg += "lamp off time not set\n"
+                lamp_msg += "lamp off time not set\n"
                 config_problems.append('lamp')
             #convert to datetime objects and add a day to the off time so that it's
             #   working out the time on gap correctly (i.e. avoid reporting negative time)
@@ -490,10 +491,30 @@ class config_ctrl_pnl(wx.Panel):
             else:
                 dateoff = ((datetime.datetime.combine(datetime.date.today(), off_time)))
             length_lamp_on = (dateoff - datetime.datetime.combine(datetime.date.today(), on_time))
-            config_msg += "Lamp turning on at " + str(on_time)[:-3] + " and off at " + str(off_time)[:-3]
-            config_msg += " (" + str(length_lamp_on)[:-3] + " on, "  +str(aday - length_lamp_on)[:-3] + " off)\n"
+            lamp_msg += "Lamp turning on at " + str(on_time)[:-3] + " and off at " + str(off_time)[:-3]
+            lamp_msg += " (" + str(length_lamp_on)[:-3] + " on, "  +str(aday - length_lamp_on)[:-3] + " off)\n"
+
+            # checking lamp timings in cron
+            on_cron = self.get_cron_time("lamp_on.py")
+            off_cron = self.get_cron_time("lamp_off.py")
+            if on_cron != "not found" and off_cron != "not found":
+                if on_cron != "runs more than once" and off_cron != "runs more than once":
+                    on_cron = datetime.time(int(on_cron.split(" ")[1]), int(on_cron.split(" ")[0]))
+                    off_cron = datetime.time(int(off_cron.split(" ")[1]), int(off_cron.split(" ")[0]))
+                    if on_cron == on_time and off_cron == off_time:
+                        lamp_msg += "Lamp synced with cron"
+                    else:
+                        lamp_msg += "Warning - lamp not synced with cron."
+                else:
+                    lamp_msg += "Warning - lamp switching more than once a day"
+            else:
+                lamp_msg += "Warning - cron switching not configured"
+
+
+                #on_cron_converted = []
+
         else:
-            config_msg += "no lamp linked to gpio, ignoring lamp timing settings\n"
+            lamp_msg += "no lamp linked to gpio, ignoring lamp timing settings\n"
      #heater on and off temps
         if "heater" in self.gpio_dict:
             dht_msg += "heater enabled, "
@@ -639,9 +660,25 @@ class config_ctrl_pnl(wx.Panel):
             config_msg += "found " + len(config_problems) + " config problems; "
         for item in config_problems:
             config_msg += item + ", "
+
         #putting the info on the screen
         config_info_pnl.config_text.SetLabel(config_msg)
+        config_info_pnl.lamp_text.SetLabel(lamp_msg)
         config_info_pnl.dht_text.SetLabel(dht_msg)
+
+    def get_cron_time(self, script):
+        last_index = cron_list_pnl.timed_cron.GetItemCount()
+        script_timestring = "not found"
+        count = 0
+        if not last_index == 0:
+            for index in range(0, last_index):
+                 name = cron_list_pnl.timed_cron.GetItem(index, 3).GetText()
+                 if script in name:
+                     script_timestring = cron_list_pnl.timed_cron.GetItem(index, 2).GetText()
+                     count = count + 1
+            if count > 1:
+                return "runs more than once"
+        return script_timestring
 
     def config_lamp_click(self, e):
         lamp_dbox = config_lamp_dialog(None, title='Config Lamp')
@@ -761,6 +798,7 @@ class config_info_pnl(wx.Panel):
         #SDcard details
         config_info_pnl.location_text = wx.StaticText(self,  label='locations', pos=(25, 130), size=(200,30))
         config_info_pnl.config_text = wx.StaticText(self,  label='config', pos=(10, 210), size=(200,30))
+        config_info_pnl.lamp_text = wx.StaticText(self,  label='lamp', pos=(10, 300), size=(200,30))
         config_info_pnl.dht_text = wx.StaticText(self,  label='dht', pos=(10, 415), size=(200,30))
         config_info_pnl.gpio_table = self.GPIO_list(self, 1)
         config_info_pnl.gpio_table.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.onDoubleClick_GPIO)
@@ -850,8 +888,8 @@ class config_lamp_dialog(wx.Dialog):
         # cron timing of switches
         wx.StaticText(self,  label='Cron Timing of Switches;', pos=(10, 250))
         wx.StaticText(self,  label='Current                          New', pos=(50, 280))
-        lamp_on_string = self.get_cron_time("lamp_on.py").strip()
-        lamp_off_string = self.get_cron_time("lamp_off.py").strip()
+        lamp_on_string = MainApp.config_ctrl_pannel.get_cron_time("lamp_on.py").strip()
+        lamp_off_string = MainApp.config_ctrl_pannel.get_cron_time("lamp_off.py").strip()
         wx.StaticText(self,  label=" on;", pos=(20, 310))
         wx.StaticText(self,  label="off;", pos=(20, 340))
         self.cron_lamp_on = wx.StaticText(self,  label=lamp_on_string, pos=(60, 310))
@@ -871,20 +909,6 @@ class config_lamp_dialog(wx.Dialog):
         self.ok_btn.Bind(wx.EVT_BUTTON, self.ok_click)
         self.cancel_btn = wx.Button(self, label='Cancel', pos=(315, 450), size=(175, 30))
         self.cancel_btn.Bind(wx.EVT_BUTTON, self.cancel_click)
-
-    def get_cron_time(self, script):
-        last_index = cron_list_pnl.timed_cron.GetItemCount()
-        script_timestring = "not found"
-        count = 0
-        if not last_index == 0:
-            for index in range(0, last_index):
-                 name = cron_list_pnl.timed_cron.GetItem(index, 3).GetText()
-                 if script in name:
-                     script_timestring = cron_list_pnl.timed_cron.GetItem(index, 2).GetText()
-                     count = count + 1
-            if count > 1:
-                return "runs more than once"
-        return script_timestring
 
     def on_spun(self, e):
         # make light hour and min into time delta
@@ -970,10 +994,8 @@ class config_lamp_dialog(wx.Dialog):
         if not MainApp.config_ctrl_pannel.config_dict["time_lamp_on"] == time_lamp_on or not MainApp.config_ctrl_pannel.config_dict["time_lamp_off"] == time_lamp_off:
             MainApp.config_ctrl_pannel.config_dict["time_lamp_on"] = time_lamp_on
             MainApp.config_ctrl_pannel.config_dict["time_lamp_off"] = time_lamp_off
-            print("okay")
             MainApp.config_ctrl_pannel.update_setting_click("e")
             MainApp.config_ctrl_pannel.update_config_click("e")
-            print("dokey")
         self.Destroy()
 
     def change_cron_trigger(self, script, new_time):
@@ -2935,6 +2957,7 @@ class pi_link_pnl(wx.Panel):
         MainApp.config_info_pannel.gpio_table.DeleteAllItems()
         config_info_pnl.location_text.SetLabel("")
         config_info_pnl.config_text.SetLabel("")
+        config_info_pnl.lamp_text.SetLabel("")
         config_info_pnl.dht_text.SetLabel("")
         # clear cron tables
         cron_list_pnl.startup_cron.DeleteAllItems()
