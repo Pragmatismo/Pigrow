@@ -126,6 +126,7 @@ def heater_control(temp, use_fans=True):
     #checks to see if current temp should result in heater on or off
     templow  = float(set_dic['heater_templow'])
     temphigh = float(set_dic['heater_templow'])  ## plan is to add buffer zones or some something
+    # if too cool
     if temp < templow and heater_state != 'on':
         message = "It's cold,  temp is" + str(temp) + " degrees! the low limit is " + str(templow) + " so turning heater on."
         if heater_state == 'unknown':
@@ -133,8 +134,9 @@ def heater_control(temp, use_fans=True):
         pigrow_defs.write_log(script, message,loc_dic['loc_switchlog'])
         heater_on.heater_on(set_dic, loc_dic['loc_switchlog'])
         if use_fans == True:
-            fans_on.fans_on(set_dic, loc_dic['loc_switchlog'])
+            fans_off.fans_off(set_dic, loc_dic['loc_switchlog'])
         heater_state = 'on'
+    # if too hot
     elif temp > temphigh and heater_state != 'off':
         message = "it's warm, temp is " + str(temp) + " degrees, the high limit is " + str(temphigh) + " so turning heater off"
         if heater_state == 'unknown':
@@ -142,7 +144,7 @@ def heater_control(temp, use_fans=True):
         pigrow_defs.write_log(script, message,loc_dic['loc_switchlog'])
         heater_off.heater_off(set_dic, loc_dic['loc_switchlog'])
         if use_fans == True:
-            fans_off.fans_off(set_dic, loc_dic['loc_switchlog'])
+            fans_on.fans_on(set_dic, loc_dic['loc_switchlog'])
         heater_state = 'off'
     else:
         message = "doing nothing, it's " + str(temp) + " degrees and the heater is " + heater_state
