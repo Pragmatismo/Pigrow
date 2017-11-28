@@ -849,18 +849,42 @@ class config_lamp_dialog(wx.Dialog):
         self.off_min_spin.Bind(wx.EVT_SPINCTRL, self.off_spun)
         # cron timing of switches
         wx.StaticText(self,  label='Cron Timing of Switches;', pos=(10, 250))
-        wx.StaticText(self,  label='this text says if cron timing is set correctly', pos=(20, 280))
-        wx.StaticText(self,  label='it will give a button to set cron times to \nmatch config file times', pos=(20, 300))
+        wx.StaticText(self,  label='Current                          New', pos=(50, 280))
+        lamp_on_string = self.get_cron_time("lamp_on.py").strip()
+        lamp_off_string = self.get_cron_time("lamp_off.py").strip()
+        wx.StaticText(self,  label=" on;", pos=(20, 310))
+        wx.StaticText(self,  label="off;", pos=(20, 340))
+        self.cron_lamp_on = wx.StaticText(self,  label=lamp_on_string, pos=(60, 310))
+        self.cron_lamp_off = wx.StaticText(self,  label=lamp_off_string, pos=(60, 340))
+
+
+        new_on_string = (str(on_min) + " " + str(on_hour) + " * * *")
+        new_off_string = (str(off_min) + " " + str(off_hour) + " * * *")
+        self.new_on_string_text = wx.StaticText(self,  label=new_on_string, pos=(220, 310))
+        self.new_off_string_text = wx.StaticText(self,  label=new_off_string, pos=(220, 340))
         # set lamp period values
         on_period_hour, on_period_min = self.calc_light_period(on_hour, on_min, off_hour, off_min)
         self.on_period_h_spin.SetValue(on_period_hour)
         self.on_period_m_spin.SetValue(on_period_min)
-
         #ok and cancel buttons
         self.ok_btn = wx.Button(self, label='Ok', pos=(15, 450), size=(175, 30))
         self.ok_btn.Bind(wx.EVT_BUTTON, self.ok_click)
         self.cancel_btn = wx.Button(self, label='Cancel', pos=(315, 450), size=(175, 30))
         self.cancel_btn.Bind(wx.EVT_BUTTON, self.cancel_click)
+
+    def get_cron_time(self, script):
+        last_index = cron_list_pnl.timed_cron.GetItemCount()
+        script_timestring = "not found"
+        count = 0
+        if not last_index == 0:
+            for index in range(0, last_index):
+                 name = cron_list_pnl.timed_cron.GetItem(index, 3).GetText()
+                 if script in name:
+                     script_timestring = cron_list_pnl.timed_cron.GetItem(index, 2).GetText()
+                     count = count + 1
+            if count > 1:
+                return "runs more than once"
+        return script_timestring
 
     def on_spun(self, e):
         # make light hour and min into time delta
@@ -876,6 +900,8 @@ class config_lamp_dialog(wx.Dialog):
         new_off_time = date_on + time_period
         self.off_hour_spin.SetValue(new_off_time.hour)
         self.off_min_spin.SetValue(new_off_time.minute)
+        self.new_on_string_text.SetLabel(str(on_min) + " " + str(on_hour) + " * * *")
+        self.new_off_string_text.SetLabel(str(new_off_time.minute) + " " + str(new_off_time.hour) + " * * *")
 
     def off_spun(self, e):
         # make on hour and min into datetime
@@ -886,6 +912,8 @@ class config_lamp_dialog(wx.Dialog):
         hours, mins = self.calc_light_period(on_hour, on_min, off_hour, off_min)
         self.on_period_h_spin.SetValue(hours)
         self.on_period_m_spin.SetValue(mins)
+        self.new_on_string_text.SetLabel(str(on_min) + " " + str(on_hour) + " * * *")
+        self.new_off_string_text.SetLabel(str(off_min) + " " + str(off_hour) + " * * *")
 
     def calc_light_period(self, on_hour, on_min, off_hour, off_min):
         # make datetime objects
@@ -907,14 +935,61 @@ class config_lamp_dialog(wx.Dialog):
 
 
     def ok_click(self, e):
-        print("does nothing")
+        # check for changes to cron
+        if self.cron_lamp_on.GetLabel() == "not found" or self.cron_lamp_off.GetLabel() == "not found":
+            mbox = wx.MessageDialog(None, "Add new job to cron?", "Are you sure?", wx.YES_NO|wx.ICON_QUESTION)
+            sure = mbox.ShowModal()
+            if sure == wx.ID_YES:
+                if self.cron_lamp_on.GetLabel() == "not found":
+                    cron_task = "/home/pi/Pigrow/scripts/switches/" + "lamp_on.py"
+                    MainApp.cron_info_pannel.add_to_onetime_list("new", "True", self.new_on_string_text.GetLabel(), cron_task)
+                if self.cron_lamp_off.GetLabel() == "not found":
+                    cron_task = "/home/pi/Pigrow/scripts/switches/" + "lamp_off.py"
+                    MainApp.cron_info_pannel.add_to_onetime_list("new", "True", self.new_off_string_text.GetLabel(), cron_task)
+                    MainApp.cron_info_pannel.update_cron_click("e")
+        elif not self.new_on_string_text.GetLabel() == self.cron_lamp_on.GetLabel() or not self.new_off_string_text.GetLabel() == self.cron_lamp_off.GetLabel():
+            print(":" + self.new_on_string_text.GetLabel() + ":")
+            print(":" + self.cron_lamp_on.GetLabel() + ":")
+            mbox = wx.MessageDialog(None, "Update cron timing?", "Are you sure?", wx.YES_NO|wx.ICON_QUESTION)
+            sure = mbox.ShowModal()
+            if sure == wx.ID_YES:
+                if not self.new_on_string_text.GetLabel() == self.cron_lamp_on.GetLabel():
+                    result_on = self.change_cron_trigger("lamp_on.py", self.new_on_string_text.GetLabel())
+                if not self.new_off_string_text.GetLabel() == self.cron_lamp_off.GetLabel():
+                    result_off = self.change_cron_trigger("lamp_off.py", self.new_off_string_text.GetLabel())
+                if result_on != "done" or result_off != "done":
+                    wx.MessageBox('Cron update error, edit lamp switches in the cron pannel', 'Info', wx.OK | wx.ICON_INFORMATION)
+                else:
+                    MainApp.cron_info_pannel.update_cron_click("e")
+
+
+        # check for changes to settings file
+
         time_lamp_on = str(self.on_hour_spin.GetValue()) + ":" + str(self.on_min_spin.GetValue())
         time_lamp_off = str(self.off_hour_spin.GetValue()) + ":" + str(self.off_min_spin.GetValue())
-        MainApp.config_ctrl_pannel.config_dict["time_lamp_on"] = time_lamp_on
-        MainApp.config_ctrl_pannel.config_dict["time_lamp_off"] = time_lamp_off
-        config_msg = "Update pigrow config files to set time on to " + time_lamp_on + " and off time to " + time_lamp_off
-        MainApp.config_info_pannel.config_text.SetLabel(config_msg)
+        if not MainApp.config_ctrl_pannel.config_dict["time_lamp_on"] == time_lamp_on or not MainApp.config_ctrl_pannel.config_dict["time_lamp_off"] == time_lamp_off:
+            MainApp.config_ctrl_pannel.config_dict["time_lamp_on"] = time_lamp_on
+            MainApp.config_ctrl_pannel.config_dict["time_lamp_off"] = time_lamp_off
+            print("okay")
+            MainApp.config_ctrl_pannel.update_setting_click("e")
+            MainApp.config_ctrl_pannel.update_config_click("e")
+            print("dokey")
         self.Destroy()
+
+    def change_cron_trigger(self, script, new_time):
+        last_index = cron_list_pnl.timed_cron.GetItemCount()
+        script_timestring = "not found"
+        count = 0
+        if not last_index == 0:
+            for index in range(0, last_index):
+                 name = cron_list_pnl.timed_cron.GetItem(index, 3).GetText()
+                 if script in name:
+                     script_index = index
+                     count = count + 1
+            if count > 1:
+                return "runs more than once"
+        cron_list_pnl.timed_cron.SetStringItem(script_index, 2, new_time)
+        return "done"
 
     def cancel_click(self, e):
         print("does nothing")
