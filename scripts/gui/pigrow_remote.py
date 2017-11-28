@@ -334,15 +334,25 @@ class config_ctrl_pnl(wx.Panel):
         wx.StaticText(self,  label='Pigrow Config', pos=(25, 10))
         self.update_config_btn = wx.Button(self, label='read config from pigrow', pos=(15, 60), size=(175, 30))
         self.update_config_btn.Bind(wx.EVT_BUTTON, self.update_config_click)
-        self.config_lamp_btn = wx.Button(self, label='config lamp', pos=(15, 95), size=(175, 30))
+        self.name_box_btn = wx.Button(self, label='change box name', pos=(15, 95), size=(175, 30))
+        self.name_box_btn.Bind(wx.EVT_BUTTON, self.name_box_click)
+        self.config_lamp_btn = wx.Button(self, label='config lamp', pos=(15, 130), size=(175, 30))
         self.config_lamp_btn.Bind(wx.EVT_BUTTON, self.config_lamp_click)
-        self.config_dht_btn = wx.Button(self, label='config dht', pos=(15, 130), size=(175, 30))
+        self.config_dht_btn = wx.Button(self, label='config dht', pos=(15, 165), size=(175, 30))
         self.config_dht_btn.Bind(wx.EVT_BUTTON, self.config_dht_click)
-        self.new_gpio_btn = wx.Button(self, label='Add new relay device', pos=(15, 165), size=(175, 30))
+        self.new_gpio_btn = wx.Button(self, label='Add new relay device', pos=(15, 200), size=(175, 30))
         self.new_gpio_btn.Bind(wx.EVT_BUTTON, self.add_new_device_relay)
-        self.update_settings_btn = wx.Button(self, label='update pigrow settings', pos=(15, 200), size=(175, 30))
+        self.update_settings_btn = wx.Button(self, label='update pigrow settings', pos=(15, 235), size=(175, 30))
         self.update_settings_btn.Bind(wx.EVT_BUTTON, self.update_setting_click)
 
+    def name_box_click(self, e):
+        box_name = config_info_pnl.boxname_text.GetValue()
+        if not box_name == MainApp.config_ctrl_pannel.config_dict["box_name"]:
+            MainApp.config_ctrl_pannel.config_dict["box_name"] = box_name
+            pi_link_pnl.boxname = box_name  #to maintain persistance if needed elsewhere later
+            MainApp.pi_link_pnl.link_status_text.SetLabel("linked with - " + box_name)
+        else:
+            print("no change")
 
     def update_config_click(self, e):
         # clear dictionaries and tables
@@ -472,7 +482,7 @@ class config_ctrl_pnl(wx.Panel):
                 lamp_on_min = int(self.config_dict["time_lamp_on"].split(":")[1])
 
             else:
-                lamp_msg += "lamp on time not set\n"
+                lamp_msg += "lamp on time not set "
                 config_problems.append('lamp')
             if "time_lamp_off" in self.config_dict:
                 lamp_off_hour = int(self.config_dict["time_lamp_off"].split(":")[0])
@@ -485,14 +495,14 @@ class config_ctrl_pnl(wx.Panel):
             if not 'lamp' in config_problems:
                 on_time = datetime.time(int(lamp_on_hour),int(lamp_on_min))
                 off_time = datetime.time(int(lamp_off_hour), int(lamp_off_min))
-            aday = datetime.timedelta(days=1)
-            if on_time > off_time:
-                dateoff = ((datetime.datetime.combine(datetime.date.today(), off_time) + aday))
-            else:
-                dateoff = ((datetime.datetime.combine(datetime.date.today(), off_time)))
-            length_lamp_on = (dateoff - datetime.datetime.combine(datetime.date.today(), on_time))
-            lamp_msg += "Lamp turning on at " + str(on_time)[:-3] + " and off at " + str(off_time)[:-3]
-            lamp_msg += " (" + str(length_lamp_on)[:-3] + " on, "  +str(aday - length_lamp_on)[:-3] + " off)\n"
+                aday = datetime.timedelta(days=1)
+                if on_time > off_time:
+                    dateoff = ((datetime.datetime.combine(datetime.date.today(), off_time) + aday))
+                else:
+                    dateoff = ((datetime.datetime.combine(datetime.date.today(), off_time)))
+                length_lamp_on = (dateoff - datetime.datetime.combine(datetime.date.today(), on_time))
+                lamp_msg += "Lamp turning on at " + str(on_time)[:-3] + " and off at " + str(off_time)[:-3]
+                lamp_msg += " (" + str(length_lamp_on)[:-3] + " on, "  +str(aday - length_lamp_on)[:-3] + " off)\n"
 
             # checking lamp timings in cron
             on_cron = self.get_cron_time("lamp_on.py")
@@ -514,7 +524,7 @@ class config_ctrl_pnl(wx.Panel):
                 #on_cron_converted = []
 
         else:
-            lamp_msg += "no lamp linked to gpio, ignoring lamp timing settings\n"
+            lamp_msg += "no lamp linked to gpio, ignoring lamp timing settings"
      #heater on and off temps
         if "heater" in self.gpio_dict:
             dht_msg += "heater enabled, "
@@ -662,6 +672,7 @@ class config_ctrl_pnl(wx.Panel):
             config_msg += item + ", "
 
         #putting the info on the screen
+        config_info_pnl.boxname_text.SetValue(pi_link_pnl.boxname)
         config_info_pnl.config_text.SetLabel(config_msg)
         config_info_pnl.lamp_text.SetLabel(lamp_msg)
         config_info_pnl.dht_text.SetLabel(dht_msg)
@@ -796,9 +807,10 @@ class config_info_pnl(wx.Panel):
         png = wx.Image('./config_info.png', wx.BITMAP_TYPE_ANY).ConvertToBitmap()
         wx.StaticBitmap(self, -1, png, (0, 0), (png.GetWidth(), png.GetHeight()))
         #SDcard details
-        config_info_pnl.location_text = wx.StaticText(self,  label='locations', pos=(25, 130), size=(200,30))
-        config_info_pnl.config_text = wx.StaticText(self,  label='config', pos=(10, 210), size=(200,30))
-        config_info_pnl.lamp_text = wx.StaticText(self,  label='lamp', pos=(10, 300), size=(200,30))
+        config_info_pnl.boxname_text = wx.TextCtrl(self,  pos=(25, 150), size=(265,65))
+        config_info_pnl.location_text = wx.StaticText(self,  label='locations', pos=(520, 120), size=(200,30))
+        config_info_pnl.config_text = wx.StaticText(self,  label='config', pos=(520, 185), size=(200,30))
+        config_info_pnl.lamp_text = wx.StaticText(self,  label='lamp', pos=(10, 330), size=(200,30))
         config_info_pnl.dht_text = wx.StaticText(self,  label='dht', pos=(10, 415), size=(200,30))
         config_info_pnl.gpio_table = self.GPIO_list(self, 1)
         config_info_pnl.gpio_table.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.onDoubleClick_GPIO)
@@ -2955,6 +2967,7 @@ class pi_link_pnl(wx.Panel):
         except:
             pass
         MainApp.config_info_pannel.gpio_table.DeleteAllItems()
+        config_info_pnl.boxname_text.SetValue("")
         config_info_pnl.location_text.SetLabel("")
         config_info_pnl.config_text.SetLabel("")
         config_info_pnl.lamp_text.SetLabel("")
