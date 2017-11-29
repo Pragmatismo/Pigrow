@@ -1978,6 +1978,9 @@ class cron_list_pnl(wx.Panel):
         cron_info_pnl.cron_everynum_toedit = cron_num
         cron_info_pnl.cron_min_toedit = '0'
         cron_info_pnl.cron_hour_toedit = '8'
+        cron_info_pnl.cron_day_toedit = '*'
+        cron_info_pnl.cron_month_toedit = '*'
+        cron_info_pnl.cron_dow_toedit = '*'
         if str(cron_list_pnl.repeat_cron.GetItem(index, 1).GetText()) == 'True':
             enabled = True
         else:
@@ -2033,6 +2036,9 @@ class cron_list_pnl(wx.Panel):
         cron_info_pnl.cron_everynum_toedit = '5'
         cron_info_pnl.cron_min_toedit = '0'
         cron_info_pnl.cron_hour_toedit = '8'
+        cron_info_pnl.cron_day_toedit = '*'
+        cron_info_pnl.cron_month_toedit = '*'
+        cron_info_pnl.cron_dow_toedit = '*'
         if str(cron_list_pnl.startup_cron.GetItem(index, 1).GetText()) == 'True':
             enabled = True
         else:
