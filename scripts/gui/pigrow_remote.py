@@ -2472,11 +2472,10 @@ class localfiles_ctrl_pnl(wx.Panel):
         # clear lists
         localfiles_info_pnl.config_files.DeleteAllItems()
         localfiles_info_pnl.logs_files.DeleteAllItems()
-        #set local files path
-        if localfiles_info_pnl.local_path == "":
-            computer_username = "pragmo" #change this to make the right path for all users and operating systems
-            localfiles_info_pnl.local_path = "/home/" + computer_username + "/frompigrow/" + str(pi_link_pnl.boxname) + "/"
-            localfiles_info_pnl.local_path_txt.SetLabel("\n" + localfiles_info_pnl.local_path)
+        # create local folder path
+        localfiles_info_pnl.local_path = MainApp.localfiles_path + str(pi_link_pnl.boxname) + "/"
+        localfiles_info_pnl.local_path_txt.SetLabel("\n" + localfiles_info_pnl.local_path)
+        # check for data and sort into on screen lists
         if not os.path.isdir(localfiles_info_pnl.local_path):
             localfiles_info_pnl.local_path_txt.SetLabel("no local data, press download to create folder \n " + localfiles_info_pnl.local_path)
         else:
@@ -3146,6 +3145,9 @@ class MainApp(MainFrame):
         MainApp.pi_link_pnl = pi_link_pnl(self)
         self.view_pnl = view_pnl(self)
         #
+        #Set the local file paths for this computer_username
+        self.set_local_options()
+        #
         # loads all the pages at the start then hides them,
         #         maybe i should change this later but let's make it work first
         MainApp.welcome_pannel = welcome_pnl(self)
@@ -3173,6 +3175,17 @@ class MainApp(MainFrame):
         print("Closing SSH connection")
         ssh.close()
         exit(0)
+
+    def set_local_options(self):
+        MainApp.OS = "linux"
+
+        if MainApp.OS == "linux":
+            computer_username = os.getlogin()
+            MainApp.localfiles_path = "/home/" + computer_username + "/frompigrow/"
+        else:
+            localpath = os.getcwd()
+            localpath += '/frompigrow/'
+            MainApp.localfiles_path = localpath
 
 
 def main():
