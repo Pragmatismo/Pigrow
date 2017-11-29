@@ -2469,6 +2469,9 @@ class localfiles_ctrl_pnl(wx.Panel):
         return out, error
 
     def update_local_filelist_click(self, e):
+        # clear lists
+        localfiles_info_pnl.config_files.DeleteAllItems()
+        localfiles_info_pnl.logs_files.DeleteAllItems()
         #set local files path
         if localfiles_info_pnl.local_path == "":
             computer_username = "pragmo" #change this to make the right path for all users and operating systems
