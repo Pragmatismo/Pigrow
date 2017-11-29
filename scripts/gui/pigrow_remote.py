@@ -1000,6 +1000,8 @@ class config_lamp_dialog(wx.Dialog):
             print(":" + self.cron_lamp_on.GetLabel() + ":")
             mbox = wx.MessageDialog(None, "Update cron timing?", "Are you sure?", wx.YES_NO|wx.ICON_QUESTION)
             sure = mbox.ShowModal()
+            result_on = 'done'  # these are for cases when only one is changed
+            result_off = 'done' # if it attempts to update cron and fails it'll change to an error message
             if sure == wx.ID_YES:
                 if not self.new_on_string_text.GetLabel() == self.cron_lamp_on.GetLabel():
                     result_on = self.change_cron_trigger("lamp_on.py", self.new_on_string_text.GetLabel())
@@ -1009,7 +1011,6 @@ class config_lamp_dialog(wx.Dialog):
                     wx.MessageBox('Cron update error, edit lamp switches in the cron pannel', 'Info', wx.OK | wx.ICON_INFORMATION)
                 else:
                     MainApp.cron_info_pannel.update_cron_click("e")
-
 
         # check for changes to settings file
 
@@ -2677,7 +2678,13 @@ class file_download_dialog(wx.Dialog):
                 listofcaps_local = os.listdir(local_pics)
                 #get list of remote images
                 target_caps_files = "/home/" + str(pi_link_pnl.target_user) + "/Pigrow/" + caps_folder + "/"
-                remote_caps = self.sftp.listdir(target_caps_files)
+                try:
+                    remote_caps = self.sftp.listdir(target_caps_files)
+                except IOError as e:
+                    if "No such file" in str(e):
+                        remote_caps = []
+                    else:
+                        print("Error downloadig files - " + str(e))
                 for item in remote_caps:
                     if item not in listofcaps_local:
                         files_to_download.append([target_caps_files + item, local_pics + item])
@@ -2686,7 +2693,13 @@ class file_download_dialog(wx.Dialog):
                 local_graphs = localfiles_info_pnl.local_path + "graphs/"
                 if not os.path.isdir(local_graphs):
                     os.makedirs(local_graphs)
-                remote_graphs = self.sftp.listdir(target_graph_files)
+                try:
+                    remote_graphs = self.sftp.listdir(target_graph_files)
+                except IOError as e:
+                    if "No such file" in str(e):
+                        remote_graphs = []
+                    else:
+                        print("Error downloadig files - " + str(e))
                 for item in remote_graphs:
                     files_to_download.append([target_graph_files + item, local_graphs + item])
         else:
@@ -2713,23 +2726,19 @@ class file_download_dialog(wx.Dialog):
                 files_to_download.append([item, local_folder + filename])
             #
             print("downloading entire pigrow folder")
-        print("")
-        print("")
-        print("")
-    #    print files_to_download
+        # Work though the list of files to download
         print("downloading; " + str(len(files_to_download)))
         for remote_file in files_to_download:
             #grabs all files in the list and overwrites them if they already exist locally.
             self.current_file_txt.SetLabel("from; " + remote_file[0])
             self.current_dest_txt.SetLabel("to; " + remote_file[1])
-            wx.Yield()
+            wx.Yield() #update screen to show changes
             self.sftp.get(remote_file[0], remote_file[1])
         self.current_file_txt.SetLabel("Done")
-        self.current_dest_txt.SetLabel("--")
+        self.current_dest_txt.SetLabel("Downloaded " + str(len(files_to_download)) + " files")
         #disconnect the sftp pipe
         self.sftp.close()
         ssh_tran.close()
-        print("train has reached the depot")
 
     def sort_folder_for_folders(self, target_folder):
         folders = []
