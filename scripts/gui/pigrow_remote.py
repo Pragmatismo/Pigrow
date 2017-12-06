@@ -32,14 +32,19 @@
 #
 
 print("")
-print(" THIS IS A WORK IN PROGRESS SCRIPT (ain't they all)")
-print("     At the moment it does a few useful things ")
-print("     enough to be kinda useful but some of it might not work properly...")
-print(" !! some of it might cause problems !!")
-print("  but it's like, totally awesome tho, right?")
+print(" Pigrow Remote Control Utility")
+print("     Set-up and manage your Pigrow remotely ")
+print("             --work in progress--  ")
+print("     Works best on Linux, especially Ubuntu")
+print("     ")
+print("  More information at www.reddit.com/r/Pigrow")
+print("")
+print("  Work in progress, please report any errors or problems ")
+print("  Code shared under a GNU General Public License v3.0")
 print("")
 
 import os
+import platform
 import time
 import datetime
 from stat import S_ISDIR
@@ -207,20 +212,29 @@ class system_ctrl_pnl(wx.Panel):
             self.update_type = "merge"
         elif update_needed == 'error':
             system_info_pnl.sys_pigrow_update.SetLabel("some confusion with git, sorry.")
+        #
+        # pi board revision
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("cat /proc/device-tree/model")
+        out = out.strip()
+        system_info_pnl.sys_pi_revision.SetLabel(out)
         #check for low power WARNING
         # not entirely sure if this works on all version of the pi, it looks to see if the power light is on
         # it's normally turned off as a LOW POWER warning
-        try:
-            stdin, stdout, stderr = ssh.exec_command("cat /sys/class/leds/led1/brightness")
-            responce = stdout.read().strip()
-            error = stderr.read()
-            if responce == "255":
-                system_info_pnl.sys_power_status.SetLabel("no warning")
-            else:
-                system_info_pnl.sys_power_status.SetLabel("reads " + str(responce) + " low power warning!")
-        except Exception as e:
-            print("lookit! a problem - " + str(e))
-            system_info_pnl.sys_power_status.SetLabel("unable to read")
+        if not "pi 3" in system_info_pnl.sys_pi_revision.GetLabel().lower():
+            print system_info_pnl.sys_pi_revision.GetLabel().lower()
+            try:
+                stdin, stdout, stderr = ssh.exec_command("cat /sys/class/leds/led1/brightness")
+                responce = stdout.read().strip()
+                error = stderr.read()
+                if responce == "255":
+                    system_info_pnl.sys_power_status.SetLabel("no warning")
+                else:
+                    system_info_pnl.sys_power_status.SetLabel("reads " + str(responce) + " low power warning!")
+            except Exception as e:
+                print("lookit! a problem - " + str(e))
+                system_info_pnl.sys_power_status.SetLabel("unable to read")
+        else:
+            system_info_pnl.sys_power_status.SetLabel("feature disabled on pi 3")
         # WIFI
         # Read the currently connected network name
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("/sbin/iwgetid")
@@ -246,6 +260,17 @@ class system_ctrl_pnl(wx.Panel):
                     cam_name = out.split("=")[1].strip()
                     cam_text = cam_name + "\n       on " + cam + "\n"
         system_info_pnl.sys_camera_info.SetLabel(cam_text)
+        # datetimes and difference
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("date")
+        local_time = datetime.datetime.now()
+        local_time_text = local_time.strftime("%a %d %b %X") + " " + str(time.tzname[0]) + " " + local_time.strftime("%Y")
+
+
+        out = out.strip()
+        system_info_pnl.sys_pi_date.SetLabel(out)
+        system_info_pnl.sys_pc_date.SetLabel(str(local_time_text))
+
+
 
     def update_pigrow_click(self, e):
         #reads button lable for check if update or install is required
@@ -328,6 +353,12 @@ class system_info_pnl(wx.Panel):
         system_info_pnl.sys_camera_info = wx.StaticText(self,  label='camera info', pos=(585, 170), size=(200,30))
         #power level warning details
         system_info_pnl.sys_power_status = wx.StaticText(self,  label='power status', pos=(625, 390), size=(200,30))
+        # Raspberry Pi revision
+        system_info_pnl.sys_pi_revision = wx.StaticText(self,  label='raspberry pi version', pos=(625, 450), size=(200,30))
+        # Pi datetime vs local pc datetime
+        system_info_pnl.sys_pi_date = wx.StaticText(self,  label='datetime on pi', pos=(625, 495), size=(500,30))
+        system_info_pnl.sys_pc_date = wx.StaticText(self,  label='datetime on local pc', pos=(625, 525), size=(200,30))
+        #system_info_pnl.sys_time_diff = wx.StaticText(self,  label='difference', pos=(700, 555), size=(200,30))
 
 #
 #
@@ -2566,11 +2597,7 @@ class localfiles_ctrl_pnl(wx.Panel):
                         modified = modified.strftime("%Y-%m-%d %H:%M")
                         file_age = str(file_age).split(".")[0]
                         #checks to see if local and remote files are the same
-                        try:
-                            stdin, stdout, stderr = ssh.exec_command("crontab -l")
-                            remote_cron_text = stdout.read()
-                        except Exception as e:
-                            print("failed to read cron due to;" + str(e))
+                        remote_cron_text, error = MainApp.localfiles_ctrl_pannel.run_on_pi("crontab -l")
                         #read local file
                         with open(localfiles_ctrl_pnl.cron_backup_file, "r") as local_cron:
                             local_cron_text = local_cron.read()
@@ -2988,6 +3015,10 @@ class pi_link_pnl(wx.Panel):
         system_info_pnl.sys_network_name.SetLabel("")
         system_info_pnl.sys_power_status.SetLabel("")
         system_info_pnl.sys_camera_info.SetLabel("")
+        system_info_pnl.sys_pi_revision.SetLabel("")
+        system_info_pnl.sys_pi_date.SetLabel("")
+        system_info_pnl.sys_pc_date.SetLabel("")
+        #system_info_pnl.sys_time_diff.SetLabel("")
         # clear config ctrl text and tables
         try:
             MainApp.config_ctrl_pannel.dirlocs_dict.clear()
@@ -3015,9 +3046,11 @@ class pi_link_pnl(wx.Panel):
         localfiles_info_pnl.last_photo_title.SetLabel("")
 
         blank = wx.EmptyBitmap(220, 220)
-
-        localfiles_info_pnl.photo_folder_first_pic.SetBitmap(blank)
-        localfiles_info_pnl.photo_folder_last_pic.SetBitmap(blank)
+        try:
+            localfiles_info_pnl.photo_folder_first_pic.SetBitmap(blank)
+            localfiles_info_pnl.photo_folder_last_pic.SetBitmap(blank)
+        except:
+            pass
         # clear local file info
         localfiles_info_pnl.local_path = ""
         localfiles_info_pnl.config_files.DeleteAllItems()
@@ -3029,6 +3062,8 @@ class pi_link_pnl(wx.Panel):
         if not box_name == None:
             self.link_status_text.SetLabel("linked with - " + str(pi_link_pnl.boxname))
             MainApp.welcome_pannel.Hide()
+            MainApp.config_ctrl_pannel.Show()
+            MainApp.config_info_pannel.Show()
             self.link_with_pi_btn.SetLabel('Disconnect')
             self.tb_ip.Disable()
             self.tb_user.Disable()
@@ -3040,6 +3075,8 @@ class pi_link_pnl(wx.Panel):
         if log_on_test == True and box_name == None:
             self.link_status_text.SetLabel("Found raspberry pi, but not pigrow")
             MainApp.welcome_pannel.Hide()
+            MainApp.system_ctrl_pannel.Show()
+            MainApp.system_info_pannel.Show()
             self.link_with_pi_btn.SetLabel('Disconnect')
             self.tb_ip.Disable()
             self.tb_user.Disable()
@@ -3080,6 +3117,8 @@ class view_pnl(wx.Panel):
         wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, pos = (0, 190), size = wx.Size( 285,35 ), style = wx.TAB_TRAVERSAL )
         self.SetBackgroundColour((230,200,170)) #TESTING ONLY REMOVE WHEN SIZING IS DONE AND ALL THAT BUSINESS
         view_opts = ['System Config', 'Pigrow Setup', 'Camera Config', 'Cron Timing', 'multi-script', 'Local Files', 'Timelapse', 'Graphs', 'Live View', 'pieye watcher']
+        #Showing only completed tabs
+        view_opts = ['System Config', 'Pigrow Setup', 'Cron Timing', 'Local Files']
         self.view_cb = wx.ComboBox(self, choices = view_opts, pos=(10,2), size=(265, 30))
         self.view_cb.Bind(wx.EVT_COMBOBOX, self.view_combo_go)
     def view_combo_go(self, e):
@@ -3177,9 +3216,8 @@ class MainApp(MainFrame):
         exit(0)
 
     def set_local_options(self):
-        MainApp.OS = "linux"
-
-        if MainApp.OS == "linux":
+        MainApp.OS =  platform.system()
+        if MainApp.OS == "Linux":
             computer_username = os.getlogin()
             MainApp.localfiles_path = "/home/" + computer_username + "/frompigrow/"
         else:
