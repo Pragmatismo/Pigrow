@@ -36,7 +36,7 @@ print(" THIS IS A ALPHA STAGE SCRIPT - IT DOES MOST STUFF BUT NOT EVERYTHING - U
 ##
 ###  THE FOLLOWIING NEED TO BE SET BY GUI BOXES
 ##
-target_ip   = "192.168.1.6"
+target_ip   = "192.168.1.5"
 target_pass = "raspberry"
 target_user = "pi"
 target_config_path = "/home/pi/Pigrow/config/"

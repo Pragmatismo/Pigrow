@@ -244,6 +244,42 @@ class system_ctrl_pnl(wx.Panel):
         except Exception as e:
             print("fiddle and fidgets! - " + str(e))
             system_info_pnl.sys_network_name.SetLabel("unable to read")
+        # read /etc/wpa_supplicant/wpa_supplicant.conf for listed wifi networks
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo cat /etc/wpa_supplicant/wpa_supplicant.conf")
+        out = out.splitlines()
+        in_a_list = False
+        network_items = []
+        network_list = []
+        for line in out:
+            if "}" in line:
+                in_a_list = False
+                # list finished sort into fields
+                ssid = ""
+                psk = ""
+                key_mgmt = ""
+                other = ""
+                for x in network_items:
+                    if "ssid=" in x:
+                        ssid = x[5:]
+                    elif "psk=" in x:
+                        psk = x[4:]
+                        psk = "(password hidden)"
+                    elif "key_mgmt=" in x:
+                        key_mgmt = x[9:]
+                    else:
+                        other = other + ", "
+                network_list.append([ssid, key_mgmt, psk, other])
+                network_items = []
+            if in_a_list == True:
+                network_items.append(line.strip())
+            if "network" in line:
+                in_a_list = True
+        network_text = ""
+        for item in network_list:
+            for thing in item:
+                network_text += thing + " "
+            network_text += "\n"
+        system_info_pnl.wifi_list.SetLabel(network_text)
         # camera info
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("ls /dev/video*")
         if "No such file or directory" in error:
@@ -348,6 +384,7 @@ class system_info_pnl(wx.Panel):
         system_info_pnl.sys_pigrow_update = wx.StaticText(self,  label='Pigrow update status', pos=(250, 450), size=(200,30))
         #wifi deatils
         system_info_pnl.sys_network_name = wx.StaticText(self,  label='network name', pos=(250, 535), size=(200,30))
+        system_info_pnl.wifi_list = wx.StaticText(self,  label='wifi list', pos=(140, 620), size=(200,30))
 
         #camera details
         system_info_pnl.sys_camera_info = wx.StaticText(self,  label='camera info', pos=(585, 170), size=(200,30))
@@ -2961,6 +2998,10 @@ class pi_link_pnl(wx.Panel):
                     box_name = stdout.read().strip().split("=")[1]
                     print("Pigrow Found; " + box_name)
                     self.set_link_pi_text(log_on_test, box_name)
+                    cron_info_pnl.read_cron_click(MainApp.cron_info_pannel, "event")
+                    system_ctrl_pnl.read_system_click(MainApp.system_ctrl_pannel, "event")
+                    config_ctrl_pnl.update_config_click(MainApp.config_ctrl_pannel, "event")
+                    localfiles_ctrl_pnl.update_local_filelist_click(MainApp.localfiles_ctrl_pannel, "event")
                     return box_name #this just exits the loop
                 except paramiko.AuthenticationException:
                     print("Authentication failed when connecting to " + str(host))
@@ -2997,10 +3038,14 @@ class pi_link_pnl(wx.Panel):
                 print("Failed to log on due to; " + str(e))
             if log_on_test == True:
                 box_name = self.get_box_name()
-                cron_info_pnl.read_cron_click(MainApp.cron_info_pannel, "event")
             else:
                 box_name = None
             self.set_link_pi_text(log_on_test, box_name)
+            cron_info_pnl.read_cron_click(MainApp.cron_info_pannel, "event")
+            system_ctrl_pnl.read_system_click(MainApp.system_ctrl_pannel, "event")
+            config_ctrl_pnl.update_config_click(MainApp.config_ctrl_pannel, "event")
+            localfiles_ctrl_pnl.update_local_filelist_click(MainApp.localfiles_ctrl_pannel, "event")
+
 
     def blank_settings(self):
         print("clearing settings")
@@ -3013,6 +3058,7 @@ class pi_link_pnl(wx.Panel):
         system_info_pnl.sys_pigrow_version.SetLabel("")
         system_info_pnl.sys_pigrow_update.SetLabel("")
         system_info_pnl.sys_network_name.SetLabel("")
+        system_info_pnl.wifi_list.SetLabel("")
         system_info_pnl.sys_power_status.SetLabel("")
         system_info_pnl.sys_camera_info.SetLabel("")
         system_info_pnl.sys_pi_revision.SetLabel("")

@@ -53,5 +53,5 @@ if __name__ == '__main__':
     ### default settings
     loc_dic = pigrow_defs.load_locs("/home/pi/Pigrow/config/dirlocs.txt")
     set_dic = pigrow_defs.load_settings(loc_dic['loc_settings'], err_log=loc_dic['err_log'],)
-    heater_on(set_dic, loc_dic['loc_switchlog'])
+    msg = heater_on(set_dic, loc_dic['loc_switchlog'])
     print msg
