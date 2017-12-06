@@ -149,14 +149,7 @@ class system_ctrl_pnl(wx.Panel):
 
         #check if git upate needed
         update_needed = False
-        try:
-            stdin, stdout, stderr = ssh.exec_command("git -C ~/Pigrow/ remote -v update")
-            responce = stdout.read().strip()
-            error = stderr.read()
-            #print 'responce;' +  str(responce)
-            #print 'error:' + str(error)
-        except Exception as e:
-            print("ooops! " + str(e))
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("git -C ~/Pigrow/ remote -v update")
         if len(error) > 1:
             git_text = error.split("\n")
             count = 0
@@ -167,12 +160,14 @@ class system_ctrl_pnl(wx.Panel):
             if count > 1:
                 print("ERROR ERROR TWO MASTER BRANCHES WTF?")
             elif count == 0:
-                print("ERROR NO MASTER BRANCH?!!?!")
+                #print("No Pigrow install detected")
+                install_needed = True
             elif count == 1:
                 if "[up to date]" in master_branch:
-                    print("master branch is upto date")
+                    #print("master branch is upto date")
+                    update_needed = False
                 else:
-                    print("Master branch requires updating")
+                    #print("Master branch requires updating")
                     update_needed = True
         #print master_branch
         #Read git status
@@ -211,7 +206,10 @@ class system_ctrl_pnl(wx.Panel):
             system_info_pnl.sys_pigrow_update.SetLabel("you've modified the core pigrow code, caution required!")
             self.update_type = "merge"
         elif update_needed == 'error':
-            system_info_pnl.sys_pigrow_update.SetLabel("some confusion with git, sorry.")
+            if install_needed == True:
+                system_info_pnl.sys_pigrow_update.SetLabel("Pigrow folder not found.")
+            else:
+                system_info_pnl.sys_pigrow_update.SetLabel("some confusion with git, sorry.")
         #
         # pi board revision
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("cat /proc/device-tree/model")
@@ -351,14 +349,13 @@ class system_ctrl_pnl(wx.Panel):
                         system_info_pnl.sys_pigrow_update.SetLabel("--UPDATE ERROR--")
         elif self.update_pigrow_btn.GetLabel() == "install pigrow":
             print("Downloading Pigrow code onto Pi")
-            try:
-                stdin, stdout, stderr = ssh.exec_command("git clone https://github.com/Pragmatismo/Pigrow ~/Pigrow/")
-                responce = stdout.read().strip()
-                error = stderr.read()
-                print responce, error
-                system_info_pnl.sys_pigrow_update.SetLabel("--NEW INSTALL--")
-            except Exception as e:
-                print("installing a pigrow failed! " + str(e))
+            out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("git clone https://github.com/Pragmatismo/Pigrow ~/Pigrow/")
+            print out, error
+            system_info_pnl.sys_pigrow_update.SetLabel("--NEW INSTALL--")
+            print(" -- Installing software on pigrow ")
+            out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("~/Pigrow/scripts/config/install.py")
+            print out, error
+
 
 class system_info_pnl(wx.Panel):
     #
@@ -380,7 +377,7 @@ class system_info_pnl(wx.Panel):
         system_info_pnl.sys_pigrow_folder = wx.StaticText(self,  label='Pigrow folder;', pos=(250, 285), size=(200,30))
         #Software details
         system_info_pnl.sys_os_name = wx.StaticText(self,  label='os installed;', pos=(250, 365), size=(200,30))
-        system_info_pnl.sys_pigrow_version = wx.StaticText(self,  label='pigrow version;', pos=(250, 405), size=(200,30))
+        #system_info_pnl.sys_pigrow_version = wx.StaticText(self,  label='pigrow version;', pos=(250, 405), size=(200,30))
         system_info_pnl.sys_pigrow_update = wx.StaticText(self,  label='Pigrow update status', pos=(250, 450), size=(200,30))
         #wifi deatils
         system_info_pnl.sys_network_name = wx.StaticText(self,  label='network name', pos=(250, 535), size=(200,30))
@@ -2994,20 +2991,16 @@ class pi_link_pnl(wx.Panel):
                     ssh.connect(host, username=pi_link_pnl.target_user, password=pi_link_pnl.target_pass, timeout=3)
                     print("Connected to " + host)
                     log_on_test = True
-                    stdin, stdout, stderr = ssh.exec_command("cat " + pi_link_pnl.config_location_on_pi  + " | grep box_name")
-                    box_name = stdout.read().strip().split("=")[1]
+                    box_name = self.get_box_name()
                     print("Pigrow Found; " + box_name)
                     self.set_link_pi_text(log_on_test, box_name)
-                    cron_info_pnl.read_cron_click(MainApp.cron_info_pannel, "event")
-                    system_ctrl_pnl.read_system_click(MainApp.system_ctrl_pannel, "event")
-                    config_ctrl_pnl.update_config_click(MainApp.config_ctrl_pannel, "event")
-                    localfiles_ctrl_pnl.update_local_filelist_click(MainApp.localfiles_ctrl_pannel, "event")
                     return box_name #this just exits the loop
                 except paramiko.AuthenticationException:
                     print("Authentication failed when connecting to " + str(host))
                 except Exception as e:
                     print("Could not SSH to " + host + " because:" + str(e))
                     seek_attempt += 1
+                # check if final attempt and if so stop trying
                 if seek_attempt == number_of_tries_per_host + 1:
                     print("Could not connect to " + host + " Giving up")
                     break #end while loop and look at next host
@@ -3041,10 +3034,6 @@ class pi_link_pnl(wx.Panel):
             else:
                 box_name = None
             self.set_link_pi_text(log_on_test, box_name)
-            cron_info_pnl.read_cron_click(MainApp.cron_info_pannel, "event")
-            system_ctrl_pnl.read_system_click(MainApp.system_ctrl_pannel, "event")
-            config_ctrl_pnl.update_config_click(MainApp.config_ctrl_pannel, "event")
-            localfiles_ctrl_pnl.update_local_filelist_click(MainApp.localfiles_ctrl_pannel, "event")
 
 
     def blank_settings(self):
@@ -3055,7 +3044,7 @@ class pi_link_pnl(wx.Panel):
         system_info_pnl.sys_hdd_used.SetLabel("")
         system_info_pnl.sys_pigrow_folder.SetLabel("")
         system_info_pnl.sys_os_name.SetLabel("")
-        system_info_pnl.sys_pigrow_version.SetLabel("")
+        #system_info_pnl.sys_pigrow_version.SetLabel("")
         system_info_pnl.sys_pigrow_update.SetLabel("")
         system_info_pnl.sys_network_name.SetLabel("")
         system_info_pnl.wifi_list.SetLabel("")
@@ -3102,7 +3091,6 @@ class pi_link_pnl(wx.Panel):
         localfiles_info_pnl.config_files.DeleteAllItems()
         localfiles_info_pnl.logs_files.DeleteAllItems()
 
-
     def set_link_pi_text(self, log_on_test, box_name):
         pi_link_pnl.boxname = box_name  #to maintain persistance if needed elsewhere later
         if not box_name == None:
@@ -3115,14 +3103,20 @@ class pi_link_pnl(wx.Panel):
             self.tb_user.Disable()
             self.tb_pass.Disable()
             self.seek_for_pigrows_btn.Disable()
+            cron_info_pnl.read_cron_click(MainApp.cron_info_pannel, "event")
+            system_ctrl_pnl.read_system_click(MainApp.system_ctrl_pannel, "event")
+            config_ctrl_pnl.update_config_click(MainApp.config_ctrl_pannel, "event")
+            localfiles_ctrl_pnl.update_local_filelist_click(MainApp.localfiles_ctrl_pannel, "event")
+
         elif log_on_test == False:
             self.link_status_text.SetLabel("unable to connect")
             ssh.close()
         if log_on_test == True and box_name == None:
-            self.link_status_text.SetLabel("Found raspberry pi, but not pigrow")
+            self.link_status_text.SetLabel("No Pigrow config file")
             MainApp.welcome_pannel.Hide()
             MainApp.system_ctrl_pannel.Show()
             MainApp.system_info_pannel.Show()
+            system_ctrl_pnl.read_system_click(MainApp.system_ctrl_pannel, "event")
             self.link_with_pi_btn.SetLabel('Disconnect')
             self.tb_ip.Disable()
             self.tb_user.Disable()
@@ -3136,7 +3130,7 @@ class pi_link_pnl(wx.Panel):
             boxname = stdout.read().strip().split("=")[1]
             print "Pigrow Found; " + boxname
         except Exception as e:
-            print("dang - can't connect to pigrow! " + str(e))
+            print("Can't read Pigrow's name " + str(e))
         if boxname == '':
             boxname = None
         return boxname
