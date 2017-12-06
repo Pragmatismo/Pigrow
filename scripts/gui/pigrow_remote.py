@@ -2992,7 +2992,7 @@ class pi_link_pnl(wx.Panel):
                     print("Connected to " + host)
                     log_on_test = True
                     box_name = self.get_box_name()
-                    print("Pigrow Found; " + box_name)
+                    print("Pigrow Found; " + str(box_name))
                     self.set_link_pi_text(log_on_test, box_name)
                     return box_name #this just exits the loop
                 except paramiko.AuthenticationException:
