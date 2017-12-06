@@ -36,7 +36,7 @@ print(" THIS IS A ALPHA STAGE SCRIPT - IT DOES MOST STUFF BUT NOT EVERYTHING - U
 ##
 ###  THE FOLLOWIING NEED TO BE SET BY GUI BOXES
 ##
-target_ip   = "192.168.1.5"
+target_ip   = "192.168.1.6"
 target_pass = "raspberry"
 target_user = "pi"
 target_config_path = "/home/pi/Pigrow/config/"
@@ -582,6 +582,9 @@ class config_cam(wx.Frame):
 
 
     def capture_cam_image(self, e):
+        target_ip = self.tb_ip.GetValue()
+        target_user = self.tb_user.GetValue()
+        target_pass = self.tb_pass.GetValue()
         cam_capture_choice = self.cam_combo.GetValue()
         s_val = str(self.tb_s.GetValue())
         c_val = str(self.tb_c.GetValue())
@@ -619,6 +622,7 @@ class config_cam(wx.Frame):
         target_pass = self.tb_pass.GetValue()
         x_dim = self.tb_x.GetValue()
         y_dim = self.tb_y.GetValue()
+        cam_select = self.cam_select_cb.GetValue()
         extra_args = '' #will be used for camera select
         cam_capture_choice = self.cam_combo.GetValue()
         found_login, cam_output, output_file = take_unset_test_image(target_ip, target_user, target_pass, x_dim, y_dim, cam_select, cam_capture_choice)
@@ -683,6 +687,7 @@ class config_cam(wx.Frame):
         b_val = self.tb_b.GetValue()
         x_dim = self.tb_x.GetValue()
         y_dim = self.tb_y.GetValue()
+        cam_select = self.cam_select_cb.GetValue()
         cam_capture_choice = self.cam_combo.GetValue()
         if cam_capture_choice == 'fswebcam':
             ctrl_text_string = self.setting_string_tb.GetValue()
