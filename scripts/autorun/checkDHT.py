@@ -101,7 +101,7 @@ for argu in sys.argv[1:]:
 def read_and_log(loc_dic):
     try:
         humidity, temperature = Adafruit_DHT.read_retry(Adafruit_DHT.DHT22, set_dic['gpio_dht22sensor'])
-        if humidity == None or temperature == None:
+        if humidity == None or temperature == None or humidity > 101:
             print("--problem reading sensor on GPIO:"+set_dic['gpio_dht22sensor']+"--")
             return '-1','-1','-1'
         else:
@@ -249,7 +249,7 @@ while True:
     try:
         humid, temp, timno = read_and_log(loc_dic)
         print(" -- " + str(timno) + ' temp: ' + str(temp) + ' humid: ' + str(humid))
-        if not timno == '-1':
+        if not humid > 101:
             if 'gpio_heater' in set_dic:
                 if not str(set_dic['gpio_heater']).strip() == '' or log_non == True or heat_use_fan == True:
                     if use_heat == True:
