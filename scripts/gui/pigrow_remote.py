@@ -2579,7 +2579,7 @@ class localfiles_ctrl_pnl(wx.Panel):
                         logs_files = os.listdir(localfiles_info_pnl.local_path + item)
                         for thing in logs_files:
                             if thing.endswith("txt"):
-                        boxname) +        modified = os.path.getmtime(localfiles_info_pnl.local_path + item + "/" + thing)
+                                modified = os.path.getmtime(localfiles_info_pnl.local_path + item + "/" + thing)
                                 modified = datetime.datetime.fromtimestamp(modified)
                                 file_age = datetime.datetime.now() - modified
                                 modified = modified.strftime("%Y-%m-%d %H:%M")
