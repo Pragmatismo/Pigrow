@@ -2579,7 +2579,7 @@ class localfiles_ctrl_pnl(wx.Panel):
                         logs_files = os.listdir(localfiles_info_pnl.local_path + item)
                         for thing in logs_files:
                             if thing.endswith("txt"):
-                                modified = os.path.getmtime(localfiles_info_pnl.local_path + item + "/" + thing)
+                        boxname) +        modified = os.path.getmtime(localfiles_info_pnl.local_path + item + "/" + thing)
                                 modified = datetime.datetime.fromtimestamp(modified)
                                 file_age = datetime.datetime.now() - modified
                                 modified = modified.strftime("%Y-%m-%d %H:%M")
@@ -2728,10 +2728,7 @@ class file_download_dialog(wx.Dialog):
                 for item in remote_config:
                     files_to_download.append([target_config_files + item, local_config + item])
             if self.cb_logs.GetValue() == True:
-                if not MainApp.OS == "Windows":
-                    local_logs = localfiles_info_pnl.local_path + "logs/"
-                else:
-                    local_logs = localfiles_info_pnl.local_path + "logs\\"
+                local_logs = localfiles_info_pnl.local_path + "logs/"
                 if not os.path.isdir(local_logs):
                     os.makedirs(local_logs)
                 target_logs_files = "/home/" + str(pi_link_pnl.target_user) + "/Pigrow/logs/"
