@@ -2541,7 +2541,7 @@ class localfiles_ctrl_pnl(wx.Panel):
         if not MainApp.OS == "Windows":
             localfiles_info_pnl.local_path = MainApp.localfiles_path + str(pi_link_pnl.boxname) + "/"
         else:
-            localfiles_info_pnl.local_path = MainApp.localfiles_path + str(pi_link_pnl.boxname) + "/"
+            localfiles_info_pnl.local_path = MainApp.localfiles_path + str(pi_link_pnl.boxname) + "\"
         localfiles_info_pnl.local_path_txt.SetLabel("\n" + localfiles_info_pnl.local_path)
         # check for data and sort into on screen lists
         if not os.path.isdir(localfiles_info_pnl.local_path):
@@ -2732,8 +2732,6 @@ class file_download_dialog(wx.Dialog):
                     local_logs = localfiles_info_pnl.local_path + "logs/"
                 else:
                     local_logs = localfiles_info_pnl.local_path + "logs\\"
-
-                local_logs = localfiles_info_pnl.local_path + "logs/"
                 if not os.path.isdir(local_logs):
                     os.makedirs(local_logs)
                 target_logs_files = "/home/" + str(pi_link_pnl.target_user) + "/Pigrow/logs/"
