@@ -2538,7 +2538,10 @@ class localfiles_ctrl_pnl(wx.Panel):
         localfiles_info_pnl.config_files.DeleteAllItems()
         localfiles_info_pnl.logs_files.DeleteAllItems()
         # create local folder path
-        localfiles_info_pnl.local_path = MainApp.localfiles_path + str(pi_link_pnl.boxname) + "/"
+        if not MainApp.OS == "Windows":
+            localfiles_info_pnl.local_path = MainApp.localfiles_path + str(pi_link_pnl.boxname) + "/"
+        else:
+            localfiles_info_pnl.local_path = MainApp.localfiles_path + str(pi_link_pnl.boxname) + "/"
         localfiles_info_pnl.local_path_txt.SetLabel("\n" + localfiles_info_pnl.local_path)
         # check for data and sort into on screen lists
         if not os.path.isdir(localfiles_info_pnl.local_path):
@@ -2725,6 +2728,11 @@ class file_download_dialog(wx.Dialog):
                 for item in remote_config:
                     files_to_download.append([target_config_files + item, local_config + item])
             if self.cb_logs.GetValue() == True:
+                if not MainApp.OS == "Windows":
+                    local_logs = localfiles_info_pnl.local_path + "logs/"
+                else:
+                    local_logs = localfiles_info_pnl.local_path + "logs\\"
+
                 local_logs = localfiles_info_pnl.local_path + "logs/"
                 if not os.path.isdir(local_logs):
                     os.makedirs(local_logs)
@@ -3260,6 +3268,10 @@ class MainApp(MainFrame):
         if MainApp.OS == "Linux":
             computer_username = os.getlogin()
             MainApp.localfiles_path = "/home/" + computer_username + "/frompigrow/"
+        elif MainApp.OS == "Windows":
+            localpath = os.getcwd()
+            localpath += '\\frompigrow\\'
+            MainApp.localfiles_path = localpath
         else:
             localpath = os.getcwd()
             localpath += '/frompigrow/'
