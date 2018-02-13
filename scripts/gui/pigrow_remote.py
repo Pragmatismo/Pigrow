@@ -2541,7 +2541,7 @@ class localfiles_ctrl_pnl(wx.Panel):
         if not MainApp.OS == "Windows":
             localfiles_info_pnl.local_path = MainApp.localfiles_path + str(pi_link_pnl.boxname) + "/"
         else:
-            localfiles_info_pnl.local_path = MainApp.localfiles_path + str(pi_link_pnl.boxname) + "\"
+            localfiles_info_pnl.local_path = MainApp.localfiles_path + str(pi_link_pnl.boxname) + "\\"
         localfiles_info_pnl.local_path_txt.SetLabel("\n" + localfiles_info_pnl.local_path)
         # check for data and sort into on screen lists
         if not os.path.isdir(localfiles_info_pnl.local_path):
