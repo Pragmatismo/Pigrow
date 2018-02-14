@@ -3,6 +3,7 @@ import sys
 import datetime
 import Adafruit_DHT
 
+sensor_gpio = None
 log_path = "/home/pi/Pigrow/logs/auxdht22_log.txt"
 
 for argu in sys.argv[1:]:
@@ -40,7 +41,7 @@ def read_temp_sensor(sensor):
         print("--problem reading sensor on GPIO:"+sensor_gpio+"--")
         return '-1','-1','-1'
 
-def log_temp_sensor(log_path, humidity, temperature, logtime):
+def log_sensor(log_path, humidity, temperature, logtime):
     try:
         with open(loc_dic['loc_dht_log'], "a") as f:
             line = str(temperature) + '>' + str(humidity) + '>' + str(logtime) + '\n'
@@ -54,3 +55,9 @@ def log_temp_sensor(log_path, humidity, temperature, logtime):
 def temp_c_to_f(temp_c):
     temp_f = temp_c * 9.0 / 5.0 + 32.0
     return temp_f
+
+if not sensor_gpio == None:
+    hum, temp, logt = read_temp_sensor(sensor_gpio)
+    log_sensor(log_path, hum, temp, logt)
+else:
+    print("please set a gpio using the gpio=[number] flag")
