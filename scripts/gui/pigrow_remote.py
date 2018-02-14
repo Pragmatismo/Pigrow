@@ -907,6 +907,7 @@ class config_info_pnl(wx.Panel):
             self.SetColumnWidth(4, -1)
 
     def onDoubleClick_GPIO(self, e):
+        print("DOUBLE CLICKED GPIO")
         index =  e.GetIndex()
         config_info_pnl.index = index
         #get info for dialogue box
@@ -3256,7 +3257,7 @@ class MainApp(MainFrame):
         # need to add 'ya sure?' question if there's unsaved data
         print("Closing SSH connection")
         ssh.close()
-        exit(0)
+        sys.exit(0)
 
     def set_local_options(self):
         MainApp.OS =  platform.system()
