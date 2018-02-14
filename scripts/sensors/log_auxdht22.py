@@ -43,7 +43,7 @@ def read_temp_sensor(sensor):
 
 def log_sensor(log_path, humidity, temperature, logtime):
     try:
-        with open(loc_dic['loc_dht_log'], "a") as f:
+        with open(log_path, "a") as f:
             line = str(temperature) + '>' + str(humidity) + '>' + str(logtime) + '\n'
             f.write(line)
     except:
