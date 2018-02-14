@@ -44,6 +44,7 @@ print("  Code shared under a GNU General Public License v3.0")
 print("")
 
 import os
+import sys
 import platform
 import time
 import datetime
@@ -907,7 +908,6 @@ class config_info_pnl(wx.Panel):
             self.SetColumnWidth(4, -1)
 
     def onDoubleClick_GPIO(self, e):
-        print("DOUBLE CLICKED GPIO")
         index =  e.GetIndex()
         config_info_pnl.index = index
         #get info for dialogue box
