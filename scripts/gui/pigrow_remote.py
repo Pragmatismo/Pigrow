@@ -882,8 +882,15 @@ class config_info_pnl(wx.Panel):
         w_space_left = win_width - 285
         wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, pos = (285, 0), size = wx.Size(w_space_left , 800), style = wx.TAB_TRAVERSAL )
         ## Draw UI elements
-        png = wx.Image('./config_info.png', wx.BITMAP_TYPE_ANY).ConvertToBitmap()
-        wx.StaticBitmap(self, -1, png, (0, 0), (png.GetWidth(), png.GetHeight()))
+        ##
+        ##
+        ###
+        self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
+        ###
+        ##
+        ##
+        #png = wx.Image('./config_info.png', wx.BITMAP_TYPE_ANY).ConvertToBitmap()
+        #wx.StaticBitmap(self, -1, png, (0, 0), (png.GetWidth(), png.GetHeight()))
         #SDcard details
         config_info_pnl.boxname_text = wx.TextCtrl(self,  pos=(25, 150), size=(265,65))
         config_info_pnl.location_text = wx.StaticText(self,  label='locations', pos=(520, 120), size=(200,30))
@@ -892,6 +899,21 @@ class config_info_pnl(wx.Panel):
         config_info_pnl.dht_text = wx.StaticText(self,  label='dht', pos=(10, 415), size=(200,30))
         config_info_pnl.gpio_table = self.GPIO_list(self, 1)
         config_info_pnl.gpio_table.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.onDoubleClick_GPIO)
+
+    def OnEraseBackground(self, evt):
+        """
+        Add a picture to the background
+        """
+        # yanked from ColourDB.py #then from https://www.blog.pythonlibrary.org/2010/03/18/wxpython-putting-a-background-image-on-a-panel/
+        dc = evt.GetDC()
+
+        if not dc:
+            dc = wx.ClientDC(self)
+            rect = self.GetUpdateRegion().GetBox()
+            dc.SetClippingRect(rect)
+        dc.Clear()
+        bmp = wx.Bitmap("./config_info.png")
+        dc.DrawBitmap(bmp, 0, 0)
 
     class GPIO_list(wx.ListCtrl):
         def __init__(self, parent, id, pos=(5,635), size=(570,160)):
