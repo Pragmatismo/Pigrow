@@ -69,6 +69,11 @@ except:
 ssh = paramiko.SSHClient()
 ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
+#
+#
+## System Pannel
+#
+#
 class system_ctrl_pnl(wx.Panel):
     def __init__( self, parent ):
         win_height = parent.GetSize()[1]
@@ -356,7 +361,6 @@ class system_ctrl_pnl(wx.Panel):
             print(" -- Installing software on pigrow ")
             out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("~/Pigrow/scripts/config/install.py")
             print out, error
-
 
 class system_info_pnl(wx.Panel):
     #
@@ -872,7 +876,6 @@ class config_ctrl_pnl(wx.Panel):
             f.write(config_text)
             f.close()
 
-
 class config_info_pnl(wx.Panel):
     #  This displays the config info
     # controlled by the config_ctrl_pnl
@@ -882,15 +885,8 @@ class config_info_pnl(wx.Panel):
         w_space_left = win_width - 285
         wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, pos = (285, 0), size = wx.Size(w_space_left , 800), style = wx.TAB_TRAVERSAL )
         ## Draw UI elements
-        ##
-        ##
-        ###
+        #display background
         self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
-        ###
-        ##
-        ##
-        #png = wx.Image('./config_info.png', wx.BITMAP_TYPE_ANY).ConvertToBitmap()
-        #wx.StaticBitmap(self, -1, png, (0, 0), (png.GetWidth(), png.GetHeight()))
         #SDcard details
         config_info_pnl.boxname_text = wx.TextCtrl(self,  pos=(25, 150), size=(265,65))
         config_info_pnl.location_text = wx.StaticText(self,  label='locations', pos=(520, 120), size=(200,30))
@@ -901,12 +897,8 @@ class config_info_pnl(wx.Panel):
         config_info_pnl.gpio_table.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.onDoubleClick_GPIO)
 
     def OnEraseBackground(self, evt):
-        """
-        Add a picture to the background
-        """
         # yanked from ColourDB.py #then from https://www.blog.pythonlibrary.org/2010/03/18/wxpython-putting-a-background-image-on-a-panel/
         dc = evt.GetDC()
-
         if not dc:
             dc = wx.ClientDC(self)
             rect = self.GetUpdateRegion().GetBox()
@@ -1240,8 +1232,7 @@ class edit_gpio_dialog(wx.Dialog):
         pnl = wx.Panel(self)
         wx.StaticText(self,  label='Device GPIO Config', pos=(20, 10))
         #background image
-        png = wx.Image('./relaydialogue.png', wx.BITMAP_TYPE_ANY).ConvertToBitmap()
-        wx.StaticBitmap(self, -1, png, (0, 0), (png.GetWidth(), png.GetHeight()))
+        self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
         # devices combo box
         switch_list = self.list_switch_scripts()
         unlinked_devices = self.list_unused_devices(switch_list)
@@ -1263,6 +1254,17 @@ class edit_gpio_dialog(wx.Dialog):
         closeButton = wx.Button(self, label='Cancel', pos=(300, 250))
         okButton.Bind(wx.EVT_BUTTON, self.set_new_gpio_link)
         closeButton.Bind(wx.EVT_BUTTON, self.OnClose)
+
+    def OnEraseBackground(self, evt):
+        # yanked from ColourDB.py #then from https://www.blog.pythonlibrary.org/2010/03/18/wxpython-putting-a-background-image-on-a-panel/
+        dc = evt.GetDC()
+        if not dc:
+            dc = wx.ClientDC(self)
+            rect = self.GetUpdateRegion().GetBox()
+            dc.SetClippingRect(rect)
+        dc.Clear()
+        bmp = wx.Bitmap("./relaydialogue.png")
+        dc.DrawBitmap(bmp, 0, 0)
 
     def onChar(self, event):
         #this inhibits any non-numeric keys
@@ -1570,10 +1572,9 @@ class edit_dht_dialog(wx.Dialog):
         print("nothing happens")
         self.Destroy()
 
-
 #
 #
-##Chron tab
+##Cron tab
 #
 #
 class cron_info_pnl(wx.Panel):
@@ -2168,7 +2169,6 @@ class cron_list_pnl(wx.Panel):
             elif cron_jobtype == 'repeating':
                 cron_info_pnl.add_to_repeat_list(MainApp.cron_info_pannel, 'new', job_enabled, timing_string, cron_task, cron_extra_args, cron_comment)
 
-
 class cron_job_dialog(wx.Dialog):
     #Dialog box for creating or editing cron scripts
     #   takes ten variables from cron_info_pnl
@@ -2453,8 +2453,7 @@ class localfiles_info_pnl(wx.Panel):
         #set blank variables
         localfiles_info_pnl.local_path = ""
         ## Draw UI elements
-        png = wx.Image('./localfiles.png', wx.BITMAP_TYPE_ANY).ConvertToBitmap()
-        wx.StaticBitmap(self, -1, png, (0, 0), (png.GetWidth(), png.GetHeight()))
+        self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
         # placing the information boxes
         localfiles_info_pnl.local_path_txt = wx.StaticText(self,  label='local path', pos=(220, 80), size=(200,30))
         #local photo storage info
@@ -2472,6 +2471,17 @@ class localfiles_info_pnl(wx.Panel):
     #    localfiles_info_pnl.config_files.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.onDoubleClick_config)
         #cron info text
         localfiles_info_pnl.cron_info = wx.StaticText(self,  label='cron info', pos=(290, 635), size=(200,30))
+
+    def OnEraseBackground(self, evt):
+        # yanked from ColourDB.py #then from https://www.blog.pythonlibrary.org/2010/03/18/wxpython-putting-a-background-image-on-a-panel/
+        dc = evt.GetDC()
+        if not dc:
+            dc = wx.ClientDC(self)
+            rect = self.GetUpdateRegion().GetBox()
+            dc.SetClippingRect(rect)
+        dc.Clear()
+        bmp = wx.Bitmap("./localfiles.png")
+        dc.DrawBitmap(bmp, 0, 0)
 
     class config_file_list(wx.ListCtrl):
         def __init__(self, parent, id, pos=(25, 250), size=(550,200)):
@@ -2526,7 +2536,6 @@ class localfiles_info_pnl(wx.Panel):
 
     def onDoubleClick_logs(self, e):
         print("and nothing happens")
-
 
 class localfiles_ctrl_pnl(wx.Panel):
     def __init__( self, parent ):
@@ -2958,8 +2967,11 @@ class upload_dialog(wx.Dialog):
         #closes the dialogue box
         self.Destroy()
 
-
-
+#
+#
+## gui control pannels - network link, tab select bar, splash screen
+#
+#
 class pi_link_pnl(wx.Panel):
     #
     # Creates the pannel with the raspberry pi data in it
@@ -3161,19 +3173,6 @@ class pi_link_pnl(wx.Panel):
             boxname = None
         return boxname
 
-
-class welcome_pnl(wx.Panel):
-    #
-    #  This displays the welcome message on start up
-    #     this explains how to get started
-    #
-    def __init__( self, parent ):
-        wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, pos = (285, 0), size = wx.Size( 910,800 ), style = wx.TAB_TRAVERSAL )
-        self.SetBackgroundColour((150,210,170)) #TESTING ONLY REMOVE WHEN SIZING IS DONE AND ALL THAT BUSINESS
-        png = wx.Image('./splash.png', wx.BITMAP_TYPE_ANY).ConvertToBitmap()
-        wx.StaticBitmap(self, -1, png, (0, 0), (png.GetWidth(), png.GetHeight()))
-
-
 class view_pnl(wx.Panel):
     #
     # Creates the little pannel with the navigation tabs
@@ -3228,12 +3227,33 @@ class view_pnl(wx.Panel):
             print("!!! Option not recognised, this is a programming error! sorry")
             print("          message me and tell me about it and i'll be very thankful")
 
+class welcome_pnl(wx.Panel):
+    #
+    #  This displays the welcome message on start up
+    #     this explains how to get started
+    #
+    def __init__( self, parent ):
+        wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, pos = (285, 0), size = wx.Size( 910,800 ), style = wx.TAB_TRAVERSAL )
+        self.SetBackgroundColour((150,210,170)) #TESTING ONLY REMOVE WHEN SIZING IS DONE AND ALL THAT BUSINESS
+        self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
+
+    def OnEraseBackground(self, evt):
+        # yanked from ColourDB.py #then from https://www.blog.pythonlibrary.org/2010/03/18/wxpython-putting-a-background-image-on-a-panel/
+        dc = evt.GetDC()
+        if not dc:
+            dc = wx.ClientDC(self)
+            rect = self.GetUpdateRegion().GetBox()
+            dc.SetClippingRect(rect)
+        dc.Clear()
+        bmp = wx.Bitmap("./splash.png")
+        dc.DrawBitmap(bmp, 0, 0)
+
+
 #
 #
 #  The main bit of the program
 #           EXCITING HU?!!!?
 #
-
 class MainFrame ( wx.Frame ):
     def __init__( self, parent ):
         wx.Frame.__init__ ( self, parent, id = wx.ID_ANY, title = wx.EmptyString, pos = wx.DefaultPosition, size = wx.Size( 1200,800 ), style = wx.DEFAULT_FRAME_STYLE|wx.TAB_TRAVERSAL )
