@@ -2693,10 +2693,12 @@ class localfiles_ctrl_pnl(wx.Panel):
         #show download dialog boxes
         file_dbox = file_download_dialog(None, title='Download dialog box')
         file_dbox.ShowModal()
+        self.update_local_filelist_click("e")
 
     def upload_click(self, e):
         upload_dbox = upload_dialog(None, title='Upload dialog box')
         upload_dbox.ShowModal()
+        self.update_local_filelist_click("e")
 
 class file_download_dialog(wx.Dialog):
     #Dialog box for downloding files from pi to local storage folder
