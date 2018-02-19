@@ -414,17 +414,17 @@ class config_ctrl_pnl(wx.Panel):
         wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, pos = (0, height_of_pannels_above), size = wx.Size(285, space_left), style = wx.TAB_TRAVERSAL )
         # Start drawing the UI elements
         wx.StaticText(self,  label='Pigrow Config', pos=(25, 10))
-        self.update_config_btn = wx.Button(self, label='read config from pigrow', pos=(15, 60), size=(175, 30))
-        self.update_config_btn.Bind(wx.EVT_BUTTON, self.update_config_click)
-        self.name_box_btn = wx.Button(self, label='change box name', pos=(15, 95), size=(175, 30))
+        self.name_box_btn = wx.Button(self, label='change box name', pos=(15, 95), size=(190, 30))
         self.name_box_btn.Bind(wx.EVT_BUTTON, self.name_box_click)
-        self.config_lamp_btn = wx.Button(self, label='config lamp', pos=(15, 130), size=(175, 30))
+        self.config_lamp_btn = wx.Button(self, label='config lamp', pos=(15, 130), size=(190, 30))
         self.config_lamp_btn.Bind(wx.EVT_BUTTON, self.config_lamp_click)
-        self.config_dht_btn = wx.Button(self, label='config dht', pos=(15, 165), size=(175, 30))
+        self.config_dht_btn = wx.Button(self, label='config dht', pos=(15, 165), size=(190, 30))
         self.config_dht_btn.Bind(wx.EVT_BUTTON, self.config_dht_click)
-        self.new_gpio_btn = wx.Button(self, label='Add new relay device', pos=(15, 200), size=(175, 30))
+        self.new_gpio_btn = wx.Button(self, label='Add new relay device', pos=(15, 200), size=(190, 30))
         self.new_gpio_btn.Bind(wx.EVT_BUTTON, self.add_new_device_relay)
-        self.update_settings_btn = wx.Button(self, label='update pigrow settings', pos=(15, 235), size=(175, 30))
+        self.update_config_btn = wx.Button(self, label='read config from pigrow', pos=(15, 460), size=(175, 30))
+        self.update_config_btn.Bind(wx.EVT_BUTTON, self.update_config_click)
+        self.update_settings_btn = wx.Button(self, label='update pigrow settings', pos=(15, 500), size=(175, 30))
         self.update_settings_btn.Bind(wx.EVT_BUTTON, self.update_setting_click)
 
     def name_box_click(self, e):
@@ -433,6 +433,7 @@ class config_ctrl_pnl(wx.Panel):
             MainApp.config_ctrl_pannel.config_dict["box_name"] = box_name
             pi_link_pnl.boxname = box_name  #to maintain persistance if needed elsewhere later
             MainApp.pi_link_pnl.link_status_text.SetLabel("linked with - " + box_name)
+            self.update_setting_click("e")
         else:
             print("no change")
 
@@ -780,6 +781,7 @@ class config_ctrl_pnl(wx.Panel):
     def config_dht_click(self, e):
         dht_dbox = edit_dht_dialog(None, title='Config DHT')
         dht_dbox.ShowModal()
+        self.update_setting_click("e")
 
     def add_new_device_relay(self, e):
         #define as blank
@@ -875,6 +877,7 @@ class config_ctrl_pnl(wx.Panel):
             f = sftp.open(folder + '/pigrow_config.txt', 'w')
             f.write(config_text)
             f.close()
+            self.update_config_click("e")
 
 class config_info_pnl(wx.Panel):
     #  This displays the config info
