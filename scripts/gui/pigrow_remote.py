@@ -84,9 +84,11 @@ class system_ctrl_pnl(wx.Panel):
         wx.StaticText(self,  label='System Config Menu', pos=(25, 10))
         self.read_system_btn = wx.Button(self, label='Read System Info', pos=(10, 70), size=(175, 30))
         self.read_system_btn.Bind(wx.EVT_BUTTON, self.read_system_click)
-        self.update_pigrow_btn = wx.Button(self, label='update pigrow', pos=(10, 100), size=(175, 30))
+        self.install_pigrow_btn = wx.Button(self, label='pigrow install', pos=(10, 100), size=(175, 30))
+        self.install_pigrow_btn.Bind(wx.EVT_BUTTON, self.install_click)
+        self.update_pigrow_btn = wx.Button(self, label='update pigrow', pos=(10, 130), size=(175, 30))
         self.update_pigrow_btn.Bind(wx.EVT_BUTTON, self.update_pigrow_click)
-        self.reboot_pigrow_btn = wx.Button(self, label='reboot pigrow', pos=(10, 130), size=(175, 30))
+        self.reboot_pigrow_btn = wx.Button(self, label='reboot pigrow', pos=(10, 160), size=(175, 30))
         self.reboot_pigrow_btn.Bind(wx.EVT_BUTTON, self.reboot_pigrow_click)
 
     def reboot_pigrow_click(self, e):
@@ -310,7 +312,9 @@ class system_ctrl_pnl(wx.Panel):
         system_info_pnl.sys_pi_date.SetLabel(out)
         system_info_pnl.sys_pc_date.SetLabel(str(local_time_text))
 
-
+    def install_click(self, e):
+        install_dbox = install_dialog(None, title='Install Pigrow to Raspberry Pi')
+        install_dbox.ShowModal()
 
     def update_pigrow_click(self, e):
         #reads button lable for check if update or install is required
@@ -398,6 +402,31 @@ class system_info_pnl(wx.Panel):
         system_info_pnl.sys_pi_date = wx.StaticText(self,  label='datetime on pi', pos=(625, 495), size=(500,30))
         system_info_pnl.sys_pc_date = wx.StaticText(self,  label='datetime on local pc', pos=(625, 525), size=(200,30))
         #system_info_pnl.sys_time_diff = wx.StaticText(self,  label='difference', pos=(700, 555), size=(200,30))
+
+class install_dialog(wx.Dialog):
+    #Dialog box for installing pigrow software on a raspberry pi remotely
+    def __init__(self, *args, **kw):
+        super(install_dialog, self).__init__(*args, **kw)
+        self.InitUI()
+        self.SetSize((500, 500))
+        self.SetTitle("Config Lamp")
+    def InitUI(self):
+        # draw the pannel and text
+        pnl = wx.Panel(self)
+        wx.StaticText(self,  label='Install Pigrow', pos=(20, 10))
+        # hour on - first line
+        wx.StaticText(self,  label='Current Stage;', pos=(10, 50))
+        #ok and cancel buttons
+        self.ok_btn = wx.Button(self, label='Start', pos=(15, 400), size=(175, 30))
+        self.ok_btn.Bind(wx.EVT_BUTTON, self.start_click)
+        self.cancel_btn = wx.Button(self, label='Cancel', pos=(315, 400), size=(175, 30))
+        self.cancel_btn.Bind(wx.EVT_BUTTON, self.cancel_click)
+
+    def start_click(self, e):
+        print("Install process started;")
+
+    def cancel_click(self, e):
+        self.Destroy()
 
 #
 #
