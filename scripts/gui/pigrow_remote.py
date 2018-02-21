@@ -414,16 +414,112 @@ class install_dialog(wx.Dialog):
         # draw the pannel and text
         pnl = wx.Panel(self)
         wx.StaticText(self,  label='Install Pigrow', pos=(20, 10))
-        # hour on - first line
-        wx.StaticText(self,  label='Current Stage;', pos=(10, 50))
+        wx.StaticText(self,  label='Tool for installing pigrow code and dependencies', pos=(10, 40))
+        # Installed components
+        pigrow_base_check = wx.StaticText(self,  label='Pigrow base', pos=(25, 90))
+        wx.StaticText(self,  label='Python modules;', pos=(10, 120))
+        self.matplotlib_check = wx.StaticText(self,  label='Python: Matplotlib', pos=(25, 150))
+        self.adaDHT_check = wx.StaticText(self,  label='Python: Adafruit_DHT', pos=(25, 180))
+        self.cron_check = wx.StaticText(self,  label='python-crontab', pos=(25, 210))
+        self.praw_check = wx.StaticText(self,  label='praw', pos=(300, 150))
+        self.pexpect_check = wx.StaticText(self,  label='pexpect', pos=(300, 180))
+
+        #
+
+
+        #
+        wx.StaticText(self,  label='Programs;', pos=(10, 240))
         #ok and cancel buttons
         self.ok_btn = wx.Button(self, label='Start', pos=(15, 400), size=(175, 30))
         self.ok_btn.Bind(wx.EVT_BUTTON, self.start_click)
         self.cancel_btn = wx.Button(self, label='Cancel', pos=(315, 400), size=(175, 30))
         self.cancel_btn.Bind(wx.EVT_BUTTON, self.cancel_click)
+        #run initial checks
+        self.check_python_dependencies()
+
+    def check_python_dependencies(self):
+        python_dependencies = ["matplotlib", "Adafruit_DHT", "praw", "pexpect", "crontab"]
+        working_modules = []
+        nonworking_modules = []
+        for module in python_dependencies:
+            print module
+#this mess is the code that gets run on the pi
+            module_question = """\
+"try:
+    import """ + module + """
+    print('True')
+except:
+    print('False')" """
+#that gets run with bash on the pi in this next line
+            out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("python -c " + module_question)
+            print out
+            print error
+        # this is the old way that doesn't always work
+            #out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("python -m " + str(module))
+            #if len(out) > 0:
+            #    working_modules.append(module)
+            #    print("WARNING I THINK THAT MODULE " + module + " may have just run... it's probably fine though." )
+            #elif len(error) > 0:
+            #    if not "is a package and cannot be directly executed" in error and not "No code object available for" in error:
+            #        nonworking_modules.append(module)
+            #    else:
+            #        working_modules.append(module)
+        # that was the old way
+            if "True" in out:
+                working_modules.append(module)
+            else:
+                nonworking_modules.append(module)
+
+            #print out, error, module
+        # colour UI
+        if "matplotlib" in working_modules:
+            self.matplotlib_check.SetForegroundColour((75,200,75))
+        else:
+            self.matplotlib_check.SetForegroundColour((255,75,75))
+        if "Adafruit_DHT" in working_modules:
+            self.adaDHT_check.SetForegroundColour((75,200,75))
+        else:
+            self.adaDHT_check.SetForegroundColour((255,75,75))
+        if "crontab" in working_modules:
+            self.cron_check.SetForegroundColour((75,200,75))
+        else:
+            self.cron_check.SetForegroundColour((255,75,75))
+        if "praw" in working_modules:
+            self.praw_check.SetForegroundColour((75,200,75))
+        else:
+            self.praw_check.SetForegroundColour((255,75,75))
+        if "pexpect" in working_modules:
+            self.pexpect_check.SetForegroundColour((75,200,75))
+        else:
+            self.pexpect_check.SetForegroundColour((255,75,75))
+
+
+        print("--working--")
+        print working_modules
+        print("--error--")
+        print nonworking_modules
 
     def start_click(self, e):
         print("Install process started;")
+        #    if not os.path.exists('/home/pi/Pigrow/caps/'):
+        #        os.makedirs('/home/pi/Pigrow/caps/')
+        #    if not os.path.exists('/home/pi/Pigrow/graphs/'):
+        #        os.makedirs('/home/pi/Pigrow/graphs/')
+        #    if not os.path.exists('/home/pi/Pigrow/logs/'):
+    #            os.makedirs('/home/pi/Pigrow/logs/')
+        #os.chdir(path)
+        #print("- Downloading Adafruit_Python_DHT from Github")
+        #os.system("git clone https://github.com/adafruit/Adafruit_Python_DHT.git")
+        #ada_path = path + "Adafruit_Python_DHT/"
+        #os.chdir( ada_path)
+        #print("- Updating your apt list and installing dependencies,")
+        #os.system("sudo apt-get update --yes")
+        #os.system("sudo apt-get install --yes build-essential python-dev python-openssl")
+        #print("- Dependencies installed, running --: sudo python setup.py install :--")
+        #os.system("sudo python "+ ada_path +"setup.py install")
+        #update pip before installing
+        #sudo pip install praw pexpect
+        #("sudo apt-get --yes install python-matplotlib sshpass uvccapture mpv python-crontab")
 
     def cancel_click(self, e):
         self.Destroy()
