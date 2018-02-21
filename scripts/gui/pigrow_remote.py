@@ -409,7 +409,7 @@ class install_dialog(wx.Dialog):
         super(install_dialog, self).__init__(*args, **kw)
         self.InitUI()
         self.SetSize((500, 500))
-        self.SetTitle("Config Lamp")
+        self.SetTitle("Install Pigrow")
     def InitUI(self):
         # draw the pannel and text
         pnl = wx.Panel(self)
@@ -417,6 +417,7 @@ class install_dialog(wx.Dialog):
         wx.StaticText(self,  label='Tool for installing pigrow code and dependencies', pos=(10, 40))
         # Installed components
         pigrow_base_check = wx.StaticText(self,  label='Pigrow base', pos=(25, 90))
+        #python modules
         wx.StaticText(self,  label='Python modules;', pos=(10, 120))
         self.matplotlib_check = wx.StaticText(self,  label='Python: Matplotlib', pos=(25, 150))
         self.adaDHT_check = wx.StaticText(self,  label='Python: Adafruit_DHT', pos=(25, 180))
@@ -424,8 +425,10 @@ class install_dialog(wx.Dialog):
         self.praw_check = wx.StaticText(self,  label='praw', pos=(300, 150))
         self.pexpect_check = wx.StaticText(self,  label='pexpect', pos=(300, 180))
 
-        #
-
+        #programs
+        self.uvccapture_check = wx.StaticText(self,  label='uvccapture', pos=(25, 270))
+        self.mpv_check = wx.StaticText(self,  label='mpv', pos=(25, 300))
+        self.sshpass_check = wx.StaticText(self,  label='sshpass', pos=(300, 270))
 
         #
         wx.StaticText(self,  label='Programs;', pos=(10, 240))
@@ -436,13 +439,39 @@ class install_dialog(wx.Dialog):
         self.cancel_btn.Bind(wx.EVT_BUTTON, self.cancel_click)
         #run initial checks
         self.check_python_dependencies()
+        self.check_program_dependencies()
+
+    def check_program_dependencies(self):
+        program_dependencies = ["sshpass", "uvccapture", "mpv"]
+        working_programs = []
+        nonworking_programs = []
+        for program in program_dependencies:
+            out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("apt-cache policy "+program+" |grep Installed")
+            if not "(none)" in out:
+                working_programs.append(program)
+            else:
+                nonworking_programs.append(program)
+        #colour ui
+        if "uvccapture" in working_programs:
+            self.uvccapture_check.SetForegroundColour((75,200,75))
+        else:
+            self.uvccapture_check.SetForegroundColour((255,75,75))
+        if "mpv" in working_programs:
+            self.mpv_check.SetForegroundColour((75,200,75))
+        else:
+            self.mpv_check.SetForegroundColour((255,75,75))
+        if "sshpass" in working_programs:
+            self.sshpass_check.SetForegroundColour((75,200,75))
+        else:
+            self.sshpass_check.SetForegroundColour((255,75,75))
+
 
     def check_python_dependencies(self):
         python_dependencies = ["matplotlib", "Adafruit_DHT", "praw", "pexpect", "crontab"]
         working_modules = []
         nonworking_modules = []
         for module in python_dependencies:
-            print module
+            #print module
 #this mess is the code that gets run on the pi
             module_question = """\
 "try:
@@ -452,8 +481,6 @@ except:
     print('False')" """
 #that gets run with bash on the pi in this next line
             out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("python -c " + module_question)
-            print out
-            print error
         # this is the old way that doesn't always work
             #out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("python -m " + str(module))
             #if len(out) > 0:
@@ -469,8 +496,6 @@ except:
                 working_modules.append(module)
             else:
                 nonworking_modules.append(module)
-
-            #print out, error, module
         # colour UI
         if "matplotlib" in working_modules:
             self.matplotlib_check.SetForegroundColour((75,200,75))
@@ -492,12 +517,6 @@ except:
             self.pexpect_check.SetForegroundColour((75,200,75))
         else:
             self.pexpect_check.SetForegroundColour((255,75,75))
-
-
-        print("--working--")
-        print working_modules
-        print("--error--")
-        print nonworking_modules
 
     def start_click(self, e):
         print("Install process started;")
