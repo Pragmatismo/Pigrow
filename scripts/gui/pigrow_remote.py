@@ -357,7 +357,7 @@ class system_ctrl_pnl(wx.Panel):
                     except Exception as e:
                         print("ooops! " + str(e))
                         system_info_pnl.sys_pigrow_update.SetLabel("--UPDATE ERROR--")
-        elif self.update_pigrow_btn.GetLabel() == "install pigrow":
+        elif self.update_pigrow_btn.GetLabel() == "old install pigrow":
             print("Downloading Pigrow code onto Pi")
             out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("git clone https://github.com/Pragmatismo/Pigrow ~/Pigrow/")
             print out, error
