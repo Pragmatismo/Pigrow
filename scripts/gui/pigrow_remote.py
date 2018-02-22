@@ -463,32 +463,40 @@ class install_dialog(wx.Dialog):
     def install_all_apt(self):
         #updating apt package list
         self.currently_doing.SetLabel("updating apt the system package manager on the raspberry pi")
+        wx.Yield()
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo apt update --yes")
         print out
         #installing dependencies with apt
         self.currently_doing.SetLabel("using apt to install matplot lib, sshpass, python-crontab")
+        wx.Yield()
         python_dep, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo apt --yes install python-matplotlib sshpass python-crontab")
         print python_dep
         self.currently_doing.SetLabel("Using apt to install uvccaptre and mpv")
+        wx.Yield()
         image_dep, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo apt --yes install uvccapture mpv")
         print image_dep
         self.currently_doing.SetLabel("..")
+        wx.Yield()
 
     def install_adafruit_DHT(self):
         print("starting adafruit install")
         print("installing dependencies using apt")
         self.currently_doing.SetLabel("Using apt to install adafruit_dht dependencies")
+        wx.Yield()
         adafruit_dep, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo apt --yes install build-essential python-dev python-openssl")
         print adafruit_dep
         print("- Downloading Adafruit_Python_DHT from Github")
         ada_dir = "/home/" + pi_link_pnl.target_user + "/Pigrow/resources/Adafruit_Python_DHT/"
         self.currently_doing.SetLabel("Using git to clone (download) the adafruit code")
+        wx.Yield()
         adafruit_clone, error = MainApp.localfiles_ctrl_pannel.run_on_pi("git clone https://github.com/adafruit/Adafruit_Python_DHT.git " + ada_dir)
         print adafruit_clone, error
         print("- Dependencies installed, running adafruit_dht : sudo python setup.py install")
         self.currently_doing.SetLabel("Using the adafruit_DHT setup.py to install the module")
+        wx.Yield()
         adafruit_install, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo python "+ ada_dir +"setup.py install")
         self.currently_doing.SetLabel("...")
+        wx.Yield()
         print adafruit_install
 
     def check_program_dependencies(self):
