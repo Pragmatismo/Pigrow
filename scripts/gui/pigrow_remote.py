@@ -432,11 +432,11 @@ class install_dialog(wx.Dialog):
         #status text
         self.currently_doing = wx.StaticText(self,  label="Currently:", pos=(15, 340))
         self.currently_doing = wx.StaticText(self,  label='...', pos=(100, 340))
-        self.progress = wx.StaticText(self,  label='...', pos=(300, 270))
+        self.progress = wx.StaticText(self,  label='...', pos=(15, 370))
 
         #ok and cancel buttons
-        self.ok_btn = wx.Button(self, label='Start', pos=(15, 400), size=(175, 30))
-        self.ok_btn.Bind(wx.EVT_BUTTON, self.start_click)
+        self.start_btn = wx.Button(self, label='Start', pos=(15, 400), size=(175, 30))
+        self.start_btn.Bind(wx.EVT_BUTTON, self.start_click)
         self.cancel_btn = wx.Button(self, label='Cancel', pos=(315, 400), size=(175, 30))
         self.cancel_btn.Bind(wx.EVT_BUTTON, self.cancel_click)
         #run initial checks
@@ -445,7 +445,19 @@ class install_dialog(wx.Dialog):
         wx.Yield() #update screen to show changes
         self.check_program_dependencies()
 
-    def insall_all_pip(self):
+    def install_pigrow(self):
+        self.currently_doing.SetLabel("using git to clone (download) pigrow code")
+        wx.Yield()
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("git clone https://github.com/Pragmatismo/Pigrow ~/Pigrow/")
+        self.currently_doing.SetLabel("creating folders")
+        wx.Yield()
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("mkdir ~/Pigrow/caps/")
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("mkdir ~/Pigrow/graphs/")
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("mkdir ~/Pigrow/logs/")
+        self.currently_doing.SetLabel("-")
+        wx.Yield()
+
+    def install_all_pip(self):
         #updating pip
         self.currently_doing.SetLabel("Updating PIP the python install manager")
         wx.Yield()
@@ -582,16 +594,22 @@ except:
 
     def start_click(self, e):
         print("Install process started;")
-        pip_text = self.insall_all_pip()
+        self.progress.SetLabel("##--------")
+        wx.Yield()
+        self.install_pigrow()
+        self.progress.SetLabel("####--------")
+        wx.Yield()
+        pip_text = self.install_all_pip()
+        self.progress.SetLabel("######----")
+        wx.Yield()
         self.install_all_apt()
+        self.progress.SetLabel("########--")
+        wx.Yield()
         self.install_adafruit_DHT()
-        #    if not os.path.exists('/home/pi/Pigrow/caps/'):
-        #        os.makedirs('/home/pi/Pigrow/caps/')
-        #    if not os.path.exists('/home/pi/Pigrow/graphs/'):
-        #        os.makedirs('/home/pi/Pigrow/graphs/')
-        #    if not os.path.exists('/home/pi/Pigrow/logs/'):
-    #            os.makedirs('/home/pi/Pigrow/logs/')
-
+        self.progress.SetLabel("####DONE####")
+        wx.Yield()
+        self.start_btn.Disable()
+        self.cancel_btn.SetLabel("OK")
 
 
     def cancel_click(self, e):
