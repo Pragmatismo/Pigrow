@@ -408,7 +408,7 @@ class install_dialog(wx.Dialog):
     def __init__(self, *args, **kw):
         super(install_dialog, self).__init__(*args, **kw)
         self.InitUI()
-        self.SetSize((500, 500))
+        self.SetSize((600, 500))
         self.SetTitle("Install Pigrow")
     def InitUI(self):
         # draw the pannel and text
@@ -419,27 +419,77 @@ class install_dialog(wx.Dialog):
         pigrow_base_check = wx.StaticText(self,  label='Pigrow base', pos=(25, 90))
         #python modules
         wx.StaticText(self,  label='Python modules;', pos=(10, 120))
-        self.matplotlib_check = wx.StaticText(self,  label='Python: Matplotlib', pos=(25, 150))
-        self.adaDHT_check = wx.StaticText(self,  label='Python: Adafruit_DHT', pos=(25, 180))
-        self.cron_check = wx.StaticText(self,  label='python-crontab', pos=(25, 210))
+        self.matplotlib_check = wx.StaticText(self,  label='Matplotlib', pos=(25, 150))
+        self.adaDHT_check = wx.StaticText(self,  label='Adafruit_DHT', pos=(25, 180))
+        self.cron_check = wx.StaticText(self,  label='crontab', pos=(25, 210))
         self.praw_check = wx.StaticText(self,  label='praw', pos=(300, 150))
         self.pexpect_check = wx.StaticText(self,  label='pexpect', pos=(300, 180))
-
         #programs
+        wx.StaticText(self,  label='Programs;', pos=(10, 240))
         self.uvccapture_check = wx.StaticText(self,  label='uvccapture', pos=(25, 270))
         self.mpv_check = wx.StaticText(self,  label='mpv', pos=(25, 300))
         self.sshpass_check = wx.StaticText(self,  label='sshpass', pos=(300, 270))
+        #status text
+        self.currently_doing = wx.StaticText(self,  label="Currently:", pos=(15, 340))
+        self.currently_doing = wx.StaticText(self,  label='...', pos=(100, 340))
+        self.progress = wx.StaticText(self,  label='...', pos=(300, 270))
 
-        #
-        wx.StaticText(self,  label='Programs;', pos=(10, 240))
         #ok and cancel buttons
         self.ok_btn = wx.Button(self, label='Start', pos=(15, 400), size=(175, 30))
         self.ok_btn.Bind(wx.EVT_BUTTON, self.start_click)
         self.cancel_btn = wx.Button(self, label='Cancel', pos=(315, 400), size=(175, 30))
         self.cancel_btn.Bind(wx.EVT_BUTTON, self.cancel_click)
         #run initial checks
+        wx.Yield() #update screen to show changes
         self.check_python_dependencies()
+        wx.Yield() #update screen to show changes
         self.check_program_dependencies()
+
+    def insall_all_pip(self):
+        #updating pip
+        self.currently_doing.SetLabel("Updating PIP the python install manager")
+        wx.Yield()
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo pip install -U pip")
+        print out
+        #installing dependencies with pip
+        self.currently_doing.SetLabel("Using pip to install praw and pexpect")
+        wx.Yield()
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo pip install praw pexpect")
+        print out
+        self.currently_doing.SetLabel(".")
+        wx.Yield()
+        return out
+
+    def install_all_apt(self):
+        #updating apt package list
+        self.currently_doing.SetLabel("updating apt the system package manager on the raspberry pi")
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo apt update --yes")
+        print out
+        #installing dependencies with apt
+        self.currently_doing.SetLabel("using apt to install matplot lib, sshpass, python-crontab")
+        python_dep, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo apt --yes install python-matplotlib sshpass python-crontab")
+        print python_dep
+        self.currently_doing.SetLabel("Using apt to install uvccaptre and mpv")
+        image_dep, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo apt --yes install uvccapture mpv")
+        print image_dep
+        self.currently_doing.SetLabel("..")
+
+    def install_adafruit_DHT(self):
+        print("starting adafruit install")
+        print("installing dependencies using apt")
+        self.currently_doing.SetLabel("Using apt to install adafruit_dht dependencies")
+        adafruit_dep, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo apt --yes install build-essential python-dev python-openssl")
+        print adafruit_dep
+        print("- Downloading Adafruit_Python_DHT from Github")
+        ada_dir = "/home/" + pi_link_pnl.target_user + "/Pigrow/resources/Adafruit_Python_DHT/"
+        self.currently_doing.SetLabel("Using git to clone (download) the adafruit code")
+        adafruit_clone, error = MainApp.localfiles_ctrl_pannel.run_on_pi("git clone https://github.com/adafruit/Adafruit_Python_DHT.git " + ada_dir)
+        print adafruit_clone, error
+        print("- Dependencies installed, running adafruit_dht : sudo python setup.py install")
+        self.currently_doing.SetLabel("Using the adafruit_DHT setup.py to install the module")
+        adafruit_install, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo python "+ ada_dir +"setup.py install")
+        self.currently_doing.SetLabel("...")
+        print adafruit_install
 
     def check_program_dependencies(self):
         program_dependencies = ["sshpass", "uvccapture", "mpv"]
@@ -447,8 +497,11 @@ class install_dialog(wx.Dialog):
         nonworking_programs = []
         for program in program_dependencies:
             out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("apt-cache policy "+program+" |grep Installed")
-            if not "(none)" in out:
-                working_programs.append(program)
+            if "Installed" in out:
+                if not "(none)" in out:
+                    working_programs.append(program)
+                else:
+                    nonworking_programs.append(program)
             else:
                 nonworking_programs.append(program)
         #colour ui
@@ -501,6 +554,7 @@ except:
             self.matplotlib_check.SetForegroundColour((75,200,75))
         else:
             self.matplotlib_check.SetForegroundColour((255,75,75))
+        wx.Yield()
         if "Adafruit_DHT" in working_modules:
             self.adaDHT_check.SetForegroundColour((75,200,75))
         else:
@@ -520,25 +574,17 @@ except:
 
     def start_click(self, e):
         print("Install process started;")
+        pip_text = self.insall_all_pip()
+        self.install_all_apt()
+        self.install_adafruit_DHT()
         #    if not os.path.exists('/home/pi/Pigrow/caps/'):
         #        os.makedirs('/home/pi/Pigrow/caps/')
         #    if not os.path.exists('/home/pi/Pigrow/graphs/'):
         #        os.makedirs('/home/pi/Pigrow/graphs/')
         #    if not os.path.exists('/home/pi/Pigrow/logs/'):
     #            os.makedirs('/home/pi/Pigrow/logs/')
-        #os.chdir(path)
-        #print("- Downloading Adafruit_Python_DHT from Github")
-        #os.system("git clone https://github.com/adafruit/Adafruit_Python_DHT.git")
-        #ada_path = path + "Adafruit_Python_DHT/"
-        #os.chdir( ada_path)
-        #print("- Updating your apt list and installing dependencies,")
-        #os.system("sudo apt-get update --yes")
-        #os.system("sudo apt-get install --yes build-essential python-dev python-openssl")
-        #print("- Dependencies installed, running --: sudo python setup.py install :--")
-        #os.system("sudo python "+ ada_path +"setup.py install")
-        #update pip before installing
-        #sudo pip install praw pexpect
-        #("sudo apt-get --yes install python-matplotlib sshpass uvccapture mpv python-crontab")
+
+
 
     def cancel_click(self, e):
         self.Destroy()
