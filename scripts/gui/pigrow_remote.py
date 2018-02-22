@@ -447,67 +447,81 @@ class install_dialog(wx.Dialog):
 
     def install_pigrow(self):
         self.currently_doing.SetLabel("using git to clone (download) pigrow code")
+        self.progress.SetLabel("####~~~~~~~~~~~~~~~~~~~~~~~~~~~")
         wx.Yield()
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("git clone https://github.com/Pragmatismo/Pigrow ~/Pigrow/")
         self.currently_doing.SetLabel("creating folders")
+        self.progress.SetLabel("#####~~~~~~~~~~~~~~~~~~~~~~~~~")
         wx.Yield()
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("mkdir ~/Pigrow/caps/")
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("mkdir ~/Pigrow/graphs/")
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("mkdir ~/Pigrow/logs/")
         self.currently_doing.SetLabel("-")
+        self.progress.SetLabel("######~~~~~~~~~~~~~~~~~~~~~~~")
         wx.Yield()
 
     def install_all_pip(self):
         #updating pip
         self.currently_doing.SetLabel("Updating PIP the python install manager")
+        self.progress.SetLabel("#########~~~~~~~~~~~~~~~~~~~~")
         wx.Yield()
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo pip install -U pip")
         print out
         #installing dependencies with pip
         self.currently_doing.SetLabel("Using pip to install praw and pexpect")
+        self.progress.SetLabel("###########~~~~~~~~~~~~~~~~~~")
         wx.Yield()
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo pip install praw pexpect")
         print out
         self.currently_doing.SetLabel(".")
+        self.progress.SetLabel("#############~~~~~~~~~~~~~~~~")
         wx.Yield()
         return out
 
     def install_all_apt(self):
         #updating apt package list
         self.currently_doing.SetLabel("updating apt the system package manager on the raspberry pi")
+        self.progress.SetLabel("################~~~~~~~~~~~~~~~")
         wx.Yield()
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo apt update --yes")
         print out
         #installing dependencies with apt
         self.currently_doing.SetLabel("using apt to install matplot lib, sshpass, python-crontab")
+        self.progress.SetLabel("##################~~~~~~~~~~~~~")
         wx.Yield()
         python_dep, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo apt --yes install python-matplotlib sshpass python-crontab")
         print python_dep
         self.currently_doing.SetLabel("Using apt to install uvccaptre and mpv")
+        self.progress.SetLabel("####################~~~~~~~~~~~")
         wx.Yield()
         image_dep, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo apt --yes install uvccapture mpv")
         print image_dep
         self.currently_doing.SetLabel("..")
+        self.progress.SetLabel("######################~~~~~~~~~")
         wx.Yield()
 
     def install_adafruit_DHT(self):
         print("starting adafruit install")
         print("installing dependencies using apt")
         self.currently_doing.SetLabel("Using apt to install adafruit_dht dependencies")
+        self.progress.SetLabel("##########################~~~~~~")
         wx.Yield()
         adafruit_dep, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo apt --yes install build-essential python-dev python-openssl")
         print adafruit_dep
         print("- Downloading Adafruit_Python_DHT from Github")
         ada_dir = "/home/" + pi_link_pnl.target_user + "/Pigrow/resources/Adafruit_Python_DHT/"
         self.currently_doing.SetLabel("Using git to clone (download) the adafruit code")
+        self.progress.SetLabel("###########################~~~~")
         wx.Yield()
         adafruit_clone, error = MainApp.localfiles_ctrl_pannel.run_on_pi("git clone https://github.com/adafruit/Adafruit_Python_DHT.git " + ada_dir)
         print adafruit_clone, error
         print("- Dependencies installed, running adafruit_dht : sudo python setup.py install")
         self.currently_doing.SetLabel("Using the adafruit_DHT setup.py to install the module")
+        self.progress.SetLabel("#############################~~")
         wx.Yield()
         adafruit_install, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo python "+ ada_dir +"setup.py install")
         self.currently_doing.SetLabel("...")
+        self.progress.SetLabel("##############################~")
         wx.Yield()
         print adafruit_install
 
@@ -594,19 +608,19 @@ except:
 
     def start_click(self, e):
         print("Install process started;")
-        self.progress.SetLabel("##--------")
+        self.progress.SetLabel("##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
         wx.Yield()
         self.install_pigrow()
-        self.progress.SetLabel("####--------")
+        self.progress.SetLabel("#######~~~~~~~~~~~~~~~~~~~~~~~~")
         wx.Yield()
         pip_text = self.install_all_pip()
-        self.progress.SetLabel("######----")
+        self.progress.SetLabel("##############~~~~~~~~~~~~~~~~~")
         wx.Yield()
         self.install_all_apt()
-        self.progress.SetLabel("########--")
+        self.progress.SetLabel("#######################~~~~~~~~")
         wx.Yield()
         self.install_adafruit_DHT()
-        self.progress.SetLabel("####DONE####")
+        self.progress.SetLabel("####### INSTALL COMPLETE ######")
         wx.Yield()
         self.start_btn.Disable()
         self.cancel_btn.SetLabel("OK")
