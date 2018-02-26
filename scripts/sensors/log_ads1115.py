@@ -15,21 +15,19 @@ pin_address = "gnd"  #gnd,vdd,sda,sdl - use lower case because argu gets lowerca
 i2c_busnum = 1
 sensor_type = "ads1115"
 
-import os
 homedir = os.environ['HOME']
-print homedir
 
 try:
-    sys.path.append('/home/pi/Pigrow/scripts/')
+    sys.path.append(homedir + '/Pigrow/scripts/')
     import pigrow_defs
     script = 'log_ads1115.py'
-    loc_locs = '/home/pi/Pigrow/config/dirlocs.txt'
+    loc_locs = homedir + '/Pigrow/config/dirlocs.txt'
     loc_dic = pigrow_defs.load_locs(loc_locs)
     log_path = loc_dic['log_path']
     log_path = log_path + "ads1115_log.txt"
 except Exception as e:
     print("Using Defaults because - " + str(e))
-    log_path = "/home/pi/Pigrow/logs/ads1115_log.txt"
+    log_path = homedir + "/Pigrow/logs/ads1115_log.txt"
 
 for argu in sys.argv[1:]:
     argu = str(argu).lower()
