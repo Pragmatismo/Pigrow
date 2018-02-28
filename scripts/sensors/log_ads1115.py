@@ -146,10 +146,10 @@ def convert_to_volt(vals):
         vals[2] = vals[2] * 0.125
         vals[3] = vals[3] * 0.125
     if GAIN == 2:
-        vals[0] = vals[0] * 0.062
-        vals[1] = vals[1] * 0.062
-        vals[2] = vals[2] * 0.062
-        vals[3] = vals[3] * 0.062
+        vals[0] = vals[0] * 0.0625
+        vals[1] = vals[1] * 0.0625
+        vals[2] = vals[2] * 0.0625
+        vals[3] = vals[3] * 0.0625
     if GAIN == 4:
         vals[0] = vals[0] * 0.03125
         vals[1] = vals[1] * 0.03125
