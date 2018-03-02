@@ -34,110 +34,90 @@ datecheck = False
 video_credits=30
 
 for argu in sys.argv:
-    thearg = str(argu).split('=')[0]
-    try:
+    if "=" in argu:
+        thearg = str(argu).split('=')[0]
         theset = str(argu).split('=')[1]
-    except:
-        pass
-    if  thearg == 'caps':
-        capsdir = theset
-    elif thearg == "of":
-        outfile = theset
-    elif thearg == "fps":
-        infps = theset
-    elif thearg == "ofps":
-        outfps = theset
-    elif thearg == "extra":
-        extra_commands = (argu)[7:]
-    elif thearg == "darksize" or thearg == 'ds':
-        darksize = int(theset)
-    elif thearg == "datecheck" or thearg == 'dc':
-        if not theset.lower() == "false":
-            datecheck = theset
-        else:
-            datecheck=False
-    elif thearg == "ts" or thearg == 'timeskip':
-        time_skip = int(theset)
-    elif thearg == "ft" or thearg == 'filetype':
-        file_type = theset
-    elif thearg == "ovc" or thearg == 'outvidc':
-        outvidc = theset
-    elif thearg == "inp" or thearg == 'inpoint':
-        inpoint = int(theset)
-    elif thearg == "op" or thearg == 'outpoint':
-        outpoint = int(theset)
-    elif thearg == "overwrite" or thearg == 'ow':
-        if theset == 'ask':
-            already_existing = 'ask'
-        elif theset == 'r' or theset == 'overwrite' or theset == 'replace':
-            already_existing = 'r'
-        elif theset == 'e' or theset == 'extend':
-            already_existing = 'e'
-        elif theset == 'n' or theset == 'prompt for new name':
-            already_existing = 'n'
-        else:
-            print("  !! Can't understand overwrite flag, ignoring")
-    elif thearg == 'video_credits' or thearg == 'credits':
-        video_credits = int(theset)
-    elif thearg == 'audio_file' or thearg == 'audio':
-        audio_file = theset
-
-### HELP TEXT
-
-    elif thearg == "-h" or thearg == '--help':
+        if  thearg == 'caps':
+            capsdir = theset
+        elif thearg == "of":
+            outfile = theset
+        elif thearg == "fps":
+            infps = theset
+        elif thearg == "ofps":
+            outfps = theset
+        elif thearg == "extra":
+            extra_commands = (argu)[7:]
+        elif thearg == "darksize" or thearg == 'ds':
+            darksize = int(theset)
+        elif thearg == "datecheck" or thearg == 'dc':
+            if not theset.lower() == "false":
+                datecheck = theset
+            else:
+                datecheck=False
+        elif thearg == "ts" or thearg == 'timeskip':
+            time_skip = int(theset)
+        elif thearg == "ft" or thearg == 'filetype':
+            file_type = theset
+        elif thearg == "ovc" or thearg == 'outvidc':
+            outvidc = theset
+        elif thearg == "inp" or thearg == 'inpoint':
+            inpoint = int(theset)
+        elif thearg == "op" or thearg == 'outpoint':
+            outpoint = int(theset)
+        elif thearg == "overwrite" or thearg == 'ow':
+            if theset == 'ask':
+                already_existing = 'ask'
+            elif theset == 'r' or theset == 'overwrite' or theset == 'replace':
+                already_existing = 'r'
+            elif theset == 'e' or theset == 'extend':
+                already_existing = 'e'
+            elif theset == 'n' or theset == 'prompt for new name':
+                already_existing = 'n'
+            else:
+                print("  !! Can't understand overwrite flag, ignoring")
+        elif thearg == 'video_credits' or thearg == 'credits':
+            video_credits = int(theset)
+        elif thearg == 'audio_file' or thearg == 'audio':
+            audio_file = theset
+   ### HELP TEXT
+    elif argu == 'h' or argu == '-h' or argu == 'help' or argu == '--help':
         print(" Pigrow Timelapse maker thingy")
         print("")
-
         print("   caps=DIR         ")
         print("        folder to turn into a movie")
-
         print("   of=FILENAME")
         print("        location and name of outfile")
-
         print("   fps=NUMBER")
         print("         how long to show each photo in frames per second")
-
         print("   ofps=NUMBER")
         print("         frames per second of the out file, same as fps works well")
-
         print("   extra=CMD")
         print("         additional commands for MVP, eg; --of=mpjpeg ")
         print("                                          --vf=scale=480:270 ")
         print("                                          --vf=format=rgb24")
         print("                               --vf=format=rgb24,scale=160:120")
-
         print("   ds=SIZE")
         print("         SIZE in bites below which files are ignored")
-
         print("   dc=hour1  -- or day1, week1, month1")
         print("         datecheck's images before loading them")
         print("           hour1 shows last hour, hour5 last five hours, etc.")
-
         print("   ts=NUMBER")
         print("         uses every Nth frame")
-
         print("   ft=JPG/PNG/etc")
         print("         file type of images to look for, default jpg")
-
         #print(" ---   DISABLED  --- ovc=CODEC        -codec to use for video, normally defined by file type")
-
         print("   inp=NUMBER")
         print("          Starts at the Nth file, can use -N to count backwards from the end")
-
         print("   op=NUMBER")
         print("          Ends at the Nth file, can use -N to count backwards from the end.")
-
         print("   ow=ask")
         print("            =r - overwrite and replace.")
         print("            =e - automatically extend filename")
         print("          What to do in the event outfile exists already")
-
         print("   credits=NUMBER")
         print("          number of extra frames to add as an end-buffer")
-
         print("   audio=PATH")
         print("          location of the audio file to use as a sound track")
-
         print("   -h   ")
         print("            This menus (obviously)")
         print("")
@@ -147,7 +127,10 @@ for argu in sys.argv:
         print("    ./timelapse_assemble.py of=wibble.gif fps=10 ds=1 inp=15 op=212")
         print("")
         print("             For more information visit www.reddit.com/r/pigrow")
-        exit()
+        sys.exit()
+    elif argu == '-flags':
+        print("no flags information")
+        sys.exit()
 
 
 listfile = capsdir + "filelist.txt"
