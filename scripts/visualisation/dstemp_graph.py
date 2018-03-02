@@ -23,7 +23,7 @@ try:
     toohigh = int(set_dic['heater_temphigh'])
 except:
     graph_path = homedir + "/Pigrow/graphs/dstemp_graph.png"
-    log_location = homedir + "Pigrow/graphs/dstemp_log.txt"
+    log_location = homedir + "/Pigrow/graphs/dstemp_log.txt"
     toolow = 20
     toohigh = 30
 
@@ -77,10 +77,14 @@ print "------One Wire Temp Sensor--------"
 print "----------------------------------"
 
 def add_log(linktolog):
-    with open(linktolog, "r") as f:
-        logitem = f.read()
-        logitem = logitem.split("\n")
-    print('Adding ' + str(len(logitem)) + ' readings from log.')
+    try:
+        with open(linktolog, "r") as f:
+            logitem = f.read()
+            logitem = logitem.split("\n")
+        print('Adding ' + str(len(logitem)) + ' readings from log.')
+    except:
+        print("Log not found at " + linktolog)
+        sys.exit()    
     oldest_allowed_date = thetime - datetime.timedelta(hours=hours_to_show)
     curr_line = len(logitem) - 1
 
