@@ -5,11 +5,14 @@ import matplotlib.pyplot as plt
 import datetime
 import numpy as np
 import sys
+import os
+homedir = os.environ['HOME']
+
 try:
-    sys.path.append('/home/pi/Pigrow/scripts/')
+    sys.path.append(homedir + '/Pigrow/scripts/')
     import pigrow_defs
     script = 'dstemp_graph.py'
-    loc_locs = '/home/pi/Pigrow/config/dirlocs.txt'
+    loc_locs = homedir + '/Pigrow/config/dirlocs.txt'
     loc_dic = pigrow_defs.load_locs(loc_locs)
     graph_path = loc_dic['graph_path']
 
@@ -19,10 +22,8 @@ try:
     toolow = int(set_dic['heater_templow'])
     toohigh = int(set_dic['heater_temphigh'])
 except:
-    graph_path = "./"
-    graph_path = "/home/pragmo/frompigrow/pi3proj/graph/dstemp_graph.png"
-    log_location = "./dstemp_log.txt"
-    log_location = "/home/pragmo/frompigrow/pi3proj/logs/dstemp_loop_log.txt"
+    graph_path = homedir + "/Pigrow/graphs/dstemp_graph.png"
+    log_location = homedir + "Pigrow/graphs/dstemp_log.txt"
     toolow = 20
     toohigh = 30
 
