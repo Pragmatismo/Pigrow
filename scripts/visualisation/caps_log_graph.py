@@ -54,7 +54,7 @@ for argu in sys.argv[1:]:
         sys.exit()
     elif argu == '-flags':
         print("log=" + log_location)
-        print("out_tptal=" + graph_path_total)
+        print("out_total=" + graph_path_total)
         print("out_RGB=" + graph_path_RGB)
         print("hours=NUM")
         sys.exit()
