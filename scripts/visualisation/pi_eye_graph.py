@@ -14,7 +14,7 @@ print("  -----------------------------------")
 print(" -- still in basic version, danger! danger! ")
 
 
-print ("time on this computer is now: " + str(datetime.datetime.now()))
+#print ("time on this computer is now: " + str(datetime.datetime.now()))
 
 #user_name = "your username goes here"
 user_name = str(os.getlogin())  #hash this line out if it causes problem, autograbs username replace with username = "magimo" (or whatever)
