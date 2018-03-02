@@ -62,10 +62,10 @@ for argu in sys.argv[1:]:
         print(' make=cpu,mem.disk,up,cputemp  -- list the graphs you want to make seperated by a comma ')
         sys.exit()
     elif argu == '-flags':
-        print("log=" + log_location)
+        print("log=" + self_log)
         print("out=" + graph_path)
         print("make=[cpu,mem,disk,up,cputemp]")
-        sys.exit()   
+        sys.exit()
 
 
 log_dic = {}    # Reused for every line of the log file
