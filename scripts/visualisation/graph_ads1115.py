@@ -66,8 +66,8 @@ for argu in sys.argv[1:]:
         print(" -flags                -show all argu flags and their options")
         sys.exit()
     elif argu == '-flags':
-        print("log=[ADS1x15 LOG PATH]")
-        print("out=[PNG FILE OUTPUT PATH]")
+        print("log=" + log_location)
+        print("out=" + graph_path)
         print("hours=[NUM]")
         print("a0=[yes,no]")
         print("a1=[yes,no]")
