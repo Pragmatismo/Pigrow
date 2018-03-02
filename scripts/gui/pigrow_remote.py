@@ -3295,7 +3295,7 @@ class graphing_ctrl_pnl(wx.Panel):
         dmsg = "Script Output;\n"# + msg.replace("...", ",")
         for line in msg.splitlines():  #this is a hacky way of removing nonsence
             pos = line.find("...")     #from the output which breaks the dialog box
-            if pos:                    #stops line at an ... which avoids displaying
+            if pos > 0:                    #stops line at an ... which avoids displaying
                 line = line[:pos]      #bad log info as this is often gibberish
             dmsg += line + "\n"        #which would otherwise disrupt the messagebox
         wx.MessageBox(dmsg, 'Script Output', wx.OK | wx.ICON_INFORMATION)
