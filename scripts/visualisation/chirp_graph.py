@@ -33,21 +33,22 @@ make_multi = False
 hours_to_show = 24*7*52 #hours from the end of the log, use absurdly high number to see all
 
 for argu in sys.argv[1:]:
-    thearg = str(argu).split('=')[0]
-    theval = str(argu).split('=')[1]
-    if  thearg == 'log':
-        log_location = theval
-    elif thearg == 'make_multi' or thearg == 'multi':
-        make_multi = bool(theval)
-    elif thearg == 'out':
-        graph_path = theval
-    elif thearg == "hours":
-        hours_to_show = int(theval)
-    elif thearg == 'cold':
-        toocold = int(theval)
-    elif thearg == 'hot':
-        toohot = int(theval)
-    elif argu == 'h' or thearg == '-h' or thearg == 'help' or thearg == '--help':
+    if "=" in argu:
+        thearg = str(argu).split('=')[0]
+        theval = str(argu).split('=')[1]
+        if  thearg == 'log':
+            log_location = theval
+        elif thearg == 'make_multi' or thearg == 'multi':
+            make_multi = bool(theval)
+        elif thearg == 'out':
+            graph_path = theval
+        elif thearg == "hours":
+            hours_to_show = int(theval)
+        elif thearg == 'cold':
+            toocold = int(theval)
+        elif thearg == 'hot':
+            toohot = int(theval)
+    elif argu == 'h' or argu == '-h' or argu == 'help' or argu == '--help':
         print("")
         print("  log=DIR/LOG_FILE  - point to a different log file than mentioned in dirlocs")
         print("  out=DIR/NAME.png  - folder to make graphs in, can use ./ ")
@@ -56,6 +57,14 @@ for argu in sys.argv[1:]:
         print("  cold=NUM          - set's the cold point at which graph colors change")
         print("  hot=NUM           - set's the hot point for graph")
         sys.exit()
+    elif argu == '-flags':
+        print("log=" + log_location)
+        print("out=" + graph_path)
+        print("make_multi=[True,False]")
+        print("hours=NUM")
+        print("cold=NUM")
+        print("hot=NUM")
+        sys.exit()  
     else:
         print(" No idea what you mean by; " + str(argu))
 

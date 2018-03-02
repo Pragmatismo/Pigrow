@@ -11,7 +11,7 @@ print("  -----------------------------------")
 print("------Pi Spy Py Pi Uptime-Monitor------")
 print("  -----------------------------------")
 
-print(" -- still in basic version, doesn't use settings or etc yet -- ")
+print(" -- still in basic version, danger! danger! ")
 
 
 print ("time on this computer is now: " + str(datetime.datetime.now()))
@@ -20,16 +20,32 @@ print ("time on this computer is now: " + str(datetime.datetime.now()))
 user_name = str(os.getlogin())  #hash this line out if it causes problem, autograbs username replace with username = "magimo" (or whatever)
                                 #it will cause problems if for any reason you run this script via cron as root for example
 fontloc = "/home/" + user_name +     "/pigitgrow/Pigrow/resources/Caslon.ttf"
-
-#print 'Argument List:', str(sys.argv)
 graph_path = "/home/" + user_name +  "/pigitgrow/Pigrow/graphs/"
-pi_eye_log = "/home/" + user_name +  "/pigitgrow/Pigrow/logs/pieye_log_2.txt"
+pi_eye_log = "/home/" + user_name +  "/pigitgrow/Pigrow/logs/pieye_log.txt"
 
 for argu in sys.argv:
-    if str(argu).split('=')[0] == 'log':
-        pi_eye_log = str(argu).split('=')[1]
-    elif  str(argu).split('=')[0] == 'o':
-        graph_path = str(argu).split('=')[1]
+    if "=" in argu:
+        thearg = str(argu).split('=')[0]
+        theval = str(argu).split('=')[1]
+        if  thearg == 'log':
+            pi_eye_log = theval
+        elif thearg == 'out':
+            graph_path = theval
+        elif thearg == "font":
+            fontloc = theval
+    elif argu == 'h' or argu == '-h' or argu == 'help' or argu == '--help':
+        print("")
+        print("  log=DIR/LOG_FILE  - point to a  log file")
+        print("  out=DIR/NAME.png  - folder to make graphs in, can use ./ ")
+        print("  font=<PATH>       - font to use for text")
+        sys.exit()
+    elif argu == '-flags':
+        print("log=" + log_location)
+        print("out=" + graph_path)
+        print("font=<PATH>")
+        sys.exit()
+    else:
+        print(" No idea what you mean by; " + str(argu))
 
 if not os.path.exists(graph_path):
     gq = raw_input("directory doens't exist, create it?")

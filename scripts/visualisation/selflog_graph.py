@@ -13,40 +13,46 @@ make_up = True
 make_cputemp = True
 
 for argu in sys.argv[1:]:
-    if argu == '-h' or argu == '--help':
+    if "=" in argu:
+        thearg = str(argu).split('=')[0]
+        theval = str(argu).split('=')[1]
+        if  thearg == 'out':
+            graph_path = theval
+        elif thearg == 'log':
+            self_log = theval
+        elif thearg == 'make':
+            tomake = theval.split(",")
+            if 'cpu' in tomake:
+                make_cpu = True
+            else:
+                make_cpu = False
+            if 'mem' in tomake:
+                make_mem = True
+            else:
+                make_mem = False
+            if 'disk' in tomake:
+                make_disk = True
+            else:
+                make_disk = False
+            if 'up' in tomake:
+                make_up = True
+            else:
+                make_up = False
+            if 'cputemp' in tomake:
+                make_cputemp = True
+            else:
+                make_cputemp = False
+    elif argu == '-h' or argu == '--help':
         print(" selflog_graph maker;")
-        print("  gp=PATH    -- PATH to save graphs to e,g, /home/pi/Pigrow/graphs/ ")
+        print(" out=PATH    -- PATH to save graphs to e,g, /home/pi/Pigrow/graphs/ ")
         print(" log=PATH    -- PATH to self_log to e,g, /home/pi/Pigrow/logs/selflog.txt ")
         print(' make=cpu,mem.disk,up,cputemp  -- list the graphs you want to make seperated by a comma ')
         sys.exit()
-    thearg = str(argu).split('=')[0]
-    theval = str(argu).split('=')[1]
-    if  thearg == 'gp' or thearg == 'out':
-        graph_path = theval
-    elif thearg == 'log':
-        self_log = theval
-    elif thearg == 'make':
-        tomake = theval.split(",")
-        if 'cpu' in tomake:
-            make_cpu = True
-        else:
-            make_cpu = False
-        if 'mem' in tomake:
-            make_mem = True
-        else:
-            make_mem = False
-        if 'disk' in tomake:
-            make_disk = True
-        else:
-            make_disk = False
-        if 'up' in tomake:
-            make_up = True
-        else:
-            make_up = False
-        if 'cputemp' in tomake:
-            make_cputemp = True
-        else:
-            make_cputemp = False
+    elif argu == '-flags':
+        print("log=" + log_location)
+        print("out=" + graph_path)
+        print("make=[cpu,mem,disk,up,cputemp]")
+        sys.exit()       
 #Load the settings file and locate the selflog
 try:
     sys.path.append('/home/pi/Pigrow/scripts/')

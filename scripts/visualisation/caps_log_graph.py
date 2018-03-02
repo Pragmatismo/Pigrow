@@ -30,18 +30,20 @@ hours_to_show = 24*7*52 #hours from the end of the log.
 include_split_on_tot = False
 
 for argu in sys.argv[1:]:
-    thearg = str(argu).split('=')[0]
-    if  thearg == 'log':
-        log_location = str(argu).split('=')[1]
-    elif thearg == 'out_total':
-        graph_path_total = str(argu).split('=')[1]
-    elif thearg == 'out_RGB':
-            graph_path_RGB = str(argu).split('=')[1]
-    elif thearg == "hours":
-        hours_to_show = int(str(argu).split('=')[1])
-    elif thearg == "combine" or 'combine=True':
-        include_split_on_tot = True
-    elif argu == 'h' or thearg == '-h' or thearg == 'help' or thearg == '--help':
+    if "=" in argu:
+        thearg = str(argu).split('=')[0]
+        theval = str(argu).split('=')[1]
+        if  thearg == 'log':
+            log_location = str(argu).split('=')[1]
+        elif thearg == 'out_total':
+            graph_path_total = str(argu).split('=')[1]
+        elif thearg == 'out_RGB':
+                graph_path_RGB = str(argu).split('=')[1]
+        elif thearg == "hours":
+            hours_to_show = int(str(argu).split('=')[1])
+        elif thearg == "combine" or 'combine=True':
+            include_split_on_tot = True
+    elif argu == 'h' or argu == '-h' or argu == 'help' or argu == '--help':
         print("")
         print("  log=DIR/LOG_FILE          - point to a different log file than mentioned in dirlocs")
         print("  out_total=DIR/NAME.png    - totals graph location, can use ./tset.png ")
@@ -49,6 +51,12 @@ for argu in sys.argv[1:]:
         print("  out_RGB or out_total=show - only works if not using in matplotlib in Agg mode")
         print("  out_RGB or out_total=none - dnot make that graph")
         print("  hours=NUM                 - Hours of the logs graph, 168 for a week")
+        sys.exit()
+    elif argu == '-flags':
+        print("log=" + log_location)
+        print("out_tptal=" + graph_path_total)
+        print("out_RGB=" + graph_path_RGB)
+        print("hours=NUM")
         sys.exit()
     else:
         print("!!!! No idea what you mean by; " + str(argu))

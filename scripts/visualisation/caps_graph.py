@@ -20,11 +20,24 @@ cap_type = "jpg"
 #graph_path = "/home/"
 
 for argu in sys.argv[1:]:
-    thearg = str(argu).split('=')[0]
-    if  thearg == 'caps':
-        capsdir = str(argu).split('=')[1]
-    elif thearg == 'graph' or thearg == 'out':
-        graph_path = str(argu).split('=')[1]
+    if "=" in argu:
+        thearg = str(argu).split('=')[0]
+        theval = str(argu).split('=')[1]
+        if  thearg == 'caps':
+            capsdir = theval
+        elif thearg == 'graph' or thearg == 'out':
+            graph_path = theval
+    elif argu == 'h' or argu == '-h' or argu == 'help' or argu == '--help':
+        print("")
+        print("  caps=DIR          - folder containing the caps images")
+        print("  out=DIR/NAME.png  - folder to make graphs in, can use ./ ")
+        sys.exit()
+    elif argu == '-flags':
+        print("log=" + capsdir)
+        print("out=" + graph_path)
+        sys.exit()
+    else:
+        print(" No idea what you mean by; " + str(argu))
 
 if capsdir[-1] == '/':
     pass

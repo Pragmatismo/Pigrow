@@ -24,11 +24,13 @@ except:
     caps_path = "./"
 
 for argu in sys.argv:
-    thearg = str(argu).split('=')[0]
-    if  thearg == 'gp':
-        graph_path = str(argu).split('=')[1]
-    elif thearg == "null":
-        nullimg = str(argu).split('=')[1]
+    if "=" in argu:
+        thearg = str(argu).split('=')[0]
+        theval = str(argu).split('=')[1]
+        if  thearg == 'gp' or thearg == "graph_path]":
+            graph_path = theval
+        elif thearg == "null" or thearg == "null_image_path":
+            nullimg = theval
     #there are more of these below the graph path defaults
 
 #left side
@@ -56,27 +58,60 @@ photo_width = 800
 graph_width = 450
 
 for argu in sys.argv:
-    thearg = str(argu).split('=')[0]
-    if  thearg == 'o' or thearg == 'out':
-        output_path = str(argu).split('=')[1]
-    elif thearg == "g1":
-        g1 = str(argu).split('=')[1]
-    elif thearg == "g2":
-        g2 = str(argu).split('=')[1]
-    elif thearg == "g3":
-        g3 = str(argu).split('=')[1]
-    elif thearg == "g4":
-        g4 = str(argu).split('=')[1]
-    elif thearg == "g5":
-        g5 = str(argu).split('=')[1]
-    elif thearg == "g6":
-        g6 = str(argu).split('=')[1]
-    elif thearg == "caps":
-        caps_path = str(argu).split('=')[1]
-    elif thearg == "pw":
-        photo_width = int(str(argu).split('=')[1])
-    elif thearg == "gw":
-        graph_width = int(str(argu).split('=')[1])
+    if "=" in argu:
+        thearg = str(argu).split('=')[0]
+        theval = str(argu).split('=')[1]
+        if  thearg == 'o' or thearg == 'out':
+            output_path = theval
+        elif thearg == "g1":
+            g1 = theval
+        elif thearg == "g2":
+            g2 = theval
+        elif thearg == "g3":
+            g3 = theval
+        elif thearg == "g4":
+            g4 = theval
+        elif thearg == "g5":
+            g5 = theval
+        elif thearg == "g6":
+            g6 = theval
+        elif thearg == "caps":
+            caps_path = theval
+        elif thearg == "pw":
+            photo_width = int(theval)
+        elif thearg == "gw":
+            graph_width = int(theval)
+    elif argu == 'h' or argu == '-h' or argu == 'help' or argu == '--help':
+        print("")
+        print("  out=DIR/NAME.png  - folder to make graphs in, can use ./ ")
+        print("  null=<path>       - point to null image for some reason")
+        print("out=" + output_path)
+        print("g1=" + g1)
+        print("g2=" +g2)
+        print("g3="+g3)
+        print("g4="+g4)
+        print("g5="+g5)
+        print("g6="+g6)
+        print("caps="+caps_path)
+        print("pw="+photo_width)
+        print("gw="+ graph_width)
+        sys.exit()
+    elif argu == '-flags':
+        print("graph_path=" + graph_path)
+        print("null_image_path=" + nullimg)
+        print("out=" + output_path)
+        print("g1=" + g1)
+        print("g2=" +g2)
+        print("g3="+g3)
+        print("g4="+g4)
+        print("g5="+g5)
+        print("g6="+g6)
+        print("caps="+caps_path)
+        print("pw="+photo_width)
+        print("gw="+ graph_width)
+        sys.exit()
+    else:
+        print(" No idea what you mean by; " + str(argu))
 
 
 if not os.path.exists(caps_path):

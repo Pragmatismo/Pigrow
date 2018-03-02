@@ -36,17 +36,19 @@ dangerhot = int(toohot) / 100 * 115
 hours_to_show = 24*7*52 #hours from the end of the log, use absurdly high number to see all
 
 for argu in sys.argv[1:]:
-    thearg = str(argu).split('=')[0]
-    if  thearg == 'log':
-        log_location = str(argu).split('=')[1]
-    elif thearg == 'out':
-        graph_path = str(argu).split('=')[1]
-    elif thearg == "hours":
-        hours_to_show = int(str(argu).split('=')[1])
-    elif thearg == 'cold':
-        toocold = int(str(argu).split('=')[1])
-    elif thearg == 'hot':
-        toohot = int(str(argu).split('=')[1])
+    if "=" in argu:
+        thearg = str(argu).split('=')[0]
+        theval = str(argu).split('=')[1]
+        if  thearg == 'log':
+            log_location = theval
+        elif thearg == 'out':
+            graph_path = theval
+        elif thearg == "hours":
+            hours_to_show = int(theval)
+        elif thearg == 'cold':
+            toocold = int(theval)
+        elif thearg == 'hot':
+            toohot = int(theval)
     elif argu == 'h' or thearg == '-h' or thearg == 'help' or thearg == '--help':
         print("")
         print("  log=DIR/LOG_FILE  - point to a different log file than mentioned in dirlocs")
@@ -54,6 +56,13 @@ for argu in sys.argv[1:]:
         print("  hours=NUM         - Hours of the logs graph, 168 for a week")
         print("  cold=NUM          - set's the cold point at which graph colors change")
         print("  hot=NUM           - set's the hot point for graph")
+        sys.exit()
+    elif argu == '-flags':
+        print("log=" + log_location)
+        print("out=" + graph_path)
+        print("hours=NUM")
+        print("cold=NUM")
+        print("hot=NUM")
         sys.exit()
     else:
         print(" No idea what you mean by; " + str(argu))
