@@ -49,7 +49,7 @@ for argu in sys.argv[1:]:
             toocold = int(theval)
         elif thearg == 'hot':
             toohot = int(theval)
-    elif argu == 'h' or thearg == '-h' or thearg == 'help' or thearg == '--help':
+    elif argu == 'h' or argu == '-h' or argu == 'help' or argu == '--help':
         print("")
         print("  log=DIR/LOG_FILE  - point to a different log file than mentioned in dirlocs")
         print("  out=DIR/NAME.png  - folder to make graphs in, can use ./ ")
