@@ -17,9 +17,9 @@ print ("time on this computer is now: " + str(datetime.datetime.now()))
 
 
 homedir = os.environ['HOME']
-fontloc = homedir +     "/pigitgrow/Pigrow/resources/Caslon.ttf"
-graph_path = homedir +  "/pigitgrow/Pigrow/graphs/"
-pi_eye_log = homedir +  "/pigitgrow/Pigrow/logs/pieye_log.txt"
+fontloc = homedir +     "/Pigrow/resources/Caslon.ttf"
+graph_path = homedir +  "/Pigrow/graphs/"
+pi_eye_log = homedir +  "/Pigrow/logs/pieye_log.txt"
 
 for argu in sys.argv[1:]:
     if "=" in argu:
