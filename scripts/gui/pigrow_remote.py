@@ -3204,6 +3204,72 @@ class upload_dialog(wx.Dialog):
 
 #
 #
+#
+## Graphing Tab
+#
+#
+#
+
+class graphing_info_pnl(wx.Panel):
+    #
+    #  This displays the graphing info
+    # controlled by the graphing_ctrl_pnl
+    #
+    def __init__( self, parent ):
+        win_height = parent.GetSize()[1]
+        win_width = parent.GetSize()[0]
+        w_space_left = win_width - 285
+        wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, pos = (285, 0), size = wx.Size(w_space_left , 800), style = wx.TAB_TRAVERSAL )
+        ## Draw UI elements
+    #    self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
+        # placing the information boxes
+        localfiles_info_pnl.local_path_txt = wx.StaticText(self,  label='graphs graphs graphs!', pos=(220, 80), size=(200,30))
+
+
+    #def OnEraseBackground(self, evt):
+        # yanked from ColourDB.py #then from https://www.blog.pythonlibrary.org/2010/03/18/wxpython-putting-a-background-image-on-a-panel/
+    #    dc = evt.GetDC()
+#        if not dc:
+#            dc = wx.ClientDC(self)
+#            rect = self.GetUpdateRegion().GetBox()
+#            dc.SetClippingRect(rect)
+#        dc.Clear()
+#        bmp = wx.Bitmap("./graphing.png")
+#        dc.DrawBitmap(bmp, 0, 0)
+
+    class options_list(wx.ListCtrl):
+        def __init__(self, parent, id, pos=(25, 250), size=(450,200)):
+            wx.ListCtrl.__init__(self, parent, id, size=size, style=wx.LC_REPORT, pos=pos)
+            self.InsertColumn(0, 'Option')
+            self.InsertColumn(1, 'Value')
+            self.InsertColumn(2, 'Choices')
+            self.SetColumnWidth(0, 150)
+            self.SetColumnWidth(1, 150)
+            self.SetColumnWidth(2, 150)
+
+    def onDoubleClick_logs(self, e):
+        print("sorry nothing happens yet")
+
+class graphing_ctrl_pnl(wx.Panel):
+    def __init__( self, parent ):
+        win_height = parent.GetSize()[1]
+        height_of_pannels_above = 230
+        space_left = win_height - height_of_pannels_above
+        wx.Panel.__init__ (self, parent, id=wx.ID_ANY, pos=(0, height_of_pannels_above), size=wx.Size(285, space_left), style=wx.TAB_TRAVERSAL)
+        # Start drawing the UI elements
+        wx.StaticText(self,  label='Graphing', pos=(25, 10))
+        self.make_graph_btn = wx.Button(self, label='Make Graph', pos=(15, 60), size=(175, 30))
+        self.make_graph_btn.Bind(wx.EVT_BUTTON, self.make_graph_click)
+
+
+    def make_graph_click(self, e):
+        print("nothing going on here yet")
+
+
+
+
+#
+#
 ## gui control pannels - network link, tab select bar, splash screen
 #
 #
@@ -3418,7 +3484,7 @@ class view_pnl(wx.Panel):
         self.SetBackgroundColour((230,200,170)) #TESTING ONLY REMOVE WHEN SIZING IS DONE AND ALL THAT BUSINESS
         view_opts = ['System Config', 'Pigrow Setup', 'Camera Config', 'Cron Timing', 'multi-script', 'Local Files', 'Timelapse', 'Graphs', 'Live View', 'pieye watcher']
         #Showing only completed tabs
-        view_opts = ['System Config', 'Pigrow Setup', 'Cron Timing', 'Local Files']
+        view_opts = ['System Config', 'Pigrow Setup', 'Cron Timing', 'Local Files', 'Graphs']
         self.view_cb = wx.ComboBox(self, choices = view_opts, pos=(10,2), size=(265, 30))
         self.view_cb.Bind(wx.EVT_COMBOBOX, self.view_combo_go)
     def view_combo_go(self, e):
@@ -3433,6 +3499,8 @@ class view_pnl(wx.Panel):
         MainApp.localfiles_ctrl_pannel.Hide()
         MainApp.localfiles_info_pannel.Hide()
         MainApp.welcome_pannel.Hide()
+        MainApp.graphing_ctrl_pannel.Hide()
+        MainApp.graphing_info_pannel.Hide()
         #show whichever pannels correlate to the option selected
         if display == 'System Config':
             MainApp.system_ctrl_pannel.Show()
@@ -3453,7 +3521,8 @@ class view_pnl(wx.Panel):
         elif display == 'Timelapse':
             print("changing window display like i'm Mr Polly on crack")
         elif display == 'Graphs':
-            print("changing window display like i'm Mr Polly on speed")
+            MainApp.graphing_ctrl_pannel.Show()
+            MainApp.graphing_info_pannel.Show()
         elif display == 'Live View':
             print("changing window display like i'm Mr Polly on LSD")
         elif display == 'pieye watcher':
@@ -3519,6 +3588,8 @@ class MainApp(MainFrame):
         MainApp.cron_info_pannel = cron_info_pnl(self)
         MainApp.localfiles_ctrl_pannel = localfiles_ctrl_pnl(self)
         MainApp.localfiles_info_pannel = localfiles_info_pnl(self)
+        MainApp.graphing_ctrl_pannel = graphing_ctrl_pnl(self)
+        MainApp.graphing_info_pannel = graphing_info_pnl(self)
         #hide all except the welcome pannel
         MainApp.system_ctrl_pannel.Hide()
         MainApp.system_info_pannel.Hide()
@@ -3528,6 +3599,8 @@ class MainApp(MainFrame):
         MainApp.cron_info_pannel.Hide()
         MainApp.localfiles_ctrl_pannel.Hide()
         MainApp.localfiles_info_pannel.Hide()
+        MainApp.graphing_ctrl_pannel.Hide()
+        MainApp.graphing_info_pannel.Hide()
 
     def OnClose(self, e):
         #Closes SSH connection even on quit
