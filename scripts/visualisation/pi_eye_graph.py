@@ -10,18 +10,16 @@ print("    -------------------------------")
 print("  -----------------------------------")
 print("------Pi Spy Py Pi Uptime-Monitor------")
 print("  -----------------------------------")
-
 print(" -- still in basic version, danger! danger! ")
 
 
-#print ("time on this computer is now: " + str(datetime.datetime.now()))
+print ("time on this computer is now: " + str(datetime.datetime.now()))
 
-#user_name = "your username goes here"
-user_name = str(os.getlogin())  #hash this line out if it causes problem, autograbs username replace with username = "magimo" (or whatever)
-                                #it will cause problems if for any reason you run this script via cron as root for example
-fontloc = "/home/" + user_name +     "/pigitgrow/Pigrow/resources/Caslon.ttf"
-graph_path = "/home/" + user_name +  "/pigitgrow/Pigrow/graphs/"
-pi_eye_log = "/home/" + user_name +  "/pigitgrow/Pigrow/logs/pieye_log.txt"
+
+homedir = os.environ['HOME']
+fontloc = homedir +     "/pigitgrow/Pigrow/resources/Caslon.ttf"
+graph_path = homedir +  "/pigitgrow/Pigrow/graphs/"
+pi_eye_log = homedir +  "/pigitgrow/Pigrow/logs/pieye_log.txt"
 
 for argu in sys.argv[1:]:
     if "=" in argu:
