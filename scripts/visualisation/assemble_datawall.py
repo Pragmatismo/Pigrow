@@ -83,6 +83,8 @@ for argu in sys.argv:
             graph_width = int(theval)
     elif argu == 'h' or argu == '-h' or argu == 'help' or argu == '--help':
         print("")
+        print(" This script assembles graphs and photos into a montage.")
+        print("")
         print("  out=DIR/NAME.png  - folder to make graphs in, can use ./ ")
         print("  null=<path>       - point to null image for some reason")
         print("out=" + output_path)
@@ -93,8 +95,8 @@ for argu in sys.argv:
         print("g5="+g5)
         print("g6="+g6)
         print("caps="+caps_path)
-        print("pw="+photo_width)
-        print("gw="+ graph_width)
+        print("pw="+str(photo_width)+"   -the width of the photo")
+        print("gw="+ str(graph_width)+"   -the width of the graphs")
         sys.exit()
     elif argu == '-flags':
         print("graph_path=" + graph_path)
@@ -107,8 +109,8 @@ for argu in sys.argv:
         print("g5="+g5)
         print("g6="+g6)
         print("caps="+caps_path)
-        print("pw="+photo_width)
-        print("gw="+ graph_width)
+        print("pw="+str(photo_width))
+        print("gw="+ str(graph_width))
         sys.exit()
     else:
         print(" No idea what you mean by; " + str(argu))
