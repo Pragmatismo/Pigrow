@@ -3221,34 +3221,9 @@ class graphing_info_pnl(wx.Panel):
         w_space_left = win_width - 285
         wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, pos = (285, 0), size = wx.Size(w_space_left , 800), style = wx.TAB_TRAVERSAL )
         ## Draw UI elements
-    #    self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
         # placing the information boxes
         localfiles_info_pnl.local_path_txt = wx.StaticText(self,  label='graphs graphs graphs!', pos=(220, 80), size=(200,30))
 
-
-    #def OnEraseBackground(self, evt):
-        # yanked from ColourDB.py #then from https://www.blog.pythonlibrary.org/2010/03/18/wxpython-putting-a-background-image-on-a-panel/
-    #    dc = evt.GetDC()
-#        if not dc:
-#            dc = wx.ClientDC(self)
-#            rect = self.GetUpdateRegion().GetBox()
-#            dc.SetClippingRect(rect)
-#        dc.Clear()
-#        bmp = wx.Bitmap("./graphing.png")
-#        dc.DrawBitmap(bmp, 0, 0)
-
-    class options_list(wx.ListCtrl):
-        def __init__(self, parent, id, pos=(25, 250), size=(450,200)):
-            wx.ListCtrl.__init__(self, parent, id, size=size, style=wx.LC_REPORT, pos=pos)
-            self.InsertColumn(0, 'Option')
-            self.InsertColumn(1, 'Value')
-            self.InsertColumn(2, 'Choices')
-            self.SetColumnWidth(0, 150)
-            self.SetColumnWidth(1, 150)
-            self.SetColumnWidth(2, 150)
-
-    def onDoubleClick_logs(self, e):
-        print("sorry nothing happens yet")
 
 class graphing_ctrl_pnl(wx.Panel):
     def __init__( self, parent ):
@@ -3256,14 +3231,101 @@ class graphing_ctrl_pnl(wx.Panel):
         height_of_pannels_above = 230
         space_left = win_height - height_of_pannels_above
         wx.Panel.__init__ (self, parent, id=wx.ID_ANY, pos=(0, height_of_pannels_above), size=wx.Size(285, space_left), style=wx.TAB_TRAVERSAL)
+        self.SetBackgroundColour('sea green') #TESTING ONLY REMOVE WHEN SIZING IS DONE AND ALL THAT BUSINESS
         # Start drawing the UI elements
-        wx.StaticText(self,  label='Graphing', pos=(25, 10))
-        self.make_graph_btn = wx.Button(self, label='Make Graph', pos=(15, 60), size=(175, 30))
+        #graphing engine selection
+        wx.StaticText(self,  label='Make graphs on;', pos=(15, 10))
+        graph_opts = ['Pigrow', 'local']
+        self.graph_cb = wx.ComboBox(self, choices = graph_opts, pos=(10,30), size=(265, 30))
+        self.graph_cb.Bind(wx.EVT_COMBOBOX, self.graph_combo_go)
+        # shared buttons
+        self.make_graph_btn = wx.Button(self, label='Make Graph', pos=(15, 520), size=(175, 30))
         self.make_graph_btn.Bind(wx.EVT_BUTTON, self.make_graph_click)
+        #
+        ### for pi based graphing only
+        self.pigraph_text = wx.StaticText(self,  label='Graphing directly on the pigrow\n saves having to download logs', pos=(15, 70))
+        # select graphing script
+        self.script_text = wx.StaticText(self,  label='Graphing Script;', pos=(15, 130))
+        select_script_opts = ['BLANK']
+        self.select_script_cb = wx.ComboBox(self, choices = select_script_opts, pos=(10,150), size=(265, 30))
+        self.select_script_cb.Bind(wx.EVT_COMBOBOX, self.select_script_combo_go)
 
+        # list box for of graphing options
+        self.get_opts_cb = wx.CheckBox(self, label='Get Options', pos = (10,180))
+        self.get_opts_cb.Bind(wx.EVT_CHECKBOX, self.get_opts_click)
+
+        # extra arguments string
+        self.extra_args = wx.TextCtrl(self,  pos=(2, 450), size=(265,30))
+        # hideing all pigrow graphing UI elements until graph on pigrow is selected
+        self.pigraph_text.Hide()
+        self.script_text.Hide()
+        self.select_script_cb.Hide()
+        self.get_opts_cb.Hide()
+
+    def get_opts_click(self, e):
+        if self.get_opts_cb.IsChecked():
+            print("fetching scripts options, warning script must know how to respond to -flags argument")
+            print self.select_script_cb.GetValue()
+            if not self.select_script_cb.GetValue() == "":
+                self.get_script_options()
+
+    def get_script_options(self):
+        scriptpath = "/home/" + pi_link_pnl.target_user + "/Pigrow/scripts/visualisation/" + self.select_script_cb.GetValue()
+        print("Fetching options for; " + scriptpath)
+
+
+
+    def get_graphing_scripts(self):
+        # checks the pigrows visualisation folder for graphing scripts and adds to list
+        print("getting graphing scripts")
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("ls /home/" + pi_link_pnl.target_user + "/Pigrow/scripts/visualisation")
+        vis_list = out.split("\n")
+        graph_opts = []
+        for filename in vis_list:
+            if filename.endswith("py") or filename.endswith('sh'):
+                graph_opts.append(filename)
+        return graph_opts
 
     def make_graph_click(self, e):
-        print("nothing going on here yet")
+        script_path = "/home/" + pi_link_pnl.target_user + "/Pigrow/scripts/visualisation/" + self.select_script_cb.GetValue()
+        script_command = script_path + " " + self.extra_args.GetValue()
+        print("Running; " + script_command)
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi(script_command)
+        msg = str(out) + " " + str(error)
+        dmsg = "Script Output;\n"# + msg.replace("...", ",")
+        for line in msg.splitlines():  #this is a hacky way of removing nonsence
+            pos = line.find("...")     #from the output which breaks the dialog box
+            if pos:                    #stops line at an ... which avoids displaying
+                line = line[:pos]      #bad log info as this is often gibberish
+            dmsg += line + "\n"        #which would otherwise disrupt the messagebox
+        wx.MessageBox(dmsg, 'Script Output', wx.OK | wx.ICON_INFORMATION)
+        print dmsg
+
+
+
+    def graph_combo_go(self, e):
+        graph_mode = self.graph_cb.GetValue()
+        if graph_mode == 'Pigrow':
+            select_script_opts = self.get_graphing_scripts()
+            self.pigraph_text.Show()
+            self.script_text.Show()
+            self.select_script_cb.Show()
+            self.select_script_cb.Clear()
+            for x in select_script_opts:
+                self.select_script_cb.Append(x)
+            self.get_opts_cb.Show()
+
+        if graph_mode == 'local':
+            self.pigraph_text.Hide()
+            self.script_text.Hide()
+            self.select_script_cb.Hide()
+            self.get_opts_cb.Hide()
+            print("Yah, that's not really an option yet...")
+
+    def select_script_combo_go(self, e):
+        graphing_script = self.select_script_cb.GetValue()
+        print graphing_script
+
 
 
 
