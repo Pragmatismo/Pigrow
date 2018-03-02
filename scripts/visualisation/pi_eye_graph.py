@@ -23,7 +23,7 @@ fontloc = "/home/" + user_name +     "/pigitgrow/Pigrow/resources/Caslon.ttf"
 graph_path = "/home/" + user_name +  "/pigitgrow/Pigrow/graphs/"
 pi_eye_log = "/home/" + user_name +  "/pigitgrow/Pigrow/logs/pieye_log.txt"
 
-for argu in sys.argv:
+for argu in sys.argv[1:]:
     if "=" in argu:
         thearg = str(argu).split('=')[0]
         theval = str(argu).split('=')[1]
