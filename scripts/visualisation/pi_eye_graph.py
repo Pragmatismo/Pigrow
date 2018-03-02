@@ -46,12 +46,7 @@ for argu in sys.argv[1:]:
         print(" No idea what you mean by; " + str(argu))
 
 if not os.path.exists(graph_path):
-    gq = raw_input("directory doens't exist, create it?")
-    if gq == 'Y' or gq == 'y':
-        os.makedirs(graph_path)
-    else:
-        print("Ok, ending program")
-        sys.exit()
+    os.makedirs(graph_path)
 
 if not os.path.exists(pi_eye_log):
      print("Log file doesn't seem to exist, sorry...")
