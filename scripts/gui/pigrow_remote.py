@@ -3237,7 +3237,7 @@ class graphing_ctrl_pnl(wx.Panel):
         wx.StaticText(self,  label='Make graphs on;', pos=(15, 10))
         graph_opts = ['Pigrow', 'local']
         self.graph_cb = wx.ComboBox(self, choices = graph_opts, pos=(10,30), size=(265, 30))
-        self.graph_cb.Bind(wx.EVT_COMBOBOX, self.graph_combo_go)
+        self.graph_cb.Bind(wx.EVT_COMBOBOX, self.graph_engine_combo_go)
         # shared buttons
         self.make_graph_btn = wx.Button(self, label='Make Graph', pos=(15, 520), size=(175, 30))
         self.make_graph_btn.Bind(wx.EVT_BUTTON, self.make_graph_click)
@@ -3249,10 +3249,17 @@ class graphing_ctrl_pnl(wx.Panel):
         select_script_opts = ['BLANK']
         self.select_script_cb = wx.ComboBox(self, choices = select_script_opts, pos=(10,150), size=(265, 30))
         self.select_script_cb.Bind(wx.EVT_COMBOBOX, self.select_script_combo_go)
-
+        script_opts_opts = ['BLANK']
+        self.opts_cb = wx.ComboBox(self, choices = script_opts_opts, pos=(10,230), size=(195, 30))
+        self.opts_cb.Bind(wx.EVT_COMBOBOX, self.opt_combo_go)
         # list box for of graphing options
-        self.get_opts_cb = wx.CheckBox(self, label='Get Options', pos = (10,180))
-        self.get_opts_cb.Bind(wx.EVT_CHECKBOX, self.get_opts_click)
+        self.get_opts_tb = wx.CheckBox(self, label='Get Options', pos = (10,180))
+        self.get_opts_tb.Bind(wx.EVT_CHECKBOX, self.get_opts_click)
+        # various ui elements for differing options value sets - text, list
+        self.opts_text = wx.TextCtrl(self,  pos=(2, 265), size=(265,30))
+        # button to add arg to string
+        self.add_arg_btn = wx.Button(self, label='Add to string', pos=(20, 310), size=(175, 30))
+        self.add_arg_btn.Bind(wx.EVT_BUTTON, self.add_arg_click)
 
         # extra arguments string
         self.extra_args = wx.TextCtrl(self,  pos=(2, 450), size=(265,30))
@@ -3260,20 +3267,57 @@ class graphing_ctrl_pnl(wx.Panel):
         self.pigraph_text.Hide()
         self.script_text.Hide()
         self.select_script_cb.Hide()
-        self.get_opts_cb.Hide()
+        self.get_opts_tb.Hide()
+        self.opts_cb.Hide()
+        self.opts_text.Hide()
+        self.add_arg_btn.Hide()
+
+    def add_arg_click(self, e):
+        argkey = self.opts_cb.GetValue()
+        argval = self.opts_text.GetValue()
+        argstring = argkey + "=" + argval
+        existing_args = self.extra_args.GetValue()
+        self.extra_args.SetValue(existing_args + " " + argstring)
 
     def get_opts_click(self, e):
-        if self.get_opts_cb.IsChecked():
+        if self.get_opts_tb.IsChecked():
             print("fetching scripts options, warning script must know how to respond to -flags argument")
-            print self.select_script_cb.GetValue()
+            self.opts_cb.Show()
+            self.add_arg_btn.Show()
+            wx.Yield()
             if not self.select_script_cb.GetValue() == "":
                 self.get_script_options()
+        else:
+            self.blank_options_ui_elements()
 
     def get_script_options(self):
         scriptpath = "/home/" + pi_link_pnl.target_user + "/Pigrow/scripts/visualisation/" + self.select_script_cb.GetValue()
         print("Fetching options for; " + scriptpath)
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi(scriptpath + " -flags")
+        flags = out.splitlines()
+        self.opts_cb.Clear()
+        try:
+            for opt in flags:
+                if "=" in opt:
+                    optpair = opt.split("=")
+                    optkey = optpair[0]
+                    optval = optpair[1]
+                    self.opts_cb.Append(optkey)
+        except:
+            self.blank_options_ui_elements()
+        if self.opts_cb.GetCount() < 1:
+            self.blank_options_ui_elements()
 
+    def blank_options_ui_elements(self):
+        self.opts_cb.Hide()
+        self.opts_cb.SetValue("")
+        self.opts_text.Hide()
+        self.opts_text.SetValue("")
+        self.add_arg_btn.Hide()
 
+    def opt_combo_go(self, e):
+        #option = self.opts_cb.GetValue()
+        self.opts_text.Show()
 
     def get_graphing_scripts(self):
         # checks the pigrows visualisation folder for graphing scripts and adds to list
@@ -3301,9 +3345,7 @@ class graphing_ctrl_pnl(wx.Panel):
         wx.MessageBox(dmsg, 'Script Output', wx.OK | wx.ICON_INFORMATION)
         print dmsg
 
-
-
-    def graph_combo_go(self, e):
+    def graph_engine_combo_go(self, e):
         graph_mode = self.graph_cb.GetValue()
         if graph_mode == 'Pigrow':
             select_script_opts = self.get_graphing_scripts()
@@ -3313,22 +3355,18 @@ class graphing_ctrl_pnl(wx.Panel):
             self.select_script_cb.Clear()
             for x in select_script_opts:
                 self.select_script_cb.Append(x)
-            self.get_opts_cb.Show()
-
+            self.get_opts_tb.Show()
         if graph_mode == 'local':
             self.pigraph_text.Hide()
             self.script_text.Hide()
             self.select_script_cb.Hide()
-            self.get_opts_cb.Hide()
+            self.get_opts_tb.Hide()
             print("Yah, that's not really an option yet...")
 
     def select_script_combo_go(self, e):
+        self.get_opts_click("fake event")
         graphing_script = self.select_script_cb.GetValue()
         print graphing_script
-
-
-
-
 
 #
 #
