@@ -12,6 +12,19 @@ make_disk = True
 make_up = True
 make_cputemp = True
 
+#Load the settings file and locate the selflog
+try:
+    sys.path.append('/home/pi/Pigrow/scripts/')
+    #sys.path.append('/home/pragmo/pigitgrow/Pigrow/scripts/')
+    import pigrow_defs
+    loc_locs = '/home/pi/Pigrow/config/dirlocs.txt'
+    loc_dic = pigrow_defs.load_locs(loc_locs)
+    graph_path = loc_dic['graph_path']
+    self_log = loc_dic['self_log']
+except:
+    graph_path = './'
+    self_log =  "./selflog.txt"
+
 for argu in sys.argv[1:]:
     if "=" in argu:
         thearg = str(argu).split('=')[0]
@@ -52,19 +65,8 @@ for argu in sys.argv[1:]:
         print("log=" + log_location)
         print("out=" + graph_path)
         print("make=[cpu,mem,disk,up,cputemp]")
-        sys.exit()       
-#Load the settings file and locate the selflog
-try:
-    sys.path.append('/home/pi/Pigrow/scripts/')
-    #sys.path.append('/home/pragmo/pigitgrow/Pigrow/scripts/')
-    import pigrow_defs
-    loc_locs = '/home/pi/Pigrow/config/dirlocs.txt'
-    loc_dic = pigrow_defs.load_locs(loc_locs)
-    graph_path = loc_dic['graph_path']
-    self_log = loc_dic['self_log']
-except:
-    graph_path = './'
-    self_log =  "./selflog.txt"
+        sys.exit()   
+
 
 log_dic = {}    # Reused for every line of the log file
                      ## Lists used to make graphs.
