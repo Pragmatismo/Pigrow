@@ -3354,7 +3354,7 @@ class graphing_ctrl_pnl(wx.Panel):
             argval = self.opts_text.GetValue()
         else:
             argval = self.command_line_opts_value_list_cb.GetValue()
-            argval = argval.replace(" ", "_")
+        argval = argval.replace(" ", "_")
         argstring = argkey + "=" + argval
         existing_args = self.extra_args.GetValue()
         self.extra_args.SetValue(existing_args + " " + argstring)
@@ -3410,6 +3410,9 @@ class graphing_ctrl_pnl(wx.Panel):
     def select_script_combo_go(self, e):
         #this is the same as pressing the button to enable asking the script
         #to send a list of -flags.
+        self.opts_cb.SetValue("")
+        self.opts_text.SetValue("")
+        self.command_line_opts_value_list_cb.SetValue("")
         self.get_opts_click("fake event")
         #graphing_script = self.select_script_cb.GetValue()
         #print graphing_script
