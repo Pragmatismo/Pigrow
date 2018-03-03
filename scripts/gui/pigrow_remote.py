@@ -3257,8 +3257,10 @@ class graphing_ctrl_pnl(wx.Panel):
         self.get_opts_tb.Bind(wx.EVT_CHECKBOX, self.get_opts_click)
         # various ui elements for differing options value sets - text, list
         self.opts_text = wx.TextCtrl(self,  pos=(2, 265), size=(265,30))
+        command_line_opts_value_list = ['BLANK']
+        self.command_line_opts_value_list_cb = wx.ComboBox(self, choices = command_line_opts_value_list, pos=(2,265), size=(265, 30))
         # button to add arg to string
-        self.add_arg_btn = wx.Button(self, label='Add to string', pos=(20, 310), size=(175, 30))
+        self.add_arg_btn = wx.Button(self, label='Add to command line', pos=(20, 310), size=(175, 30))
         self.add_arg_btn.Bind(wx.EVT_BUTTON, self.add_arg_click)
 
         # extra arguments string
@@ -3270,16 +3272,12 @@ class graphing_ctrl_pnl(wx.Panel):
         self.get_opts_tb.Hide()
         self.opts_cb.Hide()
         self.opts_text.Hide()
+        self.command_line_opts_value_list_cb.Hide()
         self.add_arg_btn.Hide()
 
-    def add_arg_click(self, e):
-        argkey = self.opts_cb.GetValue()
-        argval = self.opts_text.GetValue()
-        argstring = argkey + "=" + argval
-        existing_args = self.extra_args.GetValue()
-        self.extra_args.SetValue(existing_args + " " + argstring)
-
     def get_opts_click(self, e):
+        #turns on UI elements for automatically found script options
+        #then asks get_script_options to ask the script on the pi to list flags
         if self.get_opts_tb.IsChecked():
             print("fetching scripts options, warning script must know how to respond to -flags argument")
             self.opts_cb.Show()
@@ -3291,11 +3289,15 @@ class graphing_ctrl_pnl(wx.Panel):
             self.blank_options_ui_elements()
 
     def get_script_options(self):
+        #runs the script on the raspberry pi and adds all detected flags to
+        #the command line options combo box (self.opts_cb)
+        #also a dictionary of all the commands and their defaults or options (self.options_dict)
         scriptpath = "/home/" + pi_link_pnl.target_user + "/Pigrow/scripts/visualisation/" + self.select_script_cb.GetValue()
         print("Fetching options for; " + scriptpath)
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi(scriptpath + " -flags")
         flags = out.splitlines()
         self.opts_cb.Clear()
+        self.options_dict={}
         try:
             for opt in flags:
                 if "=" in opt:
@@ -3303,21 +3305,59 @@ class graphing_ctrl_pnl(wx.Panel):
                     optkey = optpair[0]
                     optval = optpair[1]
                     self.opts_cb.Append(optkey)
+                    self.options_dict[optkey]=optval
+
         except:
             self.blank_options_ui_elements()
         if self.opts_cb.GetCount() < 1:
             self.blank_options_ui_elements()
 
     def blank_options_ui_elements(self):
+        #hides UI elements for auto-discovered command line arguments.
         self.opts_cb.Hide()
         self.opts_cb.SetValue("")
         self.opts_text.Hide()
         self.opts_text.SetValue("")
+        self.command_line_opts_value_list_cb.Hide()
+        self.command_line_opts_value_list_cb.SetValue("")
         self.add_arg_btn.Hide()
 
     def opt_combo_go(self, e):
-        #option = self.opts_cb.GetValue()
-        self.opts_text.Show()
+        #selects which UI elements to show for command line option values and defaults
+        #attempts to parse command line string into list or text
+        self.opts_text.Hide()
+        option = self.opts_cb.GetValue()
+        value_text = str(self.options_dict[option])
+        if "[" in value_text and "]" in value_text:
+            value_text = value_text.split("[")[1]
+            value_text = value_text.split("]")[0]
+            value_text = value_text.split(",")
+            self.opts_text.Hide()
+            self.opts_text.SetValue("")
+            self.command_line_opts_value_list_cb.Clear()
+            self.command_line_opts_value_list_cb.SetValue("")
+            self.command_line_opts_value_list_cb.Show()
+            for item in value_text:
+                self.command_line_opts_value_list_cb.Append(item)
+        else:
+            self.command_line_opts_value_list_cb.Hide()
+            self.command_line_opts_value_list_cb.SetValue("")
+            self.command_line_opts_value_list_cb.Clear()
+            self.opts_text.Show()
+            self.opts_text.SetValue(value_text)
+
+    def add_arg_click(self, e):
+        #reads the user selected option from the two text boxes then
+        #adds it to the end of the existing command line arguments text
+        argkey = self.opts_cb.GetValue()
+        if not self.command_line_opts_value_list_cb.GetCount() > 0:
+            argval = self.opts_text.GetValue()
+        else:
+            argval = self.command_line_opts_value_list_cb.GetValue()
+            argval = argval.replace(" ", "_")
+        argstring = argkey + "=" + argval
+        existing_args = self.extra_args.GetValue()
+        self.extra_args.SetValue(existing_args + " " + argstring)
 
     def get_graphing_scripts(self):
         # checks the pigrows visualisation folder for graphing scripts and adds to list
@@ -3331,6 +3371,8 @@ class graphing_ctrl_pnl(wx.Panel):
         return graph_opts
 
     def make_graph_click(self, e):
+        # currently asks the pi to make the graph using the options supplied
+        # will be upgraded to run graphing modules locally at some point if that options selected instead
         script_path = "/home/" + pi_link_pnl.target_user + "/Pigrow/scripts/visualisation/" + self.select_script_cb.GetValue()
         script_command = script_path + " " + self.extra_args.GetValue()
         print("Running; " + script_command)
@@ -3346,6 +3388,8 @@ class graphing_ctrl_pnl(wx.Panel):
         print dmsg
 
     def graph_engine_combo_go(self, e):
+        # combo box selects if you want to make graphs on pi or locally
+        # then shows the relevent UI elements for that option.
         graph_mode = self.graph_cb.GetValue()
         if graph_mode == 'Pigrow':
             select_script_opts = self.get_graphing_scripts()
@@ -3364,9 +3408,12 @@ class graphing_ctrl_pnl(wx.Panel):
             print("Yah, that's not really an option yet...")
 
     def select_script_combo_go(self, e):
+        #this is the same as pressing the button to enable asking the script
+        #to send a list of -flags.
         self.get_opts_click("fake event")
-        graphing_script = self.select_script_cb.GetValue()
-        print graphing_script
+        #graphing_script = self.select_script_cb.GetValue()
+        #print graphing_script
+
 
 #
 #
