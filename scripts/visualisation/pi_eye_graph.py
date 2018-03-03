@@ -40,7 +40,7 @@ for argu in sys.argv[1:]:
     elif argu == '-flags':
         print("log=" + pi_eye_log)
         print("out=" + graph_path)
-        print("font=<PATH>")
+        print("font=" + fontloc)
         sys.exit()
     else:
         print(" No idea what you mean by; " + str(argu))
