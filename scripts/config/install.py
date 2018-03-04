@@ -32,11 +32,6 @@ except:
 
 path = homedir + "/Pigrow/resources/"
 
-print("checking and installing pip for python2.7")
-os.system("sudo pacman -S python2-pip")
-
-
-
 print("Checking Dependencies...")
 print("  - DHT Sensor;")
 print(" This is for reading the Temp and Humid sensor, it's supplied by")
@@ -53,8 +48,15 @@ except:
         print("- Doesn't look like the ADafruit DHT driver is installed,")
         print("- Installing...")
         os.chdir(path)
-        print("- installing python-adafruit_dht repo with pacman")
-        os.system("sudo pacman -S python-adafruit_dht")
+        print("- Downloading Adafruit_Python_DHT from Github")
+        os.system("git clone https://github.com/adafruit/Adafruit_Python_DHT.git")
+        ada_path = path + "Adafruit_Python_DHT/"
+        os.chdir( ada_path)
+        print("- Updating your apt list and installing dependencies,")
+        os.system("sudo apt-get update --yes")
+        os.system("sudo apt-get install --yes build-essential python-dev python-openssl")
+        print("- Dependencies installed, running --: sudo python setup.py install :--")
+        os.system("sudo python "+ ada_path +"setup.py install")
         print("- Done! ")
         try:
             import Adafruit_DHT
@@ -63,7 +65,6 @@ except:
             print("...but it doens't seem to have worked...")
             print(" Try running this script again, if not then")
             print(" follow the manual install instructions above")
-            print(" check if you are on a Arch linux system...")
             print(" and then try this script again...")
             print("")
     except:
@@ -74,21 +75,21 @@ print("")
 print(" Installing dependencies for pigrow code...")
 print(" - Using pip")
 try:
-    import praw, pexpect, python, crontab
+    import praw, pexpect
     #from crontab import CronTab #python-crontab #using apt
     print(" Required dependencies already installed.")
 except:
     try:
         print(" Required dependencies not installed, attempting to install...")
-        os.system("sudo pip2 install praw pexpect python-crontab crontab")
+        os.system("sudo pip install praw pexpect")
     except:
-        print("Sorry, -- sudo pip2 install praw pexpect python-crontab crontab-- didn't work, try it manually.")
+        print("Sorry, -- sudo pip install praw pexpect -- didn't work, try it manually.")
         print("")
         #raise
-print(" - Using pacman")
+print(" - Using apt-get")
 print("")
 try:
-    os.system("sudo pacman -S python-matplotlib sshpass uvccapture mpv")
+    os.system("sudo apt-get --yes install python-matplotlib sshpass uvccapture mpv python-crontab")
 except:
     print("Sorry, -- sudo apt-get --yes install python-matplotlib sshpass uvccapture mpv python-crontab-- didn't work, try it manually..")
     #raise
