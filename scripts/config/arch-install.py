@@ -96,7 +96,9 @@ except:
 print(" - Using pacman")
 print("")
 try:
-    os.system("sudo pacman -S python-matplotlib sshpass mpv")
+    os.system("sudo pacman -S python2-matplotlib")
+    os.system("sudo pacman -S sshpass")
+    os.system("sudo pacman -S mpv")
 except:
     print("Sorry, -- sudo apt-get --yes install python-matplotlib sshpass mpv python-crontab-- didn't work, try it manually..")
     #raise
