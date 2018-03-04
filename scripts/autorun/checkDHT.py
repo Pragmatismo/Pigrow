@@ -23,11 +23,12 @@ import sys
 import datetime
 import time
 import Adafruit_DHT
-sys.path.append('/home/pi/Pigrow/scripts/')
+homedir = os.getenv("HOME")
+sys.path.append(homedir + '/Pigrow/scripts/')
 import pigrow_defs
-sys.path.append('/home/pi/Pigrow/scripts/switches/')
+sys.path.append(homedir + '/Pigrow/scripts/switches/')
 import heater_on, heater_off, humid_on, humid_off, dehumid_on, dehumid_off, fans_on, fans_off, lamp_on, lamp_off
-loc_dic = pigrow_defs.load_locs("/home/pi/Pigrow/config/dirlocs.txt")
+loc_dic = pigrow_defs.load_locs(homedir + "/Pigrow/config/dirlocs.txt")
 set_dic = pigrow_defs.load_settings(loc_dic['loc_settings'], err_log=loc_dic['err_log'])
 #print set_dic
 

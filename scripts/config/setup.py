@@ -10,13 +10,14 @@ print("##################################")
 print("##   Pigrow Setup Utility       ##")
 print("")
 
-config_path = "/home/pi/Pigrow/config/"
-loc_locs    = "/home/pi/Pigrow/config/dirlocs.txt"
+homedir = os.getenv("HOME")
+config_path = homedir + "/Pigrow/config/"
+loc_locs    = homedir + "/Pigrow/config/dirlocs.txt"
 
 #folders that get looked in for the scripts to add to cron  - will deduce thes from main path to take usernames into account when i get round to it
-autorun_path = "/home/pi/Pigrow/scripts/autorun/"    #reboot scripts'
-cron_path    = "/home/pi/Pigrow/scripts/cron/"       #repeting scripts
-switch_path  = "/home/pi/Pigrow/scripts/switches/"   #timed scripts
+autorun_path = homedir + "/Pigrow/scripts/autorun/"    #reboot scripts'
+cron_path    = homedir + "/Pigrow/scripts/cron/"       #repeting scripts
+switch_path  = homedir + "/Pigrow/scripts/switches/"   #timed scripts
 
 #autorun_path = "/home/pragmo/pigitgrow/Pigrow/scripts/autorun/"      #reboot scripts'           #######
 #cron_path    = "/home/pragmo/pigitgrow/Pigrow/scripts/cron/"         #repeting scripts      ################   THESE ARE FOR ME ONLY!!!!
@@ -28,13 +29,13 @@ used_gpio_num=[]
 
 def set_loc_defaults():
     global watcher_name, loc_settings, loc_switchlog, loc_dht_log, loc_dht_log, err_log, caps_path, graph_path, log_path, my_client_id, my_client_secret, my_username, my_password, subreddit, wiki_title, live_wiki_title
-    loc_settings    = "/home/pi/Pigrow/config/pigrow_config.txt"
-    loc_switchlog   = "/home/pi/Pigrow/logs/switch_log.txt"
-    loc_dht_log     = "/home/pi/Pigrow/logs/dht22_log.txt"
-    err_log         = "/home/pi/Pigrow/logs/err_log.txt"
-    caps_path    = "/home/pi/Pigrow/caps/"
-    graph_path   = "/home/pi/Pigrow/graphs/"
-    log_path     = "/home/pi/Pigrow/logs/"
+    loc_settings    = homedir + "/Pigrow/config/pigrow_config.txt"
+    loc_switchlog   = homedir + "/Pigrow/logs/switch_log.txt"
+    loc_dht_log     = homedir + "/Pigrow/logs/dht22_log.txt"
+    err_log         = homedir + "/Pigrow/logs/err_log.txt"
+    caps_path    = homedir + "/Pigrow/caps/"
+    graph_path   = homedir + "/Pigrow/graphs/"
+    log_path     = homedir + "/Pigrow/logs/"
     my_client_id      = " "
     my_client_secret  = " "
     my_username       = " "
@@ -185,7 +186,7 @@ def guided_setup():
     print("")
     print("checking directories")
     make_dirs()
-    os.system("/home/pi/Pigrow/scripts/config/install.py")
+    os.system(homedir + "/Pigrow/scripts/config/install.py")
     print("")
     sys.exit() #needs to be roloaded now the settings are in place
     raw_input("Press return to continue;")
@@ -658,9 +659,9 @@ def show_restore_default_menu():
         save_settings()
         print("Location settings and passes have been set to defaults")
     if raw_input("Do you want to empty [delete] the default directories? type yes") == "yes":
-        os.system("sudo rm /home/pi/Pigrow/logs/*.*")
-        os.system("sudo rm /home/pi/Pigrow/graphs/*.*")
-        os.system("sudo rm /home/pi/Pigrow/caps/*.*")
+        os.system("sudo rm" + homedir +"/Pigrow/logs/*.*")
+        os.system("sudo rm" + homedir +"/Pigrow/graphs/*.*")
+        os.system("sudo rm" + homedir +"/Pigrow/caps/*.*")
     print("NOTE: I need to add default settings for other settings file..")
 
 def show_main_menu():

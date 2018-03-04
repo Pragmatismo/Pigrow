@@ -5,17 +5,18 @@ import os
 import time
 import socket
 import sys
-sys.path.append('/home/pi/Pigrow/scripts/')
+homedir = os.getenv("HOME")
+sys.path.append(homedir + '/Pigrow/scripts/')
 script = 'reddit_settings_ear.py'
 import pigrow_defs
 from crontab import CronTab   #  pip install python-crontab
 cron = CronTab(user=True)  #can be user+True, 'yourusername' or 'root' all work.
 
 #logs default values
-loc_settings = "/home/pi/Pigrow/config/pigrow_config.txt"
-loc_switchlog = '/home/pi/Pigrow/logs/switch_log.txt'
+loc_settings = homedir + "/Pigrow/config/pigrow_config.txt"
+loc_switchlog = homedir + '/Pigrow/logs/switch_log.txt'
 err_log = './'
-loc_locs = '/home/pi/Pigrow/config/dirlocs.txt'
+loc_locs = homedir + '/Pigrow/config/dirlocs.txt'
 
 
 watcher_name = '' #default user to msg on script start set to '' for none
@@ -347,7 +348,7 @@ def make_cron_from(income):
         return False
 
 def check_msg():
-    path = '/home/pi/Pigrow/'
+    path = homedir + '/Pigrow/'
     wikilink = "[Settings Wiki](https://www.reddit.com/r/" + str(subreddit) + "/wiki/"+str(wiki_title)+ ")"
     for msg in reddit.inbox.unread():
         print("")
@@ -427,8 +428,8 @@ def check_msg():
 
                 elif msgsub[1] == "timelapse_hour":
                     print("Generating the last hour into a timelapse, this will take a while...")
-                    os.system(path+"scripts/visualisation/timelapse_assemble.py of=/home/pi/Pigrow/graphs/hour.gif dc=hour1 ds=1 fps=5 ow=r")
-                    #msgfrom.message('Pigrow Control', "Gif created /home/pi/Pigrow/graphs/hour.gif")#at " + giflink)
+                    os.system(path+"scripts/visualisation/timelapse_assemble.py of=" + homedir + "/Pigrow/graphs/hour.gif dc=hour1 ds=1 fps=5 ow=r")
+                    #msgfrom.message('Pigrow Control', "Gif created " + homedir + "/Pigrow/graphs/hour.gif")#at " + giflink)
                     photo_loc = subreddit.stylesheet.upload('onehour', path+"graphs/hour.gif")
                     page_text = "#Last Hour  \n  \n"
                     page_text += '![onehour](%%onehour%%)  \n  \n'
@@ -437,16 +438,16 @@ def check_msg():
                     msgfrom.message('Pigrow Control', "Last hour timelapse gif uploaded to " + str(live_wikilink))
                 elif msgsub[1] == "timelapse_5hours":
                     print("Generating the last five hours into a timelapse, this will take a while...")
-                    os.system(path+"scripts/visualisation/timelapse_assemble.py of=/home/pi/Pigrow/graphs/5hours.gif dc=hour5 ds=1 fps=5 ow=r")
-                    msgfrom.message('Pigrow Control', "Gif created /home/pi/Pigrow/graphs/5hours.gif")#at " + giflink)
+                    os.system(path+"scripts/visualisation/timelapse_assemble.py of=" + homedir + "/Pigrow/graphs/5hours.gif dc=hour5 ds=1 fps=5 ow=r")
+                    msgfrom.message('Pigrow Control', "Gif created " + homedir + "/Pigrow/graphs/5hours.gif")#at " + giflink)
                 elif msgsub[1] == "timelapse_day":
                     print("Generating the last day into a timelapse, this will take a while...")
-                    os.system(path+"scripts/visualisation/timelapse_assemble.py of=/home/pi/Pigrow/graphs/day.gif dc=day1 ds=1 fps=5 ts=8 ow=r")
-                    msgfrom.message('Pigrow Control', "Gif created /home/pi/Pigrow/graphs/day.gif")#at " + giflink)
+                    os.system(path+"scripts/visualisation/timelapse_assemble.py of=" + homedir + "/Pigrow/graphs/day.gif dc=day1 ds=1 fps=5 ts=8 ow=r")
+                    msgfrom.message('Pigrow Control', "Gif created " + homedir + "/Pigrow/graphs/day.gif")#at " + giflink)
                 elif msgsub[1] == "timelapse_week":
                     print("Generating the last week into a timelapse, this will take a while...")
-                    os.system(path+"scripts/visualisation/timelapse_assemble.py of=/home/pi/Pigrow/graphs/week.gif dc=hour5 ds=1 fps=5 ow=r")
-                    msgfrom.message('Pigrow Control', "Gif created /home/pi/Pigrow/graphs/week.gif")#at " + giflink)
+                    os.system(path+"scripts/visualisation/timelapse_assemble.py of=" + homedir + "/Pigrow/graphs/week.gif dc=hour5 ds=1 fps=5 ow=r")
+                    msgfrom.message('Pigrow Control', "Gif created " + homedir + "/Pigrow/graphs/week.gif")#at " + giflink)
                 elif msgsub[1] == "addcron":
                     print("User wants to add job to cron;")
                     new_job = make_cron_from(msg.body)

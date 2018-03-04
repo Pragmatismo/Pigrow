@@ -1,10 +1,11 @@
 #!/usr/bin/python
-import sys
+import sys, os
 import datetime
 import Adafruit_DHT
 
+homedir = os.getenv("HOME")
 sensor_gpio = None
-log_path = "/home/pi/Pigrow/logs/auxdht22_log.txt"
+log_path = homedir + "/Pigrow/logs/auxdht22_log.txt"
 
 for argu in sys.argv[1:]:
     thearg = str(argu).split('=')[0]
@@ -19,7 +20,7 @@ for argu in sys.argv[1:]:
         print(" gpio=[number]")
         print("      - gpio din of the sensor")
         print(" ")
-        print(" log=/home/pi/Pigrow/logs/auxdht22_log.txt")
+        print(" log=" + homedir + "/Pigrow/logs/auxdht22_log.txt")
         print("      - path to write the log")
         print("")
         print("")

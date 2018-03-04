@@ -1,15 +1,16 @@
 #!/usr/bin/python
+import datetime, sys, os
+import numpy as np
 import matplotlib as mpl
 mpl.use('Agg')
 import matplotlib.pyplot as plt
-import datetime
-import numpy as np
-import sys
+homedir = os.getenv("HOME")
+
 try:
-    sys.path.append('/home/pi/Pigrow/scripts/')
+    sys.path.append(homedir + '/Pigrow/scripts/')
     import pigrow_defs
     script = 'chirp_graph.py'
-    loc_locs = '/home/pi/Pigrow/config/dirlocs.txt'
+    loc_locs = homedir + '/Pigrow/config/dirlocs.txt'
     loc_dic = pigrow_defs.load_locs(loc_locs)
     graph_path = loc_dic['graph_path']
     graph_path = graph_path + "chirp_graph.png"
@@ -19,11 +20,11 @@ try:
     toolow = int(set_dic['chirp_low'])
     toohigh = int(set_dic['chirp_high'])
 except:
-    graph_path = "/home/pi/Pigrow/graphs/chirp_graph.png"
-    humid_graph_path = "/home/pi/Pigrow/graphs/chirp_hum_graph.png"
-    temp_graph_path = "/home/pi/Pigrow/graphs/chirp_temp_graph.png"
-    light_graph_path = "/home/pi/Pigrow/graphs/chirp_light_graph.png"
-    log_location = "/home/pi/Pigrow/logs/chirp_log.txt"
+    graph_path = homedir + "/Pigrow/graphs/chirp_graph.png"
+    humid_graph_path = homedir + "/Pigrow/graphs/chirp_hum_graph.png"
+    temp_graph_path = homedir + "/Pigrow/graphs/chirp_temp_graph.png"
+    light_graph_path = homedir + "/Pigrow/graphs/chirp_light_graph.png"
+    log_location = homedir + "/Pigrow/logs/chirp_log.txt"
     toolow = 30
     toohigh = 70
 

@@ -4,8 +4,9 @@ import sys
 import numpy
 from PIL import Image
 
-cappath = '/home/pi/Pigrow/caps/'
-logpath = '/home/pi/Pigrow/logs/caps_log.txt'
+homedir = os.getenv("HOME")
+cappath = homedir + '/Pigrow/caps/'
+logpath = homedir + '/Pigrow/logs/caps_log.txt'
 
 for argu in sys.argv[1:]:
     if argu == '-h' or argu == '--help':

@@ -1,6 +1,7 @@
 #!/usr/bin/python
-import datetime, sys
-sys.path.append('/home/pi/Pigrow/scripts/')
+import datetime, sys, os
+homedir = os.getenv("HOME")
+sys.path.append(homedir + '/Pigrow/scripts/')
 import pigrow_defs
 
 for argu in sys.argv[1:]:
@@ -51,7 +52,7 @@ def dehumid_on(set_dic, switch_log):
 if __name__ == '__main__':
 
     ### default settings
-    loc_dic = pigrow_defs.load_locs("/home/pi/Pigrow/config/dirlocs.txt")
+    loc_dic = pigrow_defs.load_locs(homedir + "/Pigrow/config/dirlocs.txt")
     set_dic = pigrow_defs.load_settings(loc_dic['loc_settings'], err_log=loc_dic['err_log'],)
     msg = dehumid_on(set_dic, loc_dic['loc_switchlog'])
     print msg

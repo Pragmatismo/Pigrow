@@ -3,11 +3,12 @@ import os
 import sys
 import datetime
 ###  Requires MPV to be installed, use - sudo apt install mpv
+homedir = os.getenv("HOME")
 try:
-    sys.path.append('/home/pi/Pigrow/scripts/')
+    sys.path.append(homedir + '/Pigrow/scripts/')
     import pigrow_defs
     script = 'timelapse_assemble.py'
-    loc_locs = '/home/pi/Pigrow/config/dirlocs.txt'
+    loc_locs = homedir + '/Pigrow/config/dirlocs.txt'
     loc_dic = pigrow_defs.load_locs(loc_locs)
     capsdir = loc_dic['caps_path']
     resources_path = loc_dic['path'] + "/resources/"

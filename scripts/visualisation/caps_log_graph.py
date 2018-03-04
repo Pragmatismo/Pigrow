@@ -1,16 +1,16 @@
 #!/usr/bin/python
-import sys
+import sys, datetime, os
+import numpy as np
 import matplotlib as mpl
 mpl.use('Agg')
 import matplotlib.pyplot as plt
-import datetime
-import numpy as np
+homedir = os.getenv("HOME")
 
 try:
-    sys.path.append('/home/pi/Pigrow/scripts/')
+    sys.path.append(homedir + '/Pigrow/scripts/')
     import pigrow_defs
     script = 'cap_data_graph.py'
-    loc_locs = '/home/pi/Pigrow/config/dirlocs.txt'
+    loc_locs = homedir + '/Pigrow/config/dirlocs.txt'
     loc_dic = pigrow_defs.load_locs(loc_locs)
     graph_path = loc_dic['graph_path']
     graph_path_total = graph_path + "cap_data_total_graph.png"
@@ -21,9 +21,9 @@ try:
 except:
     #graph_path = "./cap_data_graph.png"
     #log_location = "./cap_data_log.txt"
-    graph_path_total   = "/home/pi/Pigrow/graphs/cap_data_total_graph.png"
-    graph_path_RGB   = "/home/pi/Pigrow/graphs/cap_data_RGB_graph.png"
-    log_location = "/home/pi/Pigrow/logs/cap_data_log.txt"
+    graph_path_total   = homedir + "/Pigrow/graphs/cap_data_total_graph.png"
+    graph_path_RGB   = homedir + "/Pigrow/graphs/cap_data_RGB_graph.png"
+    log_location = homedir + "/Pigrow/logs/cap_data_log.txt"
 
 
 hours_to_show = 24*7*52 #hours from the end of the log.

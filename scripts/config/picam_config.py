@@ -1,7 +1,8 @@
 #!/usr/bin/python
 import os, sys
 import time
-sys.path.append('/home/pi/Pigrow/scripts/')
+homedir = os.getenv("HOME")
+sys.path.append(homedir + '/Pigrow/scripts/')
 script = 'picamcap.py'
 import pigrow_defs
 try:
@@ -9,7 +10,7 @@ try:
 except:
     print("Picamera is not installed, is this even a raspberry pi?!")
     exit()
-loc_locs = '/home/pi/Pigrow/config/dirlocs.txt'
+loc_locs = homedir + '/Pigrow/config/dirlocs.txt'
 loc_dic = pigrow_defs.load_locs(loc_locs)
 caps_path = loc_dic["caps_path"]
 camera = PiCamera()
@@ -20,7 +21,7 @@ b_val = "10"
 x_dim = 1920
 y_dim = 1080
 additonal_commands = ""
-loc_settings = "/home/pi/Pigrow/config/"
+loc_settings = homedir + "/Pigrow/config/"
 if not os.path.exists(loc_settings):
     os.makedirs(loc_settings)
 loc_settings = loc_settings + "picam_settings.txt"

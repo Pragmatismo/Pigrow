@@ -5,7 +5,7 @@ import time
 import datetime
 os.system('modprobe w1-gpio')
 os.system('modprobe w1-therm')
-
+homedir = os.getenv("HOME")
 try:
     list_of_sensors = os.listdir("/sys/bus/w1/devices/")
     print list_of_sensors
@@ -14,7 +14,7 @@ except:
     list_of_sensors = ['']
 
 #sensor_path = "/sys/bus/w1/devices/28-000004a9f218/w1_slave"
-log_path = "/home/pi/Pigrow/logs/dstemp_log.txt"
+log_path = homedir + "/Pigrow/logs/dstemp_log.txt"
 
 for argu in sys.argv[1:]:
     thearg = str(argu).split('=')[0]
@@ -34,7 +34,7 @@ for argu in sys.argv[1:]:
         print(" sp=/sys/bus/w1/devices/SENSORNUMBER/w1_slave")
         print("      - path to the temp sensor")
         print(" ")
-        print(" log=/home/pi/Pigrow/logs/dstemp_log.txt")
+        print(" log=" + homedir + "/Pigrow/logs/dstemp_log.txt")
         print("      - path to write the log")
         print("")
         print(" --You will need 1 wire support enabled on the pi")

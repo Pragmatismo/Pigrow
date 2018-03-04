@@ -3,6 +3,8 @@ import time
 import socket
 import os
 
+homedir = os.getenv("HOME")
+
 def is_connected():
     site = "www.reddit.com"
     try:
@@ -19,16 +21,16 @@ while is_connected() == False:
 print("Found reddit, internet is up")
 
 try:
-    if not os.path.exists('/home/pi/Pigrow/caps/'):
-        os.makedirs('/home/pi/Pigrow/caps/')
-    if not os.path.exists('/home/pi/Pigrow/graphs/'):
-        os.makedirs('/home/pi/Pigrow/graphs/')
-    if not os.path.exists('/home/pi/Pigrow/logs/'):
-        os.makedirs('/home/pi/Pigrow/logs/')
+    if not os.path.exists(homedir + '/Pigrow/caps/'):
+        os.makedirs(homedir + '/Pigrow/caps/')
+    if not os.path.exists(homedir + '/Pigrow/graphs/'):
+        os.makedirs(homedir + '/Pigrow/graphs/')
+    if not os.path.exists(homedir + '/Pigrow/logs/'):
+        os.makedirs(homedir + '/Pigrow/logs/')
 except:
     print("Couldn't make dirs, possinly not a pi...")
 
-path = "/home/pi/Pigrow/resources/"
+path = homedir + "/Pigrow/resources/"
 
 print("Checking Dependencies...")
 print("  - DHT Sensor;")

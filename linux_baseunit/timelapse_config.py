@@ -5,9 +5,11 @@ import os
 ### USER SETTINGS
 
 #script_path = '/home/pragmo/pigitgrow/Pigrow/scripts/cron/'
-script_path = '/home/pi/Pigrow/scripts/cron/'
-cappath = "/home/pi/cam_caps/"
-archive_path = '/home/pi/archive/'    #folder in which to store archived old image sets
+
+homedir = os.getenv("HOME")
+script_path = homedir + '/Pigrow/scripts/cron/'
+cappath = homedir + "/cam_caps/"
+archive_path = homedir + '/archive/'    #folder in which to store archived old image sets
 cron = CronTab(user=True)  #generally leave user as 'root' but 'pi' or whatever will work also if that user can run the camcap sctipt
 
 #### PROGRAM

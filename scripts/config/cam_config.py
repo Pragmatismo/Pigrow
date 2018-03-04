@@ -1,5 +1,6 @@
 #!/usr/bin/python
 import os, sys
+homedir = os.getenv("HOME")
 s_val = "60"
 c_val = "60"
 g_val = "60"
@@ -7,7 +8,7 @@ b_val = "60"
 x_dim = 1280
 y_dim = 720
 uvc_extra = "-d/dev/video0 -w"
-loc_settings = "/home/pi/Pigrow/config/"
+loc_settings = homedir + "/Pigrow/config/"
 if not os.path.exists(loc_settings):
     os.makedirs(loc_settings)
 loc_settings = loc_settings + "camera_settings.txt"

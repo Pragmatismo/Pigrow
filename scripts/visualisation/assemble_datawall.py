@@ -9,9 +9,9 @@ print("--------- Pigrow -------")
 print("  --Data Wall Assembler--")
 print("   -- --------------- --")
 try:
-    sys.path.append('/home/pi/Pigrow/scripts/')
+    sys.path.append(homedir + '/Pigrow/scripts/')
     import pigrow_defs
-    loc_locs = '/home/pi/Pigrow/config/dirlocs.txt'
+    loc_locs = homedir + '/Pigrow/config/dirlocs.txt'
     loc_dic = pigrow_defs.load_locs(loc_locs)
     graph_path = loc_dic['graph_path']
     nullimg = loc_dic["path"] + "resources/null.png"

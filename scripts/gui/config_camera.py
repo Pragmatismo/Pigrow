@@ -4,6 +4,7 @@ import sys
 import datetime
 import numpy
 from PIL import Image
+homedir = os.getenv("HOME")
 try:
     import matplotlib.pyplot as plt
 except:
@@ -39,7 +40,7 @@ print(" THIS IS A ALPHA STAGE SCRIPT - IT DOES MOST STUFF BUT NOT EVERYTHING - U
 target_ip   = "192.168.1.6"
 target_pass = "raspberry"
 target_user = "pi"
-target_config_path = "/home/pi/Pigrow/config/"
+target_config_path = homedir + "/Pigrow/config/"
 #target_crontab_path = "/var/spool/cron/crontabs/pi"
 cap_type = "jpg"
 

@@ -5,7 +5,8 @@ import time
 import datetime
 from Adafruit_GPIO import I2C #https://github.com/adafruit/Adafruit_Python_GPIO
 
-log_path = "/home/pi/Pigrow/logs/chirp_log.txt"
+homedir = os.getenv("HOME")
+log_path = homedir + "/Pigrow/logs/chirp_log.txt"
 chirp_address = 0x20
 
 for argu in sys.argv[1:]:
@@ -20,7 +21,7 @@ for argu in sys.argv[1:]:
         print("     You will need I2C support enabled on the pi")
         print("            ( sudo raspi-config )")
         print(" ")
-        print(" log=/home/pi/Pigrow/logs/chirp_log.txt")
+        print(" log=" + homedir + "/Pigrow/logs/chirp_log.txt")
         print("      - path to write the log")
         print("")
         print("")

@@ -3,12 +3,13 @@ from PIL import Image, ImageDraw, ImageFont
 import time
 import os, sys
 
-sys.path.append('/home/pi/Pigrow/scripts/')
-sys.path.append('/home/pi/Pigrow/scripts/cron/')
+homedir = os.getenv("HOME")
+sys.path.append(homedir + '/Pigrow/scripts/')
+sys.path.append(homedir + '/Pigrow/scripts/cron/')
 import pigrow_defs
 #import camcap, picamcap #this now happens after camera choice is made.
 script = 'camcap_text_simple.py'
-loc_locs = '/home/pi/Pigrow/config/dirlocs.txt'
+loc_locs = homedir + '/Pigrow/config/dirlocs.txt'
 loc_dic = pigrow_defs.load_locs(loc_locs)
 loc_settings = loc_dic['loc_settings']
 set_dic = pigrow_defs.load_settings(loc_settings)
@@ -118,11 +119,11 @@ if cam_choice == 'uvc':
     filename = camcap.take_with_uvccapture(s_val, c_val, g_val, b_val, x_dim, y_dim, additonal_commands, caps_path)
 elif cam_choice == 'pi_py':
     import picamcap
-    picam_dic = picamcap.load_picam_set(setloc="/home/pi/Pigrow/config/picam_settings.txt")
+    picam_dic = picamcap.load_picam_set(setloc=homedir + "/Pigrow/config/picam_settings.txt")
     filename = picamcap.take_picam_py(picam_dic, caps_path)
 elif cam_choice == 'pi_ras':
     import picamcap
-    picam_dic = picamcap.load_picam_set(setloc="/home/pi/Pigrow/config/picam_settings.txt")
+    picam_dic = picamcap.load_picam_set(setloc=homedir + "/Pigrow/config/picam_settings.txt")
     filename = picamcap.take_picam_raspistill(picam_dic, caps_path)
 
 # load the image

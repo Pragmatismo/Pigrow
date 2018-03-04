@@ -4,6 +4,7 @@ import datetime
 import matplotlib as mpl
 mpl.use('Agg')
 import matplotlib.pyplot as plt
+homedir = os.getenv("HOME")
 
 #default bahaviour, change with argu make=cpu,mem,disk,up,cputemp removing any you don't need
 make_cpu = True
@@ -14,10 +15,10 @@ make_cputemp = True
 
 #Load the settings file and locate the selflog
 try:
-    sys.path.append('/home/pi/Pigrow/scripts/')
+    sys.path.append(homedir + '/Pigrow/scripts/')
     #sys.path.append('/home/pragmo/pigitgrow/Pigrow/scripts/')
     import pigrow_defs
-    loc_locs = '/home/pi/Pigrow/config/dirlocs.txt'
+    loc_locs = homedir + '/Pigrow/config/dirlocs.txt'
     loc_dic = pigrow_defs.load_locs(loc_locs)
     graph_path = loc_dic['graph_path']
     self_log = loc_dic['self_log']
@@ -57,8 +58,8 @@ for argu in sys.argv[1:]:
                 make_cputemp = False
     elif argu == '-h' or argu == '--help':
         print(" selflog_graph maker;")
-        print(" out=PATH    -- PATH to save graphs to e,g, /home/pi/Pigrow/graphs/ ")
-        print(" log=PATH    -- PATH to self_log to e,g, /home/pi/Pigrow/logs/selflog.txt ")
+        print(" out=PATH    -- PATH to save graphs to e,g, " + homedir + "/Pigrow/graphs/ ")
+        print(" log=PATH    -- PATH to self_log to e,g, " + homedir + "/Pigrow/logs/selflog.txt ")
         print(' make=cpu,mem.disk,up,cputemp  -- list the graphs you want to make seperated by a comma ')
         sys.exit()
     elif argu == '-flags':
