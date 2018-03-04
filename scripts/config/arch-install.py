@@ -5,6 +5,7 @@ import os
 
 homedir = os.getenv("HOME")
 
+## UVCCAPTURE IS NOT RESOLVED
 def is_connected():
     site = "www.reddit.com"
     try:
@@ -33,7 +34,7 @@ except:
 path = homedir + "/Pigrow/resources/"
 
 print("checking and installing pip for python2.7")
-os.system("sudo pacman -S python2-pip")
+os.system("sudo pacman -S python2-pip pkgfile libv4l")
 
 
 
@@ -86,7 +87,8 @@ try:
 except:
     try:
         print(" Required dependencies not installed, attempting to install...")
-        os.system("sudo pip2 install praw pexpect python-crontab crontab")
+        os.system("sudo pip2 install praw pexpect python-crontab crontab pyopenssl"
+                  "")
     except:
         print("Sorry, -- sudo pip2 install praw pexpect python-crontab crontab-- didn't work, try it manually.")
         print("")
@@ -94,9 +96,9 @@ except:
 print(" - Using pacman")
 print("")
 try:
-    os.system("sudo pacman -S python-matplotlib sshpass uvccapture mpv")
+    os.system("sudo pacman -S python-matplotlib sshpass uvccapture mpv python-dev")
 except:
-    print("Sorry, -- sudo apt-get --yes install python-matplotlib sshpass uvccapture mpv python-crontab-- didn't work, try it manually..")
+    print("Sorry, -- sudo apt-get --yes install python-matplotlib sshpass mpv python-crontab-- didn't work, try it manually..")
     #raise
 print("")
 print("Install process complete, all dependencies installed (or failed...)")
