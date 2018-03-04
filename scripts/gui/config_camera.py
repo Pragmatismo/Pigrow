@@ -32,6 +32,7 @@ except:
     exit
 ssh = paramiko.SSHClient()
 ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+homedir = os.getenv("HOME")
 
 print(" THIS IS A ALPHA STAGE SCRIPT - IT DOES MOST STUFF BUT NOT EVERYTHING - UPDATES COMING SOON!")
 ##
@@ -80,7 +81,7 @@ def get_box_name(target_ip, target_user, target_pass):
         ssh.connect(target_ip, username=target_user, password=target_pass, timeout=3)
         print "Connected to " + target_ip
         found_login = True
-        stdin, stdout, stderr = ssh.exec_command("cat /home/pi/Pigrow/config/pigrow_config.txt | grep box_name")
+        stdin, stdout, stderr = ssh.exec_command("cat " + homedir + "/Pigrow/config/pigrow_config.txt | grep box_name")
         boxname = stdout.read().strip().split("=")[1]
         print "Pigrow Found; " + boxname
         ssh.close()
@@ -142,7 +143,7 @@ def upload_cam_config(target_ip, target_user, target_pass, cam_config_loc_on_pi,
             return None
 
 def take_test_image(target_ip, target_user, target_pass, s_val, c_val, g_val, b_val, x_dim=800, y_dim=600,
-                    cam_select='/dev/video0', cam_capture_choice='uvccapture', output_file='/home/pi/test_cam_settings.jpg',
+                    cam_select='/dev/video0', cam_capture_choice='uvccapture', output_file=homedir + '/test_cam_settings.jpg',
                     ctrl_test_value=None, ctrl_text_string=None, cmd_str=''):
     found_login = False
     focus_val = "20"
@@ -197,7 +198,7 @@ def take_test_image(target_ip, target_user, target_pass, s_val, c_val, g_val, b_
     return found_login, cam_output, output_file
 
 def take_unset_test_image(target_ip, target_user, target_pass, x_dim=800, y_dim=600,
-                          additonal_commands='', cam_capture_choice='uvccapture', output_file='/home/pi/test_defaults.jpg'):
+                          additonal_commands='', cam_capture_choice='uvccapture', output_file=homedir + '/test_defaults.jpg'):
     found_login = False
     cam_output = '!!!--NO READING--!!!'
     try:
@@ -493,7 +494,7 @@ class config_cam(wx.Frame):
         target_ip = self.tb_ip.GetValue()
         target_user = self.tb_user.GetValue()
         target_pass = self.tb_pass.GetValue()
-        cam_config_loc_on_pi = '/home/pi/Pigrow/config/camera_settings.txt'
+        cam_config_loc_on_pi = homedir + '/Pigrow/config/camera_settings.txt'
         log_on_test, boxname = get_box_name(target_ip, target_user, target_pass)
         if log_on_test == True:
             self.link_status_text.SetLabel("linked with - " + str(boxname))
@@ -576,7 +577,7 @@ class config_cam(wx.Frame):
             with open(local_cam_settings_file, "w") as f:
                 f.write(config_text)
             print("Local Settings file updated")
-            cam_config_loc_on_pi = '/home/pi/Pigrow/config/' + name_of_file
+            cam_config_loc_on_pi = homedir + '/Pigrow/config/' + name_of_file
             upload_cam_config(target_ip, target_user, target_pass, cam_config_loc_on_pi, local_cam_settings_file)
         else:
             print("User cancelled that...")

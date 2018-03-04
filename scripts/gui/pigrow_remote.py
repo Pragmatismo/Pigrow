@@ -68,7 +68,7 @@ except:
     sys.exit(1)
 ssh = paramiko.SSHClient()
 ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-
+homedir = os.getenv("HOME")
 #
 #
 ## System Pannel
@@ -2392,7 +2392,7 @@ class cron_job_dialog(wx.Dialog):
         self.cron_type_combo = wx.ComboBox(self, choices = cron_type_opts, pos=(260,10), size=(125, 25))
         self.cron_type_combo.Bind(wx.EVT_COMBOBOX, self.cron_type_combo_go)
         wx.StaticText(self,  label='path;', pos=(10, 50))
-        cron_path_opts = ['/home/pi/Pigrow/scripts/cron/', '/home/pi/Pigrow/scripts/autorun/', '/home/pi/Pigrow/scripts/switches/']
+        cron_path_opts = [homedir + '/Pigrow/scripts/cron/', homedir + '/Pigrow/scripts/autorun/', homedir + '/Pigrow/scripts/switches/']
         self.cron_path_combo = wx.ComboBox(self, style=wx.TE_PROCESS_ENTER, choices = cron_path_opts, pos=(100,45), size=(525, 30))
         self.cron_path_combo.Bind(wx.EVT_TEXT_ENTER, self.cron_path_combo_go)
         self.cron_path_combo.Bind(wx.EVT_COMBOBOX, self.cron_path_combo_go)
@@ -3382,7 +3382,7 @@ class pi_link_pnl(wx.Panel):
         pi_link_pnl.target_ip = ''
         pi_link_pnl.target_user = ''
         pi_link_pnl.target_pass = ''
-        pi_link_pnl.config_location_on_pi = '/home/pi/Pigrow/config/pigrow_config.txt'
+        pi_link_pnl.config_location_on_pi = homedir + '/Pigrow/config/pigrow_config.txt'
      ## the three boxes for pi's connection details, IP, Username and Password
         self.l_ip = wx.StaticText(self,  label='address', pos=(10, 20))
         self.tb_ip = wx.TextCtrl(self, pos=(125, 25), size=(150, 25))
@@ -3562,7 +3562,7 @@ class pi_link_pnl(wx.Panel):
     def get_box_name(self):
         boxname = None
         try:
-            stdin, stdout, stderr = ssh.exec_command("cat /home/pi/Pigrow/config/pigrow_config.txt | grep box_name")
+            stdin, stdout, stderr = ssh.exec_command("cat " + homedir + "/Pigrow/config/pigrow_config.txt | grep box_name")
             boxname = stdout.read().strip().split("=")[1]
             print "Pigrow Found; " + boxname
         except Exception as e:
