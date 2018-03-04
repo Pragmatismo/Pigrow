@@ -49,7 +49,7 @@ try:
     import Adafruit_DHT
     print("- Adafruit DHT driver is installed and working")
     print("- ")
-    except:
+except:
     try:
         print("- Doesn't look like the Adafruit DHT driver is installed,")
         print("- Installing...")
@@ -96,7 +96,7 @@ except:
 print(" - Using pacman")
 print("")
 try:
-    os.system("sudo pacman -S python-matplotlib sshpass uvccapture mpv python-dev")
+    os.system("sudo pacman -S python-matplotlib sshpass mpv")
 except:
     print("Sorry, -- sudo apt-get --yes install python-matplotlib sshpass mpv python-crontab-- didn't work, try it manually..")
     #raise
