@@ -48,27 +48,33 @@ try:
     import Adafruit_DHT
     print("- Adafruit DHT driver is installed and working")
     print("- ")
-except:
+    except:
     try:
-        print("- Doesn't look like the ADafruit DHT driver is installed,")
+        print("- Doesn't look like the Adafruit DHT driver is installed,")
         print("- Installing...")
         os.chdir(path)
-        print("- installing python-adafruit_dht repo with pacman")
-        os.system("sudo pacman -S python-adafruit_dht")
+        print("- Downloading Adafruit_Python_DHT from Github")
+        os.system("git clone https://github.com/adafruit/Adafruit_Python_DHT.git")
+        ada_path = path + "Adafruit_Python_DHT/"
+        os.chdir(ada_path)
+        print("- Updating your apt list and installing dependencies,")
+        print("- Dependencies installed, running --: sudo python setup.py install --force-pi :--")
+        os.system("sudo python2 " + ada_path + "setup.py install --force-pi")
         print("- Done! ")
         try:
             import Adafruit_DHT
+
             print("Adafruit_DHT Installed and working.")
         except:
             print("...but it doens't seem to have worked...")
             print(" Try running this script again, if not then")
             print(" follow the manual install instructions above")
-            print(" check if you are on a Arch linux system...")
             print(" and then try this script again...")
             print("")
     except:
         print("Install failed, use the install instructions linked above to do it manually.")
-        #raise
+        # raise
+os.chdir(path)
 os.chdir(path)
 print("")
 print(" Installing dependencies for pigrow code...")
