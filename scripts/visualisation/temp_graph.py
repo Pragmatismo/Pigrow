@@ -51,7 +51,7 @@ for argu in sys.argv[1:]:
         elif thearg == 'hot':
             toohot = int(theval)
         elif thearg == "unit" or thearg == "temp_unit":
-            temp_unit == theval
+            temp_unit = theval
     elif argu == 'h' or argu == '-h' or argu == 'help' or argu == '--help':
         print("")
         print("  log=DIR/LOG_FILE  - point to a different log file than mentioned in dirlocs")
