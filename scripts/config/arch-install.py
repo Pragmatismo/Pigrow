@@ -5,7 +5,7 @@ import os
 
 homedir = os.getenv("HOME")
 
-## UVCCAPTURE IS NOT RESOLVED or wiringpi-python
+## UVCCAPTURE IS NOT RESOLVED or GPIO
 def is_connected():
     site = "www.reddit.com"
     try:
@@ -36,6 +36,8 @@ path = homedir + "/Pigrow/resources/"
 print("checking and installing pip for python2.7")
 os.system("sudo pacman -S python2-pip pkgfile libv4l")
 
+print("updating system, checking and installing cower and pacaur")
+os.system("sudo " + homedir + "/Pigrow/scripts/pacaur_install.sh")
 
 
 print("Checking Dependencies...")
@@ -80,27 +82,32 @@ os.chdir(path)
 print("")
 print(" Installing dependencies for pigrow code...")
 print(" - Using pip")
+
 try:
-    import praw, pexpect, python, crontab
-    #from crontab import CronTab #python-crontab #using apt
-    print(" Required dependencies already installed.")
+    print(" Required dependencies not installed, attempting to install...")
+    os.system("sudo pip2 install praw pexpect python-crontab crontab pyopenssl --force")
 except:
-    try:
-        print(" Required dependencies not installed, attempting to install...")
-        os.system("sudo pip2 install praw pexpect python-crontab crontab pyopenssl")
-    except:
-        print("Sorry, -- sudo pip2 install praw pexpect python-crontab crontab-- didn't work, try it manually.")
-        print("")
-        #raise
+    print("Sorry, -- sudo pip2 install praw pexpect python-crontab crontab-- didn't work, try it manually.")
+    print("")
+    #raise
+
 print(" - Using pacman")
 print("")
 try:
-    os.system("sudo pacman -S python2-matplotlib sshpass mpv swig")
+    os.system("sudo pacman -S --force python2-matplotlib sshpass mpv swig")
+except:
+    print("Sorry, -- sudo pacman -S --force python2-matplotlib sshpass mpv -- didn't work, try it manually..")
+    print("try --force: sudo pacman -S --force python2-matplotlib sshpass mpv")
+    #raise
+
+print("using pacaur!")
+try:
+    os.system("sudo pacaur -S python-raspberry-gpio")
 except:
     print("Sorry, -- sudo pacman -S python2-matplotlib sshpass mpv -- didn't work, try it manually..")
     print("try --force: sudo pacman -S --force python2-matplotlib sshpass mpv")
     #raise
+
 print("")
-os.system("sudo pip2 install wiringpi")
 print("Install process complete, all dependencies installed (or failed...)")
 print("")

@@ -68,7 +68,7 @@ except:
     sys.exit(1)
 ssh = paramiko.SSHClient()
 ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-homedir = os.getenv("HOME")
+
 #
 #
 ## System Pannel
@@ -1302,10 +1302,10 @@ class config_lamp_dialog(wx.Dialog):
             sure = mbox.ShowModal()
             if sure == wx.ID_YES:
                 if self.cron_lamp_on.GetLabel() == "not found":
-                    cron_task = homedir + "/Pigrow/scripts/switches/" + "lamp_on.py"
+                    cron_task = "/home/pi/Pigrow/scripts/switches/" + "lamp_on.py"
                     MainApp.cron_info_pannel.add_to_onetime_list("new", "True", self.new_on_string_text.GetLabel(), cron_task)
                 if self.cron_lamp_off.GetLabel() == "not found":
-                    cron_task = homedir + "/Pigrow/scripts/switches/" + "lamp_off.py"
+                    cron_task = "/home/pi/Pigrow/scripts/switches/" + "lamp_off.py"
                     MainApp.cron_info_pannel.add_to_onetime_list("new", "True", self.new_off_string_text.GetLabel(), cron_task)
                     MainApp.cron_info_pannel.update_cron_click("e")
         elif not self.new_on_string_text.GetLabel() == self.cron_lamp_on.GetLabel() or not self.new_off_string_text.GetLabel() == self.cron_lamp_off.GetLabel():
@@ -1873,7 +1873,7 @@ class cron_info_pnl(wx.Panel):
             # save cron text onto pigrow as text file then import into cron
             sftp = ssh.open_sftp()
             try:
-                tempfolder = homedir + '/Pigrow/temp'
+                tempfolder = '/home/pi/Pigrow/temp'
                 sftp.mkdir(tempfolder)
             except IOError:
                 pass
@@ -2070,6 +2070,59 @@ class cron_info_pnl(wx.Panel):
 
     def new_cron_click(self, e):
         #define blank fields and defaults for dialogue box to read
+        cron_info_pnl.cron_path_toedit = '/home/pi/Pigrow/scripts/cron/'
+        cron_info_pnl.cron_task_toedit = 'input cron task here'
+        cron_info_pnl.cron_args_toedit = ''
+        cron_info_pnl.cron_comment_toedit = ''
+        cron_info_pnl.cron_type_toedit = 'repeating'
+        cron_info_pnl.cron_everystr_toedit = 'min'
+        cron_info_pnl.cron_everynum_toedit = '5'
+        cron_info_pnl.cron_min_toedit = '30'
+        cron_info_pnl.cron_hour_toedit = '8'
+        cron_info_pnl.cron_day_toedit = ''
+        cron_info_pnl.cron_month_toedit = ''
+        cron_info_pnl.cron_dow_toedit = ''
+        cron_info_pnl.cron_enabled_toedit = True
+        #make dialogue box
+        cron_dbox = cron_job_dialog(None, title='Cron Job Editor')
+        cron_dbox.ShowModal()
+        #catch any changes made if ok was pressed, if cancel all == None
+        cron_jobtype = cron_dbox.job_type
+        job_path = cron_dbox.job_path
+        job_script = cron_dbox.job_script
+        cron_extra_args = cron_dbox.job_args
+        cron_comment = cron_dbox.job_comment
+        job_enabled = cron_dbox.job_enabled
+        job_repeat = cron_dbox.job_repeat
+        job_repnum = cron_dbox.job_repnum
+        job_min = cron_dbox.job_min
+        job_hour = cron_dbox.job_hour
+        job_day = cron_dbox.job_day
+        job_month = cron_dbox.job_month
+        job_dow = cron_dbox.job_dow
+        # make timing_string from min:hour or repeat + repeat_num
+        if cron_jobtype == 'repeating':
+            timing_string = self.make_repeating_cron_timestring(job_repeat, job_repnum)
+        elif cron_jobtype == 'one time':
+            timing_string = self.make_onetime_cron_timestring(job_min, job_hour, job_day, job_month, job_dow)
+        # sort into the correct table
+        if not job_script == None or not job_script == '':
+            cron_task = job_path + job_script
+            if cron_jobtype == 'startup':
+                self.add_to_startup_list('new', job_enabled, cron_task, cron_extra_args, cron_comment)
+            elif cron_jobtype == 'one time':
+                self.add_to_onetime_list('new', job_enabled, timing_string, cron_task, cron_extra_args, cron_comment)
+            elif cron_jobtype == 'repeating':
+                self.add_to_repeat_list('new', job_enabled, timing_string, cron_task, cron_extra_args, cron_comment)
+
+class cron_list_pnl(wx.Panel):
+    #
+    #  This displays the three different cron type lists on the big-pannel
+    #  double click to edit one of the jobs (not yet written)
+    #  ohter control buttons found on the cron control pannel
+    #
+
+    #none of these resize or anything at the moment
     #consider putting into a sizer or autosizing with math
     #--to screen size tho not to size of cronlist that'd be super messy...
     class startup_cron_list(wx.ListCtrl):
@@ -2392,7 +2445,7 @@ class cron_job_dialog(wx.Dialog):
         self.cron_type_combo = wx.ComboBox(self, choices = cron_type_opts, pos=(260,10), size=(125, 25))
         self.cron_type_combo.Bind(wx.EVT_COMBOBOX, self.cron_type_combo_go)
         wx.StaticText(self,  label='path;', pos=(10, 50))
-        cron_path_opts = [homedir + '/Pigrow/scripts/cron/', homedir + '/Pigrow/scripts/autorun/', homedir + '/Pigrow/scripts/switches/']
+        cron_path_opts = ['/home/pi/Pigrow/scripts/cron/', '/home/pi/Pigrow/scripts/autorun/', '/home/pi/Pigrow/scripts/switches/']
         self.cron_path_combo = wx.ComboBox(self, style=wx.TE_PROCESS_ENTER, choices = cron_path_opts, pos=(100,45), size=(525, 30))
         self.cron_path_combo.Bind(wx.EVT_TEXT_ENTER, self.cron_path_combo_go)
         self.cron_path_combo.Bind(wx.EVT_COMBOBOX, self.cron_path_combo_go)
@@ -3382,7 +3435,7 @@ class pi_link_pnl(wx.Panel):
         pi_link_pnl.target_ip = ''
         pi_link_pnl.target_user = ''
         pi_link_pnl.target_pass = ''
-        pi_link_pnl.config_location_on_pi = homedir + '/Pigrow/config/pigrow_config.txt'
+        pi_link_pnl.config_location_on_pi = '/home/pi/Pigrow/config/pigrow_config.txt'
      ## the three boxes for pi's connection details, IP, Username and Password
         self.l_ip = wx.StaticText(self,  label='address', pos=(10, 20))
         self.tb_ip = wx.TextCtrl(self, pos=(125, 25), size=(150, 25))
@@ -3562,7 +3615,7 @@ class pi_link_pnl(wx.Panel):
     def get_box_name(self):
         boxname = None
         try:
-            stdin, stdout, stderr = ssh.exec_command("cat " + homedir + "/Pigrow/config/pigrow_config.txt | grep box_name")
+            stdin, stdout, stderr = ssh.exec_command("cat /home/pi/Pigrow/config/pigrow_config.txt | grep box_name")
             boxname = stdout.read().strip().split("=")[1]
             print "Pigrow Found; " + boxname
         except Exception as e:
