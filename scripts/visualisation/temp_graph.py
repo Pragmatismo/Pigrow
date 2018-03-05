@@ -33,12 +33,13 @@ dangerhot = int(toohot) / 100 * 115
 #toocold = 23
 #toohot = 30
 #dangerhot = 36
+temp_unit = "c"
 hours_to_show = 24*7*52 #hours from the end of the log, use absurdly high number to see all
 
 for argu in sys.argv[1:]:
     if "=" in argu:
-        thearg = str(argu).split('=')[0]
-        theval = str(argu).split('=')[1]
+        thearg = str(argu).split('=')[0].lower()
+        theval = str(argu).split('=')[1].lower()
         if  thearg == 'log':
             log_location = theval
         elif thearg == 'out':
@@ -49,6 +50,8 @@ for argu in sys.argv[1:]:
             toocold = int(theval)
         elif thearg == 'hot':
             toohot = int(theval)
+        elif thearg == "unit" or thearg == "temp_unit":
+            temp_unit == theval
     elif argu == 'h' or argu == '-h' or argu == 'help' or argu == '--help':
         print("")
         print("  log=DIR/LOG_FILE  - point to a different log file than mentioned in dirlocs")
@@ -56,6 +59,7 @@ for argu in sys.argv[1:]:
         print("  hours=NUM         - Hours of the logs graph, 168 for a week")
         print("  cold=NUM          - set's the cold point at which graph colors change")
         print("  hot=NUM           - set's the hot point for graph")
+        print("  temp_unit=c or f  - when f converts to Fahrenheit before graphing ")
         sys.exit()
     elif argu == '-flags':
         print("log=" + log_location)
@@ -63,6 +67,7 @@ for argu in sys.argv[1:]:
         print("hours=NUM")
         print("cold=NUM")
         print("hot=NUM")
+        print("temp_unit=[c,f]")
         sys.exit()
     else:
         print(" No idea what you mean by; " + str(argu))
@@ -98,6 +103,8 @@ def add_log(linktolog):
                 break
 
             temp = float(item[0])
+            if temp_unit == 'f':
+                temp = (1.8*temp) + 32
             log_temp.append(temp)
             log_date.append(date)
             curr_line = curr_line - 1
@@ -145,7 +152,7 @@ def make_graph(da,ta):
     ax.fill_between(da, ta, 0,where=ta > dangerhot, alpha=0.6, color='darkred')
     ax.xaxis_date()
     plt.title("Time Perod; " + str(da[0].strftime("%b-%d %H:%M")) + " to " + str(da[-1].strftime("%b-%d %H:%M")) + " UTC")
-    plt.ylabel("Temp")
+    plt.ylabel("Temp in " + temp_unit)
     fig = plt.gcf()
     fig.canvas.set_window_title('Temperature Graph')
     maxh = ta
@@ -156,7 +163,7 @@ def make_graph(da,ta):
 add_log(log_location)
 cut_list_last_hours(hours_to_show)
 print "----------------------------------"
-print "most recent temp - " + str(log_temp[-1])[0:4]
+print "most recent temp - " + str(log_temp[-1])[0:4] + " " + temp_unit
 print "----------------------------------"
 #make_graph(log_date, log_temp)
 make_graph(cut_list_date, log_temp[-len(cut_list_date):])
