@@ -20,6 +20,18 @@ while is_connected() == False:
 
 print("Found reddit, internet is up")
 
+filename = "./../../config/dirlocs.txt"
+
+print("Updating program files directories")
+
+f1 = open('./../../config/dirlocs_temp.txt', 'r')
+f2 = open('./../../config/dirlocs.txt', 'w')
+for line in f1:
+    f2.write(line.replace('**', 'homedir'))
+f1.close()
+f2.close()
+
+
 try:
     if not os.path.exists(homedir + '/Pigrow/caps/'):
         os.makedirs(homedir + '/Pigrow/caps/')
