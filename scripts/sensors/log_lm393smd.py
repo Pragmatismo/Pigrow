@@ -3,9 +3,9 @@ import os
 import sys
 import time
 import datetime
-import wiringpi
-wiringpi.wiringPiSetupGpio()
-
+import RPi.GPIO as GPIO
+GPIO.setmode(GPIO.BCM)
+GPIO.setwarnings(False)
 homedir = os.getenv("HOME")
 
 try:
@@ -66,9 +66,9 @@ def read_soil_moist_digital(gpio_pin):
     soil_value = None
     count = 0
     while reading == False:
-        wiringpi.pinMode(gpio_pin, 0)
+        GPIO.setup(gpio_pin, GPIO.IN)
         try:
-            soil_value = wiringpi.digitalRead(gpio_pin)
+            soil_value = GPIO.input(gpio_pin)
         except Exception as e:
             print("!!! couldn't read sensor, error " + str(e))
             time.sleep(1)

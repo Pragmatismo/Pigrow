@@ -5,7 +5,7 @@ import os
 
 homedir = os.getenv("HOME")
 
-## UVCCAPTURE IS NOT RESOLVED or Python.raspberry.gpio
+## UVCCAPTURE IS NOT RESOLVED or wiringpi-python
 def is_connected():
     site = "www.reddit.com"
     try:
