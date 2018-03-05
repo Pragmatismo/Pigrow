@@ -5,7 +5,7 @@ import os
 
 homedir = os.getenv("HOME")
 
-## UVCCAPTURE IS NOT RESOLVED
+## UVCCAPTURE IS NOT RESOLVED or Python.raspberry.gpio
 def is_connected():
     site = "www.reddit.com"
     try:
@@ -87,8 +87,7 @@ try:
 except:
     try:
         print(" Required dependencies not installed, attempting to install...")
-        os.system("sudo pip2 install praw pexpect python-crontab crontab pyopenssl"
-                  "")
+        os.system("sudo pip2 install praw pexpect python-crontab crontab pyopenssl")
     except:
         print("Sorry, -- sudo pip2 install praw pexpect python-crontab crontab-- didn't work, try it manually.")
         print("")
@@ -96,11 +95,12 @@ except:
 print(" - Using pacman")
 print("")
 try:
-    os.system("sudo pacman -S python2-matplotlib sshpass mpv")
+    os.system("sudo pacman -S python2-matplotlib sshpass mpv swig")
 except:
     print("Sorry, -- sudo pacman -S python2-matplotlib sshpass mpv -- didn't work, try it manually..")
     print("try --force: sudo pacman -S --force python2-matplotlib sshpass mpv")
     #raise
 print("")
+os.system("sudo pip2 install wiringpi")
 print("Install process complete, all dependencies installed (or failed...)")
 print("")

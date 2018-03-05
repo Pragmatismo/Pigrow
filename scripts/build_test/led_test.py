@@ -3,12 +3,13 @@
 #This will turn the LED on for thirty seconds
 # then turn it off.
 
-import RPi.GPIO as GPIO
+import wiringpi
 import time
-GPIO.setmode(GPIO.BCM)
-GPIO.setup(16,GPIO.OUT)
+wiringpi.wiringPiSetupGpio()
+wiringpi.pinMode(16,1)
+
 print "LED on"
-GPIO.output(16,GPIO.HIGH)
+wiringpi.digitalWrite(16,1)
 time.sleep(30)
 print "LED off"
-GPIO.output(16,GPIO.LOW)
+wiringpi.digitalWrite(16,0)

@@ -3,6 +3,8 @@ import datetime, sys, os
 homedir = os.getenv("HOME")
 sys.path.append(homedir + '/Pigrow/scripts/')
 import pigrow_defs
+import wiringpi
+wiringpi.wiringPiSetupGpio()
 
 for argu in sys.argv[1:]:
     if argu == '-h' or argu == '--help':
@@ -22,14 +24,12 @@ def lamp_on(set_dic, switch_log):
     if 'gpio_lamp' in set_dic and not str(set_dic['gpio_lamp']).strip() == '':
         gpio_pin = int(set_dic['gpio_lamp'])
         gpio_pin_on = set_dic['gpio_lamp_on']
-        import RPi.GPIO as GPIO
-        GPIO.setmode(GPIO.BCM)
-        GPIO.setwarnings(False)
-        GPIO.setup(gpio_pin, GPIO.OUT)
+
+        wiringpi.pinMode(gpio_pin, 1)
         if gpio_pin_on == "low":
-            GPIO.output(gpio_pin, GPIO.LOW)
+            wiringpi.digitalWrite(gpio_pin, 0)
         elif gpio_pin_on == "high":
-            GPIO.output(gpio_pin, GPIO.HIGH)
+            wiringpi.digitalWrite(gpio_pin, 1)
         else:
             msg +=("      !!       CAN'T DETERMINE GPIO DIRECTION    !!\n")
             msg +=("      !!  run config program or edit config.txt  !!\n")
