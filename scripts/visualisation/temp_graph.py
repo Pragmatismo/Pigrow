@@ -4,7 +4,7 @@ mpl.use('Agg')
 import matplotlib.pyplot as plt
 import datetime
 import numpy as np
-import sys
+import sys, os
 homedir = os.getenv("HOME")
 
 try:
