@@ -16,7 +16,7 @@ for argu in sys.argv[1:]:
         print(" -- this script is due an update, don't expect perfection --")
         sys.exit(0)
 
-def load_picam_set(setloc="/home/pi/Pigrow/config/picam_settings.txt"):
+def load_picam_set(setloc= homedir + "/Pigrow/config/picam_settings.txt"):
     picam_dic = {}
     with open(setloc, "r") as f:
         for line in f:
@@ -78,13 +78,13 @@ def take_picam_raspistill(picam_dic, caps_path):
 
 
 if __name__ == '__main__':
-    sys.path.append('/home/pi/Pigrow/scripts/')
+    sys.path.append(homedir + '/Pigrow/scripts/')
     script = 'picamcap.py'
     import pigrow_defs
-    loc_locs = '/home/pi/Pigrow/config/dirlocs.txt'
+    loc_locs = homedir + '/Pigrow/config/dirlocs.txt'
     loc_dic = pigrow_defs.load_locs(loc_locs)
     caps_path = loc_dic["caps_path"]
-    picam_dic = load_picam_set(setloc="/home/pi/Pigrow/config/picam_settings.txt")
+    picam_dic = load_picam_set(setloc=homedir + "/Pigrow/config/picam_settings.txt")
     filename = take_picam_py(picam_dic, caps_path)
     #filename = take_picam_raspistill(picam_dic, caps_path)
     print("Image taken and saved to "+caps_path+filename)

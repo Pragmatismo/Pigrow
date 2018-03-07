@@ -2,6 +2,7 @@
 import os, sys
 import datetime
 
+homedir = os.getenv("HOME")
 def load_locs(loc_locs):
     loc_dic = {}
     print("Loading location details")
@@ -14,7 +15,7 @@ def load_locs(loc_locs):
         loc_switchlog = loc_dic['loc_switchlog']
     else:
         print("Switch log not set, run setup.py to configure your pigrow")
-        loc_switchlog = '/home/pi/Pigrow/logs/switch_log.txt'
+        loc_switchlog = homedir + '/Pigrow/logs/switch_log.txt'
         print('Trying default switch log,')
     if 'loc_settings' in loc_dic:
         loc_settings = loc_dic['loc_settings']
@@ -141,7 +142,7 @@ if __name__ == '__main__':
     global loc_locs
     # test1.py executed as script
     # do something
-    loc_locs = '/home/pi/Pigrow/config/dirlocs.txt'
+    loc_locs = homedir + '/Pigrow/config/dirlocs.txt'
 
     for argu in sys.argv:
         thearg = str(argu).split('=')[0]

@@ -5,12 +5,13 @@ import matplotlib.pyplot as plt
 import datetime
 import numpy as np
 import sys
+homedir = os.getenv("HOME")
 
 try:
-    sys.path.append('/home/pi/Pigrow/scripts/')
+    sys.path.append(homedir + '/Pigrow/scripts/')
     import pigrow_defs
     script = 'temp_graph.py'
-    loc_locs = '/home/pi/Pigrow/config/dirlocs.txt'
+    loc_locs = homedir + '/Pigrow/config/dirlocs.txt'
     loc_dic = pigrow_defs.load_locs(loc_locs)
     graph_path = loc_dic['graph_path']
     graph_path = graph_path + "dht_temp_graph.png"

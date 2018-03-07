@@ -3,11 +3,12 @@ import time
 import os
 import sys
 
+homedir = os.getenv("HOME")
 print("")
 print("")
 print(" USE l=3 to take a photo every 3 somethings")
 print("      t  to take triggered photos ")
-print("     cap=/home/pi/folder/ to set caps path other than current dir")
+print("     cap=" + homedir + "/folder/ to set caps path other than current dir")
 print("      np to stop it trying to change the wallpaper")
 pi_paper = True  #updates pi wall paper, use -nopaper to turn it off.
 s_val = "20"
@@ -22,10 +23,10 @@ try:
     cappath = os.getcwd()
     cappath += '/'
 except:
-    cappath = "/home/pi/webcamview/"
+    cappath = homedir + "/webcamview/"
 
 #cappath = "./"   #wont update wallpaper if, i dunno, it just don't
-loc_settings = "/home/pi/Pigrow/config/camera_settings.txt"
+loc_settings = homedir + "/Pigrow/config/camera_settings.txt"
 try:
     with open(loc_settings, "r") as f:
         for line in f:

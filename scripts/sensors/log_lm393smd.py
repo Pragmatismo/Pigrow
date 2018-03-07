@@ -6,12 +6,13 @@ import datetime
 import RPi.GPIO as GPIO
 GPIO.setmode(GPIO.BCM)
 GPIO.setwarnings(False)
+homedir = os.getenv("HOME")
 
 try:
-    sys.path.append('/home/pi/Pigrow/scripts/')
+    sys.path.append(homedir + '/Pigrow/scripts/')
     import pigrow_defs
     script = 'log_lm393smd.py'
-    loc_locs = '/home/pi/Pigrow/config/dirlocs.txt'
+    loc_locs = homedir + '/Pigrow/config/dirlocs.txt'
     loc_dic = pigrow_defs.load_locs(loc_locs)
     log_path = loc_dic['log_path']
     log_path = log_path + "soilmoistD_log.txt"
@@ -26,7 +27,7 @@ try:
 except Exception as e:
     print("Using Defaults because - " + str(e))
     gpio_pin_list = ['21']
-    log_path = "/home/pi/Pigrow/logs/soilmoistD_log.txt"
+    log_path = homedir + "/Pigrow/logs/soilmoistD_log.txt"
 
 for argu in sys.argv[1:]:
     thearg = str(argu).split('=')[0]
@@ -49,7 +50,7 @@ for argu in sys.argv[1:]:
         print(" ")
         print(" pin=NUM    - gpio pin to sensor data pin")
         print(" ")
-        print(" log=/home/pi/Pigrow/logs/soilmoistD_log.txt")
+        print(" log=" + homedir + "/Pigrow/logs/soilmoistD_log.txt")
         print(" ")
         print(" The script reads from the DIGITAL pin and records")
         print(" only a 1 or 0 value, set the range using the screw")

@@ -6,7 +6,7 @@ print("----------------------------------")
 print("------Data Logger Pi-Monitor------")
 #print ("time on this computer is now: " + str(datetime.datetime.now()))
 print("")
-
+homedir = os.getenv("HOME")
 #user_name = "magimo"
 path = "/Pigrow/" #from user directory
 try:
@@ -14,7 +14,7 @@ try:
 except:
     user_name = "pi"
 
-loc_pi_list = "/home/"+user_name+path+"config/pi_list.txt"
+loc_pi_list = homedir+path+"config/pi_list.txt"
 
 for argu in sys.argv[1:]:
     if argu == '-h' or argu == '--help':
@@ -70,7 +70,7 @@ def save_log(pi):
     log = log + "\n"
 
     print log
-    pi_log = "/home/"+user_name+path+"logs/pieye_log_"+str(pi[0].split(".")[-1])+".txt"
+    pi_log = homedir+path+"logs/pieye_log_"+str(pi[0].split(".")[-1])+".txt"
     with open(pi_log, "a") as f:
         f.write(log)
 

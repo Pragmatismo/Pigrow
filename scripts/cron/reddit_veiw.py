@@ -4,10 +4,10 @@ import praw           #pip install praw
 import os
 import sys
 from PIL import Image, ImageDraw, ImageFont
-sys.path.append('/home/pi/Pigrow/scripts/')
+sys.path.append(homedir + '/Pigrow/scripts/')
 import pigrow_defs
 script = 'selflog_graph.py'
-loc_locs = '/home/pi/Pigrow/config/dirlocs.txt'
+loc_locs = homedir + '/Pigrow/config/dirlocs.txt'
 
 
 #sizes

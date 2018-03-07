@@ -1,14 +1,13 @@
 #!/usr/bin/python
+import datetime, sys, os
+import numpy as np
 import matplotlib as mpl
 mpl.use('Agg')
 import matplotlib.pyplot as plt
-import datetime
-import numpy as np
-import sys
+homedir = os.getenv("HOME")
 
-
-graph_path = "/home/pi/Pigrow/graphs/ads1115_graph.png"
-log_location = "/home/pi/Pigrow/logs/ads1115_log.txt"
+graph_path = homedir + "/Pigrow/graphs/ads1115_graph.png"
+log_location = homedir + "/Pigrow/logs/ads1115_log.txt"
 make_a0 = "yes"
 make_a1 = "yes"
 make_a2 = "yes"

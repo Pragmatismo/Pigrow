@@ -2,14 +2,15 @@
 import matplotlib as mpl
 mpl.use('Agg')
 import matplotlib.pyplot as plt
-import datetime
+import datetime, sys, os
 import numpy as np
-import sys
+homedir = os.getenv("HOME")
+
 try:
-    sys.path.append('/home/pi/Pigrow/scripts/')
+    sys.path.append(homedir + '/Pigrow/scripts/')
     import pigrow_defs
     script = 'humid_graph.py'
-    loc_locs = '/home/pi/Pigrow/config/dirlocs.txt'
+    loc_locs = homedir + '/Pigrow/config/dirlocs.txt'
     loc_dic = pigrow_defs.load_locs(loc_locs)
     graph_path = loc_dic['graph_path']
     graph_path = graph_path + "dht_humid_graph.png"

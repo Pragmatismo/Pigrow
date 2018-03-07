@@ -3,6 +3,7 @@ import time
 import os
 import sys
 
+homedir = os.getenv("HOME")
 settings_file = None
 caps_path = None
 
@@ -41,7 +42,7 @@ def load_camera_settings(loc_dic, caps_path, settings_file):
         try:
             caps_path = loc_dic['caps_path']
         except:
-            caps_path = '/home/pi/Pigrow/caps/'
+            caps_path = homedir + '/Pigrow/caps/'
             if os.exists(caps_path):
                 print("Using default folder; " + str(caps_path))
             else:
@@ -55,7 +56,7 @@ def load_camera_settings(loc_dic, caps_path, settings_file):
             settings_file = loc_dic['camera_settings']
             print("using camera settings file as directed by dirlocs file; " + settings_file)
         except:
-            settings_file = "/home/pi/Pigrow/config/camera_settings.txt"
+            settings_file = homedir + "/Pigrow/config/camera_settings.txt"
             print("camera settings file not mentioned in dirlocs file, using default; " + settings_file)
     else:
         print("Using settings file; " + str(settings_file))
@@ -164,10 +165,10 @@ def take_with_fswebcam(s_val=None, c_val=None, g_val=None, b_val=None, x_dim=160
 
 if __name__ == '__main__':
 
-    sys.path.append('/home/pi/Pigrow/scripts/')
+    sys.path.append(homedir + '/Pigrow/scripts/')
     import pigrow_defs
     #script = 'camcap.py'  #used with logging module
-    loc_locs = '/home/pi/Pigrow/config/dirlocs.txt'
+    loc_locs = homedir + '/Pigrow/config/dirlocs.txt'
     loc_dic = pigrow_defs.load_locs(loc_locs)
 
     s_val, c_val, g_val, b_val, x_dim, y_dim, cam_num, cam_opt, fsw_extra, uvc_extra, caps_path = load_camera_settings(loc_dic, caps_path, settings_file)

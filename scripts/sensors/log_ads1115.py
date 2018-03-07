@@ -35,7 +35,7 @@ for argu in sys.argv[1:]:
     if argu == 'help' or argu == '-h' or argu == '--help':
         print(" Script for logging ADS1115 Analogue to Digital Converter ")
         print(" ")
-        print(" log=/home/pi/Pigrow/logs/ads1115_log.txt")
+        print(" log=" + homedir + "/Pigrow/logs/ads1115_log.txt")
         print(" ")
         print(" gain=1")
         print("      use gain to set input voltage range; ")
