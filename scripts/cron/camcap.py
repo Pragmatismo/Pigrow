@@ -60,7 +60,7 @@ def set_caps_path(loc_dic, caps_path):
                 caps_path = ""
     return caps_path
 
-def load_camera_settings(loc_dic, settings_file):
+def load_camera_settings(settings_file):
     s_val = ''
     c_val = ''
     g_val = ''
@@ -71,24 +71,6 @@ def load_camera_settings(loc_dic, settings_file):
     cam_opt = ''
     fsw_extra = ''
     uvc_extra = ''
-    # caps folder path from loc_dic file -annoying for multicam
-    #check for caps path in dirlocs if none then tries to set default or finally resorts ot using local folder
-
-
-    # finding camera settings file in loc_dic
-    if settings_file == None:
-        try:
-            settings_file = loc_dic['camera_settings']
-            print("using camera settings file as directed by dirlocs file; " + settings_file)
-        except:
-            settings_file = homedir + "/Pigrow/config/camera_settings.txt"
-            if os.path.isfile(setting_file):
-                print("camera settings file not found in dirlocs, trying default; " + settings_file)
-            else:
-                print("No local settings file found, using defaults")
-                settings_file = None
-    else:
-        print("Using settings file; " + str(settings_file))
     #Grabbing all the relevent data from the settings file
     if not settings_file == None:
         try:
@@ -206,13 +188,22 @@ if __name__ == '__main__':
         loc_locs = homedir + '/Pigrow/config/dirlocs.txt'
         loc_dic = pigrow_defs.load_locs(loc_locs)
     except:
-        print("Pigrow localisation module failed to initilize, unable to load settings")
-    #load setting from settings file
-    if not settings_file == None:
-        s_val, c_val, g_val, b_val, x_dim, y_dim, cam_num, cam_opt, fsw_extra, uvc_extra, = load_camera_settings(loc_dic, settings_file)
-    else:
-        s_val, c_val, g_val, b_val, x_dim, y_dim, cam_num, cam_opt, fsw_extra, uvc_extra, = "", "", "", "", "100000", "100000", "", "uvccapture", "", ""
+        print("Pigrow localisation module failed to initalize, unable to load settings")
 
+    #load setting from settings file
+    if settings_file == None:
+        if "camera_settings" in loc_dic:
+            settings_file = loc_dic['camera_settings']
+            print("loading settings from settings file referencesd in dirlocs ")
+            s_val, c_val, g_val, b_val, x_dim, y_dim, cam_num, cam_opt, fsw_extra, uvc_extra, = load_camera_settings(settings_file)
+        else:
+            print("Settings file not found, using default values instead")
+            s_val, c_val, g_val, b_val, x_dim, y_dim, cam_num, cam_opt, fsw_extra, uvc_extra, = "", "", "", "", "100000", "100000", "", "uvccapture", "", ""
+    else:
+        print("Loading settings from file " + str(settings_file))
+        s_val, c_val, g_val, b_val, x_dim, y_dim, cam_num, cam_opt, fsw_extra, uvc_extra, = load_camera_settings(settings_file)
+
+    # set the destination path for photos
     caps_path = set_caps_path(loc_dic, caps_path)
     #Taking the photo with the selected camera program
     #first attempt
@@ -223,7 +214,7 @@ if __name__ == '__main__':
     else:
         print("unknown capture option -" + str(cam_opt) + "- sorry")
     # testing if file was made
-    if os.path.isfile(filename):
+    if os.path.isfile(caps_path + filename):
         print("Done!")
         sys.exit()
     else:
@@ -231,17 +222,17 @@ if __name__ == '__main__':
         # If trying more than once
         if attempts > 1:
             for attempt in range(0,attempts):
-                if not os.path.isfile(filename):
+                if not os.path.isfile(caps_path + filename):
                     print("-- Trying attempt " + str(attempt) + " of " + str(attempts))
                     if cam_opt == "uvccapture":
                         filename = take_with_uvccapture(s_val, c_val, g_val, b_val, x_dim, y_dim, cam_num, uvc_extra, caps_path)
-                        if os.path.isfile(filename):
+                        if os.path.isfile(caps_path + filename):
                             print("Done on attempt " + str(attempt))
                             sys.exit()
                     elif cam_opt ==  "fswebcam":
                         filename = take_with_fswebcam(s_val, c_val, g_val, b_val, x_dim, y_dim, cam_num, fsw_extra, caps_path)
-                        if os.path.isfile(filename):
+                        if os.path.isfile(caps_path + filename):
                             print("Done on try " + str(attempt))
                             sys.exit()
-    if not os.path.isfile(filename):
-        print("FAILED no photos taken.")                        
+    if not os.path.isfile(caps_path + filename):
+        print("FAILED no photos taken.")
