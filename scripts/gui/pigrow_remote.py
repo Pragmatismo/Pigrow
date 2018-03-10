@@ -668,6 +668,7 @@ class config_ctrl_pnl(wx.Panel):
             print("no change")
 
     def update_config_click(self, e):
+        print("reading pigrow and updating local config info")
         # clear dictionaries and tables
         self.dirlocs_dict = {}
         self.config_dict = {}
@@ -688,6 +689,8 @@ class config_ctrl_pnl(wx.Panel):
                     self.dirlocs_dict[item[0]] = item[1]
                 except:
                     print("!!error reading value from dirlocs; " + str(item))
+        else:
+            print("Error; dirlocs contains no information")
         #We've now created self.dirlocs_dict with key:value for every setting:value in dirlocs
         #now we grab some of the important ones from the dictionary
          #folder location info (having this in a file on the pi makes it easier if doing things odd ways)
@@ -980,7 +983,7 @@ class config_ctrl_pnl(wx.Panel):
                 self.add_to_GPIO_list(str(key), self.gpio_dict[key], self.gpio_on_dict[key], info=info)
         #listing config problems at end of config messsage
         if len(config_problems) > 0:
-            config_msg += "found " + len(config_problems) + " config problems; "
+            config_msg += "found " + str(len(config_problems)) + " config problems; "
         for item in config_problems:
             config_msg += item + ", "
 
@@ -1895,6 +1898,7 @@ class cron_info_pnl(wx.Panel):
 
     def read_cron_click(self, event):
         #reads pi's crontab then puts jobs in correct table
+        print("Reading cron information from pi")
         try:
             stdin, stdout, stderr = ssh.exec_command("crontab -l")
             cron_text = stdout.read().split('\n')
@@ -1955,13 +1959,14 @@ class cron_info_pnl(wx.Panel):
                 for arg in cmd_string.split(' ')[1:]:
                     cron_extra_args += arg + ' '
                 if real_job == True and not cmd_string == '':
-                    print job_enabled, timing_string, cron_jobtype, cron_task, cron_extra_args, cron_comment
+                    #print job_enabled, timing_string, cron_jobtype, cron_task, cron_extra_args, cron_comment
                     if cron_jobtype == 'reboot':
                         self.add_to_startup_list(line_number, job_enabled, cron_task, cron_extra_args, cron_comment)
                     elif cron_jobtype == 'one time':
                         self.add_to_onetime_list(line_number, job_enabled, timing_string, cron_task, cron_extra_args, cron_comment)
                     elif cron_jobtype == 'repeating':
                         self.add_to_repeat_list(line_number, job_enabled, timing_string, cron_task, cron_extra_args, cron_comment)
+        print("cron information read and updated into tables.")
 
     def test_if_script_running(self, script):
         #cron_info_pnl.test_if_script_running(MainApp.cron_info_pannel, script)
@@ -2799,6 +2804,7 @@ class localfiles_ctrl_pnl(wx.Panel):
         return out, error
 
     def update_local_filelist_click(self, e):
+        print("looking for local files.")
         # clear lists
         localfiles_info_pnl.config_files.DeleteAllItems()
         localfiles_info_pnl.logs_files.DeleteAllItems()
@@ -2912,6 +2918,8 @@ class localfiles_ctrl_pnl(wx.Panel):
                         localfiles_info_pnl.cron_info.SetLabel(cron_msg)
                     else:
                         localfiles_info_pnl.cron_info.SetLabel("no local cron file")
+                    ## output
+        print("local file info discovered..")
 
     def filename_to_date(self, filename):
         date = float(filename.split(".")[0].split("_")[-1])
