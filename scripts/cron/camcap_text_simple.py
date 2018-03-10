@@ -3,6 +3,8 @@ from PIL import Image, ImageDraw, ImageFont
 import time
 import os, sys
 
+print("-Antiquated test script probably going to be replaced and upgraded soon-")
+
 homedir = os.getenv("HOME")
 sys.path.append(homedir + '/Pigrow/scripts/')
 sys.path.append(homedir + '/Pigrow/scripts/cron/')
