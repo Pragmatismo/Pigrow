@@ -9,6 +9,7 @@ cam_opt = "uvccapture"
 settings_file = None
 caps_path = None
 loc_dic = {}
+attempts = 3
 
 for argu in sys.argv[1:]:
     if argu == '-h' or argu == '--help' or argu == "-help" or argu == "--h":
@@ -214,9 +215,33 @@ if __name__ == '__main__':
 
     caps_path = set_caps_path(loc_dic, caps_path)
     #Taking the photo with the selected camera program
+    #first attempt
     if cam_opt == "uvccapture":
         filename = take_with_uvccapture(s_val, c_val, g_val, b_val, x_dim, y_dim, cam_num, uvc_extra, caps_path)
     elif cam_opt ==  "fswebcam":
         filename = take_with_fswebcam(s_val, c_val, g_val, b_val, x_dim, y_dim, cam_num, fsw_extra, caps_path)
     else:
         print("unknown capture option -" + str(cam_opt) + "- sorry")
+    # testing if file was made
+    if os.path.isfile(filename):
+        print("Done!")
+        sys.exit()
+    else:
+        print("Error: Image file not found")
+        # If trying more than once
+        if attempts > 1:
+            for attempt in range(0,attempts):
+                if not os.path.isfile(filename):
+                    print("-- Trying attempt " + str(attempt) + " of " + str(attempts))
+                    if cam_opt == "uvccapture":
+                        filename = take_with_uvccapture(s_val, c_val, g_val, b_val, x_dim, y_dim, cam_num, uvc_extra, caps_path)
+                        if os.path.isfile(filename):
+                            print("Done on attempt " + str(attempt))
+                            sys.exit()
+                    elif cam_opt ==  "fswebcam":
+                        filename = take_with_fswebcam(s_val, c_val, g_val, b_val, x_dim, y_dim, cam_num, fsw_extra, caps_path)
+                        if os.path.isfile(filename):
+                            print("Done on try " + str(attempt))
+                            sys.exit()
+    if not os.path.isfile(filename):
+        print("FAILED no photos taken.")                        
