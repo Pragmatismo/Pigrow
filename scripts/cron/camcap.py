@@ -4,8 +4,10 @@ import os
 import sys
 
 homedir = os.getenv("HOME")
+#Setting Blank Variables
 settings_file = None
 caps_path = None
+loc_dic = {}
 
 for argu in sys.argv[1:]:
     if argu == '-h' or argu == '--help':
@@ -31,19 +33,20 @@ def load_camera_settings(loc_dic, caps_path, settings_file):
     c_val = ''
     g_val = ''
     b_val = ''
-    x_dim = ''
-    y_dim = ''
+    x_dim = '100000'  #arbitary big number or it defaults to nothing
+    y_dim = '100000'  #this just takes the largest possible image
     cam_num = ''
     cam_opt = ''
     fsw_extra = ''
     uvc_extra = ''
     # caps folder path from loc_dic file -annoying for multicam
+    #check for caps path in dirlocs if none then tries to set default or finally resorts ot using local folder
     if caps_path == None:
         try:
             caps_path = loc_dic['caps_path']
         except:
             caps_path = homedir + '/Pigrow/caps/'
-            if os.exists(caps_path):
+            if os.path.exists(caps_path):
                 print("Using default folder; " + str(caps_path))
             else:
                 caps_path = "./"
@@ -57,7 +60,7 @@ def load_camera_settings(loc_dic, caps_path, settings_file):
             print("using camera settings file as directed by dirlocs file; " + settings_file)
         except:
             settings_file = homedir + "/Pigrow/config/camera_settings.txt"
-            print("camera settings file not mentioned in dirlocs file, using default; " + settings_file)
+            print("camera settings file not found in dirlocs, trying default; " + settings_file)
     else:
         print("Using settings file; " + str(settings_file))
     #Grabbing all the relevent data from the settings file
@@ -78,7 +81,6 @@ def load_camera_settings(loc_dic, caps_path, settings_file):
                     x_dim = val
                 elif s_item[0] == "y_dim":
                     y_dim = val
-           #updated
                 elif s_item[0] == "cam_num":
                     cam_num = val
                 elif s_item[0] == "cam_opt":
@@ -102,27 +104,39 @@ def load_camera_settings(loc_dic, caps_path, settings_file):
         print("but couldn't find config file for camera, so using default values")
         print("  - Run cam_config.py to create one")
         print("     - or edit dirlocs config file to point to the config file.")
-    if cam_opt == '':
-        cam_opt == 'fswebcam'
-#
-#
-#  done to this point
-#
-#
+    if not cam_opt == 'fswebcam' or not cam_opt == 'uvccapture':
+        print("setting cam opt to uvccapture as unspecified")
+        cam_opt = 'uvccapture'
+    #
+    #
+    #  done to this point
+    #
+    #
 
     return (s_val, c_val, g_val, b_val, x_dim, y_dim, cam_num, cam_opt, fsw_extra, uvc_extra, caps_path)
 
 # take and save photo
-def take_with_uvccapture(s_val="20", c_val="20", g_val="20", b_val="20", x_dim=1600, y_dim=1200, cam_num='/dev/video0', uvc_extra="", caps_path="./"):
+def take_with_uvccapture(s_val="", c_val="", g_val="", b_val="", x_dim=1600, y_dim=1200, cam_num='/dev/video0', uvc_extra="", caps_path="./"):
+    #determine time stamped name
     timenow = time.time()
     timenow = str(timenow)[0:10]
     filename= "cap_"+str(timenow)+".jpg"
-    cmd  = "uvccapture -d" + cam_num
-    cmd += " -S" + s_val #saturation
-    cmd += " -C" + c_val #contrast
-    cmd += " -G" + g_val #gain
-    cmd += " -B" + b_val #brightness
-    cmd += " -x" + str(x_dim) + " -y" + str(y_dim)
+    #write command string for taking a photo with uvc
+    cmd = "uvccapture"
+    if not cam_num == "":
+        cmd  += " -d" + cam_num
+    if not s_val == "":
+        cmd += " -S" + s_val #saturation
+    if not c_val == "":
+        cmd += " -C" + c_val #contrast
+    if not g_val == "":
+        cmd += " -G" + g_val #gain
+    if not b_val == "":
+        cmd += " -B" + b_val #brightness
+    if not x_dim == "":
+        cmd += " -x" + str(x_dim)
+    if not y_dim == "":
+        cmd += " -y" + str(y_dim)
     cmd += " " + uvc_extra.strip()
     cmd += " -v -t0" #-v verbose, -t0 take single shot
     cmd += " -o" + caps_path + filename
@@ -166,10 +180,14 @@ def take_with_fswebcam(s_val=None, c_val=None, g_val=None, b_val=None, x_dim=160
 if __name__ == '__main__':
 
     sys.path.append(homedir + '/Pigrow/scripts/')
-    import pigrow_defs
-    #script = 'camcap.py'  #used with logging module
-    loc_locs = homedir + '/Pigrow/config/dirlocs.txt'
-    loc_dic = pigrow_defs.load_locs(loc_locs)
+    try:
+        import pigrow_defs
+        #script = 'camcap.py'  #used with logging module
+        loc_locs = homedir + '/Pigrow/config/dirlocs.txt'
+        loc_dic = pigrow_defs.load_locs(loc_locs)
+    except:
+        print("Pigrow localisation module failed to initilize, unable to load settings")
+
 
     s_val, c_val, g_val, b_val, x_dim, y_dim, cam_num, cam_opt, fsw_extra, uvc_extra, caps_path = load_camera_settings(loc_dic, caps_path, settings_file)
     if cam_opt == "uvccapture":
