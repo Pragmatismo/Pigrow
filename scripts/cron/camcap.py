@@ -19,10 +19,13 @@ for argu in sys.argv[1:]:
         print("     choosing which settings file to use")
         print(" caps=<folder path>")
         print("     choose where to save the captured image")
+        print(" attempts=3")
+        print("     amount of tries before giving up")
         sys.exit(0)
     elif argu == '-flags':
         print("settings_file=" + homedir + "/Pigrow/config/camera_settings.txt")
         print("caps_path=" + homedir + "/Pigrow/caps/")
+        print("attempts=3")
         sys.exit()
     if "=" in argu:
         try:
@@ -32,6 +35,12 @@ for argu in sys.argv[1:]:
                 settings_file = theval
             elif thearg == 'caps_path' or thearg == 'caps':
                 caps_path = theval
+            elif thearg == "attempts" or thearg == "tries":
+                try:
+                    attempts = int(theval)
+                    print("Will try " + str(attempts) + " addional times before giving up")
+                except:
+                    print("Attempts must be a number value, using defailt")
         except:
             print("Didn't undertand " + str(argu))
 
