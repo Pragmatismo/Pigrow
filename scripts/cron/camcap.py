@@ -5,12 +5,13 @@ import sys
 
 homedir = os.getenv("HOME")
 #Setting Blank Variables
+cam_opt = "uvccapture"
 settings_file = None
 caps_path = None
 loc_dic = {}
 
 for argu in sys.argv[1:]:
-    if argu == '-h' or argu == '--help':
+    if argu == '-h' or argu == '--help' or argu == "-help" or argu == "--h":
         print("Pigrow Image Capture Script")
         print("")
         print(" set=<filepath>")
@@ -18,17 +19,47 @@ for argu in sys.argv[1:]:
         print(" caps=<folder path>")
         print("     choose where to save the captured image")
         sys.exit(0)
-    try:
-        thearg = str(argu).split('=')[0]
-        theval = str(argu).split('=')[1]
-        if thearg == 'settings_file' or thearg == 'set':
-            settings_file = theval
-        elif thearg == 'caps_path' or thearg == 'caps':
-            caps_path = theval
-    except:
-        print("Didn't undertand " + str(argu))
+    elif argu == '-flags':
+        print("settings_file=" + homedir + "/Pigrow/config/camera_settings.txt")
+        print("caps_path=" + homedir + "/Pigrow/caps/")
+        sys.exit()
+    if "=" in argu:
+        try:
+            thearg = str(argu).split('=')[0]
+            theval = str(argu).split('=')[1]
+            if thearg == 'settings_file' or thearg == 'set':
+                settings_file = theval
+            elif thearg == 'caps_path' or thearg == 'caps':
+                caps_path = theval
+        except:
+            print("Didn't undertand " + str(argu))
 
-def load_camera_settings(loc_dic, caps_path, settings_file):
+def set_caps_path(loc_dic, caps_path):
+    # Select location to save images
+    #  This would be better if the
+    if caps_path == None:
+        try:
+            caps_path = loc_dic['caps_path']
+        except:
+            caps_path = homedir + '/Pigrow/caps/'
+            if os.path.exists(caps_path):
+                print("Using default folder; " + str(caps_path))
+            else:
+                caps_path = ""
+                print("default path doesn't work, using current directory (sorry)")
+    else:
+        if os.path.exists(caps_path):
+            print("saving to; " + str(caps_path))
+        else:
+            try:
+                os.mkdir(caps_path)
+                print("created caps_path")
+            except Exception as e:
+                print("Couldn't create " + str(caps_path) + " using local folder instead.")
+                caps_path = ""
+    return caps_path
+
+def load_camera_settings(loc_dic, settings_file):
     s_val = ''
     c_val = ''
     g_val = ''
@@ -41,18 +72,8 @@ def load_camera_settings(loc_dic, caps_path, settings_file):
     uvc_extra = ''
     # caps folder path from loc_dic file -annoying for multicam
     #check for caps path in dirlocs if none then tries to set default or finally resorts ot using local folder
-    if caps_path == None:
-        try:
-            caps_path = loc_dic['caps_path']
-        except:
-            caps_path = homedir + '/Pigrow/caps/'
-            if os.path.exists(caps_path):
-                print("Using default folder; " + str(caps_path))
-            else:
-                caps_path = "./"
-                print("default path doesn't work, using current directory (sorry)")
-    else:
-        print("saving to; " + str(caps_path))
+
+
     # finding camera settings file in loc_dic
     if settings_file == None:
         try:
@@ -60,63 +81,60 @@ def load_camera_settings(loc_dic, caps_path, settings_file):
             print("using camera settings file as directed by dirlocs file; " + settings_file)
         except:
             settings_file = homedir + "/Pigrow/config/camera_settings.txt"
-            print("camera settings file not found in dirlocs, trying default; " + settings_file)
+            if os.path.isfile(setting_file):
+                print("camera settings file not found in dirlocs, trying default; " + settings_file)
+            else:
+                print("No local settings file found, using defaults")
+                settings_file = None
     else:
         print("Using settings file; " + str(settings_file))
     #Grabbing all the relevent data from the settings file
-    try:
-        with open(settings_file, "r") as f:
-            for line in f:
-                s_item = line.split("=")
-                val = s_item[1].strip()
-                if s_item[0] == "s_val":
-                    s_val = val
-                elif s_item[0] == "c_val":
-                    c_val = val
-                elif s_item[0] == "g_val":
-                    g_val = val
-                elif s_item[0] == "b_val":
-                    b_val = val
-                elif s_item[0] == "x_dim":
-                    x_dim = val
-                elif s_item[0] == "y_dim":
-                    y_dim = val
-                elif s_item[0] == "cam_num":
-                    cam_num = val
-                elif s_item[0] == "cam_opt":
-                        cam_opt = val
-                elif s_item[0] == "fsw_extra":
-                    try:
-                        fsw_extra = ''                  ##
-                        for cmdv in s_item[1:]:         ##
-                            if not cmdv == '':          ##  this just puts it
-                                fsw_extra += cmdv + "=" ##  back together again
-                        fsw_extra = fsw_extra[:-1]      ##
-                    except:
-                        print("couldn't read fsw extra commands, trying without...")
-                        fsw_extra = ''
-                elif s_item[0] == "uvc_extra":
-                    uvc_extra = s_item[1].strip()
-
-    except Exception as e:
-        print e
-        print("looked at " + settings_file)
-        print("but couldn't find config file for camera, so using default values")
-        print("  - Run cam_config.py to create one")
-        print("     - or edit dirlocs config file to point to the config file.")
-    if not cam_opt == 'fswebcam' or not cam_opt == 'uvccapture':
-        print("setting cam opt to uvccapture as unspecified")
-        cam_opt = 'uvccapture'
-    #
-    #
-    #  done to this point
-    #
-    #
-
-    return (s_val, c_val, g_val, b_val, x_dim, y_dim, cam_num, cam_opt, fsw_extra, uvc_extra, caps_path)
+    if not settings_file == None:
+        try:
+            with open(settings_file, "r") as f:
+                for line in f:
+                    s_item = line.split("=")
+                    val = s_item[1].strip()
+                    if s_item[0] == "s_val":
+                        s_val = val
+                    elif s_item[0] == "c_val":
+                        c_val = val
+                    elif s_item[0] == "g_val":
+                        g_val = val
+                    elif s_item[0] == "b_val":
+                        b_val = val
+                    elif s_item[0] == "x_dim":
+                        x_dim = val
+                    elif s_item[0] == "y_dim":
+                        y_dim = val
+                    elif s_item[0] == "cam_num":
+                        cam_num = val
+                    elif s_item[0] == "cam_opt":
+                            cam_opt = val
+                    elif s_item[0] == "fsw_extra":
+                        try:
+                            fsw_extra = ''                  ##
+                            for cmdv in s_item[1:]:         ##
+                                if not cmdv == '':          ##  this just puts it
+                                    fsw_extra += cmdv + "=" ##  back together again
+                            fsw_extra = fsw_extra[:-1]      ##
+                        except:
+                            print("couldn't read fsw extra commands, trying without...")
+                            fsw_extra = ''
+                    elif s_item[0] == "uvc_extra":
+                        uvc_extra = s_item[1].strip()
+        except Exception as e:
+            print e
+            print("looked at " + settings_file)
+            print("but couldn't find config file for camera, so using default values")
+            print("  - Run cam_config.py to automatically create one")
+        if not cam_opt == 'fswebcam' or not cam_opt == 'uvccapture':
+            print("setting cam opt to uvccapture as unspecified")
+            cam_opt = 'uvccapture'
+    return (s_val, c_val, g_val, b_val, x_dim, y_dim, cam_num, cam_opt, fsw_extra, uvc_extra)
 
 # take and save photo
-def take_with_uvccapture(s_val="", c_val="", g_val="", b_val="", x_dim=1600, y_dim=1200, cam_num='/dev/video0', uvc_extra="", caps_path="./"):
+def take_with_uvccapture(s_val="", c_val="", g_val="", b_val="", x_dim=100000, y_dim=100000, cam_num='/dev/video0', uvc_extra="", caps_path=""):
     #determine time stamped name
     timenow = time.time()
     timenow = str(timenow)[0:10]
@@ -147,7 +165,7 @@ def take_with_uvccapture(s_val="", c_val="", g_val="", b_val="", x_dim=1600, y_d
     print("Image taken and saved to "+caps_path+filename)
     return filename
 
-def take_with_fswebcam(s_val=None, c_val=None, g_val=None, b_val=None, x_dim=1600, y_dim=1200, cam_num='/dev/video0', fsw_extra='', caps_path="./"):
+def take_with_fswebcam(s_val="", c_val="", g_val="", b_val="", x_dim=100000, y_dim=100000, cam_num='/dev/video0', fsw_extra='', caps_path=""):
     focus_val = "10"
     timenow = time.time()
     timenow = str(timenow)[0:10]
@@ -177,8 +195,9 @@ def take_with_fswebcam(s_val=None, c_val=None, g_val=None, b_val=None, x_dim=160
     print("Image taken and saved to " + caps_path + filename)
     return filename
 
+# main program
 if __name__ == '__main__':
-
+    #when running as a script import pigrow_defs and find file path info
     sys.path.append(homedir + '/Pigrow/scripts/')
     try:
         import pigrow_defs
@@ -187,9 +206,14 @@ if __name__ == '__main__':
         loc_dic = pigrow_defs.load_locs(loc_locs)
     except:
         print("Pigrow localisation module failed to initilize, unable to load settings")
+    #load setting from settings file
+    if not settings_file == None:
+        s_val, c_val, g_val, b_val, x_dim, y_dim, cam_num, cam_opt, fsw_extra, uvc_extra, = load_camera_settings(loc_dic, settings_file)
+    else:
+        s_val, c_val, g_val, b_val, x_dim, y_dim, cam_num, cam_opt, fsw_extra, uvc_extra, = "", "", "", "", "100000", "100000", "", "uvccapture", "", ""
 
-
-    s_val, c_val, g_val, b_val, x_dim, y_dim, cam_num, cam_opt, fsw_extra, uvc_extra, caps_path = load_camera_settings(loc_dic, caps_path, settings_file)
+    caps_path = set_caps_path(loc_dic, caps_path)
+    #Taking the photo with the selected camera program
     if cam_opt == "uvccapture":
         filename = take_with_uvccapture(s_val, c_val, g_val, b_val, x_dim, y_dim, cam_num, uvc_extra, caps_path)
     elif cam_opt ==  "fswebcam":
