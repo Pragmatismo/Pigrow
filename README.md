@@ -1,9 +1,9 @@
 # Pigrow
 Raspberry Pi Grow Box Control Software
 
-The Pigrow is an automation devices designed to help gardeners monitor, log, graph and controll their grow space using a raspberry Pi, a DHT22 sensor and a few relay modules. All software, designs and content is shared with open-source licences, it's free to make and cheap to buy.
+The Pigrow is an automation devices designed to help gardeners monitor, log, graph and control their grow space using a raspberry Pi, a DHT22 sensor and a few relay modules. All software, designs and content are shared with open-source licenses, it's free to make and cheap to buy.
 
-For more information vist;
+For more information visit;
 
      https://www.patreon.com/Pigrow2
 
@@ -11,11 +11,11 @@ For more information vist;
 
 #Work in Progress
 
-The Pigrow is currently undergoing development and a full and stable release is due soon, but when soon is who knows... In the meantime the pigrow is fully working and in use on serveral boxes all giving great results. The timelapse feature, automatic controll and logging of devices and etc have all been well tested however the conguration can be complex and confusing at times. The remote gui is the current priority this will make the whole process very simple. 
+The Pigrow is currently undergoing development and a full and stable release is due soon, but when soon is who knows... In the meantime, the pigrow is fully working and in use on several boxes all giving great results. The timelapse feature, automatic control and logging of devices and etc have all been well tested however the configuration can be complex and confusing at times. The remote gui is the current priority as this will make the whole process very simple. 
 
 #How to Pigrow...
 
-First you need the hardwarre, follow the buildguide available on the www.reddit.com/r/Pigrow/wiki/index for the most recent instructions. 
+First you need the hardware, follow the build guide available on the www.reddit.com/r/Pigrow/wiki/index for the most recent instructions. 
 
 When you have a working raspberry pi connected to your network and the appropriate sensors and relays you can either use the GUI [work in progress] or connect to the pi via an SSH command line terminal or with the pi plugged into a screen, keyboard and mouse.
 
@@ -32,7 +32,7 @@ this will copy all the files into /home/pi/Pigrow, now run the setup program
     cd Pigrow/scripts/config
     ./setup.py
     
-this opens a text menu offering a number of options, the first is install dependences slect it by typeing 1 and pressing return, this will download and install all the resources and dependences for the Pigrow, it may take a while. 
+this opens a text menu offering a number of options, the first is install dependences select it by typing 1 and pressing return, this will download and install all the resources and dependences for the Pigrow, it may take a while. 
 
 Your Pigrow is now ready for use. 
 
@@ -42,9 +42,9 @@ run the webcam config script found in the /Pigrow/scripts/config/ folder and fol
 
 run setup.py and select cron run scripts, then select repeating scripts and follow the prompts to choose the camera capture script and repeat rate of your choice -- at the moment your best choice is probably camcap.py every five min. 
   
-once this is set your pi will start taking images every N amount of time, this will keep happening even if you restart your pi so to stop it you need to come back into setup.py and remove the cronjob which triggers the camera, this can also be done via the reddit messsage-control script and soon the remote gui.  
+once this is set your pi will start taking images every N amount of time, this will keep happening even if you restart your pi so to stop it you need to come back into setup.py and remove the cron job which triggers the camera, this can also be done via the reddit message-control script and soon the remote gui.  
   
-From the pi you can run Pigrow/scripts/visulaisation/timelapse_assemble.py to construct a timelapse, run the script with the flag -h to get a full list of command line options and some useage instructions. This script can also be run from a linux machine with MPV installed when the files have been downloaded manually or they can be automatically downloaded using the remote gui and the timelapse made using that [work in progress] 
+From the pi you can run Pigrow/scripts/visulaisation/timelapse_assemble.py to construct a timelapse, run the script with the flag -h to get a full list of command line options and some usage instructions. This script can also be run from a linux machine with MPV installed when the files have been downloaded manually or they can be automatically downloaded using the remote gui and the timelapse made using that [work in progress] 
 
 #Everything else
 
@@ -55,7 +55,7 @@ should be fairly obvious or isn't yet finished, any questions message me on the 
 #old and wrong stuff
 
 
-The folloeing is out of date but sections of it may still be useful,
+The following is out of date but sections of it may still be useful,
 
 ----------
 
@@ -90,7 +90,7 @@ This turns the lamp on at ten am and off at ten pm. Try not to turn on fans and 
                     - heat_on / off - for manual timing of heat
                     - dehumi_on / off - for manual timing of dehumidifier
 
-These scripts are run preiodically as with the camera scripts to check the health of the pi or it's friend, you can check many pi's by calling the script many times.
+These scripts are run periodically as with the camera scripts to check the health of the pi or it's friend, you can check many pi's by calling the script many times.
 
         Sanity Check -
                      - self_awareness - sensor log, camera, health check
@@ -149,7 +149,7 @@ This is some init.d business i'll be back to explain once the script is uploaded
             mkdir /home/pi/Pigrow/graphs
             mkdir /home/pi/cam_caps
 
-#to set timed events useibg cron (the semi-manual way)
+#to set timed events using cron (the semi-manual way)
 
      crontab -e
 
