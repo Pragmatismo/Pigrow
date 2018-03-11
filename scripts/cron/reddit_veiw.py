@@ -49,8 +49,11 @@ def load_settings(loc_locs):
     graph_path = loc_dic['graph_path']
     caps_path = loc_dic['caps_path']
     if 'loc_dht_log' in loc_dic:
-        loc_switchlog = loc_dic['loc_dht_log']
+        loc_dht_log = loc_dic['loc_dht_log']
+    else:
+        print("!! DHT log not found !!")
     return loc_dic, set_dic, graph_path, caps_path, loc_dht_log
+
 
 loc_dic, set_dic, graph_path, caps_path, loc_dht_log = load_settings(loc_locs)
 
