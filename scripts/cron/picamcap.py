@@ -7,9 +7,11 @@ except:
     print("Picamera is not installed, is this even a raspberry pi?!")
     exit()
 
+homedir = os.getenv("HOME")
+
 for argu in sys.argv[1:]:
     if argu == '-h' or argu == '--help':
-        print(" picam capture script")
+        print(" Picam capture script")
         print(" ")
         print(" this will be rewritten soon - you might need to manually edit the python code to make it do what you want")
         print("")
@@ -25,7 +27,10 @@ def load_picam_set(setloc= homedir + "/Pigrow/config/picam_settings.txt"):
     return picam_dic
 
 def take_picam_py(picam_dic, caps_path):
+    #
     # take and save photo
+    #
+    #get current time and set filename
     timenow = str(time.time())[0:10]
     filename= "cap_"+str(timenow)+".jpg"
     try:
