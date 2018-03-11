@@ -14,7 +14,7 @@ caps_path = None     # this likewise gets turned into a string containing the ou
                      # the program tries to locate or guess what they should be
 loc_dic = {}         # the blank location dictionary which contains settings file into and etc
 attempts = 3         # number of extra attempts if image fails 0-999
-retry_delay = 2      #time in seconds to wait before trying to take another image when failed 
+retry_delay = 2      #time in seconds to wait before trying to take another image when failed
 log_error = True     # set to False if you don't want to note failure in the error log.
 
 #
@@ -287,14 +287,14 @@ if __name__ == '__main__':
         print("Error: Image file not found")
         # If trying more than once
         if attempts > 1:
-            for attempt in range(0,attempts):
+            for attempt in range(1,attempts+1):
                 time.sleep(retry_delay)
                 if not os.path.isfile(caps_path + filename):
                     print("-- Trying attempt " + str(attempt) + " of " + str(attempts))
                     if cam_opt == "uvccapture":
                         filename = take_with_uvccapture(s_val, c_val, g_val, b_val, x_dim, y_dim, cam_num, uvc_extra, caps_path)
                         if os.path.isfile(caps_path + filename):
-                            print("Done on attempt " + str(attempt))
+                            print("Done on extra attempt " + str(attempt))
                             sys.exit()
                     elif cam_opt ==  "fswebcam":
                         filename = take_with_fswebcam(s_val, c_val, g_val, b_val, x_dim, y_dim, cam_num, fsw_extra, caps_path)
