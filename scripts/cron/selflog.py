@@ -2,6 +2,7 @@
 import datetime, time
 import os, sys
 from subprocess import check_output
+homedir = os.getenv("HOME")
 sys.path.append(homedir + '/Pigrow/scripts/')
 import pigrow_defs
 script = 'selflog.py'
