@@ -66,10 +66,16 @@ def log_pixel_values(logpath, r_sum, g_sum, b_sum, tot_sum, image_to_process):
         f.write(line)
     print("Log written; " + str(logpath))
 
-#if user didn't sepesify a file to ues select most recent from caps folder
-if image_to_process == None:
-    image_to_process = find_most_recent(cappath)
-#collect pixel values for the image
-r,g,b,t = get_pixel_values(image_to_process)
-#save into log file
-log_pixel_values(logpath, r,g,b,t, image_to_process)
+
+
+#
+# main program which runs unless we've imported this as a module via another script
+#
+if __name__ == '__main__':
+    #if user didn't sepesify a file to ues select most recent from caps folder
+    if image_to_process == None:
+        image_to_process = find_most_recent(cappath)
+    #collect pixel values for the image
+    r,g,b,t = get_pixel_values(image_to_process)
+    #save into log file
+    log_pixel_values(logpath, r,g,b,t, image_to_process)
