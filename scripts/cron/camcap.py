@@ -14,6 +14,7 @@ caps_path = None     # this likewise gets turned into a string containing the ou
                      # the program tries to locate or guess what they should be
 loc_dic = {}         # the blank location dictionary which contains settings file into and etc
 attempts = 3         # number of extra attempts if image fails 0-999
+retry_delay = 2      #time in seconds to wait before trying to take another image when failed 
 log_error = True     # set to False if you don't want to note failure in the error log.
 
 #
@@ -287,6 +288,7 @@ if __name__ == '__main__':
         # If trying more than once
         if attempts > 1:
             for attempt in range(0,attempts):
+                time.sleep(retry_delay)
                 if not os.path.isfile(caps_path + filename):
                     print("-- Trying attempt " + str(attempt) + " of " + str(attempts))
                     if cam_opt == "uvccapture":
