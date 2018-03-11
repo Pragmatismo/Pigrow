@@ -14,7 +14,7 @@ except:
     print("make sure pigrow software is installed correctly")
 
 #
-# Default locations      
+# Default locations
 loc_locs = homedir + '/Pigrow/config/dirlocs.txt'
 #sizes
 photo_basewidth = 600
@@ -75,10 +75,10 @@ def load_reddit_login(loc_dic):
     except:
         print("REDDIT SETTINGS NOT SET - EDIT THE FILE " + str(loc_locs))
         raise
-    return my_client_id, my_client_secret, my_username, my_password, subreddit, live_wiki_title
+    return my_user_agent, my_client_id, my_client_secret, my_username, my_password, subreddit, live_wiki_title
 
 loc_dic, set_dic, graph_path, caps_path, loc_dht_log, err_log = load_settings(loc_locs)
-my_client_id, my_client_secret, my_username, my_password, subreddit, live_wiki_title = load_reddit_login(loc_dic)
+my_user_agent, my_client_id, my_client_secret, my_username, my_password, subreddit, live_wiki_title = load_reddit_login(loc_dic)
 
 #
 #
