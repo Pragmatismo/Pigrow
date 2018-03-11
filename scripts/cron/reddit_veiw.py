@@ -6,16 +6,20 @@ import sys
 from PIL import Image, ImageDraw, ImageFont
 homedir = os.getenv("HOME")
 sys.path.append(homedir + '/Pigrow/scripts/')
-import pigrow_defs
-script = 'selflog_graph.py'
+try:
+    import pigrow_defs
+    script = 'selflog_graph.py'
+except:
+    print("pigrow_defs not found, trying to survive without...")
+    print("make sure pigrow software is installed correctly")
+
+#
+# Default locations      
 loc_locs = homedir + '/Pigrow/config/dirlocs.txt'
-
-
 #sizes
 photo_basewidth = 600
 graph_basewidth = 400
 
-#print(" if you're me -    python update_reddit.py loc_locs=/home/pragmo/pigitgrow/Pigrow/config/dirlocs.txt ")
 #
 # Command line arguments
 #
@@ -52,26 +56,33 @@ def load_settings(loc_locs):
         loc_dht_log = loc_dic['loc_dht_log']
     else:
         print("!! DHT log not found !!")
-    return loc_dic, set_dic, graph_path, caps_path, loc_dht_log
 
+    if 'err_log' in loc_dic:
+        err_log = loc_dic['err_log']
+    else:
+        err_log = 'emergency_error_log.txt'
+    return loc_dic, set_dic, graph_path, caps_path, loc_dht_log, err_log
 
-loc_dic, set_dic, graph_path, caps_path, loc_dht_log = load_settings(loc_locs)
+def load_reddit_login(loc_dic):
+    my_user_agent= 'Pigrow Periodic Wiki Updater V0.8 (by /u/The3rdWorld)'
+    try:
+        my_client_id = loc_dic['my_client_id']
+        my_client_secret = loc_dic['my_client_secret']
+        my_username = loc_dic['my_username']
+        my_password = loc_dic['my_password']
+        subreddit = loc_dic["subreddit"]
+        live_wiki_title = loc_dic['live_wiki_title']
+    except:
+        print("REDDIT SETTINGS NOT SET - EDIT THE FILE " + str(loc_locs))
+        raise
+    return my_client_id, my_client_secret, my_username, my_password, subreddit, live_wiki_title
 
-if 'loc_settings' in loc_dic: loc_settings = loc_dic['loc_settings']
-if 'err_log' in loc_dic: err_log = loc_dic['err_log']
-my_user_agent= 'Pigrow Periodic Wiki Updater V0.8 (by /u/The3rdWorld)'
-try:
-    my_client_id = loc_dic['my_client_id']
-    my_client_secret = loc_dic['my_client_secret']
-    my_username = loc_dic['my_username']
-    my_password = loc_dic['my_password']
-    subreddit = loc_dic["subreddit"]
-    live_wiki_title = loc_dic['live_wiki_title']
-except:
-    print("REDDIT SETTINGS NOT SET - EDIT THE FILE " + str(loc_locs))
-    raise
+loc_dic, set_dic, graph_path, caps_path, loc_dht_log, err_log = load_settings(loc_locs)
+my_client_id, my_client_secret, my_username, my_password, subreddit, live_wiki_title = load_reddit_login(loc_dic)
 
-
+#
+#
+#
 print("")
 print("        #############################################")
 print("      ##       Automatic Reddit Grow Info Updater    ##")
