@@ -4,6 +4,7 @@ import praw           #pip install praw
 import os
 import sys
 from PIL import Image, ImageDraw, ImageFont
+homedir = os.getenv("HOME")
 sys.path.append(homedir + '/Pigrow/scripts/')
 import pigrow_defs
 script = 'selflog_graph.py'
@@ -15,34 +16,47 @@ photo_basewidth = 600
 graph_basewidth = 400
 
 #print(" if you're me -    python update_reddit.py loc_locs=/home/pragmo/pigitgrow/Pigrow/config/dirlocs.txt ")
+#
+# Command line arguments
+#
 for argu in sys.argv:
     if argu == '-h' or argu == '--help':
         print(" Reddit Live View Update script")
         print(" ")
-        print("This updates the reddit wiki with the most recent caps image, graphs")
-        print("and any other images in the graphs folder")
+        print("This updates the reddit wiki with the most recent caps image,")
+        print("plus al graphs and any other images in the graphs folder")
         print("")
         print("this script is best run at the end of a sh file which first")
         print("runs each graph making program in turn")
         print("")
         print(" this script is due a minor update, command line arguments coming soon")
         sys.exit(0)
+    elif argu == "-flags":
+        print("path_dirloc=" + str(loc_locs))
+        sys.exit(0)
+    elif "=" in argu:
+        thearg = str(argu).split('=')[0]
+        theval = str(argu).split('=')[1]
+        if thearg == 'loc_locs' or thearg == "path_dirloc":
+            loc_locs = theval
 
-    thearg = str(argu).split('=')[0]
-    if thearg == 'loc_locs':
-        loc_locs = str(argu).split('=')[1]
-        #print("\n\n LOCS LOGS = " + str(loc_locs) + "'\n\n")
+#
+# load location information and reddir log in details
+#
+def load_settings(loc_locs):
+    loc_dic = pigrow_defs.load_locs(loc_locs)
+    set_dic = pigrow_defs.load_settings(loc_dic['loc_settings'])
+    graph_path = loc_dic['graph_path']
+    caps_path = loc_dic['caps_path']
+    if 'loc_dht_log' in loc_dic:
+        loc_switchlog = loc_dic['loc_dht_log']
+    return loc_dic, set_dic, graph_path, caps_path, loc_dht_log
 
-loc_dic = pigrow_defs.load_locs(loc_locs)
-set_dic = pigrow_defs.load_settings(loc_dic['loc_settings'])
-graph_path = loc_dic['graph_path']
-caps_path = loc_dic['caps_path']
-loc_dht_log = loc_dic['loc_dht_log']
+loc_dic, set_dic, graph_path, caps_path, loc_dht_log = load_settings(loc_locs)
 
-if 'loc_dht_log' in loc_dic: loc_switchlog = loc_dic['loc_dht_log']
 if 'loc_settings' in loc_dic: loc_settings = loc_dic['loc_settings']
 if 'err_log' in loc_dic: err_log = loc_dic['err_log']
-my_user_agent= 'Pigrow updater tester thing V0.7 (by /u/The3rdWorld)'
+my_user_agent= 'Pigrow Periodic Wiki Updater V0.8 (by /u/The3rdWorld)'
 try:
     my_client_id = loc_dic['my_client_id']
     my_client_secret = loc_dic['my_client_secret']
@@ -54,11 +68,11 @@ except:
     print("REDDIT SETTINGS NOT SET - EDIT THE FILE " + str(loc_locs))
     raise
 
+
 print("")
 print("        #############################################")
 print("      ##       Automatic Reddit Grow Info Updater    ##")
 print("")
-#print reddit.read_only
 
 
 print("logging in")
