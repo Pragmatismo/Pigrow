@@ -5,7 +5,7 @@ The Pigrow is an automation devices designed to help gardeners monitor, log, gra
 
 For more information visit;
 
-     https://www.patreon.com/Pigrow2
+     https://www.patreon.com/Pigrow
 
      https://www.reddit.com/r/Pigrow/
 
