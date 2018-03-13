@@ -17,13 +17,14 @@ except:
 log_path = homedir + "/Pigrow/logs/dstemp_log.txt"
 
 for argu in sys.argv[1:]:
-    thearg = str(argu).split('=')[0]
-    thevalue = str(argu).split('=')[1]
-    if  thearg == 'sp' or thearg == 'sensor_path':
-        sensor_path = thevalue
-    elif thearg == 'log' or thearg == 'log_path':
-        log_path = thevalue
-    elif thearg == 'help' or thearg == '-h' or thearg == '--help':
+    if "=" in argu:
+        thearg = str(argu).split('=')[0]
+        thevalue = str(argu).split('=')[1]
+        if  thearg == 'sp' or thearg == 'sensor_path':
+            sensor_path = thevalue
+        elif thearg == 'log' or thearg == 'log_path':
+            log_path = thevalue
+    elif argu == 'help' or argu == '-h' or argu == '--help':
         print(" Script for logging one wire temperature sensor ")
         print(" ")
         print(" You will need to have one wire support enabled")
@@ -40,7 +41,11 @@ for argu in sys.argv[1:]:
         print(" --You will need 1 wire support enabled on the pi")
         print("  ")
         print("")
-        exit()
+        sys.exit()
+    elif argu == "-flags":
+        print("sensor_path=/sys/bus/w1/devices/SENSORNUMBER/w1_slave")
+        print("log_path=" + str(log_path))
+        sys.exit()
 
 
 def read_temp_sensor(sensor):
