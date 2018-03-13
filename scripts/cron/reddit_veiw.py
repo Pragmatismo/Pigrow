@@ -11,8 +11,9 @@ try:
     import pigrow_defs
     script = 'selflog_graph.py'
 except:
-    print("pigrow_defs not found, trying to survive without...")
+    print("pigrow_defs not found, can't survive without...")
     print("make sure pigrow software is installed correctly")
+    sys.exit()
 #
 #       This script is designed to be either periodically called by cron
 #       or triggered from a remote interface, especially the reddit ear listener
@@ -72,7 +73,6 @@ def load_settings(loc_locs):
         loc_dht_log = loc_dic['loc_dht_log']
     else:
         print("!! DHT log not found !!")
-
     if 'err_log' in loc_dic:
         err_log = loc_dic['err_log']
     else:
