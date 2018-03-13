@@ -30,23 +30,34 @@ except Exception as e:
     log_path = homedir + "/Pigrow/logs/soilmoistD_log.txt"
 
 for argu in sys.argv[1:]:
-    thearg = str(argu).split('=')[0]
-    thevalue = str(argu).split('=')[1]
-    if  thearg == 'pin' or thearg == 'gpio':
-        try:
-            gpio_pin = thevalue.split(',')
-            gpio_pin_list = []
-            for pin in gpio_pin:
-                gpio_pin_list.append(str(pin))
-        except:
-            print(" !!!")
-            print("    Couldn't understand gpio pin list")
-            print(" !!!")
-            exit()
-    elif thearg == 'log' or thearg == 'log_path':
-        log_path = thevalue
+    if "=" in argu:
+        thearg = str(argu).split('=')[0]
+        thevalue = str(argu).split('=')[1]
+        if  thearg == 'pin' or thearg == 'gpio' or thearg == 'gpio_pin':
+            try:
+                gpio_pin = thevalue.split(',')
+                gpio_pin_list = []
+                for pin in gpio_pin:
+                    gpio_pin_list.append(str(pin))
+            except:
+                print(" !!!")
+                print("    Couldn't understand gpio pin list")
+                print(" !!!")
+                sys.exit()
+        elif thearg == 'log' or thearg == 'log_path':
+            log_path = thevalue
     elif thearg == 'help' or thearg == '-h' or thearg == '--help':
         print(" Script for logging LM393 Soil Moisture sensor ")
+        print("    This script logs the state of a gpio pin set to input")
+        print("    this can be used for logging a lm393smd soil moisture sensor")
+        print("    set to digital mode, to use them in a much more useful analogue")
+        print("    mode connect them through a ads1115 analogue to digital converter")
+        print("    which can be logged and graphed in a similar fashion.")
+        print(" ")
+        print("    This script will also log other binary sensors and controls")
+        print("    anything which is either a High or Low signal, threashold")
+        print("    sensors and buttons are most likely to work.")
+        print("")
         print(" ")
         print(" pin=NUM    - gpio pin to sensor data pin")
         print(" ")
@@ -55,8 +66,14 @@ for argu in sys.argv[1:]:
         print(" The script reads from the DIGITAL pin and records")
         print(" only a 1 or 0 value, set the range using the screw")
         print(" on the potentiometer.")
-        exit()
+        sys.exit()
+    elif thearg == "-flags":
+        print("gpio_pin=1,2,18")
+        print("log_path=" + str(log_path))
+        sys.exit()
 
+print("  === == =   DIGITAL soil sensor logger  = == ===")
+print("      =======================================")
 print("GPIO pin list; " + str(gpio_pin_list))
 print("log path : " + str(log_path))
 

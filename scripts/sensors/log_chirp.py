@@ -10,11 +10,12 @@ log_path = homedir + "/Pigrow/logs/chirp_log.txt"
 chirp_address = 0x20
 
 for argu in sys.argv[1:]:
-    thearg = str(argu).split('=')[0]
-    thevalue = str(argu).split('=')[1]
-    if thearg == 'log' or thearg == 'log_path':
-        log_path = thevalue
-    elif thearg == 'help' or thearg == '-h' or thearg == '--help':
+    if "=" in argu:
+        thearg = str(argu).split('=')[0]
+        thevalue = str(argu).split('=')[1]
+        if thearg == 'log' or thearg == 'log_path':
+            log_path = thevalue
+    elif argu == 'help' or argu == '-h' or argu == '--help':
         print(" Script for logging the Chirp Soil Moisture Sensor")
         print("     This script uses the Adafruit_GPIO i2c interface")
         print(" ")
@@ -25,7 +26,10 @@ for argu in sys.argv[1:]:
         print("      - path to write the log")
         print("")
         print("")
-        exit()
+        sys.exit(0)
+    elif argu == "-flags":
+        print("log=" + str(log_path))
+        sys.exit(0)   
 
 def read_chirp_sensor(chirp_address):
     chirp = I2C.get_i2c_device(chirp_address)

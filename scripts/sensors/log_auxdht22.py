@@ -8,13 +8,14 @@ sensor_gpio = None
 log_path = homedir + "/Pigrow/logs/auxdht22_log.txt"
 
 for argu in sys.argv[1:]:
-    thearg = str(argu).split('=')[0]
-    thevalue = str(argu).split('=')[1]
-    if  thearg == 'gpio':
-        sensor_gpio = thevalue
-    elif thearg == 'log' or thearg == 'log_path':
-        log_path = thevalue
-    elif thearg == 'help' or thearg == '-h' or thearg == '--help':
+    if "=" in argu:
+        thearg = str(argu).split('=')[0]
+        thevalue = str(argu).split('=')[1]
+        if  thearg == 'gpio':
+            sensor_gpio = thevalue
+        elif thearg == 'log' or thearg == 'log_path':
+            log_path = thevalue
+    elif argu == 'help' or argu == '-h' or argu == '--help':
         print(" Script for logging extra dht22 sensors ")
         print(" ")
         print(" gpio=[number]")
@@ -24,6 +25,10 @@ for argu in sys.argv[1:]:
         print("      - path to write the log")
         print("")
         print("")
+        sys.exit(0)
+    elif argu == "-flags":
+        print("gpio=")
+        print("log=" + str(log_path))
         sys.exit(0)
 
 
