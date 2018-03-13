@@ -1,7 +1,7 @@
 from pexpect import pxssh
 import time
 import datetime
-import os
+import os, sys
 print("----------------------------------")
 print("------Data Logger Pi-Monitor------")
 #print ("time on this computer is now: " + str(datetime.datetime.now()))
@@ -38,16 +38,23 @@ for argu in sys.argv[1:]:
         logpath = str(argu).split('=')[1]
 
 pi_list = []
-with open(loc_pi_list, "r") as f:
-    pi_settings = f.read()
-    pi_settings = pi_settings.split("\n")
-    for line in pi_settings[0:-1]:
-        line = line.split(">")
-        hostname = (line[0].split("="))[1]
-        username = (line[1].split("="))[1]
-        password = (line[2].split("="))[1]
-        pi_list.append([hostname, username, password])
-        print hostname
+try:
+    with open(loc_pi_list, "r") as f:
+        pi_settings = f.read()
+        pi_settings = pi_settings.split("\n")
+        for line in pi_settings[0:-1]:
+            line = line.split(">")
+            hostname = (line[0].split("="))[1]
+            username = (line[1].split("="))[1]
+            password = (line[2].split("="))[1]
+            pi_list.append([hostname, username, password])
+            print ("adding;" + hostname)
+except:
+    print("Failed as no pigrow list, create a file called")
+    print("  " + homedir+path+"config/pi_list.txt")
+    print("and list pigrows in following format;")
+    print("hostname=192.168.0.3>username=Raspberry>password=pi")
+    print("one pigrow per line.")
 
 def save_log(pi):
     print("")
@@ -128,8 +135,8 @@ def log_into_pi(pi):
             s.login (hostname, username, password)
             print("Connected to " + hostname + " ready to interrogate it...")
             connected = True
-        except:
-            print("exception: ... will try again,")
+        except Exception as e:
+            print("exception: " + str(e) + " ... will try again,")
             counter_log += 1
             time.sleep(10)
             print("trying again...")
