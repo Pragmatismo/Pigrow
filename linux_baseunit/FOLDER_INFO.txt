@@ -1,0 +1,9 @@
+This folder is mostly for test scripts and demo display stuff. 
+Mostly they're designed for a special use or to test a feature
+you can probably get them to work on your system if you have a
+poke around the code and change some paths, though none are
+very interesting to be honest - though the background changer
+one was really cool when i had it running on my pi3 powered
+projector.   
+
+It's probably best to ignore this folder to be honest.
