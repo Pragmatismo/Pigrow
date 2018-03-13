@@ -16,7 +16,6 @@ heat_use_fan   = True
 hum_use_fan  = False
 dehum_use_fan  = False
 
-
 script = 'chechDHT.py'
 import os
 import sys
@@ -33,48 +32,49 @@ set_dic = pigrow_defs.load_settings(loc_dic['loc_settings'], err_log=loc_dic['er
 #print set_dic
 
 for argu in sys.argv[1:]:
-    thearg = str(argu).split('=')[0]
-    thevalue = str(argu).split('=')[1]
-    if  thearg == 'log_time' or thearg == 'delay':
-        sensor_path = int(thevalue)
-    elif thearg == 'log_non':
-        if thevalue.lower() == 'true' or thevalue == '0':
-            log_non = True
-        else:
-            log_non = False
-    elif thearg == 'use_heat':
-        if thevalue.lower() == 'true' or thevalue == '0':
-            use_heat = True
-        else:
-            use_heat = False
-    elif thearg == 'use_humid':
-        if thevalue.lower() == 'true' or thevalue == '0':
-            use_humid = True
-        else:
-            use_humid = False
-    elif thearg == 'use_dehumid':
-        if thevalue.lower() == 'true' or thevalue == '0':
-            use_dehumid = True
-        else:
-            use_dehumid = False
-    elif thearg == 'usefan':
-        if thevalue.lower() == 'heat':
-            heat_use_fan = True
-            hum_use_fan  = False
-            dehum_use_fan  = False
-        elif thevalue.lower() == 'hum' or thevalue.lower() == 'humid':
-            heat_use_fan = False
-            hum_use_fan  = True
-            dehum_use_fan  = False
-        elif thevalue.lower() == 'dehum' or thevalue.lower() == 'dehumid':
-            heat_use_fan = False
-            hum_use_fan  = False
-            dehum_use_fan  = True
-        elif thevalue.lower() == 'none':
-            heat_use_fan = False
-            hum_use_fan  = False
-            dehum_use_fan  = False
-    elif thearg == '-h' or 'help' in thearg:
+    if '=' in argu:
+        thearg = str(argu).split('=')[0]
+        thevalue = str(argu).split('=')[1]
+        if  thearg == 'log_time' or thearg == 'delay':
+            sensor_path = int(thevalue)
+        elif thearg == 'log_non':
+            if thevalue.lower() == 'true' or thevalue == '0':
+                log_non = True
+            else:
+                log_non = False
+        elif thearg == 'use_heat':
+            if thevalue.lower() == 'true' or thevalue == '0':
+                use_heat = True
+            else:
+                use_heat = False
+        elif thearg == 'use_humid':
+            if thevalue.lower() == 'true' or thevalue == '0':
+                use_humid = True
+            else:
+                use_humid = False
+        elif thearg == 'use_dehumid':
+            if thevalue.lower() == 'true' or thevalue == '0':
+                use_dehumid = True
+            else:
+                use_dehumid = False
+        elif thearg == 'usefan':
+            if thevalue.lower() == 'heat':
+                heat_use_fan = True
+                hum_use_fan  = False
+                dehum_use_fan  = False
+            elif thevalue.lower() == 'hum' or thevalue.lower() == 'humid':
+                heat_use_fan = False
+                hum_use_fan  = True
+                dehum_use_fan  = False
+            elif thevalue.lower() == 'dehum' or thevalue.lower() == 'dehumid':
+                heat_use_fan = False
+                hum_use_fan  = False
+                dehum_use_fan  = True
+            elif thevalue.lower() == 'none':
+                heat_use_fan = False
+                hum_use_fan  = False
+                dehum_use_fan  = False
+    elif argu == '-h' or 'help' in argu:
         print("")
         print("  Pigrow DHT log and control loop")
         print(" ")
@@ -95,9 +95,15 @@ for argu in sys.argv[1:]:
         print("       =humid               -humid controls fan")
         print("       =dehumid             -dehumid controls fan")
         print("       =none                -fan is ignored by all")
-        exit()
-
-
+        sys.exit()
+    elif argu == '-flags':
+        print("log_time=60")
+        print("log_non=[true,false]")
+        print("use_heat=[true,false]")
+        print("use_humid=[true,false]")
+        print("use_dehumid=[true,false]")
+        print("usefan=[heat,humid,dehumid,none]")
+        sys.exit()
 
 def read_and_log(loc_dic):
     try:
@@ -194,8 +200,6 @@ def dehumid_control(humid,use_fans=False):
         dehumid_off.dehumid_off(set_dic, loc_dic['loc_switchlog'])
         if use_fans == True:
             fans_on.fans_on(set_dic, loc_dic['loc_switchlog'])
-
-
 
 dehumid_state = 'unknown'
 humid_state = 'unknown'
