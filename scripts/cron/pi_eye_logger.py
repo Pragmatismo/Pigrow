@@ -6,18 +6,21 @@ print("----------------------------------")
 print("------Data Logger Pi-Monitor------")
 #print ("time on this computer is now: " + str(datetime.datetime.now()))
 print("")
-homedir = os.getenv("HOME")
-#user_name = "magimo"
-path = "/Pigrow/" #from user directory
-try:
-    user_name = str(os.getlogin()) #hash out when running from cron or whatever...
-except:
-    user_name = "pi"
 
-loc_pi_list = homedir+path+"config/pi_list.txt"
+homedir = os.getenv("HOME")
+path = homedir + "/Pigrow/" #from user directory
+loc_pi_list = path + "config/pi_list.txt"
+log_loc = path + "logs/"
 
 for argu in sys.argv[1:]:
-    if argu == '-h' or argu == '--help':
+    if "=" in argu:
+        thearg = str(argu).split('=')[0]
+        theval = str(argu).split('=')[1]
+        if thearg == 'pilist' or thearg == "pi_list_location":
+            loc_pi_list = theval
+        elif thearg == 'log' or thearg == 'log_path':
+            logpath = theval
+    elif argu == '-h' or argu == '--help':
         print(" script to log other pigrows health ")
         print("  requires a config file with a list of pigrows in")
         print("  each line should look like")
@@ -28,14 +31,10 @@ for argu in sys.argv[1:]:
         print("")
         print(" -- this script is due an update, don't expect perfection --")
         sys.exit(0)
-    try:
-        thearg = str(argu).split('=')[0]
-    except:
-        thearg = str(argu)
-    if thearg == 'pilist':
-        loc_pi_list = str(argu).split('=')[1]
-    elif thearg == 'l' or thearg == 'log':
-        logpath = str(argu).split('=')[1]
+    elif argu == "-flags":
+        print("pi_list_location=" + loc_pi_list)
+        print("log_path=" + logpath)
+        sys.exit()
 
 pi_list = []
 try:
@@ -51,7 +50,7 @@ try:
             print ("adding;" + hostname)
 except:
     print("Failed as no pigrow list, create a file called")
-    print("  " + homedir+path+"config/pi_list.txt")
+    print("  " + path + "config/pi_list.txt")
     print("and list pigrows in following format;")
     print("hostname=192.168.0.3>username=Raspberry>password=pi")
     print("one pigrow per line.")
@@ -77,7 +76,7 @@ def save_log(pi):
     log = log + "\n"
 
     print log
-    pi_log = homedir+path+"logs/pieye_log_"+str(pi[0].split(".")[-1])+".txt"
+    pi_log = log_loc + "pieye_log_"+str(pi[0].split(".")[-1])+".txt"
     with open(pi_log, "a") as f:
         f.write(log)
 
@@ -149,7 +148,6 @@ def log_into_pi(pi):
         print("Couldn't get proper log recordings but did manage to log in...")
         s.logout()
         raise
-
 
 def connect_to_pi(pi):
     counter = 0

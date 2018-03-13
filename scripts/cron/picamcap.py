@@ -17,6 +17,8 @@ for argu in sys.argv[1:]:
         print("")
         print(" -- this script is due an update, don't expect perfection --")
         sys.exit(0)
+    elif argu == "-flags":
+        sys.exit(0)
 
 def load_picam_set(setloc= homedir + "/Pigrow/config/picam_settings.txt"):
     picam_dic = {}
