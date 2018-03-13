@@ -130,7 +130,7 @@ for argu in sys.argv:
         print("             For more information visit www.reddit.com/r/pigrow")
         sys.exit()
     elif argu == '-flags':
-        print("no flags information")
+        print("-help=no flags information, view -help instead")
         sys.exit()
 
 
