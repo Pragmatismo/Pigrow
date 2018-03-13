@@ -33,6 +33,9 @@ for argu in sys.argv:
         print("")
         print(" (minor update to add args coming soon)")
         sys.exit(0)
+    if argu == '-flags':
+        print("")
+        sys.exit(0)
 
 def gather_data(path="./"):
     print("Interorgating pi about it's status...")
@@ -121,7 +124,7 @@ def check_script_running(script):
             return {'num_running':'1','script_status':script_test_status,'script_path':script_test_path}
 
 if __name__ == '__main__':
-    scripts_to_check = ['reddit_settings_ear_2.py','checkDHT.py']# 'chromium-browse'] #this doesn't work :( works for 'atom' and 'bash' needs fix
+    scripts_to_check = ['reddit_settings_ear.py','checkDHT.py']# 'chromium-browse'] #this doesn't work :( works for 'atom' and 'bash' needs fix
     print("################################################")
     print("######### SELF CHECKING INFO LOGGER ############")
     info = gather_data(path)
