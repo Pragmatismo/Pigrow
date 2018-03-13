@@ -21,14 +21,27 @@ loc_locs = homedir + '/Pigrow/config/dirlocs.txt'
 
 watcher_name = '' #default user to msg on script start set to '' for none
 for argu in sys.argv:
-    thearg = str(argu).split('=')[0]
-    if  thearg == 'to':
-        watcher_name = str(argu).split('=')[1]
-    elif thearg == 'codeword':
-        codeword = str(argu).split('=')[1]
-    elif thearg == 'loc_locs':
-        loc_locs = str(argu).split('=')[1]
-        print("\n\n -- using LOCS LOGS = " + str(loc_locs) + "'\n\n")
+    if "=" in argu:
+        thearg = str(argu).split('=')[0]
+        theval = str(argu).split('=')[1]
+        if  thearg == 'to':
+            watcher_name = theval
+        elif thearg == 'codeword':
+            codeword = theval
+        elif thearg == 'loc_locs':
+            loc_locs = theval
+            print("\n\n -- using LOCS LOGS = " + str(loc_locs) + "'\n\n")
+    elif argu == "-h" or "help" in argu:
+        print("This listens to for messages from reddit and responds appropriately")
+        print("currently in a beta version this script requires some tidying and clean up")
+        print("also need to add proper help text (sorry)")
+        sys.exit()
+    elif argu == "-flags":
+        print("to=username")
+        print("codework=")
+        print("dirloc_path=" + homedir + "/Pigrow/config/dirloc.txt")
+        sys.exit()
+
 
 loc_dic = pigrow_defs.load_locs(loc_locs)
 #Settings for validation rules
