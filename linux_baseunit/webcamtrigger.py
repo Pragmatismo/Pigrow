@@ -10,6 +10,7 @@ print(" USE l=3 to take a photo every 3 somethings")
 print("      t  to take triggered photos ")
 print("     cap=" + homedir + "/folder/ to set caps path other than current dir")
 print("      np to stop it trying to change the wallpaper")
+print("   EXIT using ctrl-c or whatever")
 pi_paper = True  #updates pi wall paper, use -nopaper to turn it off.
 s_val = "20"
 c_val = "20"

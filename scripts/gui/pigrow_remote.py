@@ -23,6 +23,9 @@
 #    localfiles_ctrl_pnl  - buttons for above
 #       + uoload & download dialog box
 #
+#    graphing_info_pnl
+#    graphing_ctrl_pannel
+#
 #
 # - useful functions
 # run_on_pi(self, command)    -   Runs a command on the pigrow and returns output and error
@@ -90,6 +93,53 @@ class system_ctrl_pnl(wx.Panel):
         self.update_pigrow_btn.Bind(wx.EVT_BUTTON, self.update_pigrow_click)
         self.reboot_pigrow_btn = wx.Button(self, label='reboot pigrow', pos=(10, 160), size=(175, 30))
         self.reboot_pigrow_btn.Bind(wx.EVT_BUTTON, self.reboot_pigrow_click)
+        self.i2c_check_btn = wx.Button(self, label='i2c check', pos=(10, 220), size=(175, 30))
+        self.i2c_check_btn.Bind(wx.EVT_BUTTON, self.i2c_check_click)
+
+    def i2c_check_click(self, e):
+        # checking for i2c folder in /dev/
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("ls /dev/*i2c*")
+        if "/dev/i2c-1" in out:
+            print("i2c bus 1 found")
+            i2c_bus_number = 1
+        elif "/dev/i2c-0" in out:
+            i2c_bus_number = 0
+            print("i2c bus 0 found")
+        else:
+            system_info_pnl.sys_i2c_info.SetValue("i2c bus not found")
+            return None
+        i2c_text = "i2c enabled, found no devices" #will change if devices are found
+        # checking i2c bus with i2cdetect and listing found i2c devices
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("/usr/sbin/i2cdetect -y " + str(i2c_bus_number))
+        print out, error
+        i2c_devices_found = out.splitlines()
+        # trimming text and sorting into a list
+        i2c_addresses = []
+        for line in i2c_devices_found[1:]:
+            line = line[3:].replace("--", "").strip()
+            if not line == "":
+                if not len(line) > 2: #only lines with 1 item in
+                    i2c_addresses.append(line)
+                else: #lines with more than one item
+                    for item in line.split("  "):
+                        i2c_addresses.append(item)
+        #print i2c_addresses
+        if len(i2c_addresses) > 0:
+            i2c_text = " found devices at; " + str(i2c_addresses)
+        ##
+        # check if baurdrate is changed in Config
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("/boot/config.txt | grep i2c1_baudrate=")
+        print("looking at /boot/config.txt file for baudrate setting;")
+        if not out.strip() == "" or not out == None:
+            print("Baudrate not changed in /boot/config.txt")
+        else:
+            print("Baudrate changed to;")
+            print out
+        print("-----")
+        ##
+        # change text
+        system_info_pnl.sys_i2c_info.SetLabel(i2c_text)
+
 
     def reboot_pigrow_click(self, e):
         dbox = wx.MessageDialog(self, "Are you sure you want to reboot the pigrow?", "reboot pigrow?", wx.OK | wx.CANCEL | wx.ICON_QUESTION)
@@ -306,11 +356,11 @@ class system_ctrl_pnl(wx.Panel):
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("date")
         local_time = datetime.datetime.now()
         local_time_text = local_time.strftime("%a %d %b %X") + " " + str(time.tzname[0]) + " " + local_time.strftime("%Y")
-
-
         out = out.strip()
         system_info_pnl.sys_pi_date.SetLabel(out)
         system_info_pnl.sys_pc_date.SetLabel(str(local_time_text))
+        # GPIO info pannel
+        self.i2c_check_click(e)
 
     def install_click(self, e):
         install_dbox = install_dialog(None, title='Install Pigrow to Raspberry Pi')
@@ -379,6 +429,8 @@ class system_info_pnl(wx.Panel):
         ## Draw UI elements
         png = wx.Image('./sysconf.png', wx.BITMAP_TYPE_ANY).ConvertToBitmap()
         wx.StaticBitmap(self, -1, png, (0, 0), (png.GetWidth(), png.GetHeight()))
+        # Raspberry Pi revision
+        system_info_pnl.sys_pi_revision = wx.StaticText(self,  label='raspberry pi version', pos=(160, 140), size=(200,30))
         #SDcard details
         system_info_pnl.sys_hdd_total = wx.StaticText(self,  label='total;', pos=(250, 180), size=(200,30))
         system_info_pnl.sys_hdd_remain = wx.StaticText(self,  label='free;', pos=(250, 250), size=(200,30))
@@ -389,18 +441,20 @@ class system_info_pnl(wx.Panel):
         #system_info_pnl.sys_pigrow_version = wx.StaticText(self,  label='pigrow version;', pos=(250, 405), size=(200,30))
         system_info_pnl.sys_pigrow_update = wx.StaticText(self,  label='Pigrow update status', pos=(250, 450), size=(200,30))
         #wifi deatils
-        system_info_pnl.sys_network_name = wx.StaticText(self,  label='network name', pos=(250, 535), size=(200,30))
-        system_info_pnl.wifi_list = wx.StaticText(self,  label='wifi list', pos=(140, 620), size=(200,30))
-
+        system_info_pnl.sys_network_name = wx.StaticText(self,  label='network name', pos=(250, 560), size=(200,30))
+        system_info_pnl.wifi_list = wx.StaticText(self,  label='wifi list', pos=(140, 620), size=(200,100))
+        system_info_pnl.available_wifi_list = wx.StaticText(self,  label='feature not implimented', pos=(540, 630), size=(200,100))
         #camera details
         system_info_pnl.sys_camera_info = wx.StaticText(self,  label='camera info', pos=(585, 170), size=(200,30))
+        # GPIO set up details
+        system_info_pnl.sys_i2c_info = wx.StaticText(self,  label='i2c info', pos=(620, 270), size=(300,30))
+        system_info_pnl.sys_uart_info = wx.StaticText(self,  label='uart info (not implimented)', pos=(620, 315), size=(300,30))
+        system_info_pnl.sys_1wire_info = wx.StaticText(self,  label='1 wire info (not implimented)', pos=(620, 355), size=(300,30))
         #power level warning details
-        system_info_pnl.sys_power_status = wx.StaticText(self,  label='power status', pos=(625, 390), size=(200,30))
-        # Raspberry Pi revision
-        system_info_pnl.sys_pi_revision = wx.StaticText(self,  label='raspberry pi version', pos=(625, 450), size=(200,30))
+        system_info_pnl.sys_power_status = wx.StaticText(self,  label='power status', pos=(625, 450), size=(200,30))
         # Pi datetime vs local pc datetime
-        system_info_pnl.sys_pi_date = wx.StaticText(self,  label='datetime on pi', pos=(625, 495), size=(500,30))
-        system_info_pnl.sys_pc_date = wx.StaticText(self,  label='datetime on local pc', pos=(625, 525), size=(200,30))
+        system_info_pnl.sys_pi_date = wx.StaticText(self,  label='datetime on pi', pos=(620, 530), size=(500,30))
+        system_info_pnl.sys_pc_date = wx.StaticText(self,  label='datetime on local pc', pos=(620, 560), size=(200,30))
         #system_info_pnl.sys_time_diff = wx.StaticText(self,  label='difference', pos=(700, 555), size=(200,30))
 
 class install_dialog(wx.Dialog):
