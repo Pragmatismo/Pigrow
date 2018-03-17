@@ -21,7 +21,8 @@ try:
     toohigh = int(set_dic['chirp_high'])
 except:
     graph_path = homedir + "/Pigrow/graphs/chirp_graph.png"
-    humid_graph_path = homedir + "/Pigrow/graphs/chirp_hum_graph.png"
+    moist_graph_path = homedir + "/Pigrow/graphs/chirp_mositure_graph.png"
+    moist_percent_graph_path = homedir + "/Pigrow/graphs/chirp_soil_moisture_percentage_graph.png"
     temp_graph_path = homedir + "/Pigrow/graphs/chirp_temp_graph.png"
     light_graph_path = homedir + "/Pigrow/graphs/chirp_light_graph.png"
     log_location = homedir + "/Pigrow/logs/chirp_log.txt"
@@ -65,13 +66,14 @@ for argu in sys.argv[1:]:
         print("hours=NUM")
         print("cold=NUM")
         print("hot=NUM")
-        sys.exit()  
+        sys.exit()
     else:
         print(" No idea what you mean by; " + str(argu))
 
 #This code is designed to work with a pigrow using a dht22 sensor, but use it for whatever you like,,,
 
-log_humid = []
+log_moist = []
+log_moist_p = []
 log_temp = []
 log_light = []
 log_date = []
@@ -100,10 +102,12 @@ def add_log(linktolog):
             if date < oldest_allowed_date:
                 break
 
-            hum = float(item[1])
-            temp = float(item[2])
-            light = float(item[3])
-            log_humid.append(hum)
+            moist = float(item[1])
+            moist_p = float(item[2])
+            temp = float(item[3])
+            light = float(item[4])
+            log_moist.append(moist)
+            log_moist_p.append(moist_p)
             log_temp.append(temp)
             log_light.append(light)
             log_date.append(date)
@@ -112,12 +116,13 @@ def add_log(linktolog):
             print("-log item "+str(curr_line)+" failed to parse, ignoring it..." + logitem[curr_line])
             curr_line = curr_line - 1
 
-    log_humid.reverse()
+    log_moist.reverse()
+    log_moist_p.reverse()
     log_temp.reverse()
     log_light.reverse()
     log_date.reverse()
 
-    print('We have ' + str(len(log_humid)) + ' soil humidity readings to work with.')
+    print('We have ' + str(len(log_moist)) + ' soil Moisture readings to work with.')
     if len(log_date) >= 1:
         print('Log starts - ' + str(log_date[0].strftime("%b-%d %H:%M")) + ' to ' + str(log_date[-1].strftime("%b-%d %H:%M")))
     else:
@@ -150,7 +155,7 @@ def make_graph(da,ta, path, colour='darkblue', axislabel='Chirp Sensor'):
     if not path == None:
         plt.savefig(path)
         info  = "Graph of last " + str(hours_to_show)
-        info += " hours of soil humidity data created and saved to "
+        info += " hours of soil moisture data created and saved to "
         info += path
         print(info)
     else:
@@ -160,18 +165,20 @@ add_log(log_location)
 
 print "----------------------------------"
 secago = thetime - log_date[-1]
-print "most recent Soil humidity - " + str(log_humid[-1])[0:4] + " - " + str(secago) + " seconds ago"
+print "most recent Soil moisture - " + str(log_moist[-1])[0:4] + " - " + str(secago) + " seconds ago"
 print "----------------------------------"
 
 #Hacky messy ugly way for now will do proper multigraph option soon
 
 if make_multi == True:
-    make_graph(log_date, log_humid, None, 'darkblue', 'Soil Humidity')
+    make_graph(log_date, log_moist, None, 'darkblue', 'Soil Moisture')
     make_graph(log_date, log_light, None, 'yellow', 'Light Numbers')
     make_graph(log_date, log_temp, graph_path, 'red', 'Temp in Centigrade')
 else:
-    make_graph(log_date, log_humid, humid_graph_path, 'darkblue', 'Soil Humidity')
+    make_graph(log_date, log_moist, moist_graph_path, 'darkblue', 'Soil Moisture')
     fig = plt.gcf()
+    fig.clf()
+    make_graph(log_date, log_moist_p, moist_percent_graph_path, 'darkgreen', 'Soil Moisture Percentage')
     fig.clf()
     make_graph(log_date, log_light, light_graph_path, 'yellow', 'Light Numbers')
     fig.clf()
