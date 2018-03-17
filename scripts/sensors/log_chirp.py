@@ -3,19 +3,16 @@ import os
 import sys
 import time
 import datetime
-from Adafruit_GPIO import I2C #https://github.com/adafruit/Adafruit_Python_GPIO
-
-#
-#
-#  THIS IS NOW OBSOLUTE AND WILL BE REPALCED USING THE NEW CHIRP MODULE FROM THE CREATORS
-#
-#
-#
-
+homedir = os.getenv("HOME")
+sys.path.append(homedir + '/chirp-rpi/')
+import chirp
 
 homedir = os.getenv("HOME")
 log_path = homedir + "/Pigrow/logs/chirp_log.txt"
 chirp_address = 0x20
+min_m = 1
+max_m = 1000
+temp_offset = 0
 
 for argu in sys.argv[1:]:
     if "=" in argu:
@@ -23,48 +20,72 @@ for argu in sys.argv[1:]:
         thevalue = str(argu).split('=')[1]
         if thearg == 'log' or thearg == 'log_path':
             log_path = thevalue
+        elif thearg == 'address' or thearg == 'chirp_address':
+            chirp_address = int(thevalue, 16)
+        elif thearg == 'min_m':
+            min_m = int(thevalue)
+        elif thearg == 'max_m':
+            max_m = int(thevalue)
+        elif thearg == 'temp_offset':
+            temp_offset = int(thevalue)
     elif argu == 'help' or argu == '-h' or argu == '--help':
         print(" Script for logging the Chirp Soil Moisture Sensor")
-        print("     This script uses the Adafruit_GPIO i2c interface")
+        print("     this uses the module chirp-rpi")
+        print("     many thanks to Goran Lundberg")
+        print("     https://github.com/ageir/chirp-rpi/")
         print(" ")
         print("     You will need I2C support enabled on the pi")
         print("            ( sudo raspi-config )")
         print(" ")
         print(" log=" + homedir + "/Pigrow/logs/chirp_log.txt")
         print("      - path to write the log")
+        print(" chirp_address=0x20")
+        print("      - i2c address of the chirp")
+        print(" min_m=1")
+        print(" max_m=1000")
+        print("      - min and max moisture calibration")
+        print(" temp_offset=0")
+        print("      - temp correction")
         print("")
         print("")
         sys.exit(0)
     elif argu == "-flags":
         print("log=" + str(log_path))
+        print("chirp_address=0x20")
+        print("min_m=1")
+        print("max_m=1000")
+        print("temp_offset=0")
         sys.exit(0)
 
-def read_chirp_sensor(chirp_address):
-    chirp = I2C.get_i2c_device(chirp_address)
-    chirp.write8( chirp_address, 0x06 ) #sent reset command
-    time.sleep(5) #waits for reset
-    chirp.write8( chirp_address, 3)
-    time.sleep(3) #waits for reading
-    light = chirp.readU16(4, False)
-    temp  = chirp.readS16(5, False)/float(10)
-    moist = chirp.readU16(0, False)
-    return moist, temp, light
+def read_chirp_sensor(chirp_address, min_moist, max_moist, temp_offset=0):
+    # Initialize the sensor.
+    chirp_sensor = chirp.Chirp(address=chirp_address,
+                        read_moist=True,
+                        read_temp=True,
+                        read_light=True,
+                        min_moist=min_moist,
+                        max_moist=max_moist,
+                        temp_scale='celsius',
+                        temp_offset=0)
+    chirp_sensor.trigger()
+    moist = chirp_sensor.moist
+    moist_p = chirp_sensor.moist_percent
+    temp = chirp_sensor.temp
+    light = chirp_sensor.light
+    return moist, moist_p, temp, light
 
-def log_chirp_sensor(log_path, moist, temp, light):
+def log_chirp_sensor(log_path, moist, moist_p, temp, light):
     timenow = str(datetime.datetime.now())
     log_entry  = timenow + ">"
     log_entry += str(moist) + ">"
+    log_entry += str(moist_p) + ">"
     log_entry += str(temp) + ">"
     log_entry += str(light) + "\n"
     with open(log_path, "a") as f:
         f.write(log_entry)
     print("Written; " +  log_entry)
 
-def temp_c_to_f(temp_c):
-    temp_f = temp_c * 9.0 / 5.0 + 32.0
-    return temp_f
 
 if __name__ == '__main__':
-    moist, temp, light = read_chirp_sensor(chirp_address)
-    #crazy americans might want to temp =  temp_c_to_f(temp) about here.
-    log_chirp_sensor(log_path, moist, temp, light)
+    moist, moist_p, temp, light = read_chirp_sensor(chirp_address, min_m, max_m, temp_offset)
+    log_chirp_sensor(log_path, moist, moist_p, temp, light)
