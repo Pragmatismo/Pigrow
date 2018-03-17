@@ -5,6 +5,14 @@ import time
 import datetime
 from Adafruit_GPIO import I2C #https://github.com/adafruit/Adafruit_Python_GPIO
 
+#
+#
+#  THIS IS NOW OBSOLUTE AND WILL BE REPALCED USING THE NEW CHIRP MODULE FROM THE CREATORS
+#
+#
+#
+
+
 homedir = os.getenv("HOME")
 log_path = homedir + "/Pigrow/logs/chirp_log.txt"
 chirp_address = 0x20
@@ -29,7 +37,7 @@ for argu in sys.argv[1:]:
         sys.exit(0)
     elif argu == "-flags":
         print("log=" + str(log_path))
-        sys.exit(0)   
+        sys.exit(0)
 
 def read_chirp_sensor(chirp_address):
     chirp = I2C.get_i2c_device(chirp_address)
