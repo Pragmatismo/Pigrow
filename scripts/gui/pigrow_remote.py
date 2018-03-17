@@ -106,7 +106,7 @@ class system_ctrl_pnl(wx.Panel):
             i2c_bus_number = 0
             print("i2c bus 0 found")
         else:
-            system_info_pnl.sys_i2c_info.SetValue("i2c bus not found")
+            system_info_pnl.sys_i2c_info.SetLabel("i2c bus not found")
             return None
         i2c_text = "i2c enabled, found no devices" #will change if devices are found
         # checking i2c bus with i2cdetect and listing found i2c devices
@@ -360,7 +360,7 @@ class system_ctrl_pnl(wx.Panel):
         system_info_pnl.sys_pi_date.SetLabel(out)
         system_info_pnl.sys_pc_date.SetLabel(str(local_time_text))
         # GPIO info pannel
-        self.i2c_check_click(e)
+        self.i2c_check_click( e)
 
     def install_click(self, e):
         install_dbox = install_dialog(None, title='Install Pigrow to Raspberry Pi')
@@ -453,8 +453,8 @@ class system_info_pnl(wx.Panel):
         #power level warning details
         system_info_pnl.sys_power_status = wx.StaticText(self,  label='power status', pos=(625, 450), size=(200,30))
         # Pi datetime vs local pc datetime
-        system_info_pnl.sys_pi_date = wx.StaticText(self,  label='datetime on pi', pos=(620, 530), size=(500,30))
-        system_info_pnl.sys_pc_date = wx.StaticText(self,  label='datetime on local pc', pos=(620, 560), size=(200,30))
+        system_info_pnl.sys_pi_date = wx.StaticText(self,  label='datetime on pi', pos=(625, 530), size=(500,30))
+        system_info_pnl.sys_pc_date = wx.StaticText(self,  label='datetime on local pc', pos=(625, 560), size=(200,30))
         #system_info_pnl.sys_time_diff = wx.StaticText(self,  label='difference', pos=(700, 555), size=(200,30))
 
 class install_dialog(wx.Dialog):
@@ -2867,7 +2867,7 @@ class localfiles_ctrl_pnl(wx.Panel):
             localfiles_info_pnl.local_path = MainApp.localfiles_path + str(pi_link_pnl.boxname) + "/"
         else:
             localfiles_info_pnl.local_path = MainApp.localfiles_path + str(pi_link_pnl.boxname) + "\\"
-        localfiles_info_pnl.local_path_txt.SetLabel("\n" + localfiles_info_pnl.local_path)
+        localfiles_info_pnl.local_path_txt.SetLabel(localfiles_info_pnl.local_path)
         # check for data and sort into on screen lists
         if not os.path.isdir(localfiles_info_pnl.local_path):
             localfiles_info_pnl.local_path_txt.SetLabel("no local data, press download to create folder \n " + localfiles_info_pnl.local_path)
@@ -2991,6 +2991,25 @@ class localfiles_ctrl_pnl(wx.Panel):
         upload_dbox = upload_dialog(None, title='Upload dialog box')
         upload_dbox.ShowModal()
         self.update_local_filelist_click("e")
+
+    def download_file_to_folder(self, remote_file, local_name):
+        #
+        # this downloads a single file into the pi's local folder
+        # localfiles_ctrl_pnl.download_file_to_folder(remote_file, local_name)
+        if local_name[0:1] == "/":
+            local_name = local_name[1:]
+        local_path = localfiles_info_pnl.local_path_txt.GetLabel() + local_name
+        port = 22
+        print("  - connecting transport pipe... " + pi_link_pnl.target_ip + " port:" + str(port))
+        print("    to  download " + remote_file + " to " + local_path)
+        ssh_tran = paramiko.Transport((pi_link_pnl.target_ip, port))
+        ssh_tran.connect(username=pi_link_pnl.target_user, password=pi_link_pnl.target_pass)
+        self.sftp = paramiko.SFTPClient.from_transport(ssh_tran)
+        self.sftp.get(remote_file, local_path)
+        self.sftp.close()
+        ssh_tran.close()
+        print(" file copied to " + str(local_path))
+        return local_path
 
 class file_download_dialog(wx.Dialog):
     #Dialog box for downloding files from pi to local storage folder
@@ -3128,7 +3147,10 @@ class file_download_dialog(wx.Dialog):
             self.current_file_txt.SetLabel("from; " + remote_file[0])
             self.current_dest_txt.SetLabel("to; " + remote_file[1])
             wx.Yield() #update screen to show changes
-            self.sftp.get(remote_file[0], remote_file[1])
+            try:
+                self.sftp.get(remote_file[0], remote_file[1])
+            except:
+                print(" - couldn't download " + remote_file[0] + " probably a folder or something.")    
         self.current_file_txt.SetLabel("Done")
         self.current_dest_txt.SetLabel("Downloaded " + str(len(files_to_download)) + " files")
         #disconnect the sftp pipe
@@ -3284,7 +3306,9 @@ class graphing_info_pnl(wx.Panel):
         wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, pos = (285, 0), size = wx.Size(w_space_left , 800), style = wx.TAB_TRAVERSAL )
         ## Draw UI elements
         # placing the information boxes
-        localfiles_info_pnl.local_path_txt = wx.StaticText(self,  label='graphs graphs graphs!', pos=(220, 80), size=(200,30))
+        graphing_info_pnl.graph_path_txt = wx.StaticText(self,  label='graphs graphs graphs!', pos=(220, 80), size=(200,30))
+        place_holder = wx.EmptyBitmap(500, 500)
+        graphing_info_pnl.graph_img_box = wx.StaticBitmap(self, -1, place_holder, (0, 0), (500, 500))
 
 
 class graphing_ctrl_pnl(wx.Panel):
@@ -3303,6 +3327,7 @@ class graphing_ctrl_pnl(wx.Panel):
         # shared buttons
         self.make_graph_btn = wx.Button(self, label='Make Graph', pos=(15, 520), size=(175, 30))
         self.make_graph_btn.Bind(wx.EVT_BUTTON, self.make_graph_click)
+        self.download_graph = wx.CheckBox(self, label='download',pos = (200,520))
         #
         ### for pi based graphing only
         self.pigraph_text = wx.StaticText(self,  label='Graphing directly on the pigrow\n saves having to download logs', pos=(15, 70))
@@ -3324,7 +3349,6 @@ class graphing_ctrl_pnl(wx.Panel):
         # button to add arg to string
         self.add_arg_btn = wx.Button(self, label='Add to command line', pos=(20, 310), size=(175, 30))
         self.add_arg_btn.Bind(wx.EVT_BUTTON, self.add_arg_click)
-
         # extra arguments string
         self.extra_args = wx.TextCtrl(self,  pos=(2, 450), size=(265,30))
         # hideing all pigrow graphing UI elements until graph on pigrow is selected
@@ -3448,6 +3472,22 @@ class graphing_ctrl_pnl(wx.Panel):
             dmsg += line + "\n"        #which would otherwise disrupt the messagebox
         wx.MessageBox(dmsg, 'Script Output', wx.OK | wx.ICON_INFORMATION)
         print dmsg
+        ## attempt to find path of graph on pi
+        path_possible = dmsg.replace("\n", " ").strip().split(" ")
+        for possible in path_possible:
+            if ".png" in possible:
+                print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
+                print possible
+                print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
+                graphing_info_pnl.graph_path_txt.SetLabel(possible)
+                local_name = possible.split("/Pigrow/")[1]
+                if self.download_graph.GetValue() == True:
+                    img_path = localfiles_ctrl_pnl.download_file_to_folder(MainApp.localfiles_ctrl_pannel, possible, local_name)
+                    graph_img = wx.Image(img_path, wx.BITMAP_TYPE_ANY).ConvertToBitmap()
+                    graphing_info_pnl.graph_img_box.SetBitmap(graph_img)
+
+            else:
+                graphing_info_pnl.graph_path_txt.SetLabel("not found")
 
     def graph_engine_combo_go(self, e):
         # combo box selects if you want to make graphs on pi or locally
@@ -3585,7 +3625,6 @@ class pi_link_pnl(wx.Panel):
             else:
                 box_name = None
             self.set_link_pi_text(log_on_test, box_name)
-
 
     def blank_settings(self):
         print("clearing settings")
