@@ -167,24 +167,34 @@ def convert_to_volt(vals):
         vals[3] = vals[3] * 0.0078125
     return vals
 
+def to_posneg_amp(vals):
+    vals[0] = vals[0] - 1635.625
+    vals[1] = vals[1] - 1635.625
+    vals[2] = vals[2] - 1635.625
+    vals[3] = vals[3] - 1635.625
+    return vals
 
 def log_ads1115(log_path, vals):
-    timenow = str(datetime.datetime.now())
-    log_entry  = timenow + ">"
-    log_entry += str(vals[0]) + ">"
-    log_entry += str(vals[1]) + ">"
-    log_entry += str(vals[2]) + ">"
-    log_entry += str(vals[3]) + "\n"
-    with open(log_path, "a") as f:
-        f.write(log_entry)
-    print("Written; " +  log_entry)
+    if not vals == None:
+        timenow = str(datetime.datetime.now())
+        log_entry  = timenow + ">"
+        log_entry += str(vals[0]) + ">"
+        log_entry += str(vals[1]) + ">"
+        log_entry += str(vals[2]) + ">"
+        log_entry += str(vals[3]) + "\n"
+        with open(log_path, "a") as f:
+            f.write(log_entry)
+        print("Written; " +  log_entry)
 
 
 if __name__ == '__main__':
-    vals = read_adc()
-    if not vals == None:
-        if not convert_volt == False:
-            convert_to_volt(vals)
-        log_ads1115(log_path, vals)
-    else:
-        print("failed to find results")
+    while True:
+        vals = read_adc()
+        if not vals == None:
+            if not convert_volt == False:
+                vals = convert_to_volt(vals)
+                vals = to_posneg_amp(vals)
+            log_ads1115(log_path, vals)
+            print vals
+        else:
+            print("failed to find results")

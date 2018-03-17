@@ -110,7 +110,6 @@ def add_log(linktolog):
             date = datetime.datetime.strptime(date[0], '%Y-%m-%d %H:%M:%S')
             if date < oldest_allowed_date:
                 break
-
             a0 = float(item[1])
             a1 = float(item[2])
             a2 = float(item[3])
@@ -142,7 +141,7 @@ def make_graph(date,ta, colour, name):
     plt.figure(1)
     ax = plt.subplot()
   #  ax.bar(da, ta, width=0.01, color='k', linewidth = 0)
-    ax.plot(date, ta, color=colour, lw=3, label=name)
+    ax.plot(date, ta, color=colour, lw=1, label=name)
     ave = 0
     for x in ta:
         ave = ave + x
