@@ -3150,7 +3150,7 @@ class file_download_dialog(wx.Dialog):
             try:
                 self.sftp.get(remote_file[0], remote_file[1])
             except:
-                print(" - couldn't download " + remote_file[0] + " probably a folder or something.")    
+                print(" - couldn't download " + remote_file[0] + " probably a folder or something.")
         self.current_file_txt.SetLabel("Done")
         self.current_dest_txt.SetLabel("Downloaded " + str(len(files_to_download)) + " files")
         #disconnect the sftp pipe
@@ -3476,16 +3476,12 @@ class graphing_ctrl_pnl(wx.Panel):
         path_possible = dmsg.replace("\n", " ").strip().split(" ")
         for possible in path_possible:
             if ".png" in possible:
-                print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
-                print possible
-                print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
                 graphing_info_pnl.graph_path_txt.SetLabel(possible)
                 local_name = possible.split("/Pigrow/")[1]
                 if self.download_graph.GetValue() == True:
                     img_path = localfiles_ctrl_pnl.download_file_to_folder(MainApp.localfiles_ctrl_pannel, possible, local_name)
                     graph_img = wx.Image(img_path, wx.BITMAP_TYPE_ANY).ConvertToBitmap()
                     graphing_info_pnl.graph_img_box.SetBitmap(graph_img)
-
             else:
                 graphing_info_pnl.graph_path_txt.SetLabel("not found")
 
