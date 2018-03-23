@@ -91,8 +91,10 @@ class system_ctrl_pnl(wx.Panel):
         self.install_pigrow_btn.Bind(wx.EVT_BUTTON, self.install_click)
         self.update_pigrow_btn = wx.Button(self, label='update pigrow', pos=(10, 130), size=(175, 30))
         self.update_pigrow_btn.Bind(wx.EVT_BUTTON, self.update_pigrow_click)
-        self.reboot_pigrow_btn = wx.Button(self, label='reboot pigrow', pos=(10, 160), size=(175, 30))
+        self.reboot_pigrow_btn = wx.Button(self, label='reboot pi', pos=(15, 160), size=(120, 30))
         self.reboot_pigrow_btn.Bind(wx.EVT_BUTTON, self.reboot_pigrow_click)
+        self.shutdown_pi_btn = wx.Button(self, label='shutdown pi', pos=(145, 160), size=(120, 30))
+        self.shutdown_pi_btn.Bind(wx.EVT_BUTTON, self.shutdown_pi_click)
         self.i2c_check_btn = wx.Button(self, label='i2c check', pos=(10, 220), size=(175, 30))
         self.i2c_check_btn.Bind(wx.EVT_BUTTON, self.i2c_check_click)
 
@@ -147,6 +149,15 @@ class system_ctrl_pnl(wx.Panel):
         dbox.Destroy()
         if (answer == wx.ID_OK):
             out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo reboot now")
+            MainApp.pi_link_pnl.link_with_pi_btn_click("e")
+            print out, error
+
+    def shutdown_pi_click(self, e):
+        dbox = wx.MessageDialog(self, "Are you sure you want to shutdown the pi?", "Shutdown Pi?", wx.OK | wx.CANCEL | wx.ICON_QUESTION)
+        answer = dbox.ShowModal()
+        dbox.Destroy()
+        if (answer == wx.ID_OK):
+            out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo shutdown now")
             MainApp.pi_link_pnl.link_with_pi_btn_click("e")
             print out, error
 
@@ -3356,10 +3367,11 @@ class graphing_ctrl_pnl(wx.Panel):
         self.script_text.Hide()
         self.select_script_cb.Hide()
         self.get_opts_tb.Hide()
-        self.opts_cb.Hide()
-        self.opts_text.Hide()
-        self.command_line_opts_value_list_cb.Hide()
-        self.add_arg_btn.Hide()
+        self.blank_options_ui_elements()
+        #self.opts_cb.Hide()
+        #self.opts_text.Hide()
+        #self.command_line_opts_value_list_cb.Hide()
+        #self.add_arg_btn.Hide()
 
     def get_opts_click(self, e):
         #turns on UI elements for automatically found script options
@@ -3676,6 +3688,18 @@ class pi_link_pnl(wx.Panel):
         localfiles_info_pnl.local_path = ""
         localfiles_info_pnl.config_files.DeleteAllItems()
         localfiles_info_pnl.logs_files.DeleteAllItems()
+        # graphing tab clear
+        graphing_info_pnl.graph_img_box.SetBitmap(blank)
+        graphing_ctrl_pnl.blank_options_ui_elements(MainApp.graphing_ctrl_pannel)
+        MainApp.graphing_ctrl_pannel.graph_cb.SetValue("")
+        MainApp.graphing_ctrl_pannel.select_script_cb.SetValue("")
+        MainApp.graphing_ctrl_pannel.opts_cb.SetValue("")
+        MainApp.graphing_ctrl_pannel.pigraph_text.Hide()
+        MainApp.graphing_ctrl_pannel.script_text.Hide()
+        MainApp.graphing_ctrl_pannel.select_script_cb.Hide()
+        MainApp.graphing_ctrl_pannel.get_opts_tb.Hide()
+
+
 
     def set_link_pi_text(self, log_on_test, box_name):
         pi_link_pnl.boxname = box_name  #to maintain persistance if needed elsewhere later
