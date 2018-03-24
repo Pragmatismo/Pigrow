@@ -96,7 +96,7 @@ class system_ctrl_pnl(wx.Panel):
         self.shutdown_pi_btn = wx.Button(self, label='shutdown pi', pos=(145, 160), size=(120, 30))
         self.shutdown_pi_btn.Bind(wx.EVT_BUTTON, self.shutdown_pi_click)
         self.i2c_check_btn = wx.Button(self, label='i2c check', pos=(10, 220), size=(175, 30))
-        self.i2c_check_btn.Bind(wx.EVT_BUTTON, self.i2c_check_click)
+        self.i2c_check_btn.Bind(wx.EVT_BUTTON, self.find_i2c_devices)
 
     def i2c_check_click(self):
         # checking for i2c folder in /dev/
@@ -119,13 +119,6 @@ class system_ctrl_pnl(wx.Panel):
         # check if baurdrate is changed in Config
         i2c_baudrate = self.check_i2c_baudrate(i2c_bus_number)
         i2c_text += " baudrate " + str(i2c_baudrate)
-        ##
-        i2c_list = self.find_i2c_devices(i2c_bus_number)  # if you want to run this on start-up, better to be user chosen
-        if len(i2c_list) > 0:
-            i2c_text += "\nfound " + str(len(i2c_list)) + " devices at; " + str(i2c_list)
-        else:
-            i2c_text += "\nNo devices found"    
-        ##
         # change text
         system_info_pnl.sys_i2c_info.SetLabel(i2c_text)
         # return
@@ -145,8 +138,9 @@ class system_ctrl_pnl(wx.Panel):
         print("-----")
         return out
 
-    def find_i2c_devices(self, i2c_bus_number):
-        #i2c_bus = self.i2c_check_click()
+    def find_i2c_devices(self, e):
+        i2c_bus_number = self.i2c_check_click()
+        print i2c_bus_number
         # checking i2c bus with i2cdetect and listing found i2c devices
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("/usr/sbin/i2cdetect -y " + str(i2c_bus_number))
         print out, error
@@ -161,6 +155,13 @@ class system_ctrl_pnl(wx.Panel):
                 else: #lines with more than one item
                     for item in line.split("  "):
                         i2c_addresses.append(item)
+        # changing text on screen
+        i2c_text = system_info_pnl.sys_i2c_info.GetLabel().split("\n")[0]
+        if len(i2c_addresses) > 0:
+            i2c_text += "\nfound " + str(len(i2c_addresses)) + " devices at; " + str(i2c_addresses)
+        else:
+            i2c_text += "\nNo devices found"
+        system_info_pnl.sys_i2c_info.SetLabel(i2c_text)
         return i2c_addresses
 
     def reboot_pigrow_click(self, e):
