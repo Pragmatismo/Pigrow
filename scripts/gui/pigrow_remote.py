@@ -98,19 +98,55 @@ class system_ctrl_pnl(wx.Panel):
         self.i2c_check_btn = wx.Button(self, label='i2c check', pos=(10, 220), size=(175, 30))
         self.i2c_check_btn.Bind(wx.EVT_BUTTON, self.i2c_check_click)
 
-    def i2c_check_click(self, e):
+    def i2c_check_click(self):
         # checking for i2c folder in /dev/
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("ls /dev/*i2c*")
         if "/dev/i2c-1" in out:
-            print("i2c bus 1 found")
+            i2c_text = ("found i2c bus 1")
             i2c_bus_number = 1
         elif "/dev/i2c-0" in out:
             i2c_bus_number = 0
-            print("i2c bus 0 found")
+            i2c_text = ("found i2c bus 0")
+        elif "/dev/i2c-" in out:
+            i2c_bus_number = int(out.split("/dev/i2c-")[1])
+            print("i2c not found on most likely busses, but maybe it's on")
+            print i2c_bus_number
+            print("trying using bus " + str(i2c_bus_number))
         else:
             system_info_pnl.sys_i2c_info.SetLabel("i2c bus not found")
-            return None
-        i2c_text = "i2c enabled, found no devices" #will change if devices are found
+            return "not found"
+        # if i2c bus found perform aditional checks, updates the textbox and returns the bus number
+        # check if baurdrate is changed in Config
+        i2c_baudrate = self.check_i2c_baudrate(i2c_bus_number)
+        i2c_text += " baudrate " + str(i2c_baudrate)
+        ##
+        i2c_list = self.find_i2c_devices(i2c_bus_number)  # if you want to run this on start-up, better to be user chosen
+        if len(i2c_list) > 0:
+            i2c_text += "\nfound " + str(len(i2c_list)) + " devices at; " + str(i2c_list)
+        else:
+            i2c_text += "\nNo devices found"    
+        ##
+        # change text
+        system_info_pnl.sys_i2c_info.SetLabel(i2c_text)
+        # return
+        return i2c_bus_number
+
+    def check_i2c_baudrate(self, i2c_bus_number):
+        # ask pi to read the pi's boot congif file for i2c baudrate info
+        print("looking at /boot/config.txt file for baudrate setting;")
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("/boot/config.txt | grep i2c" + str(i2c_bus_number) + "_baudrate=")
+        out = out.strip()
+        if out == "" or out == None:
+            print("Baudrate not changed in /boot/config.txt")
+            return "default"
+        else:
+            print("Baudrate changed to;")
+            print out
+        print("-----")
+        return out
+
+    def find_i2c_devices(self, i2c_bus_number):
+        #i2c_bus = self.i2c_check_click()
         # checking i2c bus with i2cdetect and listing found i2c devices
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("/usr/sbin/i2cdetect -y " + str(i2c_bus_number))
         print out, error
@@ -125,23 +161,7 @@ class system_ctrl_pnl(wx.Panel):
                 else: #lines with more than one item
                     for item in line.split("  "):
                         i2c_addresses.append(item)
-        #print i2c_addresses
-        if len(i2c_addresses) > 0:
-            i2c_text = " found devices at; " + str(i2c_addresses)
-        ##
-        # check if baurdrate is changed in Config
-        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("/boot/config.txt | grep i2c1_baudrate=")
-        print("looking at /boot/config.txt file for baudrate setting;")
-        if not out.strip() == "" or not out == None:
-            print("Baudrate not changed in /boot/config.txt")
-        else:
-            print("Baudrate changed to;")
-            print out
-        print("-----")
-        ##
-        # change text
-        system_info_pnl.sys_i2c_info.SetLabel(i2c_text)
-
+        return i2c_addresses
 
     def reboot_pigrow_click(self, e):
         dbox = wx.MessageDialog(self, "Are you sure you want to reboot the pigrow?", "reboot pigrow?", wx.OK | wx.CANCEL | wx.ICON_QUESTION)
@@ -371,7 +391,7 @@ class system_ctrl_pnl(wx.Panel):
         system_info_pnl.sys_pi_date.SetLabel(out)
         system_info_pnl.sys_pc_date.SetLabel(str(local_time_text))
         # GPIO info pannel
-        self.i2c_check_click( e)
+        self.i2c_check_click()
 
     def install_click(self, e):
         install_dbox = install_dialog(None, title='Install Pigrow to Raspberry Pi')
