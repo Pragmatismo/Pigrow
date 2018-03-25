@@ -95,10 +95,10 @@ class system_ctrl_pnl(wx.Panel):
         self.reboot_pigrow_btn.Bind(wx.EVT_BUTTON, self.reboot_pigrow_click)
         self.shutdown_pi_btn = wx.Button(self, label='shutdown pi', pos=(145, 160), size=(120, 30))
         self.shutdown_pi_btn.Bind(wx.EVT_BUTTON, self.shutdown_pi_click)
-        self.i2c_check_btn = wx.Button(self, label='i2c check', pos=(10, 220), size=(175, 30))
-        self.i2c_check_btn.Bind(wx.EVT_BUTTON, self.find_i2c_devices)
+        self.find_i2c_btn = wx.Button(self, label='i2c check', pos=(10, 220), size=(175, 30))
+        self.find_i2c_btn.Bind(wx.EVT_BUTTON, self.find_i2c_devices)
 
-    def i2c_check_click(self):
+    def i2c_check(self):
         # checking for i2c folder in /dev/
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("ls /dev/*i2c*")
         if "/dev/i2c-1" in out:
@@ -139,7 +139,7 @@ class system_ctrl_pnl(wx.Panel):
         return out
 
     def find_i2c_devices(self, e):
-        i2c_bus_number = self.i2c_check_click()
+        i2c_bus_number = self.i2c_check()
         print i2c_bus_number
         # checking i2c bus with i2cdetect and listing found i2c devices
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("/usr/sbin/i2cdetect -y " + str(i2c_bus_number))
@@ -392,7 +392,7 @@ class system_ctrl_pnl(wx.Panel):
         system_info_pnl.sys_pi_date.SetLabel(out)
         system_info_pnl.sys_pc_date.SetLabel(str(local_time_text))
         # GPIO info pannel
-        self.i2c_check_click()
+        self.i2c_check()
 
     def install_click(self, e):
         install_dbox = install_dialog(None, title='Install Pigrow to Raspberry Pi')
