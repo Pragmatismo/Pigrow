@@ -139,9 +139,15 @@ class system_ctrl_pnl(wx.Panel):
         return out
 
     def find_i2c_devices(self, e):
+        # this has to be run by a button press because it might
+        # in some situations confuse i2c sensors so best
+        # not to call it needlessly
+        # returns a list of i2c addresses.
+        ##
+        # calsl i2c_check to locate the active i2c bus
         i2c_bus_number = self.i2c_check()
         print i2c_bus_number
-        # checking i2c bus with i2cdetect and listing found i2c devices
+        # check i2c bus with i2cdetect and list found i2c devices
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("/usr/sbin/i2cdetect -y " + str(i2c_bus_number))
         print out, error
         i2c_devices_found = out.splitlines()
@@ -162,6 +168,7 @@ class system_ctrl_pnl(wx.Panel):
         else:
             i2c_text += "\nNo devices found"
         system_info_pnl.sys_i2c_info.SetLabel(i2c_text)
+        # returning a list of i2c device addresses
         return i2c_addresses
 
     def reboot_pigrow_click(self, e):
@@ -182,62 +189,47 @@ class system_ctrl_pnl(wx.Panel):
             MainApp.pi_link_pnl.link_with_pi_btn_click("e")
             print out, error
 
-    def read_system_click(self, e):
-        #check for hdd space
-        try:
-            stdin, stdout, stderr = ssh.exec_command("df -l /")
-            responce = stdout.read().strip()
-            error = stderr.read()
-            #print responce, error
-        except Exception as e:
-            print("oh! " + str(e))
-        if len(responce) > 1:
+    def check_pi_diskspace(self):
+        #check pi for hdd/sd card space
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("df -l /")
+        if len(out) > 1:
             responce_list = []
-            for item in responce.split(" "):
+            for item in out.split(" "):
                 if len(item) > 0:
                     responce_list.append(item)
             hdd_total = responce_list[-5]
             hdd_percent = responce_list[-2]
             hdd_available = responce_list[-3]
             hdd_used = responce_list[-4]
-        system_info_pnl.sys_hdd_total.SetLabel(str(hdd_total) + " KB")
-        system_info_pnl.sys_hdd_remain.SetLabel(str(hdd_available) + " KB")
-        system_info_pnl.sys_hdd_used.SetLabel(str(hdd_used) + " KB (" + str(hdd_percent) + ")")
-        #check installed OS
-        try:
-            stdin, stdout, stderr = ssh.exec_command("cat /etc/os-release")
-            responce = stdout.read().strip()
-            error = stderr.read()
-            #print responce, error
-        except Exception as e:
-            print("ahhh! " + str(e))
-        for line in responce.split("\n"):
+            return hdd_total, hdd_percent, hdd_available, hdd_used
+        else:
+            return "Error", "Error", "Error", "Error"
+
+    def check_pi_os(self):
+        # check what os the pi is running
+        os_name = "undetermined"
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("cat /etc/os-release")
+        for line in out.split("\n"):
             if "PRETTY_NAME=" in line:
                 os_name = line.split('"')[1]
-        system_info_pnl.sys_os_name.SetLabel(os_name)
-        #check if pigrow folder exits and read size
-        try:
-            stdin, stdout, stderr = ssh.exec_command("du -s ~/Pigrow/")
-            responce = stdout.read().strip()
-            error = stderr.read()
-            #print responce, error
-        except Exception as e:
-            print("ahhh! " + str(e))
-        if not "No such file or directory" in error:
-            self.update_pigrow_btn.SetLabel("update pigrow")
-            pigrow_size = responce.split("\t")[0]
-            self.pigrow_folder_size = pigrow_size
-            #print pigrow_size
-            not_pigrow = (int(hdd_used) - int(pigrow_size))
-            #print not_pigrow
-            folder_pcent = float(pigrow_size) / float(hdd_used) * 100
-            folder_pcent = format(folder_pcent, '.2f')
-            system_info_pnl.sys_pigrow_folder.SetLabel(str(pigrow_size) + " KB (" +str(folder_pcent) + "% of used)")
-        else:
-            system_info_pnl.sys_pigrow_folder.SetLabel("No Pigrow folder detected")
-            self.update_pigrow_btn.SetLabel("install pigrow")
+        return os_name
 
-        #check if git upate needed
+    def check_for_pigrow_folder(self, hdd_used="unknown"):
+        #check if pigrow folder exits and read size
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("du -s ~/Pigrow/")
+        if not "No such file or directory" in error:
+            pigrow_size = out.split("\t")[0]
+            try:
+                folder_pcent = float(pigrow_size) / float(hdd_used) * 100
+                folder_pcent = format(folder_pcent, '.2f')
+            except: #mostly like due to not being a number
+                folder_pcent = "undetermined"
+        else: #i.e. when no such file or directory is the error
+            pigrow_size = "not found"
+            folder_pcent = "not found"
+        return pigrow_size, folder_pcent
+
+    def check_git(self):
         update_needed = False
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("git -C ~/Pigrow/ remote -v update")
         if len(error) > 1:
@@ -300,38 +292,38 @@ class system_ctrl_pnl(wx.Panel):
                 system_info_pnl.sys_pigrow_update.SetLabel("Pigrow folder not found.")
             else:
                 system_info_pnl.sys_pigrow_update.SetLabel("some confusion with git, sorry.")
-        #
-        # pi board revision
-        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("cat /proc/device-tree/model")
-        out = out.strip()
-        system_info_pnl.sys_pi_revision.SetLabel(out)
+
+    def check_pi_power_warning(self):
         #check for low power WARNING
-        # not entirely sure if this works on all version of the pi, it looks to see if the power light is on
+        # this only works on certain versions of the pi
+        # it checks the power led value
         # it's normally turned off as a LOW POWER warning
         if not "pi 3" in system_info_pnl.sys_pi_revision.GetLabel().lower():
-            print system_info_pnl.sys_pi_revision.GetLabel().lower()
-            try:
-                stdin, stdout, stderr = ssh.exec_command("cat /sys/class/leds/led1/brightness")
-                responce = stdout.read().strip()
-                error = stderr.read()
-                if responce == "255":
-                    system_info_pnl.sys_power_status.SetLabel("no warning")
-                else:
-                    system_info_pnl.sys_power_status.SetLabel("reads " + str(responce) + " low power warning!")
-            except Exception as e:
-                print("lookit! a problem - " + str(e))
-                system_info_pnl.sys_power_status.SetLabel("unable to read")
+            out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("cat /sys/class/leds/led1/brightness")
+            if out == "255":
+                system_info_pnl.sys_power_status.SetLabel("no warning")
+            elif out == "" or out == None:
+                system_info_pnl.sys_power_status.SetLabel("error, not supported")
+            else:
+                system_info_pnl.sys_power_status.SetLabel("reads " + str(out) + " low power warning!")
         else:
             system_info_pnl.sys_power_status.SetLabel("feature disabled on pi 3")
-        # WIFI
+
+    def check_pi_version(self):
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("cat /proc/device-tree/model")
+        return out.strip()
+
+    def find_network_name(self):
         # Read the currently connected network name
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("/sbin/iwgetid")
         try:
             network_name = out.split('"')[1]
-            system_info_pnl.sys_network_name.SetLabel(network_name)
+            return network_name
         except Exception as e:
-            print("fiddle and fidgets! - " + str(e))
-            system_info_pnl.sys_network_name.SetLabel("unable to read")
+            print("fiddle and fidgets! find network name didn't work - " + str(e))
+            return "unable to read"
+
+    def find_added_wifi(self):
         # read /etc/wpa_supplicant/wpa_supplicant.conf for listed wifi networks
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo cat /etc/wpa_supplicant/wpa_supplicant.conf")
         out = out.splitlines()
@@ -367,7 +359,9 @@ class system_ctrl_pnl(wx.Panel):
             for thing in item:
                 network_text += thing + " "
             network_text += "\n"
-        system_info_pnl.wifi_list.SetLabel(network_text)
+        return network_text
+
+    def find_connected_webcams(self):
         # camera info
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("ls /dev/video*")
         if "No such file or directory" in error:
@@ -383,14 +377,52 @@ class system_ctrl_pnl(wx.Panel):
                     out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("udevadm info --query=all " + cam + " |grep ID_MODEL=")
                     cam_name = out.split("=")[1].strip()
                     cam_text = cam_name + "\n       on " + cam + "\n"
-        system_info_pnl.sys_camera_info.SetLabel(cam_text)
-        # datetimes and difference
+        return cam_text
+
+    def get_pi_time_diff(self):
+        # just asks the pi the data at the same time grabs local datetime
+        # returns to the user as strings
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("date")
         local_time = datetime.datetime.now()
         local_time_text = local_time.strftime("%a %d %b %X") + " " + str(time.tzname[0]) + " " + local_time.strftime("%Y")
-        out = out.strip()
-        system_info_pnl.sys_pi_date.SetLabel(out)
-        system_info_pnl.sys_pc_date.SetLabel(str(local_time_text))
+        pi_time = out.strip()
+        return local_time_text, out
+
+    def read_system_click(self, e):
+        ### pi system interrogation
+        # disk space
+        hdd_total, hdd_percent, hdd_available, hdd_used = self.check_pi_diskspace()
+        system_info_pnl.sys_hdd_total.SetLabel(str(hdd_total) + " KB")
+        system_info_pnl.sys_hdd_remain.SetLabel(str(hdd_available) + " KB")
+        system_info_pnl.sys_hdd_used.SetLabel(str(hdd_used) + " KB (" + str(hdd_percent) + ")")
+        # installed OS
+        os_name = self.check_pi_os()
+        system_info_pnl.sys_os_name.SetLabel(os_name)
+        # check if pigrow folder exits and read size
+        pigrow_size, folder_pcent = self.check_for_pigrow_folder(hdd_used)
+        if pigrow_size == "not found":
+            system_info_pnl.sys_pigrow_folder.SetLabel("Pigrow folder now found")
+        else:
+            system_info_pnl.sys_pigrow_folder.SetLabel(str(pigrow_size) + " KB (" +str(folder_pcent) + "% of used)")
+        # check if git upate needed
+        self.check_git() #ugly and deals with UI itself, needs upgrade and clean but git is a headfuck so like oneday...
+        # pi board revision
+        pi_version = self.check_pi_version()
+        system_info_pnl.sys_pi_revision.SetLabel(pi_version)
+        # check for low power warning
+        self.check_pi_power_warning()
+        # WIFI
+        network_name = self.find_network_name()
+        system_info_pnl.sys_network_name.SetLabel(network_name)
+        network_text = self.find_added_wifi()
+        system_info_pnl.wifi_list.SetLabel(network_text)
+        # camera info
+        camera_names = self.find_connected_webcams()
+        system_info_pnl.sys_camera_info.SetLabel(camera_names)
+        # datetimes and difference
+        local_time, pi_time = self.get_pi_time_diff()
+        system_info_pnl.sys_pi_date.SetLabel(pi_time)
+        system_info_pnl.sys_pc_date.SetLabel(str(local_time))
         # GPIO info pannel
         self.i2c_check()
 
