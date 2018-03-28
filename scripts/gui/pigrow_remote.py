@@ -506,13 +506,21 @@ class upgrade_pigrow_dialog(wx.Dialog):
         self.cancel_btn = wx.Button(self, label='Cancel', pos=(315, 400), size=(175, 30))
         self.cancel_btn.Bind(wx.EVT_BUTTON, self.cancel_click)
 
+    # git diff --name-only HEAD@{0} HEAD@{1}      #shows the most recent changes
 
     def read_repo_changes(self):
         repo_changes = "getting to it soon..."
+        # grabbing info from github but not updating anything yet
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("git -C ~/Pigrow/ fetch -v")
+        out = out.splitlines()
+        #
+        repo_changes = out
+        
         print repo_changes
         return repo_changes
 
     def read_git_dif(self):
+        # could use diff --name-only instead of --stat
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("git -C ~/Pigrow/ diff --stat")
         out = out.splitlines()
         # create blank variables
@@ -520,6 +528,7 @@ class upgrade_pigrow_dialog(wx.Dialog):
         files_changed = ""
         insertions = ""
         deletions = ""
+        display_text = ""
         # if it's more than one line try breaking into relevent info
         if len(out) > 1:
             git_local_details = str(out[-1:])
@@ -546,6 +555,7 @@ class upgrade_pigrow_dialog(wx.Dialog):
         self.Destroy()
 
     def upgrade_click(self, e):
+        # we could also use "git checkout ." before "git pull" if we want to ignore any changes we've made
         # set do_upgrade flag to true, changes to false if git makes it confusing
         do_upgrade = True
         # check to determine best git merge stratergy
