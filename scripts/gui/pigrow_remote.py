@@ -231,6 +231,9 @@ class system_ctrl_pnl(wx.Panel):
 
     def check_git(self):
         update_needed = False
+        #
+        # read git update info
+        #
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("git -C ~/Pigrow/ remote -v update")
         if len(error) > 1:
             git_text = error.split("\n")
@@ -251,20 +254,14 @@ class system_ctrl_pnl(wx.Panel):
                 else:
                     #print("Master branch requires updating")
                     update_needed = True
-        #print master_branch
-        #Read git status
-        try:
-            stdin, stdout, stderr = ssh.exec_command("git -C ~/Pigrow/ status --untracked-files no")
-            responce = stdout.read().strip()
-            error = stderr.read()
-            #print responce
-            #print 'error:' + str(error)
-        except Exception as e:
-            print("ooops! " + str(e))
-        if "Your branch and 'origin/master' have diverged" in responce:
+        #
+        # Read git status
+        #
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("git -C ~/Pigrow/ status --untracked-files no")
+        if "Your branch and 'origin/master' have diverged" in out:
             update_needed = 'diverged'
-        elif "Your branch is" in responce:
-            git_line = responce.split("\n")[1]
+        elif "Your branch is" in out:
+            git_line = out.split("\n")[1]
             git_update = git_line.split(" ")[3]
             if git_update == 'behind':
                 update_needed = True
@@ -275,23 +272,24 @@ class system_ctrl_pnl(wx.Panel):
             #    print("says its up to date")
         else:
             update_needed = 'error'
-
+        # determine what sort of update is required
         if update_needed == True:
             system_info_pnl.sys_pigrow_update.SetLabel("update required, " + str(git_num) + " updates behind")
             self.update_type = "clean"
         elif update_needed == False:
             system_info_pnl.sys_pigrow_update.SetLabel("master branch is upto date")
         elif update_needed == 'ahead':
-            system_info_pnl.sys_pigrow_update.SetLabel("you've modified the core pigrow code, caution required!")
+            system_info_pnl.sys_pigrow_update.SetLabel("Caution Required!\nYou modified your Pigrow code")
             self.update_type = "merge"
         elif update_needed == 'diverged':
-            system_info_pnl.sys_pigrow_update.SetLabel("you've modified the core pigrow code, caution required!")
+            system_info_pnl.sys_pigrow_update.SetLabel("Caution Required!\nYou modified your Pigrow code")
             self.update_type = "merge"
         elif update_needed == 'error':
             if install_needed == True:
                 system_info_pnl.sys_pigrow_update.SetLabel("Pigrow folder not found.")
             else:
-                system_info_pnl.sys_pigrow_update.SetLabel("some confusion with git, sorry.")
+                system_info_pnl.sys_pigrow_update.SetLabel("Some confusion with git, sorry.")
+        return update_needed
 
     def check_pi_power_warning(self):
         #check for low power WARNING
@@ -431,54 +429,8 @@ class system_ctrl_pnl(wx.Panel):
         install_dbox.ShowModal()
 
     def update_pigrow_click(self, e):
-        #reads button lable for check if update or install is required
-        if self.update_pigrow_btn.GetLabel() == "update pigrow":
-            do_upgrade = True
-        #checks to determine best git merge stratergy
-            if self.update_type == "clean":
-                git_command = "git -C ~/Pigrow/ pull"
-            elif self.update_type == "merge":
-                print("WARNING WARNING _ THIS CODE IS VERY MUCH IN THE TESTING PHASE")
-                print("if you're doing odd things it's very likely to mess up!")
-                #this can cause odd confusions which requires use of 'git rebase'
-                #reokace command line question with dialog box
-                question = raw_input("merge using default, ours or theirs?")
-                if question == "ours":
-                    git_command = "git -C ~/Pigrow/ pull --strategy=ours" #if we've changed a file it ignores the remote updated one
-                elif question == "theirs":
-                    #often needs to commit or stash changes before working
-                    git_command = "git -C ~/Pigrow/ pull -s recursive -X theirs" #removes any changes made locally and replaces file with remote updated one
-                elif question == "default":
-                    git_command = "git -C ~/Pigrow/ pull"
-                else:
-                    print("not an option, calling the whole thing off...")
-                    do_upgrade = False
-            #runs the git pull command using the selected stratergy
-            if do_upgrade == True:
-                dbox = wx.MessageDialog(self, "Are you sure you want to upgrade this pigrow?", "update pigrow?", wx.OK | wx.CANCEL | wx.ICON_QUESTION)
-                answer = dbox.ShowModal()
-                dbox.Destroy()
-                #if user said ok then upload file to pi
-                if (answer == wx.ID_OK):
-                    try:
-                        stdin, stdout, stderr = ssh.exec_command(git_command)
-                        responce = stdout.read().strip()
-                        error = stderr.read()
-                        print responce
-                        if len(error) > 0:
-                            print 'error:' + str(error)
-                        system_info_pnl.sys_pigrow_update.SetLabel("--UPDATED--")
-                    except Exception as e:
-                        print("ooops! " + str(e))
-                        system_info_pnl.sys_pigrow_update.SetLabel("--UPDATE ERROR--")
-        elif self.update_pigrow_btn.GetLabel() == "old install pigrow":
-            print("Downloading Pigrow code onto Pi")
-            out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("git clone https://github.com/Pragmatismo/Pigrow ~/Pigrow/")
-            print out, error
-            system_info_pnl.sys_pigrow_update.SetLabel("--NEW INSTALL--")
-            print(" -- Installing software on pigrow ")
-            out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("~/Pigrow/scripts/config/install.py")
-            print out, error
+        update_dbox = upgrade_pigrow_dialog(None, title='Update Pigrow to Raspberry Pi')
+        update_dbox.ShowModal()
 
 class system_info_pnl(wx.Panel):
     #
@@ -503,7 +455,7 @@ class system_info_pnl(wx.Panel):
         #Software details
         system_info_pnl.sys_os_name = wx.StaticText(self,  label='os installed;', pos=(250, 365), size=(200,30))
         #system_info_pnl.sys_pigrow_version = wx.StaticText(self,  label='pigrow version;', pos=(250, 405), size=(200,30))
-        system_info_pnl.sys_pigrow_update = wx.StaticText(self,  label='Pigrow update status', pos=(250, 450), size=(200,30))
+        system_info_pnl.sys_pigrow_update = wx.StaticText(self,  label='Pigrow update status', pos=(250, 445), size=(200,30))
         #wifi deatils
         system_info_pnl.sys_network_name = wx.StaticText(self,  label='network name', pos=(250, 560), size=(200,30))
         system_info_pnl.wifi_list = wx.StaticText(self,  label='wifi list', pos=(140, 620), size=(200,100))
@@ -520,6 +472,116 @@ class system_info_pnl(wx.Panel):
         system_info_pnl.sys_pi_date = wx.StaticText(self,  label='datetime on pi', pos=(625, 530), size=(500,30))
         system_info_pnl.sys_pc_date = wx.StaticText(self,  label='datetime on local pc', pos=(625, 560), size=(200,30))
         #system_info_pnl.sys_time_diff = wx.StaticText(self,  label='difference', pos=(700, 555), size=(200,30))
+
+class upgrade_pigrow_dialog(wx.Dialog):
+    #Dialog box for installing pigrow software on a raspberry pi remotely
+    def __init__(self, *args, **kw):
+        super(upgrade_pigrow_dialog, self).__init__(*args, **kw)
+        self.InitUI()
+        self.SetSize((600, 500))
+        self.SetTitle("Upgrade Pigrow")
+    def InitUI(self):
+        # draw the pannel and text
+        pnl = wx.Panel(self)
+        wx.StaticText(self,  label='Upgrade Pigrow', pos=(20, 10))
+        wx.StaticText(self,  label='Use GIT to update the Pigrow to the newest version.', pos=(5, 40))
+        wx.StaticText(self,  label='Current Status;', pos=(10, 90))
+        # see which files are changed locally
+        wx.StaticText(self,  label='Local;', pos=(10, 120))
+        local_changes_tb = wx.StaticText(self,  label='--', pos=(90, 120), size=(150,100))
+        changes = self.read_git_dif()
+        local_changes_tb.SetLabel(str(changes))
+        # see which files are changed remotely
+        wx.StaticText(self,  label='Repository;', pos=(10, 220))
+        remote_changes_tb = wx.StaticText(self,  label='--', pos=(90, 220), size=(150,100))
+        repo_changes = self.read_repo_changes()
+        remote_changes_tb.SetLabel(repo_changes)
+        # upgrade and cancel buttons
+        self.upgrade_btn = wx.Button(self, label='Upgrade', pos=(15, 400), size=(175, 30))
+        self.upgrade_btn.Bind(wx.EVT_BUTTON, self.upgrade_click)
+        self.cancel_btn = wx.Button(self, label='Cancel', pos=(315, 400), size=(175, 30))
+        self.cancel_btn.Bind(wx.EVT_BUTTON, self.cancel_click)
+
+
+    def read_repo_changes(self):
+        repo_changes = "getting to it soon..."
+        print repo_changes
+        return repo_changes
+
+    def read_git_dif(self):
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("git -C ~/Pigrow/ diff --stat")
+        out = out.splitlines()
+        # create blank variables
+        changed_files = []
+        files_changed = ""
+        insertions = ""
+        deletions = ""
+        # if it's more than one line try breaking into relevent info
+        if len(out) > 1:
+            git_local_details = str(out[-1:])
+            git_changes = out[:-1]
+            for item in git_changes:
+                item = item.split("|")[0]#, item.split("|")[1].split(" ")[0]]
+                changed_files.append(item)
+            # fix final line into numbers we can use..
+            if " files" in git_local_details:
+                files_changed = git_local_details.split(" files")[0]
+                files_changed = files_changed.split("' ")[1]
+            if "insertions" in git_local_details:
+                insertions = git_local_details.split("changed, ")[1]
+                insertions = insertions.split(" insertions")[0]
+            if "deletions" in git_local_details:
+                deletions = git_local_details.split("(+), ")[1]
+                deletions = deletions.split(" deletions")[0]
+            display_text = str(files_changed) + " Files changed locally,"
+            for item in changed_files:
+                display_text += "\n     " + str(item)
+        return display_text
+
+    def cancel_click(self, e):
+        self.Destroy()
+
+    def upgrade_click(self, e):
+        # set do_upgrade flag to true, changes to false if git makes it confusing
+        do_upgrade = True
+        # check to determine best git merge stratergy
+        update_type = MainApp.system_ctrl_pannel.check_git()
+        if update_type == "clean":
+            git_command = "git -C ~/Pigrow/ pull"
+        elif update_type == "merge":
+            print("WARNING WARNING _ THIS CODE IS VERY MUCH IN THE TESTING PHASE")
+            print("if you're doing odd things it's very likely to mess up!")
+            #this can cause odd confusions which requires use of 'git rebase'
+            #reokace command line question with dialog box
+            question = raw_input("merge using default, ours or theirs?")
+            if question == "ours":
+                git_command = "git -C ~/Pigrow/ pull --strategy=ours" #if we've changed a file it ignores the remote updated one
+            elif question == "theirs":
+                #often needs to commit or stash changes before working
+                git_command = "git -C ~/Pigrow/ pull -s recursive -X theirs" #removes any changes made locally and replaces file with remote updated one
+            elif question == "default":
+                git_command = "git -C ~/Pigrow/ pull"
+            else:
+                print("not an option, calling the whole thing off...")
+                do_upgrade = False
+        #runs the git pull command using the selected stratergy
+        if do_upgrade == True:
+            dbox = wx.MessageDialog(self, "Are you sure you want to upgrade this pigrow?", "update pigrow?", wx.OK | wx.CANCEL | wx.ICON_QUESTION)
+            answer = dbox.ShowModal()
+            dbox.Destroy()
+            #if user said ok then upload file to pi
+            if (answer == wx.ID_OK):
+                try:
+                    stdin, stdout, stderr = ssh.exec_command(git_command)
+                    responce = stdout.read().strip()
+                    error = stderr.read()
+                    print responce
+                    if len(error) > 0:
+                        print 'error:' + str(error)
+                    system_info_pnl.sys_pigrow_update.SetLabel("--UPDATED--")
+                except Exception as e:
+                    print("ooops! " + str(e))
+                    system_info_pnl.sys_pigrow_update.SetLabel("--UPDATE ERROR--")
 
 class install_dialog(wx.Dialog):
     #Dialog box for installing pigrow software on a raspberry pi remotely
