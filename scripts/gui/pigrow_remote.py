@@ -514,8 +514,8 @@ class upgrade_pigrow_dialog(wx.Dialog):
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("git -C ~/Pigrow/ fetch -v")
         out = out.splitlines()
         #
-        repo_changes = out
-        
+        repo_changes = str(out)
+
         print repo_changes
         return repo_changes
 
@@ -560,9 +560,6 @@ class upgrade_pigrow_dialog(wx.Dialog):
         do_upgrade = True
         # check to determine best git merge stratergy
         update_type = MainApp.system_ctrl_pannel.check_git()
-        print("-------------------")
-        print update_type
-        print("_____________________")
         if update_type == "clean":
             git_command = "git -C ~/Pigrow/ pull"
         elif update_type == "merge":
