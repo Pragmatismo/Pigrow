@@ -272,24 +272,28 @@ class system_ctrl_pnl(wx.Panel):
             #    print("says its up to date")
         else:
             update_needed = 'error'
+
         # determine what sort of update is required
         if update_needed == True:
             system_info_pnl.sys_pigrow_update.SetLabel("update required, " + str(git_num) + " updates behind")
-            self.update_type = "clean"
+            update_type = "clean"
         elif update_needed == False:
             system_info_pnl.sys_pigrow_update.SetLabel("master branch is upto date")
+            update_type = "none"
         elif update_needed == 'ahead':
             system_info_pnl.sys_pigrow_update.SetLabel("Caution Required!\nYou modified your Pigrow code")
-            self.update_type = "merge"
+            update_type = "merge"
         elif update_needed == 'diverged':
             system_info_pnl.sys_pigrow_update.SetLabel("Caution Required!\nYou modified your Pigrow code")
-            self.update_type = "merge"
+            update_type = "merge"
         elif update_needed == 'error':
             if install_needed == True:
                 system_info_pnl.sys_pigrow_update.SetLabel("Pigrow folder not found.")
-            else:
-                system_info_pnl.sys_pigrow_update.SetLabel("Some confusion with git, sorry.")
-        return update_needed
+                update_type = "error"
+        else:
+            system_info_pnl.sys_pigrow_update.SetLabel("Some confusion with git, sorry.")
+            update_type = "error"
+        return update_type
 
     def check_pi_power_warning(self):
         #check for low power WARNING
@@ -492,7 +496,7 @@ class upgrade_pigrow_dialog(wx.Dialog):
         changes = self.read_git_dif()
         local_changes_tb.SetLabel(str(changes))
         # see which files are changed remotely
-        wx.StaticText(self,  label='Repository;', pos=(10, 220))
+        wx.StaticText(self,  label='Repo;', pos=(10, 220))
         remote_changes_tb = wx.StaticText(self,  label='--', pos=(90, 220), size=(150,100))
         repo_changes = self.read_repo_changes()
         remote_changes_tb.SetLabel(repo_changes)
@@ -546,6 +550,9 @@ class upgrade_pigrow_dialog(wx.Dialog):
         do_upgrade = True
         # check to determine best git merge stratergy
         update_type = MainApp.system_ctrl_pannel.check_git()
+        print("-------------------")
+        print update_type
+        print("_____________________")
         if update_type == "clean":
             git_command = "git -C ~/Pigrow/ pull"
         elif update_type == "merge":
@@ -579,6 +586,7 @@ class upgrade_pigrow_dialog(wx.Dialog):
                     if len(error) > 0:
                         print 'error:' + str(error)
                     system_info_pnl.sys_pigrow_update.SetLabel("--UPDATED--")
+                    self.Destroy()
                 except Exception as e:
                     print("ooops! " + str(e))
                     system_info_pnl.sys_pigrow_update.SetLabel("--UPDATE ERROR--")
