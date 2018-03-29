@@ -520,7 +520,8 @@ class upgrade_pigrow_dialog(wx.Dialog):
         return repo_changes
 
     def read_git_dif(self):
-        # could use diff --name-only instead of --stat
+        # could use "diff --name-only" instead of --stat
+        # or        "git status --porcelain"
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("git -C ~/Pigrow/ diff --stat")
         out = out.splitlines()
         # create blank variables
