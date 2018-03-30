@@ -128,11 +128,12 @@ class system_ctrl_pnl(wx.Panel):
 
     def set_baudrate(self, e):
         new_i2c_baudrate = "30000"
-        # ask the user what baudrate they wnt to set
+        # ask the user what baudrate they want to set
         baud_dbox = wx.TextEntryDialog(self, 'Set i2c baudrate in /boot/config.txt to', 'Change i2c baudrate', new_i2c_baudrate)
-        #baud_dbox.SetValue("Python is the best!")
         if baud_dbox.ShowModal() == wx.ID_OK:
             new_i2c_baudrate = baud_dbox.GetValue()
+        else:
+            return "cancelled"
         baud_dbox.Destroy()
         #
         print("changing the i2c baudrate")
