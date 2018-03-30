@@ -15,6 +15,7 @@ pin_address = "gnd"  #gnd,vdd,sda,sdl - use lower case because argu gets lowerca
 i2c_busnum = 1
 sensor_type = "ads1115"
 convert_volt = True #set false to record results without conversion
+centralise = False #set false not to record as vols
 
 homedir = os.environ['HOME']
 
@@ -167,7 +168,7 @@ def convert_to_volt(vals):
         vals[3] = vals[3] * 0.0078125
     return vals
 
-def to_posneg_amp(vals):
+def centralise_posneg(vals):
     vals[0] = vals[0] - 1635.625
     vals[1] = vals[1] - 1635.625
     vals[2] = vals[2] - 1635.625
@@ -188,13 +189,13 @@ def log_ads1115(log_path, vals):
 
 
 if __name__ == '__main__':
-    while True:
-        vals = read_adc()
-        if not vals == None:
-            if not convert_volt == False:
-                vals = convert_to_volt(vals)
-                vals = to_posneg_amp(vals)
-            log_ads1115(log_path, vals)
-            print vals
-        else:
-            print("failed to find results")
+    vals = read_adc()
+    if not vals == None:
+        if not convert_volt == False:
+            vals = convert_to_volt(vals)
+            if not centralise = False:
+                vals = centralise_posneg(vals)
+        log_ads1115(log_path, vals)
+        print vals
+    else:
+        print("failed to find results")
