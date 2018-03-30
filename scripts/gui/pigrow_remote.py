@@ -27,12 +27,38 @@
 #    graphing_ctrl_pannel
 #
 #
-# - useful functions
-# run_on_pi(self, command)    -   Runs a command on the pigrow and returns output and error
-####    out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("ls /home/" + pi_link_pnl.target_user + "/Pigrow/")
+# - Useful functions and stored variables
+#
+#            I NEED TO MAKE A NEAT PLACE FOR SHARED VARIABLES
+#               THIS WILL HAPPEN SOON
+#
+#
+###                Run a command on the pigrow
+##     MainApp.localfiles_ctrl_pannel.run_on_pi(self, command)
+#          Runs a command on the pigrow and returns output and error
+####     out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("ls /home/" + pi_link_pnl.target_user + "/Pigrow/")
+#
+###                download a file to the local folder system
+##    MainApp.localfiles_ctrl_pannel.download_file_to_folder(remote_file, local_name)
+#          remote file is the full path to the file to be downloaded
+#          local_name is the folder and filename within the pigrows local folder
+####     MainApp.localfiles_ctrl_pannel.download_file_to_folder("/home/" + pi_link_pnl.target_user + "/Pigrow/graphs/graph.png", "graphs/graph.png"
+#
+###                 upload a file to the raspberry pi
+##    MainApp.localfiles_ctrl_pannel.upload_file_to_fodler(local_path, remote_path):
+#           local_path and remote_path should be full and explicit paths
+####     MainApp.localfiles_ctrl_pannel.upload_file_to_fodler(localfiles_info_pnl.local_path + "temp/temp.txt", "/home/" + pi_link_pnl.target_user + "/Pigrow/temp/temp.txt")
 #
 #
 #
+###      Useful Variables - Path info
+##
+##  temp_local = localfiles_info_pnl.local_path + "temp/"
+##  remote_path = "/home/" + pi_link_pnl.target_user + "/Pigrow/"
+#
+#
+##
+###
 
 print("")
 print(" Pigrow Remote Control Utility")
@@ -95,8 +121,43 @@ class system_ctrl_pnl(wx.Panel):
         self.reboot_pigrow_btn.Bind(wx.EVT_BUTTON, self.reboot_pigrow_click)
         self.shutdown_pi_btn = wx.Button(self, label='shutdown pi', pos=(145, 160), size=(120, 30))
         self.shutdown_pi_btn.Bind(wx.EVT_BUTTON, self.shutdown_pi_click)
-        self.find_i2c_btn = wx.Button(self, label='i2c check', pos=(10, 220), size=(175, 30))
+        self.find_i2c_btn = wx.Button(self, label='i2c check', pos=(10, 220), size=(105, 30))
         self.find_i2c_btn.Bind(wx.EVT_BUTTON, self.find_i2c_devices)
+        self.i2c_baudrate_btn = wx.Button(self, label='baudrate', pos=(120, 220), size=(105, 30))
+        self.i2c_baudrate_btn.Bind(wx.EVT_BUTTON, self.set_baudrate)
+
+    def set_baudrate(self, e):
+        new_i2c_baudrate = "30000"
+        # ask the user what baudrate they wnt to set
+        baud_dbox = wx.TextEntryDialog(self, 'Set i2c baudrate in /boot/config.txt to', 'Change i2c baudrate', new_i2c_baudrate)
+        #baud_dbox.SetValue("Python is the best!")
+        if baud_dbox.ShowModal() == wx.ID_OK:
+            new_i2c_baudrate = baud_dbox.GetValue()
+        baud_dbox.Destroy()
+        #
+        print("changing the i2c baudrate")
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("cat /boot/config.txt")
+        raspberry_config = out.splitlines()
+        # put it together again chaning settings line
+        config_text = ""
+        for line in raspberry_config:
+            if "dtparam=i2c_baudrate=" in line:
+                line = "dtparam=i2c_baudrate=" + new_i2c_baudrate
+                print line
+            config_text = config_text + line + "\n"
+        # set file path, check temp folder exists, set temp file name
+        temp_local = localfiles_info_pnl.local_path + "temp/"
+        if not os.path.isdir(temp_local):
+            os.makedirs(temp_local)
+        temp_rasp_config = temp_local + "rasp_config.txt"
+        # write file to local temp folder
+        with open(temp_rasp_config, "w") as file_to_save:
+            file_to_save.write(config_text)
+        # copy onto the raspberry pi
+        MainApp.localfiles_ctrl_pannel.upload_file_to_fodler(temp_rasp_config, "/home/pi/config_temp.txt")
+        # move it into place using super user permissions
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo mv /home/pi/config_temp.txt /boot/config.txt")
+
 
     def i2c_check(self):
         # checking for i2c folder in /dev/
@@ -119,6 +180,10 @@ class system_ctrl_pnl(wx.Panel):
         # check if baurdrate is changed in Config
         i2c_baudrate = self.check_i2c_baudrate(i2c_bus_number)
         i2c_text += " baudrate " + str(i2c_baudrate)
+        #
+        #  also might be worth looking at  sudo cat /sys/module/i2c_bcm2708/parameters/baudrate though it reads 0 when inset I think
+        #
+        #
         # change text
         system_info_pnl.sys_i2c_info.SetLabel(i2c_text)
         # return
@@ -126,16 +191,17 @@ class system_ctrl_pnl(wx.Panel):
 
     def check_i2c_baudrate(self, i2c_bus_number):
         # ask pi to read the pi's boot congif file for i2c baudrate info
-        print("looking at /boot/config.txt file for baudrate setting;")
-        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("/boot/config.txt | grep i2c" + str(i2c_bus_number) + "_baudrate=")
+        #print("looking at /boot/config.txt file for baudrate setting;")
+        # dtparam=i2c_baudrate
+        #out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("cat /boot/config.txt | grep i2c" + str(i2c_bus_number) + "_baudrate=") #if it wants to know bus num
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("cat /boot/config.txt | grep i2c_baudrate=")
+        out = out.replace("dtparam=i2c_baudrate=", "")
         out = out.strip()
         if out == "" or out == None:
-            print("Baudrate not changed in /boot/config.txt")
+            #print("Baudrate not changed in /boot/config.txt")
             return "default"
-        else:
-            print("Baudrate changed to;")
-            print out
-        print("-----")
+        #else:
+            #print("Baudrate changed to;" + str(out))
         return out
 
     def find_i2c_devices(self, e):
@@ -492,14 +558,18 @@ class upgrade_pigrow_dialog(wx.Dialog):
         wx.StaticText(self,  label='Current Status;', pos=(10, 90))
         # see which files are changed locally
         wx.StaticText(self,  label='Local;', pos=(10, 120))
-        local_changes_tb = wx.StaticText(self,  label='--', pos=(90, 120), size=(150,100))
+        local_changes_tb = wx.StaticText(self,  label='--', pos=(90, 120), size=(150,150))
         changes = self.read_git_dif()
         local_changes_tb.SetLabel(str(changes))
         # see which files are changed remotely
-        wx.StaticText(self,  label='Repo;', pos=(10, 220))
-        remote_changes_tb = wx.StaticText(self,  label='--', pos=(90, 220), size=(150,100))
-        repo_changes = self.read_repo_changes()
+        wx.StaticText(self,  label='Repo;', pos=(10, 270))
+        remote_changes_tb = wx.StaticText(self,  label='--', pos=(90, 270), size=(150,150))
+        repo_changes, num_repo_changed_files = self.read_repo_changes()
         remote_changes_tb.SetLabel(repo_changes)
+        # upgrade type
+        wx.StaticText(self,  label='Local Status;', pos=(10, 350))
+        upgrade_type = self.determine_upgrade_type(repo_changes)
+        upgrade_type_tb = wx.StaticText(self,  label=upgrade_type, pos=(150, 350))
         # upgrade and cancel buttons
         self.upgrade_btn = wx.Button(self, label='Upgrade', pos=(15, 400), size=(175, 30))
         self.upgrade_btn.Bind(wx.EVT_BUTTON, self.upgrade_click)
@@ -508,49 +578,84 @@ class upgrade_pigrow_dialog(wx.Dialog):
 
     # git diff --name-only HEAD@{0} HEAD@{1}      #shows the most recent changes
 
+    def determine_upgrade_type(self, num_repo_changed_files):
+        # looks at available info and offers best upgrade options
+        update_needed = "not determined"
+        if len(num_repo_changed_files) > 0:
+            upgrade_needed = True
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("git -C ~/Pigrow/ status --untracked-files no")
+        if "have diverged" in out:
+            update_needed = 'diverged'
+        for line in out.splitlines():
+            if "Your branch is" in line:
+                if 'behind' in line:
+                    update_needed = 'behind'
+                    git_num = line.split(" ")[6]
+                elif 'ahead' in line:
+                    update_needed = 'ahead'
+                elif "up-to-date" in line:
+                    update_needed = 'up-to-date'
+        return update_needed
+
+
     def read_repo_changes(self):
+        # lists changes made to the remote (githubed) version since our last update.
         repo_changes = "getting to it soon..."
         # grabbing info from github but not updating anything yet
+        print("fetching repo info from git")
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("git -C ~/Pigrow/ fetch -v")
-        out = out.splitlines()
-        #
-        repo_changes = str(out)
+        print out, error
+        print("compairing us with them")
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("git -C ~/Pigrow/ diff origin/master master --stat")
+        print out, error
+        # parse into usable data
+        changed_files, num_files_changed, num_insertions, num_deletions = self.parse_git_diff_info(out)
+        display_text = str(num_files_changed) + " Files changed;"
+        for item in changed_files:
+            display_text += "\n     " + str(item)
+        return display_text, changed_files
 
-        print repo_changes
-        return repo_changes
 
     def read_git_dif(self):
         # could use "diff --name-only" instead of --stat
-        # or        "git status --porcelain"
+        # checks for changes we've made locally to our git folder
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("git -C ~/Pigrow/ diff --stat")
-        out = out.splitlines()
+        # parse into useable data
+        changed_files, num_files_changed, num_insertions, num_deletions = self.parse_git_diff_info(out)
+        display_text = str(num_files_changed) + " Files changed;"
+        for item in changed_files:
+            display_text += "\n     " + str(item)
+        return display_text
+
+    def parse_git_diff_info(self, git_diff_text):
+        # convert output from "git diff --stat"  into list and numbers
         # create blank variables
         changed_files = []
-        files_changed = ""
-        insertions = ""
-        deletions = ""
+        num_files_changed = "0"
+        num_insertions = "0"
+        num_deletions = "0"
         display_text = ""
-        # if it's more than one line try breaking into relevent info
-        if len(out) > 1:
-            git_local_details = str(out[-1:])
-            git_changes = out[:-1]
+        # split 'git diff --stat' output into useful pieces
+        git_diff_text = git_diff_text.splitlines()
+        if len(git_diff_text) > 1:
+            git_local_details = str(git_diff_text[-1:])
+            git_changes = git_diff_text[:-1]
             for item in git_changes:
-                item = item.split("|")[0]#, item.split("|")[1].split(" ")[0]]
+                item = item.split("|")[0]
                 changed_files.append(item)
             # fix final line into numbers we can use..
-            if " files" in git_local_details:
-                files_changed = git_local_details.split(" files")[0]
-                files_changed = files_changed.split("' ")[1]
+            if " file" in git_local_details:
+                num_files_changed = git_local_details.split(" file")[0]
+                num_files_changed = num_files_changed.split("' ")[1]
             if "insertions" in git_local_details:
-                insertions = git_local_details.split("changed, ")[1]
-                insertions = insertions.split(" insertions")[0]
+                num_insertions = git_local_details.split("changed, ")[1]
+                num_insertions = num_insertions.split(" insertions")[0]
             if "deletions" in git_local_details:
-                deletions = git_local_details.split("(+), ")[1]
-                deletions = deletions.split(" deletions")[0]
-            display_text = str(files_changed) + " Files changed locally,"
-            for item in changed_files:
-                display_text += "\n     " + str(item)
-        return display_text
+                num_deletions = git_local_details.split("(+), ")[1]
+                num_deletions = num_deletions.split(" deletions")[0]
+            display_text = str(num_files_changed) + " Files changed locally,"
+        return changed_files, num_files_changed, num_insertions, num_deletions
+
 
     def cancel_click(self, e):
         self.Destroy()
@@ -3152,6 +3257,21 @@ class localfiles_ctrl_pnl(wx.Panel):
         ssh_tran.close()
         print(" file copied to " + str(local_path))
         return local_path
+
+    def upload_file_to_fodler(self, local_path, remote_path):
+        # Copies a folder from the local machine onto the pigrow
+        # local_path and remote_path should be full and explicit paths
+        port = 22
+        print("  - connecting transport pipe... " + pi_link_pnl.target_ip + " port:" + str(port))
+        print("    to  upload " + local_path + " to " + remote_path)
+        ssh_tran = paramiko.Transport((pi_link_pnl.target_ip, port))
+        ssh_tran.connect(username=pi_link_pnl.target_user, password=pi_link_pnl.target_pass)
+        self.sftp = paramiko.SFTPClient.from_transport(ssh_tran)
+        self.sftp.put(local_path, remote_path)
+        self.sftp.close()
+        ssh_tran.close()
+        print(" file copied to " + str(remote_path))
+
 
 class file_download_dialog(wx.Dialog):
     #Dialog box for downloding files from pi to local storage folder
