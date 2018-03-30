@@ -193,7 +193,7 @@ if __name__ == '__main__':
     if not vals == None:
         if not convert_volt == False:
             vals = convert_to_volt(vals)
-            if not centralise = False:
+            if not centralise == False:
                 vals = centralise_posneg(vals)
         log_ads1115(log_path, vals)
         print vals
