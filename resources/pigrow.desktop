@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=Pigrow Remote
+Comment=Remote Controll for Raspberry Pi based Grow Box
+Exec=/home/pragmo/pigitgrow/Pigrow/scripts/gui/pigrow_remote.py
+Icon=/home/pragmo/pigitgrow/Pigrow/resources/icon.png
+Terminal=false
+Type=Application
+Categories=Application;Network;
+StartupNotify=true
