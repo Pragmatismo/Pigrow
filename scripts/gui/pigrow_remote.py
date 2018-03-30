@@ -3988,7 +3988,7 @@ class pi_link_pnl(wx.Panel):
     def get_box_name(self):
         boxname = None
         try:
-            stdin, stdout, stderr = ssh.exec_command("cat /home/pi/Pigrow/config/pigrow_config.txt | grep box_name")
+            stdin, stdout, stderr = ssh.exec_command("cat /home/" + pi_link_pnl.target_user + "/Pigrow/config/pigrow_config.txt | grep box_name")
             boxname = stdout.read().strip().split("=")[1]
             print "Pigrow Found; " + boxname
         except Exception as e:
@@ -4154,4 +4154,5 @@ def main():
     app.MainLoop()
 
 if __name__ == '__main__':
+    os.chdir(os.path.dirname(sys.argv[0]))
     main()
