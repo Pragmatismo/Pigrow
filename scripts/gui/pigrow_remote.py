@@ -674,7 +674,8 @@ class upgrade_pigrow_dialog(wx.Dialog):
             print("if you're doing odd things it's very likely to mess up!")
             #this can cause odd confusions which requires use of 'git rebase'
             #reokace command line question with dialog box
-            question = raw_input("merge using default, ours or theirs?")
+            #question = raw_input("merge using default, ours or theirs?")
+            question = "theirs"
             if question == "ours":
                 git_command = "git -C ~/Pigrow/ pull --strategy=ours" #if we've changed a file it ignores the remote updated one
             elif question == "theirs":
