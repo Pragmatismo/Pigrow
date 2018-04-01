@@ -41,11 +41,11 @@ def get_warning_ranges_from_settings(loc_settings):
     except:
         toocold = 17
         toohot = 30
-    dangercold = int(toocold) / 100 * 85
-    dangerhot = int(toohot) / 100 * 115
+    dangercold = (float(toocold) / 100) * 85
+    dangerhot = (float(toohot) / 100) * 115
     return toocold, dangercold, toohot, dangerhot
 
-def check_commandline_options(graph_path, log_location, hours_to_show, show_from, toocold, dangercold, toohot, dangerhot, temp_unit, ymin="default",ymax="default", log_temp_pos=0, log_date_pos=2):
+def check_commandline_options(graph_path, log_location, hours_to_show, show_from, toocold, dangercold, toohot, dangerhot, temp_unit, ymin="default",ymax="default", log_temp_pos=0, log_date_pos=2, colour_graph="true"):
     for argu in sys.argv[1:]:
         if "=" in argu:
             thearg = str(argu).split('=')[0].lower()
@@ -60,10 +60,10 @@ def check_commandline_options(graph_path, log_location, hours_to_show, show_from
                 show_from = theval
             elif thearg == 'cold':
                 toocold = int(theval)
-                dangercold = int(toocold) / 100 * 85
+                dangercold = float(toocold) / 100 * 85
             elif thearg == 'hot':
                 toohot = int(theval)
-                dangerhot = int(toohot) / 100 * 115
+                dangerhot = float(toohot) / 100 * 115
             elif thearg == "unit" or thearg == "temp_unit":
                 temp_unit = theval.lower()
             elif thearg == "ymin":
@@ -76,6 +76,8 @@ def check_commandline_options(graph_path, log_location, hours_to_show, show_from
             elif thearg == "log_date_pos":
                 log_date_pos = int(theval)
                 print("Using log location " + str(log_date_pos) + " for date info")
+            elif thearg == "colour_graph" or thearg == "color_graph":
+                colour_graph = thearg.lower()
         elif argu == 'h' or argu == '-h' or argu == 'help' or argu == '--help':
             print("")
             print("  log=DIR/LOG_FILE  - point to a different log file than mentioned in dirlocs")
@@ -88,6 +90,7 @@ def check_commandline_options(graph_path, log_location, hours_to_show, show_from
             print("                                e.g.  2018-12-25-16:20")
             print("  cold=NUM          - set's the cold point at which graph colors change")
             print("  hot=NUM           - set's the hot point for graph")
+            print("  color_graph=false - turn off high/low graph coloring")
             print("  temp_unit=c or f  - when f converts to Fahrenheit before graphing ")
             print("  ymin=0            - Set position of bottom of Y Axis")
             print("  ymax=50           - Set position of top of Y Axis")
@@ -106,10 +109,11 @@ def check_commandline_options(graph_path, log_location, hours_to_show, show_from
             print("temp_unit=[c,f]")
             print("ymin=0")
             print("ymax=50")
+            print("colour_graph=[true,false]")
             sys.exit()
         else:
             print(" No idea what you mean by; " + str(argu))
-    return graph_path, log_location, hours_to_show, show_from, toocold, dangercold, toohot, dangerhot, temp_unit, ymin, ymax, log_temp_pos, log_date_pos
+    return graph_path, log_location, hours_to_show, show_from, toocold, dangercold, toohot, dangerhot, temp_unit, ymin, ymax, log_temp_pos, log_date_pos, colour_graph
 
 def set_date_values(hours_to_show, show_from):
     # if hours_to_show is set then works out when to start the Graph
@@ -172,20 +176,23 @@ def add_log(linktolog, temp_unit, oldest_allowed_date, temp_pos=0, date_pos=2):
         exit()
     return log_date, log_temp
 
-def make_graph(date_list,temp_list, graph_path, ymin="default", ymax="default"):
+def make_graph(date_list,temp_list, graph_path, ymin="default", ymax="default", toocold=None, dangercold=None, toohot=None, dangerhot=None):
     # define graph space
     plt.figure(1)
     ax = plt.subplot()
     # make the graph
     #ax.bar(date_list, temp_list, width=0.01, color='green', linewidth = 1) #this is horribly processor intensive don't use it
     ax.plot(date_list, temp_list, color='black', lw=2)
-    # colour hot and cold porions
+    # colour hot and cold porions of the graph
     temp_list = np.array(temp_list)
-    ax.fill_between(date_list, temp_list, 0,where=temp_list < dangercold, alpha=0.6, color='darkblue')
-    ax.fill_between(date_list, temp_list, 0,where=temp_list > dangercold, alpha=0.6, color='blue')
-    ax.fill_between(date_list, temp_list, 0,where=temp_list > toocold, alpha=0.6, color='green')
-    ax.fill_between(date_list, temp_list, 0,where=temp_list > toohot, alpha=0.6, color='red')
-    ax.fill_between(date_list, temp_list, 0,where=temp_list > dangerhot, alpha=0.6, color='darkred')
+    if not dangercold == None:
+        ax.fill_between(date_list, temp_list, 0,where=temp_list < dangercold, alpha=0.6, color='darkblue')
+    if not toocold == None:
+        ax.fill_between(date_list, temp_list, 0,where=temp_list < toocold, alpha=0.6, color='blue')
+    if not toohot == None:
+        ax.fill_between(date_list, temp_list, 0,where=temp_list > toohot, alpha=0.6, color='red')
+    if not dangerhot == None:
+        ax.fill_between(date_list, temp_list, 0,where=temp_list > dangerhot, alpha=0.6, color='darkred')
     # add titles and axis labels
     fig = plt.gcf()
     fig.canvas.set_window_title('Temperature Graph')
@@ -216,7 +223,7 @@ if __name__ == '__main__':
     # try to load temp settings from pigrows config file where they're also used fo other things
     toocold, dangercold, toohot, dangerhot = get_warning_ranges_from_settings(settings_location)
     # check if user wants to alter any settings
-    graph_path, log_location, hours_to_show, show_from, toocold, dangercold, toohot, dangerhot, temp_unit, ymin, ymax, log_temp_pos, log_date_pos = check_commandline_options(graph_path, log_location, hours_to_show, show_from, toocold, dangercold, toohot, dangerhot, temp_unit)
+    graph_path, log_location, hours_to_show, show_from, toocold, dangercold, toohot, dangerhot, temp_unit, ymin, ymax, log_temp_pos, log_date_pos, colour_graph = check_commandline_options(graph_path, log_location, hours_to_show, show_from, toocold, dangercold, toohot, dangerhot, temp_unit)
     # find dates to use for cut off
     oldest_allowed_date = set_date_values(hours_to_show, show_from)
     # add the log file, by default uses DHT22 log
@@ -224,5 +231,9 @@ if __name__ == '__main__':
     print "----------------------------------"
     print "most recent temp - " + str(log_temp[-1])[0:4] + " " + temp_unit
     print "----------------------------------"
-    make_graph(log_date, log_temp, graph_path, ymin, ymax)
+    if colour_graph == "true":
+        print "Colouring graph using temp range; " + str(dangercold) + ", " + str(toocold) + " -- " + str(toohot) + ", " + str(dangerhot) + " "
+        make_graph(log_date, log_temp, graph_path, ymin, ymax, toocold, dangercold, toohot, dangerhot)
+    else:
+        make_graph(log_date, log_temp, graph_path, ymin, ymax, None, None, None, None)
     print("Temp data created and saved to " + graph_path)
