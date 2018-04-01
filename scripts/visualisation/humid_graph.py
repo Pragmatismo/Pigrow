@@ -20,19 +20,14 @@ try:
     toolow = int(set_dic['humid_low'])
     toohigh = int(set_dic['humid_high'])
 except:
-    graph_path = "./dht_temp_graph.png"
+    graph_path = "./dht_humid_graph.png"
     log_location = "./dht22_log.txt"
     toolow = 30
     toohigh = 70
 
-dangerlow = int(toolow) / 100 * 85
-dangerhigh = int(toohigh) / 100 * 115
+dangerlow = float(toolow) / 100 * 85
+dangerhigh = float(toohigh) / 100 * 115
 
-##User Settings  -- It's ok to change these
-#dangercold = 15
-#toocold = 23
-#toohot = 30
-#dangerhot = 36
 hours_to_show = 24*7*52 #hours from the end of the log, use absurdly high number to see all
 
 for argu in sys.argv[1:]:
@@ -45,24 +40,28 @@ for argu in sys.argv[1:]:
             graph_path = theval
         elif thearg == "hours":
             hours_to_show = int(theval)
-        elif thearg == 'cold':
-            toocold = int(theval)
-        elif thearg == 'hot':
-            toohot = int(theval)
+        elif thearg == 'too_low':
+            toolow = int(theval)
+            dangerlow = float(toolow) / 100 * 85
+            print toolow, dangerlow
+        elif thearg == 'too_high':
+            toohigh = int(theval)
+            dangerhigh = float(toohigh) / 100 * 115
+            print toohigh, dangerhigh
     elif argu == 'h' or argu == '-h' or argu == 'help' or argu == '--help':
         print("")
         print("  log=DIR/LOG_FILE  - point to a different log file than mentioned in dirlocs")
         print("  out=DIR/NAME.png  - folder to make graphs in, can use ./ ")
         print("  hours=NUM         - Hours of the logs graph, 168 for a week")
-        print("  cold=NUM          - set's the cold point at which graph colors change")
-        print("  hot=NUM           - set's the hot point for graph")
+        print("  too_low=NUM          - set's the cold point at which graph colors change")
+        print("  too_high=NUM           - set's the hot point for graph")
         sys.exit()
     elif argu == '-flags':
         print("log=" + log_location)
         print("out=" + graph_path)
         print("hours=NUM")
-        print("cold=NUM")
-        print("hot=NUM")
+        print("too_low=NUM")
+        print("too_high=NUM")
         sys.exit()
     else:
         print(" No idea what you mean by; " + str(argu))
@@ -118,15 +117,14 @@ def make_graph(da,ta):
     plt.figure(1)
     ax = plt.subplot()
   #  ax.bar(da, ta, width=0.01, color='k', linewidth = 0)
-    ax.plot(da, ta, color='darkblue', lw=3)
-    ave = 0
-    for x in ta:
-        ave = ave + x
-    av = ave / len(ta)
+    ax.plot(da, ta, color='black', lw=2)
+    #ave = 0
+    #for x in ta:
+    #     ave = ave + x
+    #av = ave / len(ta)
     ta = np.array(ta)
     ax.fill_between(da, ta, 0,where=ta < dangerlow, alpha=0.6, color='darkblue')
-    ax.fill_between(da, ta, 0,where=ta > dangerlow, alpha=0.6, color='blue')
-    ax.fill_between(da, ta, 0,where=ta > toolow, alpha=0.6, color='green')
+    ax.fill_between(da, ta, 0,where=ta < toolow, alpha=0.6, color='blue')
     ax.fill_between(da, ta, 0,where=ta > toohigh, alpha=0.6, color='red')
     ax.fill_between(da, ta, 0,where=ta > dangerhigh, alpha=0.6, color='darkred')
     ax.xaxis_date()
