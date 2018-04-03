@@ -17,6 +17,8 @@ a1_title = "a1"
 a2_title = "a2"
 a3_title = "a3"
 graph_legend = "default"
+ymin = None
+ymax = None
 
 hours_to_show = 24*7*52*10 #hours from the end of the log, use absurdly high number to see all
 
@@ -48,6 +50,10 @@ for argu in sys.argv[1:]:
             a3_title = thevalue
         elif thearg == "legend":
             graph_legend = thevalue
+        elif thearg == "ymin":
+            ymin = int(thevalue)
+        elif thearg == "ymax":
+            ymax = int(thevalue)
     elif argu == 'h' or argu == '-h' or argu == 'help' or argu == '--help':
         print("")
         print("  log=DIR/LOG_FILE    - point to a different log file than mentioned in dirlocs")
@@ -62,6 +68,8 @@ for argu in sys.argv[1:]:
         print("  a2_title=TEXT       ")
         print("  a3_title=TEXT       ")
         print("  legend=default, none - set none to disable graph legend")
+        print("  ymin=0            - Set position of bottom of Y Axis")
+        print("  ymax=50           - Set position of top of Y Axis")
         print(" -flags                -show all argu flags and their options")
         sys.exit()
     elif argu == '-flags':
@@ -76,6 +84,8 @@ for argu in sys.argv[1:]:
         print("a1_title=")
         print("a2_title=")
         print("a3_title=")
+        print("ymin=0")
+        print("ymax=50")
         print("legend=[default,none]")
         sys.exit()
     else:
@@ -142,14 +152,14 @@ def make_graph(date,ta, colour, name):
     ax = plt.subplot()
   #  ax.bar(da, ta, width=0.01, color='k', linewidth = 0)
     ax.plot(date, ta, color=colour, lw=1, label=name)
-    ave = 0
-    for x in ta:
-        ave = ave + x
-    av = ave / len(ta)
-    ta = np.array(ta)
+#    ta = np.array(ta)
     ax.xaxis_date()
     plt.title("Time Perod; " + str(date[0].strftime("%b-%d %H:%M")) + " to " + str(date[-1].strftime("%b-%d %H:%M")) + " UTC")
     plt.ylabel("ADS1115 Value")
+    if not ymax == None:
+        plt.ylim(ymax=ymax)
+    if not ymin == None:
+        plt.ylim(ymin=ymin)
     fig = plt.gcf()
     fig.canvas.set_window_title('Raw ADS1115 Graph')
     maxh = ta
