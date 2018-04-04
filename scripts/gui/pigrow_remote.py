@@ -753,12 +753,22 @@ class install_dialog(wx.Dialog):
         self.progress.SetLabel("####~~~~~~~~~~~~~~~~~~~~~~~~~~~")
         wx.Yield()
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("git clone https://github.com/Pragmatismo/Pigrow ~/Pigrow/")
-        self.currently_doing.SetLabel("creating folders")
+        self.currently_doing.SetLabel("creating folders and config")
         self.progress.SetLabel("#####~~~~~~~~~~~~~~~~~~~~~~~~~")
         wx.Yield()
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("mkdir ~/Pigrow/caps/")
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("mkdir ~/Pigrow/graphs/")
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("mkdir ~/Pigrow/logs/")
+        # make dirlocs with pi's username
+        dirlocs_template, error = MainApp.localfiles_ctrl_pannel.run_on_pi("cat ~/Pigrow/config/templates/dirlocs_temp.txt")
+        dirlocs_template = dirlocs_template.replace("**", str("/home/" + pi_link_pnl.target_user))
+        temp_dirlocs_local = localfiles_info_pnl.local_path + "temp/dirlocs.txt"
+        if not os.path.isdir(localfiles_info_pnl.local_path + "temp/"):
+            os.makedirs(localfiles_info_pnl.local_path + "temp/")
+        with open(temp_dirlocs_local, "w") as temp_local:
+            temp_local.write(dirlocs_template)
+        MainApp.localfiles_ctrl_pannel.upload_file_to_fodler(temp_dirlocs_local, "/home/" + pi_link_pnl.target_user + "/test.txt")
+
         self.currently_doing.SetLabel("-")
         self.progress.SetLabel("######~~~~~~~~~~~~~~~~~~~~~~~")
         wx.Yield()
