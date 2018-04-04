@@ -2156,10 +2156,22 @@ class cron_info_pnl(wx.Panel):
             cron_line = ''
             if cron_list_pnl.startup_cron.GetItemText(num, 1) == 'False':
                 cron_line += '#'
-            cron_line += '@reboot ' + cron_list_pnl.startup_cron.GetItemText(num, 3) # cron_task
-            cron_line += ' ' + cron_list_pnl.startup_cron.GetItemText(num, 4) # cron_extra_args
-            cron_line += ' ' + cron_list_pnl.startup_cron.GetItemText(num, 5) # cron_comment
+            script_cmd = cron_list_pnl.startup_cron.GetItemText(num, 3) # cron task
+            script_cmd += ' ' + cron_list_pnl.startup_cron.GetItemText(num, 4) # cron_extra_args
+            script_cmd += ' ' + cron_list_pnl.startup_cron.GetItemText(num, 5) # cron_comment
+            cron_line += '@reboot ' + script_cmd
             cron_text += cron_line + '\n'
+            # ask if unrunning scripts should be started
+            is_running = self.test_if_script_running(cron_list_pnl.startup_cron.GetItemText(num, 3))
+            if is_running == False:
+                dbox = wx.MessageDialog(self, "Would you like to start running script " + str(script_cmd), "Run on Pigrow?", wx.OK | wx.CANCEL | wx.ICON_QUESTION)
+                answer = dbox.ShowModal()
+                dbox.Destroy()
+                if (answer == wx.ID_OK):
+                    print("Running " +str(script_cmd))
+                    ssh.exec_command(script_cmd + " &") # don't ask for output and it's non-blocking
+                                                        # this is absolutely vital!
+        # add repating jobs to cron list
         repeat_num = cron_list_pnl.repeat_cron.GetItemCount()
         for num in range(0, repeat_num):
             cron_line = ''
@@ -2189,7 +2201,7 @@ class cron_info_pnl(wx.Panel):
             # save cron text onto pigrow as text file then import into cron
             sftp = ssh.open_sftp()
             try:
-                tempfolder = '/home/pi/Pigrow/temp'
+                tempfolder = '/home/' + pi_link_pnl.target_user + '/Pigrow/temp'
                 sftp.mkdir(tempfolder)
             except IOError:
                 pass
@@ -2388,7 +2400,7 @@ class cron_info_pnl(wx.Panel):
 
     def new_cron_click(self, e):
         #define blank fields and defaults for dialogue box to read
-        cron_info_pnl.cron_path_toedit = '/home/pi/Pigrow/scripts/cron/'
+        cron_info_pnl.cron_path_toedit = "/home/" + pi_link_pnl.target_user + "/Pigrow/scripts/cron/"
         cron_info_pnl.cron_task_toedit = 'input cron task here'
         cron_info_pnl.cron_args_toedit = ''
         cron_info_pnl.cron_comment_toedit = ''
@@ -2763,7 +2775,8 @@ class cron_job_dialog(wx.Dialog):
         self.cron_type_combo = wx.ComboBox(self, choices = cron_type_opts, pos=(260,10), size=(125, 25))
         self.cron_type_combo.Bind(wx.EVT_COMBOBOX, self.cron_type_combo_go)
         wx.StaticText(self,  label='path;', pos=(10, 50))
-        cron_path_opts = ['/home/pi/Pigrow/scripts/cron/', '/home/pi/Pigrow/scripts/autorun/', '/home/pi/Pigrow/scripts/switches/']
+        script_path = "/home/" + pi_link_pnl.target_user + "/Pigrow/scripts"
+        cron_path_opts = [script_path + "/cron/", script_path + "/autorun/", script_path + "/switches/", script_path + "/sensors/", script_path + "/visualisation/"]
         self.cron_path_combo = wx.ComboBox(self, style=wx.TE_PROCESS_ENTER, choices = cron_path_opts, pos=(100,45), size=(525, 30))
         self.cron_path_combo.Bind(wx.EVT_TEXT_ENTER, self.cron_path_combo_go)
         self.cron_path_combo.Bind(wx.EVT_COMBOBOX, self.cron_path_combo_go)
@@ -2851,18 +2864,20 @@ class cron_job_dialog(wx.Dialog):
         script_to_ask = script_path + script_name
         try:
         #    ssh.connect(target_ip, username=target_user, password=target_pass, timeout=3)
-            print "Connected to " + target_ip
+            print ("Connected to " + target_ip)
             print("running; cat " + str(script_to_ask))
             stdin, stdout, stderr = ssh.exec_command("cat " + str(script_to_ask))
             script_text = stdout.read().strip()
             error_text = stderr.read().strip()
             if not error_text == '':
-                msg_text =  'Error reading script \n\n'
+                msg_text =  "Error reading script " + script_to_ask + " \n\n"
                 msg_text += str(error_text)
             else:
                 msg_text = script_to_ask + '\n\n'
                 msg_text += str(script_text)
-            wx.MessageBox(msg_text, 'Info', wx.OK | wx.ICON_INFORMATION)
+            dbox = show_script_cat(None, msg_text, script_to_ask)
+            dbox.ShowModal()
+            dbox.Destroy()
         except Exception as e:
             print("oh bother, this seems wrong... " + str(e))
 
@@ -2946,7 +2961,9 @@ class cron_job_dialog(wx.Dialog):
         helpfile = self.get_help_text(str(script_path + script_name))
         msg_text =  script_name + ' \n \n'
         msg_text += str(helpfile)
-        wx.MessageBox(msg_text, 'Info', wx.OK | wx.ICON_INFORMATION)
+        dbox = show_script_cat(None, helpfile, script_name + " help info")
+        dbox.ShowModal()
+        dbox.Destroy()
     def do_upload(self, e):
         #get data from boxes
         #   these are the exit variables, they're only set when ok is pushed
@@ -2983,6 +3000,21 @@ class cron_job_dialog(wx.Dialog):
         self.job_month = None
         self.job_dow = None
         self.Destroy()
+
+class show_script_cat(wx.Dialog):
+    def __init__(self, parent,  text_to_show, script_title):
+        wx.Dialog.__init__(self, parent, title=("Script " + script_title))
+        text = wx.TextCtrl(self, -1, text_to_show, size=(800,600), style=wx.TE_MULTILINE | wx.TE_READONLY)
+        sizer = wx.BoxSizer(wx.VERTICAL )
+        btnsizer = wx.BoxSizer()
+        btn = wx.Button(self, wx.ID_OK)
+        btnsizer.Add(btn, 0, wx.ALL, 5)
+        btnsizer.Add((5,-1), 0, wx.ALL, 5)
+        btn = wx.Button(self, wx.ID_CANCEL)
+        btnsizer.Add(btn, 0, wx.ALL, 5)
+        sizer.Add(text, 0, wx.EXPAND|wx.ALL, 5)
+        sizer.Add(btnsizer, 0, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
+        self.SetSizerAndFit (sizer)
 
 #
 #
