@@ -822,7 +822,7 @@ class install_dialog(wx.Dialog):
         self.currently_doing.SetLabel("Using the adafruit_DHT setup.py to install the module")
         self.progress.SetLabel("#############################~~")
         wx.Yield()
-        adafruit_install, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo python "+ ada_dir +"setup.py install")
+        adafruit_install, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo python "+ ada_dir +" setup.py install")
         self.currently_doing.SetLabel("...")
         self.progress.SetLabel("##############################~")
         wx.Yield()
