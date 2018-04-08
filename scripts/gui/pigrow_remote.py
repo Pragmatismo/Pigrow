@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 #
 #   WORK IN PROGRESS
@@ -80,12 +80,23 @@ import datetime
 from stat import S_ISDIR
 try:
     import wx
-    import wx.lib.scrolledpanel
+    #print (wx.__version__)
+    #import wx.lib.scrolledpanel
 except:
     print(" You don't have WX Python installed, this makes the gui")
     print(" google 'installing wx python' for your operating system")
-    print("on ubuntu try the command;")
+    print("")
+    print("    easiest should be using pip to install the wxpython package")
+    print("            pip3 install wxpython")
+    print("")
+    print("on ubuntu try the commands;")
+    print("     sudo apt-get install python3-setuptools")
+    print("     sudo easy_install3 pip")
+    print("     pip3 install wxpython")
+    print(" or")
     print("   sudo apt install python-wxgtk3.0 ")
+    print("")
+    print(" Note: wx must be installed for python3")
     sys.exit(1)
 try:
     import paramiko
@@ -94,6 +105,11 @@ except:
     print(" google 'installing paramiko python' for your operating system")
     print(" on ubuntu;")
     print(" use the command ' pip install paramiko ' to install.")
+    print("")
+    print(" if you don't have pip installed you can install using")
+    print("     sudo apt-get install python3-setuptools")
+    print("     sudo easy_install3 pip")
+    print("         ")
     sys.exit(1)
 ssh = paramiko.SSHClient()
 ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -144,10 +160,11 @@ class system_ctrl_pnl(wx.Panel):
         for line in raspberry_config:
             if "dtparam=i2c_baudrate=" in line:
                 line = "dtparam=i2c_baudrate=" + new_i2c_baudrate
-                print line
+                print (line)
             config_text = config_text + line + "\n"
         # set file path, check temp folder exists, set temp file name
-        temp_local = localfiles_info_pnl.local_path + "temp/"
+        #temp_local = localfiles_info_pnl.local_path + "temp/"
+        temp_local = os.path.join(localfiles_info_pnl.local_path, "temp")
         if not os.path.isdir(temp_local):
             os.makedirs(temp_local)
         temp_rasp_config = temp_local + "rasp_config.txt"
@@ -172,8 +189,8 @@ class system_ctrl_pnl(wx.Panel):
         elif "/dev/i2c-" in out:
             i2c_bus_number = int(out.split("/dev/i2c-")[1])
             print("i2c not found on most likely busses, but maybe it's on")
-            print i2c_bus_number
-            print("trying using bus " + str(i2c_bus_number))
+            print (i2c_bus_number)
+            print(("trying using bus " + str(i2c_bus_number)))
         else:
             system_info_pnl.sys_i2c_info.SetLabel("i2c bus not found")
             return "not found"
@@ -213,10 +230,10 @@ class system_ctrl_pnl(wx.Panel):
         ##
         # calsl i2c_check to locate the active i2c bus
         i2c_bus_number = self.i2c_check()
-        print i2c_bus_number
+        print (i2c_bus_number)
         # check i2c bus with i2cdetect and list found i2c devices
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("/usr/sbin/i2cdetect -y " + str(i2c_bus_number))
-        print out, error
+        print((out, error))
         i2c_devices_found = out.splitlines()
         # trimming text and sorting into a list
         i2c_addresses = []
@@ -245,7 +262,7 @@ class system_ctrl_pnl(wx.Panel):
         if (answer == wx.ID_OK):
             out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo reboot now")
             MainApp.pi_link_pnl.link_with_pi_btn_click("e")
-            print out, error
+            print((out, error))
 
     def shutdown_pi_click(self, e):
         dbox = wx.MessageDialog(self, "Are you sure you want to shutdown the pi?", "Shutdown Pi?", wx.OK | wx.CANCEL | wx.ICON_QUESTION)
@@ -254,7 +271,7 @@ class system_ctrl_pnl(wx.Panel):
         if (answer == wx.ID_OK):
             out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo shutdown now")
             MainApp.pi_link_pnl.link_with_pi_btn_click("e")
-            print out, error
+            print((out, error))
 
     def check_pi_diskspace(self):
         #check pi for hdd/sd card space
@@ -389,7 +406,7 @@ class system_ctrl_pnl(wx.Panel):
             network_name = out.split('"')[1]
             return network_name
         except Exception as e:
-            print("fiddle and fidgets! find network name didn't work - " + str(e))
+            print(("fiddle and fidgets! find network name didn't work - " + str(e)))
             return "unable to read"
 
     def find_added_wifi(self):
@@ -549,7 +566,7 @@ class upgrade_pigrow_dialog(wx.Dialog):
     def __init__(self, *args, **kw):
         super(upgrade_pigrow_dialog, self).__init__(*args, **kw)
         self.InitUI()
-        self.SetSize((600, 500))
+        self.SetSize((600, 600))
         self.SetTitle("Upgrade Pigrow")
     def InitUI(self):
         # draw the pannel and text
@@ -605,10 +622,10 @@ class upgrade_pigrow_dialog(wx.Dialog):
         # grabbing info from github but not updating anything yet
         print("fetching repo info from git")
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("git -C ~/Pigrow/ fetch -v")
-        print out, error
+        print((out, error))
         print("compairing us with them")
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("git -C ~/Pigrow/ diff origin/master master --stat")
-        print out, error
+        print((out, error))
         # parse into usable data
         changed_files, num_files_changed, num_insertions, num_deletions = self.parse_git_diff_info(out)
         display_text = str(num_files_changed) + " Files changed;"
@@ -693,25 +710,22 @@ class upgrade_pigrow_dialog(wx.Dialog):
             dbox.Destroy()
             #if user said ok then upload file to pi
             if (answer == wx.ID_OK):
-                try:
-                    stdin, stdout, stderr = ssh.exec_command(git_command)
-                    responce = stdout.read().strip()
-                    error = stderr.read()
-                    print responce
-                    if len(error) > 0:
-                        print 'error:' + str(error)
+                out, error = MainApp.localfiles_ctrl_pannel.run_on_pi(git_command)
+                responce = out.strip()
+                print (responce)
+                if len(error) > 0:
+                    print(('error:' + str(error)))
+                    system_info_pnl.sys_pigrow_update.SetLabel("--UPDATE ERROR--\n" + error)
+                else:
                     system_info_pnl.sys_pigrow_update.SetLabel("--UPDATED--")
-                    self.Destroy()
-                except Exception as e:
-                    print("ooops! " + str(e))
-                    system_info_pnl.sys_pigrow_update.SetLabel("--UPDATE ERROR--")
+                self.Destroy()
 
 class install_dialog(wx.Dialog):
     #Dialog box for installing pigrow software on a raspberry pi remotely
     def __init__(self, *args, **kw):
         super(install_dialog, self).__init__(*args, **kw)
         self.InitUI()
-        self.SetSize((600, 500))
+        self.SetSize((600, 600))
         self.SetTitle("Install Pigrow")
     def InitUI(self):
         # draw the pannel and text
@@ -762,9 +776,11 @@ class install_dialog(wx.Dialog):
         # make dirlocs with pi's username
         dirlocs_template, error = MainApp.localfiles_ctrl_pannel.run_on_pi("cat ~/Pigrow/config/templates/dirlocs_temp.txt")
         dirlocs_template = dirlocs_template.replace("**", str("/home/" + pi_link_pnl.target_user))
-        temp_dirlocs_local = localfiles_info_pnl.local_path + "temp/dirlocs.txt"
-        if not os.path.isdir(localfiles_info_pnl.local_path + "temp/"):
-            os.makedirs(localfiles_info_pnl.local_path + "temp/")
+        #temp_dirlocs_local = localfiles_info_pnl.local_path + "temp/dirlocs.txt"
+        emp_dirlocs_local = os.path.join(localfiles_info_pnl.local_path, "temp/dirlocs.txt")
+        local_temp = os.path.join(localfiles_info_pnl.local_path, "temp")
+        if not os.path.isdir(local_temp):
+            os.makedirs(local_temp)
         with open(temp_dirlocs_local, "w") as temp_local:
             temp_local.write(dirlocs_template)
         MainApp.localfiles_ctrl_pannel.upload_file_to_fodler(temp_dirlocs_local, "/home/" + pi_link_pnl.target_user + "/test.txt")
@@ -779,13 +795,13 @@ class install_dialog(wx.Dialog):
         self.progress.SetLabel("#########~~~~~~~~~~~~~~~~~~~~")
         wx.Yield()
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo pip install -U pip")
-        print out
+        print (out)
         #installing dependencies with pip
         self.currently_doing.SetLabel("Using pip to install praw and pexpect")
         self.progress.SetLabel("###########~~~~~~~~~~~~~~~~~~")
         wx.Yield()
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo pip install praw pexpect")
-        print out
+        print (out)
         self.currently_doing.SetLabel(".")
         self.progress.SetLabel("#############~~~~~~~~~~~~~~~~")
         wx.Yield()
@@ -797,18 +813,18 @@ class install_dialog(wx.Dialog):
         self.progress.SetLabel("################~~~~~~~~~~~~~~~")
         wx.Yield()
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo apt update --yes")
-        print out
+        print (out)
         #installing dependencies with apt
         self.currently_doing.SetLabel("using apt to install matplot lib, sshpass, python-crontab")
         self.progress.SetLabel("##################~~~~~~~~~~~~~")
         wx.Yield()
         python_dep, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo apt --yes install python-matplotlib sshpass python-crontab")
-        print python_dep
+        print (python_dep)
         self.currently_doing.SetLabel("Using apt to install uvccaptre and mpv")
         self.progress.SetLabel("####################~~~~~~~~~~~")
         wx.Yield()
         image_dep, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo apt --yes install uvccapture mpv")
-        print image_dep
+        print (image_dep)
         self.currently_doing.SetLabel("..")
         self.progress.SetLabel("######################~~~~~~~~~")
         wx.Yield()
@@ -820,14 +836,14 @@ class install_dialog(wx.Dialog):
         self.progress.SetLabel("##########################~~~~~~")
         wx.Yield()
         adafruit_dep, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo apt --yes install build-essential python-dev python-openssl")
-        print adafruit_dep
+        print (adafruit_dep)
         print("- Downloading Adafruit_Python_DHT from Github")
         ada_dir = "/home/" + pi_link_pnl.target_user + "/Pigrow/resources/Adafruit_Python_DHT/"
         self.currently_doing.SetLabel("Using git to clone (download) the adafruit code")
         self.progress.SetLabel("###########################~~~~")
         wx.Yield()
         adafruit_clone, error = MainApp.localfiles_ctrl_pannel.run_on_pi("git clone https://github.com/adafruit/Adafruit_Python_DHT.git " + ada_dir)
-        print adafruit_clone, error
+        print((adafruit_clone, error))
         print("- Dependencies installed, running adafruit_dht : sudo python setup.py install")
         self.currently_doing.SetLabel("Using the adafruit_DHT setup.py to install the module")
         self.progress.SetLabel("#############################~~")
@@ -836,7 +852,7 @@ class install_dialog(wx.Dialog):
         self.currently_doing.SetLabel("...")
         self.progress.SetLabel("##############################~")
         wx.Yield()
-        print adafruit_install
+        print (adafruit_install)
 
     def check_program_dependencies(self):
         program_dependencies = ["sshpass", "uvccapture", "mpv"]
@@ -1001,7 +1017,7 @@ class config_ctrl_pnl(wx.Panel):
                     #self.dirlocs_dict = {item[0]:item[1]}
                     self.dirlocs_dict[item[0]] = item[1]
                 except:
-                    print("!!error reading value from dirlocs; " + str(item))
+                    print(("!!error reading value from dirlocs; " + str(item)))
         else:
             print("Error; dirlocs contains no information")
         #We've now created self.dirlocs_dict with key:value for every setting:value in dirlocs
@@ -1094,7 +1110,7 @@ class config_ctrl_pnl(wx.Panel):
                     else:
                         self.config_dict[item[0]] = item[1]
                 except:
-                    print("!!error reading value from config file; " + str(item))
+                    print(("!!error reading value from config file; " + str(item)))
         # we've now created self.config_dict with a list of all the items in the config file
         #   and self.gpio_dict and self.gpio_on_dict with gpio numbers and low/high pin direction info
 
@@ -1343,48 +1359,44 @@ class config_ctrl_pnl(wx.Panel):
         wiring = config_ctrl_pnl.wiring_new
         if not device == "":
             #update config file
-            print device, gpio, wiring
+            print((device, gpio, wiring))
             config_ctrl_pnl.add_to_GPIO_list(MainApp.config_ctrl_pannel, device, gpio, wiring, currently='UNLINKED')
         else:
-            print "cancelled"
+            print ("cancelled")
 
     def check_device_status(self, gpio_pin, on_power_state):
         #Checks if a device is on or off by reading the pin and compairing to the relay wiring direction
-        try:
-            ssh.exec_command("echo "+ str(gpio_pin) +" > /sys/class/gpio/export")
-            stdin, stdout, stderr = ssh.exec_command("cat /sys/class/gpio/gpio" + str(gpio_pin) + "/value") # returns 0 or 1
-            gpio_status = stdout.read().strip()
-            gpio_err = stderr.read().strip()
-            if gpio_status == "1":
-                if on_power_state == 'low':
-                    device_status = "OFF"
-                elif on_power_state == 'high':
-                    device_status = 'ON'
-                else:
-                    device_status = "settings error"
-            elif gpio_status == '0':
-                if on_power_state == 'low':
-                    device_status = "ON"
-                elif on_power_state == 'high':
-                    device_status = 'OFF'
-                else:
-                    device_status = "setting error"
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("echo " + str(gpio_pin) + " > /sys/class/gpio/export")
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("cat /sys/class/gpio/gpio" + str(gpio_pin) + "/value")
+        gpio_status = out.strip()
+        gpio_err = out.strip()
+        if gpio_status == "1":
+            if on_power_state == 'low':
+                device_status = "OFF"
+            elif on_power_state == 'high':
+                device_status = 'ON'
             else:
-                device_status = "read error -" + gpio_status + "-"
-        except Exception as e:
-            print("Error asking pi about gpio status; " + str(e))
-            return "error " + str(e)
+                device_status = "settings error"
+        elif gpio_status == '0':
+            if on_power_state == 'low':
+                device_status = "ON"
+            elif on_power_state == 'high':
+                device_status = 'OFF'
+            else:
+                device_status = "setting error"
+        else:
+            device_status = "read error -" + gpio_status + "-"
         return device_status
 
     def add_to_GPIO_list(self, device, gpio, wiring, currently='', info=''):
         #config_ctrl_pnl.add_to_GPIO_list(self, device, gpio, wiring, currently='', info='')
         if currently == '':
             currently = self.check_device_status(gpio, wiring)
-        config_info_pnl.gpio_table.InsertStringItem(0, str(device))
-        config_info_pnl.gpio_table.SetStringItem(0, 1, str(gpio))
-        config_info_pnl.gpio_table.SetStringItem(0, 2, str(wiring))
-        config_info_pnl.gpio_table.SetStringItem(0, 3, str(currently))
-        config_info_pnl.gpio_table.SetStringItem(0, 4, str(info))
+        config_info_pnl.gpio_table.InsertItem(0, str(device))
+        config_info_pnl.gpio_table.SetItem(0, 1, str(gpio))
+        config_info_pnl.gpio_table.SetItem(0, 2, str(wiring))
+        config_info_pnl.gpio_table.SetItem(0, 3, str(currently))
+        config_info_pnl.gpio_table.SetItem(0, 4, str(info))
 
     def update_setting_click(self, e):
         #create updated settings file
@@ -1405,7 +1417,7 @@ class config_ctrl_pnl(wx.Panel):
             gpio_config_block += "\ngpio_" + device + "_on=" + wiring
         # list all non-gpio settings
         other_settings = ""
-        for key, value in self.config_dict.items():
+        for key, value in list(self.config_dict.items()):
             other_settings += "\n" + key + "=" + value
         config_text = other_settings[1:]
         config_text += gpio_config_block
@@ -1504,7 +1516,7 @@ class config_lamp_dialog(wx.Dialog):
     def __init__(self, *args, **kw):
         super(config_lamp_dialog, self).__init__(*args, **kw)
         self.InitUI()
-        self.SetSize((500, 500))
+        self.SetSize((500, 600))
         self.SetTitle("Config Lamp")
     def InitUI(self):
         #
@@ -1560,7 +1572,7 @@ class config_lamp_dialog(wx.Dialog):
         #ok and cancel buttons
         self.ok_btn = wx.Button(self, label='Ok', pos=(15, 450), size=(175, 30))
         self.ok_btn.Bind(wx.EVT_BUTTON, self.ok_click)
-        self.cancel_btn = wx.Button(self, label='Cancel', pos=(315, 450), size=(175, 30))
+        self.cancel_btn = wx.Button(self, label='Cancel', pos=(250, 450), size=(175, 30))
         self.cancel_btn.Bind(wx.EVT_BUTTON, self.cancel_click)
 
     def on_spun(self, e):
@@ -1625,8 +1637,8 @@ class config_lamp_dialog(wx.Dialog):
                     MainApp.cron_info_pannel.add_to_onetime_list("new", "True", self.new_off_string_text.GetLabel(), cron_task)
                     MainApp.cron_info_pannel.update_cron_click("e")
         elif not self.new_on_string_text.GetLabel() == self.cron_lamp_on.GetLabel() or not self.new_off_string_text.GetLabel() == self.cron_lamp_off.GetLabel():
-            print(":" + self.new_on_string_text.GetLabel() + ":")
-            print(":" + self.cron_lamp_on.GetLabel() + ":")
+            print((":" + self.new_on_string_text.GetLabel() + ":"))
+            print((":" + self.cron_lamp_on.GetLabel() + ":"))
             mbox = wx.MessageDialog(None, "Update cron timing?", "Are you sure?", wx.YES_NO|wx.ICON_QUESTION)
             sure = mbox.ShowModal()
             result_on = 'done'  # these are for cases when only one is changed
@@ -1676,7 +1688,7 @@ class doubleclick_gpio_dialog(wx.Dialog):
     def __init__(self, *args, **kw):
         super(doubleclick_gpio_dialog, self).__init__(*args, **kw)
         self.InitUI()
-        self.SetSize((400, 200))
+        self.SetSize((450, 300))
         self.SetTitle("GPIO config")
     def InitUI(self):
         # draw the pannel and text
@@ -1749,8 +1761,8 @@ class doubleclick_gpio_dialog(wx.Dialog):
             #if user said ok then switch device
             if (answer == wx.ID_OK):
                 out, error = MainApp.localfiles_ctrl_pannel.run_on_pi(switch_command)
-                print out   # shows box with switch info from pigrow
-                if not error == "": print error
+                print (out)   # shows box with switch info from pigrow
+                if not error == "": print (error)
                 config_ctrl_pnl.currently_toedit = future_state #for if toggling within the dialog box
                 self.update_box_text()
                 config_ctrl_pnl.currently_new = future_state
@@ -1768,7 +1780,7 @@ class edit_gpio_dialog(wx.Dialog):
     def __init__(self, *args, **kw):
         super(edit_gpio_dialog, self).__init__(*args, **kw)
         self.InitUI()
-        self.SetSize((750, 300))
+        self.SetSize((850, 380))
         self.SetTitle("Device GPIO config")
         self.Bind(wx.EVT_CLOSE, self.OnClose)
     def InitUI(self):
@@ -1916,7 +1928,7 @@ class edit_dht_dialog(wx.Dialog):
     def __init__(self, *args, **kw):
         super(edit_dht_dialog, self).__init__(*args, **kw)
         self.InitUI()
-        self.SetSize((500, 500))
+        self.SetSize((600, 600))
         self.SetTitle("Dht config")
     def InitUI(self):
         # draw the pannel and text
@@ -1974,7 +1986,7 @@ class edit_dht_dialog(wx.Dialog):
         self.log_loc_text = wx.TextCtrl(self, value="", pos=(30, 385), size=(350, 25))
         if "loc_dht_log" in MainApp.config_ctrl_pannel.dirlocs_dict:
             log_location = MainApp.config_ctrl_pannel.dirlocs_dict['loc_dht_log']
-            print log_location
+            print (log_location)
             print ("log location")
         else:
             log_location = "none set"
@@ -2016,7 +2028,7 @@ class edit_dht_dialog(wx.Dialog):
         self.sensor_pin = self.gpio_text.GetValue()
         self.sensor = self.sensor_combo.GetValue()
         args = "gpio=" + self.sensor_pin + " sensor=" + self.sensor
-        print args
+        print (args)
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("/home/" + pi_link_pnl.target_user + "/Pigrow/scripts/build_test/test_dht.py " + args)
         out = out.strip()
         if "temp" in out:
@@ -2074,7 +2086,7 @@ class edit_dht_dialog(wx.Dialog):
             extra_args += " usefan=dehum"
         if len(extra_args) > 1:
             extra_args = extra_args[1:]
-            print "extra args = " + extra_args
+            print(("extra args = " + extra_args))
             index = MainApp.config_ctrl_pannel.checkdht_cronindex
             cron_list_pnl.startup_cron.SetStringItem(index, 4, str(extra_args))
             changes_made += "\n -- Update Cron to save changes --"
@@ -2163,12 +2175,14 @@ class cron_info_pnl(wx.Panel):
             cron_text += cron_line + '\n'
             # ask if unrunning scripts should be started
             is_running = self.test_if_script_running(cron_list_pnl.startup_cron.GetItemText(num, 3))
-            if is_running == False:
+            enabled = cron_list_pnl.startup_cron.GetItemText(num, 1)
+            print (enabled)
+            if is_running == False and enabled == 'True':
                 dbox = wx.MessageDialog(self, "Would you like to start running script " + str(script_cmd), "Run on Pigrow?", wx.OK | wx.CANCEL | wx.ICON_QUESTION)
                 answer = dbox.ShowModal()
                 dbox.Destroy()
                 if (answer == wx.ID_OK):
-                    print("Running " +str(script_cmd))
+                    print(("Running " +str(script_cmd)))
                     ssh.exec_command(script_cmd + " &") # don't ask for output and it's non-blocking
                                                         # this is absolutely vital!
         # add repating jobs to cron list
@@ -2197,7 +2211,7 @@ class cron_info_pnl(wx.Panel):
         mbox = wx.MessageDialog(None, msg_text, "Are you sure?", wx.YES_NO|wx.ICON_QUESTION)
         sure = mbox.ShowModal()
         if sure == wx.ID_YES:
-            print "Updating remote cron"
+            print ("Updating remote cron")
             # save cron text onto pigrow as text file then import into cron
             sftp = ssh.open_sftp()
             try:
@@ -2208,13 +2222,7 @@ class cron_info_pnl(wx.Panel):
             f = sftp.open(tempfolder + '/remotecron.txt', 'w')
             f.write(cron_text)
             f.close()
-            try:
-                stdin, stdout, stderr = ssh.exec_command("crontab " + tempfolder + '/remotecron.txt')
-                responce = stdout.read()
-                error = stderr.read()
-                print responce, error
-            except Exception as e:
-                print("this ain't right, it just ain't right! " + str(e))
+            responce, error = MainApp.localfiles_ctrl_pannel.run_on_pi("crontab " + tempfolder + '/remotecron.txt')
         else:
             print("Updating cron cancelled")
         mbox.Destroy()
@@ -2224,11 +2232,8 @@ class cron_info_pnl(wx.Panel):
     def read_cron_click(self, event):
         #reads pi's crontab then puts jobs in correct table
         print("Reading cron information from pi")
-        try:
-            stdin, stdout, stderr = ssh.exec_command("crontab -l")
-            cron_text = stdout.read().split('\n')
-        except Exception as e:
-            print("oh - that didn't work! " + str(e))
+        cron_text, error = MainApp.localfiles_ctrl_pannel.run_on_pi("crontab -l")
+        cron_text = cron_text.split('\n')
         #select instance of list to use
         startup_list_instance = cron_list_pnl.startup_cron
         repeat_list_instance = cron_list_pnl.repeat_cron
@@ -2295,9 +2300,7 @@ class cron_info_pnl(wx.Panel):
 
     def test_if_script_running(self, script):
         #cron_info_pnl.test_if_script_running(MainApp.cron_info_pannel, script)
-        stdin, stdout, stderr = ssh.exec_command("pidof -x " + str(script))
-        script_text = stdout.read().strip()
-        #error_text = stderr.read().strip()
+        script_text, error = MainApp.localfiles_ctrl_pannel.run_on_pi("pidof -x " + str(script))
         if script_text == '':
             return False
         else:
@@ -2306,28 +2309,28 @@ class cron_info_pnl(wx.Panel):
 
     def add_to_startup_list(self, line_number, job_enabled, cron_task, cron_extra_args='', cron_comment=''):
         is_running = self.test_if_script_running(cron_task)
-        cron_list_pnl.startup_cron.InsertStringItem(0, str(line_number))
-        cron_list_pnl.startup_cron.SetStringItem(0, 1, str(job_enabled))
-        cron_list_pnl.startup_cron.SetStringItem(0, 2, str(is_running))   #tests if script it currently running on pi
-        cron_list_pnl.startup_cron.SetStringItem(0, 3, cron_task)
-        cron_list_pnl.startup_cron.SetStringItem(0, 4, cron_extra_args)
-        cron_list_pnl.startup_cron.SetStringItem(0, 5, cron_comment)
+        cron_list_pnl.startup_cron.InsertItem(0, str(line_number))
+        cron_list_pnl.startup_cron.SetItem(0, 1, str(job_enabled))
+        cron_list_pnl.startup_cron.SetItem(0, 2, str(is_running))   #tests if script it currently running on pi
+        cron_list_pnl.startup_cron.SetItem(0, 3, cron_task)
+        cron_list_pnl.startup_cron.SetItem(0, 4, cron_extra_args)
+        cron_list_pnl.startup_cron.SetItem(0, 5, cron_comment)
 
     def add_to_repeat_list(self, line_number, job_enabled, timing_string, cron_task, cron_extra_args='', cron_comment=''):
-        cron_list_pnl.repeat_cron.InsertStringItem(0, str(line_number))
-        cron_list_pnl.repeat_cron.SetStringItem(0, 1, str(job_enabled))
-        cron_list_pnl.repeat_cron.SetStringItem(0, 2, timing_string)
-        cron_list_pnl.repeat_cron.SetStringItem(0, 3, cron_task)
-        cron_list_pnl.repeat_cron.SetStringItem(0, 4, cron_extra_args)
-        cron_list_pnl.repeat_cron.SetStringItem(0, 5, cron_comment)
+        cron_list_pnl.repeat_cron.InsertItem(0, str(line_number))
+        cron_list_pnl.repeat_cron.SetItem(0, 1, str(job_enabled))
+        cron_list_pnl.repeat_cron.SetItem(0, 2, timing_string)
+        cron_list_pnl.repeat_cron.SetItem(0, 3, cron_task)
+        cron_list_pnl.repeat_cron.SetItem(0, 4, cron_extra_args)
+        cron_list_pnl.repeat_cron.SetItem(0, 5, cron_comment)
 
     def add_to_onetime_list(self, line_number, job_enabled, timing_string, cron_task, cron_extra_args='', cron_comment=''):
-        cron_list_pnl.timed_cron.InsertStringItem(0, str(line_number))
-        cron_list_pnl.timed_cron.SetStringItem(0, 1, str(job_enabled))
-        cron_list_pnl.timed_cron.SetStringItem(0, 2, timing_string)
-        cron_list_pnl.timed_cron.SetStringItem(0, 3, cron_task)
-        cron_list_pnl.timed_cron.SetStringItem(0, 4, cron_extra_args)
-        cron_list_pnl.timed_cron.SetStringItem(0, 5, cron_comment)
+        cron_list_pnl.timed_cron.InsertItem(0, str(line_number))
+        cron_list_pnl.timed_cron.SetItem(0, 1, str(job_enabled))
+        cron_list_pnl.timed_cron.SetItem(0, 2, timing_string)
+        cron_list_pnl.timed_cron.SetItem(0, 3, cron_task)
+        cron_list_pnl.timed_cron.SetItem(0, 4, cron_extra_args)
+        cron_list_pnl.timed_cron.SetItem(0, 5, cron_comment)
 
     def make_repeating_cron_timestring(self, repeat, repeat_num):
         #assembles timing sting for cron
@@ -2748,7 +2751,7 @@ class cron_job_dialog(wx.Dialog):
     def __init__(self, *args, **kw):
         super(cron_job_dialog, self).__init__(*args, **kw)
         self.InitUI()
-        self.SetSize((750, 300))
+        self.SetSize((850, 400))
         self.SetTitle("Cron Job Editor")
         self.Bind(wx.EVT_CLOSE, self.OnClose)
     def InitUI(self):
@@ -2855,20 +2858,17 @@ class cron_job_dialog(wx.Dialog):
             return False
 
     def cat_script(self, e):
-        #opens an ssh pipe and runs a cat command to get the text of the script
         target_ip = pi_link_pnl.target_ip
         target_user = pi_link_pnl.target_user
         target_pass = pi_link_pnl.target_pass
         script_path = self.cron_path_combo.GetValue()
         script_name = self.cron_script_cb.GetValue()
         script_to_ask = script_path + script_name
+
         try:
-        #    ssh.connect(target_ip, username=target_user, password=target_pass, timeout=3)
-            print ("Connected to " + target_ip)
-            print("running; cat " + str(script_to_ask))
-            stdin, stdout, stderr = ssh.exec_command("cat " + str(script_to_ask))
-            script_text = stdout.read().strip()
-            error_text = stderr.read().strip()
+            script_text, error_text = MainApp.localfiles_ctrl_pannel.run_on_pi("cat " + str(script_to_ask))
+            print(("Connected to " + target_ip))
+            print(("running; cat " + str(script_to_ask)))
             if not error_text == '':
                 msg_text =  "Error reading script " + script_to_ask + " \n\n"
                 msg_text += str(error_text)
@@ -2879,21 +2879,21 @@ class cron_job_dialog(wx.Dialog):
             dbox.ShowModal()
             dbox.Destroy()
         except Exception as e:
-            print("oh bother, this seems wrong... " + str(e))
+            print(("oh bother, this seems wrong... " + str(e)))
 
     def get_cronable_scripts(self, script_path):
-        #this opens an ssh channel and reads the files in the path provided
+        #this reads the files in the path provided
         #then creates a list of all .py and .sh scripts in that folder
         cron_opts = []
         try:
-            print("reading " + str(script_path))
-            stdin, stdout, stderr = ssh.exec_command("ls " + str(script_path))
-            cron_dir_list = stdout.read().split('\n')
+            print(("reading " + str(script_path)))
+            out, error_text = MainApp.localfiles_ctrl_pannel.run_on_pi("ls " + str(script_path))
+            cron_dir_list = out.split('\n')
             for filename in cron_dir_list:
                 if filename.endswith("py") or filename.endswith('sh'):
                     cron_opts.append(filename)
         except Exception as e:
-            print("aggghhhhh cap'ain something ain't right! " + str(e))
+            print(("aggghhhhh cap'ain something ain't right! " + str(e)))
         return cron_opts
     def cron_path_combo_go(self, e):
         cron_path = self.cron_path_combo.GetValue()
@@ -2948,13 +2948,8 @@ class cron_job_dialog(wx.Dialog):
         #       this can cause switches to throw, photos to be taken or etc
         if script_to_ask.endswith('sh'):
             return ("Sorry, .sh files don't support help arguments, try viewing it instead.")
-        try:
-            print("reading " + str(script_to_ask))
-            stdin, stdout, stderr = ssh.exec_command(str(script_to_ask) + " -h")
-            helpfile = stdout.read().strip()
-        except Exception as e:
-            print("sheee-it something ain't right! " + str(e))
-        return helpfile
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi(str(script_to_ask) + " -h")
+        return out
     def show_help(self, e):
         script_path = self.cron_path_combo.GetValue()
         script_name = self.cron_script_cb.GetValue()
@@ -3103,16 +3098,16 @@ class localfiles_info_pnl(wx.Panel):
         localfiles_info_pnl.photo_folder_last_pic = wx.StaticBitmap(self, -1, last, (620, 565), (last.GetWidth(), last.GetHeight()))
 
     def add_to_config_list(self, name, mod_date, age, update_status):
-        localfiles_info_pnl.config_files.InsertStringItem(0, str(name))
-        localfiles_info_pnl.config_files.SetStringItem(0, 1, str(mod_date))
-        localfiles_info_pnl.config_files.SetStringItem(0, 2, str(age))
-        localfiles_info_pnl.config_files.SetStringItem(0, 3, str(update_status))
+        localfiles_info_pnl.config_files.InsertItem(0, str(name))
+        localfiles_info_pnl.config_files.SetItem(0, 1, str(mod_date))
+        localfiles_info_pnl.config_files.SetItem(0, 2, str(age))
+        localfiles_info_pnl.config_files.SetItem(0, 3, str(update_status))
 
     def add_to_logs_list(self, name, mod_date, age, update_status):
-        localfiles_info_pnl.logs_files.InsertStringItem(0, str(name))
-        localfiles_info_pnl.logs_files.SetStringItem(0, 1, str(mod_date))
-        localfiles_info_pnl.logs_files.SetStringItem(0, 2, str(age))
-        localfiles_info_pnl.logs_files.SetStringItem(0, 3, str(update_status))
+        localfiles_info_pnl.logs_files.InsertItem(0, str(name))
+        localfiles_info_pnl.logs_files.SetItem(0, 1, str(mod_date))
+        localfiles_info_pnl.logs_files.SetItem(0, 2, str(age))
+        localfiles_info_pnl.logs_files.SetItem(0, 3, str(update_status))
 
     def onDoubleClick_config(self, e):
         print("and nothing happens")
@@ -3142,6 +3137,8 @@ class localfiles_ctrl_pnl(wx.Panel):
             stdin, stdout, stderr = ssh.exec_command(command)
             out = stdout.read()
             error = stderr.read()
+            out = out.decode()
+            error = error.decode()
         except Exception as e:
             error = "failed running command;" + str(command) + " with error - " + str(e)
             print(error)
@@ -3154,10 +3151,7 @@ class localfiles_ctrl_pnl(wx.Panel):
         localfiles_info_pnl.config_files.DeleteAllItems()
         localfiles_info_pnl.logs_files.DeleteAllItems()
         # create local folder path
-        if not MainApp.OS == "Windows":
-            localfiles_info_pnl.local_path = MainApp.localfiles_path + str(pi_link_pnl.boxname) + "/"
-        else:
-            localfiles_info_pnl.local_path = MainApp.localfiles_path + str(pi_link_pnl.boxname) + "\\"
+        localfiles_info_pnl.local_path = os.path.join(MainApp.localfiles_path, str(pi_link_pnl.boxname))
         localfiles_info_pnl.local_path_txt.SetLabel(localfiles_info_pnl.local_path)
         # check for data and sort into on screen lists
         if not os.path.isdir(localfiles_info_pnl.local_path):
@@ -3170,8 +3164,9 @@ class localfiles_ctrl_pnl(wx.Panel):
             folder_list = []
             #read all the folders in the pigrows local folder
             for item in local_files:
-                if os.path.isdir(localfiles_info_pnl.local_path + item) == True:
-                    folder_files = os.listdir(localfiles_info_pnl.local_path + item)
+                item_path = os.path.join(localfiles_info_pnl.local_path, item)
+                if os.path.isdir(item_path) == True:
+                    folder_files = os.listdir(item_path)
                     counter = 0
                     for thing in folder_files:
                         counter = counter + 1
@@ -3179,10 +3174,12 @@ class localfiles_ctrl_pnl(wx.Panel):
                     #add local config files to list and generate info
                     if item == "config":
                         config_list = []
-                        config_files = os.listdir(localfiles_info_pnl.local_path + item)
+
+                        config_files = os.listdir(item_path)
                         for thing in config_files:
                             if thing.endswith("txt"):
-                                modified = os.path.getmtime(localfiles_info_pnl.local_path + item + "/" + thing)
+                                thing_path = os.path.join(item_path, thing)
+                                modified = os.path.getmtime(thing_path)
                                 #config_list.append([thing, modified])
                                 modified = datetime.datetime.fromtimestamp(modified)
                                 file_age = datetime.datetime.now() - modified
@@ -3192,10 +3189,11 @@ class localfiles_ctrl_pnl(wx.Panel):
                                 localfiles_info_pnl.add_to_config_list(MainApp.localfiles_info_pannel, thing, modified, file_age, update_status)
                     if item == "logs":
                         logs_list = []
-                        logs_files = os.listdir(localfiles_info_pnl.local_path + item)
+                        logs_files = os.listdir(item_path)
                         for thing in logs_files:
                             if thing.endswith("txt"):
-                                modified = os.path.getmtime(localfiles_info_pnl.local_path + item + "/" + thing)
+                                thing_path = os.path.join(item_path, thing)
+                                modified = os.path.getmtime(thing_path)
                                 modified = datetime.datetime.fromtimestamp(modified)
                                 file_age = datetime.datetime.now() - modified
                                 modified = modified.strftime("%Y-%m-%d %H:%M")
@@ -3204,15 +3202,15 @@ class localfiles_ctrl_pnl(wx.Panel):
                                 localfiles_info_pnl.add_to_logs_list(MainApp.localfiles_info_pannel, thing, modified, file_age, update_status)
                     #read caps info and make report
                     if item == localfiles_info_pnl.caps_folder:
-                        caps_files = os.listdir(localfiles_info_pnl.local_path + item)
+                        caps_files = os.listdir(item_path)
                         caps_files.sort()
                         caps_message = str(len(caps_files)) + " files locally \n"
                         #read pi's caps folder
                         try:
-                            stdin, stdout, stderr = ssh.exec_command("ls /home/" + pi_link_pnl.target_user + "/Pigrow/" + localfiles_info_pnl.caps_folder)
-                            remote_caps = stdout.read().splitlines()
+                            out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("ls /home/" + pi_link_pnl.target_user + "/Pigrow/" + localfiles_info_pnl.caps_folder)
+                            remote_caps = out.splitlines()
                         except Exception as e:
-                            print("reading remote caps folder failed; " + str(e))
+                            print(("reading remote caps folder failed; " + str(e)))
                             remote_caps = []
                         if len(caps_files) > 1:
                             #lable first and last image with name
@@ -3225,7 +3223,9 @@ class localfiles_ctrl_pnl(wx.Panel):
                             length_of_local = last_dt - first_dt
                             caps_message += '\n     ' + str(length_of_local)
                             #draw first and last imagess to the screen
-                            localfiles_info_pnl.draw_photo_folder_images(MainApp.localfiles_info_pannel, localfiles_info_pnl.local_path + item + "/" + caps_files[0], localfiles_info_pnl.local_path + item + "/" + caps_files[-1])
+                            first_image_path = os.path.join(item_path, caps_files[0])
+                            final_image_path = os.path.join(item_path, caps_files[-1])
+                            localfiles_info_pnl.draw_photo_folder_images(MainApp.localfiles_info_pannel, first_image_path, final_image_path)
                         caps_message += "\n" + str(len(remote_caps)) + " files on Pigrow \n"
                         if len(remote_caps) > 1:
                             first_remote, first_r_dt = self.filename_to_date(remote_caps[0])
@@ -3239,31 +3239,30 @@ class localfiles_ctrl_pnl(wx.Panel):
                         #update the caps info pannel with caps message
                         localfiles_info_pnl.photo_text.SetLabel(caps_message)
 
-
-                    # check to see if crontab is saved locally
-                    localfiles_ctrl_pnl.cron_backup_file = localfiles_info_pnl.local_path + "crontab_backup.txt"
-                    if os.path.isfile(localfiles_ctrl_pnl.cron_backup_file) == True:
-                        #checks time of local crontab_backup and determines age
-                        modified = os.path.getmtime(localfiles_ctrl_pnl.cron_backup_file)
-                        modified = datetime.datetime.fromtimestamp(modified)
-                        file_age = datetime.datetime.now() - modified
-                        modified = modified.strftime("%Y-%m-%d %H:%M")
-                        file_age = str(file_age).split(".")[0]
-                        #checks to see if local and remote files are the same
-                        remote_cron_text, error = MainApp.localfiles_ctrl_pannel.run_on_pi("crontab -l")
-                        #read local file
-                        with open(localfiles_ctrl_pnl.cron_backup_file, "r") as local_cron:
-                            local_cron_text = local_cron.read()
-                        #compare the two files
-                        if remote_cron_text == local_cron_text:
-                            updated = True
-                        else:
-                            updated = False
-                        cron_msg = "local cron file last updated\n    " + modified + "\n    " + file_age + " ago,\n  \n\n identical to pi version: " + str(updated)
-                        localfiles_info_pnl.cron_info.SetLabel(cron_msg)
-                    else:
-                        localfiles_info_pnl.cron_info.SetLabel("no local cron file")
-                    ## output
+            # check to see if crontab is saved locally
+            localfiles_ctrl_pnl.cron_backup_file = os.path.join(localfiles_info_pnl.local_path, "crontab_backup.txt")
+            if os.path.isfile(localfiles_ctrl_pnl.cron_backup_file) == True:
+                #checks time of local crontab_backup and determines age
+                modified = os.path.getmtime(localfiles_ctrl_pnl.cron_backup_file)
+                modified = datetime.datetime.fromtimestamp(modified)
+                file_age = datetime.datetime.now() - modified
+                modified = modified.strftime("%Y-%m-%d %H:%M")
+                file_age = str(file_age).split(".")[0]
+                #checks to see if local and remote files are the same
+                remote_cron_text, error = MainApp.localfiles_ctrl_pannel.run_on_pi("crontab -l")
+                #read local file
+                with open(localfiles_ctrl_pnl.cron_backup_file, "r") as local_cron:
+                    local_cron_text = local_cron.read()
+                #compare the two files
+                if remote_cron_text == local_cron_text:
+                    updated = True
+                else:
+                    updated = False
+                cron_msg = "local cron file last updated\n    " + modified + "\n    " + file_age + " ago,\n  \n\n identical to pi version: " + str(updated)
+                localfiles_info_pnl.cron_info.SetLabel(cron_msg)
+            else:
+                localfiles_info_pnl.cron_info.SetLabel("no local cron file")
+                ## output
         print("local file info discovered..")
 
     def filename_to_date(self, filename):
@@ -3287,34 +3286,32 @@ class localfiles_ctrl_pnl(wx.Panel):
         #
         # this downloads a single file into the pi's local folder
         # localfiles_ctrl_pnl.download_file_to_folder(remote_file, local_name)
-        if local_name[0:1] == "/":
-            local_name = local_name[1:]
-        local_path = localfiles_info_pnl.local_path_txt.GetLabel() + local_name
+        local_path = os.path.join(localfiles_info_pnl.local_path_txt.GetLabel(), local_name)
         port = 22
-        print("  - connecting transport pipe... " + pi_link_pnl.target_ip + " port:" + str(port))
-        print("    to  download " + remote_file + " to " + local_path)
+        print(("  - connecting transport pipe... " + pi_link_pnl.target_ip + " port:" + str(port)))
+        print(("    to  download " + remote_file + " to " + local_path))
         ssh_tran = paramiko.Transport((pi_link_pnl.target_ip, port))
         ssh_tran.connect(username=pi_link_pnl.target_user, password=pi_link_pnl.target_pass)
         self.sftp = paramiko.SFTPClient.from_transport(ssh_tran)
         self.sftp.get(remote_file, local_path)
         self.sftp.close()
         ssh_tran.close()
-        print(" file copied to " + str(local_path))
+        print((" file copied to " + str(local_path)))
         return local_path
 
     def upload_file_to_fodler(self, local_path, remote_path):
         # Copies a folder from the local machine onto the pigrow
         # local_path and remote_path should be full and explicit paths
         port = 22
-        print("  - connecting transport pipe... " + pi_link_pnl.target_ip + " port:" + str(port))
-        print("    to  upload " + local_path + " to " + remote_path)
+        print(("  - connecting transport pipe... " + pi_link_pnl.target_ip + " port:" + str(port)))
+        print(("    to  upload " + local_path + " to " + remote_path))
         ssh_tran = paramiko.Transport((pi_link_pnl.target_ip, port))
         ssh_tran.connect(username=pi_link_pnl.target_user, password=pi_link_pnl.target_pass)
         self.sftp = paramiko.SFTPClient.from_transport(ssh_tran)
         self.sftp.put(local_path, remote_path)
         self.sftp.close()
         ssh_tran.close()
-        print(" file copied to " + str(remote_path))
+        print((" file copied to " + str(remote_path)))
 
 
 class file_download_dialog(wx.Dialog):
@@ -3322,7 +3319,7 @@ class file_download_dialog(wx.Dialog):
     def __init__(self, *args, **kw):
         super(file_download_dialog, self).__init__(*args, **kw)
         self.InitUI()
-        self.SetSize((600, 300))
+        self.SetSize((600, 400))
         self.SetTitle("Download files from Pigrow")
         self.Bind(wx.EVT_CLOSE, self.OnClose)
     def InitUI(self):
@@ -3342,7 +3339,7 @@ class file_download_dialog(wx.Dialog):
         #buttons
         self.start_download_btn = wx.Button(self, label='Download files', pos=(40, 240), size=(175, 50))
         self.start_download_btn.Bind(wx.EVT_BUTTON, self.start_download_click)
-        self.close_btn = wx.Button(self, label='Close', pos=(415, 240), size=(175, 50))
+        self.close_btn = wx.Button(self, label='Close', pos=(250, 240), size=(175, 50))
         self.close_btn.Bind(wx.EVT_BUTTON, self.OnClose)
          ## universal controls
         pnl = wx.Panel(self)
@@ -3356,42 +3353,50 @@ class file_download_dialog(wx.Dialog):
         # downloading cron file and saving it as a local backup
         if self.cb_cron.GetValue() == True:
             print("including crontab file")
-            try:
-                stdin, stdout, stderr = ssh.exec_command("crontab -l")
-                cron_text = stdout.read()
-            except Exception as e:
-                print("failed to read cron due to;" + str(e))
+            cron_text, error = MainApp.localfiles_ctrl_pannel.run_on_pi("crontab -l")
+            if not os.path.isdir(localfiles_info_pnl.local_path):
+                os.makedirs(localfiles_info_pnl.local_path)
+            localfiles_ctrl_pnl.cron_backup_file = os.path.join(localfiles_info_pnl.local_path, "crontab_backup.txt")
             with open(localfiles_ctrl_pnl.cron_backup_file, "w") as file_to_save:
                 file_to_save.write(cron_text)
         ## Downloading files from the pi
         # connecting the sftp pipe
         port = 22
         ssh_tran = paramiko.Transport((pi_link_pnl.target_ip, port))
-        print("  - connecting transport pipe... " + pi_link_pnl.target_ip + " port:" + str(port))
+        print(("  - connecting transport pipe... " + pi_link_pnl.target_ip + " port:" + str(port)))
         ssh_tran.connect(username=pi_link_pnl.target_user, password=pi_link_pnl.target_pass)
         self.sftp = paramiko.SFTPClient.from_transport(ssh_tran)
         # creating a list of files to be download from the pigrow
         if self.cb_all.GetValue() == False:
         # make list using selected components to be downloaded, list contains two elemnts [remote file, local destination]
+            # list config files for download
             if self.cb_conf.GetValue() == True:
-                local_config = localfiles_info_pnl.local_path + "config/"
+                #local_config = localfiles_info_pnl.local_path + "config/"
+                local_config = os.path.join(localfiles_info_pnl.local_path, "config/")
                 if not os.path.isdir(local_config):
                     os.makedirs(local_config)
                 target_config_files = "/home/" + str(pi_link_pnl.target_user) + "/Pigrow/config/"
                 remote_config = self.sftp.listdir(target_config_files)
                 for item in remote_config:
                     files_to_download.append([target_config_files + item, local_config + item])
+            # List logs files  for download
             if self.cb_logs.GetValue() == True:
-                local_logs = localfiles_info_pnl.local_path + "logs/"
+                #local_logs = localfiles_info_pnl.local_path + "logs/"
+                local_logs = os.path.join(localfiles_info_pnl.local_path, "logs")
+                print (local_logs)
                 if not os.path.isdir(local_logs):
                     os.makedirs(local_logs)
                 target_logs_files = "/home/" + str(pi_link_pnl.target_user) + "/Pigrow/logs/"
                 remote_logs = self.sftp.listdir(target_logs_files)
                 for item in remote_logs:
-                    files_to_download.append([target_logs_files + item, local_logs + item])
+                    local_log_item = os.path.join(local_logs, item)
+                    files_to_download.append([target_logs_files + item, local_log_item])
+                print (files_to_download)
+            # list caps files for download
             if self.cb_pics.GetValue() == True:
                 caps_folder = localfiles_info_pnl.caps_folder
-                local_pics = localfiles_info_pnl.local_path + caps_folder + "/"
+                #local_pics = localfiles_info_pnl.local_path + caps_folder + "/"
+                local_pics = os.path.join(localfiles_info_pnl.local_path, caps_folder)
                 if not os.path.isdir(local_pics):
                     os.makedirs(local_pics)
                 #get list of pics we already have
@@ -3404,13 +3409,15 @@ class file_download_dialog(wx.Dialog):
                     if "No such file" in str(e):
                         remote_caps = []
                     else:
-                        print("Error downloadig files - " + str(e))
+                        print(("Error downloadig files - " + str(e)))
                 for item in remote_caps:
                     if item not in listofcaps_local:
                         files_to_download.append([target_caps_files + item, local_pics + item])
+            # list graphs for download
             if self.cb_graph.GetValue() == True:
                 target_graph_files = "/home/" + str(pi_link_pnl.target_user) + "/Pigrow/graphs/"
-                local_graphs = localfiles_info_pnl.local_path + "graphs/"
+                #local_graphs = localfiles_info_pnl.local_path + "graphs/"
+                local_graphs = os.path.join(localfiles_info_pnl.local_path, "graphs")
                 if not os.path.isdir(local_graphs):
                     os.makedirs(local_graphs)
                 try:
@@ -3419,14 +3426,16 @@ class file_download_dialog(wx.Dialog):
                     if "No such file" in str(e):
                         remote_graphs = []
                     else:
-                        print("Error downloadig files - " + str(e))
+                        print(("Error downloadig files - " + str(e)))
                 for item in remote_graphs:
-                    files_to_download.append([target_graph_files + item, local_graphs + item])
+                    location_local_graph = os.path.join(local_graphs, item)
+                    files_to_download.append([target_graph_files + item, location_local_graph])
         else:
             # this is when the backup checkbox is ticked
             folder_name = "/Pigrow" #start with / but don't end with one.
             target_folder = "/home/" + str(pi_link_pnl.target_user) + folder_name
-            local_folder = localfiles_info_pnl.local_path + "backup"
+            #local_folder = localfiles_info_pnl.local_path + "backup"
+            local_folder = os.path.join(localfiles_info_pnl.local_path, "backup")
             if not os.path.isdir(local_folder):
                 os.makedirs(local_folder)
             folders, files = self.sort_folder_for_folders(target_folder)
@@ -3436,7 +3445,7 @@ class file_download_dialog(wx.Dialog):
                     files = files + new_files
                     folders = folders + new_folders
                     new_folder = local_folder + "/" + folders[0].split(folder_name + "/")[1]
-                    print new_folder
+                    print (new_folder)
                     if not os.path.isdir(new_folder):
                         os.makedirs(new_folder)
                 folders = folders[1:]
@@ -3447,7 +3456,7 @@ class file_download_dialog(wx.Dialog):
             #
             print("downloading entire pigrow folder")
         # Work though the list of files to download
-        print("downloading; " + str(len(files_to_download)))
+        print(("downloading; " + str(len(files_to_download))))
         for remote_file in files_to_download:
             #grabs all files in the list and overwrites them if they already exist locally.
             self.current_file_txt.SetLabel("from; " + remote_file[0])
@@ -3456,7 +3465,7 @@ class file_download_dialog(wx.Dialog):
             try:
                 self.sftp.get(remote_file[0], remote_file[1])
             except:
-                print(" - couldn't download " + remote_file[0] + " probably a folder or something.")
+                print((" - couldn't download " + remote_file[0] + " probably a folder or something."))
         self.current_file_txt.SetLabel("Done")
         self.current_dest_txt.SetLabel("Downloaded " + str(len(files_to_download)) + " files")
         #disconnect the sftp pipe
@@ -3482,7 +3491,7 @@ class upload_dialog(wx.Dialog):
     def __init__(self, *args, **kw):
         super(upload_dialog, self).__init__(*args, **kw)
         self.InitUI()
-        self.SetSize((600, 355))
+        self.SetSize((600, 455))
         self.SetTitle("upload files to Pigrow")
         self.Bind(wx.EVT_CLOSE, self.OnClose)
     def InitUI(self):
@@ -3502,7 +3511,7 @@ class upload_dialog(wx.Dialog):
         #buttons
         self.start_upload_btn = wx.Button(self, label='Upload files', pos=(40, 300), size=(175, 50))
         self.start_upload_btn.Bind(wx.EVT_BUTTON, self.start_upload_click)
-        self.close_btn = wx.Button(self, label='Close', pos=(415, 300), size=(175, 50))
+        self.close_btn = wx.Button(self, label='Close', pos=(300, 300), size=(175, 50))
         self.close_btn.Bind(wx.EVT_BUTTON, self.OnClose)
          ## universal controls
         pnl = wx.Panel(self)
@@ -3512,11 +3521,11 @@ class upload_dialog(wx.Dialog):
         ## connecting the sftp pipe
         port = 22
         ssh_tran = paramiko.Transport((pi_link_pnl.target_ip, port))
-        print("  - connecting transport pipe... " + pi_link_pnl.target_ip + " port:" + str(port))
+        print(("  - connecting transport pipe... " + pi_link_pnl.target_ip + " port:" + str(port)))
         ssh_tran.connect(username=pi_link_pnl.target_user, password=pi_link_pnl.target_pass)
         sftp = paramiko.SFTPClient.from_transport(ssh_tran)
-        ## Downloading files from the pi
-        # creating a list of files to be download from the pigrow
+        ## uploading to the pi
+        # creating a list of files to be uploaded
         if self.cb_all.GetValue() == False:
             # uploading and installing cron file
             temp_folder = "/home/" + pi_link_pnl.target_user + "/Pigrow/temp/"
@@ -3532,35 +3541,39 @@ class upload_dialog(wx.Dialog):
                 self.current_file_txt.SetLabel("from; " + localfiles_ctrl_pnl.cron_backup_file)
                 self.current_dest_txt.SetLabel("to; " + cron_temp)
                 wx.Yield()
-                try:
-                    stdin, stdout, stderr = ssh.exec_command("crontab " + cron_temp)
-                except Exception as e:
-                    print("failed to read cron due to;" + str(e))
+                out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("crontab " + cron_temp)
         # make list using selected components to be uploaded, list contains two elemnts [local file, remote destination]
             if self.cb_conf.GetValue() == True:
-                local_config = localfiles_info_pnl.local_path + "config/"
+                #local_config = localfiles_info_pnl.local_path + "config/"
+                local_config = os.path.join(localfiles_info_pnl.local_path, "config")
                 target_config = "/home/" + str(pi_link_pnl.target_user) + "/Pigrow/config/"
                 local_config_files = os.listdir(local_config)
                 for item in local_config_files:
-                    files_to_upload.append([local_config + item, target_config + item])
+                    local_item_path = os.path.join(local_config, item)
+                    files_to_upload.append([local_item_path, target_config + item])
             #do the same for the logs folder
             if self.cb_logs.GetValue() == True:
-                local_logs = localfiles_info_pnl.local_path + "logs/"
+                #local_logs = localfiles_info_pnl.local_path + "logs/"
+                local_logs = os.path.join(localfiles_info_pnl.local_path, "logs")
                 target_logs = "/home/" + str(pi_link_pnl.target_user) + "/Pigrow/logs/"
                 target_logs_files = os.listdir(local_logs)
                 for item in target_logs_files:
-                    files_to_upload.append([local_logs + item, target_logs + item])
+                    local_item_path = os.path.join(local_logs, item)
+                    files_to_upload.append([local_item_path, target_logs + item])
             #and the graphs folder
             if self.cb_graph.GetValue() == True:
-                local_graphs = localfiles_info_pnl.local_path + "graphs/"
+                #local_graphs = localfiles_info_pnl.local_path + "graphs/"
+                local_graphs = os.path.join(localfiles_info_pnl.local_path, "graphs")
                 target_graphs = "/home/" + str(pi_link_pnl.target_user) + "/Pigrow/graphs/"
                 local_graph_files = os.listdir(local_graphs)
                 for item in local_graph_files:
-                    files_to_upload.append([local_graphs + item, target_graphs + item])
+                    local_item_path = os.path.join(local_graphs, item)
+                    files_to_upload.append([local_item_path, target_graphs + item])
             ## for photos only upload photos that don't already exost on pi
             if self.cb_pics.GetValue() == True:
                 caps_folder = localfiles_info_pnl.caps_folder
-                local_pics = localfiles_info_pnl.local_path + caps_folder + "/"
+                #local_pics = localfiles_info_pnl.local_path + caps_folder + "/"
+                local_pics = os.path.join(localfiles_info_pnl.local_path, caps_folder)
                 #get list of pics we already have
                 listofcaps_local = os.listdir(local_pics)
                 #get list of remote images
@@ -3568,13 +3581,12 @@ class upload_dialog(wx.Dialog):
                 remote_caps = sftp.listdir(target_caps_files)
                 for item in listofcaps_local:
                     if item not in remote_caps:
-                        files_to_upload.append([local_pics + item, target_caps_files + item])
+                        local_pic_path = os.path.join(local_pics, item)
+                        files_to_upload.append([local_pic_path, target_caps_files + item])
         else:
             # make list of all ~/Pigrow/ files using os.walk
             #    - this is for complete backups ignoring the file system.
             print("restoring entire pigrow folder (not yet implimented)")
-        print files_to_upload
-        print(len(files_to_upload))
         for upload_file in files_to_upload:
             #grabs all files in the list and overwrites them if they already exist locally.
             self.current_file_txt.SetLabel("from; " + upload_file[0])
@@ -3613,7 +3625,7 @@ class graphing_info_pnl(wx.Panel):
         ## Draw UI elements
         # placing the information boxes
         graphing_info_pnl.graph_path_txt = wx.StaticText(self,  label='graphs graphs graphs!', pos=(220, 80), size=(200,30))
-        place_holder = wx.EmptyBitmap(500, 500)
+        place_holder = wx.Bitmap(500, 500)
         graphing_info_pnl.graph_img_box = wx.StaticBitmap(self, -1, place_holder, (0, 0), (500, 500))
 
 
@@ -3686,7 +3698,7 @@ class graphing_ctrl_pnl(wx.Panel):
         #the command line options combo box (self.opts_cb)
         #also a dictionary of all the commands and their defaults or options (self.options_dict)
         scriptpath = "/home/" + pi_link_pnl.target_user + "/Pigrow/scripts/visualisation/" + self.select_script_cb.GetValue()
-        print("Fetching options for; " + scriptpath)
+        print(("Fetching options for; " + scriptpath))
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi(scriptpath + " -flags")
         flags = out.splitlines()
         self.opts_cb.Clear()
@@ -3768,7 +3780,7 @@ class graphing_ctrl_pnl(wx.Panel):
         # will be upgraded to run graphing modules locally at some point if that options selected instead
         script_path = "/home/" + pi_link_pnl.target_user + "/Pigrow/scripts/visualisation/" + self.select_script_cb.GetValue()
         script_command = script_path + " " + self.extra_args.GetValue()
-        print("Running; " + script_command)
+        print(("Running; " + script_command))
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi(script_command)
         msg = str(out) + " " + str(error)
         dmsg = "Script Output;\n"# + msg.replace("...", ",")
@@ -3778,7 +3790,7 @@ class graphing_ctrl_pnl(wx.Panel):
                 line = line[:pos]      #bad log info as this is often gibberish
             dmsg += line + "\n"        #which would otherwise disrupt the messagebox
         wx.MessageBox(dmsg, 'Script Output', wx.OK | wx.ICON_INFORMATION)
-        print dmsg
+        print (dmsg)
         ## attempt to find path of graph on pi
         path_possible = dmsg.replace("\n", " ").strip().split(" ")
         for possible in path_possible:
@@ -3880,23 +3892,23 @@ class pi_link_pnl(wx.Panel):
             seek_attempt = 1
             log_on_test = False
             while True:
-                print("Trying to connect to " + host)
+                print(("Trying to connect to " + host))
                 try:
                     ssh.connect(host, username=pi_link_pnl.target_user, password=pi_link_pnl.target_pass, timeout=3)
-                    print("Connected to " + host)
+                    print(("Connected to " + host))
                     log_on_test = True
                     box_name = self.get_box_name()
-                    print("Pigrow Found; " + str(box_name))
+                    print(("Pigrow Found; " + str(box_name)))
                     self.set_link_pi_text(log_on_test, box_name)
                     return box_name #this just exits the loop
                 except paramiko.AuthenticationException:
-                    print("Authentication failed when connecting to " + str(host))
+                    print(("Authentication failed when connecting to " + str(host)))
                 except Exception as e:
-                    print("Could not SSH to " + host + " because:" + str(e))
+                    print(("Could not SSH to " + host + " because:" + str(e)))
                     seek_attempt += 1
                 # check if final attempt and if so stop trying
                 if seek_attempt == number_of_tries_per_host + 1:
-                    print("Could not connect to " + host + " Giving up")
+                    print(("Could not connect to " + host + " Giving up"))
                     break #end while loop and look at next host
 
     def link_with_pi_btn_click(self, e):
@@ -3919,10 +3931,10 @@ class pi_link_pnl(wx.Panel):
             pi_link_pnl.target_pass = self.tb_pass.GetValue()
             try:
                 ssh.connect(pi_link_pnl.target_ip, username=pi_link_pnl.target_user, password=pi_link_pnl.target_pass, timeout=3)
-                print("Connected to " + pi_link_pnl.target_ip)
+                print(("Connected to " + pi_link_pnl.target_ip))
                 log_on_test = True
             except Exception as e:
-                print("Failed to log on due to; " + str(e))
+                print(("Failed to log on due to; " + str(e)))
             if log_on_test == True:
                 box_name = self.get_box_name()
             else:
@@ -4030,12 +4042,12 @@ class pi_link_pnl(wx.Panel):
 
     def get_box_name(self):
         boxname = None
-        try:
-            stdin, stdout, stderr = ssh.exec_command("cat /home/" + pi_link_pnl.target_user + "/Pigrow/config/pigrow_config.txt | grep box_name")
-            boxname = stdout.read().strip().split("=")[1]
-            print "Pigrow Found; " + boxname
-        except Exception as e:
-            print("Can't read Pigrow's name " + str(e))
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("cat /home/" + pi_link_pnl.target_user + "/Pigrow/config/pigrow_config.txt | grep box_name")
+        if "=" in out:
+            boxname = out.strip().split("=")[1]
+            print(("Pigrow Found; " + boxname))
+        else:
+            print(("Can't read Pigrow's name " + str(e)))
         if boxname == '':
             boxname = None
         return boxname
@@ -4176,17 +4188,20 @@ class MainApp(MainFrame):
         sys.exit(0)
 
     def set_local_options(self):
-        MainApp.OS =  platform.system()
-        if MainApp.OS == "Linux":
-            computer_username = os.getlogin()
-            MainApp.localfiles_path = "/home/" + computer_username + "/frompigrow/"
-        elif MainApp.OS == "Windows":
+        try:
+            MainApp.OS =  platform.system()
+            if MainApp.OS == "Linux":
+                computer_username = os.getlogin()
+                localpath = os.path.join("/home", computer_username)
+                localpath = os.path.join(localpath, "frompigrow")
+                MainApp.localfiles_path = localpath
+            else:
+                localpath = os.getcwd()
+                localpath = os.path.join(localpath, "frompigrow")
+                MainApp.localfiles_path = localpath
+        except:
             localpath = os.getcwd()
-            localpath += '\\frompigrow\\'
-            MainApp.localfiles_path = localpath
-        else:
-            localpath = os.getcwd()
-            localpath += '/frompigrow/'
+            localpath = os.path.join(localpath, "frompigrow")
             MainApp.localfiles_path = localpath
 
 
@@ -4197,5 +4212,5 @@ def main():
     app.MainLoop()
 
 if __name__ == '__main__':
-    os.chdir(os.path.dirname(sys.argv[0]))
+#    os.chdir(os.path.dirname(sys.argv[0]))
     main()
