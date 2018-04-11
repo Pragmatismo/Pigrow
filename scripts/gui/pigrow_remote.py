@@ -4045,9 +4045,9 @@ class pi_link_pnl(wx.Panel):
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("cat /home/" + pi_link_pnl.target_user + "/Pigrow/config/pigrow_config.txt | grep box_name")
         if "=" in out:
             boxname = out.strip().split("=")[1]
-            print(("Pigrow Found; " + boxname))
+            print("Pigrow Found; " + boxname)
         else:
-            print(("Can't read Pigrow's name " + str(e)))
+            print("Can't read Pigrow's name ")
         if boxname == '':
             boxname = None
         return boxname
@@ -4212,5 +4212,9 @@ def main():
     app.MainLoop()
 
 if __name__ == '__main__':
-#    os.chdir(os.path.dirname(sys.argv[0]))
+    try:
+        # if run from a desktop icon or something
+        os.chdir(os.path.dirname(sys.argv[0]))
+    except:
+        pass
     main()
