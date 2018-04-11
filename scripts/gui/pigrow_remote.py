@@ -777,13 +777,13 @@ class install_dialog(wx.Dialog):
         dirlocs_template, error = MainApp.localfiles_ctrl_pannel.run_on_pi("cat ~/Pigrow/config/templates/dirlocs_temp.txt")
         dirlocs_template = dirlocs_template.replace("**", str("/home/" + pi_link_pnl.target_user))
         #temp_dirlocs_local = localfiles_info_pnl.local_path + "temp/dirlocs.txt"
-        emp_dirlocs_local = os.path.join(localfiles_info_pnl.local_path, "temp/dirlocs.txt")
+        temp_dirlocs_local = os.path.join(localfiles_info_pnl.local_path, "temp/dirlocs.txt")
         local_temp = os.path.join(localfiles_info_pnl.local_path, "temp")
         if not os.path.isdir(local_temp):
             os.makedirs(local_temp)
         with open(temp_dirlocs_local, "w") as temp_local:
             temp_local.write(dirlocs_template)
-        MainApp.localfiles_ctrl_pannel.upload_file_to_fodler(temp_dirlocs_local, "/home/" + pi_link_pnl.target_user + "/test.txt")
+        MainApp.localfiles_ctrl_pannel.upload_file_to_fodler(temp_dirlocs_local, "/home/" + pi_link_pnl.target_user + "/config/dirlocs.txt")
 
         self.currently_doing.SetLabel("-")
         self.progress.SetLabel("######~~~~~~~~~~~~~~~~~~~~~~~")
