@@ -454,15 +454,19 @@ class system_ctrl_pnl(wx.Panel):
             cam_text = "No camera detected"
         else:
             camera_list = out.strip().split(" ")
-            if len(camera_list) == 1:
-                out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("udevadm info --query=all /dev/video0 |grep ID_MODEL=")
-                cam_name = out.split("=")[1].strip()
-                cam_text = cam_name
-            elif len(camera_list) > 1:
-                for cam in camera_list:
-                    out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("udevadm info --query=all " + cam + " |grep ID_MODEL=")
+            try:
+                if len(camera_list) == 1:
+                    out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("udevadm info --query=all /dev/video0 |grep ID_MODEL=")
                     cam_name = out.split("=")[1].strip()
-                    cam_text = cam_name + "\n       on " + cam + "\n"
+                    cam_text = cam_name
+                elif len(camera_list) > 1:
+                    for cam in camera_list:
+                        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("udevadm info --query=all " + cam + " |grep ID_MODEL=")
+                        cam_name = out.split("=")[1].strip()
+                        cam_text = cam_name + "\n       on " + cam + "\n"
+            except:
+                print("probably a picam")
+                cam_text = "possibly a pi cam is connected?"
         return cam_text
 
     def get_pi_time_diff(self):
