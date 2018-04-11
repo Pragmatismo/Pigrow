@@ -3235,8 +3235,9 @@ class localfiles_ctrl_pnl(wx.Panel):
                             first_remote, first_r_dt = self.filename_to_date(remote_caps[0])
                             last_remote, last_r_dt = self.filename_to_date(remote_caps[-1])
                             caps_message += "  " + str(first_remote) + " - " + str(last_remote)
-                            length_of_remote = last_r_dt - first_r_dt
-                            caps_message += '\n     ' + str(length_of_remote)
+                            if not last_r_dt == None or not first_r_dt == None:
+                                length_of_remote = last_r_dt - first_r_dt
+                                caps_message += '\n     ' + str(length_of_remote)
                         else:
                             caps_message += " "
 
@@ -3270,10 +3271,14 @@ class localfiles_ctrl_pnl(wx.Panel):
         print("local file info discovered..")
 
     def filename_to_date(self, filename):
-        date = float(filename.split(".")[0].split("_")[-1])
-        file_datetime = datetime.datetime.fromtimestamp(date)
-        date = time.strftime('%Y-%m-%d %H:%M', time.localtime(date))
-        return date, file_datetime
+        try:
+            date = float(filename.split(".")[0].split("_")[-1])
+            file_datetime = datetime.datetime.fromtimestamp(date)
+            date = time.strftime('%Y-%m-%d %H:%M', time.localtime(date))
+            return date, file_datetime
+        except:
+            print("!! filename doesn't parse into a unix datetime")
+            return None, None
 
     def download_click(self, e):
         #show download dialog boxes
