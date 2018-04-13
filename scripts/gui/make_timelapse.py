@@ -190,12 +190,18 @@ class Make_TL(wx.Frame):
      #Cap graph
         cap_size_graph = self.graph_caps(cap_files, graphdir)
         scale_size_graph = first_pic = self.scale_pic(cap_size_graph, 300)
-        self.cap_thumb.SetBitmap(wx.BitmapFromImage(scale_size_graph))
+        try:
+            self.cap_thumb.SetBitmap(wx.BitmapFromImage(scale_size_graph))
+        except:
+            print("no graph to work with, sorry")    
 
     def date_from_fn(self, thefilename):
-        fdate = float(thefilename.split(".")[0].split("_")[-1])
-        fdate = datetime.datetime.utcfromtimestamp(fdate)
-        return fdate
+        if "." in thefilename and "_" in thefilename:
+            fdate = float(thefilename.split(".")[0].split("_")[-1])
+            fdate = datetime.datetime.utcfromtimestamp(fdate)
+            return fdate
+        else:
+            return None
 
     def btn_ren_click(self, e):
         capsdir = self.capsfolder_box.GetValue()
