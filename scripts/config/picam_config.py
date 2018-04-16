@@ -131,7 +131,7 @@ def show_menu():
         for g in range(100,900,100):
             print("---Doing: analog_iso=" + str(g))
             camera.saturation = int(s_val)
-            camera.conmtrast = int(c_val)
+            camera.contrast = int(c_val)
             camera.brightness = int(b_val)
             camera.iso = int(g)
             time.sleep(2)
@@ -147,7 +147,7 @@ def show_menu():
             print("---Doing: broghtness=" + str(b))
             camera.brightness = int(b)
             camera.saturation = int(s_val)
-            camera.conmtrast = int(c_val)
+            camera.contrast = int(c_val)
             camera.iso = int(g_val)
             time.sleep(2)
             camera.capture(caps_path+"test_range_b_" + str(b) + ".jpg")
