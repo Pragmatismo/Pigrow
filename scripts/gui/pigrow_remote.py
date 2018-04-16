@@ -32,6 +32,11 @@
 #            I NEED TO MAKE A NEAT PLACE FOR SHARED VARIABLES
 #               THIS WILL HAPPEN SOON
 #
+#  Set the status bar
+#    MainApp.status.write_bar("Status bar normal text")       # normal background with black text
+#    MainApp.status.write_warning("Status bar warning text")  # red back with black text
+#
+#
 #
 ###                Run a command on the pigrow
 ##     MainApp.localfiles_ctrl_pannel.run_on_pi(self, command)
@@ -56,6 +61,14 @@
 ##  temp_local = localfiles_info_pnl.local_path + "temp/"
 ##  remote_path = "/home/" + pi_link_pnl.target_user + "/Pigrow/"
 #
+#  SETTINGS FOR THE GUI TO USE
+#    # Called as gui_set
+    #     fot example use
+    #             window_width = gui_set.width_of_window
+    #     to return the size of the gui's window
+ # gui_set.width_of_window
+ # gui_set.height_of_window
+
 #
 ##
 ###
@@ -2144,7 +2157,7 @@ class edit_dht_dialog(wx.Dialog):
 #
 class cron_info_pnl(wx.Panel):
     def __init__( self, parent ):
-        win_height = parent.GetSize()[1]
+        win_height = gui_set.height_of_window
         height_of_pannels_above = 230
         space_left = win_height - height_of_pannels_above
 
@@ -3091,15 +3104,21 @@ class localfiles_info_pnl(wx.Panel):
 
     def draw_photo_folder_images(self, first_pic, last_pic):
         # load and display first image
-        first = wx.Image(first_pic, wx.BITMAP_TYPE_ANY)
-        first = first.Scale(225, 225, wx.IMAGE_QUALITY_HIGH)
-        first = first.ConvertToBitmap()
-        localfiles_info_pnl.photo_folder_first_pic = wx.StaticBitmap(self, -1, first, (620, 310), (first.GetWidth(), first.GetHeight()))
+        try:
+            first = wx.Image(first_pic, wx.BITMAP_TYPE_ANY)
+            first = first.Scale(225, 225, wx.IMAGE_QUALITY_HIGH)
+            first = first.ConvertToBitmap()
+            localfiles_info_pnl.photo_folder_first_pic = wx.StaticBitmap(self, -1, first, (620, 310), (first.GetWidth(), first.GetHeight()))
+        except:
+            print("!! First image in local caps folder didn't work.")
         # load and display last image
-        last = wx.Image(last_pic, wx.BITMAP_TYPE_ANY)
-        last = last.Scale(225, 225, wx.IMAGE_QUALITY_HIGH)
-        last = last.ConvertToBitmap()
-        localfiles_info_pnl.photo_folder_last_pic = wx.StaticBitmap(self, -1, last, (620, 565), (last.GetWidth(), last.GetHeight()))
+        try:
+            last = wx.Image(last_pic, wx.BITMAP_TYPE_ANY)
+            last = last.Scale(225, 225, wx.IMAGE_QUALITY_HIGH)
+            last = last.ConvertToBitmap()
+            localfiles_info_pnl.photo_folder_last_pic = wx.StaticBitmap(self, -1, last, (620, 565), (last.GetWidth(), last.GetHeight()))
+        except:
+            print("!! Last image in local caps folder didn't work.")
 
     def add_to_config_list(self, name, mod_date, age, update_status):
         localfiles_info_pnl.config_files.InsertItem(0, str(name))
@@ -3133,6 +3152,40 @@ class localfiles_ctrl_pnl(wx.Panel):
         self.download_btn.Bind(wx.EVT_BUTTON, self.download_click)
         self.upload_btn = wx.Button(self, label='Restore to pi', pos=(15, 130), size=(175, 30))
         self.upload_btn.Bind(wx.EVT_BUTTON, self.upload_click)
+        #
+        self.clear_downed_btn = wx.Button(self, label='clear downloaded\n from pigrow', pos=(15, 200), size=(175, 60))
+        self.clear_downed_btn.Bind(wx.EVT_BUTTON, self.clear_downed_click)
+
+    def clear_downed_click(self, e):
+        # looks at local files an remote files removing any from the pigrows
+        # that are already stored in the local caps folder for that pigrow
+        print("clearing already downloaded images off pigrow")
+        caps_path = os.path.join(localfiles_info_pnl.local_path, localfiles_info_pnl.caps_folder)
+        caps_files = os.listdir(caps_path)
+        print("---------")
+        print(caps_path)
+        print(len(caps_files))
+        print("-----")
+        caps_files.sort()
+        print(str(len(caps_files)) + " files locally \n")
+        #read pi's caps folder
+        try:
+            pi_caps_path = "/home/" + pi_link_pnl.target_user + "/Pigrow/" + localfiles_info_pnl.caps_folder
+            out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("ls " + pi_caps_path)
+            remote_caps = out.splitlines()
+            print(len(remote_caps))
+            print("-------------------")
+        except Exception as e:
+            print(("-- reading remote caps folder failed; " + str(e)))
+            remote_caps = []
+        for the_remote_file in remote_caps:
+            if the_remote_file in caps_files:
+                the_remote_file = os.path.join(pi_caps_path, the_remote_file)
+                print("clearing - " + the_remote_file)
+                MainApp.localfiles_ctrl_pannel.run_on_pi("rm " + the_remote_file)
+        # when done refreh the file info
+        self.update_local_filelist_click("e")
+
 
     def run_on_pi(self, command):
         #Runs a command on the pigrow and returns output and error
@@ -3207,6 +3260,10 @@ class localfiles_ctrl_pnl(wx.Panel):
                     #read caps info and make report
                     if item == localfiles_info_pnl.caps_folder:
                         caps_files = os.listdir(item_path)
+                        #print("---------")
+                        #print(str(item_path))
+                        #print(caps_files)
+                        #print("-----------")
                         caps_files.sort()
                         caps_message = str(len(caps_files)) + " files locally \n"
                         #read pi's caps folder
@@ -3214,8 +3271,9 @@ class localfiles_ctrl_pnl(wx.Panel):
                             out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("ls /home/" + pi_link_pnl.target_user + "/Pigrow/" + localfiles_info_pnl.caps_folder)
                             remote_caps = out.splitlines()
                         except Exception as e:
-                            print(("reading remote caps folder failed; " + str(e)))
+                            print(("-- reading remote caps folder failed; " + str(e)))
                             remote_caps = []
+                        # local caps files
                         if len(caps_files) > 1:
                             #lable first and last image with name
                             localfiles_info_pnl.first_photo_title.SetLabel(caps_files[0])
@@ -3223,14 +3281,16 @@ class localfiles_ctrl_pnl(wx.Panel):
                             #determine date range of images
                             first_date, first_dt = self.filename_to_date(caps_files[0])
                             last_date, last_dt = self.filename_to_date(caps_files[-1])
-                            caps_message += "  " + str(first_date) + " - " + str(last_date)
-                            length_of_local = last_dt - first_dt
-                            caps_message += '\n     ' + str(length_of_local)
+                            if not last_dt == None and not first_dt == None:
+                                caps_message += "  " + str(first_date) + " - " + str(last_date)
+                                length_of_local = last_dt - first_dt
+                                caps_message += '\n     ' + str(length_of_local)
                             #draw first and last imagess to the screen
                             first_image_path = os.path.join(item_path, caps_files[0])
                             final_image_path = os.path.join(item_path, caps_files[-1])
                             localfiles_info_pnl.draw_photo_folder_images(MainApp.localfiles_info_pannel, first_image_path, final_image_path)
                         caps_message += "\n" + str(len(remote_caps)) + " files on Pigrow \n"
+                        # remote image files
                         if len(remote_caps) > 1:
                             first_remote, first_r_dt = self.filename_to_date(remote_caps[0])
                             last_remote, last_r_dt = self.filename_to_date(remote_caps[-1])
@@ -3322,7 +3382,6 @@ class localfiles_ctrl_pnl(wx.Panel):
         ssh_tran.close()
         print((" file copied to " + str(remote_path)))
 
-
 class file_download_dialog(wx.Dialog):
     #Dialog box for downloding files from pi to local storage folder
     def __init__(self, *args, **kw):
@@ -3408,6 +3467,9 @@ class file_download_dialog(wx.Dialog):
                 local_pics = os.path.join(localfiles_info_pnl.local_path, caps_folder)
                 if not os.path.isdir(local_pics):
                     os.makedirs(local_pics)
+                print("~~~~~~~~~~~~~~~~")
+                print(local_pics)
+                print("~~~~~~~~~~~~~~~~")
                 #get list of pics we already have
                 listofcaps_local = os.listdir(local_pics)
                 #get list of remote images
@@ -3421,7 +3483,8 @@ class file_download_dialog(wx.Dialog):
                         print(("Error downloadig files - " + str(e)))
                 for item in remote_caps:
                     if item not in listofcaps_local:
-                        files_to_download.append([target_caps_files + item, local_pics + item])
+                        item_path = os.path.join(local_pics, item)
+                        files_to_download.append([target_caps_files + item, item_path])
             # list graphs for download
             if self.cb_graph.GetValue() == True:
                 target_graph_files = "/home/" + str(pi_link_pnl.target_user) + "/Pigrow/graphs/"
@@ -3627,8 +3690,8 @@ class graphing_info_pnl(wx.Panel):
     # controlled by the graphing_ctrl_pnl
     #
     def __init__( self, parent ):
-        win_height = parent.GetSize()[1]
-        win_width = parent.GetSize()[0]
+        win_height = gui_set.height_of_window
+        win_width = gui_set.width_of_window
         w_space_left = win_width - 285
         wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, pos = (285, 0), size = wx.Size(w_space_left , 800), style = wx.TAB_TRAVERSAL )
         ## Draw UI elements
@@ -3640,7 +3703,7 @@ class graphing_info_pnl(wx.Panel):
 
 class graphing_ctrl_pnl(wx.Panel):
     def __init__( self, parent ):
-        win_height = parent.GetSize()[1]
+        win_height = gui_set.height_of_window
         height_of_pannels_above = 230
         space_left = win_height - height_of_pannels_above
         wx.Panel.__init__ (self, parent, id=wx.ID_ANY, pos=(0, height_of_pannels_above), size=wx.Size(285, space_left), style=wx.TAB_TRAVERSAL)
@@ -3652,9 +3715,9 @@ class graphing_ctrl_pnl(wx.Panel):
         self.graph_cb = wx.ComboBox(self, choices = graph_opts, pos=(10,30), size=(265, 30))
         self.graph_cb.Bind(wx.EVT_COMBOBOX, self.graph_engine_combo_go)
         # shared buttons
-        self.make_graph_btn = wx.Button(self, label='Make Graph', pos=(15, 520), size=(175, 30))
+        self.make_graph_btn = wx.Button(self, label='Make Graph', pos=(5, 520), size=(175, 30))
         self.make_graph_btn.Bind(wx.EVT_BUTTON, self.make_graph_click)
-        self.download_graph = wx.CheckBox(self, label='download',pos = (200,520))
+        self.download_graph = wx.CheckBox(self, label='download',pos = (185,520))
         #
         ### for pi based graphing only
         self.pigraph_text = wx.StaticText(self,  label='Graphing directly on the pigrow\n saves having to download logs', pos=(15, 70))
@@ -4139,6 +4202,48 @@ class welcome_pnl(wx.Panel):
         bmp = wx.Bitmap("./splash.png")
         dc.DrawBitmap(bmp, 0, 0)
 
+class status_bar(wx.Panel):
+    #
+    # The bar at the bottom of the screen for displaying the current status
+    #
+    def __init__( self, parent ):
+        width_of_window = gui_set.width_of_window
+        height_of_window = gui_set.height_of_window
+        wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, pos = (0, height_of_window), size = wx.Size(width_of_window, 40), style = wx.TAB_TRAVERSAL )
+        self.SetBackgroundColour((150,150,120)) #TESTING ONLY REMOVE WHEN SIZING IS DONE AND ALL THAT BUSINESS
+        self.status_text = wx.StaticText(self,  label='-- starting -- ', pos=(25, 5), size=(width_of_window, 40))
+        font = self.GetFont()
+        font.SetPointSize(15)
+        self.status_text.SetFont(font)
+        # the line
+        self.ln = wx.StaticLine(self, -1, pos=(0,0), style=wx.LI_HORIZONTAL)
+        self.ln.SetBackgroundColour(wx.Colour(150,150,150))
+        self.ln.SetSize((width_of_window, 3))
+
+    def write_bar(self, text):
+        self.SetBackgroundColour((150, 150, 120))
+        self.status_text.SetForegroundColour(wx.Colour(50,50,50))
+        self.status_text.SetLabel(text)
+
+    def write_warning(self, text):
+        self.SetBackgroundColour((200, 100, 100))
+        self.status_text.SetForegroundColour(wx.Colour(0,0,0))
+        self.status_text.SetLabel(text)
+
+
+class gui_settings:
+    #
+    # Called as gui_set
+    #
+    #     fot example use
+    #             window_width = gui_set.width_of_window
+    #     to return the size of the gui's window
+    #
+    def __init__( self):
+        # Settings Sizes
+        self.width_of_window = 1200
+        self.height_of_window = 800
+
 
 #
 #
@@ -4147,7 +4252,8 @@ class welcome_pnl(wx.Panel):
 #
 class MainFrame ( wx.Frame ):
     def __init__( self, parent ):
-        wx.Frame.__init__ ( self, parent, id = wx.ID_ANY, title = wx.EmptyString, pos = wx.DefaultPosition, size = wx.Size( 1200,800 ), style = wx.DEFAULT_FRAME_STYLE|wx.TAB_TRAVERSAL )
+        # Settings
+        wx.Frame.__init__ ( self, parent, id = wx.ID_ANY, title = wx.EmptyString, pos = wx.DefaultPosition, size = wx.Size( gui_set.width_of_window, gui_set.height_of_window+40 ), style = wx.DEFAULT_FRAME_STYLE|wx.TAB_TRAVERSAL )
         self.SetSizeHints( wx.DefaultSize, wx.DefaultSize )
         self.Layout()
         self.Centre( wx.BOTH )
@@ -4166,7 +4272,10 @@ class MainApp(MainFrame):
         #
         # loads all the pages at the start then hides them,
         #         maybe i should change this later but let's make it work first
+        #
+        # Auto-Start Pages
         MainApp.welcome_pannel = welcome_pnl(self)
+        MainApp.status = status_bar(self)
         MainApp.system_ctrl_pannel = system_ctrl_pnl(self)
         MainApp.system_info_pannel = system_info_pnl(self)
         MainApp.config_ctrl_pannel = config_ctrl_pnl(self)
@@ -4188,6 +4297,7 @@ class MainApp(MainFrame):
         MainApp.localfiles_info_pannel.Hide()
         MainApp.graphing_ctrl_pannel.Hide()
         MainApp.graphing_info_pannel.Hide()
+        MainApp.status.write_bar("ready...")
 
     def OnClose(self, e):
         #Closes SSH connection even on quit
@@ -4221,6 +4331,7 @@ def main():
     app.MainLoop()
 
 if __name__ == '__main__':
+    gui_set = gui_settings()
     try:
         # if run from a desktop icon or something
         os.chdir(os.path.dirname(sys.argv[0]))
