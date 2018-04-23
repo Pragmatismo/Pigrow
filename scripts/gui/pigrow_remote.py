@@ -3178,11 +3178,15 @@ class localfiles_ctrl_pnl(wx.Panel):
         except Exception as e:
             print(("-- reading remote caps folder failed; " + str(e)))
             remote_caps = []
+        count = 0
         for the_remote_file in remote_caps:
             if the_remote_file in caps_files:
                 the_remote_file = os.path.join(pi_caps_path, the_remote_file)
-                print("clearing - " + the_remote_file)
+                MainApp.status.write_bar("clearing - " + the_remote_file)
                 MainApp.localfiles_ctrl_pannel.run_on_pi("rm " + the_remote_file)
+                wx.Yield()
+                count = count + 1
+            MainApp.status.write_bar("Cleared " + str(count) + " files from the pigrow")
         # when done refreh the file info
         self.update_local_filelist_click("e")
 
