@@ -185,11 +185,11 @@ def make_graph(da,ta, path, colour='darkblue', axislabel='Chirp Sensor', line_la
   #  ax.bar(da, ta, width=0.01, color='k', linewidth = 0)
     if not line_label == '':
         ax.plot(da, ta, color=colour, lw=2, label=line_label)
-        ta_av = moving_average(ta, 2)
+        ta_av = moving_average(ta, 10)
         ax.plot(da, ta_av, "r")
     else:
         ax.plot(da, ta, color=colour, lw=2)
-        ta_av = moving_average(ta, 41)
+        ta_av = moving_average(ta, 10)
         ax.plot(da, ta_av, "r")
     #ta = np.array(ta)
     #ax.fill_between(da, ta, 0,where=ta < dangerlow, alpha=0.6, color='darkblue')
@@ -220,7 +220,7 @@ def moving_average(interval, window_size):
     # then divide each value by the window size to get a decimal we can use
     # as a weight when convolving
     window = numpy.ones(int(window_size)) / float(window_size)
-    # 
+    #
     #
     return numpy.convolve(interval, window, 'same')
 
