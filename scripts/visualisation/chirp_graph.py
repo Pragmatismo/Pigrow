@@ -1,6 +1,6 @@
 #!/usr/bin/python
 import datetime, sys, os
-# import numpy as np    #only needed for colouring 
+# import numpy as np    #only needed for colouring
 import matplotlib as mpl
 mpl.use('Agg')
 import matplotlib.pyplot as plt
@@ -57,8 +57,8 @@ for argu in sys.argv[1:]:
         elif thearg == 'out':
             graph_path = theval
             if "." in graph_path:
-                graph_base_path = theval.spit(".")[0]
-                file_type = theval.spit(".")[1]
+                graph_base_path = theval.split(".")[0]
+                file_type = theval.split(".")[1]
             else:
                 graph_base_path = graph_path
                 file_type = "png"
