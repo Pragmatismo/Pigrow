@@ -64,8 +64,8 @@ for argu in sys.argv[1:]:
                 file_type = "png"
             moist_graph_path = graph_base_path + "_mositure." + file_type
             moist_percent_graph_path = graph_base_path + "_moisture_percentage." + file_type
-            temp_graph_path = homedir + graph_base_path + "_temp." + file_type
-            light_graph_path = homedir + graph_base_path + "_light." + file_type
+            temp_graph_path = graph_base_path + "_temp." + file_type
+            light_graph_path = graph_base_path + "_light." + file_type
         elif thearg == "hours":
             hours_to_show = int(theval)
         elif thearg == 'cold':
@@ -185,8 +185,12 @@ def make_graph(da,ta, path, colour='darkblue', axislabel='Chirp Sensor', line_la
   #  ax.bar(da, ta, width=0.01, color='k', linewidth = 0)
     if not line_label == '':
         ax.plot(da, ta, color=colour, lw=2, label=line_label)
+        ta_av = moving_average(ta, 2)
+        ax.plot(da, ta_av, "r")
     else:
         ax.plot(da, ta, color=colour, lw=2)
+        ta_av = moving_average(ta, 41)
+        ax.plot(da, ta_av, "r")
     #ta = np.array(ta)
     #ax.fill_between(da, ta, 0,where=ta < dangerlow, alpha=0.6, color='darkblue')
     #ax.fill_between(da, ta, 0,where=ta > dangerlow, alpha=0.6, color='blue')
@@ -210,6 +214,16 @@ def make_graph(da,ta, path, colour='darkblue', axislabel='Chirp Sensor', line_la
     else:
         print("Made but not saved..")
 
+import numpy #as numpy
+def moving_average(interval, window_size):
+    # create a numpy array full of ones the size of the averaging window
+    # then divide this by the window size
+    window = numpy.ones(int(window_size)) / float(window_size)
+    print window
+    print ("--------------")
+    print numpy.ones(int(window_size))
+    return numpy.convolve(interval, window, 'same')
+
 #
 #
 #  Doing things bit of the script
@@ -224,6 +238,7 @@ if "," in log_location:
 #   ugly because of different scales
 #   Hacky messy ugly way for now will do proper multigraph option soon
 #
+fig = plt.gcf()
 if make_multi == "true":
     make_graph(log_date, log_moist, None, 'darkblue', 'Soil Moisture')
     make_graph(log_date, log_light, None, 'yellow', 'Light Numbers')
@@ -255,7 +270,6 @@ else:
     # single log making a differnt graph for each data
     #
     log_moist, log_moist_p, log_temp, log_light, log_date = add_log(log_location)
-    #fig = plt.gcf()
     if make_moist == "true":
         make_graph(log_date, log_moist, moist_graph_path, 'darkblue', 'Soil Moisture')
         fig.clf()
