@@ -217,11 +217,11 @@ def make_graph(da,ta, path, colour='darkblue', axislabel='Chirp Sensor', line_la
 import numpy #as numpy
 def moving_average(interval, window_size):
     # create a numpy array full of ones the size of the averaging window
-    # then divide this by the window size
+    # then divide each value by the window size to get a decimal we can use
+    # as a weight when convolving
     window = numpy.ones(int(window_size)) / float(window_size)
-    print window
-    print ("--------------")
-    print numpy.ones(int(window_size))
+    # 
+    #
     return numpy.convolve(interval, window, 'same')
 
 #
@@ -256,7 +256,6 @@ elif make_multi == "logs":
         counter = counter + 1
         if counter >= 5:
             counter = 0
-        print colours[counter]
         line_label = str(log.split("/")[-1].split(".")[0])
         make_graph(log_date, log_moist_p, None, colours[counter], "mositure", line_label)
     counter = counter + 1
