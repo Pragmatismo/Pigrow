@@ -186,11 +186,11 @@ def make_graph(da,ta, path, colour='darkblue', axislabel='Chirp Sensor', line_la
     if not line_label == '':
         ax.plot(da, ta, color=colour, lw=2, label=line_label)
         ta_av = moving_average(ta, 10)
-        ax.plot(da, ta_av, "r")
+        ax.plot(da, ta_av, "black")
     else:
         ax.plot(da, ta, color=colour, lw=2)
         ta_av = moving_average(ta, 10)
-        ax.plot(da, ta_av, "yellow")
+        ax.plot(da, ta_av, "black")
     #ta = np.array(ta)
     #ax.fill_between(da, ta, 0,where=ta < dangerlow, alpha=0.6, color='darkblue')
     #ax.fill_between(da, ta, 0,where=ta > dangerlow, alpha=0.6, color='blue')
