@@ -84,6 +84,8 @@ for argu in sys.argv[1:]:
     elif argu == 'h' or argu == '-h' or argu == 'help' or argu == '--help':
         print("")
         print("  log=DIR/LOG_FILE  - point to a different log file than mentioned in dirlocs")
+        print("                      for multi use a comma to seperate the logs. no spaces")
+        print("                         log=log1.txt,log2.txt,/path/to/log/log3.txt")
         print("  out=DIR/NAME.png  - path to graph, can use ./ ")
         print("  make_multi=true   - Combine all into one image")
         print("  hours=NUM         - Hours of the logs graph, 168 for a week")
