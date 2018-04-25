@@ -1,6 +1,6 @@
 #!/usr/bin/python
 import datetime, sys, os
-import numpy as np
+# import numpy as np    #only needed for colouring 
 import matplotlib as mpl
 mpl.use('Agg')
 import matplotlib.pyplot as plt
@@ -12,14 +12,22 @@ try:
     script = 'chirp_graph.py'
     loc_locs = homedir + '/Pigrow/config/dirlocs.txt'
     loc_dic = pigrow_defs.load_locs(loc_locs)
+    # set graph paths
     graph_path = loc_dic['graph_path']
     graph_path = graph_path + "chirp_graph.png"
+    moist_graph_path = graph_path + "chirp_mositure_graph.png"
+    moist_percent_graph_path = graph_path + "chirp_soil_moisture_percentage_graph.png"
+    temp_graph_path = graph_path + "chirp_temp_graph.png"
+    light_graph_path = graph_path + "chirp_light_graph.png"
+    # set log location
     log_location = loc_dic['chirp_log']
+    # find
     loc_settings = loc_dic['loc_settings']
     set_dic = pigrow_defs.load_settings(loc_settings)
     toolow = int(set_dic['chirp_low'])
     toohigh = int(set_dic['chirp_high'])
-except:
+except Exception as e:
+    print(" Couldn't load setting from config file; " + str(e))
     graph_path = homedir + "/Pigrow/graphs/chirp_graph.png"
     moist_graph_path = homedir + "/Pigrow/graphs/chirp_mositure_graph.png"
     moist_percent_graph_path = homedir + "/Pigrow/graphs/chirp_soil_moisture_percentage_graph.png"
@@ -29,6 +37,10 @@ except:
     toolow = 30
     toohigh = 70
 
+make_light = "true"
+make_temp = "true"
+make_moist = "true"
+make_moist_p = "true"
 dangerlow = int(toolow) / 100 * 85
 dangerhigh = int(toohigh) / 100 * 115
 make_multi = False
@@ -41,31 +53,55 @@ for argu in sys.argv[1:]:
         if  thearg == 'log':
             log_location = theval
         elif thearg == 'make_multi' or thearg == 'multi':
-            make_multi = bool(theval)
+            make_multi = theval.lower()
         elif thearg == 'out':
             graph_path = theval
+            if "." in graph_path:
+                graph_base_path = theval.spit(".")[0]
+                file_type = theval.spit(".")[1]
+            else:
+                graph_base_path = graph_path
+                file_type = "png"
+            moist_graph_path = graph_base_path + "_mositure." + file_type
+            moist_percent_graph_path = graph_base_path + "_moisture_percentage." + file_type
+            temp_graph_path = homedir + graph_base_path + "_temp." + file_type
+            light_graph_path = homedir + graph_base_path + "_light." + file_type
         elif thearg == "hours":
             hours_to_show = int(theval)
         elif thearg == 'cold':
             toocold = int(theval)
         elif thearg == 'hot':
             toohot = int(theval)
+        elif thearg == 'make_light':
+            make_light = theval.lower()
+        elif thearg == 'make_temp':
+            make_temp = theval.lower()
+        elif thearg == 'make_moist':
+            make_moist = theval.lower()
+        elif thearg == 'make_moist_p':
+            make_moist_p = theval.lower()
+
     elif argu == 'h' or argu == '-h' or argu == 'help' or argu == '--help':
         print("")
         print("  log=DIR/LOG_FILE  - point to a different log file than mentioned in dirlocs")
-        print("  out=DIR/NAME.png  - folder to make graphs in, can use ./ ")
-        print("  make_multi=True   - Combine all into one image")
+        print("  out=DIR/NAME.png  - path to graph, can use ./ ")
+        print("  make_multi=true   - Combine all into one image")
         print("  hours=NUM         - Hours of the logs graph, 168 for a week")
         print("  cold=NUM          - set's the cold point at which graph colors change")
         print("  hot=NUM           - set's the hot point for graph")
+        print("  make_light=true   -  ")
         sys.exit()
     elif argu == '-flags':
         print("log=" + log_location)
         print("out=" + graph_path)
-        print("make_multi=[True,False]")
+        print("make_multi=[true,false]")
         print("hours=NUM")
         print("cold=NUM")
         print("hot=NUM")
+        print("make_light=[true,false]")
+        print("make_temp=[true,false]")
+        print("make_moist=[true,false]")
+        print("make_moist_p=[true,false]")
         sys.exit()
     else:
         print(" No idea what you mean by; " + str(argu))
@@ -134,11 +170,8 @@ def make_graph(da,ta, path, colour='darkblue', axislabel='Chirp Sensor'):
     ax = plt.subplot()
   #  ax.bar(da, ta, width=0.01, color='k', linewidth = 0)
     ax.plot(da, ta, color=colour, lw=3)
-    ave = 0
-    for x in ta:
-        ave = ave + x
-    av = ave / len(ta)
-    ta = np.array(ta)
+
+    #ta = np.array(ta)
     #ax.fill_between(da, ta, 0,where=ta < dangerlow, alpha=0.6, color='darkblue')
     #ax.fill_between(da, ta, 0,where=ta > dangerlow, alpha=0.6, color='blue')
     #ax.fill_between(da, ta, 0,where=ta > toolow, alpha=0.6, color='green')
@@ -155,7 +188,7 @@ def make_graph(da,ta, path, colour='darkblue', axislabel='Chirp Sensor'):
     if not path == None:
         plt.savefig(path)
         info  = "Graph of last " + str(hours_to_show)
-        info += " hours of soil moisture data created and saved to "
+        info += " hours of Chirp data created and saved to "
         info += path
         print(info)
     else:
@@ -164,22 +197,26 @@ def make_graph(da,ta, path, colour='darkblue', axislabel='Chirp Sensor'):
 add_log(log_location)
 
 print "----------------------------------"
-secago = thetime - log_date[-1]
-print "most recent Soil moisture - " + str(log_moist[-1])[0:4] + " - " + str(secago) + " seconds ago"
+sec_ago = thetime - log_date[-1]
+print "most recent Soil moisture - " + str(log_moist[-1])[0:4] + " - " + str(sec_ago) + " seconds ago"
 print "----------------------------------"
 
 #Hacky messy ugly way for now will do proper multigraph option soon
 
-if make_multi == True:
+if make_multi == "true":
     make_graph(log_date, log_moist, None, 'darkblue', 'Soil Moisture')
     make_graph(log_date, log_light, None, 'yellow', 'Light Numbers')
     make_graph(log_date, log_temp, graph_path, 'red', 'Temp in Centigrade')
 else:
-    make_graph(log_date, log_moist, moist_graph_path, 'darkblue', 'Soil Moisture')
     fig = plt.gcf()
-    fig.clf()
-    make_graph(log_date, log_moist_p, moist_percent_graph_path, 'darkgreen', 'Soil Moisture Percentage')
-    fig.clf()
-    make_graph(log_date, log_light, light_graph_path, 'yellow', 'Light Numbers')
-    fig.clf()
-    make_graph(log_date, log_temp, temp_graph_path, 'red', 'Temp in Centigrade')
+    if make_moist == "true":
+        make_graph(log_date, log_moist, moist_graph_path, 'darkblue', 'Soil Moisture')
+        fig.clf()
+    if make_moist_p == "true":
+        make_graph(log_date, log_moist_p, moist_percent_graph_path, 'darkgreen', 'Soil Moisture Percentage')
+        fig.clf()
+    if make_light == 'true':
+        make_graph(log_date, log_light, light_graph_path, 'yellow', 'Light Numbers')
+        fig.clf()
+    if make_temp == "true":
+        make_graph(log_date, log_temp, temp_graph_path, 'red', 'Temp in Centigrade')
