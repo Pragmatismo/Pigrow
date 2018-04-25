@@ -11,7 +11,7 @@ try:
     import pigrow_defs
     script = 'chirp_graph.py'
     loc_locs = homedir + '/Pigrow/config/dirlocs.txt'
-    loc_dic = pigrow_defs.load_locs(loc_locs)
+#    loc_dic = pigrow_defs.load_locs(loc_locs)
     # set graph paths
     graph_path = loc_dic['graph_path']
     graph_path = graph_path + "chirp_graph.png"
@@ -23,9 +23,9 @@ try:
     log_location = loc_dic['chirp_log']
     # find
     loc_settings = loc_dic['loc_settings']
-    set_dic = pigrow_defs.load_settings(loc_settings)
-    toolow = int(set_dic['chirp_low'])
-    toohigh = int(set_dic['chirp_high'])
+#    set_dic = pigrow_defs.load_settings(loc_settings)
+#    toolow = int(set_dic['chirp_low'])
+#    toohigh = int(set_dic['chirp_high'])
 except Exception as e:
     print(" Couldn't load setting from config file; " + str(e))
     graph_path = homedir + "/Pigrow/graphs/chirp_graph.png"
@@ -108,13 +108,13 @@ for argu in sys.argv[1:]:
 
 #This code is designed to work with a pigrow using a dht22 sensor, but use it for whatever you like,,,
 
+thetime = datetime.datetime.now()
+
 log_moist = []
 log_moist_p = []
 log_temp = []
 log_light = []
 log_date = []
-cut_list_date = []
-thetime = datetime.datetime.now()
 
 print "----------------------------------"
 print "-------Preparing To Graph---------"
@@ -122,6 +122,12 @@ print "---Chirp Soil Moisture Sensor-----"
 print "----------------------------------"
 
 def add_log(linktolog):
+    print("-----------------")
+    log_moist = []
+    log_moist_p = []
+    log_temp = []
+    log_light = []
+    log_date = []
     with open(linktolog, "r") as f:
         logitem = f.read()
         logitem = logitem.split("\n")
@@ -164,13 +170,21 @@ def add_log(linktolog):
     else:
         print("No data, no graph...")
         exit()
+    # text output
+    print "      ----------------------------------"
+    sec_ago = thetime - log_date[-1]
+    print "           most recent Soil moisture - " + str(log_moist[-1])[0:4] + " - " + str(sec_ago) + " seconds ago"
+    print "      ----------------------------------"
+    return log_moist, log_moist_p, log_temp, log_light, log_date
 
-def make_graph(da,ta, path, colour='darkblue', axislabel='Chirp Sensor'):
+def make_graph(da,ta, path, colour='darkblue', axislabel='Chirp Sensor', line_label=''):
     plt.figure(1)
     ax = plt.subplot()
   #  ax.bar(da, ta, width=0.01, color='k', linewidth = 0)
-    ax.plot(da, ta, color=colour, lw=3)
-
+    if not line_label == '':
+        ax.plot(da, ta, color=colour, lw=2, label=line_label)
+    else:
+        ax.plot(da, ta, color=colour, lw=2)
     #ta = np.array(ta)
     #ax.fill_between(da, ta, 0,where=ta < dangerlow, alpha=0.6, color='darkblue')
     #ax.fill_between(da, ta, 0,where=ta > dangerlow, alpha=0.6, color='blue')
@@ -180,11 +194,11 @@ def make_graph(da,ta, path, colour='darkblue', axislabel='Chirp Sensor'):
     ax.xaxis_date()
     plt.title("Time Perod; " + str(da[0].strftime("%b-%d %H:%M")) + " to " + str(da[-1].strftime("%b-%d %H:%M")) + " UTC")
     plt.ylabel(axislabel)
+    plt.legend()
+    #
     fig = plt.gcf()
-    fig.canvas.set_window_title('Chirp Soil Humidity Temp and Light Level Sensor')
-    maxh = ta
     fig.autofmt_xdate()
-    #plt.show()
+    # saving
     if not path == None:
         plt.savefig(path)
         info  = "Graph of last " + str(hours_to_show)
@@ -194,21 +208,52 @@ def make_graph(da,ta, path, colour='darkblue', axislabel='Chirp Sensor'):
     else:
         print("Made but not saved..")
 
-add_log(log_location)
+#
+#
+#  Doing things bit of the script
+#
+#
 
-print "----------------------------------"
-sec_ago = thetime - log_date[-1]
-print "most recent Soil moisture - " + str(log_moist[-1])[0:4] + " - " + str(sec_ago) + " seconds ago"
-print "----------------------------------"
-
-#Hacky messy ugly way for now will do proper multigraph option soon
-
+if "," in log_location:
+    log_list = log_location.split(",")
+    make_multi = "logs"
+#
+# sticking all the data on the same graphs
+#   ugly because of different scales
+#   Hacky messy ugly way for now will do proper multigraph option soon
+#
 if make_multi == "true":
     make_graph(log_date, log_moist, None, 'darkblue', 'Soil Moisture')
     make_graph(log_date, log_light, None, 'yellow', 'Light Numbers')
     make_graph(log_date, log_temp, graph_path, 'red', 'Temp in Centigrade')
+#
+#  Multi logs in the same graph
+# MOISTURE ONLY AT THE MO
+#
+elif make_multi == "logs":
+    counter = -1
+    colours = ['darkblue', 'green', 'red', 'yellow', 'black', 'orange']
+    for log in log_list[:-1]:
+        print("adding log; " + str(log))
+        log_moist, log_moist_p, log_temp, log_light, log_date = add_log(log)
+        counter = counter + 1
+        if counter >= 5:
+            counter = 0
+        print colours[counter]
+        line_label = str(log.split("/")[-1].split(".")[0])
+        make_graph(log_date, log_moist_p, None, colours[counter], "mositure", line_label)
+    counter = counter + 1
+    if counter >= 5:
+        counter = 0
+    line_label = str(log_list[-1].split("/")[-1].split(".")[0])
+    log_moist, log_moist_p, log_temp, log_light, log_date = add_log(log_list[-1])
+    make_graph(log_date, log_moist_p, moist_graph_path, colours[counter], "moisture", line_label)
 else:
-    fig = plt.gcf()
+    #
+    # single log making a differnt graph for each data
+    #
+    log_moist, log_moist_p, log_temp, log_light, log_date = add_log(log_location)
+    #fig = plt.gcf()
     if make_moist == "true":
         make_graph(log_date, log_moist, moist_graph_path, 'darkblue', 'Soil Moisture')
         fig.clf()
