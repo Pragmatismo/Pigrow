@@ -3434,8 +3434,10 @@ class file_download_dialog(wx.Dialog):
         ## Downloading files from the pi
         # connecting the sftp pipe
         port = 22
-        ssh_tran = paramiko.Transport((pi_link_pnl.target_ip, port))
-        print(("  - connecting transport pipe... " + pi_link_pnl.target_ip + " port:" + str(port)))
+        ssh_tran = paramiko.Transport(pi_link_pnl.target_ip, port)
+
+        print(("#sb#  - connecting transport pipe... " + pi_link_pnl.target_ip + " port:" + str(port)))
+        MainApp.status.write_bar("connecting transport pipe... " + pi_link_pnl.target_ip + " port:" + str(port))
         ssh_tran.connect(username=pi_link_pnl.target_user, password=pi_link_pnl.target_pass)
         self.sftp = paramiko.SFTPClient.from_transport(ssh_tran)
         # creating a list of files to be download from the pigrow
@@ -3455,7 +3457,6 @@ class file_download_dialog(wx.Dialog):
             if self.cb_logs.GetValue() == True:
                 #local_logs = localfiles_info_pnl.local_path + "logs/"
                 local_logs = os.path.join(localfiles_info_pnl.local_path, "logs")
-                print (local_logs)
                 if not os.path.isdir(local_logs):
                     os.makedirs(local_logs)
                 target_logs_files = "/home/" + str(pi_link_pnl.target_user) + "/Pigrow/logs/"
@@ -3463,7 +3464,6 @@ class file_download_dialog(wx.Dialog):
                 for item in remote_logs:
                     local_log_item = os.path.join(local_logs, item)
                     files_to_download.append([target_logs_files + item, local_log_item])
-                print (files_to_download)
             # list caps files for download
             if self.cb_pics.GetValue() == True:
                 caps_folder = localfiles_info_pnl.caps_folder
@@ -3471,9 +3471,6 @@ class file_download_dialog(wx.Dialog):
                 local_pics = os.path.join(localfiles_info_pnl.local_path, caps_folder)
                 if not os.path.isdir(local_pics):
                     os.makedirs(local_pics)
-                print("~~~~~~~~~~~~~~~~")
-                print(local_pics)
-                print("~~~~~~~~~~~~~~~~")
                 #get list of pics we already have
                 listofcaps_local = os.listdir(local_pics)
                 #get list of remote images
@@ -3532,7 +3529,7 @@ class file_download_dialog(wx.Dialog):
             #
             print("downloading entire pigrow folder")
         # Work though the list of files to download
-        print(("downloading; " + str(len(files_to_download))))
+        print("downloading; " + str(len(files_to_download)))
         for remote_file in files_to_download:
             #grabs all files in the list and overwrites them if they already exist locally.
             self.current_file_txt.SetLabel("from; " + remote_file[0])
@@ -3541,12 +3538,13 @@ class file_download_dialog(wx.Dialog):
             try:
                 self.sftp.get(remote_file[0], remote_file[1])
             except:
-                print((" - couldn't download " + remote_file[0] + " probably a folder or something."))
+                print(" - couldn't download " + remote_file[0] + " probably a folder or something.")
         self.current_file_txt.SetLabel("Done")
         self.current_dest_txt.SetLabel("Downloaded " + str(len(files_to_download)) + " files")
         #disconnect the sftp pipe
         self.sftp.close()
         ssh_tran.close()
+        MainApp.status.write_bar("closed transport pipe")
 
     def sort_folder_for_folders(self, target_folder):
         folders = []
@@ -3910,6 +3908,525 @@ class graphing_ctrl_pnl(wx.Panel):
         #graphing_script = self.select_script_cb.GetValue()
         #print graphing_script
 
+#
+#
+#
+## Camera Config Tab
+#
+#
+#
+
+class camconf_info_pnl(wx.Panel):
+    #
+    #
+    def __init__( self, parent ):
+        win_height = gui_set.height_of_window
+        win_width = gui_set.width_of_window
+        w_space_left = win_width - 285
+        wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, pos = (285, 0), size = wx.Size(w_space_left , 800), style = wx.TAB_TRAVERSAL )
+        ## Draw UI elements
+        # placing the information boxes
+        self.camconf_txt = wx.StaticText(self,  label='Camera Config Panel', pos=(5, 5), size=(200,30))
+        place_holder = wx.Bitmap(500, 500)
+        self.camconf_img_box = wx.StaticBitmap(self, -1, place_holder, (10, 45), (500, 500))
+
+
+class camconf_ctrl_pnl(wx.Panel):
+    def __init__( self, parent ):
+        win_height = gui_set.height_of_window
+        height_of_pannels_above = 230
+        space_left = win_height - height_of_pannels_above
+        wx.Panel.__init__ (self, parent, id=wx.ID_ANY, pos=(0, height_of_pannels_above), size=wx.Size(285, space_left), style=wx.TAB_TRAVERSAL)
+        self.SetBackgroundColour('sea green') #TESTING ONLY REMOVE WHEN SIZING IS DONE AND ALL THAT BUSINESS
+        # Start drawing the UI elements
+        #camera options
+        wx.StaticText(self,  label='Camera selection;', pos=(15, 10))
+        cam_opts = [""]
+        self.cam_cb = wx.ComboBox(self, choices = cam_opts, pos=(10,30), size=(265, 30))
+        self.cam_cb.Bind(wx.EVT_COMBOBOX, self.cam_combo_go)
+
+        #
+        # UI for WEBCAM
+        #
+        wx.StaticText(self,  label='Capture tool;', pos=(15, 70))
+        webcam_opts = ['uvccapture', 'fswebcam']
+        self.webcam_cb = wx.ComboBox(self, choices = webcam_opts, pos=(10,90), size=(265, 30))
+        self.webcam_cb.Bind(wx.EVT_COMBOBOX, self.webcam_combo_go)
+        # basic settings
+        wx.StaticText(self,  label='Brightness;', pos=(10, 120))
+        self.tb_b = wx.TextCtrl(self, pos=(120, 120), size=(75, 25))
+        wx.StaticText(self,  label='Contrast;', pos=(10, 150))
+        self.tb_c = wx.TextCtrl(self, pos=(120, 150), size=(75, 25))
+        wx.StaticText(self,  label='Saturation;', pos=(10, 180))
+        self.tb_s = wx.TextCtrl(self, pos=(120, 180), size=(75, 25))
+        wx.StaticText(self,  label='Gain;', pos=(10, 210))
+        self.tb_g = wx.TextCtrl(self, pos=(120, 210), size=(75, 25))
+        wx.StaticText(self,  label='X;', pos=(10, 240))
+        self.tb_x = wx.TextCtrl(self, pos=(120, 240), size=(75, 25))
+        wx.StaticText(self,  label='Y;', pos=(10, 270))
+        self.tb_y = wx.TextCtrl(self, pos=(120, 270), size=(75, 25))
+        #
+        ## fswebcam only controlls
+        self.fs_label = wx.StaticText(self,  label='fswebcam only settings', pos=(10, 335))
+        self.list_fs_ctrls_btn = wx.Button(self, label='Show webcam controlls', pos=(25, 360))
+        self.list_fs_ctrls_btn.Bind(wx.EVT_BUTTON, self.list_fs_ctrls_click)
+
+        self.setting_string_label = wx.StaticText(self,  label='set;', pos=(10, 395))
+        self.setting_string_tb = wx.TextCtrl(self, pos=(50, 395), size=(200, 25))
+        self.setting_value_label = wx.StaticText(self,  label='value;', pos=(10, 425))
+        self.setting_value_tb = wx.TextCtrl(self, pos=(60, 425), size=(100, 25))
+        self.add_to_cmd_btn = wx.Button(self, label='Add to cmd string', pos=(5, 450))
+        self.add_to_cmd_btn.Bind(wx.EVT_BUTTON, self.add_to_cmd_click)
+        self.cmds_string_tb = wx.TextCtrl(self, pos=(10, 490), size=(260, 60), style=wx.TE_MULTILINE)
+        # hide all fswebcam only controlls until option selected in combobox
+        self.fs_label.Hide()
+        self.list_fs_ctrls_btn.Hide()
+        self.list_fs_ctrls_btn.Hide()
+        self.setting_string_label.Hide()
+        self.setting_string_tb.Hide()
+        self.setting_value_label.Hide()
+        self.setting_value_tb.Hide()
+        self.add_to_cmd_btn.Hide()
+        self.cmds_string_tb.Hide()
+
+        #
+        self.take_unset_btn = wx.Button(self, label='Take cam default', pos=(15, 295), size=(175, 30))
+        self.take_unset_btn.Bind(wx.EVT_BUTTON, self.take_unset_click)
+
+        self.list_cams_btn = wx.Button(self, label='list cams', pos=(0, 15), size=(15, 30))
+        self.list_cams_btn.Bind(wx.EVT_BUTTON, self.list_cams_click)
+        #
+        # UI for Picam
+        #
+    def list_cams_click(self, e):
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("ls /dev/video*")
+        print (out)
+        print("::::::::::::::::::::::;")
+        cam_list = out.strip().split("\n")
+        self.cam_cb.Clear()
+        for cam in cam_list:
+            self.cam_cb.Append(cam)
+
+    def add_to_cmd_click(self, e):
+        test_str = self.setting_string_tb.GetValue()
+        test_val = self.setting_value_tb.GetValue()
+        cmd_str = self.cmds_string_tb.GetValue()
+        cmd_str += ' --set "' + str(test_str) + '"=' + str(test_val)
+        self.cmds_string_tb.SetValue(cmd_str)
+        self.setting_string_tb.SetValue('')
+        self.setting_value_tb.SetValue('')
+
+
+    def take_unset_click(self, e):
+        info, remote_img_path = self.take_unset_test_image()
+        MainApp.camconf_info_pannel.camconf_txt.SetLabel(info)
+        img_path = localfiles_ctrl_pnl.download_file_to_folder(MainApp.localfiles_ctrl_pannel, remote_img_path, "/temp/test_defaults.jpg")
+        display_img = wx.Image(img_path, wx.BITMAP_TYPE_ANY).ConvertToBitmap()
+        MainApp.camconf_info_pannel.camconf_img_box.SetBitmap(display_img)
+    def take_unset_test_image(self, x_dim=800, y_dim=600, additonal_commands='',
+                              cam_capture_choice='uvccapture',
+                              output_file=None):
+        MainApp.status.write_bar("Using camera deafults to take image...")
+        if output_file == None:
+            output_file = '/home/' + pi_link_pnl.target_user + '/Pigrow/temp/test_defaults.jpg'
+        cam_capture_choice = self.webcam_cb.GetValue()
+        if cam_capture_choice == "uvccapture":
+            cam_cmd = "uvccapture " + additonal_commands   #additional commands (camera select)
+            cam_cmd += " -x"+str(x_dim)+" -y"+str(y_dim) + " "  #x and y dimensions of photo
+            cam_cmd += "-v -t0 -o" + output_file                #verbose, no delay, output
+        elif cam_capture_choice == "fswebcam":
+            cam_cmd  = "fswebcam -r " + str(x_dim) + "x" + str(y_dim)
+            cam_cmd += " -D 2"      #the delay in seconds before taking photo
+            cam_cmd += " -S 5"      #number of frames to skip before taking image
+            cam_cmd += " --jpeg 90" #jpeg quality
+            cam_cmd += " " + output_file  #output filename'
+        else:
+            print("not yet implimented please select uv or fs webcam as you option")
+
+        print("---Doing: " + cam_cmd)
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi(cam_cmd)
+        MainApp.status.write_bar("Camera output; " + out)
+        return out, output_file
+
+    def list_fs_ctrls_click(self, e):
+        print("this is supposed to fswebcam -d v4l2:/dev/video0 --list-controls on the pi")
+        cam_choice = self.webcam_cb.GetValue()
+        cam_cmd = "fswebcam -d v4l2:" + cam_choice + " --list-controls"
+        MainApp.status.write_bar("---Doing: " + cam_cmd)
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi(cam_cmd)
+
+        print ("Camera output; " + cam_output)
+        if not cam_output == None:
+            msg_text = 'Camera located and interorgated; copy-paste a controll name from the following into the settings text box \n \n'
+            msg_text += str(cam_output)
+            wx.MessageBox(msg_text, 'Info', wx.OK | wx.ICON_INFORMATION)
+
+    def cam_combo_go(self, e):
+        print(self.cam_cb.GetValue())
+        if self.cam_cb.GetValue() == "Picam":
+            self.webcam_cb.Hide()
+            print("Picam")
+        else:
+            self.webcam_cb.Show()
+
+    def webcam_combo_go(self, e):
+        if self.webcam_cb.GetValue() == 'fswebcam':
+            self.fs_label.Show()
+            self.list_fs_ctrls_btn.Show()
+            self.list_fs_ctrls_btn.Show()
+            self.setting_string_label.Show()
+            self.setting_string_tb.Show()
+            self.setting_value_label.Show()
+            self.setting_value_tb.Show()
+            self.add_to_cmd_btn.Show()
+            self.cmds_string_tb.Show()
+        else:
+            self.fs_label.Hide()
+            self.list_fs_ctrls_btn.Hide()
+            self.list_fs_ctrls_btn.Hide()
+            self.setting_string_label.Hide()
+            self.setting_string_tb.Hide()
+            self.setting_value_label.Hide()
+            self.setting_value_tb.Hide()
+            self.add_to_cmd_btn.Hide()
+            self.cmds_string_tb.Hide()
+
+#
+#
+#
+##  Additional Sensor Tab
+#
+#
+#
+
+class sensors_info_pnl(wx.Panel):
+    """
+    This deals with sensors that are listed in to Pigrows config file,
+        the format it expects is;
+             sensor_chirp01_type=chirp
+             sensor_chirp01_log=/home/pi/Pigrow/logs/chirp01.txt
+             sensor_chirp01_loc=i2c:0x31
+             sensor_chirp01_extra=min:100,max:1000,etc:,etc:etc,etc
+    """
+    #
+    #
+    def __init__( self, parent ):
+        win_height = gui_set.height_of_window
+        win_width = gui_set.width_of_window
+        w_space_left = win_width - 285
+        wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, pos = (285, 0), size = wx.Size(w_space_left , 800), style = wx.TAB_TRAVERSAL )
+        ## Draw UI elements
+        # placing the information boxes
+        self.camconf_txt = wx.StaticText(self,  label='Additional Sensors Config and Set-up', pos=(5, 5), size=(500,30))
+        self.sensor_list = self.sensor_table(self, 1, pos=(5, 50), size=(750, 300))
+        self.sensor_list.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.sensor_table.double_click)
+
+    class sensor_table(wx.ListCtrl):
+        def __init__(self, parent, id, pos, size):
+            wx.ListCtrl.__init__(self, parent, id, size=size, style=wx.LC_REPORT, pos=pos)
+            self.InsertColumn(0, 'Sensor')
+            self.InsertColumn(1, 'Type')
+            self.InsertColumn(2, 'Log')
+            self.InsertColumn(3, 'Location')
+            self.InsertColumn(4, 'Extra')
+            self.SetColumnWidth(0, 200)
+            self.SetColumnWidth(1, 150)
+            self.SetColumnWidth(2, 150)
+            self.SetColumnWidth(3, 75)
+            self.SetColumnWidth(4, 125)
+
+        def populate_sensor_table(self, e):
+            """
+            This looks in the config dictionary and lists all sensors mentioned
+            the format it expects is these lines;
+                 sensor_chirp01_type=chirp
+                 sensor_chirp01_log=/home/pi/Pigrow/logs/chirp01.txt
+                 sensor_chirp01_loc=i2c:0x31
+                 sensor_chirp01_extra=min:100,max:1000,etc:,etc:etc,etc
+            It get's put into a table like so;
+                 name = chirp01
+                 type = chirp
+                 log = /home/pi/Pigrow/logs/chirp01.txt
+                 loc = i2c:0x31
+                 extra = min:100,max:1000,etc:,etc:etc,etc
+
+            """
+            MainApp.sensors_info_pannel.sensor_list.DeleteAllItems()
+            MainApp.sensors_info_pannel.sensor_list.add_to_sensor_list('name', 'chirp', 'log_path', 'i2c:0x10')
+            try:
+                #print(MainApp.config_ctrl_pannel.config_dict)
+                for key, value in list(MainApp.config_ctrl_pannel.config_dict.items()):
+                    if "sensor" in key:
+                        if "type" in key:
+                            name = key.split("_")[1]
+                            config_list_sensors.append(name)
+
+                # use list of sensors to find sensor info
+                for listed_sensor in config_list_sensors:
+                    # sensor type
+                    if "sensor_" + listed_sensor + "_type" in MainApp.config_ctrl_pannel.config_dict:
+                        type = MainApp.config_ctrl_pannel.config_dict[listed_sensor + "_type"]
+                    else:
+                        type = 'unknown'
+                    # sensor logging path
+                    if "sensor_" + listed_sensor + "_log" in MainApp.config_ctrl_pannel.config_dict:
+                        log_path = MainApp.config_ctrl_pannel.config_dict[listed_sensor + "_log"]
+                    else:
+                        log_path = 'unknown'
+                    # sensor location (i.e. gpio, i2c, etc : pin number, address, etc)
+                    if "sensor_" + listed_sensor + "_loc" in MainApp.config_ctrl_pannel.config_dict:
+                        loc = MainApp.config_ctrl_pannel.config_dict[listed_sensor + "_loc"]
+                    else:
+                        loc = 'unknown'
+                    # extra information
+                    if "sensor_" + listed_sensor + "_extra" in MainApp.config_ctrl_pannel.config_dict:
+                        loc = MainApp.config_ctrl_pannel.config_dict[listed_sensor + "_loc"]
+                    else:
+                        loc = ''
+                    # add to tables
+                    MainApp.sensors_info_pannel.sensor_list.add_to_sensor_list(listed_sensor, type, log_path, loc, extra)
+
+            except:
+                print("No config dict")
+
+        def add_to_sensor_list(self, sensor, type, log, loc, extra=''):
+            #MainApp.sensors_info_pannel.sensor_list.add_to_sensor_list(sensor,type,log,loc,extra)
+            self.InsertItem(0, str(sensor))
+            self.SetItem(0, 1, str(type))
+            self.SetItem(0, 2, str(log))
+            self.SetItem(0, 3, str(loc))
+            self.SetItem(0, 4, str(extra))
+
+        def double_click(e):
+            index =  e.GetIndex()
+            #get info for dialogue box
+            name = MainApp.sensors_info_pannel.sensor_list.GetItem(index, 0).GetText()
+            type = MainApp.sensors_info_pannel.sensor_list.GetItem(index, 1).GetText()
+            log = MainApp.sensors_info_pannel.sensor_list.GetItem(index, 2).GetText()
+            loc = MainApp.sensors_info_pannel.sensor_list.GetItem(index, 3).GetText()
+            extra = MainApp.sensors_info_pannel.sensor_list.GetItem(index, 4).GetText()
+            print(" Selected item - " + name + " - " + type + " - " + loc)
+            if type == 'chirp':
+                MainApp.sensors_info_pannel.sensor_list.s_name = name
+                MainApp.sensors_info_pannel.sensor_list.s_log = log
+                MainApp.sensors_info_pannel.sensor_list.s_loc = loc
+                MainApp.sensors_info_pannel.sensor_list.s_extra = extra
+                edit_chirp_dbox = chirp_dialog(None)
+                edit_chirp_dbox.ShowModal()
+
+
+
+
+
+class sensors_ctrl_pnl(wx.Panel):
+    def __init__( self, parent ):
+        win_height = gui_set.height_of_window
+        height_of_pannels_above = 230
+        space_left = win_height - height_of_pannels_above
+        wx.Panel.__init__ (self, parent, id=wx.ID_ANY, pos=(0, height_of_pannels_above), size=wx.Size(285, space_left), style=wx.TAB_TRAVERSAL)
+        self.SetBackgroundColour('sea green') #TESTING ONLY REMOVE WHEN SIZING IS DONE AND ALL THAT BUSINESS
+        # Start drawing the UI elements
+        #camera options
+        wx.StaticText(self,  label='Sensor Type;', pos=(15, 10))
+    #    sensor_opts = ["Soil Moisture"]
+    #    self.sensor_cb = wx.ComboBox(self, choices = sensor_opts, pos=(10,30), size=(265, 30))
+    #    self.sensor_cb.Bind(wx.EVT_COMBOBOX, self.sensor_combo_go)
+        #
+        # THE FOLLOWING IS PROBABLY SHITE
+        #
+        # Soil Moisture Controlls
+        #
+    #    soil_sensor_opts = ["Soil Moisture"]
+    #    self.soil_sensor_cb = wx.ComboBox(self, choices = soil_sensor_opts, pos=(10,130), size=(265, 30))
+    #    self.soil_sensor_cb.Bind(wx.EVT_COMBOBOX, self.soil_sensor_combo_go)
+        #
+        #    --  Chirp options
+        #
+        self.config_chirp_btn = wx.Button(self, label='add new chirp', pos=(15, 170), size=(175, 30))
+        self.config_chirp_btn.Bind(wx.EVT_BUTTON, self.add_new_chirp_click)
+
+    def add_new_chirp_click(self, e):
+        print("adding a new chirp sensor")
+        # set black variables
+        MainApp.sensors_info_pannel.sensor_list.s_name = ""
+        log_path = ""
+        if 'log_path' in MainApp.config_ctrl_pannel.dirlocs_dict:
+            log_path = MainApp.config_ctrl_pannel.dirlocs_dict["log_path"]
+        MainApp.sensors_info_pannel.sensor_list.s_log = log_path
+        MainApp.sensors_info_pannel.sensor_list.s_loc = ":"
+        MainApp.sensors_info_pannel.sensor_list.s_extra = "min:,max:"
+        # call the chirp config dialog box
+        add_chirp_dbox = chirp_dialog(None, title='Chirp Sensor Config')
+        add_chirp_dbox.ShowModal()
+
+    def sensor_combo_go(self, e):
+        # hide all controls
+        self.soil_sensor_cb.Hide()
+        # show selected controls
+        if self.sensor_cb.GetValue() == "Soil Moisture":
+            self.soil_sensor_cb.Hide()
+
+    def soil_sensor_combo_go(self, e):
+        if self.soil_sensor_cb.GetValue() == "chirp":
+            print("Selected Chirp")
+
+class chirp_dialog(wx.Dialog):
+    """
+    This initializes and reads data from these locations;
+          s_name  = MainApp.sensors_info_pannel.sensor_list.s_name
+          s_log   = MainApp.sensors_info_pannel.sensor_list.s_log
+          s_loc   = MainApp.sensors_info_pannel.sensor_list.s_loc
+          s_extra = MainApp.sensors_info_pannel.sensor_list.s_extra
+     The final info will be stored as so in the config file;
+         pigrow_config.txt
+            sensor_chirp01_type=chirp
+            sensor_chirp01_log=/home/pi/Pigrow/logs/chirp01.txt
+            sensor_chirp01_loc=i2c:0x31
+            sensor_chirp01_extra=min:100,max:1000,etc:,etc:etc,etc
+     The gui uses it in the sensor table on the sensors tab;
+         sensor_table
+            0   name = chirp01
+            1   type = chirp
+            2   log = /home/pi/Pigrow/logs/chirp01.txt
+            3   loc = i2c:0x31
+            4   extra = min:100,max:1000,etc:,etc:etc,etc # split with "," to make lists
+                                                       # then settings are split with ":"
+        """
+    def __init__(self, *args, **kw):
+        super(chirp_dialog, self).__init__(*args, **kw)
+        self.InitUI()
+        self.SetSize((700, 400))
+        self.SetTitle("Chirp Sensor Setup")
+        self.Bind(wx.EVT_CLOSE, self.OnClose)
+
+    def InitUI(self):
+        self.s_name  = MainApp.sensors_info_pannel.sensor_list.s_name
+        self.s_log   = MainApp.sensors_info_pannel.sensor_list.s_log
+        self.s_loc   = MainApp.sensors_info_pannel.sensor_list.s_loc
+        self.s_extra = MainApp.sensors_info_pannel.sensor_list.s_extra
+        # Split s_extra into a list called extras
+        if "," in self.s_extra:
+            extras = self.s_extra.split(",")
+        else:
+            extras = [self.s_extra]
+        # Sort list of extras for important information
+        s_min = ""
+        s_max = ""
+        extra_extra = ""
+        print (extras)
+        for item in extras:
+            if "min:" in item:
+                print("found min")
+                s_min = item.split(":")[1]
+            elif "max:" in item:
+                print("found max")
+                s_max = item.split(":")[1]
+            else:
+                if not item == "":
+                    extra_extra += item + ","
+        if len(extra_extra) > 0:
+            if extra_extra[-1] == ",":
+                extra_extra = extra_extra[:-1]
+        print (extra_extra)
+        # split wiring location into wiring type and number
+        #                                from e.g. i2c:0x10
+        s_loc_a = ""
+        s_loc_b = ""
+        if ":" in self.s_loc:
+            s_loc_a = self.s_loc.split(":")[0]
+            s_loc_b = self.s_loc.split(":")[1]
+        elif not self.s_loc == "":
+            print(" Can't Split the Wiring Location of the Chirp Sensor into pieces ")
+            print("     -- " + str(s_loc) + " --")
+
+        #draw the pannel
+        pnl = wx.Panel(self)
+        wx.StaticText(self,  label='Chirp Soil Moisture Sensor', pos=(25, 10))
+        wx.StaticText(self,  label='Unique Name', pos=(2, 50))
+        wx.StaticText(self,  label='Log Location', pos=(2, 80))
+        self.name_tc = wx.TextCtrl(self,  pos=(100, 50), size=(400,30))
+        self.log_tc = wx.TextCtrl(self,  pos=(100, 80), size=(400,30))
+        # wiring location / address
+        wx.StaticText(self,  label='Wired Into', pos=(2, 110))
+        wiring_choices = ['i2c', 'others not yet supprted']
+        self.wire_type_combo = wx.ComboBox(self, choices = wiring_choices, pos=(100,110), size=(80, 25))
+        self.wire_loc_tc = wx.TextCtrl(self,  pos=(200, 110), size=(150,30))
+        wx.StaticText(self,  label='e.g. 0x20', pos=(360, 115))
+        # min, max
+        wx.StaticText(self,  label='Calibration Levels', pos=(2, 145))
+        wx.StaticText(self,  label='Min', pos=(145, 145))
+        self.min_tc = wx.TextCtrl(self,  pos=(180, 140), size=(100,30))
+        wx.StaticText(self,  label='Max', pos=(295, 145))
+        self.max_tc = wx.TextCtrl(self,  pos=(330, 140), size=(100,30))
+        # extra
+        wx.StaticText(self,  label='Extra Info', pos=(2, 170))
+        self.extra_tc = wx.TextCtrl(self,  pos=(100, 170), size=(400,30))
+        #
+        self.name_tc.SetValue(self.s_name)
+        self.log_tc.SetValue(self.s_log)
+        self.wire_type_combo.SetValue(s_loc_a)
+        self.wire_loc_tc.SetValue(s_loc_b)
+        self.min_tc.SetValue(s_min)
+        self.min_tc.SetValue(s_max)
+        self.extra_tc.SetValue(extra_extra)
+        # Buttons
+        self.ok_btn = wx.Button(self, label='Ok', pos=(15, 250), size=(175, 30))
+        self.ok_btn.Bind(wx.EVT_BUTTON, self.ok_click)
+
+    def ok_click(self, e):
+        o_name = self.name_tc.GetValue()
+        o_type = "chirp"
+        o_log = self.log_tc.GetValue()
+        o_loc = self.wire_type_combo.GetValue() + ":" + self.wire_loc_tc.GetValue()
+        o_min = self.min_tc.GetValue()
+        o_max = self.max_tc.GetValue()
+        min_max = "min:" + o_min + ",max:" + o_max + ","
+        o_extra = min_max + self.extra_tc.GetValue()
+        if o_extra[-1] == ",":
+            o_extra = o_extra[:-1]
+        print("adding; ")
+        print(o_name)
+        print(o_type)
+        print(o_log)
+        print(o_loc)
+        print(o_extra)
+        print("______")
+        changed = "probably something"
+        if self.s_name == o_name:
+            print("name not changed")
+            if self.s_log == o_log:
+                print("log path not changed")
+                if self.s_loc == o_loc:
+                    print("wiring location not changed")
+                    if self.s_extra == o_extra:
+                        print("extra field not changed")
+                        print("--- no reason to update anything ---")
+                        changed = "nothing"
+                    else:
+                        print(self.s_extra, o_extra)
+        if changed == "nothing":
+            print("------- nothing changed -------")
+        else:
+            print("!-!-!-! THINGS CHANGED !-!-!-!")
+            MainApp.sensors_info_pannel.sensor_list.add_to_sensor_list(o_name,o_type,o_log,o_loc,o_extra)
+            print(" MOVE THE LINE ABOVE THIS TO THE CORRECT LOCATION")
+            print(" IT NEEDS TO GO AFTER THE DBOX HAS BEEN CALLED AND PULL THE INFO")
+            print(" SO IT CAN DECIDE IF IT NEEDS TO ADD NEW OR UPDATE THE LINE")
+            print("                    ##yawn##")
+            print("")
+
+
+
+
+
+
+    def OnClose(self, e):
+        MainApp.sensors_info_pannel.sensor_list.s_name = ""
+        MainApp.sensors_info_pannel.sensor_list.s_log = ""
+        MainApp.sensors_info_pannel.sensor_list.s_loc = ""
+        MainApp.sensors_info_pannel.sensor_list.s_extra = ""
+        self.Destroy()
+
 
 #
 #
@@ -3971,25 +4488,31 @@ class pi_link_pnl(wx.Panel):
                 print(("Trying to connect to " + host))
                 try:
                     ssh.connect(host, username=pi_link_pnl.target_user, password=pi_link_pnl.target_pass, timeout=3)
-                    print(("Connected to " + host))
+                    MainApp.status.write_bar("Connected to " + host)
+                    print(("#sb# Connected to " + host))
                     log_on_test = True
                     box_name = self.get_box_name()
-                    print(("Pigrow Found; " + str(box_name)))
+                    MainApp.status.write_bar("Pigrow Found; " + str(box_name))
+                    print("#sb# Pigrow Found; " + str(box_name))
                     self.set_link_pi_text(log_on_test, box_name)
                     return box_name #this just exits the loop
                 except paramiko.AuthenticationException:
-                    print(("Authentication failed when connecting to " + str(host)))
+                    MainApp.status.write_bar("Authentication failed when connecting to " + str(host))
+                    print(("#sb# Authentication failed when connecting to " + str(host)))
                 except Exception as e:
-                    print(("Could not SSH to " + host + " because:" + str(e)))
+                    MainApp.status.write_bar("Could not SSH to " + host + " because:" + str(e))
+                    print(("#sb# Could not SSH to " + host + " because:" + str(e)))
                     seek_attempt += 1
                 # check if final attempt and if so stop trying
                 if seek_attempt == number_of_tries_per_host + 1:
-                    print(("Could not connect to " + host + " Giving up"))
+                    MainApp.status.write_bar("Could not connect to " + host + " Giving up")
+                    print(("#sb# Could not connect to " + host + " Giving up"))
                     break #end while loop and look at next host
 
     def link_with_pi_btn_click(self, e):
         log_on_test = False
         if self.link_with_pi_btn.GetLabel() == 'Disconnect':
+            MainApp.status.write_bar("breaking ssh connection")
             print("breaking ssh connection")
             ssh.close()
             self.link_with_pi_btn.SetLabel('Link to Pi')
@@ -4007,10 +4530,12 @@ class pi_link_pnl(wx.Panel):
             pi_link_pnl.target_pass = self.tb_pass.GetValue()
             try:
                 ssh.connect(pi_link_pnl.target_ip, username=pi_link_pnl.target_user, password=pi_link_pnl.target_pass, timeout=3)
-                print(("Connected to " + pi_link_pnl.target_ip))
+                MainApp.status.write_bar("Connected to " + pi_link_pnl.target_ip)
+                print("#sb# Connected to " + pi_link_pnl.target_ip)
                 log_on_test = True
             except Exception as e:
-                print(("Failed to log on due to; " + str(e)))
+                MainApp.status.write_bar("Failed to log on due to; " + str(e))
+                print(("#sb# Failed to log on due to; " + str(e)))
             if log_on_test == True:
                 box_name = self.get_box_name()
             else:
@@ -4121,9 +4646,11 @@ class pi_link_pnl(wx.Panel):
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("cat /home/" + pi_link_pnl.target_user + "/Pigrow/config/pigrow_config.txt | grep box_name")
         if "=" in out:
             boxname = out.strip().split("=")[1]
-            print("Pigrow Found; " + boxname)
+            MainApp.status.write_bar("Pigrow Found; " + boxname)
+            print("#sb# Pigrow Found; " + boxname)
         else:
-            print("Can't read Pigrow's name ")
+            MainApp.status.write_bar("Can't read Pigrow name, probably not installed")
+            print("#sb# Can't read Pigrow's name ")
         if boxname == '':
             boxname = None
         return boxname
@@ -4136,9 +4663,9 @@ class view_pnl(wx.Panel):
     def __init__( self, parent ):
         wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, pos = (0, 190), size = wx.Size( 285,35 ), style = wx.TAB_TRAVERSAL )
         self.SetBackgroundColour((230,200,170)) #TESTING ONLY REMOVE WHEN SIZING IS DONE AND ALL THAT BUSINESS
-        view_opts = ['System Config', 'Pigrow Setup', 'Camera Config', 'Cron Timing', 'multi-script', 'Local Files', 'Timelapse', 'Graphs', 'Live View', 'pieye watcher']
+        #view_opts = ['System Config', 'Pigrow Setup', 'Camera Config', 'Cron Timing', 'multi-script', 'Local Files', 'Timelapse', 'Graphs', 'Live View', 'pieye watcher']
         #Showing only completed tabs
-        view_opts = ['System Config', 'Pigrow Setup', 'Cron Timing', 'Local Files', 'Graphs']
+        view_opts = ['System Config', 'Pigrow Setup', 'Camera Config', 'Cron Timing', 'Local Files', 'Graphs', 'Sensors']
         self.view_cb = wx.ComboBox(self, choices = view_opts, pos=(10,2), size=(265, 30))
         self.view_cb.Bind(wx.EVT_COMBOBOX, self.view_combo_go)
     def view_combo_go(self, e):
@@ -4155,6 +4682,10 @@ class view_pnl(wx.Panel):
         MainApp.welcome_pannel.Hide()
         MainApp.graphing_ctrl_pannel.Hide()
         MainApp.graphing_info_pannel.Hide()
+        MainApp.camconf_ctrl_pannel.Hide()
+        MainApp.camconf_info_pannel.Hide()
+        MainApp.sensors_info_pannel.Hide()
+        MainApp.sensors_ctrl_pannel.Hide()
         #show whichever pannels correlate to the option selected
         if display == 'System Config':
             MainApp.system_ctrl_pannel.Show()
@@ -4163,7 +4694,8 @@ class view_pnl(wx.Panel):
             MainApp.config_ctrl_pannel.Show()
             MainApp.config_info_pannel.Show()
         elif display == 'Camera Config':
-            print("changing window display like i'm Mr Polly on weed")
+            MainApp.camconf_ctrl_pannel.Show()
+            MainApp.camconf_info_pannel.Show()
         elif display == 'Cron Timing':
             MainApp.cron_list_pannel.Show()
             MainApp.cron_info_pannel.Show()
@@ -4181,6 +4713,10 @@ class view_pnl(wx.Panel):
             print("changing window display like i'm Mr Polly on LSD")
         elif display == 'pieye watcher':
             print("changing window display like i'm Mr Polly in a daydream")
+        elif display == 'Sensors':
+            MainApp.sensors_info_pannel.Show()
+            MainApp.sensors_ctrl_pannel.Show()
+            MainApp.sensors_info_pannel.sensor_table.populate_sensor_table(MainApp.sensors_info_pannel.sensor_table, 'e')
         else:
             print("!!! Option not recognised, this is a programming error! sorry")
             print("          message me and tell me about it and i'll be very thankful")
@@ -4210,6 +4746,9 @@ class status_bar(wx.Panel):
     #
     # The bar at the bottom of the screen for displaying the current status
     #
+    # #    MainApp.status.write_bar("Status bar normal text")       # normal background with black text
+    # #    MainApp.status.write_warning("Status bar warning text")  # red back with black text
+    #
     def __init__( self, parent ):
         width_of_window = gui_set.width_of_window
         height_of_window = gui_set.height_of_window
@@ -4228,11 +4767,13 @@ class status_bar(wx.Panel):
         self.SetBackgroundColour((150, 150, 120))
         self.status_text.SetForegroundColour(wx.Colour(50,50,50))
         self.status_text.SetLabel(text)
+        wx.Yield()
 
     def write_warning(self, text):
         self.SetBackgroundColour((200, 100, 100))
         self.status_text.SetForegroundColour(wx.Colour(0,0,0))
         self.status_text.SetLabel(text)
+        wx.Yield()
 
 
 class gui_settings:
@@ -4247,6 +4788,11 @@ class gui_settings:
         # Settings Sizes
         self.width_of_window = 1200
         self.height_of_window = 800
+
+        # storing important information extracted from pigrow
+
+        # move MainApp.config_ctrl_pannel.dirlocs_dict to here
+
 
 
 #
@@ -4290,6 +4836,10 @@ class MainApp(MainFrame):
         MainApp.localfiles_info_pannel = localfiles_info_pnl(self)
         MainApp.graphing_ctrl_pannel = graphing_ctrl_pnl(self)
         MainApp.graphing_info_pannel = graphing_info_pnl(self)
+        MainApp.camconf_ctrl_pannel = camconf_ctrl_pnl(self)
+        MainApp.camconf_info_pannel = camconf_info_pnl(self)
+        MainApp.sensors_info_pannel = sensors_info_pnl(self)
+        MainApp.sensors_ctrl_pannel = sensors_ctrl_pnl(self)
         #hide all except the welcome pannel
         MainApp.system_ctrl_pannel.Hide()
         MainApp.system_info_pannel.Hide()
@@ -4301,6 +4851,10 @@ class MainApp(MainFrame):
         MainApp.localfiles_info_pannel.Hide()
         MainApp.graphing_ctrl_pannel.Hide()
         MainApp.graphing_info_pannel.Hide()
+        MainApp.camconf_ctrl_pannel.Hide()
+        MainApp.camconf_info_pannel.Hide()
+        MainApp.sensors_info_pannel.Hide()
+        MainApp.sensors_ctrl_pannel.Hide()
         MainApp.status.write_bar("ready...")
 
     def OnClose(self, e):
