@@ -17,7 +17,7 @@ for argu in sys.argv[1:]:
         if thearg == 'address' or thearg == 'chirp_address':
             chirp_address = int(thevalue, 16)
         if thearg == 'show':
-            if thevalue.lower() == "true"
+            if thevalue.lower() == "true":
                 show == True:
         if thearg == "attempts":
             number_of_attempts = int(thevalue)
@@ -26,7 +26,7 @@ for argu in sys.argv[1:]:
     elif argu == "max":
         looking_for = "max"
     elif argu == "min":
-        looking_for = "min"            
+        looking_for = "min"
     elif argu == 'help' or argu == '-h' or argu == '--help':
         print(" Script for calibrating the Chirp Soil Moisture Sensor")
         print("     this uses the module chirp-rpi")
