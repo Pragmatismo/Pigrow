@@ -1,7 +1,7 @@
 #!/usr/bin/python
 import os
 import sys
-syshomedir = os.getenv("HOME")
+homedir = os.getenv("HOME")
 sys.path.append(homedir + '/chirp-rpi/')
 import chirp
 
