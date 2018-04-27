@@ -3944,7 +3944,7 @@ class camconf_ctrl_pnl(wx.Panel):
         #camera options
         wx.StaticText(self,  label='Camera selection;', pos=(15, 10))
         cam_opts = [""]
-        self.cam_cb = wx.ComboBox(self, choices = cam_opts, pos=(10,30), size=(265, 30))
+        self.cam_cb = wx.ComboBox(self, choices = cam_opts, pos=(40,30), size=(225, 30))
         self.cam_cb.Bind(wx.EVT_COMBOBOX, self.cam_combo_go)
 
         #
@@ -3995,7 +3995,7 @@ class camconf_ctrl_pnl(wx.Panel):
         self.take_unset_btn = wx.Button(self, label='Take cam default', pos=(15, 295), size=(175, 30))
         self.take_unset_btn.Bind(wx.EVT_BUTTON, self.take_unset_click)
 
-        self.list_cams_btn = wx.Button(self, label='list cams', pos=(0, 15), size=(15, 30))
+        self.list_cams_btn = wx.Button(self, label='find', pos=(5, 30), size=(30, 30))
         self.list_cams_btn.Bind(wx.EVT_BUTTON, self.list_cams_click)
         #
         # UI for Picam
