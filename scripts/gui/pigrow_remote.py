@@ -4405,14 +4405,53 @@ class chirp_dialog(wx.Dialog):
         dbox.Destroy()
         if (answer == wx.ID_OK):
             print("the absolute madman wants to do it!!!!")
-            instruction_text =  "Chirp Calibration phase 1; \n\n  Make sure the sensor is clean and dry, "
-            instruction_text += " place the sensor with the probe in free air.  This will give us a maximum value."
+            # running phase one - finding a max value
+            instruction_text =  "Chirp Calibration phase 1; \n\n  Make sure the sensor is clean, "
+            instruction_text += " place the probe in a glass of water.  This will give us a maximum value."
+            instruction_text += "\n\n Once started please be patient, it will take a few min"
             dbox = wx.MessageDialog(self, instruction_text, "Phase one", wx.OK | wx.CANCEL | wx.ICON_QUESTION)
             answer = dbox.ShowModal()
             dbox.Destroy()
             if (answer == wx.ID_OK):
-                print("ready to run a short burt with the calibration tool")
-                print("but we haven't written the calibration tool so that won't happen quite yet... :P")
+                print("ready to run the calibration tool")
+                cmd = "/home/" + pi_link_pnl.target_user + "/Pigrow/scripts/sensors/chirp_calibrate.py max chirp_address=" + self.wire_loc_tc.GetValue()
+                print (cmd)
+                out, error = MainApp.localfiles_ctrl_pannel.run_on_pi(cmd)
+                # checking to see if they want to use the results
+                instruction_text = "Great, we got a value of " + str(out)
+                instruction_text+= " do you want to use this value as the maximum?"
+                dbox = wx.MessageDialog(self, instruction_text, "Phase one", wx.OK | wx.CANCEL | wx.ICON_QUESTION)
+                answer = dbox.ShowModal()
+                dbox.Destroy()
+                if (answer == wx.ID_OK):
+                    chirp_max = out.strip()
+                    print("They're going to use " + str(chirp_max) + " as the maximum value")
+                    self.max_tc.SetValue(chirp_max)
+                else:
+                    print("bloody waste of time that was then!")
+            # running phase two - finding a min value
+            instruction_text =  "Chirp Calibration phase 2; \n\n  Make sure the sensor is clean and dry, "
+            instruction_text += " place the probe in free air.  This will give us a minimum value."
+            instruction_text += "\n\n Once started please be patient, it will take a few min"
+            dbox = wx.MessageDialog(self, instruction_text, "Phase two", wx.OK | wx.CANCEL | wx.ICON_QUESTION)
+            answer = dbox.ShowModal()
+            dbox.Destroy()
+            if (answer == wx.ID_OK):
+                print("ready to run the calibration tool")
+                cmd = "/home/" + pi_link_pnl.target_user + "/Pigrow/scripts/sensors/chirp_calibrate.py min chirp_address=" + self.wire_loc_tc.GetValue()
+                out, error = MainApp.localfiles_ctrl_pannel.run_on_pi(cmd)
+                # checking to see if they want to use the results
+                instruction_text = "Great, we got a value of " + str(out)
+                instruction_text+= " do you want to use this value as the minimum?"
+                dbox = wx.MessageDialog(self, instruction_text, "Phase two", wx.OK | wx.CANCEL | wx.ICON_QUESTION)
+                answer = dbox.ShowModal()
+                dbox.Destroy()
+                if (answer == wx.ID_OK):
+                    chirp_min = out.strip()
+                    print("They're going to use " + str(chirp_min) + " as the maximum value")
+                    self.min_tc.SetValue(chirp_min)
+                else:
+                    print("bloody waste of time that was then!")
 
 
     def ok_click(self, e):
