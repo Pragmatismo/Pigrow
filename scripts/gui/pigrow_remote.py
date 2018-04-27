@@ -2884,8 +2884,8 @@ class cron_job_dialog(wx.Dialog):
 
         try:
             script_text, error_text = MainApp.localfiles_ctrl_pannel.run_on_pi("cat " + str(script_to_ask))
-            print(("Connected to " + target_ip))
-            print(("running; cat " + str(script_to_ask)))
+            print("Connected to " + target_ip)
+            print("running; cat " + str(script_to_ask))
             if not error_text == '':
                 msg_text =  "Error reading script " + script_to_ask + " \n\n"
                 msg_text += str(error_text)
@@ -2896,14 +2896,14 @@ class cron_job_dialog(wx.Dialog):
             dbox.ShowModal()
             dbox.Destroy()
         except Exception as e:
-            print(("oh bother, this seems wrong... " + str(e)))
+            print("oh bother, this seems wrong... " + str(e))
 
     def get_cronable_scripts(self, script_path):
         #this reads the files in the path provided
         #then creates a list of all .py and .sh scripts in that folder
         cron_opts = []
         try:
-            print(("reading " + str(script_path)))
+            print("reading " + str(script_path))
             out, error_text = MainApp.localfiles_ctrl_pannel.run_on_pi("ls " + str(script_path))
             cron_dir_list = out.split('\n')
             for filename in cron_dir_list:
@@ -3194,6 +3194,7 @@ class localfiles_ctrl_pnl(wx.Panel):
     def run_on_pi(self, command):
         #Runs a command on the pigrow and returns output and error
         #  out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("ls /home/" + pi_link_pnl.target_user + "/Pigrow/")
+        MainApp.status.write_blue_bar("Running; " + command)
         try:
             stdin, stdout, stderr = ssh.exec_command(command)
             out = stdout.read()
@@ -3204,6 +3205,7 @@ class localfiles_ctrl_pnl(wx.Panel):
             error = "failed running command;" + str(command) + " with error - " + str(e)
             print(error)
             return "", error
+        MainApp.status.write_bar("ready...")
         return out, error
 
     def update_local_filelist_click(self, e):
@@ -3854,7 +3856,7 @@ class graphing_ctrl_pnl(wx.Panel):
         # will be upgraded to run graphing modules locally at some point if that options selected instead
         script_path = "/home/" + pi_link_pnl.target_user + "/Pigrow/scripts/visualisation/" + self.select_script_cb.GetValue()
         script_command = script_path + " " + self.extra_args.GetValue()
-        print(("Running; " + script_command))
+        print("#sb# Running; " + script_command)
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi(script_command)
         msg = str(out) + " " + str(error)
         dmsg = "Script Output;\n"# + msg.replace("...", ",")
@@ -4189,6 +4191,21 @@ class sensors_info_pnl(wx.Panel):
             except:
                 print("No config dict")
 
+        def make_sensor_table(self, e):
+            sensor_name_list = []
+            print("Using config_dict to fill sensor table")
+            self.DeleteAllItems()
+            for key, value in list(MainApp.config_ctrl_pannel.config_dict.items()):
+                if "sensor_" in key:
+                    if "_type" in key:
+                        sensor_name_list.append(key.split("_")[1])
+            for sensor in sensor_name_list:
+                type  = MainApp.config_ctrl_pannel.config_dict['sensor_' + sensor + "_type"]
+                log   = MainApp.config_ctrl_pannel.config_dict['sensor_' + sensor + "_log"]
+                loc   = MainApp.config_ctrl_pannel.config_dict['sensor_' + sensor + "_loc"]
+                extra = MainApp.config_ctrl_pannel.config_dict['sensor_' + sensor + "_extra"]
+                self.add_to_sensor_list(sensor, type, log, loc, extra)
+
         def add_to_sensor_list(self, sensor, type, log, loc, extra=''):
             #MainApp.sensors_info_pannel.sensor_list.add_to_sensor_list(sensor,type,log,loc,extra)
             self.InsertItem(0, str(sensor))
@@ -4244,6 +4261,9 @@ class sensors_ctrl_pnl(wx.Panel):
         #
         self.config_chirp_btn = wx.Button(self, label='add new chirp', pos=(15, 170), size=(175, 30))
         self.config_chirp_btn.Bind(wx.EVT_BUTTON, self.add_new_chirp_click)
+
+        self.make_table_btn = wx.Button(self, label='make table', pos=(15, 50), size=(175, 30))
+        self.make_table_btn.Bind(wx.EVT_BUTTON, MainApp.sensors_info_pannel.sensor_list.make_sensor_table)
 
     def add_new_chirp_click(self, e):
         print("adding a new chirp sensor")
@@ -4316,11 +4336,11 @@ class chirp_dialog(wx.Dialog):
         print (extras)
         for item in extras:
             if "min:" in item:
-                print("found min")
                 s_min = item.split(":")[1]
+                print("found min - " + str(s_min))
             elif "max:" in item:
-                print("found max")
                 s_max = item.split(":")[1]
+                print("found max - " + str(s_max))
             else:
                 if not item == "":
                     extra_extra += item + ","
@@ -4367,7 +4387,7 @@ class chirp_dialog(wx.Dialog):
         self.wire_type_combo.SetValue(s_loc_a)
         self.wire_loc_tc.SetValue(s_loc_b)
         self.min_tc.SetValue(s_min)
-        self.min_tc.SetValue(s_max)
+        self.max_tc.SetValue(s_max)
         self.extra_tc.SetValue(extra_extra)
         # Buttons
         self.ok_btn = wx.Button(self, label='Ok', pos=(15, 250), size=(175, 30))
@@ -4414,6 +4434,13 @@ class chirp_dialog(wx.Dialog):
             print(" SO IT CAN DECIDE IF IT NEEDS TO ADD NEW OR UPDATE THE LINE")
             print("                    ##yawn##")
             print("")
+            MainApp.config_ctrl_pannel.config_dict["sensor_" + o_name + "_type"] = o_type
+            MainApp.config_ctrl_pannel.config_dict["sensor_" + o_name + "_log"] = o_log
+            MainApp.config_ctrl_pannel.config_dict["sensor_" + o_name + "_loc"] = o_loc
+            MainApp.config_ctrl_pannel.config_dict["sensor_" + o_name + "_extra"] = o_extra
+            print(MainApp.config_ctrl_pannel.config_dict)
+            MainApp.config_ctrl_pannel.update_setting_click('e')
+            self.Destroy()
 
 
 
@@ -4766,6 +4793,12 @@ class status_bar(wx.Panel):
     def write_bar(self, text):
         self.SetBackgroundColour((150, 150, 120))
         self.status_text.SetForegroundColour(wx.Colour(50,50,50))
+        self.status_text.SetLabel(text)
+        wx.Yield()
+
+    def write_blue_bar(self, text):
+        self.SetBackgroundColour((50, 50, 200))
+        self.status_text.SetForegroundColour(wx.Colour(0,0,0))
         self.status_text.SetLabel(text)
         wx.Yield()
 
