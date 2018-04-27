@@ -81,7 +81,7 @@ for argu in sys.argv[1:]:
             make_moist = theval.lower()
         elif thearg == 'make_moist_p':
             make_moist_p = theval.lower()
-        elif thearg == 'label':
+        elif thearg == 'put_label':
             put_label = theval.lower()
 
     elif argu == 'h' or argu == '-h' or argu == 'help' or argu == '--help':
