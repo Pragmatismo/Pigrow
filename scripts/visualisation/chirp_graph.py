@@ -45,6 +45,7 @@ dangerlow = int(toolow) / 100 * 85
 dangerhigh = int(toohigh) / 100 * 115
 make_multi = False
 hours_to_show = 24*7*52 #hours from the end of the log, use absurdly high number to see all
+put_label = "true"
 
 for argu in sys.argv[1:]:
     if "=" in argu:
@@ -80,6 +81,8 @@ for argu in sys.argv[1:]:
             make_moist = theval.lower()
         elif thearg == 'make_moist_p':
             make_moist_p = theval.lower()
+        elif thearg == 'label':
+            put_label = theval.lower()
 
     elif argu == 'h' or argu == '-h' or argu == 'help' or argu == '--help':
         print("")
@@ -91,7 +94,11 @@ for argu in sys.argv[1:]:
         print("  hours=NUM         - Hours of the logs graph, 168 for a week")
         print("  cold=NUM          - set's the cold point at which graph colors change")
         print("  hot=NUM           - set's the hot point for graph")
-        print("  make_light=true   -  ")
+        print("  make_light=true   - turn on or off the making of the light grpah ")
+        print("  make_temp=")
+        print("  make_moist=")
+        print("  make_moist_p")
+        print("  put_label=true    - disable lable even on multigraphs")
         sys.exit()
     elif argu == '-flags':
         print("log=" + log_location)
@@ -104,6 +111,7 @@ for argu in sys.argv[1:]:
         print("make_temp=[true,false]")
         print("make_moist=[true,false]")
         print("make_moist_p=[true,false]")
+        print("put_label=[true,false]")
         sys.exit()
     else:
         print(" No idea what you mean by; " + str(argu))
@@ -180,6 +188,9 @@ def add_log(linktolog):
     return log_moist, log_moist_p, log_temp, log_light, log_date
 
 def make_graph(da,ta, path, colour='darkblue', axislabel='Chirp Sensor', line_label=''):
+    if not len(da) == len(ta):
+        print("can't graph with " + len(da) + " bits of data and " + len(ta) + " dates "
+        return "failed"
     plt.figure(1)
     ax = plt.subplot()
   #  ax.bar(da, ta, width=0.01, color='k', linewidth = 0)
@@ -200,7 +211,8 @@ def make_graph(da,ta, path, colour='darkblue', axislabel='Chirp Sensor', line_la
     ax.xaxis_date()
     plt.title("Time Perod; " + str(da[0].strftime("%b-%d %H:%M")) + " to " + str(da[-1].strftime("%b-%d %H:%M")) + " UTC")
     plt.ylabel(axislabel)
-    plt.legend()
+    if put_label == "true":
+        plt.legend()
     #
     fig = plt.gcf()
     fig.autofmt_xdate()
