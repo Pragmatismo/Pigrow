@@ -18,7 +18,7 @@ for argu in sys.argv[1:]:
             chirp_address = int(thevalue, 16)
         if thearg == 'show':
             if thevalue.lower() == "true":
-                show == True:
+                show = True
         if thearg == "attempts":
             number_of_attempts = int(thevalue)
         if thearg == "looking_for":
