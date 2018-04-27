@@ -100,7 +100,7 @@ if __name__ == '__main__':
             print("use the --help option for more information.")
             sys.exit()
 
-if looking_for = 'max':
+if looking_for == 'max':
     print top_moist
-elif looking_for = 'min':
+elif looking_for == 'min':
     print bottom_moist
