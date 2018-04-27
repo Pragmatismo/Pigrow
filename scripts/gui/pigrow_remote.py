@@ -4392,6 +4392,28 @@ class chirp_dialog(wx.Dialog):
         # Buttons
         self.ok_btn = wx.Button(self, label='Ok', pos=(15, 250), size=(175, 30))
         self.ok_btn.Bind(wx.EVT_BUTTON, self.ok_click)
+        self.calibrate_btn = wx.Button(self, label='Calibrate', pos=(200, 250), size=(175, 30))
+        self.calibrate_btn.Bind(wx.EVT_BUTTON, self.calibrate_click)
+
+    def calibrate_click(self, e):
+        print("oh shit this is gonna get cray-cray")
+        warning_messaage =  "Are you sure you want to calibrate this sensor, it'll take ages "
+        warning_messaage += "and you'll need to have a glass of water handy. \n\n"
+        warning_messaage += "Please make sure nothing else is using the sensor at the same time."
+        dbox = wx.MessageDialog(self, warning_messaage, "Calibrate Chirp?", wx.OK | wx.CANCEL | wx.ICON_QUESTION)
+        answer = dbox.ShowModal()
+        dbox.Destroy()
+        if (answer == wx.ID_OK):
+            print("the absolute madman wants to do it!!!!")
+            instruction_text =  "Chirp Calibration phase 1; \n\n  Make sure the sensor is clean and dry, "
+            instruction_text += " place the sensor with the probe in free air.  This will give us a maximum value."
+            dbox = wx.MessageDialog(self, instruction_text, "Phase one", wx.OK | wx.CANCEL | wx.ICON_QUESTION)
+            answer = dbox.ShowModal()
+            dbox.Destroy()
+            if (answer == wx.ID_OK):
+                print("ready to run a short burt with the calibration tool")
+                print("but we haven't written the calibration tool so that won't happen quite yet... :P")
+
 
     def ok_click(self, e):
         o_name = self.name_tc.GetValue()
