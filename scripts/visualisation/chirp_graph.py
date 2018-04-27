@@ -189,7 +189,7 @@ def add_log(linktolog):
 
 def make_graph(da,ta, path, colour='darkblue', axislabel='Chirp Sensor', line_label=''):
     if not len(da) == len(ta):
-        print("can't graph with " + len(da) + " bits of data and " + len(ta) + " dates "
+        print("can't graph with " + len(da) + " bits of data and " + len(ta) + " dates ")
         return "failed"
     plt.figure(1)
     ax = plt.subplot()
