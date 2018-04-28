@@ -13,6 +13,7 @@ chirp_address = 0x20
 min_m = 1
 max_m = 1000
 temp_offset = 0
+sensor_name = ''
 
 for argu in sys.argv[1:]:
     if "=" in argu:
@@ -28,6 +29,8 @@ for argu in sys.argv[1:]:
             max_m = int(thevalue)
         elif thearg == 'temp_offset':
             temp_offset = int(thevalue)
+        elif thearg == 'name' or thearg == 'sensor_name':
+            sensor_name = theval
     elif argu == 'help' or argu == '-h' or argu == '--help':
         print(" Script for logging the Chirp Soil Moisture Sensor")
         print("     this uses the module chirp-rpi")
@@ -46,6 +49,8 @@ for argu in sys.argv[1:]:
         print("      - min and max moisture calibration")
         print(" temp_offset=0")
         print("      - temp correction")
+        print(" sensor_name=chirp")
+        print("      - for sensors named in the config file")
         print("")
         print("")
         sys.exit(0)
@@ -55,7 +60,39 @@ for argu in sys.argv[1:]:
         print("min_m=1")
         print("max_m=1000")
         print("temp_offset=0")
+        print("sensor_name=chirp")
         sys.exit(0)
+
+if not sensor_name == "":
+    sys.path.append(homedir + '/Pigrow/scripts/')
+    import pigrow_defs
+    loc_dic = pigrow_defs.load_locs(homedir + "/Pigrow/config/dirlocs.txt")
+    set_dic = pigrow_defs.load_settings(loc_dic['loc_settings'], err_log=loc_dic['err_log'])
+    try:
+        log_path = set_dic['sensor_' + sensor_name + '_log']
+        chirp_address = set_dic['sensor_' + sensor_name + '_loc'].split(":")[1]
+        extras = set_dic['sensor_' + sensor_name + '_extra'].split(",")
+        for item in extras:
+            if "min:" in item:
+                min_m = item.split(":")[1]
+            elif "max:" in item:
+                max_m = item.split(":")[1]
+            elif "temp_offset" in item:
+                temp_offset = int(item.split(":")[1])
+    except Exception as e:
+        print(" - - - - ! ! ! ! - - - - ! ! ! ! - - - -")
+        print("Problem loading settings from config file, ")
+        print("    " + log_path)
+    print(" -------- ")
+    print("   Found Chirp sensor " + sensor_name)
+    print("             log path " + log_path)
+    print("              address " + str(chirp_address))
+    print("         moisture min:" + str(min_m) + " max:" + str(max_m))
+    print("          temp offset:" + str(temp_offset)
+    print(" --------                       -------")
+
+
+
 
 def read_chirp_sensor(chirp_address, min_moist, max_moist, temp_offset=0):
     # Initialize the sensor.
