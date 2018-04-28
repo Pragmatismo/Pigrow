@@ -70,8 +70,8 @@ if not sensor_name == "":
     set_dic = pigrow_defs.load_settings(loc_dic['loc_settings'], err_log=loc_dic['err_log'])
     try:
         log_path = set_dic['sensor_' + sensor_name + '_log']
-        chirp_address = set_dic['sensor_' + sensor_name + '_loc'].split(":")[1]
-        chirp_address = int(chirp_address, 16)
+        chirp_text_address = str(set_dic['sensor_' + sensor_name + '_loc'].split(":")[1])
+        chirp_address = int(chirp_text_address, 16)
         extras = set_dic['sensor_' + sensor_name + '_extra'].split(",")
         for item in extras:
             if "min:" in item:
@@ -87,9 +87,9 @@ if not sensor_name == "":
     print(" -------- ")
     print("   Found Chirp sensor " + sensor_name)
     print("             log path " + log_path)
-    print("              address " + str(chirp_address))
-    print("         moisture min:" + str(min_m) + " max:" + str(max_m))
-    print("          temp offset:" + str(temp_offset))
+    print("              address " + str(chirp_text_address) + "  (" + str(chirp_address) + ")")
+    print("             moisture min:" + str(min_m) + " max:" + str(max_m))
+    print("          temp offset " + str(temp_offset))
     print(" --------                       -------")
 
 
