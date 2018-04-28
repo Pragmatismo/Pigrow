@@ -75,9 +75,9 @@ if not sensor_name == "":
         extras = set_dic['sensor_' + sensor_name + '_extra'].split(",")
         for item in extras:
             if "min:" in item:
-                min_m = item.split(":")[1]
+                min_m = int(item.split(":")[1])
             elif "max:" in item:
-                max_m = item.split(":")[1]
+                max_m = int(item.split(":")[1])
             elif "temp_offset" in item:
                 temp_offset = int(item.split(":")[1])
     except Exception as e:
