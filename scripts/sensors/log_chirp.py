@@ -30,7 +30,7 @@ for argu in sys.argv[1:]:
         elif thearg == 'temp_offset':
             temp_offset = int(thevalue)
         elif thearg == 'name' or thearg == 'sensor_name':
-            sensor_name = theval
+            sensor_name = thevalue
     elif argu == 'help' or argu == '-h' or argu == '--help':
         print(" Script for logging the Chirp Soil Moisture Sensor")
         print("     this uses the module chirp-rpi")
