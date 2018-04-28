@@ -88,7 +88,7 @@ if not sensor_name == "":
     print("             log path " + log_path)
     print("              address " + str(chirp_address))
     print("         moisture min:" + str(min_m) + " max:" + str(max_m))
-    print("          temp offset:" + str(temp_offset)
+    print("          temp offset:" + str(temp_offset))
     print(" --------                       -------")
 
 
