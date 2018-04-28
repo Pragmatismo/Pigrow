@@ -3361,10 +3361,21 @@ class localfiles_ctrl_pnl(wx.Panel):
         #
         # this downloads a single file into the pi's local folder
         # localfiles_ctrl_pnl.download_file_to_folder(remote_file, local_name)
-        local_path = os.path.join(localfiles_info_pnl.local_path_txt.GetLabel(), local_name)
+        #
+        local_base_path = localfiles_info_pnl.local_path_txt.GetLabel()
+        if local_name[0] == "/":
+            local_name = local_name[1:]
+        print (" -- local base path -- " + local_base_path)
+        local_path = os.path.join(local_base_path, local_name)
+        print (" -- local path -- " + local_path)
+        without_filename = os.path.split(local_path)[0]
+        print (" -- without_filename -- " + str(without_filename))
+        if not os.path.isdir(without_filename):
+            os.makedirs(without_filename)
+            print("made folder " + str(without_filename))
         port = 22
-        print(("  - connecting transport pipe... " + pi_link_pnl.target_ip + " port:" + str(port)))
-        print(("    to  download " + remote_file + " to " + local_path))
+        print("  - connecting transport pipe... " + pi_link_pnl.target_ip + " port:" + str(port))
+        print("    to  download " + remote_file + " to " + local_path)
         ssh_tran = paramiko.Transport((pi_link_pnl.target_ip, port))
         ssh_tran.connect(username=pi_link_pnl.target_user, password=pi_link_pnl.target_pass)
         self.sftp = paramiko.SFTPClient.from_transport(ssh_tran)
@@ -3995,7 +4006,7 @@ class camconf_ctrl_pnl(wx.Panel):
         self.take_unset_btn = wx.Button(self, label='Take cam default', pos=(15, 295), size=(175, 30))
         self.take_unset_btn.Bind(wx.EVT_BUTTON, self.take_unset_click)
 
-        self.take_set_btn = wx.Button(self, label='Take using settings', pos=(15, 235), size=(175, 30))
+        self.take_set_btn = wx.Button(self, label='Take using settings', pos=(15, 335), size=(175, 30))
         self.take_set_btn.Bind(wx.EVT_BUTTON, self.take_set_click)
 
         self.list_cams_btn = wx.Button(self, label='find', pos=(5, 30), size=(30, 30))
@@ -4070,9 +4081,8 @@ class camconf_ctrl_pnl(wx.Panel):
             print("NOT IMPLIMENTED - SELECT CAM CHOICE OF UVC OR FSWEBCAM PLZ")
 
         cam_output, error = MainApp.localfiles_ctrl_pannel.run_on_pi(cam_cmd)
-        print "Camera output; " + cam_output
-        ssh.close()
-    return cam_output, output_file            
+        print ("Camera output; " + cam_output)
+        return cam_output, output_file
 
     def take_unset_click(self, e):
         info, remote_img_path = self.take_unset_test_image()
@@ -4081,7 +4091,7 @@ class camconf_ctrl_pnl(wx.Panel):
         display_img = wx.Image(img_path, wx.BITMAP_TYPE_ANY).ConvertToBitmap()
         MainApp.camconf_info_pannel.camconf_img_box.SetBitmap(display_img)
 
-    def take_unset_test_image(self, x_dim=800, y_dim=600, additonal_commands='',
+    def take_unset_test_image(self, x_dim=10000, y_dim=10000, additonal_commands='',
                               cam_capture_choice='uvccapture',
                               output_file=None):
         MainApp.status.write_bar("Using camera deafults to take image...")
