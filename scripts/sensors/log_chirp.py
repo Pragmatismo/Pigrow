@@ -71,6 +71,7 @@ if not sensor_name == "":
     try:
         log_path = set_dic['sensor_' + sensor_name + '_log']
         chirp_address = set_dic['sensor_' + sensor_name + '_loc'].split(":")[1]
+        chirp_address = int(chirp_address, 16)
         extras = set_dic['sensor_' + sensor_name + '_extra'].split(",")
         for item in extras:
             if "min:" in item:
