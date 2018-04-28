@@ -3995,6 +3995,9 @@ class camconf_ctrl_pnl(wx.Panel):
         self.take_unset_btn = wx.Button(self, label='Take cam default', pos=(15, 295), size=(175, 30))
         self.take_unset_btn.Bind(wx.EVT_BUTTON, self.take_unset_click)
 
+        self.take_set_btn = wx.Button(self, label='Take using settings', pos=(15, 235), size=(175, 30))
+        self.take_set_btn.Bind(wx.EVT_BUTTON, self.take_set_click)
+
         self.list_cams_btn = wx.Button(self, label='find', pos=(5, 30), size=(30, 30))
         self.list_cams_btn.Bind(wx.EVT_BUTTON, self.list_cams_click)
         #
@@ -4018,6 +4021,58 @@ class camconf_ctrl_pnl(wx.Panel):
         self.setting_string_tb.SetValue('')
         self.setting_value_tb.SetValue('')
 
+    def take_set_click(self, e):
+        info, remote_img_path = self.take_test_image()
+        MainApp.camconf_info_pannel.camconf_txt.SetLabel(info)
+        img_path = localfiles_ctrl_pnl.download_file_to_folder(MainApp.localfiles_ctrl_pannel, remote_img_path, "/temp/test_defaults.jpg")
+        display_img = wx.Image(img_path, wx.BITMAP_TYPE_ANY).ConvertToBitmap()
+        MainApp.camconf_info_pannel.camconf_img_box.SetBitmap(display_img)
+
+    def take_test_image(s_val, c_val, g_val, b_val, x_dim=800, y_dim=600,
+                        cam_select='/dev/video0', cam_capture_choice='uvccapture', output_file='~/test_cam_settings.jpg',
+                        ctrl_test_value=None, ctrl_text_string=None, cmd_str=''):
+        focus_val = "20"
+        cam_output = '!!!--NO READING--!!!'
+        print("taking test image...")
+        # uvccapture
+        if cam_capture_choice == "uvccapture":
+            additional_commands = " -d" + cam_select
+            cam_cmd = "uvccapture " + additional_commands   #additional commands (camera select)
+            cam_cmd += " -S" + s_val #saturation
+            cam_cmd += " -C" + c_val #contrast
+            cam_cmd += " -G" + g_val #gain
+            cam_cmd += " -B" + b_val #brightness
+            cam_cmd += " -x"+str(x_dim)+" -y"+str(y_dim) + " "  #x and y dimensions of photo
+            cam_cmd += "-v -t0 -o" + output_file                #verbose, no delay, output
+        # fswebcam
+        elif cam_capture_choice == "fswebcam":
+            cam_cmd  = "fswebcam -r " + str(x_dim) + "x" + str(y_dim)
+            cam_cmd += " -d v4l2:" + cam_select
+            cam_cmd += " -D 2"      #the delay in seconds before taking photo
+            cam_cmd += " -S 5"      #number of frames to skip before taking image
+            # to list controls use fswebcam -d v4l2:/dev/video0 --list-controls
+            if not b_val == '':
+                cam_cmd += " --set brightness=" + b_val
+            if not c_val == '':
+                cam_cmd += " --set contrast=" + c_val
+            if not s_val == '':
+                cam_cmd += " --set Saturation=" + s_val
+            if not g_val == '':
+                cam_cmd += " --set gain=" + g_val
+            ##For testing camera ctrl variables
+            if not ctrl_text_string == None:
+                cam_cmd += " --set " + ctrl_text_string + "=" + str(ctrl_test_value)
+            cam_cmd += cmd_str
+            cam_cmd += " --jpeg 90" #jpeg quality
+            # cam_cmd += ' --info "HELLO INFO TEXT"'
+            cam_cmd += " " + output_file  #output filename'
+        else:
+            print("NOT IMPLIMENTED - SELECT CAM CHOICE OF UVC OR FSWEBCAM PLZ")
+
+        cam_output, error = MainApp.localfiles_ctrl_pannel.run_on_pi(cam_cmd)
+        print "Camera output; " + cam_output
+        ssh.close()
+    return cam_output, output_file            
 
     def take_unset_click(self, e):
         info, remote_img_path = self.take_unset_test_image()
@@ -4025,6 +4080,7 @@ class camconf_ctrl_pnl(wx.Panel):
         img_path = localfiles_ctrl_pnl.download_file_to_folder(MainApp.localfiles_ctrl_pannel, remote_img_path, "/temp/test_defaults.jpg")
         display_img = wx.Image(img_path, wx.BITMAP_TYPE_ANY).ConvertToBitmap()
         MainApp.camconf_info_pannel.camconf_img_box.SetBitmap(display_img)
+
     def take_unset_test_image(self, x_dim=800, y_dim=600, additonal_commands='',
                               cam_capture_choice='uvccapture',
                               output_file=None):
@@ -4049,6 +4105,7 @@ class camconf_ctrl_pnl(wx.Panel):
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi(cam_cmd)
         MainApp.status.write_bar("Camera output; " + out)
         return out, output_file
+
 
     def list_fs_ctrls_click(self, e):
         print("this is supposed to fswebcam -d v4l2:/dev/video0 --list-controls on the pi")
