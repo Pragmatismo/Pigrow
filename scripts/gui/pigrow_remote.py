@@ -3985,17 +3985,16 @@ class camconf_ctrl_pnl(wx.Panel):
         self.tb_y = wx.TextCtrl(self, pos=(120, 270), size=(75, 25))
         #
         ## fswebcam only controlls
-        self.fs_label = wx.StaticText(self,  label='fswebcam only settings', pos=(10, 335))
-        self.list_fs_ctrls_btn = wx.Button(self, label='Show webcam controlls', pos=(25, 360))
+        self.fs_label = wx.StaticText(self,  label='fswebcam only settings', pos=(10, 300))
+        self.list_fs_ctrls_btn = wx.Button(self, label='Show webcam controlls', pos=(25, 325))
         self.list_fs_ctrls_btn.Bind(wx.EVT_BUTTON, self.list_fs_ctrls_click)
-
-        self.setting_string_label = wx.StaticText(self,  label='set;', pos=(10, 395))
-        self.setting_string_tb = wx.TextCtrl(self, pos=(50, 395), size=(200, 25))
-        self.setting_value_label = wx.StaticText(self,  label='value;', pos=(10, 425))
-        self.setting_value_tb = wx.TextCtrl(self, pos=(60, 425), size=(100, 25))
-        self.add_to_cmd_btn = wx.Button(self, label='Add to cmd string', pos=(5, 450))
+        self.setting_string_label = wx.StaticText(self,  label='set;', pos=(10, 360))
+        self.setting_string_tb = wx.TextCtrl(self, pos=(50, 360), size=(200, 25))
+        self.setting_value_label = wx.StaticText(self,  label='value;', pos=(10, 390))
+        self.setting_value_tb = wx.TextCtrl(self, pos=(60, 390), size=(100, 25))
+        self.add_to_cmd_btn = wx.Button(self, label='Add to cmd...', pos=(165, 390))
         self.add_to_cmd_btn.Bind(wx.EVT_BUTTON, self.add_to_cmd_click)
-        self.cmds_string_tb = wx.TextCtrl(self, pos=(10, 490), size=(260, 60), style=wx.TE_MULTILINE)
+        self.cmds_string_tb = wx.TextCtrl(self, pos=(10, 420), size=(265, 60), style=wx.TE_MULTILINE)
         # hide all fswebcam only controlls until option selected in combobox
         self.fs_label.Hide()
         self.list_fs_ctrls_btn.Hide()
@@ -4005,19 +4004,18 @@ class camconf_ctrl_pnl(wx.Panel):
         self.setting_value_label.Hide()
         self.setting_value_tb.Hide()
         self.add_to_cmd_btn.Hide()
-        self.cmds_string_tb.Hide()
 
         #
-        self.take_unset_btn = wx.Button(self, label='Take cam default', pos=(15, 295), size=(175, 30))
+        self.take_unset_btn = wx.Button(self, label='  Take\n  cam\ndefault', pos=(200, 120), size=(75, 60))
         self.take_unset_btn.Bind(wx.EVT_BUTTON, self.take_unset_click)
 
-        self.take_set_btn = wx.Button(self, label='Take using settings', pos=(15, 335), size=(175, 30))
+        self.take_set_btn = wx.Button(self, label='  Take\n  using\nsettings', pos=(200, 185), size=(75, 60))
         self.take_set_btn.Bind(wx.EVT_BUTTON, self.take_set_click)
 
         self.list_cams_btn = wx.Button(self, label='find', pos=(5, 30), size=(30, 30))
         self.list_cams_btn.Bind(wx.EVT_BUTTON, self.list_cams_click)
 
-        self.read_cam_config_btn = wx.Button(self, label='read cam \nconfig', pos=(150, 0), size=(30, 50))
+        self.read_cam_config_btn = wx.Button(self, label='read cam \nconfig', pos=(150, 0), size=(70, 30))
         self.read_cam_config_btn.Bind(wx.EVT_BUTTON, self.read_cam_config_click)
         #
         # UI for Picam
@@ -4062,7 +4060,34 @@ class camconf_ctrl_pnl(wx.Panel):
     #    if "cam_uvc_extra" in self.camera_settings_dict:
     #        self..SetValue(self.camera_settings_dict['cam_uvc_extra'])
 
-
+    def save_to_pi_click(self, e):
+        # Construct camera config file
+        config_text = "s_val=" + str(self.tb_s.GetValue()) + "\n"
+        config_text += "c_val=" + str(self.tb_c.GetValue()) + "\n"
+        config_text += "g_val=" + str(self.tb_g.GetValue()) + "\n"
+        config_text += "b_val=" + str(self.tb_b.GetValue()) + "\n"
+        config_text += "x_dim=" + str(self.tb_x.GetValue()) + "\n"
+        config_text += "y_dim=" + str(self.tb_y.GetValue()) + "\n"
+        config_text += "cam_num=" + str(self.cam_cb.GetValue()) + "\n"
+        config_text += "cam_opt=" + str(self.webcam_cb.GetValue()) + "\n"
+        config_text += "additonal_commands=" + str(self.cmds_string_tb.GetValue()) + "\n"
+    #    config_text += "fsw_extra=" + str(self.cmds_string_tb.GetValue()) + "\n"
+    #    config_text += "uvc_extra=" + str("")
+        # Ask if user really wants to update
+    #    chgdep = upload_dialog(None, title='upload settings to pi')
+    #    chgdep.ShowModal()
+    #    name_of_file = chgdep.settings_file_name
+    #    chgdep.Destroy()
+        name_of_file = ''
+        print (name_of_file)
+        if not name_of_file == None:
+            with open(local_cam_settings_file, "w") as f:
+                f.write(config_text)
+            print("Local Settings file updated")
+            cam_config_loc_on_pi = '/home/pi/Pigrow/config/' + name_of_file
+            upload_cam_config(target_ip, target_user, target_pass, cam_config_loc_on_pi, local_cam_settings_file)
+        else:
+            print("User cancelled that...")
 
     def list_cams_click(self, e):
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("ls /dev/video*")
@@ -4211,7 +4236,6 @@ class camconf_ctrl_pnl(wx.Panel):
             self.setting_value_label.Show()
             self.setting_value_tb.Show()
             self.add_to_cmd_btn.Show()
-            self.cmds_string_tb.Show()
         else:
             self.fs_label.Hide()
             self.list_fs_ctrls_btn.Hide()
@@ -4221,7 +4245,6 @@ class camconf_ctrl_pnl(wx.Panel):
             self.setting_value_label.Hide()
             self.setting_value_tb.Hide()
             self.add_to_cmd_btn.Hide()
-            self.cmds_string_tb.Hide()
 
 #
 #
