@@ -4033,7 +4033,6 @@ class camconf_ctrl_pnl(wx.Panel):
                 key = line.split('=')[0]
                 value = line.split('=')[1]
                 self.camera_settings_dict[key] = value
-            print (self.camera_settings_dict)
         # putting dictionary info into ui display
         # camera choice
         if "cam_num" in self.camera_settings_dict:
@@ -4081,27 +4080,26 @@ class camconf_ctrl_pnl(wx.Panel):
     #    chgdep.ShowModal()
     #    name_of_file = chgdep.settings_file_name
     #    chgdep.Destroy()
-        print(config_text)
+        filename_dbox = wx.TextEntryDialog(self, 'Upload config file with name, \n\nChange when using more than one camera', 'Upload config to Pi?', 'camera_settings.txt')
+        if filename_dbox.ShowModal() == wx.ID_OK:
+            cam_config_file_name = filename_dbox.GetValue()
+        else:
+            return "cancelled"
+        filename_dbox.Destroy()
         local_base_path = localfiles_info_pnl.local_path_txt.GetLabel()
-        cam_config_file_name = 'camera_settings.txt'
         temp_local = os.path.join(local_base_path, 'temp/')
         if not os.path.isdir(temp_local):
             os.makedirs(temp_local)
         local_cam_settings_file = os.path.join(temp_local, cam_config_file_name)
-        print (local_cam_settings_file)
         with open(local_cam_settings_file, "w") as f:
             f.write(config_text)
-        print("Local Settings file updated")
         remote_path = MainApp.config_ctrl_pannel.dirlocs_dict['path']
         remote_conf_path = os.path.join(remote_path, 'config/', cam_config_file_name)
-        #cam_config_loc_on_pi = '/home/pi/Pigrow/config/' + name_of_file
         MainApp.localfiles_ctrl_pannel.upload_file_to_fodler(local_cam_settings_file, remote_conf_path)
 
 
     def list_cams_click(self, e):
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("ls /dev/video*")
-        print (out)
-        print("::::::::::::::::::::::;")
         cam_list = out.strip().split("\n")
         self.cam_cb.Clear()
         for cam in cam_list:
@@ -4219,13 +4217,15 @@ class camconf_ctrl_pnl(wx.Panel):
         cam_choice = self.webcam_cb.GetValue()
         cam_cmd = "fswebcam -d v4l2:" + cam_choice + " --list-controls"
         MainApp.status.write_bar("---Doing: " + cam_cmd)
-        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi(cam_cmd)
-
-        print ("Camera output; " + cam_output)
-        if not cam_output == None:
+        cam_output, error = MainApp.localfiles_ctrl_pannel.run_on_pi(cam_cmd)
+        print ("Camera output; " + cam_output + " \n    and error;" + error)
+        if not cam_output == "":
             msg_text = 'Camera located and interorgated; copy-paste a controll name from the following into the settings text box \n \n'
             msg_text += str(cam_output)
-            wx.MessageBox(msg_text, 'Info', wx.OK | wx.ICON_INFORMATION)
+            wx.MessageBox(msg_text, 'Camera Settings', wx.OK | wx.ICON_INFORMATION)
+        if "command not found" in error or "command not found" in cam_output:
+            print("!!! fswebcam not installed !!!")
+            print("    TELL THE USER NOT THE COMMAND LINE!!!")
 
     def cam_combo_go(self, e):
         print(self.cam_cb.GetValue())
