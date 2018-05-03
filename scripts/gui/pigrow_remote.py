@@ -4082,18 +4082,21 @@ class camconf_ctrl_pnl(wx.Panel):
     #    name_of_file = chgdep.settings_file_name
     #    chgdep.Destroy()
         print(config_text)
-        local_cam_settings_file = ''
+        local_base_path = localfiles_info_pnl.local_path_txt.GetLabel()
+        cam_config_file_name = 'camera_settings.txt'
+        temp_local = os.path.join(local_base_path, 'temp/')
+        if not os.path.isdir(temp_local):
+            os.makedirs(temp_local)
+        local_cam_settings_file = os.path.join(temp_local, cam_config_file_name)
         print (local_cam_settings_file)
-        if not local_cam_settings_file == None:
-            with open(local_cam_settings_file, "w") as f:
-                f.write(config_text)
-            print("Local Settings file updated")
-            remote_conf_path = MainApp.config_ctrl_pannel.dirlocs_dict['path']
-            remote_conf_path = os.path.join(remote_path, 'conifg/', name_of_file)
-            #cam_config_loc_on_pi = '/home/pi/Pigrow/config/' + name_of_file
-            upload_cam_config(target_ip, target_user, target_pass, remote_conf_path, local_cam_settings_file)
-        else:
-            print("User cancelled that...")
+        with open(local_cam_settings_file, "w") as f:
+            f.write(config_text)
+        print("Local Settings file updated")
+        remote_path = MainApp.config_ctrl_pannel.dirlocs_dict['path']
+        remote_conf_path = os.path.join(remote_path, 'config/', cam_config_file_name)
+        #cam_config_loc_on_pi = '/home/pi/Pigrow/config/' + name_of_file
+        MainApp.localfiles_ctrl_pannel.upload_file_to_fodler(local_cam_settings_file, remote_conf_path)
+
 
     def list_cams_click(self, e):
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("ls /dev/video*")
