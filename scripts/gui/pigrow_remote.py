@@ -4017,6 +4017,9 @@ class camconf_ctrl_pnl(wx.Panel):
 
         self.read_cam_config_btn = wx.Button(self, label='read cam \nconfig', pos=(150, 0), size=(70, 30))
         self.read_cam_config_btn.Bind(wx.EVT_BUTTON, self.read_cam_config_click)
+
+        self.save_cam_config_btn = wx.Button(self, label='save to pi', pos=(50, 500), size=(70, 30))
+        self.save_cam_config_btn.Bind(wx.EVT_BUTTON, self.save_cam_config_click)
         #
         # UI for Picam
         #
@@ -4060,7 +4063,7 @@ class camconf_ctrl_pnl(wx.Panel):
     #    if "cam_uvc_extra" in self.camera_settings_dict:
     #        self..SetValue(self.camera_settings_dict['cam_uvc_extra'])
 
-    def save_to_pi_click(self, e):
+    def save_cam_config_click(self, e):
         # Construct camera config file
         config_text = "s_val=" + str(self.tb_s.GetValue()) + "\n"
         config_text += "c_val=" + str(self.tb_c.GetValue()) + "\n"
@@ -4078,14 +4081,17 @@ class camconf_ctrl_pnl(wx.Panel):
     #    chgdep.ShowModal()
     #    name_of_file = chgdep.settings_file_name
     #    chgdep.Destroy()
-        name_of_file = ''
-        print (name_of_file)
-        if not name_of_file == None:
+        print(config_text)
+        local_cam_settings_file = ''
+        print (local_cam_settings_file)
+        if not local_cam_settings_file == None:
             with open(local_cam_settings_file, "w") as f:
                 f.write(config_text)
             print("Local Settings file updated")
-            cam_config_loc_on_pi = '/home/pi/Pigrow/config/' + name_of_file
-            upload_cam_config(target_ip, target_user, target_pass, cam_config_loc_on_pi, local_cam_settings_file)
+            remote_conf_path = MainApp.config_ctrl_pannel.dirlocs_dict['path']
+            remote_conf_path = os.path.join(remote_path, 'conifg/', name_of_file)
+            #cam_config_loc_on_pi = '/home/pi/Pigrow/config/' + name_of_file
+            upload_cam_config(target_ip, target_user, target_pass, remote_conf_path, local_cam_settings_file)
         else:
             print("User cancelled that...")
 
