@@ -47,7 +47,6 @@ if chirp_address == None or new_addr == None:
     sys.exit(1)
 
 
-chirp_address = 0x01
 chirp_sensor = chirp.Chirp(address=chirp_address,
                     read_moist=True,
                     read_temp=True,
