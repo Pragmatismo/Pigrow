@@ -44,6 +44,7 @@ if chirp_address == None or new_addr == None:
     print("")
     print("")
     show_help()
+    sys.exit(1)
 
 
 chirp_address = 0x01
@@ -59,7 +60,7 @@ chirp_sensor = chirp.Chirp(address=chirp_address,
 
 try:
     chirp_sensor.sensor_address = new_addr
-    print(" Chirp address changed from " + str(text_address) + " to " + str(text_new_address)
+    print(" Chirp address changed from " + str(text_address) + " to " + str(text_new_address))
 except IOError:
     print("   Attempted to change chirp sensor at " + str(text_address) + " to " + str(text_new_address))
     print(" Chirp module reported an IOError, either the address was wrong")
