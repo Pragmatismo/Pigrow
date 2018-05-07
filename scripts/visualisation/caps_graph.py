@@ -1,6 +1,7 @@
 #!/usr/bin/python
 import os, sys
 import matplotlib as mpl
+import datetime, time
 mpl.use('Agg')
 import matplotlib.pyplot as plt
 homedir = os.getenv("HOME")
@@ -50,6 +51,20 @@ if graph_path[-1] == '/':
 else:
     graph_path = graph_path + '/'
 
+def filename_to_date(filename):
+    if "_" in filename:
+        stamp = int(str(thefile).split(".")[0].split('_')[-1])
+        return stamp
+    elif "-" in filename:
+        try:
+            date = filename.split("-")[1]
+            file_datetime = datetime.datetime.strptime(date, '%Y%m%d%H%M%S')
+            timestamp = time.mktime(file_datetime.timetuple())
+            return int(timestamp)
+        except:
+            print("!! Tried to parse filename as Motion date but failed " + str(filename))
+            return None, None
+
 def count_folder(capsdir="./", cap_type="jpg"):
     filelist = []
     facounter = 0
@@ -62,13 +77,15 @@ def count_folder(capsdir="./", cap_type="jpg"):
     filelist.sort()
     for thefile in filelist:
         try:
-            datelist.append(int(str(thefile).split(".")[0].split('_')[-1]))
+            stamp = filename_to_date(thefile)
+            datelist.append(stamp)
             thefile = os.stat(capsdir + thefile)
             fsize = thefile.st_size
             facounter = facounter + 1
             fsize_log.append(fsize)
             #facounter_log.append(facounter)
         except:
+            raise
             print("File name didn't parse, ignoring it")
     print "found; " + str(facounter)
     print "with ; " + str(len(fsize_log)) + " file sizes's"
