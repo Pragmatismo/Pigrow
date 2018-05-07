@@ -193,15 +193,26 @@ class Make_TL(wx.Frame):
         try:
             self.cap_thumb.SetBitmap(wx.BitmapFromImage(scale_size_graph))
         except:
-            print("no graph to work with, sorry")    
+            print("no graph to work with, sorry")
 
     def date_from_fn(self, thefilename):
         if "." in thefilename and "_" in thefilename:
             fdate = float(thefilename.split(".")[0].split("_")[-1])
             fdate = datetime.datetime.utcfromtimestamp(fdate)
             return fdate
+        elif "-" in thefilename:
+            try:
+                date = thefilename.split("-")[1]
+                # 10-2018 05 05 20 12 12-03
+                file_datetime = datetime.datetime.strptime(date, '%Y%m%d%H%M%S')
+                text_date = file_datetime.strftime('%Y-%m-%d %H:%M')
+                return text_date
+            except:
+                print("!! Tried to parse filename as Motion date but failed " + str(thefilename))
+                return None, None
         else:
             return None
+
 
     def btn_ren_click(self, e):
         capsdir = self.capsfolder_box.GetValue()
