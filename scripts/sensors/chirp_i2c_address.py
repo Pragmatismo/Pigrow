@@ -66,6 +66,7 @@ except IOError:
     print(" Chirp module reported an IOError, either the address was wrong")
     print(" or the chirp sensor isn't responding correctly.")
     print(" ")
+    raise
 except:
     print(" Unexpected error ")
     raise
