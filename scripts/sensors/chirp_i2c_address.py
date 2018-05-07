@@ -27,8 +27,10 @@ for argu in sys.argv[1:]:
         thevalue = str(argu).split('=')[1]
         if  thearg == 'current' or thearg == 'c':
             chirp_address = int(thevalue, 16)
+            text_address = thevalue
         elif thearg == 'new' or thearg == 'n':
             new_addr = int(thevalue, 16)
+            text_new_address = thevalue
     elif argu == 'help' or argu == '-h' or argu == '--help':
         show_help()
         sys.exit(0)
@@ -54,4 +56,15 @@ chirp_sensor = chirp.Chirp(address=chirp_address,
                     temp_scale='celsius',
                     temp_offset=0)
 
-chirp_sensor.sensor_address = new_addr
+
+try:
+    chirp_sensor.sensor_address = new_addr
+    print(" Chirp address changed from " + str(text_address) + " to " + str(text_new_address)
+except IOError:
+    print("   Attempted to change chirp sensor at " + str(text_address) + " to " + str(text_new_address))
+    print(" Chirp module reported an IOError, either the address was wrong")
+    print(" or the chirp sensor isn't responding correctly.")
+    print(" ")
+except:
+    print(" Unexpected error ")
+    raise
