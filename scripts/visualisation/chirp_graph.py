@@ -11,7 +11,7 @@ try:
     import pigrow_defs
     script = 'chirp_graph.py'
     loc_locs = homedir + '/Pigrow/config/dirlocs.txt'
-#    loc_dic = pigrow_defs.load_locs(loc_locs)
+    loc_dic = pigrow_defs.load_locs(loc_locs)
     # set graph paths
     graph_path = loc_dic['graph_path']
     graph_path = graph_path + "chirp_graph.png"
@@ -23,9 +23,15 @@ try:
     log_location = loc_dic['chirp_log']
     # find
     loc_settings = loc_dic['loc_settings']
-#    set_dic = pigrow_defs.load_settings(loc_settings)
-#    toolow = int(set_dic['chirp_low'])
-#    toohigh = int(set_dic['chirp_high'])
+    set_dic = pigrow_defs.load_settings(loc_settings)
+    if 'soil_moist_low' in set_dic:
+        toolow = int(set_dic['soil_moist_low'])
+    else:
+        toolow = 30
+    if 'soil_moist_high' in set_dic:
+        toohigh = int(set_dic['soil_moist_high'])
+    else:
+        toolow = 70
 except Exception as e:
     print(" Couldn't load setting from config file; " + str(e))
     graph_path = homedir + "/Pigrow/graphs/chirp_graph.png"
