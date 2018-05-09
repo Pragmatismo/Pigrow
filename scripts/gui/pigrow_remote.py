@@ -3188,7 +3188,7 @@ class localfiles_ctrl_pnl(wx.Panel):
             if the_remote_file in caps_files:
                 the_remote_file = os.path.join(pi_caps_path, the_remote_file)
                 MainApp.status.write_bar("clearing - " + the_remote_file)
-                MainApp.localfiles_ctrl_pannel.run_on_pi("rm " + the_remote_file)
+                MainApp.localfiles_ctrl_pannel.run_on_pi("rm " + the_remote_file, False)
                 wx.Yield()
                 count = count + 1
             MainApp.status.write_bar("Cleared " + str(count) + " files from the pigrow")
@@ -3196,10 +3196,11 @@ class localfiles_ctrl_pnl(wx.Panel):
         self.update_local_filelist_click("e")
 
 
-    def run_on_pi(self, command):
+    def run_on_pi(self, command, write_status=True):
         #Runs a command on the pigrow and returns output and error
         #  out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("ls /home/" + pi_link_pnl.target_user + "/Pigrow/")
-        MainApp.status.write_blue_bar("Running; " + command)
+        if write_status == True:
+            MainApp.status.write_blue_bar("Running; " + command)
         try:
             stdin, stdout, stderr = ssh.exec_command(command)
             out = stdout.read()
@@ -3210,7 +3211,8 @@ class localfiles_ctrl_pnl(wx.Panel):
             error = "failed running command;" + str(command) + " with error - " + str(e)
             print(error)
             return "", error
-        MainApp.status.write_bar("ready...")
+        if write_status == True:
+            MainApp.status.write_bar("ready...")
         return out, error
 
     def update_local_filelist_click(self, e):
@@ -3288,8 +3290,9 @@ class localfiles_ctrl_pnl(wx.Panel):
                         if len(caps_files) > 1:
                             #lable first and last image with name
                             localfiles_info_pnl.first_photo_title.SetLabel(caps_files[0])
-                            localfiles_info_pnl.last_photo_title .SetLabel(caps_files[-1])
+                            localfiles_info_pnl.last_photo_title.SetLabel(caps_files[-1])
                             #determine date range of images
+
                             first_date, first_dt = self.filename_to_date(caps_files[0])
                             last_date, last_dt = self.filename_to_date(caps_files[-1])
                             if not last_dt == None and not first_dt == None:
@@ -3306,9 +3309,10 @@ class localfiles_ctrl_pnl(wx.Panel):
                             first_remote, first_r_dt = self.filename_to_date(remote_caps[0])
                             last_remote, last_r_dt = self.filename_to_date(remote_caps[-1])
                             caps_message += "  " + str(first_remote) + " - " + str(last_remote)
-                            if not last_r_dt == None or not first_r_dt == None:
-                                length_of_remote = last_r_dt - first_r_dt
-                                caps_message += '\n     ' + str(length_of_remote)
+                            if not last_r_dt == None:
+                                if not first_r_dt == None:
+                                    length_of_remote = last_r_dt - first_r_dt
+                                    caps_message += '\n     ' + str(length_of_remote)
                         else:
                             caps_message += " "
 
@@ -3342,14 +3346,29 @@ class localfiles_ctrl_pnl(wx.Panel):
         print("local file info discovered..")
 
     def filename_to_date(self, filename):
-        try:
-            date = float(filename.split(".")[0].split("_")[-1])
-            file_datetime = datetime.datetime.fromtimestamp(date)
-            date = time.strftime('%Y-%m-%d %H:%M', time.localtime(date))
-            return date, file_datetime
-        except:
-            print("!! filename doesn't parse into a unix datetime")
+        if "_" in filename:
+            try:
+                date = float(filename.split(".")[0].split("_")[-1])
+                file_datetime = datetime.datetime.fromtimestamp(date)
+                text_date = time.strftime('%Y-%m-%d %H:%M', time.localtime(date))
+                return text_date, file_datetime
+            except:
+                print("!! tried to parse from a unix datetime but failed " + str(filename))
+                return None, None
+        elif "-" in filename:
+            try:
+                date = filename.split("-")[1]
+                # 10-2018 05 05 20 12 12-03
+                file_datetime = datetime.datetime.strptime(date, '%Y%m%d%H%M%S')
+                text_date = file_datetime.strftime('%Y-%m-%d %H:%M')
+                return text_date, file_datetime
+            except:
+                print("!! Tried to parse filename as Motion date but failed " + str(filename))
+                return None, None
+        else:
             return None, None
+
+
 
     def download_click(self, e):
         #show download dialog boxes
@@ -3946,7 +3965,23 @@ class camconf_info_pnl(wx.Panel):
         # placing the information boxes
         self.camconf_txt = wx.StaticText(self,  label='Camera Config Panel', pos=(5, 5), size=(200,30))
         place_holder = wx.Bitmap(500, 500)
-        self.camconf_img_box = wx.StaticBitmap(self, -1, place_holder, (10, 45), (500, 500))
+        self.camconf_img_box = wx.StaticBitmap(self, -1, place_holder, (10, 135), (700, 700))
+        # Top bar info
+        # basic settings
+        wx.StaticText(self,  label='Brightness;', pos=(10, 40))
+        self.tb_b = wx.TextCtrl(self, pos=(120, 40), size=(75, 25))
+        wx.StaticText(self,  label='Contrast;', pos=(10, 70))
+        self.tb_c = wx.TextCtrl(self, pos=(120, 70), size=(75, 25))
+        wx.StaticText(self,  label='Saturation;', pos=(10, 100))
+        self.tb_s = wx.TextCtrl(self, pos=(120, 100), size=(75, 25))
+        wx.StaticText(self,  label='Gain;', pos=(10, 130))
+        self.tb_g = wx.TextCtrl(self, pos=(120, 130), size=(75, 25))
+        # size settings
+        wx.StaticText(self,  label='Image Size', pos=(200, 45))
+        wx.StaticText(self,  label='X;', pos=(225, 70))
+        self.tb_x = wx.TextCtrl(self, pos=(250, 70), size=(75, 25))
+        wx.StaticText(self,  label='Y;', pos=(225, 100))
+        self.tb_y = wx.TextCtrl(self, pos=(250, 100), size=(75, 25))
 
 
 class camconf_ctrl_pnl(wx.Panel):
@@ -3970,19 +4005,7 @@ class camconf_ctrl_pnl(wx.Panel):
         webcam_opts = ['uvccapture', 'fswebcam']
         self.webcam_cb = wx.ComboBox(self, choices = webcam_opts, pos=(10,90), size=(265, 30))
         self.webcam_cb.Bind(wx.EVT_COMBOBOX, self.webcam_combo_go)
-        # basic settings
-        wx.StaticText(self,  label='Brightness;', pos=(10, 120))
-        self.tb_b = wx.TextCtrl(self, pos=(120, 120), size=(75, 25))
-        wx.StaticText(self,  label='Contrast;', pos=(10, 150))
-        self.tb_c = wx.TextCtrl(self, pos=(120, 150), size=(75, 25))
-        wx.StaticText(self,  label='Saturation;', pos=(10, 180))
-        self.tb_s = wx.TextCtrl(self, pos=(120, 180), size=(75, 25))
-        wx.StaticText(self,  label='Gain;', pos=(10, 210))
-        self.tb_g = wx.TextCtrl(self, pos=(120, 210), size=(75, 25))
-        wx.StaticText(self,  label='X;', pos=(10, 240))
-        self.tb_x = wx.TextCtrl(self, pos=(120, 240), size=(75, 25))
-        wx.StaticText(self,  label='Y;', pos=(10, 270))
-        self.tb_y = wx.TextCtrl(self, pos=(120, 270), size=(75, 25))
+
         #
         ## fswebcam only controlls
         self.fs_label = wx.StaticText(self,  label='fswebcam only settings', pos=(10, 300))
@@ -4041,18 +4064,18 @@ class camconf_ctrl_pnl(wx.Panel):
             self.webcam_cb.SetValue(self.camera_settings_dict['cam_opt'])
         # basic values
         if "b_val" in self.camera_settings_dict:
-            self.tb_b.SetValue(self.camera_settings_dict['b_val'])
+            MainApp.camconf_info_pannel.tb_b.SetValue(self.camera_settings_dict['b_val'])
         if "c_val" in self.camera_settings_dict:
-            self.tb_c.SetValue(self.camera_settings_dict['c_val'])
+            MainApp.camconf_info_pannel.tb_c.SetValue(self.camera_settings_dict['c_val'])
         if "s_val" in self.camera_settings_dict:
-            self.tb_s.SetValue(self.camera_settings_dict['s_val'])
+            MainApp.camconf_info_pannel.tb_s.SetValue(self.camera_settings_dict['s_val'])
         if "g_val" in self.camera_settings_dict:
-            self.tb_g.SetValue(self.camera_settings_dict['g_val'])
+            MainApp.camconf_info_pannel.tb_g.SetValue(self.camera_settings_dict['g_val'])
         # pos
         if "x_dim" in self.camera_settings_dict:
-            self.tb_x.SetValue(self.camera_settings_dict['x_dim'])
+            MainApp.camconf_info_pannel.tb_x.SetValue(self.camera_settings_dict['x_dim'])
         if "y_dim" in self.camera_settings_dict:
-            self.tb_y.SetValue(self.camera_settings_dict['y_dim'])
+            MainApp.camconf_info_pannel.tb_y.SetValue(self.camera_settings_dict['y_dim'])
         # extra commands
         if "additonal_commands" in self.camera_settings_dict:
             self.cmds_string_tb.SetValue(self.camera_settings_dict['additonal_commands'])
@@ -4064,12 +4087,12 @@ class camconf_ctrl_pnl(wx.Panel):
 
     def save_cam_config_click(self, e):
         # Construct camera config file
-        config_text = "s_val=" + str(self.tb_s.GetValue()) + "\n"
-        config_text += "c_val=" + str(self.tb_c.GetValue()) + "\n"
-        config_text += "g_val=" + str(self.tb_g.GetValue()) + "\n"
-        config_text += "b_val=" + str(self.tb_b.GetValue()) + "\n"
-        config_text += "x_dim=" + str(self.tb_x.GetValue()) + "\n"
-        config_text += "y_dim=" + str(self.tb_y.GetValue()) + "\n"
+        config_text = "s_val=" + str(MainApp.camconf_info_pannel.tb_s.GetValue()) + "\n"
+        config_text += "c_val=" + str(MainApp.camconf_info_pannel.tb_c.GetValue()) + "\n"
+        config_text += "g_val=" + str(MainApp.camconf_info_pannel.tb_g.GetValue()) + "\n"
+        config_text += "b_val=" + str(MainApp.camconf_info_pannel.tb_b.GetValue()) + "\n"
+        config_text += "x_dim=" + str(MainApp.camconf_info_pannel.tb_x.GetValue()) + "\n"
+        config_text += "y_dim=" + str(MainApp.camconf_info_pannel.tb_y.GetValue()) + "\n"
         config_text += "cam_num=" + str(self.cam_cb.GetValue()) + "\n"
         config_text += "cam_opt=" + str(self.webcam_cb.GetValue()) + "\n"
         config_text += "additonal_commands=" + str(self.cmds_string_tb.GetValue()) + "\n"
@@ -4118,12 +4141,12 @@ class camconf_ctrl_pnl(wx.Panel):
         # take using the settings currently displayed on the screen
         cam_set = self.cam_cb.GetValue()
         cam_opt = self.webcam_cb.GetValue()
-        cam_b = self.tb_b.GetValue()
-        cam_c = self.tb_c.GetValue()
-        cam_s = self.tb_s.GetValue()
-        cam_g = self.tb_g.GetValue()
-        cam_x = self.tb_x.GetValue()
-        cam_y = self.tb_y.GetValue()
+        cam_b = MainApp.camconf_info_pannel.tb_b.GetValue()
+        cam_c = MainApp.camconf_info_pannel.tb_c.GetValue()
+        cam_s = MainApp.camconf_info_pannel.tb_s.GetValue()
+        cam_g = MainApp.camconf_info_pannel.tb_g.GetValue()
+        cam_x = MainApp.camconf_info_pannel.tb_x.GetValue()
+        cam_y = MainApp.camconf_info_pannel.tb_y.GetValue()
         cam_additional = self.cmds_string_tb.GetValue()
         # determine output file name
         outfile = '/home/' + pi_link_pnl.target_user + '/Pigrow/temp/test_settings.jpg'
@@ -4365,7 +4388,6 @@ class sensors_info_pnl(wx.Panel):
                 edit_chirp_dbox = chirp_dialog(None)
                 edit_chirp_dbox.ShowModal()
 
-
 class sensors_ctrl_pnl(wx.Panel):
     def __init__( self, parent ):
         win_height = gui_set.height_of_window
@@ -4393,6 +4415,9 @@ class sensors_ctrl_pnl(wx.Panel):
         self.config_chirp_btn = wx.Button(self, label='add new chirp', pos=(15, 170), size=(175, 30))
         self.config_chirp_btn.Bind(wx.EVT_BUTTON, self.add_new_chirp_click)
 
+        self.address_chirp_btn = wx.Button(self, label='change chirp address', pos=(15, 200), size=(175, 30))
+        self.address_chirp_btn.Bind(wx.EVT_BUTTON, self.address_chirp_click)
+
         self.make_table_btn = wx.Button(self, label='make table', pos=(15, 50), size=(175, 30))
         self.make_table_btn.Bind(wx.EVT_BUTTON, MainApp.sensors_info_pannel.sensor_list.make_sensor_table)
 
@@ -4410,6 +4435,38 @@ class sensors_ctrl_pnl(wx.Panel):
         # call the chirp config dialog box
         add_chirp_dbox = chirp_dialog(None, title='Chirp Sensor Config')
         add_chirp_dbox.ShowModal()
+
+    def address_chirp_click(self, e):
+        # Ask user to select the chirp they want to readdress
+        msg_text =  "This will change the address of your Chirp on the i2c bus, \n"
+        msg_text += "please input the current address of the sensor you wish you change. \n"
+        msg_text += "You must use the format 0x** - e.g. 0x20, 0x21, etc. \n\n"
+        msg_text += "If your sensor is plugged in correctly but doesn't show on the i2c bus \n"
+        msg_text += "it's likely to be at 0x01 or possibly 0x00 or 0x02. \n"
+        current_add_dbox = wx.TextEntryDialog(self, msg_text, 'Change i2c address', "")
+        if current_add_dbox.ShowModal() == wx.ID_OK:
+            current_chirp_add = current_add_dbox.GetValue()
+        else:
+            return "cancelled"
+        current_add_dbox.Destroy()
+        # ask which address the user wants to change it to
+        msg_text = "Input new address to set chirp sensor to\n"
+        msg_text += "You must use the format 0x20, 0x21, etc."
+        new_add_dbox = wx.TextEntryDialog(self, msg_text, 'Change i2c address', "")
+        if new_add_dbox.ShowModal() == wx.ID_OK:
+            new_chirp_add = new_add_dbox.GetValue()
+        else:
+            return "cancelled"
+        new_add_dbox.Destroy()
+        path = MainApp.config_ctrl_pannel.dirlocs_dict["path"]
+        cmd = os.path.join(path, "scripts/sensors/chirp_i2c_address.py")
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi(cmd + " current=" + current_chirp_add + " new=" + new_chirp_add)
+        # tell the uesr what happened
+        msg_text = "Script output; " + str(out) + " " + str(error)
+        dbox = show_script_cat(None, msg_text, "chirp_i2c_address.py output")
+        dbox.ShowModal()
+        dbox.Destroy()
+
 
     def sensor_combo_go(self, e):
         # hide all controls
@@ -4728,6 +4785,7 @@ class pi_link_pnl(wx.Panel):
                     MainApp.status.write_bar("Pigrow Found; " + str(box_name))
                     print("#sb# Pigrow Found; " + str(box_name))
                     self.set_link_pi_text(log_on_test, box_name)
+                    pi_link_pnl.target_ip = self.tb_ip.GetValue()
                     return box_name #this just exits the loop
                 except paramiko.AuthenticationException:
                     MainApp.status.write_bar("Authentication failed when connecting to " + str(host))
