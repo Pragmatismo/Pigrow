@@ -119,6 +119,7 @@ def set_date_values(hours_to_show, show_from):
     # if hours_to_show is set then works out when to start the Graph
     # show_from is set then converts it into a datetime object for later use
     # show_from should be set using the format YY-mm-dd-HH:MM note the - instead of a space between dd and HH
+    thetime = datetime.datetime.now()
     if not hours_to_show == "all":
         oldest_allowed_date = thetime - datetime.timedelta(hours=hours_to_show)
     elif not show_from == "start":
