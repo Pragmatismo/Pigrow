@@ -50,7 +50,7 @@ def generic_high(gpio_pin, switch_log):
     script = 'generic_high.py'
     msg = ("")
     msg +=("      #################################################\n")
-    msg +=("      ##         gpio pin " + gpio_pin
+    msg +=("      ##         gpio pin " + gpio_pin)
     msg +=(                                      " is now High   ##\n")
     msg +=("      #################################################\n")
     GPIO.output(gpio_pin, GPIO.HIGH)
