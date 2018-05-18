@@ -61,7 +61,7 @@ def generic_high(gpio_pin, switch_log):
 
 if __name__ == '__main__':
     gpio_pin, log = check_command_line_args()
-    if log = "dirlocs":
+    if log == "dirlocs":
         homedir = os.getenv("HOME")
         sys.path.append(homedir + '/Pigrow/scripts/')
         import pigrow_defs
