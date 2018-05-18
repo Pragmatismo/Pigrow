@@ -30,7 +30,7 @@ def check_command_line_args():
             print("   gpio=<num>")
             print("")
             print("   log=")
-            print("       none         - don't log"
+            print("       none         - don't log")
             print("       dirlocs      - use the default log")
             print("       <path>       - specify the path to a log")
             sys.exit()
