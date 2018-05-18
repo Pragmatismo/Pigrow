@@ -46,14 +46,14 @@ def generic_high(gpio_pin, switch_log):
     """
     GPIO.setmode(GPIO.BCM)
     GPIO.setwarnings(False)
-    GPIO.setup(gpio_pin, GPIO.OUT)
+    GPIO.setup(int(gpio_pin), GPIO.OUT)
     script = 'generic_high.py'
     msg = ("")
     msg +=("      #################################################\n")
     msg +=("      ##         gpio pin " + gpio_pin)
     msg +=(                                      " is now High   ##\n")
     msg +=("      #################################################\n")
-    GPIO.output(gpio_pin, GPIO.HIGH)
+    GPIO.output(int(gpio_pin, GPIO.HIGH)
     if not switch_log == "none":
         pigrow_defs.write_log(script, "GPIO pin " + gpio_pin + " set to high", switch_log)
     return msg
