@@ -18,7 +18,7 @@ def check_command_line_args():
                     gpio_pin = key
                 else:
                     print("GPIO pins must be a number")
-           elif val == 'log':
+            elif val == 'log':
                log = key.lower()
         elif argu == '-h' or argu == '--help':
             print("        Pigrow GPIO pin High")
