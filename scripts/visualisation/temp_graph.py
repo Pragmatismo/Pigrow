@@ -49,7 +49,7 @@ def get_warning_ranges_from_settings(loc_settings):
     dangerhot = (float(toohot) / 100) * 115
     return toocold, dangercold, toohot, dangerhot
 
-def check_commandline_options(graph_path, log_location, hours_to_show, show_from, toocold, dangercold, toohot, dangerhot, temp_unit, ymin="default",ymax="default", log_temp_pos=0, log_date_pos=2, colour_graph="true", box_plot_graph='true', line_graph):
+def check_commandline_options(graph_path, log_location, hours_to_show, show_from, toocold, dangercold, toohot, dangerhot, temp_unit, ymin="default",ymax="default", log_temp_pos=0, log_date_pos=2, colour_graph="true", box_plot_graph='true', line_graph='true'):
     for argu in sys.argv[1:]:
         if "=" in argu:
             thearg = str(argu).split('=')[0].lower()
