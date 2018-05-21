@@ -377,8 +377,8 @@ if __name__ == '__main__':
     if box_plot_graph == 'true':
         try:
             render_box_plot(log_date, log_temp, graph_hours_path, ymin, ymax, toocold, dangercold, toohot, dangerhot)
-        except exception as e:
-            print("!!! couldn't render box plot, " + str(e))    
+        except Exception as e:
+            print("!!! couldn't render box plot, " + str(e))
     # Orignal Graph, simple temp to date line plot with optional colors
     if line_graph == 'true':
         if colour_graph == "true":
