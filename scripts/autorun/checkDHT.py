@@ -5,7 +5,7 @@
 #
 #
 
-log_time = 30
+log_time = 600
 log_non = True #tests switch conditions even if no switich present.
 
 use_heat    = True
@@ -30,13 +30,15 @@ import heater_on, heater_off, humid_on, humid_off, dehumid_on, dehumid_off, fans
 loc_dic = pigrow_defs.load_locs(homedir + "/Pigrow/config/dirlocs.txt")
 set_dic = pigrow_defs.load_settings(loc_dic['loc_settings'], err_log=loc_dic['err_log'])
 #print set_dic
+if 'log_frequency' in set_dic:
+    log_time = set_dic['log_frequency']
 
 for argu in sys.argv[1:]:
     if '=' in argu:
         thearg = str(argu).split('=')[0]
         thevalue = str(argu).split('=')[1]
         if  thearg == 'log_time' or thearg == 'delay':
-            sensor_path = int(thevalue)
+            log_time = int(thevalue)
         elif thearg == 'log_non':
             if thevalue.lower() == 'true' or thevalue == '0':
                 log_non = True
@@ -272,7 +274,7 @@ while True:
             print("Sensor didn't read...")
             time.sleep(1)
     except Exception as e:
-        print("#######SOME FORM OF PIGROW ERROR Pigrow error pigrow error in checldht, probably sensor being shonk")
+        print("#######SOME FORM OF PIGROW ERROR Pigrow error pigrow error in checkDHT.py, probably sensor being shonk")
         print("         or some file thing??       user intervention?          i'm spooked, whatever.")
         print e
         #raise
