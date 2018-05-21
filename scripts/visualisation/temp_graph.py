@@ -1,8 +1,8 @@
 #!/usr/bin/python
 # encoding: utf-8
 import sys
-#reload(sys)
-#sys.setdefaultencoding('Cp1252')
+reload(sys)
+sys.setdefaultencoding('Cp1252')
 import matplotlib as mpl
 mpl.use('Agg')
 import matplotlib.pyplot as plt
@@ -375,7 +375,10 @@ if __name__ == '__main__':
     # the competition winning graph, each hour's temp ranges shown.
     graph_hours_path = graph_path[:-4] + "_hours.png"
     if box_plot_graph == 'true':
-        render_box_plot(log_date, log_temp, graph_hours_path, ymin, ymax, toocold, dangercold, toohot, dangerhot)
+        try:
+            render_box_plot(log_date, log_temp, graph_hours_path, ymin, ymax, toocold, dangercold, toohot, dangerhot)
+        except exception as e:
+            print("!!! couldn't render box plot, " + str(e))    
     # Orignal Graph, simple temp to date line plot with optional colors
     if line_graph == 'true':
         if colour_graph == "true":
