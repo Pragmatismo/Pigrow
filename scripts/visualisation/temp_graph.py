@@ -45,7 +45,7 @@ def get_warning_ranges_from_settings(loc_settings):
     dangerhot = (float(toohot) / 100) * 115
     return toocold, dangercold, toohot, dangerhot
 
-def check_commandline_options(graph_path, log_location, hours_to_show, show_from, toocold, dangercold, toohot, dangerhot, temp_unit, ymin="default",ymax="default", log_temp_pos=0, log_date_pos=2, colour_graph="true"):
+def check_commandline_options(graph_path, log_location, hours_to_show, show_from, toocold, dangercold, toohot, dangerhot, temp_unit, ymin="default",ymax="default", log_temp_pos=0, log_date_pos=2, colour_graph="true", box_plot_graph='true', line_graph):
     for argu in sys.argv[1:]:
         if "=" in argu:
             thearg = str(argu).split('=')[0].lower()
@@ -77,7 +77,11 @@ def check_commandline_options(graph_path, log_location, hours_to_show, show_from
                 log_date_pos = int(theval)
                 print("Using log location " + str(log_date_pos) + " for date info")
             elif thearg == "colour_graph" or thearg == "color_graph":
-                colour_graph = thearg.lower()
+                colour_graph = theval.lower()
+            elif thearg == "make_box_plot":
+                box_plot_graph = theval.lower()
+            elif thearg == "make_line_graph":
+                line_graph = theval.lower()
         elif argu == 'h' or argu == '-h' or argu == 'help' or argu == '--help':
             print("")
             print("  log=DIR/LOG_FILE  - point to a different log file than mentioned in dirlocs")
@@ -96,6 +100,8 @@ def check_commandline_options(graph_path, log_location, hours_to_show, show_from
             print("  ymax=50           - Set position of top of Y Axis")
             print("                         these are useful when animating")
             print("                         or making graphs for comparing")
+            print("  make_box_plot=true    -enable or disable making the box plot")
+            print("  make_line_graph=true  -enable or disable making line graph")
             sys.exit()
         elif argu == '-flags':
             print("log=" + log_location)
@@ -110,10 +116,12 @@ def check_commandline_options(graph_path, log_location, hours_to_show, show_from
             print("ymin=0")
             print("ymax=50")
             print("colour_graph=[true,false]")
+            print("make_box_plot=[true, false]")
+            print("make_line_graph=[true, false]")
             sys.exit()
         else:
             print(" No idea what you mean by; " + str(argu))
-    return graph_path, log_location, hours_to_show, show_from, toocold, dangercold, toohot, dangerhot, temp_unit, ymin, ymax, log_temp_pos, log_date_pos, colour_graph
+    return graph_path, log_location, hours_to_show, show_from, toocold, dangercold, toohot, dangerhot, temp_unit, ymin, ymax, log_temp_pos, log_date_pos, colour_graph, box_plot_graph, line_graph
 
 def set_date_values(hours_to_show, show_from):
     # if hours_to_show is set then works out when to start the Graph
@@ -177,7 +185,7 @@ def add_log(linktolog, temp_unit, oldest_allowed_date, temp_pos=0, date_pos=2):
         exit()
     return log_date, log_temp
 
-def make_graph(date_list,temp_list, graph_path, ymin="default", ymax="default", toocold=None, dangercold=None, toohot=None, dangerhot=None):
+def render_line_graph(date_list,temp_list, graph_path, ymin="default", ymax="default", toocold=None, dangercold=None, toohot=None, dangerhot=None):
     # define graph space
     plt.figure(1)
     ax = plt.subplot()
@@ -213,6 +221,134 @@ def make_graph(date_list,temp_list, graph_path, ymin="default", ymax="default", 
     #plt.show()
     plt.savefig(graph_path)
 
+def render_box_plot(date_list, temp_list, graph_path, ymin, ymax, toocold, dangercold, toohot, dangerhot):
+    print("Making competition entry graph...")
+
+    import matplotlib.pyplot as plt
+    import numpy as np
+    import time
+    from matplotlib.lines import Line2D
+    from matplotlib.patches import Polygon
+    from matplotlib.ticker import StrMethodFormatter
+
+    # Start and End colors for the gradient
+    startColor = (118,205,38)
+    endColor = (38,118,204)
+    dangercoldColor = 'xkcd:purplish blue'
+    toocoldColor = 'xkcd:light blue'
+    toohotColor = 'xkcd:orange'
+    dangerhotColor = 'xkcd:red'
+
+    # Group the data by hour
+    hours = [[] for i in range(24)]
+    for i in range(len(date_list)):
+        h = int(date_list[i].strftime('%H'))
+        hours[h].append(temp_list[i])
+
+    # give the graph a rectangular formatr
+    fig, ax1 = plt.subplots(figsize=(10, 6))
+    fig.subplots_adjust(left=0.1, right=0.9, top=0.9, bottom=0.15)
+    fig.suptitle('Median Temperature by Hour', fontsize=14, fontweight='bold')
+
+    bp = ax1.boxplot(hours,whis=0,widths=1,showfliers=False,showcaps=False,medianprops=dict(linestyle=''),boxprops=dict(linestyle=''))
+    ax1.set_axisbelow(True)
+    ax1.set_title(min(date_list).strftime("%B %d, %Y") + ' - ' + max(date_list).strftime("%B %d, %Y"), fontsize=10)
+
+    # x-axis
+    labels = [item.get_text() for item in ax1.get_xticklabels()]
+    for i in range(24):
+        labels[i] = str(i).zfill(2) + ':00'
+    ax1.set_xticklabels(labels,rotation=45,fontsize=8)
+    ax1.set_xlim(0, 25)
+    ax1.set_xlabel('Hour of the Day')
+
+    # y-axis
+    fmt = StrMethodFormatter('{x:,g}°')
+    ax1.yaxis.set_major_formatter(fmt)
+    ax1.yaxis.grid(True, linestyle='-', which='major', color='lightgrey', alpha=0.5)
+    ax1.set_ylabel('Temperature in Celsius')
+
+    # legend
+    custom_lines = [Line2D([0], [0], color=dangerhotColor, lw=2),
+                    Line2D([0], [0], color=toohotColor, lw=2),
+                    Line2D([0], [0], color=toocoldColor, lw=2),
+                    Line2D([0], [0], color=dangercoldColor, lw=2)]
+
+    plt.legend(custom_lines, [('%.2f°' % dangerhot).replace(".00°","°")
+            , ('%.2f°' % toohot).replace(".00°","°")
+            , ('%.2f°' % toocold).replace(".00°","°")
+            , ('%.2f°' % dangercold).replace(".00°","°")]
+            , bbox_to_anchor=(1.02,1)
+            , loc="upper left")
+
+    plt.subplots_adjust(right=0.85)
+
+    # given a defined start and stop, calculate 24 shade gradient
+    boxColors = [[] for i in range(24)]
+    for i in range(24):
+        for j in range(3):
+            newColor = 0
+            step = abs(startColor[j] - endColor[j]) / 24
+            if startColor[j] > endColor[j]:
+                newColor = (startColor[j] - (i * step)) / 255
+            else:
+                newColor = (startColor[j] + (i * step)) / 255
+            boxColors[i].append(newColor)
+
+    # Apply box specific info: color, median, warning
+    minEdge = 100
+    maxEdge = 0
+    medians = list(range(24))
+    for i in range(24):
+        box = bp['boxes'][i]
+        boxX = []
+        boxY = []
+        for j in range(5):
+            boxX.append(box.get_xdata()[j])
+            boxY.append(box.get_ydata()[j])
+        boxCoords = np.column_stack([boxX, boxY])
+
+        # Find min & max box edges to set y-axis limits
+        if minEdge > min(boxY):
+            minEdge = min(boxY)
+        if maxEdge < max(boxY):
+            maxEdge = max(boxY)
+
+        # Alert user to dangerous temps
+        warning = 'none'
+        if min(hours[i]) <= toocold and min(hours[i]) > dangercold:
+            warning = toocoldColor
+        if min(hours[i]) <= dangercold:
+            warning = dangercoldColor
+        if max(hours[i]) >= toohot and max(hours[i]) < dangerhot:
+            warning = toohotColor
+        if max(hours[i]) >= dangerhot:
+            warning = dangerhotColor
+
+        # Color the box and set the edge color, if applicable
+        boxPolygon = Polygon(boxCoords, facecolor=boxColors[i],edgecolor=warning)
+        ax1.add_patch(boxPolygon)
+
+        # add median data
+        med = bp['medians'][i]
+        medians[i] = med.get_ydata()[0]
+
+    top = maxEdge + 1
+    bottom = minEdge - 1
+    ax1.set_ylim(bottom, top)
+
+    # Add the medians just above the hour marks
+    pos = np.arange(24) + 1
+    upperLabels = [str(np.round(s, 2)) for s in medians]
+    weights = ['bold', 'semibold']
+    k = -1
+    for tick, label in zip(range(24), ax1.get_xticklabels()):
+        w = tick % 2
+        k = k + 1
+        ax1.text(pos[tick],bottom + (bottom*0.02),upperLabels[tick],horizontalalignment='center',size='x-small',weight=weights[w],color=boxColors[k])
+
+    plt.savefig(graph_path)
+
 
 if __name__ == '__main__':
     print "----------------------------------"
@@ -224,7 +360,7 @@ if __name__ == '__main__':
     # try to load temp settings from pigrows config file where they're also used fo other things
     toocold, dangercold, toohot, dangerhot = get_warning_ranges_from_settings(settings_location)
     # check if user wants to alter any settings
-    graph_path, log_location, hours_to_show, show_from, toocold, dangercold, toohot, dangerhot, temp_unit, ymin, ymax, log_temp_pos, log_date_pos, colour_graph = check_commandline_options(graph_path, log_location, hours_to_show, show_from, toocold, dangercold, toohot, dangerhot, temp_unit)
+    graph_path, log_location, hours_to_show, show_from, toocold, dangercold, toohot, dangerhot, temp_unit, ymin, ymax, log_temp_pos, log_date_pos, colour_graph, box_plot_graph, line_graph = check_commandline_options(graph_path, log_location, hours_to_show, show_from, toocold, dangercold, toohot, dangerhot, temp_unit)
     # find dates to use for cut off
     oldest_allowed_date = set_date_values(hours_to_show, show_from)
     # add the log file, by default uses DHT22 log
@@ -232,9 +368,15 @@ if __name__ == '__main__':
     print "----------------------------------"
     print "most recent temp - " + str(log_temp[-1])[0:4] + " " + temp_unit
     print "----------------------------------"
-    if colour_graph == "true":
-        print "Colouring graph using temp range; " + str(dangercold) + ", " + str(toocold) + " -- " + str(toohot) + ", " + str(dangerhot) + " "
-        make_graph(log_date, log_temp, graph_path, ymin, ymax, toocold, dangercold, toohot, dangerhot)
-    else:
-        make_graph(log_date, log_temp, graph_path, ymin, ymax, None, None, None, None)
-    print("Temp data created and saved to " + graph_path)
+    # the competition winning graph, each hour's temp ranges shown.
+    graph_hours_path = graph_path[:-4] + "_hours.png"
+    if box_plot_graph == 'true':
+        render_box_plot(log_date, log_temp, graph_hours_path, ymin, ymax, toocold, dangercold, toohot, dangerhot)
+    # Orignal Graph, simple temp to date line plot with optional colors
+    if line_graph == 'true':
+        if colour_graph == "true":
+            print "Colouring graph using temp range; " + str(dangercold) + ", " + str(toocold) + " -- " + str(toohot) + ", " + str(dangerhot) + " "
+            render_line_graph(log_date, log_temp, graph_path, ymin, ymax, toocold, dangercold, toohot, dangerhot)
+        else:
+            render_line_graph(log_date, log_temp, graph_path, ymin, ymax, None, None, None, None)
+        print("Temp data created and saved to " + graph_path)
