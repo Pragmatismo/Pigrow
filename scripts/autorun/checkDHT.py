@@ -269,7 +269,7 @@ while True:
                 if not str(set_dic['gpio_dehumid']).strip() == '' or log_non == True or dehum_use_fan == True:
                     if use_dehumid == True:
                         dehumid_control(humid, dehum_use_fan)
-            time.sleep(log_time)
+            time.sleep(int(log_time))
         else:
             print("Sensor didn't read...")
             time.sleep(1)
