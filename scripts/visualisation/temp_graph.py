@@ -1,10 +1,13 @@
 #!/usr/bin/python
+import sys
+reload(sys)
+sys.setdefaultencoding('Cp1252')
 import matplotlib as mpl
 mpl.use('Agg')
 import matplotlib.pyplot as plt
 import datetime
 import numpy as np
-import sys, os
+import os
 homedir = os.getenv("HOME")
 
 #This code is designed to work with a pigrow using a dht22 sensor, but use it for whatever you like,,,
