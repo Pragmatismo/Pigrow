@@ -505,7 +505,7 @@ if __name__ == '__main__':
     # try to load temp settings from pigrows config file where they're also used fo other things
     toocold, dangercold, toohot, dangerhot = get_warning_ranges_from_settings(settings_location)
     # check if user wants to alter any settings
-    graph_path, log_location, hours_to_show, show_from, toocold, dangercold, toohot, dangerhot, temp_unit, ymin, ymax, log_temp_pos, log_date_pos, colour_graph, box_plot_graph, line_graph = check_commandline_options(graph_path, log_location, hours_to_show, show_from, toocold, dangercold, toohot, dangerhot, temp_unit)
+    graph_path, log_location, hours_to_show, show_from, toocold, dangercold, toohot, dangerhot, temp_unit, ymin, ymax, log_temp_pos, log_date_pos, colour_graph, box_plot_graph, line_graph, danger_hours, pie_hours_path = check_commandline_options(graph_path, log_location, hours_to_show, show_from, toocold, dangercold, toohot, dangerhot, temp_unit)
     # find dates to use for cut off
     oldest_allowed_date = set_date_values(hours_to_show, show_from)
     # add the log file, by default uses DHT22 log
@@ -533,6 +533,6 @@ if __name__ == '__main__':
         graph_danger_hours_path = graph_path[:-4] + "_danger_hours.png"
         render_danger_temps_graph(log_date, log_temp, graph_danger_hours_path, ymin, ymax, toocold, dangercold, toohot, dangerhot)
     if pie_chart == 'true':
-        pie_hours_path = graph_path[:-4] + "_pie.png":
+        pie_hours_path = graph_path[:-4] + "_pie.png"
         render_pie(log_date, log_temp, graph_danger_hours_path, ymin, ymax, toocold, dangercold, toohot, dangerhot)
     #
