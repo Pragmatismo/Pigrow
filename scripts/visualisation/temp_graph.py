@@ -323,6 +323,7 @@ def render_pie(date_list, temp_list, graph_path, ymin, ymax, toocold, dangercold
     fig.subplots_adjust(right=0.85, top=0.83)
     print("pie created and saved to " + graph_path)
     plt.savefig(graph_path)
+    fig.clf()
 
 def render_danger_temps_graph(date_list, temp_list, graph_path, ymin, ymax, toocold, dangercold, toohot, dangerhot):
     print("Making EpiphanyHermit's damger temps by hour graph...")
@@ -371,6 +372,7 @@ def render_danger_temps_graph(date_list, temp_list, graph_path, ymin, ymax, tooc
     ax.legend()
     print("danger temps created and saved to " + graph_path)
     plt.savefig(graph_path)
+    fig.clf()
 
 def render_box_plot(date_list, temp_list, graph_path, ymin, ymax, toocold, dangercold, toohot, dangerhot):
     print("Making EpiphanyHermit's competition winning box plot...")
@@ -495,6 +497,7 @@ def render_box_plot(date_list, temp_list, graph_path, ymin, ymax, toocold, dange
         ax1.text(pos[tick],bottom + (bottom*0.02),upperLabels[tick],horizontalalignment='center',size='x-small',weight=weights[w],color=boxColors[k])
     print("Box plot created and saved to " + graph_path)
     plt.savefig(graph_path)
+    fig.clf()
 
 
 if __name__ == '__main__':
