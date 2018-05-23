@@ -253,6 +253,7 @@ def render_line_graph(date_list,temp_list, graph_path, ymin="default", ymax="def
     #plt.show()
     print("line graph created and saved to " + graph_path)
     plt.savefig(graph_path)
+    fig.clf()
 
 def render_pie(date_list, temp_list, graph_path, ymin, ymax, toocold, dangercold, toohot, dangerhot):
     print("Making EpiphanyHermit's pie...")
@@ -297,9 +298,7 @@ def render_pie(date_list, temp_list, graph_path, ymin, ymax, toocold, dangercold
     #draw a circle at the center of the pie
     centre_circle = plt.Circle((0,0), 0.75, color='black', fc='white',linewidth=0)
     fig = plt.gcf()
-    fig.clf()
     fig.gca().add_artist(centre_circle)
-
     fig.suptitle('Temperature Groups', fontsize=14, fontweight='bold')
     plt.title(min(date_list).strftime("%B %d, %Y") + ' - ' + max(date_list).strftime("%B %d, %Y"), fontsize=10, y=1.07)
 
