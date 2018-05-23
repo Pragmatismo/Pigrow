@@ -7,6 +7,7 @@ import matplotlib as mpl
 mpl.use('Agg')
 import matplotlib.pyplot as plt
 import datetime
+import time
 import numpy as np
 import os
 homedir = os.getenv("HOME")
@@ -49,7 +50,24 @@ def get_warning_ranges_from_settings(loc_settings):
     dangerhot = (float(toohot) / 100) * 115
     return toocold, dangercold, toohot, dangerhot
 
-def check_commandline_options(graph_path, log_location, hours_to_show, show_from, toocold, dangercold, toohot, dangerhot, temp_unit, ymin="default",ymax="default", log_temp_pos=0, log_date_pos=2, colour_graph="true", box_plot_graph='true', line_graph='true'):
+def check_commandline_options(graph_path,
+                              log_location,
+                              hours_to_show,
+                              show_from,
+                              toocold,
+                              dangercold,
+                              toohot,
+                              dangerhot,
+                              temp_unit="c",
+                              ymin="default",
+                              ymax="default",
+                              log_temp_pos=0,
+                              log_date_pos=2,
+                              colour_graph="true",
+                              box_plot_graph='true',
+                              line_graph='true',
+                              danger_hours='true',
+                              pie_chart='true'):
     for argu in sys.argv[1:]:
         if "=" in argu:
             thearg = str(argu).split('=')[0].lower()
@@ -86,6 +104,10 @@ def check_commandline_options(graph_path, log_location, hours_to_show, show_from
                 box_plot_graph = theval.lower()
             elif thearg == "make_line_graph":
                 line_graph = theval.lower()
+            elif thearg == "make_danger_hours":
+                danger_hours = theval.lower()
+            elif thearg == "make_pie_chart":
+                 pie_chart = theval.lower()
         elif argu == 'h' or argu == '-h' or argu == 'help' or argu == '--help':
             print("")
             print("  log=DIR/LOG_FILE  - point to a different log file than mentioned in dirlocs")
@@ -102,10 +124,13 @@ def check_commandline_options(graph_path, log_location, hours_to_show, show_from
             print("  temp_unit=c or f  - when f converts to Fahrenheit before graphing ")
             print("  ymin=0            - Set position of bottom of Y Axis")
             print("  ymax=50           - Set position of top of Y Axis")
-            print("                         these are useful when animating")
-            print("                         or making graphs for comparing")
-            print("  make_box_plot=true    -enable or disable making the box plot")
-            print("  make_line_graph=true  -enable or disable making line graph")
+            print("                       these are useful when animating")
+            print("                       or making graphs for comparing")
+            print("Graph choices")
+            print("  make_box_plot=true     -enable or disable making the box plot")
+            print("  make_line_graph=true   -enable or disable making line graph")
+            print("  make_danger_hours=true -enable or disable making danger hours")
+            print("  make_pie_chart=true    -enable or disable pie chart")
             sys.exit()
         elif argu == '-flags':
             print("log=" + log_location)
@@ -122,10 +147,29 @@ def check_commandline_options(graph_path, log_location, hours_to_show, show_from
             print("colour_graph=[true,false]")
             print("make_box_plot=[true, false]")
             print("make_line_graph=[true, false]")
+            print("make_danger_hours=[true,false]")
+            print("make_pie_chart=[true,false])
             sys.exit()
         else:
             print(" No idea what you mean by; " + str(argu))
-    return graph_path, log_location, hours_to_show, show_from, toocold, dangercold, toohot, dangerhot, temp_unit, ymin, ymax, log_temp_pos, log_date_pos, colour_graph, box_plot_graph, line_graph
+    return graph_path,
+           log_location,
+           hours_to_show,
+           show_from,
+           toocold,
+           dangercold,
+           toohot,
+           dangerhot,
+           temp_unit,
+           ymin,
+           ymax,
+           log_temp_pos,
+           log_date_pos,
+           colour_graph,
+           box_plot_graph,
+           line_graph
+           danger_hours,
+           pie_chart
 
 def set_date_values(hours_to_show, show_from):
     # if hours_to_show is set then works out when to start the Graph
@@ -190,6 +234,7 @@ def add_log(linktolog, temp_unit, oldest_allowed_date, temp_pos=0, date_pos=2):
     return log_date, log_temp
 
 def render_line_graph(date_list,temp_list, graph_path, ymin="default", ymax="default", toocold=None, dangercold=None, toohot=None, dangerhot=None):
+    print("Making basic line graph")
     # define graph space
     plt.figure(1)
     ax = plt.subplot()
@@ -225,12 +270,125 @@ def render_line_graph(date_list,temp_list, graph_path, ymin="default", ymax="def
     #plt.show()
     plt.savefig(graph_path)
 
-def render_box_plot(date_list, temp_list, graph_path, ymin, ymax, toocold, dangercold, toohot, dangerhot):
-    print("Making competition entry graph...")
+def render_pie(date_list, temp_list, graph_path, ymin, ymax, toocold, dangercold, toohot, dangerhot):
+    print("Making EpiphanyHermit's pie...")
+    from matplotlib.lines import Line2D
 
-    import matplotlib.pyplot as plt
-    import numpy as np
-    import time
+    sliceColors = ['xkcd:red',
+                   'xkcd:orange',
+                   'xkcd:light green',
+                   'xkcd:light blue',
+                   'xkcd:purplish blue']
+
+    tempThresholds = [('%.2f°' % dangerhot).replace(".00°","°")
+        , ('%.2f°' % toohot).replace(".00°","°")
+        , ('{:.2f}° < > {:.2f}°'.format(toohot,toocold)).replace(".00°","°")
+        , ('%.2f°' % toocold).replace(".00°","°")
+        , ('%.2f°' % dangercold).replace(".00°","°")]
+
+    # Group the data by classification
+    tempCount = [0,0,0,0,0]
+    for i in range(len(date_list)):
+        if temp_list[i] >= dangerhot:
+            tempCount[0] += 1
+        elif temp_list[i] >= toohot:
+            tempCount[1] += 1
+        elif temp_list[i] <= dangercold:
+            tempCount[4] += 1
+        elif temp_list[i] <= toocold:
+            tempCount[3] += 1
+        else:
+            tempCount[2] += 1
+
+    # The slices will be ordered and plotted counter-clockwise.
+    temps = list()
+    colors = list()
+    for i in range(5):
+        if tempCount[i] == 0:
+            continue
+        temps.append(tempCount[i])
+        colors.append(sliceColors[i])
+
+    plt.pie(temps, colors=colors, autopct='%1.1f%%', pctdistance=1.16)
+
+    #draw a circle at the center of the pie
+    centre_circle = plt.Circle((0,0), 0.75, color='black', fc='white',linewidth=0)
+    fig = plt.gcf()
+    fig.gca().add_artist(centre_circle)
+
+    fig.suptitle('Temperature Groups', fontsize=14, fontweight='bold')
+    plt.title(min(date_list).strftime("%B %d, %Y") + ' - ' + max(date_list).strftime("%B %d, %Y"), fontsize=10, y=1.07)
+
+    # Set aspect ratio to be equal so that pie is drawn as a circle.
+    plt.axis('equal')
+
+    # legend
+    custom_lines = [Line2D([0], [0], color=sliceColors[0], lw=2),
+                    Line2D([0], [0], color=sliceColors[1], lw=2),
+                    Line2D([0], [0], color=sliceColors[2], lw=2),
+                    Line2D([0], [0], color=sliceColors[3], lw=2),
+                    Line2D([0], [0], color=sliceColors[4], lw=2)]
+
+    fig.legend(custom_lines, [tempThresholds[0]
+            , tempThresholds[1]
+            , tempThresholds[2]
+            , tempThresholds[3]
+            , tempThresholds[4]]
+            , bbox_to_anchor=(.97,.97)
+            , loc="upper right")
+
+    fig.subplots_adjust(right=0.85, top=0.83)
+    plt.savefig(graph_path)
+
+def render_danger_temps_graph(date_list, temp_list, graph_path, ymin, ymax, toocold, dangercold, toohot, dangerhot):
+    print("Making EpiphanyHermit's damger temps by hour graph...")
+    from matplotlib.lines import Line2D
+    from matplotlib.patches import Polygon
+    from matplotlib.ticker import StrMethodFormatter
+
+    # Colors for the danger temps
+    dangercoldColor = 'xkcd:purplish blue'
+    toocoldColor = 'xkcd:light blue'
+    toohotColor = 'xkcd:orange'
+    dangerhotColor = 'xkcd:red'
+
+    # Group the data by hour
+    dangerhotArray = [0]*24
+    toohotArray = [0]*24
+    toocoldArray = [0]*24
+    dangercoldArray = [0]*24
+    for i in range(len(date_list)):
+        h = int(date_list[i].strftime('%H'))
+        if temp_list[i] >= dangerhot:
+            dangerhotArray[h] += 1
+        elif temp_list[i] >= toohot:
+            toohotArray[h] += 1
+        elif temp_list[i] <= dangercold:
+            dangercoldArray[h] += 1
+        elif temp_list[i] <= toocold:
+            toocoldArray[h] += 1
+
+    ind = np.arange(24)  # the x locations for the groups
+    width = 0.25  # the width of the bars
+
+    fig, ax = plt.subplots()
+    rects1 = ax.bar(ind - width/2, dangercoldArray, width, yerr=None, color=dangercoldColor, label='DC')
+    rects2 = ax.bar(ind - width/4, toocoldArray, width, yerr=None, color=toocoldColor, label='TC')
+    rects3 = ax.bar(ind + width/4, toohotArray, width, yerr=None, color=toohotColor, label='TH')
+    rects4 = ax.bar(ind + width/2, dangerhotArray, width, yerr=None, color=dangerhotColor, label='DH')
+
+    # Add some text for labels, title and custom x-axis tick labels, etc.
+    fig.suptitle('Dangerous Temperature by Hour', fontsize=14, fontweight='bold')
+    ax.set_ylabel('Counts')
+    ax.set_title(min(date_list).strftime("%B %d, %Y") + ' - ' + max(date_list).strftime("%B %d, %Y"), fontsize=10)
+    ax.set_xticks(ind)
+    labels = ('00:00', '01:00', '02:00', '03:00', '04:00','05:00','06:00','07:00','08:00','09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00','19:00','20:00','21:00','22:00','23:00')
+    ax.set_xticklabels(labels,rotation=45)
+    ax.legend()
+    plt.savefig(graph_path)
+
+def render_box_plot(date_list, temp_list, graph_path, ymin, ymax, toocold, dangercold, toohot, dangerhot):
+    print("Making EpiphanyHermit's competition winning box plot...")
     from matplotlib.lines import Line2D
     from matplotlib.patches import Polygon
     from matplotlib.ticker import StrMethodFormatter
@@ -373,8 +531,8 @@ if __name__ == '__main__':
     print "most recent temp - " + str(log_temp[-1])[0:4] + " " + temp_unit
     print "----------------------------------"
     # the competition winning graph, each hour's temp ranges shown.
-    graph_hours_path = graph_path[:-4] + "_hours.png"
     if box_plot_graph == 'true':
+        graph_hours_path = graph_path[:-4] + "_hours.png"
         try:
             render_box_plot(log_date, log_temp, graph_hours_path, ymin, ymax, toocold, dangercold, toohot, dangerhot)
         except Exception as e:
@@ -387,3 +545,11 @@ if __name__ == '__main__':
         else:
             render_line_graph(log_date, log_temp, graph_path, ymin, ymax, None, None, None, None)
         print("Temp data created and saved to " + graph_path)
+    #
+    if danger_hours = 'true'
+        graph_danger_hours_path = graph_path[:-4] + "_danger_hours.png"
+        render_danger_temps_graph(log_date, log_temp, graph_danger_hours_path, ymin, ymax, toocold, dangercold, toohot, dangerhot)
+    if pie_chart = 'true':
+        pie_hours_path = graph_path[:-4] + "_pie.png"
+        render_pie(log_date, log_temp, graph_danger_hours_path, ymin, ymax, toocold, dangercold, toohot, dangerhot)
+    #
