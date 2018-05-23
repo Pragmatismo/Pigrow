@@ -251,6 +251,7 @@ def render_line_graph(date_list,temp_list, graph_path, ymin="default", ymax="def
     fig.autofmt_xdate()
     # show or save graph
     #plt.show()
+    print("line graph created and saved to " + graph_path)
     plt.savefig(graph_path)
 
 def render_pie(date_list, temp_list, graph_path, ymin, ymax, toocold, dangercold, toohot, dangerhot):
@@ -321,6 +322,7 @@ def render_pie(date_list, temp_list, graph_path, ymin, ymax, toocold, dangercold
             , loc="upper right")
 
     fig.subplots_adjust(right=0.85, top=0.83)
+    print("pie created and saved to " + graph_path)
     plt.savefig(graph_path)
 
 def render_danger_temps_graph(date_list, temp_list, graph_path, ymin, ymax, toocold, dangercold, toohot, dangerhot):
@@ -368,6 +370,7 @@ def render_danger_temps_graph(date_list, temp_list, graph_path, ymin, ymax, tooc
     labels = ('00:00', '01:00', '02:00', '03:00', '04:00','05:00','06:00','07:00','08:00','09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00','19:00','20:00','21:00','22:00','23:00')
     ax.set_xticklabels(labels,rotation=45)
     ax.legend()
+    print("danger temps created and saved to " + graph_path)
     plt.savefig(graph_path)
 
 def render_box_plot(date_list, temp_list, graph_path, ymin, ymax, toocold, dangercold, toohot, dangerhot):
@@ -491,7 +494,7 @@ def render_box_plot(date_list, temp_list, graph_path, ymin, ymax, toocold, dange
         w = tick % 2
         k = k + 1
         ax1.text(pos[tick],bottom + (bottom*0.02),upperLabels[tick],horizontalalignment='center',size='x-small',weight=weights[w],color=boxColors[k])
-
+    print("Box plot created and saved to " + graph_path)
     plt.savefig(graph_path)
 
 
@@ -527,7 +530,6 @@ if __name__ == '__main__':
             render_line_graph(log_date, log_temp, graph_path, ymin, ymax, toocold, dangercold, toohot, dangerhot)
         else:
             render_line_graph(log_date, log_temp, graph_path, ymin, ymax, None, None, None, None)
-        print("Temp data created and saved to " + graph_path)
     #
     if danger_hours == 'true':
         graph_danger_hours_path = graph_path[:-4] + "_danger_hours.png"
