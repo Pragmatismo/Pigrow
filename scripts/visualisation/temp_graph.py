@@ -152,24 +152,7 @@ def check_commandline_options(graph_path,
             sys.exit()
         else:
             print(" No idea what you mean by; " + str(argu))
-    return graph_path,
-           log_location,
-           hours_to_show,
-           show_from,
-           toocold,
-           dangercold,
-           toohot,
-           dangerhot,
-           temp_unit,
-           ymin,
-           ymax,
-           log_temp_pos,
-           log_date_pos,
-           colour_graph,
-           box_plot_graph,
-           line_graph
-           danger_hours,
-           pie_chart
+    return graph_path, log_location, hours_to_show, show_from, toocold, dangercold, toohot, dangerhot, temp_unit, ymin, ymax, log_temp_pos, log_date_pos, colour_graph, box_plot_graph, line_graph, danger_hours, pie_chart
 
 def set_date_values(hours_to_show, show_from):
     # if hours_to_show is set then works out when to start the Graph
