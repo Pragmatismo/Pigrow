@@ -536,5 +536,5 @@ if __name__ == '__main__':
         render_danger_temps_graph(log_date, log_temp, graph_danger_hours_path, ymin, ymax, toocold, dangercold, toohot, dangerhot)
     if pie_chart == 'true':
         pie_hours_path = graph_path[:-4] + "_pie.png"
-        render_pie(log_date, log_temp, graph_danger_hours_path, ymin, ymax, toocold, dangercold, toohot, dangerhot)
+        render_pie(log_date, log_temp, pie_hours_path, ymin, ymax, toocold, dangercold, toohot, dangerhot)
     #
