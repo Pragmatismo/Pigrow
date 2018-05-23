@@ -533,10 +533,10 @@ if __name__ == '__main__':
         else:
             render_line_graph(log_date, log_temp, graph_path, ymin, ymax, None, None, None, None)
     #
-    if danger_hours == 'true':
-        graph_danger_hours_path = graph_path[:-4] + "_danger_hours.png"
-        render_danger_temps_graph(log_date, log_temp, graph_danger_hours_path, ymin, ymax, toocold, dangercold, toohot, dangerhot)
     if pie_chart == 'true':
         pie_hours_path = graph_path[:-4] + "_pie.png"
         render_pie(log_date, log_temp, pie_hours_path, ymin, ymax, toocold, dangercold, toohot, dangerhot)
+    if danger_hours == 'true':
+        graph_danger_hours_path = graph_path[:-4] + "_danger_hours.png"
+        render_danger_temps_graph(log_date, log_temp, graph_danger_hours_path, ymin, ymax, toocold, dangercold, toohot, dangerhot)
     #
