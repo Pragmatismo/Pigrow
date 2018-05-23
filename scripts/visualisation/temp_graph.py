@@ -148,7 +148,7 @@ def check_commandline_options(graph_path,
             print("make_box_plot=[true, false]")
             print("make_line_graph=[true, false]")
             print("make_danger_hours=[true,false]")
-            print("make_pie_chart=[true,false])
+            print("make_pie_chart=[true,false]")
             sys.exit()
         else:
             print(" No idea what you mean by; " + str(argu))
