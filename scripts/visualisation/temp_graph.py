@@ -257,7 +257,6 @@ def render_line_graph(date_list,temp_list, graph_path, ymin="default", ymax="def
 def render_pie(date_list, temp_list, graph_path, ymin, ymax, toocold, dangercold, toohot, dangerhot):
     print("Making EpiphanyHermit's pie...")
     from matplotlib.lines import Line2D
-
     sliceColors = ['xkcd:red',
                    'xkcd:orange',
                    'xkcd:light green',
@@ -298,6 +297,7 @@ def render_pie(date_list, temp_list, graph_path, ymin, ymax, toocold, dangercold
     #draw a circle at the center of the pie
     centre_circle = plt.Circle((0,0), 0.75, color='black', fc='white',linewidth=0)
     fig = plt.gcf()
+    fig.clf()
     fig.gca().add_artist(centre_circle)
 
     fig.suptitle('Temperature Groups', fontsize=14, fontweight='bold')
@@ -525,7 +525,6 @@ if __name__ == '__main__':
             print("!!! couldn't render box plot, " + str(e))
     # Orignal Graph, simple temp to date line plot with optional colors
     if line_graph == 'true':
-        fig.clf()
         if colour_graph == "true":
             print "Colouring graph using temp range; " + str(dangercold) + ", " + str(toocold) + " -- " + str(toohot) + ", " + str(dangerhot) + " "
             render_line_graph(log_date, log_temp, graph_path, ymin, ymax, toocold, dangercold, toohot, dangerhot)
@@ -534,10 +533,8 @@ if __name__ == '__main__':
     #
     if danger_hours == 'true':
         graph_danger_hours_path = graph_path[:-4] + "_danger_hours.png"
-        fig.clf()
         render_danger_temps_graph(log_date, log_temp, graph_danger_hours_path, ymin, ymax, toocold, dangercold, toohot, dangerhot)
     if pie_chart == 'true':
         pie_hours_path = graph_path[:-4] + "_pie.png"
-        fig.clf()
         render_pie(log_date, log_temp, pie_hours_path, ymin, ymax, toocold, dangercold, toohot, dangerhot)
     #
