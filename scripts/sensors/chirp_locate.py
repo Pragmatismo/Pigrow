@@ -1,4 +1,4 @@
-
+#!/usr/bin/python
 import subprocess
 import time
 import sys
@@ -50,7 +50,6 @@ def find_i2c_devices(i2c_bus_number):
                     i2c_addresses.append(item)
     # returning a list of i2c device addresses
     return i2c_addresses
-
 
 def list_chirps_in_settings_file(set_dic):
     # find all chirp sensors in list
