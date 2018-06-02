@@ -247,7 +247,7 @@ def fan_control(temp, humid, heat_use_fan=True, hum_use_fan=False, dehum_use_fan
 
 #
 #   Set the initial states of everything on script start
-#                                    script written to be started on boot 
+#                                    script written to be started on boot
 
 dehumid_state = 'unknown'
 humid_state = 'unknown'
@@ -281,8 +281,7 @@ def check_lamp(on_time, off_time):
             return 'crazy coincidence, exact time match! cron will switch it for us', False
         return 'error', False
 
-# perform once on script start
-Print(" -- Initializing checkDHT.py conditions monitoring script ")
+print(" -- Initializing checkDHT.py conditions monitoring script ")
 
 time_on = set_dic['time_lamp_on'].split(":")
 time_off = set_dic['time_lamp_off'].split(":")
