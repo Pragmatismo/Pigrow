@@ -16,7 +16,7 @@ heat_use_fan   = True
 hum_use_fan  = False
 dehum_use_fan  = False
 
-script = 'chechDHT.py'
+script = 'checkDHT.py'
 import os
 import sys
 import datetime
