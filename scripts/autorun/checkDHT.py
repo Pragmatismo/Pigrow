@@ -211,7 +211,7 @@ def fan_control(temp, humid, heat_use_fan=True, hum_use_fan=False, dehum_use_fan
         if temp > temphigh and fans_state != 'on':
             message = "too hot, temp is " + str(temp) + " degrees, the high limit is " + str(temphigh) + " so turning the fans on"
             fans_on.fans_on(set_dic, loc_dic['loc_switchlog'])
-            fans_state = 'off'
+            fans_state = 'on'
             pigrow_defs.write_log(script, message, loc_dic['loc_switchlog'])
         elif temp < temphigh and fans_state != 'off':
             message = "not too hot, temp is " + str(temp) + " degrees, the high limit is " + str(temphigh) + " so turning the fans off"
