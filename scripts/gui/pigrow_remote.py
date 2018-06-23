@@ -129,6 +129,28 @@ ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
 #
 #
+## Dialog Boxes for Generaic USE
+#
+#
+
+class scroll_text_dialog(wx.Dialog):
+    def __init__(self, parent,  text_to_show, title, cancel=True):
+        wx.Dialog.__init__(self, parent, title=(title))
+        text = wx.TextCtrl(self, -1, text_to_show, size=(800,600), style=wx.TE_MULTILINE | wx.TE_READONLY)
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        btnsizer = wx.BoxSizer()
+        btn = wx.Button(self, wx.ID_OK)
+        btnsizer.Add(btn, 0, wx.ALL, 5)
+        btnsizer.Add((5,-1), 0, wx.ALL, 5)
+        if cancel==True:
+            cancel_btn = wx.Button(self, wx.ID_CANCEL)
+            btnsizer.Add(cancel_btn, 0, wx.ALL, 5)
+        sizer.Add(text, 0, wx.EXPAND|wx.ALL, 5)
+        sizer.Add(btnsizer, 0, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
+        self.SetSizerAndFit (sizer)
+
+#
+#
 ## System Pannel
 #
 #
@@ -154,6 +176,27 @@ class system_ctrl_pnl(wx.Panel):
         self.find_i2c_btn.Bind(wx.EVT_BUTTON, self.find_i2c_devices)
         self.i2c_baudrate_btn = wx.Button(self, label='baudrate', pos=(120, 220), size=(105, 30))
         self.i2c_baudrate_btn.Bind(wx.EVT_BUTTON, self.set_baudrate)
+        self.run_cmd_on_pi_btn = wx.Button(self, label='Run Command On Pi', pos=(10, 280), size=(155, 30))
+        self.run_cmd_on_pi_btn.Bind(wx.EVT_BUTTON, self.run_cmd_on_pi_click)
+
+    def run_cmd_on_pi_click(self, e):
+        msg = 'Input command to run on pi\n\n This will run the command and wait for it to finish before\ngiving results and resuming the gui'
+        generic = 'ls ~/Pigrow/'
+        run_cmd_dbox = wx.TextEntryDialog(self, msg, "Run command on pi", generic)
+        if run_cmd_dbox.ShowModal() == wx.ID_OK:
+            cmd_to_run = run_cmd_dbox.GetValue()
+        else:
+            return "cancelled"
+        run_cmd_dbox.Destroy()
+        # run command on the pi
+        print("Running command; " + str(cmd_to_run))
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi(cmd_to_run)
+        print(out, error)
+        # tell user about it with a dialog boxes
+        dbox = scroll_text_dialog(None, str(out) + str(error), "Output of " + str(cmd_to_run), False)
+        dbox.ShowModal()
+        dbox.Destroy()
+
 
     def set_baudrate(self, e):
         new_i2c_baudrate = "30000"
