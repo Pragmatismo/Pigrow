@@ -174,10 +174,43 @@ class system_ctrl_pnl(wx.Panel):
         self.shutdown_pi_btn.Bind(wx.EVT_BUTTON, self.shutdown_pi_click)
         self.find_i2c_btn = wx.Button(self, label='i2c check', pos=(10, 220), size=(105, 30))
         self.find_i2c_btn.Bind(wx.EVT_BUTTON, self.find_i2c_devices)
+        self.find_1wire_btn = wx.Button(self, label='1 wire check', pos=(10, 250), size=(105, 30))
+        self.find_1wire_btn.Bind(wx.EVT_BUTTON, self.find_1wire_devices)
+
         self.i2c_baudrate_btn = wx.Button(self, label='baudrate', pos=(120, 220), size=(105, 30))
         self.i2c_baudrate_btn.Bind(wx.EVT_BUTTON, self.set_baudrate)
-        self.run_cmd_on_pi_btn = wx.Button(self, label='Run Command On Pi', pos=(10, 280), size=(155, 30))
+        self.run_cmd_on_pi_btn = wx.Button(self, label='Run Command On Pi', pos=(10, 290), size=(155, 30))
         self.run_cmd_on_pi_btn.Bind(wx.EVT_BUTTON, self.run_cmd_on_pi_click)
+
+    def find_1wire_devices(self, e):
+        print("looking to see if 1wire overlay is turned on")
+        #/boot/config.txt file to include the line 'dtoverlay=w1-gpio'
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("cat /boot/config.txt")
+        config_file = out.splitlines()
+        overlay_count = 0
+        for line in config_file:
+            line = line.strip()
+            if "dtoverlay" in line and "w1-gpio" in line:
+                if line[0] == "#":
+                    print ("dtoverlay=w1-gpio is disabled")
+                    overlay_count += 1
+                else:
+                    print("dtoverlay=w1-gpio found and active")
+                    overlay_count += 1
+        if overlay_count == 0:
+            print("dtoverlay=w1-gpio not found in config enabled or otherwise")
+        print("looking for 1wire devices...")
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("ls /sys/bus/w1/devices")
+        print(out)
+        onewire_devices = out.splitlines()
+        ds_temp_list = []
+        for line in onewire_devices:
+            if "28-" in line:
+                ds_temp_list.append(line)
+            else:
+                print("unknown device type " + str(line))
+        print(" found " + str(len(ds_temp_list)) + "ds.. temp sensors")
+        print(ds_temp_list)
 
     def run_cmd_on_pi_click(self, e):
         msg = 'Input command to run on pi\n\n This will run the command and wait for it to finish before\ngiving results and resuming the gui'
