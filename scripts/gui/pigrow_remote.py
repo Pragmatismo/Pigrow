@@ -194,11 +194,14 @@ class system_ctrl_pnl(wx.Panel):
                 if line[0] == "#":
                     print ("dtoverlay=w1-gpio is disabled")
                     overlay_count += 1
+                    onewire_msg = "onewire overlay disabled"
                 else:
                     print("dtoverlay=w1-gpio found and active")
                     overlay_count += 1
+                    onewire_msg = "onewire overlay enabled"
         if overlay_count == 0:
             print("dtoverlay=w1-gpio not found in config enabled or otherwise")
+            onewire_msg = "onewire overlay not in config file"
         print("looking for 1wire devices...")
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("ls /sys/bus/w1/devices")
         print(out)
@@ -211,6 +214,7 @@ class system_ctrl_pnl(wx.Panel):
                 print("unknown device type " + str(line))
         print(" found " + str(len(ds_temp_list)) + "ds.. temp sensors")
         print(ds_temp_list)
+        system_info_pnl.sys_1wire_info.SetLabel(onewire_msg)
 
     def run_cmd_on_pi_click(self, e):
         msg = 'Input command to run on pi\n\n This will run the command and wait for it to finish before\ngiving results and resuming the gui'
