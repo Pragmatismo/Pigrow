@@ -4043,9 +4043,10 @@ class camconf_info_pnl(wx.Panel):
         wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, pos = (285, 0), size = wx.Size(w_space_left , 800), style = wx.TAB_TRAVERSAL )
         ## Draw UI elements
         # placing the information boxes
-        self.camconf_txt = wx.StaticText(self,  label='Camera Config Panel', pos=(5, 5), size=(200,30))
+        wx.StaticText(self,  label='Camera Config file', pos=(5, 5), size=(150,30))
+        self.camconf_path_tc = wx.TextCtrl(self, value="cam config path", pos=(170, 3), size=(350, 30))
         place_holder = wx.Bitmap(500, 500)
-        self.camconf_img_box = wx.StaticBitmap(self, -1, place_holder, (10, 135), (700, 700))
+        self.camconf_img_box = wx.StaticBitmap(self, -1, place_holder, (10, 160), (700, 700))
         # Top bar info
         # basic settings
         wx.StaticText(self,  label='Brightness;', pos=(10, 40))
@@ -4057,12 +4058,107 @@ class camconf_info_pnl(wx.Panel):
         wx.StaticText(self,  label='Gain;', pos=(10, 130))
         self.tb_g = wx.TextCtrl(self, pos=(120, 130), size=(75, 25))
         # size settings
-        wx.StaticText(self,  label='Image Size', pos=(200, 45))
+        wx.StaticText(self,  label='Image Size;', pos=(200, 45))
         wx.StaticText(self,  label='X;', pos=(225, 70))
         self.tb_x = wx.TextCtrl(self, pos=(250, 70), size=(75, 25))
         wx.StaticText(self,  label='Y;', pos=(225, 100))
         self.tb_y = wx.TextCtrl(self, pos=(250, 100), size=(75, 25))
+        # camera capture unique options
+        ## generic
+        self.extra_cmds_generic_label = wx.StaticText(self,  label='extra args string;', pos=(335, 45))
+        self.cmds_string_tb = wx.TextCtrl(self, pos=(340, 70), size=(265, 90), style=wx.TE_MULTILINE)
+        #####
+        ## fswebcam only controlls
+        self.list_fs_ctrls_btn = wx.Button(self, label='Show webcam controlls', pos=(355, 45))
+        self.list_fs_ctrls_btn.Bind(wx.EVT_BUTTON, self.list_fs_ctrls_click)
+        # line 2 - setting key
+        self.setting_string_label = wx.StaticText(self,  label='set;', pos=(340, 75))
+        self.setting_string_tb = wx.TextCtrl(self, pos=(380, 75), size=(200, 25))
+        # line 3  - setting value
+        self.setting_value_label = wx.StaticText(self,  label='value;', pos=(340, 100))
+        self.setting_value_tb = wx.TextCtrl(self, pos=(380, 100), size=(100, 25))
+        self.add_to_cmd_btn = wx.Button(self, label='Add to cmd...', pos=(480, 100))
+        self.add_to_cmd_btn.Bind(wx.EVT_BUTTON, self.add_to_cmd_click)
+        #
+        self.extra_cmds_label = wx.StaticText(self,  label='args string;', pos=(250, 130))
+        self.extra_cmds_string_fs_tb = wx.TextCtrl(self, pos=(340, 130), size=(265, 30), style=wx.TE_MULTILINE)
+        # hide all fswebcam only controlls until option selected in combobox
+        self.hide_fswebcam_control()
+        #####
 
+
+    def hide_fswebcam_control(self):
+        self.list_fs_ctrls_btn.Hide()
+        self.list_fs_ctrls_btn.Hide()
+        self.setting_string_label.Hide()
+        self.setting_string_tb.Hide()
+        self.setting_value_label.Hide()
+        self.setting_value_tb.Hide()
+        self.add_to_cmd_btn.Hide()
+        self.extra_cmds_label.Hide()
+        self.extra_cmds_string_fs_tb.Hide()
+        # generic
+        self.cmds_string_tb.Show()
+        self.extra_cmds_generic_label.Show()
+
+    def show_fswebcam_control(self):
+        self.list_fs_ctrls_btn.Show()
+        self.list_fs_ctrls_btn.Show()
+        self.setting_string_label.Show()
+        self.setting_string_tb.Show()
+        self.setting_value_label.Show()
+        self.setting_value_tb.Show()
+        self.add_to_cmd_btn.Show()
+        self.extra_cmds_label.Show()
+        self.extra_cmds_string_fs_tb.Show()
+        # hide generic controls
+        self.cmds_string_tb.Hide()
+        self.extra_cmds_generic_label.Hide()
+
+    def list_fs_ctrls_click(self, e):
+        print("this is supposed to fswebcam -d v4l2:/dev/video0 --list-controls on the pi")
+        cam_choice = MainApp.camconf_ctrl_pannel.cam_cb.GetValue()
+        cam_cmd = "fswebcam -d v4l2:" + cam_choice + " --list-controls"
+        MainApp.status.write_bar("---Doing: " + cam_cmd)
+        cam_output, error = MainApp.localfiles_ctrl_pannel.run_on_pi(cam_cmd)
+        print ("Camera output; " + cam_output + " \n    and error;" + error)
+        if not cam_output == "":
+            msg_text = 'Camera located and interorgated; copy-paste a controll name from the following into the settings text box \n \n'
+            msg_text += str(cam_output)
+            wx.MessageBox(msg_text, 'Camera Settings', wx.OK | wx.ICON_INFORMATION)
+        if "command not found" in error or "command not found" in cam_output:
+            print("!!! fswebcam not installed !!!")
+            print("    TELL THE USER NOT THE COMMAND LINE!!!")
+
+
+    def add_to_cmd_click(self, e):
+        test_str = self.setting_string_tb.GetValue()
+        test_val = self.setting_value_tb.GetValue()
+        cmd_str = self.extra_cmds_string_fs_tb.GetValue()
+        if test_str in cmd_str:
+            cmd_str = self.modify_cmd_str(cmd_str, test_str, test_val)
+        else:
+            cmd_str += ' --set "' + str(test_str) + '"=' + str(test_val)
+        self.extra_cmds_string_fs_tb.SetValue(cmd_str)
+        self.setting_string_tb.SetValue('')
+        self.setting_value_tb.SetValue('')
+
+    def modify_cmd_str(self, cmd_str, new_key, new_value):
+        cmds = cmd_str.split("--set ")
+        command_string = []
+        for cmd in cmds:
+            if "=" in cmd:
+                print(cmd)
+                set_key = cmd.split('"')[1]
+                if set_key == new_key:
+                    cmd = '"' + new_key + '"=' + new_value
+                    print(cmd)
+                command_string.append(cmd)
+        # pur it back togerher into a string
+        new_cmd_string = ""
+        for cmd in command_string:
+            new_cmd_string += "--set " + cmd + " "
+        return new_cmd_string.strip()
 
 class camconf_ctrl_pnl(wx.Panel):
     def __init__( self, parent ):
@@ -4072,62 +4168,43 @@ class camconf_ctrl_pnl(wx.Panel):
         wx.Panel.__init__ (self, parent, id=wx.ID_ANY, pos=(0, height_of_pannels_above), size=wx.Size(285, space_left), style=wx.TAB_TRAVERSAL)
         self.SetBackgroundColour('sea green') #TESTING ONLY REMOVE WHEN SIZING IS DONE AND ALL THAT BUSINESS
         # Start drawing the UI elements
+
+        # read / save cam config button
+        self.read_cam_config_btn = wx.Button(self, label='read cam config', pos=(25, 5), size=(150, 30))
+        self.read_cam_config_btn.Bind(wx.EVT_BUTTON, self.read_cam_config_click)
+        self.save_cam_config_btn = wx.Button(self, label='save to pi', pos=(190, 5), size=(90, 30))
+        self.save_cam_config_btn.Bind(wx.EVT_BUTTON, self.save_cam_config_click)
         #camera options
-        wx.StaticText(self,  label='Camera selection;', pos=(15, 10))
+        wx.StaticText(self,  label='Camera selection;', pos=(15, 40))
+        self.list_cams_btn = wx.Button(self, label='find', pos=(5, 70), size=(30, 30))
+        self.list_cams_btn.Bind(wx.EVT_BUTTON, self.list_cams_click)
         cam_opts = [""]
-        self.cam_cb = wx.ComboBox(self, choices = cam_opts, pos=(40,30), size=(225, 30))
+        self.cam_cb = wx.ComboBox(self, choices = cam_opts, pos=(40,70), size=(225, 30))
         self.cam_cb.Bind(wx.EVT_COMBOBOX, self.cam_combo_go)
 
         #
         # UI for WEBCAM
         #
-        wx.StaticText(self,  label='Capture tool;', pos=(15, 70))
+        wx.StaticText(self,  label='Capture tool;', pos=(15, 100))
         webcam_opts = ['uvccapture', 'fswebcam']
-        self.webcam_cb = wx.ComboBox(self, choices = webcam_opts, pos=(10,90), size=(265, 30))
+        self.webcam_cb = wx.ComboBox(self, choices = webcam_opts, pos=(10,120), size=(265, 30))
         self.webcam_cb.Bind(wx.EVT_COMBOBOX, self.webcam_combo_go)
 
-        #
-        ## fswebcam only controlls
-        self.fs_label = wx.StaticText(self,  label='fswebcam only settings', pos=(10, 300))
-        self.list_fs_ctrls_btn = wx.Button(self, label='Show webcam controlls', pos=(25, 325))
-        self.list_fs_ctrls_btn.Bind(wx.EVT_BUTTON, self.list_fs_ctrls_click)
-        self.setting_string_label = wx.StaticText(self,  label='set;', pos=(10, 360))
-        self.setting_string_tb = wx.TextCtrl(self, pos=(50, 360), size=(200, 25))
-        self.setting_value_label = wx.StaticText(self,  label='value;', pos=(10, 390))
-        self.setting_value_tb = wx.TextCtrl(self, pos=(60, 390), size=(100, 25))
-        self.add_to_cmd_btn = wx.Button(self, label='Add to cmd...', pos=(165, 390))
-        self.add_to_cmd_btn.Bind(wx.EVT_BUTTON, self.add_to_cmd_click)
-        self.cmds_string_tb = wx.TextCtrl(self, pos=(10, 420), size=(265, 60), style=wx.TE_MULTILINE)
-        # hide all fswebcam only controlls until option selected in combobox
-        self.fs_label.Hide()
-        self.list_fs_ctrls_btn.Hide()
-        self.list_fs_ctrls_btn.Hide()
-        self.setting_string_label.Hide()
-        self.setting_string_tb.Hide()
-        self.setting_value_label.Hide()
-        self.setting_value_tb.Hide()
-        self.add_to_cmd_btn.Hide()
-
-        #
-        self.take_unset_btn = wx.Button(self, label='  Take\n  cam\ndefault', pos=(200, 120), size=(75, 60))
+        # Buttons
+        self.take_unset_btn = wx.Button(self, label='  Take\n  cam\ndefault', pos=(50, 240), size=(75, 60))
         self.take_unset_btn.Bind(wx.EVT_BUTTON, self.take_unset_click)
 
-        self.take_set_btn = wx.Button(self, label='  Take\n  using\nsettings', pos=(200, 185), size=(75, 60))
+        self.take_set_btn = wx.Button(self, label='  Take\n  using\nsettings', pos=(150, 240), size=(75, 60))
         self.take_set_btn.Bind(wx.EVT_BUTTON, self.take_set_click)
 
-        self.list_cams_btn = wx.Button(self, label='find', pos=(5, 30), size=(30, 30))
-        self.list_cams_btn.Bind(wx.EVT_BUTTON, self.list_cams_click)
 
-        self.read_cam_config_btn = wx.Button(self, label='read cam \nconfig', pos=(150, 0), size=(70, 30))
-        self.read_cam_config_btn.Bind(wx.EVT_BUTTON, self.read_cam_config_click)
+        #
+        # UI for Picam coming soon
+        #
+        #not addded yet
 
-        self.save_cam_config_btn = wx.Button(self, label='save to pi', pos=(50, 500), size=(70, 30))
-        self.save_cam_config_btn.Bind(wx.EVT_BUTTON, self.save_cam_config_click)
-        #
-        # UI for Picam
-        #
     def read_cam_config_click(self, e):
-        pi_cam_settings_path = MainApp.config_ctrl_pannel.dirlocs_dict['camera_settings']
+        pi_cam_settings_path = MainApp.camconf_info_pannel.camconf_path_tc.GetValue()
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("cat " + pi_cam_settings_path)
         cam_settings = out.splitlines()
         self.camera_settings_dict = {}
@@ -4158,12 +4235,13 @@ class camconf_ctrl_pnl(wx.Panel):
             MainApp.camconf_info_pannel.tb_y.SetValue(self.camera_settings_dict['y_dim'])
         # extra commands
         if "additonal_commands" in self.camera_settings_dict:
-            self.cmds_string_tb.SetValue(self.camera_settings_dict['additonal_commands'])
+            MainApp.camconf_info_pannel.cmds_string_tb.SetValue(self.camera_settings_dict['additonal_commands'])
         #
-    #    if "cam_fsw_extra" in self.camera_settings_dict:
-    #        self..SetValue(self.camera_settings_dict['cam_fsw_extra'])
+        if "cam_fsw_extra" in self.camera_settings_dict:
+            MainApp.camconf_info_pannel.extra_cmds_string_fs_tb.SetValue(self.camera_settings_dict['cam_fsw_extra'])
     #    if "cam_uvc_extra" in self.camera_settings_dict:
     #        self..SetValue(self.camera_settings_dict['cam_uvc_extra'])
+
 
     def save_cam_config_click(self, e):
         # Construct camera config file
@@ -4175,8 +4253,8 @@ class camconf_ctrl_pnl(wx.Panel):
         config_text += "y_dim=" + str(MainApp.camconf_info_pannel.tb_y.GetValue()) + "\n"
         config_text += "cam_num=" + str(self.cam_cb.GetValue()) + "\n"
         config_text += "cam_opt=" + str(self.webcam_cb.GetValue()) + "\n"
-        config_text += "additonal_commands=" + str(self.cmds_string_tb.GetValue()) + "\n"
-    #    config_text += "fsw_extra=" + str(self.cmds_string_tb.GetValue()) + "\n"
+        config_text += "additonal_commands=" + str(MainApp.camconf_info_pannel.cmds_string_tb.GetValue()) + "\n"
+        config_text += "fsw_extra=" + str(MainApp.camconf_info_pannel.extra_cmds_string_fs_tb.GetValue()) + "\n"
     #    config_text += "uvc_extra=" + str("")
         # Ask if user really wants to update
     #    chgdep = upload_dialog(None, title='upload settings to pi')
@@ -4208,15 +4286,6 @@ class camconf_ctrl_pnl(wx.Panel):
         for cam in cam_list:
             self.cam_cb.Append(cam)
 
-    def add_to_cmd_click(self, e):
-        test_str = self.setting_string_tb.GetValue()
-        test_val = self.setting_value_tb.GetValue()
-        cmd_str = self.cmds_string_tb.GetValue()
-        cmd_str += ' --set "' + str(test_str) + '"=' + str(test_val)
-        self.cmds_string_tb.SetValue(cmd_str)
-        self.setting_string_tb.SetValue('')
-        self.setting_value_tb.SetValue('')
-
     def take_set_click(self, e):
         # take using the settings currently displayed on the screen
         cam_set = self.cam_cb.GetValue()
@@ -4227,22 +4296,41 @@ class camconf_ctrl_pnl(wx.Panel):
         cam_g = MainApp.camconf_info_pannel.tb_g.GetValue()
         cam_x = MainApp.camconf_info_pannel.tb_x.GetValue()
         cam_y = MainApp.camconf_info_pannel.tb_y.GetValue()
-        cam_additional = self.cmds_string_tb.GetValue()
+        if cam_opt == "fswebcam":
+            cam_additional = MainApp.camconf_info_pannel.extra_cmds_string_fs_tb.GetValue()
+        elif cam_opt == "uvccapture":
+            cam_additional = "lol" # .GetValue()
+        else:
+            print("!!!! YOU FORGOT TO SET UP OPTIONS HANDLING FOR THIS CAMERA CAPTURE TOOL")
         # determine output file name
         outfile = '/home/' + pi_link_pnl.target_user + '/Pigrow/temp/test_settings.jpg'
         # take the image
         info, remote_img_path = self.take_test_image(cam_s, cam_c, cam_g, cam_b, cam_x, cam_y, cam_set, cam_opt, outfile, None, None, cam_additional)
         # download and display on screen
-        MainApp.camconf_info_pannel.camconf_txt.SetLabel(info)
-        img_path = localfiles_ctrl_pnl.download_file_to_folder(MainApp.localfiles_ctrl_pannel, remote_img_path, "/temp/test_settings.jpg")
-        display_img = wx.Image(img_path, wx.BITMAP_TYPE_ANY).ConvertToBitmap()
-        MainApp.camconf_info_pannel.camconf_img_box.SetBitmap(display_img)
+        if info == "command not found":
+            print("Camera capture program not installed on pigrow! going to try installing i guess...")
+            if cam_opt == "fswebcam":
+                self.install_fswebcam()
+        else:
+            img_path = localfiles_ctrl_pnl.download_file_to_folder(MainApp.localfiles_ctrl_pannel, remote_img_path, "/temp/test_settings.jpg")
+            display_img = wx.Image(img_path, wx.BITMAP_TYPE_ANY).ConvertToBitmap()
+            MainApp.camconf_info_pannel.camconf_img_box.SetBitmap(display_img)
+
+    def install_fswebcam(self):
+        print("user asked to install fswebcam on the pi")
+        dbox = wx.MessageDialog(self, "fswebcam isn't installed on the pigrow, would you like to install it?", "install fswebcam?", wx.OK | wx.CANCEL | wx.ICON_QUESTION)
+        answer = dbox.ShowModal()
+        dbox.Destroy()
+        if (answer == wx.ID_OK):
+            print("installing fswebcam on pigrow")
+            out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo apt install fswebcam --force-yes -y")
+            print(out, error)
 
     def take_test_image(self, s_val, c_val, g_val, b_val, x_dim=800, y_dim=600,
                         cam_select='/dev/video0', cam_capture_choice='uvccapture', output_file='~/test_cam_settings.jpg',
                         ctrl_test_value=None, ctrl_text_string=None, cmd_str=''):
         cam_output = '!!!--NO READING--!!!'
-        print("taking test image...")
+        print("preparing to take test image...")
         # uvccapture
         if cam_capture_choice == "uvccapture":
             additional_commands = " -d" + cam_select
@@ -4277,14 +4365,17 @@ class camconf_ctrl_pnl(wx.Panel):
             cam_cmd += " " + output_file  #output filename'
         else:
             print("NOT IMPLIMENTED - SELECT CAM CHOICE OF UVC OR FSWEBCAM PLZ")
-
+        print("~~~~~~~~~~~~~~~~~~~~")
+        print ("Taking photo using; " + cam_cmd)
         cam_output, error = MainApp.localfiles_ctrl_pannel.run_on_pi(cam_cmd)
-        print ("Camera output; " + cam_output)
+        if "command not found" in error:
+            cam_output = "command not found"
+        print ("Camera output; " + cam_output + " " + error)
+        print("~~~~~~~~~~~~~~~~~~~~")
         return cam_output, output_file
 
     def take_unset_click(self, e):
         info, remote_img_path = self.take_unset_test_image()
-        MainApp.camconf_info_pannel.camconf_txt.SetLabel(info)
         img_path = localfiles_ctrl_pnl.download_file_to_folder(MainApp.localfiles_ctrl_pannel, remote_img_path, "/temp/test_defaults.jpg")
         display_img = wx.Image(img_path, wx.BITMAP_TYPE_ANY).ConvertToBitmap()
         MainApp.camconf_info_pannel.camconf_img_box.SetBitmap(display_img)
@@ -4314,22 +4405,6 @@ class camconf_ctrl_pnl(wx.Panel):
         MainApp.status.write_bar("Camera output; " + out)
         return out, output_file
 
-
-    def list_fs_ctrls_click(self, e):
-        print("this is supposed to fswebcam -d v4l2:/dev/video0 --list-controls on the pi")
-        cam_choice = self.webcam_cb.GetValue()
-        cam_cmd = "fswebcam -d v4l2:" + cam_choice + " --list-controls"
-        MainApp.status.write_bar("---Doing: " + cam_cmd)
-        cam_output, error = MainApp.localfiles_ctrl_pannel.run_on_pi(cam_cmd)
-        print ("Camera output; " + cam_output + " \n    and error;" + error)
-        if not cam_output == "":
-            msg_text = 'Camera located and interorgated; copy-paste a controll name from the following into the settings text box \n \n'
-            msg_text += str(cam_output)
-            wx.MessageBox(msg_text, 'Camera Settings', wx.OK | wx.ICON_INFORMATION)
-        if "command not found" in error or "command not found" in cam_output:
-            print("!!! fswebcam not installed !!!")
-            print("    TELL THE USER NOT THE COMMAND LINE!!!")
-
     def cam_combo_go(self, e):
         print(self.cam_cb.GetValue())
         if self.cam_cb.GetValue() == "Picam":
@@ -4340,23 +4415,10 @@ class camconf_ctrl_pnl(wx.Panel):
 
     def webcam_combo_go(self, e):
         if self.webcam_cb.GetValue() == 'fswebcam':
-            self.fs_label.Show()
-            self.list_fs_ctrls_btn.Show()
-            self.list_fs_ctrls_btn.Show()
-            self.setting_string_label.Show()
-            self.setting_string_tb.Show()
-            self.setting_value_label.Show()
-            self.setting_value_tb.Show()
-            self.add_to_cmd_btn.Show()
+            MainApp.camconf_info_pannel.show_fswebcam_control()
         else:
-            self.fs_label.Hide()
-            self.list_fs_ctrls_btn.Hide()
-            self.list_fs_ctrls_btn.Hide()
-            self.setting_string_label.Hide()
-            self.setting_string_tb.Hide()
-            self.setting_value_label.Hide()
-            self.setting_value_tb.Hide()
-            self.add_to_cmd_btn.Hide()
+            MainApp.camconf_info_pannel.hide_fswebcam_control()
+
 
 #
 #
