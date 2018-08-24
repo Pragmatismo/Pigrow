@@ -4203,12 +4203,14 @@ class camconf_ctrl_pnl(wx.Panel):
         self.webcam_cb.Bind(wx.EVT_COMBOBOX, self.webcam_combo_go)
 
         # Buttons
-        self.take_unset_btn = wx.Button(self, label='  Take\n  cam\ndefault', pos=(50, 240), size=(75, 60))
+        self.take_unset_btn = wx.Button(self, label='  Take\n  cam\ndefault', pos=(0, 240), size=(95, 60))
         self.take_unset_btn.Bind(wx.EVT_BUTTON, self.take_unset_click)
 
-        self.take_set_btn = wx.Button(self, label='  Take\n  using\nsettings', pos=(150, 240), size=(75, 60))
+        self.take_set_btn = wx.Button(self, label='      Take\n      using\nlocal settings', pos=(101, 240), size=(95, 60))
         self.take_set_btn.Bind(wx.EVT_BUTTON, self.take_set_click)
 
+        self.take_s_set_btn = wx.Button(self, label='      Take\n      using\nsaved settings', pos=(202, 240), size=(95, 60))
+        self.take_s_set_btn.Bind(wx.EVT_BUTTON, self.take_saved_set_click)
 
         #
         # UI for Picam coming soon
@@ -4244,7 +4246,7 @@ class camconf_ctrl_pnl(wx.Panel):
         if self.camera_settings_dict['cam_opt'] == 'fswebcam':
             MainApp.camconf_info_pannel.show_fswebcam_control()
         else:
-            MainApp.camconf_info_pannel.hide_fswebcam_control()    
+            MainApp.camconf_info_pannel.hide_fswebcam_control()
         # basic values
         if "b_val" in self.camera_settings_dict:
             MainApp.camconf_info_pannel.tb_b.SetValue(self.camera_settings_dict['b_val'])
@@ -4311,6 +4313,20 @@ class camconf_ctrl_pnl(wx.Panel):
         self.cam_cb.Clear()
         for cam in cam_list:
             self.cam_cb.Append(cam)
+
+    def take_saved_set_click(self, e):
+        print("Taking photo using camcap.py")
+        outpath = '/home/' + pi_link_pnl.target_user + '/Pigrow/temp/'
+        cmd = '/home/' + pi_link_pnl.target_user + '/Pigrow/scripts/cron/camcap.py caps=' + outpath
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi(cmd)
+        output = out + error
+        print (out, error)
+        path = output.split("Saving image to:")[1].strip()
+        print (path)
+        img_path = localfiles_ctrl_pnl.download_file_to_folder(MainApp.localfiles_ctrl_pannel, path, "/temp/test_settings.jpg")
+        display_img = wx.Image(img_path, wx.BITMAP_TYPE_ANY).ConvertToBitmap()
+        MainApp.camconf_info_pannel.camconf_img_box.SetBitmap(display_img)
+
 
     def take_set_click(self, e):
         # take using the settings currently displayed on the screen
