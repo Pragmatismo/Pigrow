@@ -149,6 +149,7 @@ class scroll_text_dialog(wx.Dialog):
         sizer.Add(btnsizer, 0, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
         self.SetSizerAndFit (sizer)
 
+
 #
 #
 ## System Pannel
@@ -835,6 +836,8 @@ class install_dialog(wx.Dialog):
         wx.StaticText(self,  label='Python modules;', pos=(10, 120))
         self.matplotlib_check = wx.StaticText(self,  label='Matplotlib', pos=(25, 150))
         self.adaDHT_check = wx.StaticText(self,  label='Adafruit_DHT', pos=(25, 180))
+        self.start_btn = wx.Button(self, label='install', pos=(155, 180), size=(70, 30))
+        self.start_btn.Bind(wx.EVT_BUTTON, self.ada_dht_click)
         self.cron_check = wx.StaticText(self,  label='crontab', pos=(25, 210))
         self.praw_check = wx.StaticText(self,  label='praw', pos=(300, 150))
         self.pexpect_check = wx.StaticText(self,  label='pexpect', pos=(300, 180))
@@ -880,7 +883,7 @@ class install_dialog(wx.Dialog):
             os.makedirs(local_temp)
         with open(temp_dirlocs_local, "w") as temp_local:
             temp_local.write(dirlocs_template)
-        MainApp.localfiles_ctrl_pannel.upload_file_to_fodler(temp_dirlocs_local, "/home/" + pi_link_pnl.target_user + "/config/dirlocs.txt")
+        MainApp.localfiles_ctrl_pannel.upload_file_to_fodler(temp_dirlocs_local, "/home/" + pi_link_pnl.target_user + "/Pigrow/config/dirlocs.txt")
 
         self.currently_doing.SetLabel("-")
         self.progress.SetLabel("######~~~~~~~~~~~~~~~~~~~~~~~")
@@ -910,18 +913,18 @@ class install_dialog(wx.Dialog):
         self.progress.SetLabel("################~~~~~~~~~~~~~~~")
         wx.Yield()
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo apt update --yes")
-        print (out)
+        print (out, error)
         #installing dependencies with apt
         self.currently_doing.SetLabel("using apt to install matplot lib, sshpass, python-crontab")
         self.progress.SetLabel("##################~~~~~~~~~~~~~")
         wx.Yield()
         python_dep, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo apt --yes install python-matplotlib sshpass python-crontab")
-        print (python_dep)
+        print (python_dep, error)
         self.currently_doing.SetLabel("Using apt to install uvccaptre and mpv")
         self.progress.SetLabel("####################~~~~~~~~~~~")
         wx.Yield()
         image_dep, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo apt --yes install uvccapture mpv")
-        print (image_dep)
+        print (image_dep, error)
         self.currently_doing.SetLabel("..")
         self.progress.SetLabel("######################~~~~~~~~~")
         wx.Yield()
@@ -933,7 +936,7 @@ class install_dialog(wx.Dialog):
         self.progress.SetLabel("##########################~~~~~~")
         wx.Yield()
         adafruit_dep, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo apt --yes install build-essential python-dev python-openssl")
-        print (adafruit_dep)
+        print (adafruit_dep, error)
         print("- Downloading Adafruit_Python_DHT from Github")
         ada_dir = "/home/" + pi_link_pnl.target_user + "/Pigrow/resources/Adafruit_Python_DHT/"
         self.currently_doing.SetLabel("Using git to clone (download) the adafruit code")
@@ -946,6 +949,7 @@ class install_dialog(wx.Dialog):
         self.progress.SetLabel("#############################~~")
         wx.Yield()
         adafruit_install, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo python "+ ada_dir +" setup.py install")
+        print(adafruit_install, error)
         self.currently_doing.SetLabel("...")
         self.progress.SetLabel("##############################~")
         wx.Yield()
@@ -1051,6 +1055,11 @@ except:
         self.start_btn.Disable()
         self.cancel_btn.SetLabel("OK")
 
+    def ada_dht_click(self, e):
+        self.install_adafruit_DHT()
+        self.progress.SetLabel("####### INSTALLED adafruit dht22 module ######")
+        wx.Yield()
+
 
     def cancel_click(self, e):
         self.Destroy()
@@ -1119,7 +1128,7 @@ class config_ctrl_pnl(wx.Panel):
             print("Error; dirlocs contains no information")
         #We've now created self.dirlocs_dict with key:value for every setting:value in dirlocs
         #now we grab some of the important ones from the dictionary
-         #folder location info (having this in a file on the pi makes it easier if doing things odd ways)
+        #folder location info (having this in a file on the pi makes it easier if doing things odd ways)
         location_msg = ""
         location_problems = []
         try:
@@ -4116,7 +4125,7 @@ class camconf_info_pnl(wx.Panel):
         self.extra_cmds_generic_label.Hide()
 
     def list_fs_ctrls_click(self, e):
-        print("this is supposed to fswebcam -d v4l2:/dev/video0 --list-controls on the pi")
+        print("runing cmd: fswebcam -d v4l2:/dev/video0 --list-controls (on the pi)")
         cam_choice = MainApp.camconf_ctrl_pannel.cam_cb.GetValue()
         cam_cmd = "fswebcam -d v4l2:" + cam_choice + " --list-controls"
         MainApp.status.write_bar("---Doing: " + cam_cmd)
@@ -4125,10 +4134,13 @@ class camconf_info_pnl(wx.Panel):
         if not cam_output == "":
             msg_text = 'Camera located and interorgated; copy-paste a controll name from the following into the settings text box \n \n'
             msg_text += str(cam_output)
-            wx.MessageBox(msg_text, 'Camera Settings', wx.OK | wx.ICON_INFORMATION)
+            dbox = scroll_text_dialog(None, msg_text, "Camera Options", False)
+            dbox.ShowModal()
+            dbox.Destroy()
         if "command not found" in error or "command not found" in cam_output:
             print("!!! fswebcam not installed !!!")
-            print("    TELL THE USER NOT THE COMMAND LINE!!!")
+            wx.MessageBox('fswebcam is not install on this pi', 'Camera Config', wx.OK | wx.ICON_INFORMATION)
+
 
 
     def add_to_cmd_click(self, e):
@@ -4204,6 +4216,14 @@ class camconf_ctrl_pnl(wx.Panel):
         #not addded yet
 
     def read_cam_config_click(self, e):
+        #
+        try:
+            MainApp.camconf_info_pannel.camconf_path_tc.SetValue(MainApp.config_ctrl_pannel.dirlocs_dict['camera_settings'])
+        except:
+            raise
+            MainApp.camconf_info_pannel.camconf_path_tc.SetValue("none")
+            print("Camera config not set in dirlocs")
+        #
         pi_cam_settings_path = MainApp.camconf_info_pannel.camconf_path_tc.GetValue()
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("cat " + pi_cam_settings_path)
         cam_settings = out.splitlines()
@@ -4213,12 +4233,18 @@ class camconf_ctrl_pnl(wx.Panel):
                 key = line.split('=')[0]
                 value = line.split('=')[1]
                 self.camera_settings_dict[key] = value
+
         # putting dictionary info into ui display
         # camera choice
         if "cam_num" in self.camera_settings_dict:
             self.cam_cb.SetValue(self.camera_settings_dict['cam_num'])
         if "cam_opt" in self.camera_settings_dict:
             self.webcam_cb.SetValue(self.camera_settings_dict['cam_opt'])
+        #
+        if self.camera_settings_dict['cam_opt'] == 'fswebcam':
+            MainApp.camconf_info_pannel.show_fswebcam_control()
+        else:
+            MainApp.camconf_info_pannel.hide_fswebcam_control()    
         # basic values
         if "b_val" in self.camera_settings_dict:
             MainApp.camconf_info_pannel.tb_b.SetValue(self.camera_settings_dict['b_val'])
@@ -4419,7 +4445,6 @@ class camconf_ctrl_pnl(wx.Panel):
         else:
             MainApp.camconf_info_pannel.hide_fswebcam_control()
 
-
 #
 #
 #
@@ -4435,7 +4460,7 @@ class sensors_info_pnl(wx.Panel):
              sensor_chirp01_type=chirp
              sensor_chirp01_log=/home/pi/Pigrow/logs/chirp01.txt
              sensor_chirp01_loc=i2c:0x31
-             sensor_chirp01_extra=min:100,max:1000,etc:,etc:etc,etc
+             sensor_chirp01_extra=min:100,max:1000,power_gpio=20,etc:,etc:etc,etc
     """
     #
     #
@@ -4446,7 +4471,7 @@ class sensors_info_pnl(wx.Panel):
         wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, pos = (285, 0), size = wx.Size(w_space_left , 800), style = wx.TAB_TRAVERSAL )
         ## Draw UI elements
         # placing the information boxes
-        self.camconf_txt = wx.StaticText(self,  label='Additional Sensors Config and Set-up', pos=(5, 5), size=(500,30))
+        wx.StaticText(self,  label='Additional Sensors Config and Set-up', pos=(5, 5), size=(500,30))
         self.sensor_list = self.sensor_table(self, 1, pos=(5, 50), size=(850, 300))
         self.sensor_list.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.sensor_table.double_click)
 
@@ -4496,11 +4521,6 @@ class sensors_info_pnl(wx.Panel):
                                  log_freq = str(freq_num) + " " + freq_text
                 #
                 self.add_to_sensor_list(sensor, type, log, loc, extra, log_freq)
-
-
-
-
-
 
         def add_to_sensor_list(self, sensor, type, log, loc, extra='', log_freq=''):
             #MainApp.sensors_info_pannel.sensor_list.add_to_sensor_list(sensor,type,log,loc,extra)
@@ -4573,7 +4593,7 @@ class sensors_ctrl_pnl(wx.Panel):
         MainApp.sensors_info_pannel.sensor_list.s_log = log_path
         MainApp.sensors_info_pannel.sensor_list.s_loc = ":"
         MainApp.sensors_info_pannel.sensor_list.s_extra = "min:,max:"
-        MainApp.sensors_info_pannel.sensor_list = ""
+        MainApp.sensors_info_pannel.sensor_list.s_timing = ""
         # call the chirp config dialog box
         add_chirp_dbox = chirp_dialog(None, title='Chirp Sensor Config')
         add_chirp_dbox.ShowModal()
@@ -4657,8 +4677,12 @@ class chirp_dialog(wx.Dialog):
         self.s_loc   = MainApp.sensors_info_pannel.sensor_list.s_loc
         self.s_extra = MainApp.sensors_info_pannel.sensor_list.s_extra
         self.timing_string = MainApp.sensors_info_pannel.sensor_list.s_timing
-        s_rep     = MainApp.sensors_info_pannel.sensor_list.s_timing.split(" ")[0]
-        s_rep_txt = MainApp.sensors_info_pannel.sensor_list.s_timing.split(" ")[1]
+        try:
+            s_rep     = MainApp.sensors_info_pannel.sensor_list.s_timing.split(" ")[0]
+            s_rep_txt = MainApp.sensors_info_pannel.sensor_list.s_timing.split(" ")[1]
+        except:
+            s_rep = ""
+            s_rep_txt = ""
         # Split s_extra into a list called extras
         if "," in self.s_extra:
             extras = self.s_extra.split(",")
