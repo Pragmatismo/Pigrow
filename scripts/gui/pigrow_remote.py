@@ -4052,48 +4052,121 @@ class camconf_info_pnl(wx.Panel):
         wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, pos = (285, 0), size = wx.Size(w_space_left , 800), style = wx.TAB_TRAVERSAL )
         ## Draw UI elements
         # placing the information boxes
-        wx.StaticText(self,  label='Camera Config file', pos=(5, 5), size=(150,30))
-        self.camconf_path_tc = wx.TextCtrl(self, value="cam config path", pos=(170, 3), size=(350, 30))
+        # top row
+        ccf_label = wx.StaticText(self,  label='Camera Config file', size=(150,30))
+        self.camconf_path_tc = wx.TextCtrl(self, value="cam config path", size=(350, 30))
         place_holder = wx.Bitmap(500, 500)
         self.camconf_img_box = wx.StaticBitmap(self, -1, place_holder, (10, 160), (700, 700))
         # Top bar info
-        # basic settings
-        wx.StaticText(self,  label='Brightness;', pos=(10, 40))
-        self.tb_b = wx.TextCtrl(self, pos=(120, 40), size=(75, 25))
-        wx.StaticText(self,  label='Contrast;', pos=(10, 70))
-        self.tb_c = wx.TextCtrl(self, pos=(120, 70), size=(75, 25))
-        wx.StaticText(self,  label='Saturation;', pos=(10, 100))
-        self.tb_s = wx.TextCtrl(self, pos=(120, 100), size=(75, 25))
-        wx.StaticText(self,  label='Gain;', pos=(10, 130))
-        self.tb_g = wx.TextCtrl(self, pos=(120, 130), size=(75, 25))
-        # size settings
-        wx.StaticText(self,  label='Image Size;', pos=(200, 45))
-        wx.StaticText(self,  label='X;', pos=(225, 70))
-        self.tb_x = wx.TextCtrl(self, pos=(250, 70), size=(75, 25))
-        wx.StaticText(self,  label='Y;', pos=(225, 100))
-        self.tb_y = wx.TextCtrl(self, pos=(250, 100), size=(75, 25))
-        # camera capture unique options
-        ## generic
-        self.extra_cmds_generic_label = wx.StaticText(self,  label='extra args string;', pos=(335, 45))
-        self.cmds_string_tb = wx.TextCtrl(self, pos=(340, 70), size=(265, 90), style=wx.TE_MULTILINE)
+        # basic settings - left col
+        b_label = wx.StaticText(self,  label='Brightness;')
+        self.tb_b = wx.TextCtrl(self, size=(75, 25))
+        c_label = wx.StaticText(self,  label='Contrast;')
+        self.tb_c = wx.TextCtrl(self, size=(75, 25))
+        s_label = wx.StaticText(self,  label='Saturation;')
+        self.tb_s = wx.TextCtrl(self, size=(75, 25))
+        g_label = wx.StaticText(self,  label='Gain;')
+        self.tb_g = wx.TextCtrl(self, size=(75, 25))
+        # size settings - 2nd col
+        is_label = wx.StaticText(self,  label='Image Size;')
+        x_label = wx.StaticText(self,  label='X;')
+        self.tb_x = wx.TextCtrl(self, size=(75, 25))
+        y_label = wx.StaticText(self,  label='Y;')
+        self.tb_y = wx.TextCtrl(self, size=(75, 25))
+        # camera capture unique options - 3rd col
+        ## generic (legacy support remove when possible)
+        self.extra_cmds_generic_label = wx.StaticText(self, label='extra args string;')
+        self.cmds_string_tb = wx.TextCtrl(self, size=(265, 90), style=wx.TE_MULTILINE)
         #####
         ## fswebcam only controlls
-        self.list_fs_ctrls_btn = wx.Button(self, label='Show webcam controlls', pos=(355, 45))
+        self.list_fs_ctrls_btn = wx.Button(self, label='Show webcam controlls')
         self.list_fs_ctrls_btn.Bind(wx.EVT_BUTTON, self.list_fs_ctrls_click)
         # line 2 - setting key
-        self.setting_string_label = wx.StaticText(self,  label='set;', pos=(340, 75))
-        self.setting_string_tb = wx.TextCtrl(self, pos=(380, 75), size=(200, 25))
+        self.setting_string_label = wx.StaticText(self,  label='set;')
+        self.setting_string_tb = wx.TextCtrl(self, size=(200,25))
         # line 3  - setting value
-        self.setting_value_label = wx.StaticText(self,  label='value;', pos=(340, 100))
-        self.setting_value_tb = wx.TextCtrl(self, pos=(380, 100), size=(100, 25))
-        self.add_to_cmd_btn = wx.Button(self, label='Add to cmd...', pos=(480, 100))
+        self.setting_value_label = wx.StaticText(self,  label='value;')
+        self.setting_value_tb = wx.TextCtrl(self, size=(100, 25))
+        self.add_to_cmd_btn = wx.Button(self, label='Add to cmd...')
         self.add_to_cmd_btn.Bind(wx.EVT_BUTTON, self.add_to_cmd_click)
         #
-        self.extra_cmds_label = wx.StaticText(self,  label='args string;', pos=(250, 130))
-        self.extra_cmds_string_fs_tb = wx.TextCtrl(self, pos=(340, 130), size=(265, 30), style=wx.TE_MULTILINE)
+        self.extra_cmds_label = wx.StaticText(self,  label='args string;')
+        self.extra_cmds_string_fs_tb = wx.TextCtrl(self, size=(200,40), style=wx.TE_MULTILINE)
         # hide all fswebcam only controlls until option selected in combobox
-        self.hide_fswebcam_control()
+        #self.hide_fswebcam_control()
         #####
+        ##sizers
+        # top line cam conf file on pi (this will hopefully be moved somewhere better)
+        cam_conf_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        cam_conf_sizer.Add(ccf_label, 0, wx.ALL, 5)
+        cam_conf_sizer.Add(self.camconf_path_tc , 0, wx.ALL, 5)
+        # camera controlls
+        b_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        b_sizer.Add(b_label, 0, wx.RIGHT, 5)
+        b_sizer.Add(self.tb_b, 0, wx.RIGHT, 5)
+        c_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        c_sizer.Add(c_label, 0, wx.RIGHT, 5)
+        c_sizer.Add(self.tb_c, 0, wx.RIGHT, 5)
+        s_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        s_sizer.Add(s_label, 0, wx.RIGHT, 5)
+        s_sizer.Add(self.tb_s, 0, wx.RIGHT, 5)
+        g_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        g_sizer.Add(g_label, 0, wx.RIGHT, 5)
+        g_sizer.Add(self.tb_g, 0, wx.RIGHT, 5)
+        basic_settings_sizer = wx.BoxSizer(wx.VERTICAL)
+        basic_settings_sizer.Add(b_sizer, 0, wx.ALL|wx.ALIGN_RIGHT, 0)
+        basic_settings_sizer.Add(c_sizer, 0, wx.ALL|wx.ALIGN_RIGHT, 0)
+        basic_settings_sizer.Add(s_sizer, 0, wx.ALL|wx.ALIGN_RIGHT, 0)
+        basic_settings_sizer.Add(g_sizer, 0, wx.ALL|wx.ALIGN_RIGHT, 0)
+        # image sizer
+        x_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        x_sizer.Add(x_label, 0, wx.ALL, 5)
+        x_sizer.Add(self.tb_x, 0, wx.ALL, 5)
+        y_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        y_sizer.Add(y_label, 0, wx.ALL, 5)
+        y_sizer.Add(self.tb_y, 0, wx.ALL, 5)
+        image_size_sizer = wx.BoxSizer(wx.VERTICAL)
+        image_size_sizer.Add(is_label, 0, wx.ALL, 1)
+        image_size_sizer.Add(x_sizer, 0, wx.ALL|wx.ALIGN_RIGHT, 0)
+        image_size_sizer.Add(y_sizer, 0, wx.ALL|wx.ALIGN_RIGHT, 0)
+        # camera option spesific settings
+        #fswebcam sizer - only shown when fswebcam is selected
+        fs_set_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        fs_set_sizer.Add(self.setting_string_label, 0, wx.RIGHT, 5)
+        fs_set_sizer.Add(self.setting_string_tb, 0, wx.RIGHT, 5)
+        fs_value_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        fs_value_sizer.Add(self.setting_value_label, 0, wx.RIGHT, 5)
+        fs_value_sizer.Add(self.setting_value_tb, 0, wx.RIGHT, 5)
+        fs_value_sizer.Add(self.add_to_cmd_btn, 0, wx.RIGHT, 5)
+        fswebcam_args_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        fswebcam_args_sizer.Add(self.extra_cmds_label, 0, wx.RIGHT, 5)
+        fswebcam_args_sizer.Add(self.extra_cmds_string_fs_tb, 0, wx.RIGHT|wx.EXPAND, 1)
+        fswebcam_opts_sizer = wx.BoxSizer(wx.VERTICAL)
+        fswebcam_opts_sizer.Add(self.list_fs_ctrls_btn, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 1)
+        fswebcam_opts_sizer.Add(fs_set_sizer, 0, wx.ALL, 1)
+        fswebcam_opts_sizer.Add(fs_value_sizer, 0, wx.ALL, 1)
+        fswebcam_opts_sizer.Add(fswebcam_args_sizer, 0, wx.ALL, 1)
+
+        # NEED TO BE ADDED - generic extra args for legacy + extra args for other camera opts
+        #2nd row Pannels sizers
+        panels_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        panels_sizer.Add(basic_settings_sizer, 0, wx.ALL, 5)
+        panels_sizer.Add(image_size_sizer, 0, wx.ALL, 5)
+        panels_sizer.Add(fswebcam_opts_sizer, 0, wx.ALL, 5)
+        # MAIN sizer
+        main_sizer = wx.BoxSizer(wx.VERTICAL)
+        main_sizer.Add(cam_conf_sizer, 0, wx.ALL, 0)
+        main_sizer.Add(panels_sizer, 0, wx.ALL, 0)
+        divider = wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL)
+        ##
+        ##
+        ### Add space to show images here!
+        ##
+        ##
+        main_sizer.Add(divider, 0, wx.ALL, 0)
+        self.SetSizer(main_sizer)
+        main_sizer.Fit(self)
+
 
 
     def hide_fswebcam_control(self):
@@ -4212,10 +4285,20 @@ class camconf_ctrl_pnl(wx.Panel):
         self.take_s_set_btn = wx.Button(self, label='      Take\n      using\nsaved settings', pos=(202, 240), size=(95, 60))
         self.take_s_set_btn.Bind(wx.EVT_BUTTON, self.take_saved_set_click)
 
+        self.take_range_btn = wx.Button(self, label='  Take\n  \nrange', pos=(0, 310), size=(95, 60))
+        #self.take_range_btn.Bind(wx.EVT_BUTTON, self.take_range_click)
+
         #
         # UI for Picam coming soon
         #
         #not addded yet
+        ## Dividing line between camera options and photo display area
+        divider = wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL)
+        ## Photo Display Area
+
+        ## sizer
+
+
 
     def read_cam_config_click(self, e):
         #
