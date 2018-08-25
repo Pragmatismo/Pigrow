@@ -4055,8 +4055,6 @@ class camconf_info_pnl(wx.Panel):
         # top row
         ccf_label = wx.StaticText(self,  label='Camera Config file', size=(150,30))
         self.camconf_path_tc = wx.TextCtrl(self, value="cam config path", size=(350, 30))
-        place_holder = wx.Bitmap(500, 500)
-        self.camconf_img_box = wx.StaticBitmap(self, -1, place_holder, (10, 160), (700, 700))
         # Top bar info
         # basic settings - left col
         b_label = wx.StaticText(self,  label='Brightness;')
@@ -4094,6 +4092,12 @@ class camconf_info_pnl(wx.Panel):
         self.extra_cmds_string_fs_tb = wx.TextCtrl(self, size=(200,40), style=wx.TE_MULTILINE)
         # hide all fswebcam only controlls until option selected in combobox
         #self.hide_fswebcam_control()
+        #####
+        # PICTURE AREA
+        #place_holder = wx.Bitmap(self.GetSize()[1], self.GetSize()[0])
+        place_holder = wx.Bitmap(10000, 10000)   #oversize as temp fix
+        self.camconf_img_box = wx.StaticBitmap(self, -1, place_holder)
+
         #####
         ##sizers
         # top line cam conf file on pi (this will hopefully be moved somewhere better)
@@ -4154,18 +4158,20 @@ class camconf_info_pnl(wx.Panel):
         panels_sizer.Add(image_size_sizer, 0, wx.ALL, 5)
         panels_sizer.Add(fswebcam_opts_sizer, 0, wx.ALL, 5)
         # MAIN sizer
-        main_sizer = wx.BoxSizer(wx.VERTICAL)
-        main_sizer.Add(cam_conf_sizer, 0, wx.ALL, 0)
-        main_sizer.Add(panels_sizer, 0, wx.ALL, 0)
+        self.main_sizer = wx.BoxSizer(wx.VERTICAL)
+        self.main_sizer.Add(cam_conf_sizer, 0, wx.ALL, 0)
+        self.main_sizer.Add(panels_sizer, 0, wx.ALL, 0)
         divider = wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL)
+        self.main_sizer.Add(divider, 0, wx.ALL, 0)
+        self.main_sizer.Add(self.camconf_img_box, 0, wx.ALL, 2)
+
         ##
         ##
         ### Add space to show images here!
         ##
         ##
-        main_sizer.Add(divider, 0, wx.ALL, 0)
-        self.SetSizer(main_sizer)
-        main_sizer.Fit(self)
+        self.SetSizer(self.main_sizer)
+        self.main_sizer.Fit(self)
 
 
 
@@ -4409,6 +4415,8 @@ class camconf_ctrl_pnl(wx.Panel):
         img_path = localfiles_ctrl_pnl.download_file_to_folder(MainApp.localfiles_ctrl_pannel, path, "/temp/test_settings.jpg")
         display_img = wx.Image(img_path, wx.BITMAP_TYPE_ANY).ConvertToBitmap()
         MainApp.camconf_info_pannel.camconf_img_box.SetBitmap(display_img)
+
+
 
 
     def take_set_click(self, e):
