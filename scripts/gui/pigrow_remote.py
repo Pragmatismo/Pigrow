@@ -4041,15 +4041,15 @@ class graphing_ctrl_pnl(wx.Panel):
 #
 #
 #
-
-class camconf_info_pnl(wx.Panel):
+import  wx.lib.scrolledpanel as scrolled
+class camconf_info_pnl(scrolled.ScrolledPanel):
     #
     #
     def __init__( self, parent ):
         win_height = gui_set.height_of_window
         win_width = gui_set.width_of_window
         w_space_left = win_width - 285
-        wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, pos = (285, 0), size = wx.Size(w_space_left , 800), style = wx.TAB_TRAVERSAL )
+        scrolled.ScrolledPanel.__init__ ( self, parent, id = wx.ID_ANY, pos = (285, 0), size = wx.Size(w_space_left , 800), style = wx.HSCROLL|wx.VSCROLL )
         ## Draw UI elements
         # placing the information boxes
         # top row
@@ -4095,8 +4095,9 @@ class camconf_info_pnl(wx.Panel):
         #####
         # PICTURE AREA
         #place_holder = wx.Bitmap(self.GetSize()[1], self.GetSize()[0])
-        place_holder = wx.Bitmap(10000, 10000)   #oversize as temp fix
+        place_holder = wx.Bitmap(100, 100)   #oversize as temp fix
         self.camconf_img_box = wx.StaticBitmap(self, -1, place_holder)
+        self.pic_label = wx.StaticText(self,  label='pic_label')
 
         #####
         ##sizers
@@ -4148,7 +4149,7 @@ class camconf_info_pnl(wx.Panel):
         fswebcam_opts_sizer = wx.BoxSizer(wx.VERTICAL)
         fswebcam_opts_sizer.Add(self.list_fs_ctrls_btn, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 1)
         fswebcam_opts_sizer.Add(fs_set_sizer, 0, wx.ALL, 1)
-        fswebcam_opts_sizer.Add(fs_value_sizer, 0, wx.ALL, 1)
+        fswebcam_opts_sizer.Add(fs_value_sizer, 0, wx.ALL|wx.EXPAND, 1)
         fswebcam_opts_sizer.Add(fswebcam_args_sizer, 0, wx.ALL, 1)
 
         # NEED TO BE ADDED - generic extra args for legacy + extra args for other camera opts
@@ -4161,17 +4162,18 @@ class camconf_info_pnl(wx.Panel):
         self.main_sizer = wx.BoxSizer(wx.VERTICAL)
         self.main_sizer.Add(cam_conf_sizer, 0, wx.ALL, 0)
         self.main_sizer.Add(panels_sizer, 0, wx.ALL, 0)
-        divider = wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL)
-        self.main_sizer.Add(divider, 0, wx.ALL, 0)
         self.main_sizer.Add(self.camconf_img_box, 0, wx.ALL, 2)
+        self.main_sizer.Add(self.pic_label, 0, wx.ALL, 2)
 
         ##
         ##
         ### Add space to show images here!
         ##
         ##
+
         self.SetSizer(self.main_sizer)
-        self.main_sizer.Fit(self)
+        self.SetupScrolling()
+
 
 
 
@@ -4298,11 +4300,7 @@ class camconf_ctrl_pnl(wx.Panel):
         # UI for Picam coming soon
         #
         #not addded yet
-        ## Dividing line between camera options and photo display area
-        divider = wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL)
-        ## Photo Display Area
 
-        ## sizer
 
 
 
@@ -4415,7 +4413,8 @@ class camconf_ctrl_pnl(wx.Panel):
         img_path = localfiles_ctrl_pnl.download_file_to_folder(MainApp.localfiles_ctrl_pannel, path, "/temp/test_settings.jpg")
         display_img = wx.Image(img_path, wx.BITMAP_TYPE_ANY).ConvertToBitmap()
         MainApp.camconf_info_pannel.camconf_img_box.SetBitmap(display_img)
-
+        MainApp.camconf_info_pannel.SetSizer(MainApp.camconf_info_pannel.main_sizer)
+        MainApp.camconf_info_pannel.SetupScrolling()
 
 
 
@@ -4448,6 +4447,8 @@ class camconf_ctrl_pnl(wx.Panel):
             img_path = localfiles_ctrl_pnl.download_file_to_folder(MainApp.localfiles_ctrl_pannel, remote_img_path, "/temp/test_settings.jpg")
             display_img = wx.Image(img_path, wx.BITMAP_TYPE_ANY).ConvertToBitmap()
             MainApp.camconf_info_pannel.camconf_img_box.SetBitmap(display_img)
+            MainApp.camconf_info_pannel.SetSizer(MainApp.camconf_info_pannel.main_sizer)
+            MainApp.camconf_info_pannel.SetupScrolling()
 
     def install_fswebcam(self):
         print("user asked to install fswebcam on the pi")
@@ -4512,6 +4513,8 @@ class camconf_ctrl_pnl(wx.Panel):
         img_path = localfiles_ctrl_pnl.download_file_to_folder(MainApp.localfiles_ctrl_pannel, remote_img_path, "/temp/test_defaults.jpg")
         display_img = wx.Image(img_path, wx.BITMAP_TYPE_ANY).ConvertToBitmap()
         MainApp.camconf_info_pannel.camconf_img_box.SetBitmap(display_img)
+        MainApp.camconf_info_pannel.SetSizer(MainApp.camconf_info_pannel.main_sizer)
+        MainApp.camconf_info_pannel.SetupScrolling()
 
     def take_unset_test_image(self, x_dim=10000, y_dim=10000, additonal_commands='',
                               cam_capture_choice='uvccapture',
