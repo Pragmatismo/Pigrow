@@ -4263,37 +4263,53 @@ class camconf_ctrl_pnl(wx.Panel):
         # Start drawing the UI elements
 
         # read / save cam config button
-        self.read_cam_config_btn = wx.Button(self, label='read cam config', pos=(25, 5), size=(150, 30))
+        self.read_cam_config_btn = wx.Button(self, label='read cam config')
         self.read_cam_config_btn.Bind(wx.EVT_BUTTON, self.read_cam_config_click)
-        self.save_cam_config_btn = wx.Button(self, label='save to pi', pos=(190, 5), size=(90, 30))
+        self.save_cam_config_btn = wx.Button(self, label='save to pi')
         self.save_cam_config_btn.Bind(wx.EVT_BUTTON, self.save_cam_config_click)
         #camera options
-        wx.StaticText(self,  label='Camera selection;', pos=(15, 40))
-        self.list_cams_btn = wx.Button(self, label='find', pos=(5, 70), size=(30, 30))
+        self.cam_select_l = wx.StaticText(self,  label='Camera selection;')
+        self.list_cams_btn = wx.Button(self, label='find', size=(30, 30))
         self.list_cams_btn.Bind(wx.EVT_BUTTON, self.list_cams_click)
         cam_opts = [""]
-        self.cam_cb = wx.ComboBox(self, choices = cam_opts, pos=(40,70), size=(225, 30))
+        self.cam_cb = wx.ComboBox(self, choices = cam_opts, size=(225, 30))
         self.cam_cb.Bind(wx.EVT_COMBOBOX, self.cam_combo_go)
 
         #
         # UI for WEBCAM
         #
-        wx.StaticText(self,  label='Capture tool;', pos=(15, 100))
+        self.cap_tool_l = wx.StaticText(self,  label='Capture tool;')
         webcam_opts = ['uvccapture', 'fswebcam']
-        self.webcam_cb = wx.ComboBox(self, choices = webcam_opts, pos=(10,120), size=(265, 30))
+        self.webcam_cb = wx.ComboBox(self, choices = webcam_opts, size=(265, 30))
         self.webcam_cb.Bind(wx.EVT_COMBOBOX, self.webcam_combo_go)
 
         # Buttons
-        self.take_unset_btn = wx.Button(self, label='  Take\n  cam\ndefault', pos=(0, 240), size=(95, 60))
+        self.take_unset_btn = wx.Button(self, label='  Take\n  cam\ndefault', size=(95, 60))
         self.take_unset_btn.Bind(wx.EVT_BUTTON, self.take_unset_click)
 
-        self.take_set_btn = wx.Button(self, label='      Take\n      using\nlocal settings', pos=(101, 240), size=(95, 60))
+        self.take_set_btn = wx.Button(self, label='      Take\n      using\nlocal settings', size=(95, 60))
         self.take_set_btn.Bind(wx.EVT_BUTTON, self.take_set_click)
 
-        self.take_s_set_btn = wx.Button(self, label='      Take\n      using\nsaved settings', pos=(202, 240), size=(95, 60))
+        self.take_s_set_btn = wx.Button(self, label='      Take\n      using\nsaved settings', size=(95, 60))
         self.take_s_set_btn.Bind(wx.EVT_BUTTON, self.take_saved_set_click)
 
-        self.take_range_btn = wx.Button(self, label='  Take\n  \nrange', pos=(0, 310), size=(95, 60))
+        #Take Range altering a single setting
+        range_opts = ['brightness', 'contrast', 'saturation', 'gain', 'user']
+        self.range_combo = wx.ComboBox(self, choices = range_opts)
+        # start point, end point, increment every x - text control, label, default settings
+        self.range_start_tc = wx.TextCtrl(self)
+        self.range_end_tc = wx.TextCtrl(self)
+        self.range_every_tc = wx.TextCtrl(self)
+        self.range_start_l = wx.StaticText(self,  label='start;')
+        self.range_end_l = wx.StaticText(self,  label='end;')
+        self.range_every_l = wx.StaticText(self,  label='every;')
+        self.range_start_tc.SetValue("1")
+        self.range_end_tc.SetValue("255")
+        self.range_every_tc.SetValue("20")
+        # take range button
+        self.take_range_btn = wx.Button(self, label='  Take\n  \nrange')
+        self.take_range_btn.Bind(wx.EVT_BUTTON, self.range_btn_click)
+
         #self.take_range_btn.Bind(wx.EVT_BUTTON, self.take_range_click)
 
         #
@@ -4301,7 +4317,51 @@ class camconf_ctrl_pnl(wx.Panel):
         #
         #not addded yet
 
+        # Sizers
+        load_save_btn_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        load_save_btn_sizer.Add(self.read_cam_config_btn, 1, wx.ALL|wx.EXPAND, 0)
+        load_save_btn_sizer.Add(self.save_cam_config_btn, 1, wx.ALL|wx.EXPAND, 0)
+        find_select_cam_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        find_select_cam_sizer.Add(self.list_cams_btn, 0, wx.ALL, 0)
+        find_select_cam_sizer.Add(self.cam_cb, 0, wx.ALL|wx.EXPAND, 0)
+        take_single_photo_btns_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        take_single_photo_btns_sizer.Add(self.take_unset_btn, 0, wx.ALL|wx.EXPAND, 0)
+        take_single_photo_btns_sizer.Add(self.take_set_btn, 0, wx.ALL|wx.EXPAND, 0)
+        take_single_photo_btns_sizer.Add(self.take_s_set_btn, 0, wx.ALL|wx.EXPAND, 0)
+        range_options_btn_sizer = wx.GridSizer(3, 2, 0, 0)
+        range_options_btn_sizer.AddMany( [(self.range_start_l, 0, wx.EXPAND),
+            (self.range_start_tc, 0, wx.EXPAND),
+            (self.range_end_l, 0, wx.EXPAND),
+            (self.range_end_tc, 0, wx.EXPAND),
+            (self.range_every_l, 0, wx.EXPAND),
+            (self.range_every_tc, 0, wx.EXPAND) ])
+        range_options_sizer = wx.BoxSizer(wx.VERTICAL)
+        range_options_sizer.Add(self.range_combo, 0, wx.ALL|wx.EXPAND, 0)
+        range_options_sizer.Add(range_options_btn_sizer, 0, wx.ALL|wx.EXPAND, 0)
+        range_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        range_sizer.Add(self.take_range_btn, 0, wx.ALL|wx.EXPAND, 0)
+        range_sizer.Add(range_options_sizer, 0, wx.ALL|wx.EXPAND, 0)
 
+        # main sizer
+        main_sizer = wx.BoxSizer(wx.VERTICAL)
+        main_sizer.Add(load_save_btn_sizer, 0, wx.ALL|wx.EXPAND, 0)
+        main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
+        main_sizer.Add(self.cam_select_l, 0, wx.ALL, 0)
+        main_sizer.Add(find_select_cam_sizer, 0, wx.ALL, 0)
+        main_sizer.Add(self.cap_tool_l, 0, wx.ALL, 0)
+        main_sizer.Add(self.webcam_cb, 0, wx.ALL|wx.EXPAND, 0)
+        main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
+        main_sizer.Add(take_single_photo_btns_sizer, 0, wx.ALL|wx.EXPAND, 0)
+        main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
+        main_sizer.Add(range_sizer, 0, wx.ALL, 0)
+        main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
+
+        self.SetSizer(main_sizer)
+        #self.SetupScrolling()   #ADD SCROLLING TO THIS PANEL? or to the main window?
+
+
+    def range_btn_click(self, e):
+        print("Taking a range of images is not yet supported, working on it right this second")
 
 
     def read_cam_config_click(self, e):
