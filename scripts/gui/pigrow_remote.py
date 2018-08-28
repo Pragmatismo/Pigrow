@@ -4075,6 +4075,8 @@ class camconf_info_pnl(scrolled.ScrolledPanel):
         ## generic (legacy support remove when possible)
         self.extra_cmds_generic_label = wx.StaticText(self, label='extra args string;')
         self.cmds_string_tb = wx.TextCtrl(self, size=(265, 90), style=wx.TE_MULTILINE)
+        self.cmds_string_tb.Hide() #here for legacy only
+        self.extra_cmds_generic_label.Hide() #here for legacy only
         #####
         ## fswebcam only controlls
         self.list_fs_ctrls_btn = wx.Button(self, label='Show webcam controlls')
@@ -4088,10 +4090,11 @@ class camconf_info_pnl(scrolled.ScrolledPanel):
         self.add_to_cmd_btn = wx.Button(self, label='Add to cmd...')
         self.add_to_cmd_btn.Bind(wx.EVT_BUTTON, self.add_to_cmd_click)
         #
-        self.extra_cmds_label = wx.StaticText(self,  label='args string;')
+        self.extra_cmds_fs_label = wx.StaticText(self,  label='extra commands for fs;')
         self.extra_cmds_string_fs_tb = wx.TextCtrl(self, size=(200,40), style=wx.TE_MULTILINE)
-        # hide all fswebcam only controlls until option selected in combobox
-        #self.hide_fswebcam_control()
+        ## uvccaptre only controlls
+        self.extra_cmds_uvc_label = wx.StaticText(self,  label='extra commands for uvc;')
+        self.extra_cmds_string_uvc_tb = wx.TextCtrl(self, style=wx.TE_MULTILINE)
         #####
 
 
@@ -4139,14 +4142,18 @@ class camconf_info_pnl(scrolled.ScrolledPanel):
         fs_value_sizer.Add(self.setting_value_label, 0, wx.RIGHT, 5)
         fs_value_sizer.Add(self.setting_value_tb, 0, wx.RIGHT, 5)
         fs_value_sizer.Add(self.add_to_cmd_btn, 0, wx.RIGHT, 5)
-        fswebcam_args_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        fswebcam_args_sizer.Add(self.extra_cmds_label, 0, wx.RIGHT, 5)
-        fswebcam_args_sizer.Add(self.extra_cmds_string_fs_tb, 0, wx.RIGHT|wx.EXPAND, 1)
+        fswebcam_args_sizer = wx.BoxSizer(wx.VERTICAL)
+        fswebcam_args_sizer.Add(self.extra_cmds_fs_label, 0, wx.RIGHT, 5)
+        fswebcam_args_sizer.Add(self.extra_cmds_string_fs_tb, 1, wx.RIGHT|wx.EXPAND, 1)
         fswebcam_opts_sizer = wx.BoxSizer(wx.VERTICAL)
         fswebcam_opts_sizer.Add(self.list_fs_ctrls_btn, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 1)
         fswebcam_opts_sizer.Add(fs_set_sizer, 0, wx.ALL, 1)
         fswebcam_opts_sizer.Add(fs_value_sizer, 0, wx.ALL|wx.EXPAND, 1)
-        fswebcam_opts_sizer.Add(fswebcam_args_sizer, 0, wx.ALL, 1)
+        #uvc sizer - only shown when uvc us Selected
+        self.uvc_opts_sizer = wx.BoxSizer(wx.VERTICAL)
+        self.uvc_opts_sizer.Add(self.extra_cmds_uvc_label, 0, wx.RIGHT, 5)
+        self.uvc_opts_sizer.Add(self.extra_cmds_string_uvc_tb, 1, wx.RIGHT|wx.EXPAND, 5)
+        #self.uvc_opts_sizer.Hide()
 
         # NEED TO BE ADDED - generic extra args for legacy + extra args for other camera opts
         #2nd row Pannels sizers
@@ -4154,6 +4161,8 @@ class camconf_info_pnl(scrolled.ScrolledPanel):
         panels_sizer.Add(basic_settings_sizer, 0, wx.ALL, 5)
         panels_sizer.Add(image_size_sizer, 0, wx.ALL, 5)
         panels_sizer.Add(fswebcam_opts_sizer, 0, wx.ALL, 5)
+        panels_sizer.Add(fswebcam_args_sizer, 0, wx.ALL|wx.EXPAND, 5)
+        panels_sizer.Add(self.uvc_opts_sizer, 0, wx.ALL|wx.EXPAND, 5)
         # picture display AREA
         self.picture_sizer = wx.BoxSizer(wx.VERTICAL)
         # MAIN sizer
@@ -4162,18 +4171,28 @@ class camconf_info_pnl(scrolled.ScrolledPanel):
         self.main_sizer.Add(panels_sizer, 0, wx.ALL, 0)
         self.main_sizer.Add(self.picture_sizer, 0, wx.ALL, 0)
 
+        # hide all unique controlls until option selected in combobox
+        self.hide_fswebcam_control()
+        self.hide_uvc_control()
 
-        ##
-        ##
-        ### Add space to show images here!
-        ##
-        ##
 
+        # set sizers and scrolling
         self.SetSizer(self.main_sizer)
         self.SetupScrolling()
 
+    def hide_uvc_control(self):
+        self.extra_cmds_uvc_label.Hide()
+        self.extra_cmds_string_uvc_tb.Hide()
+        self.SetSizer(self.main_sizer)
+        self.SetupScrolling()
 
-
+    def show_uvc_control(self):
+        print("SHOWING UVC CONTROL")
+        self.extra_cmds_uvc_label.Show()
+        self.extra_cmds_string_uvc_tb.Show()
+        self.hide_fswebcam_control()
+        self.SetSizer(self.main_sizer)
+        self.SetupScrolling()
 
     def hide_fswebcam_control(self):
         self.list_fs_ctrls_btn.Hide()
@@ -4183,11 +4202,10 @@ class camconf_info_pnl(scrolled.ScrolledPanel):
         self.setting_value_label.Hide()
         self.setting_value_tb.Hide()
         self.add_to_cmd_btn.Hide()
-        self.extra_cmds_label.Hide()
+        self.extra_cmds_fs_label.Hide()
         self.extra_cmds_string_fs_tb.Hide()
-        # generic
-        self.cmds_string_tb.Show()
-        self.extra_cmds_generic_label.Show()
+        self.SetSizer(self.main_sizer)
+        self.SetupScrolling()
 
     def show_fswebcam_control(self):
         self.list_fs_ctrls_btn.Show()
@@ -4197,11 +4215,13 @@ class camconf_info_pnl(scrolled.ScrolledPanel):
         self.setting_value_label.Show()
         self.setting_value_tb.Show()
         self.add_to_cmd_btn.Show()
-        self.extra_cmds_label.Show()
+        self.extra_cmds_fs_label.Show()
         self.extra_cmds_string_fs_tb.Show()
-        # hide generic controls
-        self.cmds_string_tb.Hide()
-        self.extra_cmds_generic_label.Hide()
+        # hide other Controlls
+        self.hide_uvc_control()
+        self.SetSizer(self.main_sizer)
+        self.SetupScrolling()
+
 
     def list_fs_ctrls_click(self, e):
         print("runing cmd: fswebcam -d v4l2:/dev/video0 --list-controls (on the pi)")
@@ -4308,8 +4328,6 @@ class camconf_ctrl_pnl(wx.Panel):
         self.take_range_btn = wx.Button(self, label='  Take\n  \nrange')
         self.take_range_btn.Bind(wx.EVT_BUTTON, self.range_btn_click)
 
-        #self.take_range_btn.Bind(wx.EVT_BUTTON, self.take_range_click)
-
         #
         # UI for Picam coming soon
         #
@@ -4358,56 +4376,6 @@ class camconf_ctrl_pnl(wx.Panel):
         #self.SetupScrolling()   #ADD SCROLLING TO THIS PANEL? or to the main window?
 
 
-    def range_btn_click(self, e):
-        print("Taking a range of images is not yet supported, working on it right this second")
-        cam_set = self.cam_cb.GetValue()
-        cam_opt = self.webcam_cb.GetValue()
-        cam_b = MainApp.camconf_info_pannel.tb_b.GetValue()
-        cam_c = MainApp.camconf_info_pannel.tb_c.GetValue()
-        cam_s = MainApp.camconf_info_pannel.tb_s.GetValue()
-        cam_g = MainApp.camconf_info_pannel.tb_g.GetValue()
-        cam_x = MainApp.camconf_info_pannel.tb_x.GetValue()
-        cam_y = MainApp.camconf_info_pannel.tb_y.GetValue()
-        opts_test_str = MainApp.camconf_info_pannel.setting_string_tb.GetValue()
-        cam_additional = self.get_camopt_spesific_additional_cmds()
-        range_opt = self.range_combo.GetValue()
-        range_start = self.range_start_tc.GetValue()
-        range_end =self.range_end_tc.GetValue()
-        range_every = self.range_every_tc.GetValue()
-        range_photo_set = []
-        outfolder= '/home/' + pi_link_pnl.target_user + '/Pigrow/temp/'
-        #cycle through the selected range taking a photo at each point and adding the remote path to range_photo_set
-        for changing_range in range(int(range_start), int(range_end), int(range_every)):
-            outfile = outfolder + 'range_' + str(changing_range) + '.jpg'
-            if range_opt == 'brightness':
-                info, remote_img_path = self.take_test_image(cam_s, cam_c, cam_g, str(changing_range), cam_x, cam_y, cam_set, cam_opt, outfile, None, None, cam_additional)
-            elif range_opt == 'contrast':
-                info, remote_img_path = self.take_test_image(cam_s, str(changing_range), cam_g , cam_b, cam_x, cam_y, cam_set, cam_opt, outfile, None, None, cam_additional)
-            elif range_opt == 'saturation':
-                info, remote_img_path = self.take_test_image(str(changing_range), cam_c, cam_g, cam_b, cam_x, cam_y, cam_set, cam_opt, outfile, None, None, cam_additional)
-            elif range_opt == 'gain':
-                info, remote_img_path = self.take_test_image(cam_s, cam_c, str(changing_range), cam_b, cam_x, cam_y, cam_set, cam_opt, outfile, None, None, cam_additional)
-            elif range_opt == 'user':
-                info, remote_img_path = self.take_test_image(cam_s, cam_c, cam_g, cam_b, cam_x, cam_y, cam_set, cam_opt, outfile, ctrl_test_value=str(changing_range), ctrl_text_string=opts_test_str, cmd_str=cam_additional)
-
-            range_photo_set.append(remote_img_path)
-        print(range_photo_set)
-        img_set = []
-        self.clear_picture_area()
-        #MainApp.camconf_info_pannel.Clear()
-        #MainApp.camconf_info_pannel.Refresh()
-        for photo_path in range_photo_set:
-            picture_name = photo_path.split("/")[-1]
-            img_path = localfiles_ctrl_pnl.download_file_to_folder(MainApp.localfiles_ctrl_pannel, photo_path, "/temp/" + picture_name)
-            print (img_path)
-            img_set.append(img_path)
-            print("Adding " + img_path)
-            MainApp.camconf_info_pannel.picture_sizer.Add(wx.StaticLine(MainApp.camconf_info_pannel, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
-            MainApp.camconf_info_pannel.picture_sizer.Add(wx.StaticText(MainApp.camconf_info_pannel,  label=picture_name), 0, wx.ALL, 2)
-            MainApp.camconf_info_pannel.picture_sizer.Add(wx.StaticBitmap(MainApp.camconf_info_pannel, -1, wx.Image(img_path, wx.BITMAP_TYPE_ANY).ConvertToBitmap()), 0, wx.ALL, 2)
-
-        MainApp.camconf_info_pannel.SetSizer(MainApp.camconf_info_pannel.main_sizer)
-        MainApp.camconf_info_pannel.SetupScrolling()
 
 
     def read_cam_config_click(self, e):
@@ -4435,11 +4403,13 @@ class camconf_ctrl_pnl(wx.Panel):
             self.cam_cb.SetValue(self.camera_settings_dict['cam_num'])
         if "cam_opt" in self.camera_settings_dict:
             self.webcam_cb.SetValue(self.camera_settings_dict['cam_opt'])
-        #
-        if self.camera_settings_dict['cam_opt'] == 'fswebcam':
-            MainApp.camconf_info_pannel.show_fswebcam_control()
-        else:
-            MainApp.camconf_info_pannel.hide_fswebcam_control()
+            #
+            if self.camera_settings_dict['cam_opt'] == 'fswebcam':
+                MainApp.camconf_info_pannel.show_fswebcam_control()
+            elif self.camera_settings_dict['cam_opt'] == 'uvccapture':
+                MainApp.camconf_info_pannel.show_uvc_control()
+            else:
+                print("!!! Unknown camera capture option - " + str(self.camera_settings_dict['cam_opt']))
         # basic values
         if "b_val" in self.camera_settings_dict:
             MainApp.camconf_info_pannel.tb_b.SetValue(self.camera_settings_dict['b_val'])
@@ -4460,8 +4430,8 @@ class camconf_ctrl_pnl(wx.Panel):
         #
         if "cam_fsw_extra" in self.camera_settings_dict:
             MainApp.camconf_info_pannel.extra_cmds_string_fs_tb.SetValue(self.camera_settings_dict['cam_fsw_extra'])
-    #    if "cam_uvc_extra" in self.camera_settings_dict:
-    #        self..SetValue(self.camera_settings_dict['cam_uvc_extra'])
+        if "cam_uvc_extra" in self.camera_settings_dict:
+            MainApp.camconf_info_pannel.extra_cmds_string_uvc_tb.SetValue(self.camera_settings_dict['cam_uvc_extra'])
 
 
     def save_cam_config_click(self, e):
@@ -4579,6 +4549,58 @@ class camconf_ctrl_pnl(wx.Panel):
             out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo apt install fswebcam --force-yes -y")
             print(out, error)
 
+    def range_btn_click(self, e):
+        print("Taking a range of images is not yet supported, working on it right this second")
+        cam_set = self.cam_cb.GetValue()
+        cam_opt = self.webcam_cb.GetValue()
+        cam_b = MainApp.camconf_info_pannel.tb_b.GetValue()
+        cam_c = MainApp.camconf_info_pannel.tb_c.GetValue()
+        cam_s = MainApp.camconf_info_pannel.tb_s.GetValue()
+        cam_g = MainApp.camconf_info_pannel.tb_g.GetValue()
+        cam_x = MainApp.camconf_info_pannel.tb_x.GetValue()
+        cam_y = MainApp.camconf_info_pannel.tb_y.GetValue()
+        opts_test_str = MainApp.camconf_info_pannel.setting_string_tb.GetValue()
+        cam_additional = self.get_camopt_spesific_additional_cmds()
+        range_opt = self.range_combo.GetValue()
+        range_start = self.range_start_tc.GetValue()
+        range_end =self.range_end_tc.GetValue()
+        range_every = self.range_every_tc.GetValue()
+        range_photo_set = []
+        outfolder= '/home/' + pi_link_pnl.target_user + '/Pigrow/temp/'
+        #cycle through the selected range taking a photo at each point and adding the remote path to range_photo_set
+        for changing_range in range(int(range_start), int(range_end), int(range_every)):
+            outfile = outfolder + 'range_' + str(changing_range) + '.jpg'
+            if range_opt == 'brightness':
+                info, remote_img_path = self.take_test_image(cam_s, cam_c, cam_g, str(changing_range), cam_x, cam_y, cam_set, cam_opt, outfile, None, None, cam_additional)
+            elif range_opt == 'contrast':
+                info, remote_img_path = self.take_test_image(cam_s, str(changing_range), cam_g , cam_b, cam_x, cam_y, cam_set, cam_opt, outfile, None, None, cam_additional)
+            elif range_opt == 'saturation':
+                info, remote_img_path = self.take_test_image(str(changing_range), cam_c, cam_g, cam_b, cam_x, cam_y, cam_set, cam_opt, outfile, None, None, cam_additional)
+            elif range_opt == 'gain':
+                info, remote_img_path = self.take_test_image(cam_s, cam_c, str(changing_range), cam_b, cam_x, cam_y, cam_set, cam_opt, outfile, None, None, cam_additional)
+            elif range_opt == 'user':
+                info, remote_img_path = self.take_test_image(cam_s, cam_c, cam_g, cam_b, cam_x, cam_y, cam_set, cam_opt, outfile, ctrl_test_value=str(changing_range), ctrl_text_string='"' + opts_test_str + '"', cmd_str=cam_additional)
+
+            range_photo_set.append(remote_img_path)
+        print(range_photo_set)
+        img_set = []
+        self.clear_picture_area()
+        #MainApp.camconf_info_pannel.Clear()
+        #MainApp.camconf_info_pannel.Refresh()
+        for photo_path in range_photo_set:
+            picture_name = photo_path.split("/")[-1]
+            img_path = localfiles_ctrl_pnl.download_file_to_folder(MainApp.localfiles_ctrl_pannel, photo_path, "/temp/" + picture_name)
+            print (img_path)
+            img_set.append(img_path)
+            print("Adding " + img_path)
+            MainApp.camconf_info_pannel.picture_sizer.Add(wx.StaticLine(MainApp.camconf_info_pannel, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
+            MainApp.camconf_info_pannel.picture_sizer.Add(wx.StaticText(MainApp.camconf_info_pannel,  label=picture_name), 0, wx.ALL, 2)
+            MainApp.camconf_info_pannel.picture_sizer.Add(wx.StaticBitmap(MainApp.camconf_info_pannel, -1, wx.Image(img_path, wx.BITMAP_TYPE_ANY).ConvertToBitmap()), 0, wx.ALL, 2)
+
+        MainApp.camconf_info_pannel.SetSizer(MainApp.camconf_info_pannel.main_sizer)
+        MainApp.camconf_info_pannel.SetupScrolling()
+
+
     def take_test_image(self, s_val, c_val, g_val, b_val, x_dim=800, y_dim=600,
                         cam_select='/dev/video0', cam_capture_choice='uvccapture', output_file='~/test_cam_settings.jpg',
                         ctrl_test_value=None, ctrl_text_string=None, cmd_str=''):
@@ -4671,9 +4693,14 @@ class camconf_ctrl_pnl(wx.Panel):
 
     def webcam_combo_go(self, e):
         if self.webcam_cb.GetValue() == 'fswebcam':
+            MainApp.camconf_info_pannel.hide_uvc_control()
             MainApp.camconf_info_pannel.show_fswebcam_control()
+        elif self.webcam_cb.GetValue() == 'uvccapture':
+            MainApp.camconf_info_pannel.hide_fswebcam_control()
+            MainApp.camconf_info_pannel.show_uvc_control()
         else:
             MainApp.camconf_info_pannel.hide_fswebcam_control()
+            MainApp.camconf_info_pannel.hide_uvc_control()
 
 #
 #
