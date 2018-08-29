@@ -5159,23 +5159,42 @@ class pi_link_pnl(wx.Panel):
         pi_link_pnl.target_user = ''
         pi_link_pnl.target_pass = ''
         pi_link_pnl.config_location_on_pi = '/home/pi/Pigrow/config/pigrow_config.txt'
-     ## the three boxes for pi's connection details, IP, Username and Password
-        self.l_ip = wx.StaticText(self,  label='address', pos=(10, 20))
-        self.tb_ip = wx.TextCtrl(self, pos=(125, 25), size=(150, 25))
+        ## the three boxes for pi's connection details, IP, Username and Password
+        self.l_ip = wx.StaticText(self,  label='address')
+        self.tb_ip = wx.TextCtrl(self)
         self.tb_ip.SetValue("192.168.1.")
-        self.l_user = wx.StaticText(self,  label='Username', pos=(10, 60))
-        self.tb_user = wx.TextCtrl(self, pos=(125, 60), size=(150, 25))
+        self.l_user = wx.StaticText(self,  label='Username')
+        self.tb_user = wx.TextCtrl(self)
         self.tb_user.SetValue("pi")
-        self.l_pass = wx.StaticText(self,  label='Password', pos=(10, 95))
-        self.tb_pass = wx.TextCtrl(self, pos=(125, 95), size=(150, 25))
+        self.l_pass = wx.StaticText(self,  label='Password')
+        self.tb_pass = wx.TextCtrl(self)
         self.tb_pass.SetValue("raspberry")
-     ## link with pi button
-        self.link_with_pi_btn = wx.Button(self, label='Link to Pi', pos=(10, 125), size=(175, 30))
+        ## link with pi button
+        self.link_with_pi_btn = wx.Button(self, label='Link to Pi')
         self.link_with_pi_btn.Bind(wx.EVT_BUTTON, self.link_with_pi_btn_click)
-        self.link_status_text = wx.StaticText(self,  label='-- no link --', pos=(25, 160))
-     ## seek next pi button
-        self.seek_for_pigrows_btn = wx.Button(self, label='Seek next', pos=(190,125))
+        self.link_status_text = wx.StaticText(self,  label='-- no link --')
+        ## seek next pi button
+        self.seek_for_pigrows_btn = wx.Button(self, label='Seek next')
         self.seek_for_pigrows_btn.Bind(wx.EVT_BUTTON, self.seek_for_pigrows_click)
+        ##  sizers
+        login_sizer = wx.GridSizer(3, 2, 0, 0)
+        login_sizer.AddMany( [(self.l_ip, 0, wx.EXPAND),
+            (self.tb_ip, 2, wx.EXPAND),
+            (self.l_user, 0, wx.EXPAND),
+            (self.tb_user, 2, wx.EXPAND),
+            (self.l_pass, 0, wx.EXPAND),
+            (self.tb_pass, 2, wx.EXPAND)])
+        link_buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        link_buttons_sizer.Add(self.link_with_pi_btn, 1, wx.EXPAND)
+        link_buttons_sizer.Add(self.seek_for_pigrows_btn, 0, wx.EXPAND)
+        link_text_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        link_text_sizer.Add(self.link_status_text, 1, wx.EXPAND|wx.ALIGN_CENTER)
+        main_sizer = wx.BoxSizer(wx.VERTICAL)
+        main_sizer.Add(login_sizer, 0, wx.EXPAND)
+        main_sizer.Add(link_buttons_sizer, 0, wx.EXPAND)
+        main_sizer.Add(link_text_sizer, 0, wx.EXPAND)
+        self.SetSizer(main_sizer)
+
     def __del__(self):
         print("psssst it did that thing, the _del_ one you like so much...")
         pass
@@ -5380,8 +5399,12 @@ class view_pnl(wx.Panel):
         #view_opts = ['System Config', 'Pigrow Setup', 'Camera Config', 'Cron Timing', 'multi-script', 'Local Files', 'Timelapse', 'Graphs', 'Live View', 'pieye watcher']
         #Showing only completed tabs
         view_opts = ['System Config', 'Pigrow Setup', 'Camera Config', 'Cron Timing', 'Local Files', 'Graphs', 'Sensors']
-        self.view_cb = wx.ComboBox(self, choices = view_opts, pos=(10,2), size=(265, 30))
+        self.view_cb = wx.ComboBox(self, choices = view_opts)
         self.view_cb.Bind(wx.EVT_COMBOBOX, self.view_combo_go)
+        # sizer
+        main_sizer =  wx.BoxSizer(wx.VERTICAL)
+        main_sizer.Add(self.view_cb, 0, wx.ALL|wx.EXPAND, 3)
+        self.SetSizer(main_sizer)
     def view_combo_go(self, e):
         display = self.view_cb.GetValue()
         #hide all the pannels
