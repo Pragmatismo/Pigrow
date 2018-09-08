@@ -93,6 +93,7 @@ import datetime
 from stat import S_ISDIR
 try:
     import wx
+    import  wx.lib.scrolledpanel as scrolled
     #print (wx.__version__)
     #import wx.lib.scrolledpanel
 except:
@@ -147,7 +148,7 @@ class scroll_text_dialog(wx.Dialog):
             btnsizer.Add(cancel_btn, 0, wx.ALL, 5)
         sizer.Add(text, 0, wx.EXPAND|wx.ALL, 5)
         sizer.Add(btnsizer, 0, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
-        self.SetSizerAndFit (sizer)
+        self.SetSizerAndFit(sizer)
 
 
 #
@@ -157,31 +158,58 @@ class scroll_text_dialog(wx.Dialog):
 #
 class system_ctrl_pnl(wx.Panel):
     def __init__( self, parent ):
-        win_height = parent.GetSize()[1]
-        height_of_pannels_above = 230
-        space_left = win_height - height_of_pannels_above
-        wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, pos = (0, height_of_pannels_above), size = wx.Size(285, space_left), style = wx.TAB_TRAVERSAL )
+        wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, size = wx.Size(285, 600), style = wx.TAB_TRAVERSAL )
         # Start drawing the UI elements
-        wx.StaticText(self,  label='System Config Menu', pos=(25, 10))
-        self.read_system_btn = wx.Button(self, label='Read System Info', pos=(10, 70), size=(175, 30))
+        # tab info
+        self.tab_label = wx.StaticText(self,  label='System Config Menu')
+        self.read_system_btn = wx.Button(self, label='Read System Info')
         self.read_system_btn.Bind(wx.EVT_BUTTON, self.read_system_click)
-        self.install_pigrow_btn = wx.Button(self, label='pigrow install', pos=(10, 100), size=(175, 30))
+        # pigrow software install and upgrade buttons
+        self.install_pigrow_btn = wx.Button(self, label='pigrow install')
         self.install_pigrow_btn.Bind(wx.EVT_BUTTON, self.install_click)
-        self.update_pigrow_btn = wx.Button(self, label='update pigrow', pos=(10, 130), size=(175, 30))
+        self.update_pigrow_btn = wx.Button(self, label='update pigrow')
         self.update_pigrow_btn.Bind(wx.EVT_BUTTON, self.update_pigrow_click)
-        self.reboot_pigrow_btn = wx.Button(self, label='reboot pi', pos=(15, 160), size=(120, 30))
+        # pi power control
+        self.reboot_pigrow_btn = wx.Button(self, label='reboot pi')
         self.reboot_pigrow_btn.Bind(wx.EVT_BUTTON, self.reboot_pigrow_click)
-        self.shutdown_pi_btn = wx.Button(self, label='shutdown pi', pos=(145, 160), size=(120, 30))
+        self.shutdown_pi_btn = wx.Button(self, label='shutdown pi')
         self.shutdown_pi_btn.Bind(wx.EVT_BUTTON, self.shutdown_pi_click)
-        self.find_i2c_btn = wx.Button(self, label='i2c check', pos=(10, 220), size=(105, 30))
+        # pi gpio overlay controlls
+        self.find_i2c_btn = wx.Button(self, label='i2c check')
         self.find_i2c_btn.Bind(wx.EVT_BUTTON, self.find_i2c_devices)
-        self.find_1wire_btn = wx.Button(self, label='1 wire check', pos=(10, 250), size=(105, 30))
+        self.find_1wire_btn = wx.Button(self, label='1 wire check')
         self.find_1wire_btn.Bind(wx.EVT_BUTTON, self.find_1wire_devices)
-
-        self.i2c_baudrate_btn = wx.Button(self, label='baudrate', pos=(120, 220), size=(105, 30))
+        self.i2c_baudrate_btn = wx.Button(self, label='baudrate')
         self.i2c_baudrate_btn.Bind(wx.EVT_BUTTON, self.set_baudrate)
-        self.run_cmd_on_pi_btn = wx.Button(self, label='Run Command On Pi', pos=(10, 290), size=(155, 30))
+        # run command on pi button
+        self.run_cmd_on_pi_btn = wx.Button(self, label='Run Command On Pi')
         self.run_cmd_on_pi_btn.Bind(wx.EVT_BUTTON, self.run_cmd_on_pi_click)
+
+        # Sizers
+        power_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        power_sizer.Add(self.reboot_pigrow_btn, 0, wx.ALL|wx.EXPAND, 3)
+        power_sizer.Add(self.shutdown_pi_btn, 0, wx.ALL|wx.EXPAND, 3)
+        i2c_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        i2c_sizer.Add(self.find_i2c_btn, 0, wx.ALL|wx.EXPAND, 3)
+        i2c_sizer.Add(self.i2c_baudrate_btn, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer = wx.BoxSizer(wx.VERTICAL)
+        main_sizer.Add(self.tab_label, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.Add(self.read_system_btn, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(self.install_pigrow_btn, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.Add(self.update_pigrow_btn, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(power_sizer, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(i2c_sizer, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.Add(self.find_1wire_btn, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(self.run_cmd_on_pi_btn, 0, wx.ALL|wx.EXPAND, 3)
+
+        self.SetSizer(main_sizer)
+
+
+
 
     def find_1wire_devices(self, e):
         print("looking to see if 1wire overlay is turned on")
@@ -624,13 +652,10 @@ class system_info_pnl(wx.Panel):
     # controlled by the system_ctrl_pnl
     #
     def __init__( self, parent ):
-        win_height = parent.GetSize()[1]
-        win_width = parent.GetSize()[0]
-        w_space_left = win_width - 285
-        wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, pos = (285, 0), size = wx.Size(w_space_left , 800), style = wx.TAB_TRAVERSAL )
+        wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, style = wx.TAB_TRAVERSAL )
         ## Draw UI elements
         png = wx.Image('./sysconf.png', wx.BITMAP_TYPE_ANY).ConvertToBitmap()
-        wx.StaticBitmap(self, -1, png, (0, 0), (png.GetWidth(), png.GetHeight()))
+        self.background = wx.StaticBitmap(self, -1, png)
         # Raspberry Pi revision
         system_info_pnl.sys_pi_revision = wx.StaticText(self,  label='raspberry pi version', pos=(160, 140), size=(200,30))
         #SDcard details
@@ -658,6 +683,11 @@ class system_info_pnl(wx.Panel):
         system_info_pnl.sys_pi_date = wx.StaticText(self,  label='datetime on pi', pos=(625, 530), size=(500,30))
         system_info_pnl.sys_pc_date = wx.StaticText(self,  label='datetime on local pc', pos=(625, 560), size=(200,30))
         #system_info_pnl.sys_time_diff = wx.StaticText(self,  label='difference', pos=(700, 555), size=(200,30))
+
+        main_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        main_sizer.Add(self.background, 0, wx.ALL, 0)
+        self.SetSizer(main_sizer)
+
 
 class upgrade_pigrow_dialog(wx.Dialog):
     #Dialog box for installing pigrow software on a raspberry pi remotely
@@ -1076,21 +1106,45 @@ class config_ctrl_pnl(wx.Panel):
         win_height = parent.GetSize()[1]
         height_of_pannels_above = 230
         space_left = win_height - height_of_pannels_above
-        wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, pos = (0, height_of_pannels_above), size = wx.Size(285, space_left), style = wx.TAB_TRAVERSAL )
+        wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, style = wx.TAB_TRAVERSAL )
         # Start drawing the UI elements
-        wx.StaticText(self,  label='Pigrow Config', pos=(25, 10))
-        self.name_box_btn = wx.Button(self, label='change box name', pos=(15, 95), size=(190, 30))
+        self.config_l = wx.StaticText(self,  label='Pigrow Config')
+        self.relay_l = wx.StaticText(self,  label='Relay')
+        self.dht_l = wx.StaticText(self,  label='DHT Sensor')
+        self.name_box_btn = wx.Button(self, label='change box name')
         self.name_box_btn.Bind(wx.EVT_BUTTON, self.name_box_click)
-        self.config_lamp_btn = wx.Button(self, label='config lamp', pos=(15, 130), size=(190, 30))
+        self.config_lamp_btn = wx.Button(self, label='config lamp')
         self.config_lamp_btn.Bind(wx.EVT_BUTTON, self.config_lamp_click)
-        self.config_dht_btn = wx.Button(self, label='config dht', pos=(15, 165), size=(190, 30))
+        self.config_dht_btn = wx.Button(self, label='config dht')
         self.config_dht_btn.Bind(wx.EVT_BUTTON, self.config_dht_click)
-        self.new_gpio_btn = wx.Button(self, label='Add new relay device', pos=(15, 200), size=(190, 30))
+        self.new_gpio_btn = wx.Button(self, label='Add new relay device')
         self.new_gpio_btn.Bind(wx.EVT_BUTTON, self.add_new_device_relay)
-        self.update_config_btn = wx.Button(self, label='read config from pigrow', pos=(15, 460), size=(175, 30))
+        self.update_config_btn = wx.Button(self, label='read config from pigrow')
         self.update_config_btn.Bind(wx.EVT_BUTTON, self.update_config_click)
-        self.update_settings_btn = wx.Button(self, label='update pigrow settings', pos=(15, 500), size=(175, 30))
+        self.update_settings_btn = wx.Button(self, label='update pigrow settings')
         self.update_settings_btn.Bind(wx.EVT_BUTTON, self.update_setting_click)
+        #sizers
+        self.main_sizer =  wx.BoxSizer(wx.VERTICAL)
+        self.main_sizer.AddStretchSpacer(1)
+        self.main_sizer.Add(self.config_l, 0, wx.ALL|wx.EXPAND, 3)
+        self.main_sizer.Add(self.update_config_btn, 0, wx.ALL|wx.EXPAND, 3)
+        self.main_sizer.Add(self.update_settings_btn, 0, wx.ALL|wx.EXPAND, 3)
+        self.main_sizer.AddStretchSpacer(1)
+        self.main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
+        self.main_sizer.Add(self.name_box_btn, 0, wx.ALL|wx.EXPAND, 3)
+        self.main_sizer.AddStretchSpacer(1)
+        self.main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
+        self.main_sizer.Add(self.dht_l, 0, wx.ALL|wx.EXPAND, 3)
+        self.main_sizer.Add(self.config_dht_btn, 0, wx.ALL|wx.EXPAND, 3)
+        self.main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
+        self.main_sizer.Add(self.relay_l, 0, wx.ALL|wx.EXPAND, 3)
+        self.main_sizer.Add(self.config_lamp_btn, 0, wx.ALL|wx.EXPAND, 3)
+        self.main_sizer.Add(self.new_gpio_btn , 0, wx.ALL|wx.EXPAND, 3)
+        self.main_sizer.AddStretchSpacer(1)
+        self.SetSizer(self.main_sizer)
+
+
+
 
     def name_box_click(self, e):
         box_name = config_info_pnl.boxname_text.GetValue()
@@ -1547,32 +1601,58 @@ class config_info_pnl(wx.Panel):
     #  This displays the config info
     # controlled by the config_ctrl_pnl
     def __init__( self, parent ):
-        win_height = parent.GetSize()[1]
-        win_width = parent.GetSize()[0]
-        w_space_left = win_width - 285
-        wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, pos = (285, 0), size = wx.Size(w_space_left , 800), style = wx.TAB_TRAVERSAL )
-        ## Draw UI elements
-        #display background
-        self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
-        #SDcard details
-        config_info_pnl.boxname_text = wx.TextCtrl(self,  pos=(25, 150), size=(265,65))
-        config_info_pnl.location_text = wx.StaticText(self,  label='locations', pos=(520, 120), size=(200,30))
-        config_info_pnl.config_text = wx.StaticText(self,  label='config', pos=(520, 185), size=(200,30))
-        config_info_pnl.lamp_text = wx.StaticText(self,  label='lamp', pos=(10, 330), size=(200,30))
-        config_info_pnl.dht_text = wx.StaticText(self,  label='dht', pos=(10, 415), size=(200,30))
+        wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, style = wx.TAB_TRAVERSAL )
+        font = wx.Font(14, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
+        self.name_l = wx.StaticText(self,  label='Box Name;')
+        self.name_l.SetFont(font)
+        config_info_pnl.boxname_text = wx.TextCtrl(self)
+        self.dirlocs_l = wx.StaticText(self,  label='dirlocs.txt location information;')
+        self.dirlocs_l.SetFont(font)
+        config_info_pnl.location_text = wx.StaticText(self,  label='locations')
+        self.conf_l = wx.StaticText(self,  label='pigrow_config.txt settings information;')
+        config_info_pnl.config_text = wx.StaticText(self,  label='config')
+        self.lamp_l = wx.StaticText(self,  label='Lamp;')
+        self.lamp_l.SetFont(font)
+        config_info_pnl.lamp_text = wx.StaticText(self,  label='lamp')
+        self.dht_l = wx.StaticText(self,  label='DHT Sensor;')
+        self.dht_l.SetFont(font)
+        config_info_pnl.dht_text = wx.StaticText(self,  label='dht')
+        self.relay_l = wx.StaticText(self,  label='Relay GPIO link;')
+        self.relay_l.SetFont(font)
         config_info_pnl.gpio_table = self.GPIO_list(self, 1)
         config_info_pnl.gpio_table.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.onDoubleClick_GPIO)
+        gpio_pin_image = wx.Image('./pi_zero.png', wx.BITMAP_TYPE_ANY).ConvertToBitmap()
+        gpio_diagram = wx.StaticBitmap(self, -1, gpio_pin_image, (gpio_pin_image.GetWidth(), gpio_pin_image.GetHeight()))
+        info_sizer = wx.BoxSizer(wx.VERTICAL)
+        info_sizer.AddStretchSpacer(1)
+        info_sizer.Add(self.name_l, 0, wx.ALL|wx.EXPAND, 3)
+        info_sizer.Add(config_info_pnl.boxname_text, 0, wx.ALL|wx.EXPAND, 3)
+        info_sizer.AddStretchSpacer(1)
+        info_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
+        info_sizer.Add(self.dirlocs_l, 0, wx.ALL|wx.EXPAND, 3)
+        info_sizer.Add(config_info_pnl.location_text, 0, wx.ALL|wx.EXPAND, 3)
+        info_sizer.AddStretchSpacer(1)
+        info_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
+        info_sizer.Add(self.conf_l, 0, wx.ALL|wx.EXPAND, 3)
+        info_sizer.Add(config_info_pnl.config_text, 0, wx.ALL|wx.EXPAND, 3)
+        info_sizer.AddStretchSpacer(1)
+        info_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
+        info_sizer.Add(self.lamp_l, 0, wx.ALL|wx.EXPAND, 3)
+        info_sizer.Add(config_info_pnl.lamp_text, 0, wx.ALL|wx.EXPAND, 3)
+        info_sizer.AddStretchSpacer(1)
+        info_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
+        info_sizer.Add(self.dht_l, 0, wx.ALL|wx.EXPAND, 3)
+        info_sizer.Add(config_info_pnl.dht_text, 0, wx.ALL|wx.EXPAND, 3)
+        info_sizer.AddStretchSpacer(1)
+        info_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
+        info_sizer.Add(self.relay_l, 0, wx.ALL|wx.EXPAND, 3)
+        info_sizer.Add(config_info_pnl.gpio_table, 0, wx.ALL|wx.EXPAND, 3)
+        info_sizer.AddStretchSpacer(1)
+        main_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        main_sizer.Add(info_sizer, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.Add(gpio_diagram, 0, wx.ALL|wx.EXPAND, 3)
+        self.SetSizer(main_sizer)
 
-    def OnEraseBackground(self, evt):
-        # yanked from ColourDB.py #then from https://www.blog.pythonlibrary.org/2010/03/18/wxpython-putting-a-background-image-on-a-panel/
-        dc = evt.GetDC()
-        if not dc:
-            dc = wx.ClientDC(self)
-            rect = self.GetUpdateRegion().GetBox()
-            dc.SetClippingRect(rect)
-        dc.Clear()
-        bmp = wx.Bitmap("./config_info.png")
-        dc.DrawBitmap(bmp, 0, 0)
 
     class GPIO_list(wx.ListCtrl):
         def __init__(self, parent, id, pos=(5,635), size=(570,160)):
@@ -2246,11 +2326,7 @@ class edit_dht_dialog(wx.Dialog):
 #
 class cron_info_pnl(wx.Panel):
     def __init__( self, parent ):
-        win_height = gui_set.height_of_window
-        height_of_pannels_above = 230
-        space_left = win_height - height_of_pannels_above
-
-        wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, pos = (0, height_of_pannels_above), size = wx.Size(285, space_left), style = wx.TAB_TRAVERSAL )
+        wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, style = wx.TAB_TRAVERSAL )
         wx.StaticText(self,  label='Cron Config Menu', pos=(25, 10))
         self.read_cron_btn = wx.Button(self, label='Read Crontab', pos=(10, 40), size=(175, 30))
         self.read_cron_btn.Bind(wx.EVT_BUTTON, self.read_cron_click)
@@ -2638,22 +2714,27 @@ class cron_list_pnl(wx.Panel):
             self.SetColumnWidth(5, -1)
 
     def __init__( self, parent ):
-        #find size
-        win_height = parent.GetSize()[1]
-        win_width = parent.GetSize()[0]
-        w_space_left = win_width - 285
-
-        wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, pos = (285, 0), size = wx.Size(w_space_left , 800), style = wx.TAB_TRAVERSAL )
-
-        wx.StaticText(self,  label='Cron start up;', pos=(5, 10))
-        cron_list_pnl.startup_cron = self.startup_cron_list(self, 1, pos=(5, 40), size=(w_space_left-10, 200))
+        wx.Panel.__init__(self, parent, id = wx.ID_ANY, style = wx.TAB_TRAVERSAL)
+        cron_start_up_l = wx.StaticText(self,  label='Cron start up;')
+        cron_list_pnl.startup_cron = self.startup_cron_list(self, 1)
         cron_list_pnl.startup_cron.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.onDoubleClick_startup)
-        wx.StaticText(self,  label='Repeating Jobs;', pos=(5,245))
-        cron_list_pnl.repeat_cron = self.repeating_cron_list(self, 1, pos=(5, 280), size=(w_space_left-10, 200))
+        cron_repeat_l = wx.StaticText(self,  label='Repeating Jobs;')
+        cron_list_pnl.repeat_cron = self.repeating_cron_list(self, 1)
         cron_list_pnl.repeat_cron.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.onDoubleClick_repeat)
-        wx.StaticText(self,  label='One time triggers;', pos=(5,500))
-        cron_list_pnl.timed_cron = self.other_cron_list(self, 1, pos=(5, 530), size=(w_space_left-10, 200))
+        cron_timed_l = wx.StaticText(self,  label='One time triggers;')
+        cron_list_pnl.timed_cron = self.other_cron_list(self, 1)
         cron_list_pnl.timed_cron.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.onDoubleClick_timed)
+
+        main_sizer =  wx.BoxSizer(wx.VERTICAL)
+        main_sizer.Add(cron_start_up_l, 0, wx.ALL, 3)
+        main_sizer.Add(cron_list_pnl.startup_cron, 1, wx.ALL|wx.EXPAND, 3)
+        main_sizer.Add(cron_repeat_l, 0, wx.ALL, 3)
+        main_sizer.Add(cron_list_pnl.repeat_cron, 1, wx.ALL|wx.EXPAND, 3)
+        main_sizer.Add(cron_timed_l, 0, wx.ALL, 3)
+        main_sizer.Add(cron_list_pnl.timed_cron, 1, wx.ALL|wx.EXPAND, 3)
+        self.SetSizer(main_sizer)
+
+
 
     # TESTING CODE WHILE SCRIPT WRITING IS IN PROGRESS
         self.SetBackgroundColour('sea green')  ###THIS IS JUST TO TEST SIZE REMOVE TO STOP THE UGLY
@@ -3120,7 +3201,7 @@ class show_script_cat(wx.Dialog):
         btnsizer.Add(btn, 0, wx.ALL, 5)
         sizer.Add(text, 0, wx.EXPAND|wx.ALL, 5)
         sizer.Add(btnsizer, 0, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
-        self.SetSizerAndFit (sizer)
+        self.SetSizerAndFit(sizer)
 
 #
 #
@@ -3129,48 +3210,109 @@ class show_script_cat(wx.Dialog):
 #
 #
 #
-class localfiles_info_pnl(wx.Panel):
+class localfiles_info_pnl(scrolled.ScrolledPanel):
     #
     #  This displays the system info
     # controlled by the system_ctrl_pnl
     #
     def __init__( self, parent ):
-        win_height = parent.GetSize()[1]
-        win_width = parent.GetSize()[0]
+        win_height = gui_set.height_of_window
+        win_width = gui_set.width_of_window
         w_space_left = win_width - 285
-        wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, pos = (285, 0), size = wx.Size(w_space_left , 800), style = wx.TAB_TRAVERSAL )
+        scrolled.ScrolledPanel.__init__ ( self, parent, id = wx.ID_ANY, size = wx.Size(w_space_left , win_height-20), style = wx.HSCROLL|wx.VSCROLL )
         #set blank variables
         localfiles_info_pnl.local_path = ""
-        ## Draw UI elements
-        self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
+        # top title
+        title_font = wx.Font(28, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
+        sub_title_font = wx.Font(17, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
+        item_title_font = wx.Font(17, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
+        page_title =  wx.StaticText(self,  label='Local Files', size=(-1,40))
+        page_sub_title =  wx.StaticText(self,  label='Files downloaded from the pi and stored locally', size=(-1,30))
+        page_title.SetFont(title_font)
+        page_sub_title.SetFont(sub_title_font)
         # placing the information boxes
-        localfiles_info_pnl.local_path_txt = wx.StaticText(self,  label='local path', pos=(220, 80), size=(200,30))
+        local_path_l =  wx.StaticText(self,  label='Local Path -', size=(135, 25))
+        local_path_l.SetFont(item_title_font)
+        localfiles_info_pnl.local_path_txt = wx.StaticText(self,  label='local path')
         #local photo storage info
+        photo_l = wx.StaticText(self,  label='Photos', size=(75,25))
+        photo_l.SetFont(item_title_font)
+        caps_folder_l = wx.StaticText(self,  label='Caps Folder;')
         localfiles_info_pnl.caps_folder = 'caps'
-        localfiles_info_pnl.folder_text = wx.StaticText(self,  label=' ' + localfiles_info_pnl.caps_folder, pos=(720, 130), size=(200,30))
-        localfiles_info_pnl.photo_text = wx.StaticText(self,  label='photo text', pos=(575, 166), size=(170,30))
-        localfiles_info_pnl.first_photo_title = wx.StaticText(self,  label='first image', pos=(575, 290), size=(170,30))
-        localfiles_info_pnl.last_photo_title = wx.StaticText(self,  label='last image', pos=(575, 540), size=(170,30))
+        localfiles_info_pnl.folder_text = wx.StaticText(self,  label=localfiles_info_pnl.caps_folder)
+        localfiles_info_pnl.photo_text = wx.StaticText(self,  label='photo text')
+        localfiles_info_pnl.first_photo_title = wx.StaticText(self,  label='first image')
+        blank_img = wx.EmptyBitmap(255, 255)
+        localfiles_info_pnl.photo_folder_first_pic = wx.StaticBitmap(self, -1, blank_img, size=(255, 255))
+        localfiles_info_pnl.last_photo_title = wx.StaticText(self,  label='last image')
+        localfiles_info_pnl.photo_folder_last_pic = wx.StaticBitmap(self, -1, blank_img, size=(255, 255))
         #file list boxes
-        localfiles_info_pnl.config_files = self.config_file_list(self, 1, pos=(5, 160), size=(550, 200))
+        config_l = wx.StaticText(self,  label='Config', size=(75,25))
+        config_l.SetFont(item_title_font)
+        localfiles_info_pnl.config_files = self.config_file_list(self, 1)
         localfiles_info_pnl.config_files.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.onDoubleClick_config)
-        localfiles_info_pnl.logs_files = self.logs_file_list(self, 1, pos=(5, 390), size=(550, 200))
+        logs_l = wx.StaticText(self,  label='Logs', size=(75,25))
+        logs_l.SetFont(item_title_font)
+        localfiles_info_pnl.logs_files = self.logs_file_list(self, 1)
         localfiles_info_pnl.logs_files.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.onDoubleClick_logs)
         #localfiles_info_pnl.config_files = self.config_file_list(self, 1, pos=(5, 160), size=(550, 200))
     #    localfiles_info_pnl.config_files.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.onDoubleClick_config)
         #cron info text
-        localfiles_info_pnl.cron_info = wx.StaticText(self,  label='cron info', pos=(290, 635), size=(200,30))
+        cron_l = wx.StaticText(self,  label='Cron', size=(75,25))
+        cron_l.SetFont(item_title_font)
+        localfiles_info_pnl.cron_info = wx.StaticText(self,  label='cron info')
 
-    def OnEraseBackground(self, evt):
-        # yanked from ColourDB.py #then from https://www.blog.pythonlibrary.org/2010/03/18/wxpython-putting-a-background-image-on-a-panel/
-        dc = evt.GetDC()
-        if not dc:
-            dc = wx.ClientDC(self)
-            rect = self.GetUpdateRegion().GetBox()
-            dc.SetClippingRect(rect)
-        dc.Clear()
-        bmp = wx.Bitmap("./localfiles.png")
-        dc.DrawBitmap(bmp, 0, 0)
+        #Sizers
+        # full row sizers
+        title_sizer = wx.BoxSizer(wx.VERTICAL)
+        title_sizer.Add(page_title, 1, wx.ALL|wx.EXPAND, 3)
+        title_sizer.Add(page_sub_title, 1, wx.ALL|wx.EXPAND, 3)
+        local_path_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        local_path_sizer.Add(local_path_l, 0, wx.ALL, 3)
+        local_path_sizer.Add(localfiles_info_pnl.local_path_txt, 1, wx.ALL|wx.EXPAND, 3)
+        # camera bar sizers
+        photos_sizer = wx.BoxSizer(wx.VERTICAL)
+        photos_sizer.Add(photo_l, 0, wx.ALL, 3)
+        caps_folder_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        caps_folder_sizer.Add(caps_folder_l, 0, wx.ALL, 3)
+        caps_folder_sizer.Add(localfiles_info_pnl.folder_text , 0, wx.ALL|wx.EXPAND, 3)
+        photos_sizer.Add(caps_folder_sizer, 0, wx.ALL, 3)
+    #    photos_sizer.AddStretchSpacer(1)
+        photos_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
+        photos_sizer.Add(localfiles_info_pnl.photo_text, 0, wx.ALL|wx.EXPAND, 3)
+    #    photos_sizer.AddStretchSpacer(1)
+        photos_sizer.Add(localfiles_info_pnl.first_photo_title, 0, wx.ALL|wx.EXPAND, 2)
+        photos_sizer.Add(localfiles_info_pnl.photo_folder_first_pic, 1, wx.ALL|wx.EXPAND, 3)
+    #    photos_sizer.AddStretchSpacer(1)
+        photos_sizer.Add(localfiles_info_pnl.last_photo_title, 0, wx.ALL|wx.EXPAND, 2)
+        photos_sizer.Add(localfiles_info_pnl.photo_folder_last_pic, 1, wx.ALL|wx.EXPAND, 3)
+    #    photos_sizer.AddStretchSpacer(1)
+        # tables bar sizer
+        tables_sizer = wx.BoxSizer(wx.VERTICAL)
+        tables_sizer.Add(config_l, 0, wx.ALL, 3)
+        tables_sizer.Add(localfiles_info_pnl.config_files, 1, wx.ALL|wx.EXPAND, 3)
+        #tables_sizer.AddStretchSpacer(1)
+        tables_sizer.Add(logs_l, 0, wx.ALL, 3)
+        tables_sizer.Add(localfiles_info_pnl.logs_files, 1, wx.ALL|wx.EXPAND, 3)
+        #tables_sizer.AddStretchSpacer(1)
+        tables_sizer.Add(cron_l, 0, wx.ALL, 3)
+        tables_sizer.Add(localfiles_info_pnl.cron_info, 1, wx.ALL|wx.EXPAND, 3)
+    #    tables_sizer.AddStretchSpacer(1)
+
+        main_area_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        main_area_sizer.Add(tables_sizer, 0, wx.ALL, 3)
+        main_area_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_VERTICAL), 0, wx.ALL|wx.EXPAND, 5)
+        main_area_sizer.Add(photos_sizer, 0, wx.ALL|wx.EXPAND, 3)
+        #main sizers
+        main_sizer = wx.BoxSizer(wx.VERTICAL)
+        main_sizer.Add(title_sizer, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.Add(local_path_sizer, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
+        main_sizer.Add(main_area_sizer, 0, wx.ALL|wx.EXPAND, 3)
+        # panel set up
+        self.SetSizer(main_sizer)
+        self.SetupScrolling()
+
 
     class config_file_list(wx.ListCtrl):
         def __init__(self, parent, id, pos=(25, 250), size=(550,200)):
@@ -3202,7 +3344,7 @@ class localfiles_info_pnl(wx.Panel):
             first = wx.Image(first_pic, wx.BITMAP_TYPE_ANY)
             first = first.Scale(225, 225, wx.IMAGE_QUALITY_HIGH)
             first = first.ConvertToBitmap()
-            localfiles_info_pnl.photo_folder_first_pic = wx.StaticBitmap(self, -1, first, (620, 310), (first.GetWidth(), first.GetHeight()))
+            localfiles_info_pnl.photo_folder_first_pic.SetBitmap(first)
         except:
             print("!! First image in local caps folder didn't work.")
         # load and display last image
@@ -3210,7 +3352,7 @@ class localfiles_info_pnl(wx.Panel):
             last = wx.Image(last_pic, wx.BITMAP_TYPE_ANY)
             last = last.Scale(225, 225, wx.IMAGE_QUALITY_HIGH)
             last = last.ConvertToBitmap()
-            localfiles_info_pnl.photo_folder_last_pic = wx.StaticBitmap(self, -1, last, (620, 565), (last.GetWidth(), last.GetHeight()))
+            localfiles_info_pnl.photo_folder_last_pic.SetBitmap(last)
         except:
             print("!! Last image in local caps folder didn't work.")
 
@@ -3234,21 +3376,28 @@ class localfiles_info_pnl(wx.Panel):
 
 class localfiles_ctrl_pnl(wx.Panel):
     def __init__( self, parent ):
-        win_height = parent.GetSize()[1]
-        height_of_pannels_above = 230
-        space_left = win_height - height_of_pannels_above
-        wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, pos = (0, height_of_pannels_above), size = wx.Size(285, space_left), style = wx.TAB_TRAVERSAL )
+        wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, style = wx.TAB_TRAVERSAL )
         # Start drawing the UI elements
-        wx.StaticText(self,  label='Local file and backup options', pos=(25, 10))
-        self.update_local_filelist_btn = wx.Button(self, label='Refresh Filelist Info', pos=(15, 60), size=(175, 30))
+        tab_label = wx.StaticText(self,  label='Local file and backup options',)
+        self.update_local_filelist_btn = wx.Button(self, label='Refresh Filelist Info')
         self.update_local_filelist_btn.Bind(wx.EVT_BUTTON, self.update_local_filelist_click)
-        self.download_btn = wx.Button(self, label='Download files', pos=(15, 95), size=(175, 30))
+        self.download_btn = wx.Button(self, label='Download files')
         self.download_btn.Bind(wx.EVT_BUTTON, self.download_click)
-        self.upload_btn = wx.Button(self, label='Restore to pi', pos=(15, 130), size=(175, 30))
+        self.upload_btn = wx.Button(self, label='Restore to pi')
         self.upload_btn.Bind(wx.EVT_BUTTON, self.upload_click)
-        #
-        self.clear_downed_btn = wx.Button(self, label='clear downloaded\n from pigrow', pos=(15, 200), size=(175, 60))
+        self.clear_downed_btn = wx.Button(self, label='clear downloaded\n from pigrow')
         self.clear_downed_btn.Bind(wx.EVT_BUTTON, self.clear_downed_click)
+
+        main_sizer =  wx.BoxSizer(wx.VERTICAL)
+        main_sizer.Add(tab_label, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.Add(self.update_local_filelist_btn, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.Add(self.download_btn, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.Add(self.clear_downed_btn, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.Add(self.upload_btn, 0, wx.ALL|wx.EXPAND, 3)
+        self.SetSizer(main_sizer)
+
+
+
 
     def clear_downed_click(self, e):
         # looks at local files an remote files removing any from the pigrows
@@ -3407,6 +3556,8 @@ class localfiles_ctrl_pnl(wx.Panel):
 
                         #update the caps info pannel with caps message
                         localfiles_info_pnl.photo_text.SetLabel(caps_message)
+                        MainApp.window_self.Layout()
+
 
             # check to see if crontab is saved locally
             localfiles_ctrl_pnl.cron_backup_file = os.path.join(localfiles_info_pnl.local_path, "crontab_backup.txt")
@@ -3812,7 +3963,7 @@ class upload_dialog(wx.Dialog):
 #
 #
 
-class graphing_info_pnl(wx.Panel):
+class graphing_info_pnl(scrolled.ScrolledPanel):
     #
     #  This displays the graphing info
     # controlled by the graphing_ctrl_pnl
@@ -3821,54 +3972,62 @@ class graphing_info_pnl(wx.Panel):
         win_height = gui_set.height_of_window
         win_width = gui_set.width_of_window
         w_space_left = win_width - 285
-        wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, pos = (285, 0), size = wx.Size(w_space_left , 800), style = wx.TAB_TRAVERSAL )
+        scrolled.ScrolledPanel.__init__ ( self, parent, id = wx.ID_ANY, pos = (285, 0), size = wx.Size(w_space_left , win_height-25), style = wx.HSCROLL|wx.VSCROLL )
         ## Draw UI elements
-        # placing the information boxes
-        graphing_info_pnl.graph_path_txt = wx.StaticText(self,  label='graphs graphs graphs!', pos=(220, 80), size=(200,30))
-        place_holder = wx.Bitmap(500, 500)
-        graphing_info_pnl.graph_img_box = wx.StaticBitmap(self, -1, place_holder, (0, 0), (500, 500))
+        graphing_info_pnl.graph_txt = wx.StaticText(self,  label='Graphs;')
+        # Sizers
+        self.graph_sizer = wx.BoxSizer(wx.VERTICAL)
+        #self.graph_sizer.Add(wx.StaticText(self,  label='problem'), 0, wx.ALL|wx.EXPAND, 3)
+        self.main_sizer =  wx.BoxSizer(wx.VERTICAL)
+        self.main_sizer.Add(graphing_info_pnl.graph_txt, 0, wx.ALL|wx.EXPAND, 3)
+        self.main_sizer.Add(self.graph_sizer, 0, wx.ALL, 0)
+        self.SetSizer(self.main_sizer)
+        self.SetupScrolling()
+
+
+
+
 
 
 class graphing_ctrl_pnl(wx.Panel):
     def __init__( self, parent ):
-        win_height = gui_set.height_of_window
-        height_of_pannels_above = 230
-        space_left = win_height - height_of_pannels_above
-        wx.Panel.__init__ (self, parent, id=wx.ID_ANY, pos=(0, height_of_pannels_above), size=wx.Size(285, space_left), style=wx.TAB_TRAVERSAL)
+        wx.Panel.__init__ (self, parent, id=wx.ID_ANY, style=wx.TAB_TRAVERSAL)
         self.SetBackgroundColour('sea green') #TESTING ONLY REMOVE WHEN SIZING IS DONE AND ALL THAT BUSINESS
         # Start drawing the UI elements
         #graphing engine selection
-        wx.StaticText(self,  label='Make graphs on;', pos=(15, 10))
+        make_graph_l = wx.StaticText(self,  label='Make graphs on;')
         graph_opts = ['Pigrow', 'local']
-        self.graph_cb = wx.ComboBox(self, choices = graph_opts, pos=(10,30), size=(265, 30))
+        self.graph_cb = wx.ComboBox(self, choices = graph_opts)
         self.graph_cb.Bind(wx.EVT_COMBOBOX, self.graph_engine_combo_go)
         # shared buttons
-        self.make_graph_btn = wx.Button(self, label='Make Graph', pos=(5, 520), size=(175, 30))
+        self.make_graph_btn = wx.Button(self, label='Make Graph')
         self.make_graph_btn.Bind(wx.EVT_BUTTON, self.make_graph_click)
-        self.download_graph = wx.CheckBox(self, label='download',pos = (185,520))
+        self.download_graph = wx.CheckBox(self, label='download')
+        self.download_graph.SetValue(True)
         #
         ### for pi based graphing only
-        self.pigraph_text = wx.StaticText(self,  label='Graphing directly on the pigrow\n saves having to download logs', pos=(15, 70))
+        self.pigraph_text = wx.StaticText(self,  label='Graphing directly on the pigrow\n saves having to download logs')
         # select graphing script
-        self.script_text = wx.StaticText(self,  label='Graphing Script;', pos=(15, 130))
+        self.script_text = wx.StaticText(self,  label='Graphing Script;')
         select_script_opts = ['BLANK']
-        self.select_script_cb = wx.ComboBox(self, choices = select_script_opts, pos=(10,150), size=(265, 30))
+        self.select_script_cb = wx.ComboBox(self, choices = select_script_opts)
         self.select_script_cb.Bind(wx.EVT_COMBOBOX, self.select_script_combo_go)
         script_opts_opts = ['BLANK']
-        self.opts_cb = wx.ComboBox(self, choices = script_opts_opts, pos=(10,230), size=(195, 30))
+        self.opts_cb = wx.ComboBox(self, choices = script_opts_opts)
         self.opts_cb.Bind(wx.EVT_COMBOBOX, self.opt_combo_go)
         # list box for of graphing options
-        self.get_opts_tb = wx.CheckBox(self, label='Get Options', pos = (10,180))
+        self.get_opts_tb = wx.CheckBox(self, label='Get Options')
         self.get_opts_tb.Bind(wx.EVT_CHECKBOX, self.get_opts_click)
         # various ui elements for differing options value sets - text, list
-        self.opts_text = wx.TextCtrl(self,  pos=(2, 265), size=(265,30))
+        self.opts_text = wx.TextCtrl(self)
         command_line_opts_value_list = ['BLANK']
-        self.command_line_opts_value_list_cb = wx.ComboBox(self, choices = command_line_opts_value_list, pos=(2,265), size=(265, 30))
+        self.command_line_opts_value_list_cb = wx.ComboBox(self, choices = command_line_opts_value_list)
         # button to add arg to string
-        self.add_arg_btn = wx.Button(self, label='Add to command line', pos=(20, 310), size=(175, 30))
+        self.add_arg_btn = wx.Button(self, label='Add to command line')
         self.add_arg_btn.Bind(wx.EVT_BUTTON, self.add_arg_click)
         # extra arguments string
-        self.extra_args = wx.TextCtrl(self,  pos=(2, 450), size=(265,30))
+        self.extra_args_label = wx.StaticText(self,  label='Commandline Flags;')
+        self.extra_args = wx.TextCtrl(self)
         # hideing all pigrow graphing UI elements until graph on pigrow is selected
         self.pigraph_text.Hide()
         self.script_text.Hide()
@@ -3879,6 +4038,30 @@ class graphing_ctrl_pnl(wx.Panel):
         #self.opts_text.Hide()
         #self.command_line_opts_value_list_cb.Hide()
         #self.add_arg_btn.Hide()
+
+        # Sizers
+        make_graph_sizer =  wx.BoxSizer(wx.HORIZONTAL)
+        make_graph_sizer.Add(self.make_graph_btn, 0, wx.ALL|wx.EXPAND, 3)
+        make_graph_sizer.Add(self.download_graph, 0, wx.ALL|wx.EXPAND, 3)
+        self.main_sizer = wx.BoxSizer(wx.VERTICAL)
+        self.main_sizer.Add(make_graph_l, 0, wx.ALL|wx.EXPAND, 3)
+        self.main_sizer.Add(self.graph_cb, 0, wx.ALL|wx.EXPAND, 3)
+        self.main_sizer.Add(self.pigraph_text, 0, wx.ALL|wx.EXPAND, 3)
+        self.main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
+        self.main_sizer.Add(self.script_text, 0, wx.ALL|wx.EXPAND, 3)
+        self.main_sizer.Add(self.select_script_cb, 0, wx.ALL|wx.EXPAND, 3)
+        self.main_sizer.Add(self.get_opts_tb, 0, wx.ALL|wx.EXPAND, 3)
+        self.main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
+        self.main_sizer.Add(self.opts_cb, 0, wx.ALL|wx.EXPAND, 3)
+        self.main_sizer.Add(self.command_line_opts_value_list_cb, 0, wx.ALL|wx.EXPAND, 3)
+        self.main_sizer.Add(self.opts_text, 0, wx.ALL|wx.EXPAND, 3)
+        self.main_sizer.Add(self.add_arg_btn, 0, wx.ALL|wx.EXPAND, 3)
+        self.main_sizer.Add(self.extra_args_label, 0, wx.ALL|wx.EXPAND, 3)
+        self.main_sizer.Add(self.extra_args, 0, wx.ALL|wx.EXPAND, 3)
+        self.main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
+        self.main_sizer.Add(make_graph_sizer, 0, wx.ALL|wx.EXPAND, 3)
+        self.SetSizer(self.main_sizer)
+
 
     def get_opts_click(self, e):
         #turns on UI elements for automatically found script options
@@ -3892,6 +4075,8 @@ class graphing_ctrl_pnl(wx.Panel):
                 self.get_script_options()
         else:
             self.blank_options_ui_elements()
+        MainApp.graphing_ctrl_pannel.Layout()
+        MainApp.window_self.Layout()
 
     def get_script_options(self):
         #runs the script on the raspberry pi and adds all detected flags to
@@ -3916,6 +4101,8 @@ class graphing_ctrl_pnl(wx.Panel):
             self.blank_options_ui_elements()
         if self.opts_cb.GetCount() < 1:
             self.blank_options_ui_elements()
+        MainApp.graphing_ctrl_pannel.Layout()
+        MainApp.window_self.Layout()
 
     def blank_options_ui_elements(self):
         #hides UI elements for auto-discovered command line arguments.
@@ -3926,6 +4113,7 @@ class graphing_ctrl_pnl(wx.Panel):
         self.command_line_opts_value_list_cb.Hide()
         self.command_line_opts_value_list_cb.SetValue("")
         self.add_arg_btn.Hide()
+
 
     def opt_combo_go(self, e):
         #selects which UI elements to show for command line option values and defaults
@@ -3950,6 +4138,8 @@ class graphing_ctrl_pnl(wx.Panel):
             self.command_line_opts_value_list_cb.Clear()
             self.opts_text.Show()
             self.opts_text.SetValue(value_text)
+        MainApp.graphing_ctrl_pannel.Layout()
+        MainApp.window_self.Layout()
 
     def add_arg_click(self, e):
         #reads the user selected option from the two text boxes then
@@ -3993,16 +4183,27 @@ class graphing_ctrl_pnl(wx.Panel):
         print (dmsg)
         ## attempt to find path of graph on pi
         path_possible = dmsg.replace("\n", " ").strip().split(" ")
+        self.clear_graph_area()
         for possible in path_possible:
             if ".png" in possible:
-                graphing_info_pnl.graph_path_txt.SetLabel(possible)
                 local_name = possible.split("/Pigrow/")[1]
                 if self.download_graph.GetValue() == True:
                     img_path = localfiles_ctrl_pnl.download_file_to_folder(MainApp.localfiles_ctrl_pannel, possible, local_name)
-                    graph_img = wx.Image(img_path, wx.BITMAP_TYPE_ANY).ConvertToBitmap()
-                    graphing_info_pnl.graph_img_box.SetBitmap(graph_img)
-            else:
-                graphing_info_pnl.graph_path_txt.SetLabel("not found")
+                    MainApp.graphing_info_pannel.graph_sizer.Add(wx.StaticText(MainApp.graphing_info_pannel,  label=possible), 0, wx.ALL, 2)
+                    MainApp.graphing_info_pannel.graph_sizer.Add(wx.StaticBitmap(MainApp.graphing_info_pannel, -1, wx.Image(img_path, wx.BITMAP_TYPE_ANY).ConvertToBitmap()), 0, wx.ALL, 2)
+        MainApp.graphing_info_pannel.graph_sizer.Layout()
+        MainApp.graphing_info_pannel.main_sizer.Layout()
+        MainApp.camconf_info_pannel.SetSizer(MainApp.graphing_info_pannel.main_sizer)
+        MainApp.graphing_info_pannel.SetupScrolling()
+        MainApp.window_self.Layout()
+
+
+    def clear_graph_area(self):
+        # usage = MainApp.graphing_info_pannel.clear_graph_area()
+        children = MainApp.graphing_info_pannel.graph_sizer.GetChildren()
+        for child in children:
+            item = child.GetWindow()
+            item.Destroy()
 
     def graph_engine_combo_go(self, e):
         # combo box selects if you want to make graphs on pi or locally
@@ -4023,6 +4224,8 @@ class graphing_ctrl_pnl(wx.Panel):
             self.select_script_cb.Hide()
             self.get_opts_tb.Hide()
             print("Yah, that's not really an option yet...")
+        MainApp.graphing_ctrl_pannel.Layout()
+        MainApp.window_self.Layout()
 
     def select_script_combo_go(self, e):
         #this is the same as pressing the button to enable asking the script
@@ -4041,7 +4244,6 @@ class graphing_ctrl_pnl(wx.Panel):
 #
 #
 #
-import  wx.lib.scrolledpanel as scrolled
 class camconf_info_pnl(scrolled.ScrolledPanel):
     #
     #
@@ -4371,7 +4573,6 @@ class camconf_ctrl_pnl(wx.Panel):
         main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.Add(range_sizer, 0, wx.ALL, 0)
         main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
-
         self.SetSizer(main_sizer)
         #self.SetupScrolling()   #ADD SCROLLING TO THIS PANEL? or to the main window?
 
@@ -4809,14 +5010,9 @@ class sensors_info_pnl(wx.Panel):
 
 class sensors_ctrl_pnl(wx.Panel):
     def __init__( self, parent ):
-        win_height = gui_set.height_of_window
-        height_of_pannels_above = 230
-        space_left = win_height - height_of_pannels_above
-        wx.Panel.__init__ (self, parent, id=wx.ID_ANY, pos=(0, height_of_pannels_above), size=wx.Size(285, space_left), style=wx.TAB_TRAVERSAL)
+        wx.Panel.__init__ (self, parent, id=wx.ID_ANY, style=wx.TAB_TRAVERSAL)
         self.SetBackgroundColour('sea green') #TESTING ONLY REMOVE WHEN SIZING IS DONE AND ALL THAT BUSINESS
-        # Start drawing the UI elements
-        #camera options
-        wx.StaticText(self,  label='Sensor Type;', pos=(15, 10))
+        wx.StaticText(self,  label='Chirp Soil Moisture Sensor;')
     #    sensor_opts = ["Soil Moisture"]
     #    self.sensor_cb = wx.ComboBox(self, choices = sensor_opts, pos=(10,30), size=(265, 30))
     #    self.sensor_cb.Bind(wx.EVT_COMBOBOX, self.sensor_combo_go)
@@ -4829,16 +5025,30 @@ class sensors_ctrl_pnl(wx.Panel):
     #    self.soil_sensor_cb = wx.ComboBox(self, choices = soil_sensor_opts, pos=(10,130), size=(265, 30))
     #    self.soil_sensor_cb.Bind(wx.EVT_COMBOBOX, self.soil_sensor_combo_go)
         #
-        #    --  Chirp options
         #
-        self.config_chirp_btn = wx.Button(self, label='add new chirp', pos=(15, 170), size=(175, 30))
-        self.config_chirp_btn.Bind(wx.EVT_BUTTON, self.add_new_chirp_click)
-
-        self.address_chirp_btn = wx.Button(self, label='change chirp address', pos=(15, 200), size=(175, 30))
-        self.address_chirp_btn.Bind(wx.EVT_BUTTON, self.address_chirp_click)
-
-        self.make_table_btn = wx.Button(self, label='make table', pos=(15, 50), size=(175, 30))
+        # Refresh page button
+        self.make_table_btn = wx.Button(self, label='make table')
         self.make_table_btn.Bind(wx.EVT_BUTTON, MainApp.sensors_info_pannel.sensor_list.make_sensor_table)
+        #    --  Chirp options
+        self.chirp_l = wx.StaticText(self,  label='Chirp Soil Moisture Sensor;')
+        self.config_chirp_btn = wx.Button(self, label='add new chirp')
+        self.config_chirp_btn.Bind(wx.EVT_BUTTON, self.add_new_chirp_click)
+        self.address_chirp_btn = wx.Button(self, label='change chirp address')
+        self.address_chirp_btn.Bind(wx.EVT_BUTTON, self.address_chirp_click)
+        #
+        # Sizers
+
+        main_sizer =  wx.BoxSizer(wx.VERTICAL)
+        main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(self.make_table_btn, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
+        main_sizer.Add(self.chirp_l, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.Add(self.config_chirp_btn, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.Add(self.address_chirp_btn, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
+        main_sizer.AddStretchSpacer(1)
+        self.SetSizer(main_sizer)
 
     def add_new_chirp_click(self, e):
         print("adding a new chirp sensor")
@@ -5153,7 +5363,7 @@ class pi_link_pnl(wx.Panel):
     # or allows seeking
     #
     def __init__( self, parent ):
-        wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, pos = (0,0), size = wx.Size( 285,190 ), style = wx.TAB_TRAVERSAL )
+        wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, style = wx.TAB_TRAVERSAL )
         self.SetBackgroundColour((150,230,170)) #TESTING ONLY REMOVE WHEN SIZING IS DONE AND ALL THAT BUSINESS
         pi_link_pnl.target_ip = ''
         pi_link_pnl.target_user = ''
@@ -5394,7 +5604,7 @@ class view_pnl(wx.Panel):
     # small and simple, it changes which pannels are visible
     #
     def __init__( self, parent ):
-        wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, pos = (0, 190), size = wx.Size( 285,35 ), style = wx.TAB_TRAVERSAL )
+        wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, style = wx.TAB_TRAVERSAL )
         self.SetBackgroundColour((230,200,170)) #TESTING ONLY REMOVE WHEN SIZING IS DONE AND ALL THAT BUSINESS
         #view_opts = ['System Config', 'Pigrow Setup', 'Camera Config', 'Cron Timing', 'multi-script', 'Local Files', 'Timelapse', 'Graphs', 'Live View', 'pieye watcher']
         #Showing only completed tabs
@@ -5405,6 +5615,7 @@ class view_pnl(wx.Panel):
         main_sizer =  wx.BoxSizer(wx.VERTICAL)
         main_sizer.Add(self.view_cb, 0, wx.ALL|wx.EXPAND, 3)
         self.SetSizer(main_sizer)
+
     def view_combo_go(self, e):
         display = self.view_cb.GetValue()
         #hide all the pannels
@@ -5457,6 +5668,8 @@ class view_pnl(wx.Panel):
         else:
             print("!!! Option not recognised, this is a programming error! sorry")
             print("          message me and tell me about it and i'll be very thankful")
+        MainApp.window_self.Layout()
+
 
 class welcome_pnl(wx.Panel):
     #
@@ -5489,29 +5702,28 @@ class status_bar(wx.Panel):
     def __init__( self, parent ):
         width_of_window = gui_set.width_of_window
         height_of_window = gui_set.height_of_window
-        wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, pos = (0, height_of_window), size = wx.Size(width_of_window, 40), style = wx.TAB_TRAVERSAL )
+        wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, style = wx.TAB_TRAVERSAL )
         self.SetBackgroundColour((150,150,120)) #TESTING ONLY REMOVE WHEN SIZING IS DONE AND ALL THAT BUSINESS
-        self.status_text = wx.StaticText(self,  label='-- starting -- ', pos=(25, 5), size=(width_of_window, 40))
+        self.status_text = wx.StaticText(self,  label='-- starting -- ')
         font = self.GetFont()
         font.SetPointSize(15)
         self.status_text.SetFont(font)
-        # the line
-        self.ln = wx.StaticLine(self, -1, pos=(0,0), style=wx.LI_HORIZONTAL)
-        self.ln.SetBackgroundColour(wx.Colour(150,150,150))
-        self.ln.SetSize((width_of_window, 3))
+        # sizer
+        main_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        main_sizer.Add(self.status_text, -1, wx.ALL|wx.EXPAND, 3)
+        self.SetSizer(main_sizer)
+
 
     def write_bar(self, text):
         self.SetBackgroundColour((150, 150, 120))
         self.status_text.SetForegroundColour(wx.Colour(50,50,50))
         self.status_text.SetLabel(text)
         wx.Yield()
-
     def write_blue_bar(self, text):
         self.SetBackgroundColour((50, 50, 200))
         self.status_text.SetForegroundColour(wx.Colour(0,0,0))
         self.status_text.SetLabel(text)
         wx.Yield()
-
     def write_warning(self, text):
         self.SetBackgroundColour((200, 100, 100))
         self.status_text.SetForegroundColour(wx.Colour(0,0,0))
@@ -5546,17 +5758,9 @@ class gui_settings:
 class MainFrame ( wx.Frame ):
     def __init__( self, parent ):
         # Settings
-        wx.Frame.__init__ ( self, parent, id = wx.ID_ANY, title = wx.EmptyString, pos = wx.DefaultPosition, size = wx.Size( gui_set.width_of_window, gui_set.height_of_window+40 ), style = wx.DEFAULT_FRAME_STYLE|wx.TAB_TRAVERSAL )
-        self.SetSizeHints( wx.DefaultSize, wx.DefaultSize )
-        self.Layout()
-        self.Centre( wx.BOTH )
-    def __del__( self ):
-        pass
+        wx.Frame.__init__ ( self, parent, id = wx.ID_ANY, title = "Pigrow Remote Interface", pos = wx.DefaultPosition, style = wx.DEFAULT_FRAME_STYLE|wx.TAB_TRAVERSAL )
 
-class MainApp(MainFrame):
-    def __init__(self, parent):
-        MainFrame.__init__(self, parent)
-        self.Bind(wx.EVT_CLOSE, self.OnClose)
+        # always shown pannels
         MainApp.pi_link_pnl = pi_link_pnl(self)
         self.view_pnl = view_pnl(self)
         #
@@ -5599,6 +5803,49 @@ class MainApp(MainFrame):
         MainApp.sensors_info_pannel.Hide()
         MainApp.sensors_ctrl_pannel.Hide()
         MainApp.status.write_bar("ready...")
+        # Sizers
+        # left bar
+        MainApp.side_bar_sizer = wx.BoxSizer(wx.VERTICAL)
+        MainApp.side_bar_sizer.Add(MainApp.pi_link_pnl, 0, wx.EXPAND)
+        MainApp.side_bar_sizer.Add(self.view_pnl, 0, wx.EXPAND)
+        MainApp.side_bar_sizer.Add(MainApp.system_ctrl_pannel, 0, wx.EXPAND)
+        MainApp.side_bar_sizer.Add(MainApp.config_ctrl_pannel, 0, wx.EXPAND)
+        MainApp.side_bar_sizer.Add(MainApp.cron_info_pannel, 0, wx.EXPAND)
+        MainApp.side_bar_sizer.Add(MainApp.localfiles_ctrl_pannel, 0, wx.EXPAND)
+        MainApp.side_bar_sizer.Add(MainApp.graphing_ctrl_pannel, 0, wx.EXPAND)
+        MainApp.side_bar_sizer.Add(MainApp.camconf_ctrl_pannel, 0, wx.EXPAND)
+        MainApp.side_bar_sizer.Add(MainApp.sensors_ctrl_pannel, 0, wx.EXPAND)
+        # main AREA
+        main_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        main_sizer.Add(MainApp.side_bar_sizer, 0)
+        main_sizer.Add(MainApp.welcome_pannel, 0)
+        main_sizer.Add(MainApp.system_info_pannel, 0)
+        main_sizer.Add(MainApp.config_info_pannel, 0)
+        main_sizer.Add(MainApp.cron_list_pannel, 0)
+        main_sizer.Add(MainApp.localfiles_info_pannel, 0)
+        main_sizer.Add(MainApp.graphing_info_pannel, 0)
+        main_sizer.Add(MainApp.camconf_info_pannel, 0)
+        main_sizer.Add(MainApp.sensors_info_pannel, 0)
+        MainApp.window_sizer = wx.BoxSizer(wx.VERTICAL)
+        MainApp.window_sizer.Add(main_sizer, 0)
+        MainApp.window_sizer.Add(MainApp.status, 1, wx.EXPAND)
+        MainApp.window_sizer.Fit(self)
+        self.SetSizer(MainApp.window_sizer)
+        MainApp.window_self = self
+
+
+
+        self.SetSizeHints( wx.DefaultSize, wx.DefaultSize )
+        self.Layout()
+        self.Centre( wx.BOTH )
+    def __del__( self ):
+        pass
+
+class MainApp(MainFrame):
+    def __init__(self, parent):
+        MainFrame.__init__(self, parent)
+        self.Bind(wx.EVT_CLOSE, self.OnClose)
+
 
     def OnClose(self, e):
         #Closes SSH connection even on quit
