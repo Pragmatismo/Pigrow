@@ -158,7 +158,7 @@ class scroll_text_dialog(wx.Dialog):
 #
 class system_ctrl_pnl(wx.Panel):
     def __init__( self, parent ):
-        wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, size = wx.Size(285, 600), style = wx.TAB_TRAVERSAL )
+        wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, style = wx.TAB_TRAVERSAL )
         # Start drawing the UI elements
         # tab info
         self.tab_label = wx.StaticText(self,  label='System Config Menu')
@@ -652,8 +652,23 @@ class system_info_pnl(wx.Panel):
     # controlled by the system_ctrl_pnl
     #
     def __init__( self, parent ):
-        wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, style = wx.TAB_TRAVERSAL )
+        win_height = gui_set.height_of_window
+        win_width = gui_set.width_of_window
+        w_space_left = win_width - 285
+        wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, size = wx.Size(w_space_left , win_height-20), style = wx.TAB_TRAVERSAL )
         ## Draw UI elements
+        # Tab Title
+        title_font = wx.Font(28, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
+        sub_title_font = wx.Font(15, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
+        title_l = wx.StaticText(self,  label='Pigrow Control Panel', size=(500,40))
+        title_l.SetFont(title_font)
+        page_sub_title =  wx.StaticText(self,  label='Configure the raspberry pi on which the pigrow code runs', size=(550,30))
+        page_sub_title.SetFont(sub_title_font)
+        #
+        #  ^^^^ not visible as not added to a sizer
+        #
+
+        # placing the information boxes
         png = wx.Image('./sysconf.png', wx.BITMAP_TYPE_ANY).ConvertToBitmap()
         self.background = wx.StaticBitmap(self, -1, png)
         # Raspberry Pi revision
@@ -684,7 +699,11 @@ class system_info_pnl(wx.Panel):
         system_info_pnl.sys_pc_date = wx.StaticText(self,  label='datetime on local pc', pos=(625, 560), size=(200,30))
         #system_info_pnl.sys_time_diff = wx.StaticText(self,  label='difference', pos=(700, 555), size=(200,30))
 
-        main_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        title_sizer = wx.BoxSizer(wx.VERTICAL)
+        title_sizer.Add(title_l, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
+        title_sizer.Add(page_sub_title, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
+        main_sizer = wx.BoxSizer(wx.VERTICAL)
+        main_sizer.Add(title_sizer, 0, wx.ALIGN_CENTER_HORIZONTAL, 0)
         main_sizer.Add(self.background, 0, wx.ALL, 0)
         self.SetSizer(main_sizer)
 
@@ -1103,9 +1122,6 @@ except:
 class config_ctrl_pnl(wx.Panel):
     #this controlls the data displayed on config_info_pnl
     def __init__( self, parent ):
-        win_height = parent.GetSize()[1]
-        height_of_pannels_above = 230
-        space_left = win_height - height_of_pannels_above
         wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, style = wx.TAB_TRAVERSAL )
         # Start drawing the UI elements
         self.config_l = wx.StaticText(self,  label='Pigrow Config')
@@ -1597,61 +1613,77 @@ class config_ctrl_pnl(wx.Panel):
             f.close()
             self.update_config_click("e")
 
-class config_info_pnl(wx.Panel):
+class config_info_pnl(scrolled.ScrolledPanel):
     #  This displays the config info
     # controlled by the config_ctrl_pnl
     def __init__( self, parent ):
-        wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, style = wx.TAB_TRAVERSAL )
-        font = wx.Font(14, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
-        self.name_l = wx.StaticText(self,  label='Box Name;')
+        win_height = gui_set.height_of_window
+        win_width = gui_set.width_of_window
+        w_space_left = win_width - 285
+        scrolled.ScrolledPanel.__init__ ( self, parent, id = wx.ID_ANY, size = wx.Size(w_space_left , win_height-20), style = wx.HSCROLL|wx.VSCROLL)
+        font = wx.Font(15, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
+        # Tab Title
+        title_font = wx.Font(28, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
+        sub_title_font = wx.Font(15, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
+        title_l = wx.StaticText(self,  label='Pigrow Setup', size=(500,40))
+        title_l.SetFont(title_font)
+        page_sub_title =  wx.StaticText(self,  label='Tools to set up the climate control functions of the Pigrow', size=(550,40))
+        page_sub_title.SetFont(sub_title_font)
+        # info boxes
+        self.name_l = wx.StaticText(self,  label='Box Name;', size=(100,25))
         self.name_l.SetFont(font)
         config_info_pnl.boxname_text = wx.TextCtrl(self)
-        self.dirlocs_l = wx.StaticText(self,  label='dirlocs.txt location information;')
+        self.dirlocs_l = wx.StaticText(self,  label='dirlocs.txt location information;', size=(100,25))
         self.dirlocs_l.SetFont(font)
         config_info_pnl.location_text = wx.StaticText(self,  label='locations')
-        self.conf_l = wx.StaticText(self,  label='pigrow_config.txt settings information;')
+        self.conf_l = wx.StaticText(self,  label='pigrow_config.txt settings information;', size=(100,25))
+        self.conf_l.SetFont(font)
         config_info_pnl.config_text = wx.StaticText(self,  label='config')
-        self.lamp_l = wx.StaticText(self,  label='Lamp;')
+        self.lamp_l = wx.StaticText(self,  label='Lamp;', size=(100,25))
         self.lamp_l.SetFont(font)
         config_info_pnl.lamp_text = wx.StaticText(self,  label='lamp')
-        self.dht_l = wx.StaticText(self,  label='DHT Sensor;')
+        self.dht_l = wx.StaticText(self,  label='DHT Sensor;', size=(100,25))
         self.dht_l.SetFont(font)
         config_info_pnl.dht_text = wx.StaticText(self,  label='dht')
-        self.relay_l = wx.StaticText(self,  label='Relay GPIO link;')
+        self.relay_l = wx.StaticText(self,  label='Relay GPIO link;', size=(100,25))
         self.relay_l.SetFont(font)
         config_info_pnl.gpio_table = self.GPIO_list(self, 1)
         config_info_pnl.gpio_table.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.onDoubleClick_GPIO)
         gpio_pin_image = wx.Image('./pi_zero.png', wx.BITMAP_TYPE_ANY).ConvertToBitmap()
         gpio_diagram = wx.StaticBitmap(self, -1, gpio_pin_image, (gpio_pin_image.GetWidth(), gpio_pin_image.GetHeight()))
         info_sizer = wx.BoxSizer(wx.VERTICAL)
-        info_sizer.AddStretchSpacer(1)
         info_sizer.Add(self.name_l, 0, wx.ALL|wx.EXPAND, 3)
-        info_sizer.Add(config_info_pnl.boxname_text, 0, wx.ALL|wx.EXPAND, 3)
+        info_sizer.Add(config_info_pnl.boxname_text, 0, wx.LEFT|wx.EXPAND, 30)
         info_sizer.AddStretchSpacer(1)
         info_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
         info_sizer.Add(self.dirlocs_l, 0, wx.ALL|wx.EXPAND, 3)
-        info_sizer.Add(config_info_pnl.location_text, 0, wx.ALL|wx.EXPAND, 3)
+        info_sizer.Add(config_info_pnl.location_text, 0, wx.LEFT|wx.EXPAND, 30)
         info_sizer.AddStretchSpacer(1)
         info_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
         info_sizer.Add(self.conf_l, 0, wx.ALL|wx.EXPAND, 3)
-        info_sizer.Add(config_info_pnl.config_text, 0, wx.ALL|wx.EXPAND, 3)
+        info_sizer.Add(config_info_pnl.config_text, 0, wx.LEFT|wx.EXPAND, 30)
         info_sizer.AddStretchSpacer(1)
         info_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
         info_sizer.Add(self.lamp_l, 0, wx.ALL|wx.EXPAND, 3)
-        info_sizer.Add(config_info_pnl.lamp_text, 0, wx.ALL|wx.EXPAND, 3)
+        info_sizer.Add(config_info_pnl.lamp_text, 0, wx.LEFT|wx.EXPAND, 30)
         info_sizer.AddStretchSpacer(1)
         info_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
         info_sizer.Add(self.dht_l, 0, wx.ALL|wx.EXPAND, 3)
-        info_sizer.Add(config_info_pnl.dht_text, 0, wx.ALL|wx.EXPAND, 3)
+        info_sizer.Add(config_info_pnl.dht_text, 0, wx.LEFT|wx.EXPAND, 30)
         info_sizer.AddStretchSpacer(1)
         info_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
         info_sizer.Add(self.relay_l, 0, wx.ALL|wx.EXPAND, 3)
         info_sizer.Add(config_info_pnl.gpio_table, 0, wx.ALL|wx.EXPAND, 3)
         info_sizer.AddStretchSpacer(1)
-        main_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        main_sizer.Add(info_sizer, 0, wx.ALL|wx.EXPAND, 3)
-        main_sizer.Add(gpio_diagram, 0, wx.ALL|wx.EXPAND, 3)
+        info_panel_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        info_panel_sizer.Add(info_sizer, 0, wx.ALL|wx.EXPAND, 3)
+        info_panel_sizer.Add(gpio_diagram, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer = wx.BoxSizer(wx.VERTICAL)
+        main_sizer.Add(title_l, 0, wx.ALIGN_CENTER_HORIZONTAL, 3)
+        main_sizer.Add(page_sub_title, 0, wx.ALIGN_CENTER_HORIZONTAL, 3)
+        main_sizer.Add(info_panel_sizer, 0, wx.ALL|wx.EXPAND, 3)
         self.SetSizer(main_sizer)
+        self.SetupScrolling()
 
 
     class GPIO_list(wx.ListCtrl):
@@ -2334,13 +2366,12 @@ class cron_info_pnl(wx.Panel):
         self.new_cron_btn.Bind(wx.EVT_BUTTON, self.new_cron_click)
         self.update_cron_btn = wx.Button(self, label='Update Cron', pos=(10, 120), size=(175, 30))
         self.update_cron_btn.Bind(wx.EVT_BUTTON, self.update_cron_click)
-        self.SetBackgroundColour('sea green') #TESTING ONLY REMOVE WHEN SIZING IS DONE AND ALL THAT BUSINESS
 
-        bSizer = wx.BoxSizer(wx.VERTICAL)
-        bSizer.Add(self.read_cron_btn, 0, wx.ALL, 5)
-        bSizer.Add(self.new_cron_btn, 0, wx.ALL, 5)
-        bSizer.Add(self.update_cron_btn, 0, wx.ALL, 5)
-        self.SetSizer(bSizer)
+        main_sizer = wx.BoxSizer(wx.VERTICAL)
+        main_sizer.Add(self.read_cron_btn, 0, wx.ALL, 5)
+        main_sizer.Add(self.new_cron_btn, 0, wx.ALL, 5)
+        main_sizer.Add(self.update_cron_btn, 0, wx.ALL, 5)
+        self.SetSizer(main_sizer)
 
     def update_cron_click(self, e):
         #make a text file of all the cron jobs
@@ -2652,9 +2683,9 @@ class cron_list_pnl(wx.Panel):
             self.SetColumnWidth(0, 100)
             self.SetColumnWidth(1, 75)
             self.SetColumnWidth(2, 75)
-            self.SetColumnWidth(3, 650)
-            self.SetColumnWidth(4, 500)
-            self.SetColumnWidth(5, -1)
+            self.SetColumnWidth(3, 400)
+            self.SetColumnWidth(4, 300)
+            self.SetColumnWidth(5, 100)
 
     class repeating_cron_list(wx.ListCtrl):
         def __init__(self, parent, id, pos=(5,245), size=(900,200)):
@@ -2668,9 +2699,9 @@ class cron_list_pnl(wx.Panel):
             self.SetColumnWidth(0, 75)
             self.SetColumnWidth(1, 75)
             self.SetColumnWidth(2, 100)
-            self.SetColumnWidth(3, 500)
-            self.SetColumnWidth(4, 500)
-            self.SetColumnWidth(5, -1)
+            self.SetColumnWidth(3, 400)
+            self.SetColumnWidth(4, 300)
+            self.SetColumnWidth(5, 100)
 
         def parse_cron_string(self, cron_rep_string):
             try:
@@ -2709,12 +2740,23 @@ class cron_list_pnl(wx.Panel):
             self.SetColumnWidth(0, 75)
             self.SetColumnWidth(1, 75)
             self.SetColumnWidth(2, 100)
-            self.SetColumnWidth(3, 500)
-            self.SetColumnWidth(4, 500)
-            self.SetColumnWidth(5, -1)
+            self.SetColumnWidth(3, 400)
+            self.SetColumnWidth(4, 300)
+            self.SetColumnWidth(5, 100)
 
     def __init__( self, parent ):
-        wx.Panel.__init__(self, parent, id = wx.ID_ANY, style = wx.TAB_TRAVERSAL)
+        win_height = gui_set.height_of_window
+        win_width = gui_set.width_of_window
+        w_space_left = win_width - 285
+        wx.Panel.__init__(self, parent, id = wx.ID_ANY, size = wx.Size(w_space_left , win_height-20), style = wx.TAB_TRAVERSAL)
+        # Tab Title
+        title_font = wx.Font(28, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
+        sub_title_font = wx.Font(15, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
+        title_l = wx.StaticText(self,  label='Cron Tab Control', size=(500,40))
+        title_l.SetFont(title_font)
+        page_sub_title =  wx.StaticText(self,  label='Use cron on the pigrow to time events and trigger devices', size=(550,30))
+        page_sub_title.SetFont(sub_title_font)
+        # Info boxes
         cron_start_up_l = wx.StaticText(self,  label='Cron start up;')
         cron_list_pnl.startup_cron = self.startup_cron_list(self, 1)
         cron_list_pnl.startup_cron.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.onDoubleClick_startup)
@@ -2724,8 +2766,10 @@ class cron_list_pnl(wx.Panel):
         cron_timed_l = wx.StaticText(self,  label='One time triggers;')
         cron_list_pnl.timed_cron = self.other_cron_list(self, 1)
         cron_list_pnl.timed_cron.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.onDoubleClick_timed)
-
+        # sizers
         main_sizer =  wx.BoxSizer(wx.VERTICAL)
+        main_sizer.Add(title_l, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
+        main_sizer.Add(page_sub_title, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
         main_sizer.Add(cron_start_up_l, 0, wx.ALL, 3)
         main_sizer.Add(cron_list_pnl.startup_cron, 1, wx.ALL|wx.EXPAND, 3)
         main_sizer.Add(cron_repeat_l, 0, wx.ALL, 3)
@@ -2734,10 +2778,6 @@ class cron_list_pnl(wx.Panel):
         main_sizer.Add(cron_list_pnl.timed_cron, 1, wx.ALL|wx.EXPAND, 3)
         self.SetSizer(main_sizer)
 
-
-
-    # TESTING CODE WHILE SCRIPT WRITING IS IN PROGRESS
-        self.SetBackgroundColour('sea green')  ###THIS IS JUST TO TEST SIZE REMOVE TO STOP THE UGLY
 
     def onDoubleClick_timed(self, e):
         index =  e.GetIndex()
@@ -3219,15 +3259,15 @@ class localfiles_info_pnl(scrolled.ScrolledPanel):
         win_height = gui_set.height_of_window
         win_width = gui_set.width_of_window
         w_space_left = win_width - 285
-        scrolled.ScrolledPanel.__init__ ( self, parent, id = wx.ID_ANY, size = wx.Size(w_space_left , win_height-20), style = wx.HSCROLL|wx.VSCROLL )
+        scrolled.ScrolledPanel.__init__ ( self, parent, id = wx.ID_ANY, size = wx.Size(w_space_left , win_height-20), style = wx.HSCROLL|wx.VSCROLL)
         #set blank variables
         localfiles_info_pnl.local_path = ""
         # top title
         title_font = wx.Font(28, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
         sub_title_font = wx.Font(17, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
         item_title_font = wx.Font(17, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
-        page_title =  wx.StaticText(self,  label='Local Files', size=(-1,40))
-        page_sub_title =  wx.StaticText(self,  label='Files downloaded from the pi and stored locally', size=(-1,30))
+        page_title =  wx.StaticText(self,  label='Local Files', size=(300,40))
+        page_sub_title =  wx.StaticText(self,  label='Files downloaded from the pi and stored locally', size=(550,30))
         page_title.SetFont(title_font)
         page_sub_title.SetFont(sub_title_font)
         # placing the information boxes
@@ -3265,8 +3305,8 @@ class localfiles_info_pnl(scrolled.ScrolledPanel):
         #Sizers
         # full row sizers
         title_sizer = wx.BoxSizer(wx.VERTICAL)
-        title_sizer.Add(page_title, 1, wx.ALL|wx.EXPAND, 3)
-        title_sizer.Add(page_sub_title, 1, wx.ALL|wx.EXPAND, 3)
+        title_sizer.Add(page_title, 1,wx.ALIGN_CENTER_HORIZONTAL, 3)
+        title_sizer.Add(page_sub_title, 1, wx.ALIGN_CENTER_HORIZONTAL, 3)
         local_path_sizer = wx.BoxSizer(wx.HORIZONTAL)
         local_path_sizer.Add(local_path_l, 0, wx.ALL, 3)
         local_path_sizer.Add(localfiles_info_pnl.local_path_txt, 1, wx.ALL|wx.EXPAND, 3)
@@ -3972,7 +4012,7 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
         win_height = gui_set.height_of_window
         win_width = gui_set.width_of_window
         w_space_left = win_width - 285
-        scrolled.ScrolledPanel.__init__ ( self, parent, id = wx.ID_ANY, pos = (285, 0), size = wx.Size(w_space_left , win_height-25), style = wx.HSCROLL|wx.VSCROLL )
+        scrolled.ScrolledPanel.__init__ ( self, parent, id = wx.ID_ANY, size = wx.Size(w_space_left , win_height-20), style = wx.HSCROLL|wx.VSCROLL )
         ## Draw UI elements
         graphing_info_pnl.graph_txt = wx.StaticText(self,  label='Graphs;')
         # Sizers
@@ -4251,7 +4291,7 @@ class camconf_info_pnl(scrolled.ScrolledPanel):
         win_height = gui_set.height_of_window
         win_width = gui_set.width_of_window
         w_space_left = win_width - 285
-        scrolled.ScrolledPanel.__init__ ( self, parent, id = wx.ID_ANY, pos = (285, 0), size = wx.Size(w_space_left , 800), style = wx.HSCROLL|wx.VSCROLL )
+        scrolled.ScrolledPanel.__init__ ( self, parent, id = wx.ID_ANY, size = wx.Size(w_space_left , win_height-20), style = wx.HSCROLL|wx.VSCROLL )
         ## Draw UI elements
         # placing the information boxes
         # top row
@@ -4475,13 +4515,7 @@ class camconf_info_pnl(scrolled.ScrolledPanel):
 
 class camconf_ctrl_pnl(wx.Panel):
     def __init__( self, parent ):
-        win_height = gui_set.height_of_window
-        height_of_pannels_above = 230
-        space_left = win_height - height_of_pannels_above
-        wx.Panel.__init__ (self, parent, id=wx.ID_ANY, pos=(0, height_of_pannels_above), size=wx.Size(285, space_left), style=wx.TAB_TRAVERSAL)
-        self.SetBackgroundColour('sea green') #TESTING ONLY REMOVE WHEN SIZING IS DONE AND ALL THAT BUSINESS
-        # Start drawing the UI elements
-
+        wx.Panel.__init__ (self, parent, id=wx.ID_ANY, style=wx.TAB_TRAVERSAL)
         # read / save cam config button
         self.read_cam_config_btn = wx.Button(self, label='read cam config')
         self.read_cam_config_btn.Bind(wx.EVT_BUTTON, self.read_cam_config_click)
@@ -4494,7 +4528,6 @@ class camconf_ctrl_pnl(wx.Panel):
         cam_opts = [""]
         self.cam_cb = wx.ComboBox(self, choices = cam_opts, size=(225, 30))
         self.cam_cb.Bind(wx.EVT_COMBOBOX, self.cam_combo_go)
-
         #
         # UI for WEBCAM
         #
@@ -4506,14 +4539,11 @@ class camconf_ctrl_pnl(wx.Panel):
         # Buttons
         self.take_unset_btn = wx.Button(self, label='  Take\n  cam\ndefault', size=(95, 60))
         self.take_unset_btn.Bind(wx.EVT_BUTTON, self.take_unset_click)
-
         self.take_set_btn = wx.Button(self, label='      Take\n      using\nlocal settings', size=(95, 60))
         self.take_set_btn.Bind(wx.EVT_BUTTON, self.take_set_click)
-
         self.take_s_set_btn = wx.Button(self, label='      Take\n      using\nsaved settings', size=(95, 60))
         self.take_s_set_btn.Bind(wx.EVT_BUTTON, self.take_saved_set_click)
-
-        #Take Range altering a single setting
+        # Take Range altering a single setting
         range_opts = ['brightness', 'contrast', 'saturation', 'gain', 'user']
         self.range_combo = wx.ComboBox(self, choices = range_opts)
         # start point, end point, increment every x - text control, label, default settings
@@ -4574,9 +4604,6 @@ class camconf_ctrl_pnl(wx.Panel):
         main_sizer.Add(range_sizer, 0, wx.ALL, 0)
         main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
         self.SetSizer(main_sizer)
-        #self.SetupScrolling()   #ADD SCROLLING TO THIS PANEL? or to the main window?
-
-
 
 
     def read_cam_config_click(self, e):
@@ -4926,16 +4953,27 @@ class sensors_info_pnl(wx.Panel):
         win_height = gui_set.height_of_window
         win_width = gui_set.width_of_window
         w_space_left = win_width - 285
-        wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, pos = (285, 0), size = wx.Size(w_space_left , 800), style = wx.TAB_TRAVERSAL )
-        ## Draw UI elements
+        wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, size = wx.Size(w_space_left , win_height-20), style = wx.TAB_TRAVERSAL )
+        # Tab Title
+        title_font = wx.Font(28, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
+        sub_title_font = wx.Font(15, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
+        title_l = wx.StaticText(self,  label='Sensor Control Panel', size=(500,40))
+        title_l.SetFont(title_font)
+        page_sub_title =  wx.StaticText(self,  label='Link aditional sensors to the pigrow', size=(550,30))
+        page_sub_title.SetFont(sub_title_font)
         # placing the information boxes
-        wx.StaticText(self,  label='Additional Sensors Config and Set-up', pos=(5, 5), size=(500,30))
-        self.sensor_list = self.sensor_table(self, 1, pos=(5, 50), size=(850, 300))
+        self.sensor_list = self.sensor_table(self, 1)
         self.sensor_list.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.sensor_table.double_click)
+        # sizers
+        main_sizer = wx.BoxSizer(wx.VERTICAL)
+        main_sizer.Add(title_l, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
+        main_sizer.Add(page_sub_title, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
+        main_sizer.Add(self.sensor_list, 1, wx.ALL|wx.EXPAND, 3)
+        self.SetSizer(main_sizer)
 
     class sensor_table(wx.ListCtrl):
-        def __init__(self, parent, id, pos, size):
-            wx.ListCtrl.__init__(self, parent, id, size=size, style=wx.LC_REPORT, pos=pos)
+        def __init__(self, parent, id):
+            wx.ListCtrl.__init__(self, parent, id, style=wx.LC_REPORT)
             self.InsertColumn(0, 'Sensor')
             self.InsertColumn(1, 'Type')
             self.InsertColumn(2, 'Log')
@@ -5009,7 +5047,7 @@ class sensors_info_pnl(wx.Panel):
                 edit_chirp_dbox.ShowModal()
 
 class sensors_ctrl_pnl(wx.Panel):
-    def __init__( self, parent ):
+    def __init__(self, parent):
         wx.Panel.__init__ (self, parent, id=wx.ID_ANY, style=wx.TAB_TRAVERSAL)
         self.SetBackgroundColour('sea green') #TESTING ONLY REMOVE WHEN SIZING IS DONE AND ALL THAT BUSINESS
         wx.StaticText(self,  label='Chirp Soil Moisture Sensor;')
