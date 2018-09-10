@@ -660,51 +660,176 @@ class system_info_pnl(wx.Panel):
         # Tab Title
         title_font = wx.Font(28, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
         sub_title_font = wx.Font(15, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
-        title_l = wx.StaticText(self,  label='Pigrow Control Panel', size=(500,40))
+        title_l = wx.StaticText(self,  label='System Control Panel', size=(500,40))
         title_l.SetFont(title_font)
         page_sub_title =  wx.StaticText(self,  label='Configure the raspberry pi on which the pigrow code runs', size=(550,30))
         page_sub_title.SetFont(sub_title_font)
-        #
-        #  ^^^^ not visible as not added to a sizer
-        #
-
         # placing the information boxes
-        png = wx.Image('./sysconf.png', wx.BITMAP_TYPE_ANY).ConvertToBitmap()
-        self.background = wx.StaticBitmap(self, -1, png)
+        item_title_font = wx.Font(15, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
+        # base system info (Top - Left) Sizer Pannel
         # Raspberry Pi revision
-        system_info_pnl.sys_pi_revision = wx.StaticText(self,  label='raspberry pi version', pos=(160, 140), size=(200,30))
+        pi_rev_l = wx.StaticText(self,  label='Hardware -')
+        system_info_pnl.sys_pi_revision = wx.StaticText(self,  label='-raspberry pi version-')
         #SDcard details
-        system_info_pnl.sys_hdd_total = wx.StaticText(self,  label='total;', pos=(250, 180), size=(200,30))
-        system_info_pnl.sys_hdd_remain = wx.StaticText(self,  label='free;', pos=(250, 250), size=(200,30))
-        system_info_pnl.sys_hdd_used = wx.StaticText(self,  label='Used;', pos=(250, 215), size=(200,30))
-        system_info_pnl.sys_pigrow_folder = wx.StaticText(self,  label='Pigrow folder;', pos=(250, 285), size=(200,30))
+        storage_space_l = wx.StaticText(self,  label='Storage Space', size=(25,25))
+        storage_space_l.SetFont(item_title_font)
+        total_hdd_l = wx.StaticText(self,  label='Total  -')
+        system_info_pnl.sys_hdd_total = wx.StaticText(self,  label='-total -')
+        free_hdd_l = wx.StaticText(self,  label='Free  -')
+        system_info_pnl.sys_hdd_remain = wx.StaticText(self,  label='-free -')
+        used_hdd_l = wx.StaticText(self,  label='Used  -')
+        system_info_pnl.sys_hdd_used = wx.StaticText(self,  label='-Used-')
+        pigrow_folder_hdd_l = wx.StaticText(self,  label='Pigrow folder -')
+        system_info_pnl.sys_pigrow_folder = wx.StaticText(self,  label='-Pigrow folder-')
         #Software details
-        system_info_pnl.sys_os_name = wx.StaticText(self,  label='os installed;', pos=(250, 365), size=(200,30))
-        #system_info_pnl.sys_pigrow_version = wx.StaticText(self,  label='pigrow version;', pos=(250, 405), size=(200,30))
-        system_info_pnl.sys_pigrow_update = wx.StaticText(self,  label='Pigrow update status', pos=(250, 445), size=(200,30))
-        #wifi deatils
-        system_info_pnl.sys_network_name = wx.StaticText(self,  label='network name', pos=(250, 560), size=(200,30))
-        system_info_pnl.wifi_list = wx.StaticText(self,  label='wifi list', pos=(140, 620), size=(200,100))
-        system_info_pnl.available_wifi_list = wx.StaticText(self,  label='feature not implimented', pos=(540, 630), size=(200,100))
-        #camera details
-        system_info_pnl.sys_camera_info = wx.StaticText(self,  label='camera info', pos=(585, 170), size=(200,30))
-        # GPIO set up details
-        system_info_pnl.sys_i2c_info = wx.StaticText(self,  label='i2c info', pos=(620, 270), size=(300,30))
-        system_info_pnl.sys_uart_info = wx.StaticText(self,  label='uart info (not implimented)', pos=(620, 315), size=(300,30))
-        system_info_pnl.sys_1wire_info = wx.StaticText(self,  label='1 wire info (not implimented)', pos=(620, 355), size=(300,30))
+        system_l = wx.StaticText(self,  label='System', size=(25,25))
+        system_l.SetFont(item_title_font)
+        system_info_pnl.sys_pigrow_update = wx.StaticText(self,  label='-Pigrow update status-')
+        os_name_l = wx.StaticText(self,  label='OS installed -')
+        system_info_pnl.sys_os_name = wx.StaticText(self,  label='-os installed-')
+        pigrow_l = wx.StaticText(self,  label='Pigrow', size=(25,25))
+        pigrow_l.SetFont(item_title_font)
+        update_status_l = wx.StaticText(self,  label='Update Status -')
         #power level warning details
-        system_info_pnl.sys_power_status = wx.StaticText(self,  label='power status', pos=(625, 450), size=(200,30))
+        power_l = wx.StaticText(self,  label='Power', size=(25,25))
+        power_l.SetFont(item_title_font)
+        power_status_l = wx.StaticText(self,  label='Power Warning -')
+        system_info_pnl.sys_power_status = wx.StaticText(self,  label='-power status-')
         # Pi datetime vs local pc datetime
-        system_info_pnl.sys_pi_date = wx.StaticText(self,  label='datetime on pi', pos=(625, 530), size=(500,30))
-        system_info_pnl.sys_pc_date = wx.StaticText(self,  label='datetime on local pc', pos=(625, 560), size=(200,30))
-        #system_info_pnl.sys_time_diff = wx.StaticText(self,  label='difference', pos=(700, 555), size=(200,30))
+        time_l = wx.StaticText(self,  label='Date and Time', size=(25,25))
+        time_l.SetFont(item_title_font)
+        pi_time_l = wx.StaticText(self,  label='Time on Pi -')
+        system_info_pnl.sys_pi_date = wx.StaticText(self,  label='-datetime on pi-')
+        local_time_l = wx.StaticText(self,  label='Time on local pc -')
+        system_info_pnl.sys_pc_date = wx.StaticText(self,  label='-datetime on local pc-')
+        # peripheral hardware (top-right)
+        #camera details
+        camera_title_l = wx.StaticText(self,  label='Camera', size=(25,25))
+        camera_title_l.SetFont(item_title_font)
+        camera_l = wx.StaticText(self,  label='Detected -')
+        system_info_pnl.sys_camera_info = wx.StaticText(self,  label='-camera info-')
+        # GPIO set up details
+        gpio_overlay_l = wx.StaticText(self,  label='GPIO Overlays', size=(25,25))
+        gpio_overlay_l.SetFont(item_title_font)
+        i2c_l = wx.StaticText(self,  label='I2C -')
+        system_info_pnl.sys_i2c_info = wx.StaticText(self,  label='-i2c info-')
+        uart_l = wx.StaticText(self,  label='UART -')
+        system_info_pnl.sys_uart_info = wx.StaticText(self,  label='-uart info (not implimented)-')
+        onewire_l = wx.StaticText(self,  label='1 Wire -')
+        system_info_pnl.sys_1wire_info = wx.StaticText(self,  label='-1 wire info (not implimented)-')
 
+        # network pannel - lower half
+        #wifi deatils
+        network_l = wx.StaticText(self,  label='Network', size=(90,30))
+        network_l.SetFont(item_title_font)
+        current_network_l = wx.StaticText(self,  label='Connected to -')
+        system_info_pnl.sys_network_name = wx.StaticText(self,  label='-network name-')
+        saved_wifi_l = wx.StaticText(self,  label='Saved Wifi Networks')
+        system_info_pnl.wifi_list = wx.StaticText(self,  label='-wifi list-')
+        found_wifi_l = wx.StaticText(self,  label='Found Wifi Networks')
+        system_info_pnl.available_wifi_list = wx.StaticText(self,  label='-feature not implimented-')
+        #
+        # Sizers
         title_sizer = wx.BoxSizer(wx.VERTICAL)
         title_sizer.Add(title_l, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
         title_sizer.Add(page_sub_title, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
+        # base system info (Top - Left) Sizer Pannel
+        hardware_version_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        hardware_version_sizer.Add(pi_rev_l, 0, wx.ALL, 3)
+        hardware_version_sizer.Add(system_info_pnl.sys_pi_revision, 0, wx.ALL|wx.EXPAND, 3)
+        total_hdd_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        total_hdd_sizer.Add(total_hdd_l, 0, wx.ALL|wx.EXPAND, 3)
+        total_hdd_sizer.Add(system_info_pnl.sys_hdd_total, 0, wx.ALL|wx.EXPAND, 3)
+        free_hdd_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        free_hdd_sizer.Add(free_hdd_l, 0, wx.ALL|wx.EXPAND, 3)
+        free_hdd_sizer.Add(system_info_pnl.sys_hdd_remain, 0, wx.ALL|wx.EXPAND, 3)
+        used_hdd_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        used_hdd_sizer.Add(used_hdd_l, 0, wx.ALL|wx.EXPAND, 3)
+        used_hdd_sizer.Add(system_info_pnl.sys_hdd_used, 0, wx.ALL|wx.EXPAND, 3)
+        pigrow_folder_hdd_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        pigrow_folder_hdd_sizer.Add(pigrow_folder_hdd_l, 0, wx.ALL|wx.EXPAND, 3)
+        pigrow_folder_hdd_sizer.Add(system_info_pnl.sys_pigrow_folder, 0, wx.ALL|wx.EXPAND, 3)
+        update_status_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        update_status_sizer.Add(update_status_l, 0, wx.ALL, 3)
+        update_status_sizer.Add(system_info_pnl.sys_pigrow_update, 0, wx.ALL|wx.EXPAND, 3)
+        os_name_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        os_name_sizer.Add(os_name_l, 0, wx.ALL, 3)
+        os_name_sizer.Add(system_info_pnl.sys_os_name, 0, wx.ALL|wx.EXPAND, 3)
+        power_status_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        power_status_sizer.Add(power_status_l, 0, wx.ALL, 3)
+        power_status_sizer.Add(system_info_pnl.sys_power_status, 0, wx.ALL|wx.EXPAND, 3)
+        pi_time_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        pi_time_sizer.Add(pi_time_l, 0, wx.ALL, 3)
+        pi_time_sizer.Add(system_info_pnl.sys_pi_date, 0, wx.ALL|wx.EXPAND, 3)
+        pc_time_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        pc_time_sizer.Add(local_time_l, 0, wx.ALL, 3)
+        pc_time_sizer.Add(system_info_pnl.sys_pc_date, 0, wx.ALL|wx.EXPAND, 3)
+        base_system_info_sizer = wx.BoxSizer(wx.VERTICAL)
+        base_system_info_sizer.Add(system_l, 0, wx.ALL|wx.EXPAND, 3)
+        base_system_info_sizer.Add(hardware_version_sizer, 0, wx.LEFT|wx.EXPAND, 30)
+        base_system_info_sizer.Add(os_name_sizer, 0, wx.LEFT|wx.EXPAND, 30)
+        base_system_info_sizer.Add(pigrow_l, 0, wx.ALL|wx.EXPAND, 3)
+        base_system_info_sizer.Add(update_status_sizer, 0, wx.LEFT|wx.EXPAND, 30)
+        base_system_info_sizer.Add(storage_space_l, 0, wx.ALL|wx.EXPAND, 3)
+        base_system_info_sizer.Add(total_hdd_sizer, 0, wx.LEFT|wx.EXPAND, 30)
+        base_system_info_sizer.Add(free_hdd_sizer, 0, wx.LEFT|wx.EXPAND, 30)
+        base_system_info_sizer.Add(used_hdd_sizer, 0, wx.LEFT|wx.EXPAND, 30)
+        base_system_info_sizer.Add(pigrow_folder_hdd_sizer, 0, wx.LEFT|wx.EXPAND, 30)
+        base_system_info_sizer.Add(power_l, 0, wx.ALL|wx.EXPAND, 3)
+        base_system_info_sizer.Add(power_status_sizer, 0, wx.LEFT|wx.EXPAND, 30)
+        base_system_info_sizer.Add(time_l, 0, wx.ALL|wx.EXPAND, 3)
+        base_system_info_sizer.Add(pi_time_sizer, 0, wx.LEFT|wx.EXPAND, 30)
+        base_system_info_sizer.Add(pc_time_sizer, 0, wx.LEFT|wx.EXPAND, 30)
+        # peripheral hardware (top-right)
+        peripheral_device_sizer = wx.BoxSizer(wx.VERTICAL)
+        peripheral_device_sizer.Add(camera_title_l, 0, wx.ALL|wx.EXPAND, 3)
+        cam_name_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        cam_name_sizer.Add(camera_l, 0, wx.ALL, 3)
+        cam_name_sizer.Add(system_info_pnl.sys_camera_info, 0, wx.ALL|wx.EXPAND, 3)
+        peripheral_device_sizer.Add(cam_name_sizer, 0, wx.LEFT|wx.EXPAND, 30)
+        peripheral_device_sizer.Add(gpio_overlay_l, 0, wx.ALL|wx.EXPAND, 3)
+
+        i2c_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        i2c_sizer.Add(i2c_l, 1, wx.ALIGN_RIGHT)
+        i2c_sizer.Add(system_info_pnl.sys_i2c_info, 3, wx.EXPAND)
+        uart_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        uart_sizer.Add(uart_l, 1, wx.ALIGN_RIGHT)
+        uart_sizer.Add(system_info_pnl.sys_uart_info, 3, wx.EXPAND)
+        onewire_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        onewire_sizer.Add(onewire_l, 1, wx.ALIGN_RIGHT)
+        onewire_sizer.Add(system_info_pnl.sys_1wire_info, 3, wx.EXPAND)
+        peripheral_device_sizer.Add(i2c_sizer, 0, wx.LEFT, 30)
+        peripheral_device_sizer.Add(uart_sizer, 0, wx.LEFT, 30)
+        peripheral_device_sizer.Add(onewire_sizer, 0, wx.LEFT, 30)
+        panel_area_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        panel_area_sizer.Add(base_system_info_sizer, 0, wx.ALL, 0)
+        panel_area_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_VERTICAL), 0, wx.ALL|wx.EXPAND, 5)
+        panel_area_sizer.Add(peripheral_device_sizer, 0, wx.ALL, 0)
+        # wifi area sizers
+        current_network_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        current_network_sizer.Add(current_network_l, 0, wx.LEFT, 3)
+        current_network_sizer.Add(system_info_pnl.sys_network_name, 0, wx.LEFT, 30)
+        wifi_area_sizer = wx.BoxSizer(wx.VERTICAL)
+        wifi_area_sizer.Add(network_l, 0, wx.ALL, 0)
+        saved_wifi_sizer = wx.BoxSizer(wx.VERTICAL)
+        saved_wifi_sizer.Add(saved_wifi_l, 0, wx.ALL, 5)
+        saved_wifi_sizer.Add(system_info_pnl.wifi_list, 0, wx.LEFT, 30)
+        found_wifi_sizer = wx.BoxSizer(wx.VERTICAL)
+        found_wifi_sizer.Add(found_wifi_l, 0, wx.ALL, 5)
+        found_wifi_sizer.Add(system_info_pnl.available_wifi_list, 0, wx.LEFT, 30)
+        wifi_panels_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        wifi_panels_sizer.Add(saved_wifi_sizer, 0, wx.ALL, 20)
+        wifi_panels_sizer.Add(found_wifi_sizer, 0, wx.ALL, 20)
+        wifi_area_sizer.Add(current_network_sizer, 0, wx.LEFT, 30)
+        wifi_area_sizer.Add(wifi_panels_sizer, 0, wx.ALL, 0)
+
+
         main_sizer = wx.BoxSizer(wx.VERTICAL)
         main_sizer.Add(title_sizer, 0, wx.ALIGN_CENTER_HORIZONTAL, 0)
-        main_sizer.Add(self.background, 0, wx.ALL, 0)
+        main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
+        main_sizer.Add(panel_area_sizer, 0, wx.ALL, 3)
+        main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
+        main_sizer.Add(wifi_area_sizer, 0, wx.ALL, 7)
         self.SetSizer(main_sizer)
 
 
@@ -4024,11 +4149,6 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
         self.SetSizer(self.main_sizer)
         self.SetupScrolling()
 
-
-
-
-
-
 class graphing_ctrl_pnl(wx.Panel):
     def __init__( self, parent ):
         wx.Panel.__init__ (self, parent, id=wx.ID_ANY, style=wx.TAB_TRAVERSAL)
@@ -4933,6 +5053,55 @@ class camconf_ctrl_pnl(wx.Panel):
 #
 #
 #
+##  Timelapse Maker Control Panel
+#
+#
+#
+
+class timelapse_info_pnl(wx.Panel):
+    def __init__( self, parent ):
+        win_height = gui_set.height_of_window
+        win_width = gui_set.width_of_window
+        w_space_left = win_width - 285
+        wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, size = wx.Size(w_space_left , win_height-20), style = wx.TAB_TRAVERSAL )
+        # Tab Title
+        title_font = wx.Font(28, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
+        sub_title_font = wx.Font(15, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
+        title_l = wx.StaticText(self,  label='Timelapse Control Panel', size=(500,40))
+        title_l.SetFont(title_font)
+        page_sub_title =  wx.StaticText(self,  label='Making timelapse videos using files downloaded from the pigrow', size=(700,30))
+        page_sub_title.SetFont(sub_title_font)
+        # placing the information boxes
+        # sizers
+        main_sizer = wx.BoxSizer(wx.VERTICAL)
+        main_sizer.Add(title_l, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
+        main_sizer.Add(page_sub_title, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
+        #main_sizer.Add(, 1, wx.ALL|wx.EXPAND, 3)
+        self.SetSizer(main_sizer)
+
+class timelapse_ctrl_pnl(wx.Panel):
+    def __init__(self, parent):
+        wx.Panel.__init__ (self, parent, id=wx.ID_ANY, style=wx.TAB_TRAVERSAL)
+        self.SetBackgroundColour('sea green') #TESTING ONLY REMOVE WHEN SIZING IS DONE AND ALL THAT BUSINESS
+        quick_capture_l = wx.StaticText(self,  label='Quick Capture')
+        self.capture_start_btn = wx.Button(self, label='Start capture')
+        self.capture_start_btn.Bind(wx.EVT_BUTTON, self.start_capture_click)
+
+        # Sizers
+        main_sizer =  wx.BoxSizer(wx.VERTICAL)
+        main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(quick_capture_l, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.Add(self.capture_start_btn, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
+        main_sizer.AddStretchSpacer(1)
+        self.SetSizer(main_sizer)
+
+    def start_capture_click(self, e):
+        print("Doesn't do anything yet!")
+
+#
+#
+#
 ##  Additional Sensor Tab
 #
 #
@@ -5646,7 +5815,7 @@ class view_pnl(wx.Panel):
         self.SetBackgroundColour((230,200,170)) #TESTING ONLY REMOVE WHEN SIZING IS DONE AND ALL THAT BUSINESS
         #view_opts = ['System Config', 'Pigrow Setup', 'Camera Config', 'Cron Timing', 'multi-script', 'Local Files', 'Timelapse', 'Graphs', 'Live View', 'pieye watcher']
         #Showing only completed tabs
-        view_opts = ['System Config', 'Pigrow Setup', 'Camera Config', 'Cron Timing', 'Local Files', 'Graphs', 'Sensors']
+        view_opts = ['System Config', 'Pigrow Setup', 'Camera Config', 'Cron Timing', 'Local Files', 'Timelapse', 'Graphs', 'Sensors']
         self.view_cb = wx.ComboBox(self, choices = view_opts)
         self.view_cb.Bind(wx.EVT_COMBOBOX, self.view_combo_go)
         # sizer
@@ -5670,6 +5839,8 @@ class view_pnl(wx.Panel):
         MainApp.graphing_info_pannel.Hide()
         MainApp.camconf_ctrl_pannel.Hide()
         MainApp.camconf_info_pannel.Hide()
+        MainApp.timelapse_info_pannel.Hide()
+        MainApp.timelapse_ctrl_pannel.Hide()
         MainApp.sensors_info_pannel.Hide()
         MainApp.sensors_ctrl_pannel.Hide()
         #show whichever pannels correlate to the option selected
@@ -5691,7 +5862,8 @@ class view_pnl(wx.Panel):
             MainApp.localfiles_ctrl_pannel.Show()
             MainApp.localfiles_info_pannel.Show()
         elif display == 'Timelapse':
-            print("changing window display like i'm Mr Polly on crack")
+            MainApp.timelapse_info_pannel.Show()
+            MainApp.timelapse_ctrl_pannel.Show()
         elif display == 'Graphs':
             MainApp.graphing_ctrl_pannel.Show()
             MainApp.graphing_info_pannel.Show()
@@ -5823,6 +5995,8 @@ class MainFrame ( wx.Frame ):
         MainApp.graphing_info_pannel = graphing_info_pnl(self)
         MainApp.camconf_ctrl_pannel = camconf_ctrl_pnl(self)
         MainApp.camconf_info_pannel = camconf_info_pnl(self)
+        MainApp.timelapse_info_pannel = timelapse_info_pnl(self)
+        MainApp.timelapse_ctrl_pannel = timelapse_ctrl_pnl(self)
         MainApp.sensors_info_pannel = sensors_info_pnl(self)
         MainApp.sensors_ctrl_pannel = sensors_ctrl_pnl(self)
         #hide all except the welcome pannel
@@ -5838,6 +6012,8 @@ class MainFrame ( wx.Frame ):
         MainApp.graphing_info_pannel.Hide()
         MainApp.camconf_ctrl_pannel.Hide()
         MainApp.camconf_info_pannel.Hide()
+        MainApp.timelapse_info_pannel.Hide()
+        MainApp.timelapse_ctrl_pannel.Hide()
         MainApp.sensors_info_pannel.Hide()
         MainApp.sensors_ctrl_pannel.Hide()
         MainApp.status.write_bar("ready...")
@@ -5852,6 +6028,7 @@ class MainFrame ( wx.Frame ):
         MainApp.side_bar_sizer.Add(MainApp.localfiles_ctrl_pannel, 0, wx.EXPAND)
         MainApp.side_bar_sizer.Add(MainApp.graphing_ctrl_pannel, 0, wx.EXPAND)
         MainApp.side_bar_sizer.Add(MainApp.camconf_ctrl_pannel, 0, wx.EXPAND)
+        MainApp.side_bar_sizer.Add(MainApp.timelapse_ctrl_pannel, 0, wx.EXPAND)
         MainApp.side_bar_sizer.Add(MainApp.sensors_ctrl_pannel, 0, wx.EXPAND)
         # main AREA
         main_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -5863,6 +6040,7 @@ class MainFrame ( wx.Frame ):
         main_sizer.Add(MainApp.localfiles_info_pannel, 0)
         main_sizer.Add(MainApp.graphing_info_pannel, 0)
         main_sizer.Add(MainApp.camconf_info_pannel, 0)
+        main_sizer.Add(MainApp.timelapse_info_pannel, 0)
         main_sizer.Add(MainApp.sensors_info_pannel, 0)
         MainApp.window_sizer = wx.BoxSizer(wx.VERTICAL)
         MainApp.window_sizer.Add(main_sizer, 0)
@@ -5870,9 +6048,7 @@ class MainFrame ( wx.Frame ):
         MainApp.window_sizer.Fit(self)
         self.SetSizer(MainApp.window_sizer)
         MainApp.window_self = self
-
-
-
+        # setup the window layout
         self.SetSizeHints( wx.DefaultSize, wx.DefaultSize )
         self.Layout()
         self.Centre( wx.BOTH )
