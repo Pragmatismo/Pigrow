@@ -5072,31 +5072,101 @@ class timelapse_info_pnl(wx.Panel):
         page_sub_title =  wx.StaticText(self,  label='Making timelapse videos using files downloaded from the pigrow', size=(700,30))
         page_sub_title.SetFont(sub_title_font)
         # placing the information boxes
+        blank_img = wx.EmptyBitmap(400, 400)
+        self.first_img_l = wx.StaticText(self,  label='-first image- (date)')
+        self.first_image = wx.StaticBitmap(self, -1, blank_img, size=(400, 400))
+        first_prev_btn = wx.Button(self, label='<')
+        self.first_frame_no = wx.TextCtrl(self, size=(75, 25))
+        first_next_start_btn = wx.Button(self, label='>')
+        self.last_img_l = wx.StaticText(self,  label='-last image- (date)')
+        self.last_image = wx.StaticBitmap(self, -1, blank_img, size=(400, 400))
+        last_prev_btn = wx.Button(self, label='<')
+        self.last_frame_no = wx.TextCtrl(self, size=(75, 25))
+        last_next_start_btn = wx.Button(self, label='>')
         # sizers
+        first_img_buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        first_img_buttons_sizer.Add(first_prev_btn, 0, wx.ALL, 2)
+        first_img_buttons_sizer.Add(self.first_frame_no, 0, wx.ALL, 2)
+        first_img_buttons_sizer.Add(first_next_start_btn, 0, wx.ALL, 2)
+        first_img_sizer = wx.BoxSizer(wx.VERTICAL)
+        first_img_sizer.Add(self.first_img_l, 0, wx.ALIGN_CENTER_HORIZONTAL, 0)
+        first_img_sizer.Add(self.first_image, 0, wx.ALIGN_CENTER_HORIZONTAL, 0)
+        first_img_sizer.Add(first_img_buttons_sizer, 0, wx.ALIGN_CENTER_HORIZONTAL, 0)
+        last_img_buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        last_img_buttons_sizer.Add(last_prev_btn, 0, wx.ALL, 2)
+        last_img_buttons_sizer.Add(self.last_frame_no, 0, wx.ALL, 2)
+        last_img_buttons_sizer.Add(last_next_start_btn, 0, wx.ALL, 2)
+        last_img_sizer = wx.BoxSizer(wx.VERTICAL)
+        last_img_sizer.Add(self.last_img_l, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
+        last_img_sizer.Add(self.last_image, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
+        last_img_sizer.Add(last_img_buttons_sizer, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
+        img_panels_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        img_panels_sizer.Add(first_img_sizer, 0, wx.ALL, 5)
+        img_panels_sizer.Add(last_img_sizer, 0, wx.ALL, 5)
         main_sizer = wx.BoxSizer(wx.VERTICAL)
         main_sizer.Add(title_l, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
         main_sizer.Add(page_sub_title, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
-        #main_sizer.Add(, 1, wx.ALL|wx.EXPAND, 3)
+        main_sizer.Add(img_panels_sizer, 0, wx.ALL, 3)
         self.SetSizer(main_sizer)
 
 class timelapse_ctrl_pnl(wx.Panel):
     def __init__(self, parent):
         wx.Panel.__init__ (self, parent, id=wx.ID_ANY, style=wx.TAB_TRAVERSAL)
-        self.SetBackgroundColour('sea green') #TESTING ONLY REMOVE WHEN SIZING IS DONE AND ALL THAT BUSINESS
+        # Capture controlls
         quick_capture_l = wx.StaticText(self,  label='Quick Capture')
-        self.capture_start_btn = wx.Button(self, label='Start capture')
-        self.capture_start_btn.Bind(wx.EVT_BUTTON, self.start_capture_click)
+        capture_start_btn = wx.Button(self, label='Start capture')
+        capture_start_btn.Bind(wx.EVT_BUTTON, self.start_capture_click)
+        # path options
+        path_l = wx.StaticText(self,  label='Path')
+        open_caps_folder_btn = wx.Button(self, label='Open Caps Folder')
+        open_caps_folder_btn.Bind(wx.EVT_BUTTON, self.open_caps_folder_click)
+        outfile_l = wx.StaticText(self,  label='Outfile')
+        out_file_tc = wx.TextCtrl(self)
+        # render controlls
+        render_l = wx.StaticText(self,  label='Render')
+        make_timelapse_btn = wx.Button(self, label='Make Timelapse')
+        make_timelapse_btn.Bind(wx.EVT_BUTTON, self.make_timelapse_click)
+        play_timelapse_btn = wx.Button(self, label='Play')
+        play_timelapse_btn.Bind(wx.EVT_BUTTON, self.play_timelapse_click)
 
         # Sizers
+        capture_bar_sizer =  wx.BoxSizer(wx.VERTICAL)
+        capture_bar_sizer.Add(quick_capture_l, 0, wx.ALL|wx.EXPAND, 3)
+        capture_bar_sizer.Add(capture_start_btn, 0, wx.ALL|wx.EXPAND, 3)
+        file_name_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        file_name_sizer.Add(outfile_l, 0, wx.ALL, 3)
+        file_name_sizer.Add(out_file_tc, 1, wx.ALL|wx.EXPAND, 3)
+        file_bar_sizer =  wx.BoxSizer(wx.VERTICAL)
+        file_bar_sizer.Add(path_l, 0, wx.ALL|wx.EXPAND, 3)
+        file_bar_sizer.Add(open_caps_folder_btn, 0, wx.ALL|wx.EXPAND, 3)
+        file_bar_sizer.Add(file_name_sizer, 0, wx.ALL|wx.EXPAND, 3)
+        render_buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        render_buttons_sizer.Add(make_timelapse_btn, 0, wx.ALL|wx.EXPAND, 3)
+        render_buttons_sizer.Add(play_timelapse_btn, 0, wx.ALL|wx.EXPAND, 3)
+        render_bar_sizer =  wx.BoxSizer(wx.VERTICAL)
+        render_bar_sizer.Add(render_l, 0, wx.ALL|wx.EXPAND, 3)
+        render_bar_sizer.Add(render_buttons_sizer, 0, wx.ALL|wx.EXPAND, 3)
+
         main_sizer =  wx.BoxSizer(wx.VERTICAL)
         main_sizer.AddStretchSpacer(1)
-        main_sizer.Add(quick_capture_l, 0, wx.ALL|wx.EXPAND, 3)
-        main_sizer.Add(self.capture_start_btn, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.Add(capture_bar_sizer, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.Add(file_bar_sizer, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.Add(render_bar_sizer, 0, wx.ALL|wx.EXPAND, 3)
         main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.AddStretchSpacer(1)
+
         self.SetSizer(main_sizer)
 
     def start_capture_click(self, e):
+        print("Doesn't do anything yet!")
+
+    def make_timelapse_click(self, e):
+        print("Doesn't do anything yet!")
+
+    def open_caps_folder_click(self, e):
+        print("Doesn't do anything yet!")
+
+    def play_timelapse_click(self, e):
         print("Doesn't do anything yet!")
 
 #
