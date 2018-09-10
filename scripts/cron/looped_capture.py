@@ -2,6 +2,8 @@
 import os
 import sys
 import time
+homedir = os.getenv("HOME")
+camcap_path = os.path.join(homedir, "Pigrow/scripts/cron/camcap.py")
 
 cappath = ""
 delay = 0
@@ -37,10 +39,10 @@ if not cappath == "":
         os.mkdir(cappath)
         print("created " + cappath)
     print("Using camcap.py default caps folder")
-    cmd = "./camcap.py caps=" + cappath
+    cmd = camcap_path + " caps=" + cappath
 else:
     print("Saving to " + cappath)
-    cmd = "./camcap.py"
+    cmd = camcap_path
 
 while True:
     os.system(cmd)
