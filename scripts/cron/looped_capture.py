@@ -32,10 +32,10 @@ for argu in sys.argv[1:]:
         elif thearg == 'delay':
             logpath = int(argu).split('=')[1]
 
-if not cappath = "":
+if not cappath == "":
     if not os.path.isdir(cappath):
         os.mkdir(cappath)
-        print("created " + cappath)       
+        print("created " + cappath)
     print("Using camcap.py default caps folder")
     cmd = "./camcap.py"
 else:
