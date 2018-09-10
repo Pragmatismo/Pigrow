@@ -37,10 +37,10 @@ if not cappath == "":
         os.mkdir(cappath)
         print("created " + cappath)
     print("Using camcap.py default caps folder")
-    cmd = "./camcap.py"
+    cmd = "./camcap.py caps=" + cappath
 else:
     print("Saving to " + cappath)
-    cmd = "./camcap.py caps=" + cappath
+    cmd = "./camcap.py"
 
 while True:
     os.system(cmd)
