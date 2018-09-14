@@ -141,9 +141,9 @@ def heater_control(temp):
     print(" ~ ~ ~ heater controll function started ~ ~ ~")
     print("temp = " + str(temp))
     print(" templow = " + str(templow))
-    print(" temphigh = " + str(temphigh))
-    print("Use Fans = " + str(use_fans))
-    print("heater state = " + str(heater_state))
+#    print(" temphigh = " + str(temphigh))
+#    print("Use Fans = " + str(use_fans))
+#    print("heater state = " + str(heater_state))
     # if too cool
     if temp < templow and heater_state != 'on':
         message = "It's cold,  temp is" + str(temp) + " degrees! the low limit is " + str(templow) + " so turning heater on."
