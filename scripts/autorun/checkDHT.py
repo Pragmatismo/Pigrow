@@ -139,9 +139,9 @@ def heater_control(temp):
     templow  = float(set_dic['heater_templow'])
     temphigh = float(set_dic['heater_templow'])  ## using templow here is not a mistake, plan is to add buffer zones or some something
     print(" ~ ~ ~ heater controll function started ~ ~ ~")
-    print("temp = " + temp)
-    print(" templow = " + templow)
-    print(" temphigh = " + temphigh)
+    print("temp = " + str(temp))
+    print(" templow = " + str(templow))
+    print(" temphigh = " + str(temphigh))
     print("Use Fans = " + str(use_fans))
     print("heater state = " + str(heater_state))
     # if too cool
