@@ -832,7 +832,6 @@ class system_info_pnl(wx.Panel):
         main_sizer.Add(wifi_area_sizer, 0, wx.ALL, 7)
         self.SetSizer(main_sizer)
 
-
 class upgrade_pigrow_dialog(wx.Dialog):
     #Dialog box for installing pigrow software on a raspberry pi remotely
     def __init__(self, *args, **kw):
@@ -1774,6 +1773,7 @@ class config_info_pnl(scrolled.ScrolledPanel):
         self.relay_l.SetFont(font)
         config_info_pnl.gpio_table = self.GPIO_list(self, 1)
         config_info_pnl.gpio_table.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.onDoubleClick_GPIO)
+        config_info_pnl.gpio_table.Bind(wx.EVT_LIST_KEY_DOWN, self.del_gpio_item)
         gpio_pin_image = wx.Image('./pi_zero.png', wx.BITMAP_TYPE_ANY).ConvertToBitmap()
         gpio_diagram = wx.StaticBitmap(self, -1, gpio_pin_image, (gpio_pin_image.GetWidth(), gpio_pin_image.GetHeight()))
         info_sizer = wx.BoxSizer(wx.VERTICAL)
@@ -1809,6 +1809,16 @@ class config_info_pnl(scrolled.ScrolledPanel):
         main_sizer.Add(info_panel_sizer, 0, wx.ALL|wx.EXPAND, 3)
         self.SetSizer(main_sizer)
         self.SetupScrolling()
+
+    def del_gpio_item(self, e):
+        keycode = e.GetKeyCode()
+        if keycode == wx.WXK_DELETE:
+                mbox = wx.MessageDialog(None, "Delete selected device?", "Are you sure?", wx.YES_NO|wx.ICON_QUESTION)
+                sure = mbox.ShowModal()
+                if sure == wx.ID_YES:
+                    config_info_pnl.gpio_table.DeleteItem(config_info_pnl.gpio_table.GetFocusedItem())
+                    MainApp.config_ctrl_pannel.update_setting_click("e")
+                    #MainApp.config_ctrl_pannel.update_config_click("e")
 
 
     class GPIO_list(wx.ListCtrl):
@@ -1902,8 +1912,6 @@ class config_lamp_dialog(wx.Dialog):
         wx.StaticText(self,  label="off;", pos=(20, 340))
         self.cron_lamp_on = wx.StaticText(self,  label=lamp_on_string, pos=(60, 310))
         self.cron_lamp_off = wx.StaticText(self,  label=lamp_off_string, pos=(60, 340))
-
-
         new_on_string = (str(on_min) + " " + str(on_hour) + " * * *")
         new_off_string = (str(off_min) + " " + str(off_hour) + " * * *")
         self.new_on_string_text = wx.StaticText(self,  label=new_on_string, pos=(220, 310))
@@ -1995,9 +2003,7 @@ class config_lamp_dialog(wx.Dialog):
                     wx.MessageBox('Cron update error, edit lamp switches in the cron pannel', 'Info', wx.OK | wx.ICON_INFORMATION)
                 else:
                     MainApp.cron_info_pannel.update_cron_click("e")
-
         # check for changes to settings file
-
         time_lamp_on = str(self.on_hour_spin.GetValue()) + ":" + str(self.on_min_spin.GetValue())
         time_lamp_off = str(self.off_hour_spin.GetValue()) + ":" + str(self.off_min_spin.GetValue())
         if not MainApp.config_ctrl_pannel.config_dict["time_lamp_on"] == time_lamp_on or not MainApp.config_ctrl_pannel.config_dict["time_lamp_off"] == time_lamp_off:
