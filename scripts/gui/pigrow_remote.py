@@ -1260,9 +1260,9 @@ class config_ctrl_pnl(wx.Panel):
         self.new_gpio_btn = wx.Button(self, label='Add new relay device')
         self.new_gpio_btn.Bind(wx.EVT_BUTTON, self.add_new_device_relay)
         self.update_config_btn = wx.Button(self, label='read config from pigrow')
-        self.update_config_btn.Bind(wx.EVT_BUTTON, self.update_config_click)
+        self.update_config_btn.Bind(wx.EVT_BUTTON, self.update_pigrow_setup_pannel_information_click)
         self.update_settings_btn = wx.Button(self, label='update pigrow settings')
-        self.update_settings_btn.Bind(wx.EVT_BUTTON, self.update_setting_click)
+        self.update_settings_btn.Bind(wx.EVT_BUTTON, self.update_setting_file_on_pi_click)
         #sizers
         self.main_sizer =  wx.BoxSizer(wx.VERTICAL)
         self.main_sizer.AddStretchSpacer(1)
@@ -1292,11 +1292,11 @@ class config_ctrl_pnl(wx.Panel):
             MainApp.config_ctrl_pannel.config_dict["box_name"] = box_name
             pi_link_pnl.boxname = box_name  #to maintain persistance if needed elsewhere later
             MainApp.pi_link_pnl.link_status_text.SetLabel("linked with - " + box_name)
-            self.update_setting_click("e")
+            self.update_setting_file_on_pi_click("e")
         else:
             print("no change")
 
-    def update_config_click(self, e):
+    def update_pigrow_setup_pannel_information_click(self, e):
         print("reading pigrow and updating local config info")
         # clear dictionaries and tables
         self.dirlocs_dict = {}
@@ -1464,10 +1464,7 @@ class config_ctrl_pnl(wx.Panel):
                     lamp_msg += "Warning - lamp switching more than once a day"
             else:
                 lamp_msg += "Warning - cron switching not configured"
-
-
                 #on_cron_converted = []
-
         else:
             lamp_msg += "no lamp linked to gpio, ignoring lamp timing settings"
      #heater on and off temps
@@ -1643,7 +1640,6 @@ class config_ctrl_pnl(wx.Panel):
     def config_dht_click(self, e):
         dht_dbox = edit_dht_dialog(None, title='Config DHT')
         dht_dbox.ShowModal()
-        self.update_setting_click("e")
 
     def add_new_device_relay(self, e):
         #define as blank
@@ -1661,6 +1657,9 @@ class config_ctrl_pnl(wx.Panel):
             #update config file
             print((device, gpio, wiring))
             config_ctrl_pnl.add_to_GPIO_list(MainApp.config_ctrl_pannel, device, gpio, wiring, currently='UNLINKED')
+            MainApp.config_ctrl_pannel.update_setting_file_on_pi_click("e")
+            MainApp.config_ctrl_pannel.update_pigrow_setup_pannel_information_click("e")
+
         else:
             print ("cancelled")
 
@@ -1698,7 +1697,7 @@ class config_ctrl_pnl(wx.Panel):
         config_info_pnl.gpio_table.SetItem(0, 3, str(currently))
         config_info_pnl.gpio_table.SetItem(0, 4, str(info))
 
-    def update_setting_click(self, e):
+    def update_setting_file_on_pi_click(self, e):
         #create updated settings file
         #
         #creating GPIO config block
@@ -1735,7 +1734,7 @@ class config_ctrl_pnl(wx.Panel):
             f = sftp.open(folder + '/pigrow_config.txt', 'w')
             f.write(config_text)
             f.close()
-            self.update_config_click("e")
+            self.update_pigrow_setup_pannel_information_click("e")
 
 class config_info_pnl(scrolled.ScrolledPanel):
     #  This displays the config info
@@ -1817,8 +1816,8 @@ class config_info_pnl(scrolled.ScrolledPanel):
                 sure = mbox.ShowModal()
                 if sure == wx.ID_YES:
                     config_info_pnl.gpio_table.DeleteItem(config_info_pnl.gpio_table.GetFocusedItem())
-                    MainApp.config_ctrl_pannel.update_setting_click("e")
-                    #MainApp.config_ctrl_pannel.update_config_click("e")
+                    MainApp.config_ctrl_pannel.update_setting_file_on_pi_click("e")
+                    #MainApp.config_ctrl_pannel.update_pigrow_setup_pannel_information_click("e")
 
 
     class GPIO_list(wx.ListCtrl):
@@ -2009,8 +2008,8 @@ class config_lamp_dialog(wx.Dialog):
         if not MainApp.config_ctrl_pannel.config_dict["time_lamp_on"] == time_lamp_on or not MainApp.config_ctrl_pannel.config_dict["time_lamp_off"] == time_lamp_off:
             MainApp.config_ctrl_pannel.config_dict["time_lamp_on"] = time_lamp_on
             MainApp.config_ctrl_pannel.config_dict["time_lamp_off"] = time_lamp_off
-            MainApp.config_ctrl_pannel.update_setting_click("e")
-            MainApp.config_ctrl_pannel.update_config_click("e")
+            MainApp.config_ctrl_pannel.update_setting_file_on_pi_click("e")
+            MainApp.config_ctrl_pannel.update_pigrow_setup_pannel_information_click("e")
         self.Destroy()
 
     def change_cron_trigger(self, script, new_time):
@@ -2440,6 +2439,7 @@ class edit_dht_dialog(wx.Dialog):
             cron_list_pnl.startup_cron.SetStringItem(index, 4, str(extra_args))
             changes_made += "\n -- Update Cron to save changes --"
 
+
         #
         # changing settings ready for updating config file
         #
@@ -2475,7 +2475,7 @@ class edit_dht_dialog(wx.Dialog):
             #
             # edit dht message text
             MainApp.config_info_pannel.dht_text.SetLabel("changes have been made update pigrow config to use them\n" + changes_made)
-
+            MainApp.config_ctrl_pannel.update_setting_file_on_pi_click("e")
         self.Destroy()
 
     def cancel_click(self, e):
@@ -5622,7 +5622,7 @@ class chirp_dialog(wx.Dialog):
             MainApp.config_ctrl_pannel.config_dict["sensor_" + o_name + "_loc"] = o_loc
             MainApp.config_ctrl_pannel.config_dict["sensor_" + o_name + "_extra"] = o_extra
             print(MainApp.config_ctrl_pannel.config_dict)
-            MainApp.config_ctrl_pannel.update_setting_click('e')
+            MainApp.config_ctrl_pannel.update_setting_file_on_pi_click('e')
         self.Destroy()
 
     def OnClose(self, e):
@@ -5849,7 +5849,7 @@ class pi_link_pnl(wx.Panel):
             self.seek_for_pigrows_btn.Disable()
             cron_info_pnl.read_cron_click(MainApp.cron_info_pannel, "event")
             system_ctrl_pnl.read_system_click(MainApp.system_ctrl_pannel, "event")
-            config_ctrl_pnl.update_config_click(MainApp.config_ctrl_pannel, "event")
+            config_ctrl_pnl.update_pigrow_setup_pannel_information_click(MainApp.config_ctrl_pannel, "event")
             localfiles_ctrl_pnl.update_local_filelist_click(MainApp.localfiles_ctrl_pannel, "event")
 
         elif log_on_test == False:
