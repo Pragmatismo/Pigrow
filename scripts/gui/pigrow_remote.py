@@ -5148,8 +5148,14 @@ class timelapse_ctrl_pnl(wx.Panel):
         path_l = wx.StaticText(self,  label='Path')
         open_caps_folder_btn = wx.Button(self, label='Open Caps Folder')
         open_caps_folder_btn.Bind(wx.EVT_BUTTON, self.open_caps_folder_click)
+        select_set_btn = wx.Button(self, label='Select Caps Set')
+        select_set_btn.Bind(wx.EVT_BUTTON, self.select_new_caps_set_click)
+        select_folder_btn = wx.Button(self, label='Select Caps Folder')
+        select_folder_btn.Bind(wx.EVT_BUTTON, self.select_new_caps_folder_click)
         outfile_l = wx.StaticText(self,  label='Outfile')
-        out_file_tc = wx.TextCtrl(self)
+        self.out_file_tc = wx.TextCtrl(self)
+        set_outfile_btn = wx.Button(self, label='...', size=(30,30))
+        set_outfile_btn.Bind(wx.EVT_BUTTON, self.set_outfile_click)
         # render controlls
         render_l = wx.StaticText(self,  label='Render')
         make_timelapse_btn = wx.Button(self, label='Make Timelapse')
@@ -5163,10 +5169,15 @@ class timelapse_ctrl_pnl(wx.Panel):
         capture_bar_sizer.Add(capture_start_btn, 0, wx.ALL|wx.EXPAND, 3)
         file_name_sizer = wx.BoxSizer(wx.HORIZONTAL)
         file_name_sizer.Add(outfile_l, 0, wx.ALL, 3)
-        file_name_sizer.Add(out_file_tc, 1, wx.ALL|wx.EXPAND, 3)
+        file_name_sizer.Add(self.out_file_tc, 1, wx.ALL|wx.EXPAND, 3)
+        file_name_sizer.Add(set_outfile_btn, 0, wx.ALL, 0)
+        file_bar_select_butt_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        file_bar_select_butt_sizer.Add(select_set_btn, 0, wx.ALL|wx.EXPAND, 3)
+        file_bar_select_butt_sizer.Add(select_folder_btn, 0, wx.ALL|wx.EXPAND, 3)
         file_bar_sizer =  wx.BoxSizer(wx.VERTICAL)
         file_bar_sizer.Add(path_l, 0, wx.ALL|wx.EXPAND, 3)
         file_bar_sizer.Add(open_caps_folder_btn, 0, wx.ALL|wx.EXPAND, 3)
+        file_bar_sizer.Add(file_bar_select_butt_sizer, 0, wx.ALL|wx.EXPAND, 3)
         file_bar_sizer.Add(file_name_sizer, 0, wx.ALL|wx.EXPAND, 3)
         render_buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
         render_buttons_sizer.Add(make_timelapse_btn, 0, wx.ALL|wx.EXPAND, 3)
@@ -5191,17 +5202,64 @@ class timelapse_ctrl_pnl(wx.Panel):
     def make_timelapse_click(self, e):
         print("Doesn't do anything yet!")
 
+    def select_new_caps_set_click(self, e):
+        new_cap_path = self.select_folder()
+        # find file info and call open caps folder
+        cap_dir = os.path.split(new_cap_path)
+        cap_set  = cap_dir[1].split("_")[0]  # Used to select set if more than one are present
+        cap_type = cap_dir[1].split('.')[1]
+        cap_dir = cap_dir[0]
+        print(" Selected " + cap_dir + " with capset; " + cap_set + " filetype; " + cap_type)
+        self.open_caps_folder(cap_dir, cap_type, cap_set)
+
+    def select_new_caps_folder_click(self, e):
+        new_cap_path = self.select_folder()
+        # find file info and call open caps folder
+        cap_dir = os.path.split(new_cap_path)
+        cap_type = cap_dir[1].split('.')[1]
+        cap_dir = cap_dir[0]
+        print(" Selected " + cap_dir + " filetype; " + cap_type)
+        self.open_caps_folder(cap_dir, cap_type, cap_set=None)
+
+    def select_folder(self):
+        openFileDialog = wx.FileDialog(self, "Select caps folder", "", "", "JPG files (*.jpg)|*.jpg", wx.FD_OPEN | wx.FD_FILE_MUST_EXIST)
+        openFileDialog.SetMessage("Select an image from the caps folder you want to import")
+        if openFileDialog.ShowModal() == wx.ID_CANCEL:
+            return 'none'
+        new_cap_path = openFileDialog.GetPath()
+        return new_cap_path
+
+    def set_outfile_click(self, e):
+        outfile = self.select_outfile()
+        self.out_file_tc.SetValue(outfile)
+
+    def select_outfile(self):
+        openFileDialog = wx.FileDialog(self, "Select output file", "", "", "AVI files (*.avi)|*.avi", wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT)
+        openFileDialog.SetMessage("Select an image from the caps folder you want to import")
+        if openFileDialog.ShowModal() == wx.ID_CANCEL:
+            return 'none'
+        outfile = openFileDialog.GetPath()
+        return outfile
+
     def open_caps_folder_click(self, e):
         # opens the caps folder being used in local files tab and finds all images
-        capsdir = os.path.join(localfiles_info_pnl.local_path, localfiles_info_pnl.caps_folder)
+        cap_dir = os.path.join(localfiles_info_pnl.local_path, localfiles_info_pnl.caps_folder)
         cap_type = "jpg"
+        self.open_caps_folder(cap_dir, cap_type)
+
+    def open_caps_folder(self, cap_dir, cap_type="jpg", cap_set=None):
         self.cap_file_paths = []
         motion_files = []
-        for filefound in os.listdir(capsdir):
+        for filefound in os.listdir(cap_dir):
             if filefound.endswith(cap_type):
-                file_path = os.path.join(capsdir, filefound)
-                self.cap_file_paths.append(file_path)
+                file_path = os.path.join(cap_dir, filefound)
+                if not cap_set == None:
+                    if filefound.split("_")[0] == cap_set:
+                        self.cap_file_paths.append(file_path)
+                else: #when using all images in the folder regardless of the set
+                    self.cap_file_paths.append(file_path)
         self.cap_file_paths.sort()
+        # fill the infomation boxes
         MainApp.timelapse_info_pannel.images_found_info.SetLabel(str(len(self.cap_file_paths)))
         # set first and last images
         try:
@@ -5209,7 +5267,7 @@ class timelapse_ctrl_pnl(wx.Panel):
             first = first.Scale(400, 400, wx.IMAGE_QUALITY_HIGH)
             first = first.ConvertToBitmap()
             MainApp.timelapse_info_pannel.first_image.SetBitmap(first)
-            MainApp.timelapse_info_pannel.first_frame_no.SetValue("0")
+            MainApp.timelapse_info_pannel.first_frame_no.SetValue("1")
             MainApp.timelapse_info_pannel.first_img_l.SetLabel(self.cap_file_paths[0].split("/")[-1] + str(" (add date here)"))
         except:
             print("!! First image in local caps folder didn't work for timelapse tab.")
@@ -5222,8 +5280,6 @@ class timelapse_ctrl_pnl(wx.Panel):
             MainApp.timelapse_info_pannel.last_img_l.SetLabel(self.cap_file_paths[-1].split("/")[-1] + str(" (add date here)"))
         except:
             print("!! Last image in local caps folder didn't work for timelapse tab.")
-
-        #print(self.cap_file_paths)
 
 
     def play_timelapse_click(self, e):
