@@ -5082,8 +5082,10 @@ class timelapse_info_pnl(wx.Panel):
         self.first_img_l = wx.StaticText(self,  label='-first image- (date)')
         self.first_image = wx.StaticBitmap(self, -1, blank_img, size=(400, 400))
         first_prev_btn = wx.Button(self, label='<')
+        first_prev_btn.Bind(wx.EVT_BUTTON, self.first_prev_click)
         self.first_frame_no = wx.TextCtrl(self, size=(75, 25), style=wx.TE_CENTRE)
-        first_next_start_btn = wx.Button(self, label='>')
+        first_next_btn = wx.Button(self, label='>')
+        first_next_btn.Bind(wx.EVT_BUTTON, self.first_next_click)
         self.last_img_l = wx.StaticText(self,  label='-last image- (date)')
         self.last_image = wx.StaticBitmap(self, -1, blank_img, size=(400, 400))
         last_prev_btn = wx.Button(self, label='<')
@@ -5101,7 +5103,7 @@ class timelapse_info_pnl(wx.Panel):
         first_img_buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
         first_img_buttons_sizer.Add(first_prev_btn, 0, wx.ALL, 2)
         first_img_buttons_sizer.Add(self.first_frame_no, 0, wx.ALL, 2)
-        first_img_buttons_sizer.Add(first_next_start_btn, 0, wx.ALL, 2)
+        first_img_buttons_sizer.Add(first_next_btn, 0, wx.ALL, 2)
         first_img_sizer = wx.BoxSizer(wx.VERTICAL)
         first_img_sizer.Add(self.first_img_l, 0, wx.ALIGN_CENTER_HORIZONTAL, 0)
         first_img_sizer.Add(self.first_image, 0, wx.ALIGN_CENTER_HORIZONTAL, 0)
@@ -5136,6 +5138,36 @@ class timelapse_info_pnl(wx.Panel):
         main_sizer.Add(lower_half_sizer, 0,  wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL, 3)
         main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
         self.SetSizer(main_sizer)
+
+    def first_prev_click(self, e):
+        frame_number = int(self.first_frame_no.GetValue()) -1
+        if frame_number < 1:
+            return None #just to break the loop
+        try:
+            first = wx.Image(MainApp.timelapse_ctrl_pannel.cap_file_paths[frame_number - 1], wx.BITMAP_TYPE_ANY)
+            first = first.Scale(400, 400, wx.IMAGE_QUALITY_HIGH)
+            first = first.ConvertToBitmap()
+            MainApp.timelapse_info_pannel.first_image.SetBitmap(first)
+            MainApp.timelapse_info_pannel.first_frame_no.SetValue(str(frame_number))
+            MainApp.timelapse_info_pannel.first_img_l.SetLabel(MainApp.timelapse_ctrl_pannel.cap_file_paths[0].split("/")[-1] + str(" (add date here)"))
+        except:
+            print("!! First image in local caps folder didn't work for timelapse tab.")
+
+
+    def first_next_click(self, e):
+                frame_number = int(self.first_frame_no.GetValue()) +1
+                if frame_number > len(MainApp.timelapse_ctrl_pannel.cap_file_paths):
+                    return None #just to break the loop
+                try:
+                    first = wx.Image(MainApp.timelapse_ctrl_pannel.cap_file_paths[frame_number -1], wx.BITMAP_TYPE_ANY)
+                    first = first.Scale(400, 400, wx.IMAGE_QUALITY_HIGH)
+                    first = first.ConvertToBitmap()
+                    MainApp.timelapse_info_pannel.first_image.SetBitmap(first)
+                    MainApp.timelapse_info_pannel.first_frame_no.SetValue(str(frame_number))
+                    MainApp.timelapse_info_pannel.first_img_l.SetLabel(MainApp.timelapse_ctrl_pannel.cap_file_paths[0].split("/")[-1] + str(" (add date here)"))
+                except:
+                    print("!! First image in local caps folder didn't work for timelapse tab.")
+                    raise
 
 class timelapse_ctrl_pnl(wx.Panel):
     def __init__(self, parent):
