@@ -4846,7 +4846,8 @@ class camconf_ctrl_pnl(wx.Panel):
         print (out, error)
         path = output.split("Saving image to:")[1].strip()
         print (path)
-        img_path = localfiles_ctrl_pnl.download_file_to_folder(MainApp.localfiles_ctrl_pannel, path, "/temp/test_settings.jpg")
+        local_temp_img_path = os.path.join("temp", "test_settings.jpg")
+        img_path = localfiles_ctrl_pnl.download_file_to_folder(MainApp.localfiles_ctrl_pannel, path, local_temp_img_path)
         #MainApp.camconf_info_pannel.picture_sizer.Clear()
         self.clear_picture_area()
         MainApp.camconf_info_pannel.picture_sizer.Add(wx.StaticText(MainApp.camconf_info_pannel,  label="Taken with settings stored on the Pigrow"), 0, wx.ALL, 2)
@@ -4886,7 +4887,8 @@ class camconf_ctrl_pnl(wx.Panel):
             if cam_opt == "fswebcam":
                 self.install_fswebcam()
         else:
-            img_path = localfiles_ctrl_pnl.download_file_to_folder(MainApp.localfiles_ctrl_pannel, remote_img_path, "/temp/test_settings.jpg")
+            local_temp_img_path = os.path.join("temp", "test_defaults.jpg")
+            img_path = localfiles_ctrl_pnl.download_file_to_folder(MainApp.localfiles_ctrl_pannel, remote_img_path, local_temp_img_path)
             self.clear_picture_area()
             MainApp.camconf_info_pannel.picture_sizer.Add(wx.StaticText(MainApp.camconf_info_pannel,  label="Image taken using local settings"), 0, wx.ALL, 2)
             MainApp.camconf_info_pannel.picture_sizer.Add(wx.StaticBitmap(MainApp.camconf_info_pannel, -1, wx.Image(img_path, wx.BITMAP_TYPE_ANY).ConvertToBitmap()), 0, wx.ALL, 2)
@@ -4943,7 +4945,8 @@ class camconf_ctrl_pnl(wx.Panel):
         #MainApp.camconf_info_pannel.Refresh()
         for photo_path in range_photo_set:
             picture_name = photo_path.split("/")[-1]
-            img_path = localfiles_ctrl_pnl.download_file_to_folder(MainApp.localfiles_ctrl_pannel, photo_path, "/temp/" + picture_name)
+            local_temp_img_path = os.path.join("temp", picture_name)
+            img_path = localfiles_ctrl_pnl.download_file_to_folder(MainApp.localfiles_ctrl_pannel, photo_path, local_temp_img_path)
             print (img_path)
             img_set.append(img_path)
             print("Adding " + img_path)
@@ -5005,7 +5008,8 @@ class camconf_ctrl_pnl(wx.Panel):
 
     def take_unset_click(self, e):
         info, remote_img_path = self.take_unset_test_image()
-        img_path = localfiles_ctrl_pnl.download_file_to_folder(MainApp.localfiles_ctrl_pannel, remote_img_path, "/temp/test_defaults.jpg")
+        local_temp_img_path = os.path.join("temp", "test_defaults.jpg")
+        img_path = localfiles_ctrl_pnl.download_file_to_folder(MainApp.localfiles_ctrl_pannel, remote_img_path, local_temp_img_path)
         self.clear_picture_area()
         MainApp.camconf_info_pannel.picture_sizer.Add(wx.StaticText(MainApp.camconf_info_pannel,  label="Picture taken using camera default"), 0, wx.ALL, 2)
         MainApp.camconf_info_pannel.picture_sizer.Add(wx.StaticBitmap(MainApp.camconf_info_pannel, -1, wx.Image(img_path, wx.BITMAP_TYPE_ANY).ConvertToBitmap()), 0, wx.ALL, 2)
