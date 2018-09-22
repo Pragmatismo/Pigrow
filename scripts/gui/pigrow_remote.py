@@ -4641,7 +4641,7 @@ class camconf_info_pnl(scrolled.ScrolledPanel):
 
 class camconf_ctrl_pnl(wx.Panel):
     def __init__( self, parent ):
-        wx.Panel.__init__ (self, parent, id=wx.ID_ANY, style=wx.TAB_TRAVERSAL)
+        wx.Panel.__init__ (self, parent, id=wx.ID_ANY, size=(100,-1), style=wx.TAB_TRAVERSAL)
         # read / save cam config button
         self.read_cam_config_btn = wx.Button(self, label='read cam config')
         self.read_cam_config_btn.Bind(wx.EVT_BUTTON, self.read_cam_config_click)
@@ -4663,11 +4663,11 @@ class camconf_ctrl_pnl(wx.Panel):
         self.webcam_cb.Bind(wx.EVT_COMBOBOX, self.webcam_combo_go)
 
         # Buttons
-        self.take_unset_btn = wx.Button(self, label='  Take\n  cam\ndefault', size=(95, 60))
+        self.take_unset_btn = wx.Button(self, label='Take using\ncam default')
         self.take_unset_btn.Bind(wx.EVT_BUTTON, self.take_unset_click)
-        self.take_set_btn = wx.Button(self, label='      Take\n      using\nlocal settings', size=(95, 60))
+        self.take_set_btn = wx.Button(self, label='Take using\nlocal settings')
         self.take_set_btn.Bind(wx.EVT_BUTTON, self.take_set_click)
-        self.take_s_set_btn = wx.Button(self, label='      Take\n      using\nsaved settings', size=(95, 60))
+        self.take_s_set_btn = wx.Button(self, label='Take using\nsaved settings')
         self.take_s_set_btn.Bind(wx.EVT_BUTTON, self.take_saved_set_click)
         # Take Range altering a single setting
         range_opts = ['brightness', 'contrast', 'saturation', 'gain', 'user']
@@ -4683,7 +4683,7 @@ class camconf_ctrl_pnl(wx.Panel):
         self.range_end_tc.SetValue("255")
         self.range_every_tc.SetValue("20")
         # take range button
-        self.take_range_btn = wx.Button(self, label='  Take\n  \nrange')
+        self.take_range_btn = wx.Button(self, label='Take\nrange', size=(50,-1))
         self.take_range_btn.Bind(wx.EVT_BUTTON, self.range_btn_click)
 
         #
@@ -4699,9 +4699,8 @@ class camconf_ctrl_pnl(wx.Panel):
         find_select_cam_sizer.Add(self.list_cams_btn, 0, wx.ALL, 0)
         find_select_cam_sizer.Add(self.cam_cb, 0, wx.ALL|wx.EXPAND, 0)
         take_single_photo_btns_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        take_single_photo_btns_sizer.Add(self.take_unset_btn, 0, wx.ALL|wx.EXPAND, 0)
-        take_single_photo_btns_sizer.Add(self.take_set_btn, 0, wx.ALL|wx.EXPAND, 0)
-        take_single_photo_btns_sizer.Add(self.take_s_set_btn, 0, wx.ALL|wx.EXPAND, 0)
+        take_single_photo_btns_sizer.Add(self.take_unset_btn, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 0)
+        take_single_photo_btns_sizer.Add(self.take_s_set_btn, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 0)
         range_options_btn_sizer = wx.GridSizer(3, 2, 0, 0)
         range_options_btn_sizer.AddMany( [(self.range_start_l, 0, wx.EXPAND),
             (self.range_start_tc, 0, wx.EXPAND),
@@ -4725,7 +4724,8 @@ class camconf_ctrl_pnl(wx.Panel):
         main_sizer.Add(self.cap_tool_l, 0, wx.ALL, 0)
         main_sizer.Add(self.webcam_cb, 0, wx.ALL|wx.EXPAND, 0)
         main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
-        main_sizer.Add(take_single_photo_btns_sizer, 0, wx.ALL|wx.EXPAND, 0)
+        main_sizer.Add(self.take_set_btn, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 0)
+        main_sizer.Add(take_single_photo_btns_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 0)
         main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.Add(range_sizer, 0, wx.ALL, 0)
         main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
@@ -5226,25 +5226,29 @@ class timelapse_info_pnl(wx.Panel):
 
 class timelapse_ctrl_pnl(wx.Panel):
     def __init__(self, parent):
-        wx.Panel.__init__ (self, parent, id=wx.ID_ANY, style=wx.TAB_TRAVERSAL)
+        wx.Panel.__init__ (self, parent, id=wx.ID_ANY, size=(150,-1), style=wx.TAB_TRAVERSAL)
+        sub_title_font = wx.Font(13, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
         # Capture controlls
-        quick_capture_l = wx.StaticText(self,  label='Quick Capture')
+        quick_capture_l = wx.StaticText(self,  label='Quick Capture',size=(100,25))
+        quick_capture_l.SetFont(sub_title_font)
         capture_start_btn = wx.Button(self, label='Start capture')
         capture_start_btn.Bind(wx.EVT_BUTTON, self.start_capture_click)
         # path options
-        path_l = wx.StaticText(self,  label='Path')
+        path_l = wx.StaticText(self,  label='Image Path',size=(100,25))
+        path_l.SetFont(sub_title_font)
         open_caps_folder_btn = wx.Button(self, label='Open Caps Folder')
         open_caps_folder_btn.Bind(wx.EVT_BUTTON, self.open_caps_folder_click)
-        select_set_btn = wx.Button(self, label='Select Caps Set')
+        select_set_btn = wx.Button(self, label='Select\nCaps Set')
         select_set_btn.Bind(wx.EVT_BUTTON, self.select_new_caps_set_click)
-        select_folder_btn = wx.Button(self, label='Select Caps Folder')
+        select_folder_btn = wx.Button(self, label='Select\nCaps Folder')
         select_folder_btn.Bind(wx.EVT_BUTTON, self.select_new_caps_folder_click)
         outfile_l = wx.StaticText(self,  label='Outfile')
         self.out_file_tc = wx.TextCtrl(self)
-        set_outfile_btn = wx.Button(self, label='...', size=(30,30))
+        set_outfile_btn = wx.Button(self, label='...', size=(27,27))
         set_outfile_btn.Bind(wx.EVT_BUTTON, self.set_outfile_click)
         # render controlls
-        render_l = wx.StaticText(self,  label='Render')
+        render_l = wx.StaticText(self,  label='Render',size=(100,25))
+        render_l.SetFont(sub_title_font)
         make_timelapse_btn = wx.Button(self, label='Make Timelapse')
         make_timelapse_btn.Bind(wx.EVT_BUTTON, self.make_timelapse_click)
         play_timelapse_btn = wx.Button(self, label='Play')
@@ -5254,10 +5258,6 @@ class timelapse_ctrl_pnl(wx.Panel):
         capture_bar_sizer =  wx.BoxSizer(wx.VERTICAL)
         capture_bar_sizer.Add(quick_capture_l, 0, wx.ALL|wx.EXPAND, 3)
         capture_bar_sizer.Add(capture_start_btn, 0, wx.ALL|wx.EXPAND, 3)
-        file_name_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        file_name_sizer.Add(outfile_l, 0, wx.ALL, 3)
-        file_name_sizer.Add(self.out_file_tc, 1, wx.ALL|wx.EXPAND, 3)
-        file_name_sizer.Add(set_outfile_btn, 0, wx.ALL, 0)
         file_bar_select_butt_sizer = wx.BoxSizer(wx.HORIZONTAL)
         file_bar_select_butt_sizer.Add(select_set_btn, 0, wx.ALL|wx.EXPAND, 3)
         file_bar_select_butt_sizer.Add(select_folder_btn, 0, wx.ALL|wx.EXPAND, 3)
@@ -5265,18 +5265,24 @@ class timelapse_ctrl_pnl(wx.Panel):
         file_bar_sizer.Add(path_l, 0, wx.ALL|wx.EXPAND, 3)
         file_bar_sizer.Add(open_caps_folder_btn, 0, wx.ALL|wx.EXPAND, 3)
         file_bar_sizer.Add(file_bar_select_butt_sizer, 0, wx.ALL|wx.EXPAND, 3)
-        file_bar_sizer.Add(file_name_sizer, 0, wx.ALL|wx.EXPAND, 3)
+        file_name_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        file_name_sizer.Add(outfile_l, 0, wx.ALL, 1)
+        file_name_sizer.Add(self.out_file_tc, 1, wx.ALL|wx.EXPAND, 1)
+        file_name_sizer.Add(set_outfile_btn, 0, wx.ALL, 0)
         render_buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
         render_buttons_sizer.Add(make_timelapse_btn, 0, wx.ALL|wx.EXPAND, 3)
         render_buttons_sizer.Add(play_timelapse_btn, 0, wx.ALL|wx.EXPAND, 3)
         render_bar_sizer =  wx.BoxSizer(wx.VERTICAL)
         render_bar_sizer.Add(render_l, 0, wx.ALL|wx.EXPAND, 3)
+        render_bar_sizer.Add(file_name_sizer, 0, wx.ALL|wx.EXPAND, 3)
         render_bar_sizer.Add(render_buttons_sizer, 0, wx.ALL|wx.EXPAND, 3)
 
         main_sizer =  wx.BoxSizer(wx.VERTICAL)
         main_sizer.AddStretchSpacer(1)
         main_sizer.Add(capture_bar_sizer, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.Add(file_bar_sizer, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.Add(render_bar_sizer, 0, wx.ALL|wx.EXPAND, 3)
         main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.AddStretchSpacer(1)
@@ -6294,6 +6300,7 @@ class MainFrame ( wx.Frame ):
         # Sizers
         # left bar
         MainApp.side_bar_sizer = wx.BoxSizer(wx.VERTICAL)
+        MainApp.side_bar_sizer.SetMinSize(200,5)
         MainApp.side_bar_sizer.Add(MainApp.pi_link_pnl, 0, wx.EXPAND)
         MainApp.side_bar_sizer.Add(self.view_pnl, 0, wx.EXPAND)
         MainApp.side_bar_sizer.Add(MainApp.system_ctrl_pannel, 0, wx.EXPAND)
