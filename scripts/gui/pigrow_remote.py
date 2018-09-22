@@ -4887,7 +4887,7 @@ class camconf_ctrl_pnl(wx.Panel):
             if cam_opt == "fswebcam":
                 self.install_fswebcam()
         else:
-            local_temp_img_path = os.path.join("temp", "test_defaults.jpg")
+            local_temp_img_path = os.path.join("temp", "test_settings.jpg")
             img_path = localfiles_ctrl_pnl.download_file_to_folder(MainApp.localfiles_ctrl_pannel, remote_img_path, local_temp_img_path)
             self.clear_picture_area()
             MainApp.camconf_info_pannel.picture_sizer.Add(wx.StaticText(MainApp.camconf_info_pannel,  label="Image taken using local settings"), 0, wx.ALL, 2)
