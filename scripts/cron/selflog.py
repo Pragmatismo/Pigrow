@@ -138,9 +138,13 @@ if __name__ == '__main__':
            line += str(script + '_' + key) + "=" + str(value) + ">"
     line += '\n'
     print line
+    if 'self_log' in loc_dic:
+        log_location = loc_dic['self_log']
+    else:
+        log_location = homedir + '/Pigrow/logs/selflog.txt'
     try:
-        with open(loc_dic['self_log'], "a") as f:
+        with open(log_location, "a") as f:
             f.write(line)
     except:
         print["-LOG ERROR-"]
-        pigrow_defs.write_log('checkDHT.py', 'writing dht log failed', loc_dic['err_log'])
+        pigrow_defs.write_log('selflog.py', 'writing self log failed', loc_dic['err_log'])
