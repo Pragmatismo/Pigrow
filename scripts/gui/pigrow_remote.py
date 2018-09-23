@@ -3634,7 +3634,7 @@ class localfiles_ctrl_pnl(wx.Panel):
         localfiles_info_pnl.local_path_txt.SetLabel(localfiles_info_pnl.local_path)
         # check for data and sort into on screen lists
         if not os.path.isdir(localfiles_info_pnl.local_path):
-            localfiles_info_pnl.local_path_txt.SetLabel("no local data, press download to create folder \n " + localfiles_info_pnl.local_path)
+            localfiles_info_pnl.local_path_txt.SetLabel(localfiles_info_pnl.local_path)
         else:
             local_files = os.listdir(localfiles_info_pnl.local_path)
             #set caps folder
