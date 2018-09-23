@@ -23,8 +23,8 @@ try:
     graph_path = loc_dic['graph_path']
     self_log = loc_dic['self_log']
 except:
-    graph_path = './'
-    self_log =  "./selflog.txt"
+    graph_path = homedir + "/Pigrow/graphs/"
+    self_log =  homedir + "/Pigrow/logs/selflog.txt"
 
 for argu in sys.argv[1:]:
     if "=" in argu:
@@ -154,6 +154,7 @@ def make_cpu_graph(dates, cpu_a1, cpu_a5, cpu_a15):
     #plt.subplots(2, 2)
     fig.autofmt_xdate()
     plt.savefig(graph_path + "Selflog_cpu_graph.png")
+    print("Box plot created and saved to " + graph_path + "Selflog_cpu_graph.png")
 
 def make_mem_graph(dates, mem_a, mem_f, mem_t):
     print("Attempting to make mem useage graph")
@@ -166,6 +167,7 @@ def make_mem_graph(dates, mem_a, mem_f, mem_t):
     plt.ylabel("Memory in MB")
     fig2.autofmt_xdate()
     plt.savefig(graph_path + "Selflog_mem_graph.png")
+    print("Box plot created and saved to " + graph_path + "Selflog_mem_graph.png")
     #plt.show()
 
 def make_disk_graph(dates, disk_p, disk_f, disk_t, disk_u):
@@ -182,6 +184,7 @@ def make_disk_graph(dates, disk_p, disk_f, disk_t, disk_u):
     ax3[1].set_title("Percentage of disk used")
     fig3.autofmt_xdate()
     plt.savefig(graph_path + "Selflog_disk_graph.png")
+    print("Box plot created and saved to " + graph_path + "Selflog_disk_graph.png")
 
 def make_up_graph(dates, up):
     print("Attempting to make uptime graph")
@@ -198,6 +201,7 @@ def make_cputemp_graph(dates, cpu_temp):
     ax4.set_title("CPU Temperature; " + str(dates[0].strftime("%b-%d %H:%M")) + " to " + str(dates[-1].strftime("%b-%d %H:%M")) + " UTC")
     fig4.autofmt_xdate()
     plt.savefig(graph_path + "Selflog_cpu_temp_graph.png")
+    print("Box plot created and saved to " + graph_path + "Selflog_cpu_temp_graph.png")
 
 if __name__ == '__main__':
     print "Last log was " + str(datetime.datetime.now() - date).split('.')[0] + " ago"
