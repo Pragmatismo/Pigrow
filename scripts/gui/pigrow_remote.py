@@ -5119,7 +5119,7 @@ class timelapse_info_pnl(wx.Panel):
         first_img_buttons_sizer.Add(self.first_frame_no, 0, wx.ALL, 2)
         first_img_buttons_sizer.Add(first_next_btn, 0, wx.ALL, 2)
         first_img_sizer = wx.BoxSizer(wx.VERTICAL)
-        first_img_sizer.Add(self.first_img_l, 0, wx.ALIGN_CENTER_HORIZONTAL, 0)
+        first_img_sizer.Add(self.first_img_l, 0, wx.ALL, 2)
         first_img_sizer.Add(self.first_image, 0, wx.ALIGN_CENTER_HORIZONTAL, 0)
         first_img_sizer.Add(first_img_buttons_sizer, 0, wx.ALIGN_CENTER_HORIZONTAL, 0)
         last_img_buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -5127,7 +5127,7 @@ class timelapse_info_pnl(wx.Panel):
         last_img_buttons_sizer.Add(self.last_frame_no, 0, wx.ALL, 2)
         last_img_buttons_sizer.Add(last_next_btn, 0, wx.ALL, 2)
         last_img_sizer = wx.BoxSizer(wx.VERTICAL)
-        last_img_sizer.Add(self.last_img_l, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
+        last_img_sizer.Add(self.last_img_l, 0, wx.ALL, 2)
         last_img_sizer.Add(self.last_image, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
         last_img_sizer.Add(last_img_buttons_sizer, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
         img_panels_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -5163,6 +5163,37 @@ class timelapse_info_pnl(wx.Panel):
         main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
         self.SetSizer(main_sizer)
 
+    def set_first_image(self, filename):
+        try:
+            first = wx.Image(filename, wx.BITMAP_TYPE_ANY)
+            first = first.Scale(400, 400, wx.IMAGE_QUALITY_HIGH)
+            first = first.ConvertToBitmap()
+            MainApp.timelapse_info_pannel.first_image.SetBitmap(first)
+            filename = filename.split("/")[-1]
+            filename_date = MainApp.timelapse_ctrl_pannel.date_from_fn(filename)
+            if not filename_date == None:
+                MainApp.timelapse_info_pannel.first_img_l.SetLabel(filename + " (" + str(filename_date) + ")")
+            else:
+                MainApp.timelapse_info_pannel.first_img_l.SetLabel(filename)
+        except:
+            print("!! first frame in local caps folder didn't work for timelapse tab.")
+
+    def set_last_image(self, filename):
+        try:
+            last = wx.Image(filename, wx.BITMAP_TYPE_ANY)
+            last = last.Scale(400, 400, wx.IMAGE_QUALITY_HIGH)
+            last = last.ConvertToBitmap()
+            MainApp.timelapse_info_pannel.last_image.SetBitmap(last)
+            filename = filename.split("/")[-1]
+            filename_date = MainApp.timelapse_ctrl_pannel.date_from_fn(filename)
+            if not filename_date == None:
+                MainApp.timelapse_info_pannel.last_img_l.SetLabel(filename + " (" + str(filename_date) + ")")
+            else:
+                MainApp.timelapse_info_pannel.last_img_l.SetLabel(filename)
+        except:
+            print("!! Last frame in local caps folder didn't work for timelapse tab.")
+            raise
+
     def first_frame_change(self, e):
         frame_no_text = MainApp.timelapse_info_pannel.first_frame_no.GetValue()
         if not frame_no_text.isdigit():
@@ -5175,14 +5206,8 @@ class timelapse_info_pnl(wx.Panel):
         if frame_number > max_frame:
             frame_number = max_frame
             MainApp.timelapse_info_pannel.first_frame_no.ChangeValue(str(frame_number))
-        try:
-            first = wx.Image(MainApp.timelapse_ctrl_pannel.cap_file_paths[frame_number - 1], wx.BITMAP_TYPE_ANY)
-            first = first.Scale(400, 400, wx.IMAGE_QUALITY_HIGH)
-            first = first.ConvertToBitmap()
-            MainApp.timelapse_info_pannel.first_image.SetBitmap(first)
-            MainApp.timelapse_info_pannel.first_img_l.SetLabel(MainApp.timelapse_ctrl_pannel.cap_file_paths[frame_number -1].split("/")[-1] + str(" (add date here)"))
-        except:
-            print("!! first frame in local caps folder didn't work for timelapse tab.")
+        filename = MainApp.timelapse_ctrl_pannel.cap_file_paths[frame_number - 1]
+        self.set_first_image(filename)
         MainApp.timelapse_ctrl_pannel.calculate_frames_click("e")
 
     def last_frame_change(self, e):
@@ -5197,30 +5222,44 @@ class timelapse_info_pnl(wx.Panel):
         if frame_number > max_frame:
             frame_number = max_frame
             MainApp.timelapse_info_pannel.last_frame_no.ChangeValue(str(frame_number))
-        try:
-            last = wx.Image(MainApp.timelapse_ctrl_pannel.cap_file_paths[frame_number - 1], wx.BITMAP_TYPE_ANY)
-            last = last.Scale(400, 400, wx.IMAGE_QUALITY_HIGH)
-            last = last.ConvertToBitmap()
-            MainApp.timelapse_info_pannel.last_image.SetBitmap(last)
-            MainApp.timelapse_info_pannel.last_img_l.SetLabel(MainApp.timelapse_ctrl_pannel.cap_file_paths[frame_number -1].split("/")[-1] + str(" (add date here)"))
-        except:
-            print("!! Last frame in local caps folder didn't work for timelapse tab.")
+        filename = MainApp.timelapse_ctrl_pannel.cap_file_paths[frame_number - 1]
+        self.set_last_image(filename)
         MainApp.timelapse_ctrl_pannel.calculate_frames_click("e")
 
     def first_prev_click(self, e):
         frame_number = int(self.first_frame_no.GetValue()) -1
         if frame_number < 1:
             return None #just to break the loop
-        try:
-            first = wx.Image(MainApp.timelapse_ctrl_pannel.cap_file_paths[frame_number - 1], wx.BITMAP_TYPE_ANY)
-            first = first.Scale(400, 400, wx.IMAGE_QUALITY_HIGH)
-            first = first.ConvertToBitmap()
-            MainApp.timelapse_info_pannel.first_image.SetBitmap(first)
-            MainApp.timelapse_info_pannel.first_frame_no.ChangeValue(str(frame_number))
-            MainApp.timelapse_info_pannel.first_img_l.SetLabel(MainApp.timelapse_ctrl_pannel.cap_file_paths[frame_number -1].split("/")[-1] + str(" (add date here)"))
+        filename = MainApp.timelapse_ctrl_pannel.cap_file_paths[frame_number - 1]
+        self.set_first_image(filename)
+        MainApp.timelapse_info_pannel.first_frame_no.ChangeValue(str(frame_number))
+        MainApp.timelapse_ctrl_pannel.calculate_frames_click("e")
 
-        except:
-            print("!! First image in local caps folder didn't work for timelapse tab.")
+    def first_next_click(self, e):
+        frame_number = int(self.first_frame_no.GetValue()) +1
+        if frame_number > int(self.last_frame_no.GetValue()):
+            return None #just to break the loop
+        filename = MainApp.timelapse_ctrl_pannel.cap_file_paths[frame_number - 1]
+        self.set_first_image(filename)
+        MainApp.timelapse_info_pannel.first_frame_no.ChangeValue(str(frame_number))
+        MainApp.timelapse_ctrl_pannel.calculate_frames_click("e")
+
+    def last_prev_click(self, e):
+        frame_number = int(self.last_frame_no.GetValue()) -1
+        if frame_number < int(MainApp.timelapse_info_pannel.first_frame_no.GetValue()):
+            return None #just to break the loop
+        filename = MainApp.timelapse_ctrl_pannel.cap_file_paths[frame_number - 1]
+        self.set_last_image(filename)
+        MainApp.timelapse_info_pannel.last_frame_no.ChangeValue(str(frame_number))
+        MainApp.timelapse_ctrl_pannel.calculate_frames_click("e")
+
+    def last_next_click(self, e):
+        frame_number = int(self.last_frame_no.GetValue()) +1
+        if frame_number > len(MainApp.timelapse_ctrl_pannel.cap_file_paths):
+            return None #just to break the loop
+        filename = MainApp.timelapse_ctrl_pannel.cap_file_paths[frame_number - 1]
+        self.set_last_image(filename)
+        MainApp.timelapse_info_pannel.last_frame_no.ChangeValue(str(frame_number))
         MainApp.timelapse_ctrl_pannel.calculate_frames_click("e")
 
     def set_frame_count(self):
@@ -5228,53 +5267,7 @@ class timelapse_info_pnl(wx.Panel):
             frame_count = str(int(self.last_frame_no.GetValue()) - int(self.first_frame_no.GetValue()) + 1)
         else:
             frame_count = len(MainApp.timelapse_ctrl_pannel.trimmed_frame_list)
-        self.ani_frame_count_info.SetLabel(str(frame_count))
-
-    def first_next_click(self, e):
-        frame_number = int(self.first_frame_no.GetValue()) +1
-        if frame_number > int(self.last_frame_no.GetValue()):
-            return None #just to break the loop
-        try:
-            first = wx.Image(MainApp.timelapse_ctrl_pannel.cap_file_paths[frame_number -1], wx.BITMAP_TYPE_ANY)
-            first = first.Scale(400, 400, wx.IMAGE_QUALITY_HIGH)
-            first = first.ConvertToBitmap()
-            MainApp.timelapse_info_pannel.first_image.SetBitmap(first)
-            MainApp.timelapse_info_pannel.first_frame_no.ChangeValue(str(frame_number))
-            MainApp.timelapse_info_pannel.first_img_l.SetLabel(MainApp.timelapse_ctrl_pannel.cap_file_paths[frame_number -1].split("/")[-1] + str(" (add date here)"))
-        except:
-            print("!! First image in local caps folder didn't work for timelapse tab.")
-        MainApp.timelapse_ctrl_pannel.calculate_frames_click("e")
-
-    def last_prev_click(self, e):
-        frame_number = int(self.last_frame_no.GetValue()) -1
-        if frame_number < int(MainApp.timelapse_info_pannel.first_frame_no.GetValue()):
-            return None #just to break the loop
-        try:
-            last = wx.Image(MainApp.timelapse_ctrl_pannel.cap_file_paths[frame_number - 1], wx.BITMAP_TYPE_ANY)
-            last = last.Scale(400, 400, wx.IMAGE_QUALITY_HIGH)
-            last = last.ConvertToBitmap()
-            MainApp.timelapse_info_pannel.last_image.SetBitmap(last)
-            MainApp.timelapse_info_pannel.last_frame_no.ChangeValue(str(frame_number))
-            MainApp.timelapse_info_pannel.last_img_l.SetLabel(MainApp.timelapse_ctrl_pannel.cap_file_paths[frame_number -1].split("/")[-1] + str(" (add date here)"))
-        except:
-            print("!! Last frame in local caps folder didn't work for timelapse tab.")
-        MainApp.timelapse_ctrl_pannel.calculate_frames_click("e")
-
-    def last_next_click(self, e):
-        frame_number = int(self.last_frame_no.GetValue()) +1
-        if frame_number > len(MainApp.timelapse_ctrl_pannel.cap_file_paths):
-            return None #just to break the loop
-        try:
-            last = wx.Image(MainApp.timelapse_ctrl_pannel.cap_file_paths[frame_number -1], wx.BITMAP_TYPE_ANY)
-            last = last.Scale(400, 400, wx.IMAGE_QUALITY_HIGH)
-            last = last.ConvertToBitmap()
-            MainApp.timelapse_info_pannel.last_image.SetBitmap(last)
-            MainApp.timelapse_info_pannel.last_frame_no.ChangeValue(str(frame_number))
-            MainApp.timelapse_info_pannel.last_img_l.SetLabel(MainApp.timelapse_ctrl_pannel.cap_file_paths[frame_number -1].split("/")[-1] + str(" (add date here)"))
-        except:
-            print("!! Last frame in local caps folder didn't work for timelapse tab.")
-        MainApp.timelapse_ctrl_pannel.calculate_frames_click("e")
-
+            self.ani_frame_count_info.SetLabel(str(frame_count))
 
 
 class timelapse_ctrl_pnl(wx.Panel):
@@ -5428,24 +5421,12 @@ class timelapse_ctrl_pnl(wx.Panel):
         # fill the infomation boxes
         MainApp.timelapse_info_pannel.images_found_info.SetLabel(str(len(self.cap_file_paths)))
         # set first and last images
-        try:
-            first = wx.Image(self.cap_file_paths[0], wx.BITMAP_TYPE_ANY)
-            first = first.Scale(400, 400, wx.IMAGE_QUALITY_HIGH)
-            first = first.ConvertToBitmap()
-            MainApp.timelapse_info_pannel.first_image.SetBitmap(first)
-            MainApp.timelapse_info_pannel.first_frame_no.ChangeValue("1")
-            MainApp.timelapse_info_pannel.first_img_l.SetLabel(self.cap_file_paths[0].split("/")[-1] + str(" (add date here)"))
-        except:
-            print("!! First image in local caps folder didn't work for timelapse tab.")
-        try:
-            last = wx.Image(self.cap_file_paths[-1], wx.BITMAP_TYPE_ANY)
-            last = last.Scale(400, 400, wx.IMAGE_QUALITY_HIGH)
-            last = last.ConvertToBitmap()
-            MainApp.timelapse_info_pannel.last_image.SetBitmap(last)
-            MainApp.timelapse_info_pannel.last_frame_no.ChangeValue(str(len(self.cap_file_paths)))
-            MainApp.timelapse_info_pannel.last_img_l.SetLabel(self.cap_file_paths[-1].split("/")[-1] + str(" (add date here)"))
-        except:
-            print("!! Last image in local caps folder didn't work for timelapse tab.")
+        MainApp.timelapse_info_pannel.first_frame_no.ChangeValue("1")
+        MainApp.timelapse_info_pannel.last_frame_no.ChangeValue(str(len(self.cap_file_paths)))
+        filename = self.cap_file_paths[0]
+        MainApp.timelapse_info_pannel.set_first_image(filename)
+        filename = self.cap_file_paths[-1]
+        MainApp.timelapse_info_pannel.set_last_image(filename)
         MainApp.timelapse_ctrl_pannel.calculate_frames_click("e")
 
     def calculate_frames_click(self, e):
@@ -5463,7 +5444,26 @@ class timelapse_ctrl_pnl(wx.Panel):
         #print("Trimmed list contains " + str(len(self.trimmed_frame_list)) + " frames")
         MainApp.timelapse_info_pannel.set_frame_count()
 
-
+    def date_from_fn(self, thefilename):
+        if "." in thefilename and "_" in thefilename:
+            fdate = thefilename.split(".")[0].split("_")[-1]
+            if len(fdate) == 10 and fdate.isdigit():
+                fdate = datetime.datetime.utcfromtimestamp(float(fdate))
+            else:
+                return None
+            return fdate
+        #elif "-" in thefilename:
+        #    try:
+        #        date = thefilename.split("-")[1]
+        #        # 10-2018 05 05 20 12 12-03
+        #        file_datetime = datetime.datetime.strptime(date, '%Y%m%d%H%M%S')
+        #        text_date = file_datetime.strftime('%Y-%m-%d %H:%M')
+        #        return file_datetime
+        #    except:
+        #        print("!! Tried to parse filename as Motion date but failed " + str(thefilename))
+        #        return None, None
+        else:
+            return None
 
 
     def play_timelapse_click(self, e):
