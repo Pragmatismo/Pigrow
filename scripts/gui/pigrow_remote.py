@@ -6021,6 +6021,7 @@ class pi_link_pnl(wx.Panel):
             else:
                 box_name = None
             self.set_link_pi_text(log_on_test, box_name)
+            MainApp.window_self.Layout()
 
     def blank_settings(self):
         print("clearing settings")
@@ -6086,6 +6087,7 @@ class pi_link_pnl(wx.Panel):
         MainApp.graphing_ctrl_pannel.script_text.Hide()
         MainApp.graphing_ctrl_pannel.select_script_cb.Hide()
         MainApp.graphing_ctrl_pannel.get_opts_tb.Hide()
+        MainApp.window_self.Layout()
 
 
 
