@@ -53,7 +53,7 @@ else:
 
 def filename_to_date(filename):
     if "_" in filename:
-        stamp = int(str(thefile).split(".")[0].split('_')[-1])
+        stamp = int(str(filename).split(".")[0].split('_')[-1])
         return stamp
     elif "-" in filename:
         try:
@@ -118,14 +118,14 @@ def image_time_diff_graph(datelist, graph_path="/."):
     gname = graph_path+"caps_timediff_graph.png"
     pic_dif_log = []
     fcounter_log = []
-    print("Gathering data for time diff graph")
+    print("making local time diff graph")
     for x in range(1, len(datelist)):
         cur_pic = datelist[x]
         las_pic = datelist[x-1]
         pic_dif = cur_pic - las_pic
         pic_dif_log.append(pic_dif)
         fcounter_log.append(x)
-    print('We now have ' + str(len(pic_dif_log)) + ' up time differnces from the pictures to work with.')
+    print('use ' + str(len(pic_dif_log)) + ' up time differnces from local pictures.')
     plt.figure(2)
     ax = plt.subplot()
     #ax.plot(fcounter_log, fsize_log, color='darkblue', lw=3)
