@@ -3697,26 +3697,34 @@ class localfiles_ctrl_pnl(wx.Panel):
                             remote_caps = []
                         # local caps files
                         if len(caps_files) > 1:
+                            for file in caps_files:
+                                if ".jpg" in file:
+                                    first_img_file = file
+                                    break
+                            for file in reversed(caps_files):
+                                if ".jpg" in file:
+                                    last_img_file = file
+                                    break
                             #lable first and last image with name
-                            localfiles_info_pnl.first_photo_title.SetLabel(caps_files[0])
-                            localfiles_info_pnl.last_photo_title.SetLabel(caps_files[-1])
+                            localfiles_info_pnl.first_photo_title.SetLabel(first_img_file)
+                            localfiles_info_pnl.last_photo_title.SetLabel(last_img_file)
                             #determine date range of images
 
-                            first_date, first_dt = self.filename_to_date(caps_files[0])
-                            last_date, last_dt = self.filename_to_date(caps_files[-1])
+                            first_date, first_dt = self.filename_to_date(first_img_file)
+                            last_date, last_dt = self.filename_to_date(last_img_file)
                             if not last_dt == None and not first_dt == None:
                                 caps_message += "  " + str(first_date) + " - " + str(last_date)
                                 length_of_local = last_dt - first_dt
                                 caps_message += '\n     ' + str(length_of_local)
                             #draw first and last imagess to the screen
-                            first_image_path = os.path.join(item_path, caps_files[0])
-                            final_image_path = os.path.join(item_path, caps_files[-1])
+                            first_image_path = os.path.join(item_path, first_img_file)
+                            final_image_path = os.path.join(item_path, last_img_file)
                             localfiles_info_pnl.draw_photo_folder_images(MainApp.localfiles_info_pannel, first_image_path, final_image_path)
                         caps_message += "\n" + str(len(remote_caps)) + " files on Pigrow \n"
                         # remote image files
                         if len(remote_caps) > 1:
-                            first_remote, first_r_dt = self.filename_to_date(remote_caps[0])
-                            last_remote, last_r_dt = self.filename_to_date(remote_caps[-1])
+                            first_remote, first_r_dt = self.filename_to_date(first_img_file)
+                            last_remote, last_r_dt = self.filename_to_date(last_img_file)
                             caps_message += "  " + str(first_remote) + " - " + str(last_remote)
                             if not last_r_dt == None:
                                 if not first_r_dt == None:
@@ -3757,6 +3765,9 @@ class localfiles_ctrl_pnl(wx.Panel):
         print("local file info discovered..")
 
     def filename_to_date(self, filename):
+        #
+        # DOUBLE! this is also in timelapse tab so pick one and use that one only!
+        #
         if "_" in filename:
             try:
                 date = float(filename.split(".")[0].split("_")[-1])
