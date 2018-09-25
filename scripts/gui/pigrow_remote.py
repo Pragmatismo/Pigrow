@@ -3595,7 +3595,7 @@ class localfiles_ctrl_pnl(wx.Panel):
         count = 0
         for the_remote_file in remote_caps:
             if the_remote_file in caps_files:
-                the_remote_file = os.path.join(pi_caps_path, the_remote_file)
+                the_remote_file = pi_caps_path + "/" + the_remote_file
                 MainApp.status.write_bar("clearing - " + the_remote_file)
                 MainApp.localfiles_ctrl_pannel.run_on_pi("rm " + the_remote_file, False)
                 wx.Yield()
