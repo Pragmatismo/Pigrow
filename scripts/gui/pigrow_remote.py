@@ -4871,8 +4871,8 @@ class camconf_ctrl_pnl(wx.Panel):
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi(cmd)
         output = out + error
         print (out, error)
-        path = output.split("Saving image to:")[1].strip()
-        print (path)
+        path = output.split("Saving image to:")[1].split("\n")[0].strip()
+        #print (path)
         local_temp_img_path = os.path.join("temp", "test_settings.jpg")
         img_path = localfiles_ctrl_pnl.download_file_to_folder(MainApp.localfiles_ctrl_pannel, path, local_temp_img_path)
         #MainApp.camconf_info_pannel.picture_sizer.Clear()
@@ -5490,6 +5490,9 @@ class timelapse_ctrl_pnl(wx.Panel):
         MainApp.timelapse_info_pannel.set_frame_count()
 
     def date_from_fn(self, thefilename):
+        #
+        # DOUBLE - use one or the other
+        #
         if "." in thefilename and "_" in thefilename:
             fdate = thefilename.split(".")[0].split("_")[-1]
             if len(fdate) == 10 and fdate.isdigit():
@@ -5509,7 +5512,6 @@ class timelapse_ctrl_pnl(wx.Panel):
         #        return None, None
         else:
             return None
-
 
     def play_timelapse_click(self, e):
         outfile= self.out_file_tc.GetValue()
