@@ -5389,7 +5389,20 @@ class timelapse_ctrl_pnl(wx.Panel):
         print("Doesn't do anything yet!")
 
     def make_timelapse_click(self, e):
-        print("Doesn't do anything yet!")
+        # write text file of frame to use
+        listfile = os.path.join(localfiles_info_pnl.local_path, "temp", "frame_list.txt")
+        frame_list_text_file = open(listfile, "w")
+        for file in self.trimmed_frame_list:
+            frame_list_text_file.write(file + "\n")
+        frame_list_text_file.close()
+        infps  = 10
+        outfps = 10
+        outfile= self.out_file_tc.GetValue()
+        extra_commands = ""
+        print (" ##  making you a timelapse video...")
+        cmd = "mpv mf://@"+listfile+" -mf-fps="+str(infps)
+        cmd += " -o "+outfile+" --ofps="+str(outfps)+" " + extra_commands
+        os.system(cmd)
 
     def select_new_caps_set_click(self, e):
         new_cap_path = self.select_folder()
@@ -5469,7 +5482,7 @@ class timelapse_ctrl_pnl(wx.Panel):
         first_frame= int(MainApp.timelapse_info_pannel.first_frame_no.GetValue()) -1
         last_frame = int(MainApp.timelapse_info_pannel.last_frame_no.GetValue())
         for frame in range(first_frame,last_frame,use_every):
-            self.trimmed_frame_list.append(frame)
+            self.trimmed_frame_list.append(self.cap_file_paths[frame])
         #print("Trimmed list contains " + str(len(self.trimmed_frame_list)) + " frames")
         MainApp.timelapse_info_pannel.set_frame_count()
 
