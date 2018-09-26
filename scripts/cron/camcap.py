@@ -235,7 +235,7 @@ def take_with_fswebcam(s_val="", c_val="", g_val="", b_val="", x_dim=100000, y_d
     # run the command on the system
     os.system(cam_cmd)
     #tell the user we're back in control after fsw has finished.
-    print("Capture Finished, Image Path : " + caps_path + filename)
+    print("Capture Finished, Saving image to:" + caps_path + filename)
     #hand back the filename so we can check was created or pass it on for editing
     #or other mantipulation when this is being run from other scripts as a module
     return filename
