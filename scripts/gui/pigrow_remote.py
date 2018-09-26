@@ -5390,7 +5390,10 @@ class timelapse_ctrl_pnl(wx.Panel):
 
     def make_timelapse_click(self, e):
         # write text file of frame to use
-        listfile = os.path.join(localfiles_info_pnl.local_path, "temp", "frame_list.txt")
+        temp_folder = os.path.join(localfiles_info_pnl.local_path, "temp")
+        if not os.path.isdir(temp_folder):
+            os.makedirs(temp_folder)
+        listfile = os.path.join(temp_folder, "frame_list.txt")
         frame_list_text_file = open(listfile, "w")
         for file in self.trimmed_frame_list:
             frame_list_text_file.write(file + "\n")
