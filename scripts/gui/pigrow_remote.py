@@ -150,6 +150,22 @@ class scroll_text_dialog(wx.Dialog):
         sizer.Add(btnsizer, 0, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
         self.SetSizerAndFit(sizer)
 
+def scale_pic(pic, target_size):
+    pic_height = pic.GetHeight()
+    pic_width = pic.GetWidth()
+    # scale the image, preserving the aspect ratio
+    if pic_width > pic_height:
+        sizeratio = (pic_width / target_size)
+        new_height = (pic_height / sizeratio)
+        scale_pic = pic.Scale(target_size, new_height, wx.IMAGE_QUALITY_HIGH)
+        #print(pic_width, pic_height, sizeratio, target_size, new_height, scale_pic.GetWidth(), scale_pic.GetHeight())
+    else:
+        sizeratio = (pic_height / target_size)
+        new_width = (pic_width / sizeratio)
+        scale_pic = pic.Scale(new_width, target_size, wx.IMAGE_QUALITY_HIGH)
+        #print(pic_width, pic_height, sizeratio, new_width, target_size, scale_pic.GetWidth(), scale_pic.GetHeight())
+    return scale_pic
+
 
 #
 #
@@ -3513,7 +3529,7 @@ class localfiles_info_pnl(scrolled.ScrolledPanel):
         # load and display first image
         try:
             first = wx.Image(first_pic, wx.BITMAP_TYPE_ANY)
-            first = first.Scale(225, 225, wx.IMAGE_QUALITY_HIGH)
+            first = scale_pic(first, 300)
             first = first.ConvertToBitmap()
             localfiles_info_pnl.photo_folder_first_pic.SetBitmap(first)
         except:
@@ -3521,7 +3537,7 @@ class localfiles_info_pnl(scrolled.ScrolledPanel):
         # load and display last image
         try:
             last = wx.Image(last_pic, wx.BITMAP_TYPE_ANY)
-            last = last.Scale(225, 225, wx.IMAGE_QUALITY_HIGH)
+            last = scale_pic(last, 300)
             last = last.ConvertToBitmap()
             localfiles_info_pnl.photo_folder_last_pic.SetBitmap(last)
         except:
@@ -5174,10 +5190,12 @@ class timelapse_info_pnl(wx.Panel):
         main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
         self.SetSizer(main_sizer)
 
+
+
     def set_first_image(self, filename):
         try:
             first = wx.Image(filename, wx.BITMAP_TYPE_ANY)
-            first = first.Scale(400, 400, wx.IMAGE_QUALITY_HIGH)
+            first = scale_pic(first, 400)
             first = first.ConvertToBitmap()
             MainApp.timelapse_info_pannel.first_image.SetBitmap(first)
             filename = filename.split("/")[-1]
@@ -5192,7 +5210,7 @@ class timelapse_info_pnl(wx.Panel):
     def set_last_image(self, filename):
         try:
             last = wx.Image(filename, wx.BITMAP_TYPE_ANY)
-            last = last.Scale(400, 400, wx.IMAGE_QUALITY_HIGH)
+            last = scale_pic(last, 400)
             last = last.ConvertToBitmap()
             MainApp.timelapse_info_pannel.last_image.SetBitmap(last)
             filename = filename.split("/")[-1]
