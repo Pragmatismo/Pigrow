@@ -146,10 +146,11 @@ def load_camera_settings(settings_file):
             print e
             print("looked at " + settings_file)
             print("but couldn't load config data for camera, resorting to default values")
-            print("  - Run cam_config.py to automatically create a new config file")
-            print("    or make sure you're pointing to the correct file in dirlocs.")
+            print("  - Use the remote gui to create a new config file")
+            print("  or Run cam_config.py to create a new config file")
+            print("  or make sure you're pointing to the correct file in dirlocs.")
         # check to ensure a valid option is set, if not selects default
-        if not cam_opt == 'fswebcam' or not cam_opt == 'uvccapture':
+        if not cam_opt == 'fswebcam' and not cam_opt == 'uvccapture':
             print("setting cam opt to uvccapture as unspecified")
             cam_opt = 'uvccapture'
     return (s_val, c_val, g_val, b_val, x_dim, y_dim, cam_num, cam_opt, fsw_extra, uvc_extra)
