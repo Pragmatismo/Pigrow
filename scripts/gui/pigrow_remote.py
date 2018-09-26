@@ -5399,12 +5399,12 @@ class timelapse_ctrl_pnl(wx.Panel):
             frame_list_text_file.write(file + "\n")
         frame_list_text_file.close()
         infps  = 10
-        outfps = 10
+        #outfps = 10
         outfile= self.out_file_tc.GetValue()
         extra_commands = ""
         print (" ##  making you a timelapse video...")
         cmd = "mpv mf://@"+listfile+" -mf-fps="+str(infps)
-        cmd += " -o "+outfile+" --ofps="+str(outfps)+" " + extra_commands
+        cmd += " -o "+outfile+" " + extra_commands
         os.system(cmd)
 
     def select_new_caps_set_click(self, e):
