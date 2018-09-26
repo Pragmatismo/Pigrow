@@ -5512,6 +5512,9 @@ class timelapse_ctrl_pnl(wx.Panel):
 
 
     def play_timelapse_click(self, e):
+        outfile= self.out_file_tc.GetValue()
+        cmd = "mpv " + outfile
+        os.system(cmd)
         print("Doesn't do anything yet!")
 
 #
