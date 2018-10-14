@@ -229,6 +229,28 @@ class system_ctrl_pnl(wx.Panel):
 
     def find_1wire_devices(self, e):
         print("looking to see if 1wire overlay is turned on")
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("lsmod")
+        for line in out.splitlines():
+            if line[0:4] == "wire":
+                oneW_modules = line.split(" ")[-1].split(",")
+        if "w1_gpio" in oneW_modules:
+            module_text = "1wire module enabled\n"
+        else:
+            module_text = "1wire module NOT enabled\n"
+        if "w1_therm" in oneW_modules:
+            therm_module_text = "1wire thermometer module enabled\n"
+        else:
+            therm_module_text = "1wire thermometer module NOT enabled\n"
+        other_modules = "other one wire modules loaded"
+        for module in oneW_modules:
+            if not module == "w1_gpio" and not module == "w1_therm":
+                other_modules += ", " + module
+        if other_modules == "other one wire modules loaded":
+            other_modules = ""
+        else:
+            other_modules += "\n"
+
+
         #/boot/config.txt file to include the line 'dtoverlay=w1-gpio'
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("cat /boot/config.txt")
         config_file = out.splitlines()
@@ -239,14 +261,14 @@ class system_ctrl_pnl(wx.Panel):
                 if line[0] == "#":
                     print ("dtoverlay=w1-gpio is disabled")
                     overlay_count += 1
-                    onewire_msg = "onewire overlay disabled"
+                    onewire_config_file = "onewire overlay disabled"
                 else:
                     print("dtoverlay=w1-gpio found and active")
                     overlay_count += 1
-                    onewire_msg = "onewire overlay enabled"
+                    onewire_config_file = "onewire overlay enabled"
         if overlay_count == 0:
             print("dtoverlay=w1-gpio not found in config enabled or otherwise")
-            onewire_msg = "onewire overlay not in config file"
+            onewire_config_file = "onewire overlay not in config file"
         print("looking for 1wire devices...")
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("ls /sys/bus/w1/devices")
         print(out)
@@ -259,7 +281,9 @@ class system_ctrl_pnl(wx.Panel):
                 print("unknown device type " + str(line))
         print(" found " + str(len(ds_temp_list)) + "ds.. temp sensors")
         print(ds_temp_list)
-        system_info_pnl.sys_1wire_info.SetLabel(onewire_msg)
+        final_1wire_text = module_text + therm_module_text + other_modules + onewire_config_file
+        system_info_pnl.sys_1wire_info.SetLabel(final_1wire_text)
+        MainApp.window_self.Layout()
 
     def run_cmd_on_pi_click(self, e):
         msg = 'Input command to run on pi\n\n This will run the command and wait for it to finish before\ngiving results and resuming the gui'
@@ -331,7 +355,7 @@ class system_ctrl_pnl(wx.Panel):
             print(("trying using bus " + str(i2c_bus_number)))
         else:
             system_info_pnl.sys_i2c_info.SetLabel("i2c bus not found")
-            return "not found"
+            return "i2c not found"
         # if i2c bus found perform aditional checks, updates the textbox and returns the bus number
         # check if baurdrate is changed in Config
         i2c_baudrate = self.check_i2c_baudrate(i2c_bus_number)
@@ -364,34 +388,38 @@ class system_ctrl_pnl(wx.Panel):
         # this has to be run by a button press because it might
         # in some situations confuse i2c sensors so best
         # not to call it needlessly
-        # returns a list of i2c addresses.
+        # returns a list of i2c addresses which may be useful at some point
+        #                                 when doing live readings or some such
+        #                                 but isn't currently used
         ##
         # calsl i2c_check to locate the active i2c bus
         i2c_bus_number = self.i2c_check()
-        print (i2c_bus_number)
-        # check i2c bus with i2cdetect and list found i2c devices
-        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("/usr/sbin/i2cdetect -y " + str(i2c_bus_number))
-        print((out, error))
-        i2c_devices_found = out.splitlines()
-        # trimming text and sorting into a list
-        i2c_addresses = []
-        for line in i2c_devices_found[1:]:
-            line = line[3:].replace("--", "").strip()
-            if not line == "":
-                if not len(line) > 2: #only lines with 1 item in
-                    i2c_addresses.append(line)
-                else: #lines with more than one item
-                    for item in line.split("  "):
-                        i2c_addresses.append(item)
-        # changing text on screen
-        i2c_text = system_info_pnl.sys_i2c_info.GetLabel().split("\n")[0]
-        if len(i2c_addresses) > 0:
-            i2c_text += "\nfound " + str(len(i2c_addresses)) + " devices at; " + str(i2c_addresses)
-        else:
-            i2c_text += "\nNo devices found"
-        system_info_pnl.sys_i2c_info.SetLabel(i2c_text)
-        # returning a list of i2c device addresses
-        return i2c_addresses
+        if not i2c_bus_number == "i2c not found":
+            print (i2c_bus_number)
+            # check i2c bus with i2cdetect and list found i2c devices
+            out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("/usr/sbin/i2cdetect -y " + str(i2c_bus_number))
+            print((out, error))
+            i2c_devices_found = out.splitlines()
+            # trimming text and sorting into a list
+            i2c_addresses = []
+            for line in i2c_devices_found[1:]:
+                line = line[3:].replace("--", "").strip()
+                if not line == "":
+                    if not len(line) > 2: #only lines with 1 item in
+                        i2c_addresses.append(line)
+                    else: #lines with more than one item
+                        for item in line.split("  "):
+                            i2c_addresses.append(item)
+            # changing text on screen
+            i2c_text = system_info_pnl.sys_i2c_info.GetLabel().split("\n")[0]
+            if len(i2c_addresses) > 0:
+                i2c_text += "\nfound " + str(len(i2c_addresses)) + " devices at; " + str(i2c_addresses)
+            else:
+                i2c_text += "\nNo devices found"
+            system_info_pnl.sys_i2c_info.SetLabel(i2c_text)
+            # returning a list of i2c device addresses
+            MainApp.window_self.Layout()
+            return i2c_addresses
 
     def reboot_pigrow_click(self, e):
         dbox = wx.MessageDialog(self, "Are you sure you want to reboot the pigrow?", "reboot pigrow?", wx.OK | wx.CANCEL | wx.ICON_QUESTION)
