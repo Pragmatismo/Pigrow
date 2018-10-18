@@ -225,33 +225,53 @@ class system_ctrl_pnl(wx.Panel):
         self.SetSizer(main_sizer)
 
 
+    def find_ds18b20_devices(self):
+        temp_sensor_list = []
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("ls /sys/bus/w1/devices")
+        w1_bus_folders = out.splitlines()
+        for folder in w1_bus_folders:
+            if folder[0:3] == "28-":
+                temp_sensor_list.append(folder)
+        return temp_sensor_list
 
 
     def find_1wire_devices(self, e):
+        module_text = ""
+        therm_module_text = ""
+        other_modules = ""
+        onewire_config_file = ""
         print("looking to see if 1wire overlay is turned on")
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("lsmod")
+        oneW_modules = ""
         for line in out.splitlines():
             if line[0:4] == "wire":
                 oneW_modules = line.split(" ")[-1].split(",")
-        if "w1_gpio" in oneW_modules:
-            module_text = "1wire module enabled\n"
+        if not oneW_modules == "":
+            if "w1_gpio" in oneW_modules:
+                module_text = "1wire module enabled\n"
+            if "w1_therm" in oneW_modules:
+                therm_module_text = "1wire thermometer module enabled\n"
+                temp_sensor_list = self.find_ds18b20_devices()
+                if len(temp_sensor_list) > 0:
+                    therm_module_text += "Found " + str(len(temp_sensor_list)) + " temp sensors;\n"
+                for item in temp_sensor_list:
+                    therm_module_text += "  - " + str(item) + "\n"
+            else:
+                therm_module_text = "1wire thermometer module NOT enabled\n"
+            other_modules = "other one wire modules loaded"
+            for module in oneW_modules:
+                if not module == "w1_gpio" and not module == "w1_therm":
+                    other_modules += ", " + module
+            if other_modules == "other one wire modules loaded":
+                other_modules = ""
+            else:
+                other_modules += "\n"
         else:
             module_text = "1wire module NOT enabled\n"
-        if "w1_therm" in oneW_modules:
-            therm_module_text = "1wire thermometer module enabled\n"
-        else:
-            therm_module_text = "1wire thermometer module NOT enabled\n"
-        other_modules = "other one wire modules loaded"
-        for module in oneW_modules:
-            if not module == "w1_gpio" and not module == "w1_therm":
-                other_modules += ", " + module
-        if other_modules == "other one wire modules loaded":
-            other_modules = ""
-        else:
-            other_modules += "\n"
 
 
-        #/boot/config.txt file to include the line 'dtoverlay=w1-gpio'
+        # Check config file for 1wire overlay
+        #/boot/config.txt file should include the line 'dtoverlay=w1-gpio'
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("cat /boot/config.txt")
         config_file = out.splitlines()
         overlay_count = 0
@@ -269,18 +289,7 @@ class system_ctrl_pnl(wx.Panel):
         if overlay_count == 0:
             print("dtoverlay=w1-gpio not found in config enabled or otherwise")
             onewire_config_file = "onewire overlay not in config file"
-        print("looking for 1wire devices...")
-        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("ls /sys/bus/w1/devices")
-        print(out)
-        onewire_devices = out.splitlines()
-        ds_temp_list = []
-        for line in onewire_devices:
-            if "28-" in line:
-                ds_temp_list.append(line)
-            else:
-                print("unknown device type " + str(line))
-        print(" found " + str(len(ds_temp_list)) + "ds.. temp sensors")
-        print(ds_temp_list)
+        # assemble final message and print to screen
         final_1wire_text = module_text + therm_module_text + other_modules + onewire_config_file
         system_info_pnl.sys_1wire_info.SetLabel(final_1wire_text)
         MainApp.window_self.Layout()
@@ -5741,7 +5750,10 @@ class sensors_ctrl_pnl(wx.Panel):
         self.config_chirp_btn.Bind(wx.EVT_BUTTON, self.add_new_chirp_click)
         self.address_chirp_btn = wx.Button(self, label='change chirp address')
         self.address_chirp_btn.Bind(wx.EVT_BUTTON, self.address_chirp_click)
-        #
+        #   -- DS18B20 waterproof temp sensor
+        self.ds18b20_l = wx.StaticText(self,  label='DS18B20 Temp Sensor;')
+        self.add_ds18b20 = wx.Button(self, label='add new DS18B20')
+        self.add_ds18b20.Bind(wx.EVT_BUTTON, self.add_ds18b20_click)
         # Sizers
 
         main_sizer =  wx.BoxSizer(wx.VERTICAL)
@@ -5753,8 +5765,15 @@ class sensors_ctrl_pnl(wx.Panel):
         main_sizer.Add(self.config_chirp_btn, 0, wx.ALL|wx.EXPAND, 3)
         main_sizer.Add(self.address_chirp_btn, 0, wx.ALL|wx.EXPAND, 3)
         main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
+        main_sizer.Add(self.ds18b20_l, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.Add(self.add_ds18b20, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.AddStretchSpacer(1)
         self.SetSizer(main_sizer)
+
+    def add_ds18b20_click(self, e):
+        add_ds18b20 = ds18b20_dialog(None)
+        add_ds18b20.ShowModal()
 
     def add_new_chirp_click(self, e):
         print("adding a new chirp sensor")
@@ -5813,6 +5832,25 @@ class sensors_ctrl_pnl(wx.Panel):
     def soil_sensor_combo_go(self, e):
         if self.soil_sensor_cb.GetValue() == "chirp":
             print("Selected Chirp")
+
+class ds18b20_dialog(wx.Dialog):
+    """
+    For setting up a ds18b20 temp sensor
+        """
+    def __init__(self, *args, **kw):
+        super(ds18b20_dialog, self).__init__(*args, **kw)
+        self.InitUI()
+        self.SetSize((700, 400))
+        self.SetTitle("DS18B20 Temp Sensor Setup")
+        self.Bind(wx.EVT_CLOSE, self.OnClose)
+
+    def InitUI(self):
+        #draw the pannel
+        pnl = wx.Panel(self)
+        wx.StaticText(self,  label='DS18B20 Temp Sensor', pos=(25, 10))
+
+    def OnClose(self, e):
+        self.Destroy()
 
 class chirp_dialog(wx.Dialog):
     """
