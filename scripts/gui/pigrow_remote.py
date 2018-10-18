@@ -5350,6 +5350,10 @@ class timelapse_ctrl_pnl(wx.Panel):
         frame_select_l.SetFont(sub_title_font)
         range_l = wx.StaticText(self,  label='Use Every')
         self.range_tc = wx.TextCtrl(self, value="1")
+        limit_to_l = wx.StaticText(self,  label='Last')
+        self.limit_to_num = wx.TextCtrl(self, value="", size=(50,25))
+        limit_options = ['all', 'hours', 'days', 'weeks','months']
+        self.limit_combo = wx.ComboBox(self, choices = limit_options, size=(100,25), value='all')
         calculate_frames_btn = wx.Button(self, label='Calculate Frames')
         calculate_frames_btn.Bind(wx.EVT_BUTTON, self.calculate_frames_click)
         # out file
@@ -5383,9 +5387,14 @@ class timelapse_ctrl_pnl(wx.Panel):
         frame_range_sizer = wx.BoxSizer(wx.HORIZONTAL)
         frame_range_sizer.Add(range_l, 0, wx.ALL, 1)
         frame_range_sizer.Add(self.range_tc, 0, wx.ALL, 1)
+        frame_date_limit_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        frame_date_limit_sizer.Add(limit_to_l, 0, wx.ALL, 1)
+        frame_date_limit_sizer.Add(self.limit_to_num, 0, wx.ALL, 1)
+        frame_date_limit_sizer.Add(self.limit_combo, 0, wx.ALL, 1)
         frame_select_sizer = wx.BoxSizer(wx.VERTICAL)
         frame_select_sizer.Add(frame_select_l, 0, wx.ALL, 1)
         frame_select_sizer.Add(frame_range_sizer, 0, wx.ALL, 1)
+        frame_select_sizer.Add(frame_date_limit_sizer, 0, wx.ALL, 1)
         frame_select_sizer.Add(calculate_frames_btn, 0, wx.ALL|wx.ALIGN_RIGHT, 1)
         render_buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
         render_buttons_sizer.Add(make_timelapse_btn, 0, wx.ALL|wx.EXPAND, 3)
@@ -5503,6 +5512,7 @@ class timelapse_ctrl_pnl(wx.Panel):
         MainApp.timelapse_ctrl_pannel.calculate_frames_click("e")
 
     def calculate_frames_click(self, e):
+        # Limit using range function
         self.trimmed_frame_list = []
         use_every = self.range_tc.GetValue()
         if not use_every.isdigit():
@@ -5515,7 +5525,48 @@ class timelapse_ctrl_pnl(wx.Panel):
         for frame in range(first_frame,last_frame,use_every):
             self.trimmed_frame_list.append(self.cap_file_paths[frame])
         #print("Trimmed list contains " + str(len(self.trimmed_frame_list)) + " frames")
+        # Limit using date options
+        start_point_cutoff = self.trim_list_by_date_self_limit_combo()
+        if not start_point_cutoff == None:
+            self.trimmed_frame_list = self.limit_list_by_start_point(start_point_cutoff, self.trimmed_frame_list)
+
+        # update screen
         MainApp.timelapse_info_pannel.set_frame_count()
+
+    def trim_list_by_date_self_limit_combo(self):
+        # Establish cut off point
+        limit_period_unit = self.limit_combo.GetValue()
+        if not limit_period_unit == "all":
+            limit_period = int(self.limit_to_num.GetValue())
+            if limit_period_unit == "days":
+                datecheck = datetime.timedelta(days=limit_period)
+                start_point_cutoff = datetime.datetime.now() - datecheck
+            elif limit_period_unit == "hours":
+                datecheck=datetime.timedelta(hours=limit_period)
+                start_point_cutoff = datetime.datetime.now() - datecheck
+            elif limit_period_unit == "weeks":
+                datecheck=datetime.timedelta(weeks=limit_period)
+                start_point_cutoff = datetime.datetime.now() - datecheck
+            elif limit_period_unit == "months":
+                datecheck=datetime.timedelta(weeks=limit_period)
+                start_point_cutoff = datetime.datetime.now() - datecheck
+            else:
+                print(" !!!! Error in trim list by date checkbox?")
+            print("Cut off time for animation set to - " + str(start_point_cutoff))
+            return start_point_cutoff
+        else:
+            return None
+
+    def limit_list_by_start_point(self, start_point_cutoff, list_to_trim):
+        # loop through taking only those images taken after the start_time_cutoff
+        list_trimmed_by_startpoint = []
+        for item in list_to_trim:
+            pic_time = self.date_from_fn(item)
+            if pic_time >= start_point_cutoff:
+                list_trimmed_by_startpoint.append(item)
+        print("list trimmed to start date " + str(start_point_cutoff) + " now " + str(len(list_trimmed_by_startpoint)) + " frames long")
+        return list_trimmed_by_startpoint
+
 
     def date_from_fn(self, thefilename):
         #
