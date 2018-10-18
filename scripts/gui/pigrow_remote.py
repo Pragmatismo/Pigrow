@@ -5844,10 +5844,40 @@ class ds18b20_dialog(wx.Dialog):
         self.SetTitle("DS18B20 Temp Sensor Setup")
         self.Bind(wx.EVT_CLOSE, self.OnClose)
 
+
     def InitUI(self):
         #draw the pannel
         pnl = wx.Panel(self)
-        wx.StaticText(self,  label='DS18B20 Temp Sensor', pos=(25, 10))
+        box_label = wx.StaticText(self,  label='DS18B20 Temp Sensor')
+        temp_sensor_list = MainApp.system_ctrl_pannel.find_ds18b20_devices()
+        #add line to remove sensors already added
+        self.temp_sensor_cb = wx.ComboBox(self, choices = temp_sensor_list, size=(265, 30))
+        self.read_temp_btn = wx.Button(self, label='Read Temp')
+        self.read_temp_btn.Bind(wx.EVT_BUTTON, self.read_temp_click)
+        self.temp_value = wx.StaticText(self,  label='--')
+
+        temp_sensor_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        temp_sensor_sizer.Add(self.temp_sensor_cb, 0, wx.ALL|wx.EXPAND, 3)
+        temp_sensor_sizer.Add(self.read_temp_btn, 0, wx.ALL|wx.EXPAND, 3)
+        temp_sensor_sizer.Add(self.temp_value, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer =  wx.BoxSizer(wx.VERTICAL)
+        main_sizer.Add(box_label, 0, wx.ALL|wx.EXPAND, 5)
+        main_sizer.Add(temp_sensor_sizer, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.AddStretchSpacer(1)
+
+        self.SetSizer(main_sizer)
+
+    def read_temp_click(self, e):
+        sensor = self.temp_sensor_cb.GetValue()
+        print(sensor)
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("cat /sys/bus/w1/devices/" + sensor + "/w1_slave")
+        print(out)
+        for line in out.splitlines():
+            if "t=" in line:
+                temp = str(int(line.split("t=")[1]) / 1000) + " C"
+                print(temp)
+                self.temp_value.SetLabel(temp)
+        print("wants to read temp sensor")
 
     def OnClose(self, e):
         self.Destroy()
