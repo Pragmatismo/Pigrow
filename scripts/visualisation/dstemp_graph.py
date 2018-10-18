@@ -122,16 +122,14 @@ def make_graph(da,ta):
     ax = plt.subplot()
   #  ax.bar(da, ta, width=0.01, color='k', linewidth = 0)
     ax.plot(da, ta, color='darkblue', lw=3)
-    ave = 0
-    for x in ta:
-        ave = ave + x
-    av = ave / len(ta)
-    ta = np.array(ta)
-    ax.fill_between(da, ta, 0,where=ta < dangerlow, alpha=0.6, color='darkblue')
-    ax.fill_between(da, ta, 0,where=ta > dangerlow, alpha=0.6, color='blue')
-    ax.fill_between(da, ta, 0,where=ta > toolow, alpha=0.6, color='green')
-    ax.fill_between(da, ta, 0,where=ta > toohigh, alpha=0.6, color='red')
-    ax.fill_between(da, ta, 0,where=ta > dangerhigh, alpha=0.6, color='darkred')
+    fill_colours = False
+    if fill_colours == True:
+        ta = np.array(ta)
+        ax.fill_between(da, ta, 0,where=ta < dangerlow, alpha=0.6, color='darkblue')
+        ax.fill_between(da, ta, 0,where=ta > dangerlow, alpha=0.6, color='blue')
+        ax.fill_between(da, ta, 0,where=ta > toolow, alpha=0.6, color='green')
+        ax.fill_between(da, ta, 0,where=ta > toohigh, alpha=0.6, color='red')
+        ax.fill_between(da, ta, 0,where=ta > dangerhigh, alpha=0.6, color='darkred')
     ax.xaxis_date()
     plt.title("Time Perod; " + str(da[0].strftime("%b-%d %H:%M")) + " to " + str(da[-1].strftime("%b-%d %H:%M")) + " UTC")
     plt.ylabel("Humidity")
