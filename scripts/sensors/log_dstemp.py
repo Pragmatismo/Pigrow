@@ -24,7 +24,7 @@ for argu in sys.argv[1:]:
         if  thearg == 'sp' or thearg == 'full_path':
             sensor_path = thevalue
             single = True
-        is thearg == "sensor":
+        if thearg == "sensor":
             if "," in thevalue:
                 list_of_sensors = thevalue.split(",")
                 single = false
