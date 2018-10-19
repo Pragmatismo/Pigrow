@@ -27,6 +27,7 @@ except:
     toolow = 20
     toohigh = 30
 
+fill_colours = False
 dangerlow = int(toolow) / 100 * 85
 dangerhigh = int(toohigh) / 100 * 115
 
@@ -46,11 +47,14 @@ for argu in sys.argv[1:]:
             toocold = int(str(argu).split('=')[1])
         elif thearg == 'hot':
             toohot = int(str(argu).split('=')[1])
+        elif thearg == "colour":
+            fill_colours == bool(theval)
     elif argu == 'h' or argu == '-h' or argu == 'help' or argu == '--help':
         print("")
         print("  log=DIR/LOG_FILE  - point to a different log file than mentioned in dirlocs")
         print("  out=DIR/NAME.png  - folder to make graphs in, can use ./ ")
         print("  hours=NUM         - Hours of the logs graph, 168 for a week")
+        print('  colour=True      - turn on high low colouring')
         print("  cold=NUM          - set's the cold point at which graph colors change")
         print("  hot=NUM           - set's the hot point for graph")
         sys.exit()
@@ -58,6 +62,7 @@ for argu in sys.argv[1:]:
         print("log=" + log_location)
         print("out=" + graph_path)
         print("hours=NUM")
+        print('colour=[True,False]')
         print("cold=NUM")
         print("hot=NUM")
         sys.exit()
@@ -122,7 +127,6 @@ def make_graph(da,ta):
     ax = plt.subplot()
   #  ax.bar(da, ta, width=0.01, color='k', linewidth = 0)
     ax.plot(da, ta, color='darkblue', lw=3)
-    fill_colours = False
     if fill_colours == True:
         ta = np.array(ta)
         ax.fill_between(da, ta, 0,where=ta < dangerlow, alpha=0.6, color='darkblue')
