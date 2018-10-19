@@ -27,7 +27,7 @@ for argu in sys.argv[1:]:
         if thearg == "sensor":
             if "," in thevalue:
                 list_of_sensors = thevalue.split(",")
-                single = false
+                single = False
             else:
                 senor_path = "/sys/bus/w1/devices/" + thevalue + "/w1_slave"
                 single = True
