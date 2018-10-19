@@ -20,8 +20,10 @@ for argu in sys.argv[1:]:
     if "=" in argu:
         thearg = str(argu).split('=')[0]
         thevalue = str(argu).split('=')[1]
-        if  thearg == 'sp' or thearg == 'sensor_path':
+        if  thearg == 'sp' or thearg == 'full_path':
             sensor_path = thevalue
+        is thearg == "sensor":
+            senor_path = "/sys/bus/w1/devices/" + thevalue + "/w1_slave"    
         elif thearg == 'log' or thearg == 'log_path':
             log_path = thevalue
     elif argu == 'help' or argu == '-h' or argu == '--help':
@@ -32,8 +34,10 @@ for argu in sys.argv[1:]:
         print("  line; ")
         print("      dtoverlay=w1-gpio")
         print(" ")
-        print(" sp=/sys/bus/w1/devices/SENSORNUMBER/w1_slave")
-        print("      - path to the temp sensor")
+        print(" sensor=SENSORNUMBER")
+        print("      - The sensor number, 28-xxxxxxxxxx")
+        print(" full_path=/sys/bus/w1/devices/SENSORNUMBER/w1_slave")
+        print("      - alternatively to use full path to the temp sensor")
         print(" ")
         print(" log=" + homedir + "/Pigrow/logs/dstemp_log.txt")
         print("      - path to write the log")
@@ -43,7 +47,8 @@ for argu in sys.argv[1:]:
         print("")
         sys.exit()
     elif argu == "-flags":
-        print("sensor_path=/sys/bus/w1/devices/SENSORNUMBER/w1_slave")
+        print("sensor=28-xxxxxxxxxx")
+        print("full_path=/sys/bus/w1/devices/SENSORNUMBER/w1_slave")
         print("log_path=" + str(log_path))
         sys.exit()
 
