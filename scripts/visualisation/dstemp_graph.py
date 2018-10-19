@@ -27,7 +27,7 @@ except:
     toolow = 20
     toohigh = 30
 
-fill_colours = False
+fill_colours = 'false'
 dangerlow = int(toolow) / 100 * 85
 dangerhigh = int(toohigh) / 100 * 115
 
@@ -47,14 +47,14 @@ for argu in sys.argv[1:]:
             toocold = int(str(argu).split('=')[1])
         elif thearg == 'hot':
             toohot = int(str(argu).split('=')[1])
-        elif thearg == "colour":
-            fill_colours == bool(theval)
+        elif thearg == "colour" or thearg == "color" or thearg == "colours" or thearg == "colors":
+            fill_colours = theval.lower()
     elif argu == 'h' or argu == '-h' or argu == 'help' or argu == '--help':
         print("")
         print("  log=DIR/LOG_FILE  - point to a different log file than mentioned in dirlocs")
         print("  out=DIR/NAME.png  - folder to make graphs in, can use ./ ")
         print("  hours=NUM         - Hours of the logs graph, 168 for a week")
-        print('  colour=True      - turn on high low colouring')
+        print('  colour=True       - turn on high low colouring')
         print("  cold=NUM          - set's the cold point at which graph colors change")
         print("  hot=NUM           - set's the hot point for graph")
         sys.exit()
@@ -127,11 +127,11 @@ def make_graph(da,ta, fill_colours):
     ax = plt.subplot()
   #  ax.bar(da, ta, width=0.01, color='k', linewidth = 0)
     ax.plot(da, ta, color='darkblue', lw=3)
-    if fill_colours == True:
+    if fill_colours == 'true':
+        print("Filling graph with colours")
         ta = np.array(ta)
         ax.fill_between(da, ta, 0,where=ta < dangerlow, alpha=0.6, color='darkblue')
-        ax.fill_between(da, ta, 0,where=ta > dangerlow, alpha=0.6, color='blue')
-        ax.fill_between(da, ta, 0,where=ta > toolow, alpha=0.6, color='green')
+        ax.fill_between(da, ta, 0,where=ta < toolow, alpha=0.6, color='green')
         ax.fill_between(da, ta, 0,where=ta > toohigh, alpha=0.6, color='red')
         ax.fill_between(da, ta, 0,where=ta > dangerhigh, alpha=0.6, color='darkred')
     ax.xaxis_date()
@@ -150,7 +150,6 @@ secago = thetime - log_date[-1]
 print "most recent temp - " + str(log_temp[-1])[0:4] + " - " + str(secago) + " seconds ago"
 print "----------------------------------"
 make_graph(log_date, log_temp, fill_colours)
-
 print("Graph of last " + str(hours_to_show) + " hours of temp data created and saved to " + graph_path)
 
 #make_graph(cut_list_date, log_humid[-len(cut_list_date):])
