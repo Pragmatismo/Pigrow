@@ -5732,14 +5732,18 @@ class sensors_info_pnl(wx.Panel):
             extra = MainApp.sensors_info_pannel.sensor_list.GetItem(index, 4).GetText()
             timing_string = MainApp.sensors_info_pannel.sensor_list.GetItem(index, 5).GetText()
             print(" Selected item - " + name + " - " + type + " - " + loc + " - " + extra + " - " + timing_string)
+            MainApp.sensors_info_pannel.sensor_list.s_name = name
+            MainApp.sensors_info_pannel.sensor_list.s_log = log
+            MainApp.sensors_info_pannel.sensor_list.s_loc = loc
+            MainApp.sensors_info_pannel.sensor_list.s_extra = extra
+            MainApp.sensors_info_pannel.sensor_list.s_timing = timing_string
             if type == 'chirp':
-                MainApp.sensors_info_pannel.sensor_list.s_name = name
-                MainApp.sensors_info_pannel.sensor_list.s_log = log
-                MainApp.sensors_info_pannel.sensor_list.s_loc = loc
-                MainApp.sensors_info_pannel.sensor_list.s_extra = extra
-                MainApp.sensors_info_pannel.sensor_list.s_timing = timing_string
                 edit_chirp_dbox = chirp_dialog(None)
                 edit_chirp_dbox.ShowModal()
+            elif type == "DS18B20":
+                ds18b20_dialog_box = ds18b20_dialog(None)
+                ds18b20_dialog_box.ShowModal()
+
 
 class sensors_ctrl_pnl(wx.Panel):
     def __init__(self, parent):
@@ -5790,6 +5794,16 @@ class sensors_ctrl_pnl(wx.Panel):
         self.SetSizer(main_sizer)
 
     def add_ds18b20_click(self, e):
+        # set blanks for dialog box
+        MainApp.sensors_info_pannel.sensor_list.s_name = ""
+        log_path = ""
+        if 'log_path' in MainApp.config_ctrl_pannel.dirlocs_dict:
+            log_path = MainApp.config_ctrl_pannel.dirlocs_dict["log_path"]
+        MainApp.sensors_info_pannel.sensor_list.s_log = log_path
+        MainApp.sensors_info_pannel.sensor_list.s_loc = ""
+        MainApp.sensors_info_pannel.sensor_list.s_extra = ""
+        MainApp.sensors_info_pannel.sensor_list.s_timing = ""
+        # call dialog box
         add_ds18b20 = ds18b20_dialog(None)
         add_ds18b20.ShowModal()
 
@@ -5864,40 +5878,139 @@ class ds18b20_dialog(wx.Dialog):
 
 
     def InitUI(self):
-        #draw the pannel
+        # read values for when editing existing entry
+        self.s_name  = MainApp.sensors_info_pannel.sensor_list.s_name
+        self.s_type  = "DS18B20"
+        self.s_log   = MainApp.sensors_info_pannel.sensor_list.s_log
+        self.s_loc   = MainApp.sensors_info_pannel.sensor_list.s_loc
+        self.s_extra = MainApp.sensors_info_pannel.sensor_list.s_extra
+        self.timing_string = MainApp.sensors_info_pannel.sensor_list.s_timing
+        try:
+            s_rep     = MainApp.sensors_info_pannel.sensor_list.s_timing.split(" ")[0]
+            s_rep_txt = MainApp.sensors_info_pannel.sensor_list.s_timing.split(" ")[1]
+        except:
+            s_rep = ""
+            s_rep_txt = ""
+        # panel
         pnl = wx.Panel(self)
         box_label = wx.StaticText(self,  label='DS18B20 Temp Sensor')
+        # table information
+        name_l = wx.StaticText(self,  label='Unique Name')
+        self.name_tc = wx.TextCtrl(self, size=(400,30))
+        log_l = wx.StaticText(self,  label='Log Location')
+        self.log_tc = wx.TextCtrl(self, size=(400,30))
+        sensor_l = wx.StaticText(self,  label='Sensor Location')
+        # auto list temp sensors
         temp_sensor_list = MainApp.system_ctrl_pannel.find_ds18b20_devices()
-        #add line to remove sensors already added
-        self.temp_sensor_cb = wx.ComboBox(self, choices = temp_sensor_list, size=(265, 30))
+             #---- add line here to remove sensors already added
+        self.temp_sensor_cb = wx.ComboBox(self, choices = temp_sensor_list, size=(170, 25))
         self.read_temp_btn = wx.Button(self, label='Read Temp')
         self.read_temp_btn.Bind(wx.EVT_BUTTON, self.read_temp_click)
         self.temp_value = wx.StaticText(self,  label='--')
+        # timing string
+        timeing_l = wx.StaticText(self,  label='Repeating every ')
+        self.rep_num_tc = wx.TextCtrl(self, size=(70,30))
+        cron_repeat_opts = ['min', 'hour', 'day', 'month', 'dow']
+        self.rep_opts_cb = wx.ComboBox(self, choices = cron_repeat_opts, size=(100, 30))
+        # ok and cancel Buttons
+        self.add_btn = wx.Button(self, label='Add', pos=(15, 250), size=(175, 30))
+        self.add_btn.Bind(wx.EVT_BUTTON, self.add_click)
+        self.cancel_btn = wx.Button(self, label='Cancel', pos=(200, 250), size=(175, 30))
+        self.cancel_btn.Bind(wx.EVT_BUTTON, self.OnClose)
+        # set values for when reading from double click
+        self.name_tc.SetValue(self.s_name)
+        self.log_tc.SetValue(self.s_log)
+        self.temp_sensor_cb.SetValue(self.s_loc)
+        self.rep_num_tc.SetValue(s_rep)
+        self.rep_opts_cb.SetValue(s_rep_txt)
 
+        #
         temp_sensor_sizer = wx.BoxSizer(wx.HORIZONTAL)
         temp_sensor_sizer.Add(self.temp_sensor_cb, 0, wx.ALL|wx.EXPAND, 3)
-        temp_sensor_sizer.Add(self.read_temp_btn, 0, wx.ALL|wx.EXPAND, 3)
+        temp_sensor_sizer.Add(self.read_temp_btn, 0, wx.ALL, 3)
         temp_sensor_sizer.Add(self.temp_value, 0, wx.ALL|wx.EXPAND, 3)
+        timing_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        timing_sizer.Add(self.rep_num_tc, 0, wx.ALL, 3)
+        timing_sizer.Add(self.rep_opts_cb, 0, wx.ALL, 3)
+        options_sizer = wx.GridSizer(4, 2, 1, 4)
+        options_sizer.AddMany([ (name_l, 0, wx.EXPAND),
+            (self.name_tc, 0, wx.EXPAND),
+            (log_l, 0, wx.EXPAND),
+            (self.log_tc, 0, wx.EXPAND),
+            (sensor_l, 0, wx.EXPAND),
+            (temp_sensor_sizer, 0, wx.EXPAND),
+            (timeing_l, 0, wx.EXPAND),
+            (timing_sizer, 0, wx.EXPAND) ])
         main_sizer =  wx.BoxSizer(wx.VERTICAL)
         main_sizer.Add(box_label, 0, wx.ALL|wx.EXPAND, 5)
-        main_sizer.Add(temp_sensor_sizer, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.Add(options_sizer, 0, wx.ALL|wx.EXPAND, 3)
         main_sizer.AddStretchSpacer(1)
 
         self.SetSizer(main_sizer)
 
+
+
     def read_temp_click(self, e):
         sensor = self.temp_sensor_cb.GetValue()
-        print(sensor)
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("cat /sys/bus/w1/devices/" + sensor + "/w1_slave")
-        print(out)
         for line in out.splitlines():
             if "t=" in line:
                 temp = str(int(line.split("t=")[1]) / 1000) + " C"
-                print(temp)
+                print("Temp = " + temp)
                 self.temp_value.SetLabel(temp)
-        print("wants to read temp sensor")
+
+    def add_click(self, e):
+        o_name = self.name_tc.GetValue()
+        o_type = "DS18B20"
+        o_log = self.log_tc.GetValue()
+        o_loc = self.temp_sensor_cb.GetValue()
+        o_extra = ""
+        new_cron_num = self.rep_num_tc.GetValue()
+        new_cron_txt = self.rep_opts_cb.GetValue()
+        new_timing_string = str(new_cron_num) + " " + new_cron_txt
+
+        # print("adding; ")
+        # print(o_name)
+        # print(o_type)
+        # print(o_log)
+        # print(o_loc)
+        # print("______")
+        # check to see if changes have been made
+        changed = "probably something"
+        if self.s_name == o_name:
+            #print("name not changed")
+            if self.s_log == o_log:
+                #print("log path not changed")
+                if self.s_loc == o_loc:
+                    #print("wiring location not changed")
+                    if self.s_extra == o_extra:
+                        #print("extra field not changed")
+                        changed = "nothing"
+                        #nothing has changed in the config file so no need to update.
+        # check to see if changes have been made to the cron timing
+        if self.timing_string == new_timing_string:
+            print(" -- Timing string didn't change -- ")
+        else:
+            print(" !!! cron job needs to change for this sensor, not doing it tho !!! (update coming soon) ")
+        # config file changes
+        if changed == "nothing":
+            print("------- config settings not changed -------")
+        else:
+            MainApp.sensors_info_pannel.sensor_list.add_to_sensor_list(o_name,o_type,o_log,o_loc,o_extra)
+            MainApp.config_ctrl_pannel.config_dict["sensor_" + o_name + "_type"] = o_type
+            MainApp.config_ctrl_pannel.config_dict["sensor_" + o_name + "_log"] = o_log
+            MainApp.config_ctrl_pannel.config_dict["sensor_" + o_name + "_loc"] = o_loc
+            MainApp.config_ctrl_pannel.config_dict["sensor_" + o_name + "_extra"] = o_extra
+            MainApp.config_ctrl_pannel.update_setting_file_on_pi_click('e')
+        self.Destroy()
+
 
     def OnClose(self, e):
+        MainApp.sensors_info_pannel.sensor_list.s_name = ""
+        MainApp.sensors_info_pannel.sensor_list.s_log = ""
+        MainApp.sensors_info_pannel.sensor_list.s_loc = ""
+        MainApp.sensors_info_pannel.sensor_list.s_extra = ""
+        MainApp.sensors_info_pannel.sensor_list.s_timing = ""
         self.Destroy()
 
 class chirp_dialog(wx.Dialog):
