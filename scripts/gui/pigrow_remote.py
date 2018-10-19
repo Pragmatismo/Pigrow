@@ -1100,20 +1100,27 @@ class install_dialog(wx.Dialog):
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("mkdir ~/Pigrow/graphs/")
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("mkdir ~/Pigrow/logs/")
         # make dirlocs with pi's username
-        dirlocs_template, error = MainApp.localfiles_ctrl_pannel.run_on_pi("cat ~/Pigrow/config/templates/dirlocs_temp.txt")
-        dirlocs_template = dirlocs_template.replace("**", str("/home/" + pi_link_pnl.target_user))
-        #temp_dirlocs_local = localfiles_info_pnl.local_path + "temp/dirlocs.txt"
-        temp_dirlocs_local = os.path.join(localfiles_info_pnl.local_path, "temp/dirlocs.txt")
-        local_temp = os.path.join(localfiles_info_pnl.local_path, "temp")
-        if not os.path.isdir(local_temp):
-            os.makedirs(local_temp)
-        with open(temp_dirlocs_local, "w") as temp_local:
-            temp_local.write(dirlocs_template)
-        MainApp.localfiles_ctrl_pannel.upload_file_to_fodler(temp_dirlocs_local, "/home/" + pi_link_pnl.target_user + "/Pigrow/config/dirlocs.txt")
-
+        self.create_dirlocs_from_template()
         self.currently_doing.SetLabel("-")
         self.progress.SetLabel("######~~~~~~~~~~~~~~~~~~~~~~~")
         wx.Yield()
+
+    def create_dirlocs_from_template(self):
+        dirlocs_template, error = MainApp.localfiles_ctrl_pannel.run_on_pi("cat ~/Pigrow/config/templates/dirlocs_temp.txt")
+        dirlocs_text = dirlocs_template.replace("**", str("/home/" + pi_link_pnl.target_user))
+        #print (dirlocs_text)
+        if localfiles_info_pnl.local_path == "":
+            localfiles_info_pnl.local_path = os.path.join(MainApp.localfiles_path, str(pi_link_pnl.boxname))
+        local_temp_path = os.path.join(localfiles_info_pnl.local_path, "temp")
+        local_temp_dirlocs_path =  os.path.join(local_temp_path, "dirlocs.txt")
+        #print(local_temp_path)
+        #print(local_temp_dirlocs_path)
+        if not os.path.isdir(local_temp_path):
+            os.makedirs(local_temp_path)
+        with open(local_temp_dirlocs_path, "w") as temp_local:
+            temp_local.write(dirlocs_text)
+        MainApp.localfiles_ctrl_pannel.upload_file_to_fodler(local_temp_dirlocs_path, "/home/" + pi_link_pnl.target_user + "/Pigrow/config/dirlocs.txt")
+        print(" - uploaded new dirlocs to pigrow config folder")
 
     def install_all_pip(self):
         #updating pip
@@ -1373,6 +1380,14 @@ class config_ctrl_pnl(wx.Panel):
                     print(("!!error reading value from dirlocs; " + str(item)))
         else:
             print("Error; dirlocs contains no information")
+            dbox = wx.MessageDialog(self, "The dirlocs file contains no information, do you want to create a new one?", "Create new dirlocs?", wx.OK | wx.CANCEL | wx.ICON_QUESTION)
+            answer = dbox.ShowModal()
+            dbox.Destroy()
+            if (answer == wx.ID_OK):
+                print("creating new dirlocs")
+                install_dialog.create_dirlocs_from_template(self)
+
+
         #We've now created self.dirlocs_dict with key:value for every setting:value in dirlocs
         #now we grab some of the important ones from the dictionary
         #folder location info (having this in a file on the pi makes it easier if doing things odd ways)
@@ -1447,8 +1462,11 @@ class config_ctrl_pnl(wx.Panel):
         #
         #read pigrow config file
         #
-        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("cat " + pigrow_settings_path)
-        pigrow_settings = out.splitlines()
+        if not pigrow_settings_path == "":
+            out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("cat " + pigrow_settings_path)
+            pigrow_settings = out.splitlines()
+        else:
+            pigrow_settings = []
         #go through the setting file and put them in the correct dictionary
         if len(pigrow_settings) > 1:
             for item in pigrow_settings:
