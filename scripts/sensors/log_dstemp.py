@@ -15,6 +15,7 @@ except:
 
 #sensor_path = "/sys/bus/w1/devices/28-000004a9f218/w1_slave"
 log_path = homedir + "/Pigrow/logs/dstemp_log.txt"
+single = False
 
 for argu in sys.argv[1:]:
     if "=" in argu:
@@ -22,8 +23,14 @@ for argu in sys.argv[1:]:
         thevalue = str(argu).split('=')[1]
         if  thearg == 'sp' or thearg == 'full_path':
             sensor_path = thevalue
+            single = True
         is thearg == "sensor":
-            senor_path = "/sys/bus/w1/devices/" + thevalue + "/w1_slave"    
+            if "," in thevalue:
+                list_of_sensors = thevalue.split(",")
+                single = false
+            else:
+                senor_path = "/sys/bus/w1/devices/" + thevalue + "/w1_slave"
+                single = True
         elif thearg == 'log' or thearg == 'log_path':
             log_path = thevalue
     elif argu == 'help' or argu == '-h' or argu == '--help':
@@ -36,6 +43,7 @@ for argu in sys.argv[1:]:
         print(" ")
         print(" sensor=SENSORNUMBER")
         print("      - The sensor number, 28-xxxxxxxxxx")
+        print("        use comma to seperate multipul sensors")
         print(" full_path=/sys/bus/w1/devices/SENSORNUMBER/w1_slave")
         print("      - alternatively to use full path to the temp sensor")
         print(" ")
@@ -47,14 +55,13 @@ for argu in sys.argv[1:]:
         print("")
         sys.exit()
     elif argu == "-flags":
-        print("sensor=28-xxxxxxxxxx")
+        print("sensor=28-xxxxxxxxxx,28-xxxxxxxxxx")
         print("full_path=/sys/bus/w1/devices/SENSORNUMBER/w1_slave")
         print("log_path=" + str(log_path))
         sys.exit()
 
 
-def read_temp_sensor(sensor):
-    sensor_path = "/sys/bus/w1/devices/" + sensor + "/w1_slave"
+def read_temp_sensor(sensor_path):
     try:
         with open(sensor_path, "r") as sensor_data:
             sensor_reading = sensor_data.read()
@@ -83,12 +90,19 @@ def temp_c_to_f(temp_c):
 
 
 temp_list = []
-for sensor in list_of_sensors:
-    if not sensor == 'w1_bus_master1':
-        temp = read_temp_sensor(sensor)
-        if not temp == None:
-            #crazy americans might want to temp =  temp_c_to_f(temp) about here.
-            temp_list.append([temp, sensor])
+if single == True:
+    temp = read_temp_sensor(sensor_path)
+    if not temp == None:
+        #americans might want to temp =  temp_c_to_f(temp) about here.
+        temp_list.append([temp, sensor])
+else:
+    for sensor in list_of_sensors:
+        sensor_path = "/sys/bus/w1/devices/" + sensor + "/w1_slave"
+        if not sensor == 'w1_bus_master1':
+            temp = read_temp_sensor(sensor_path)
+            if not temp == None:
+                #crazy americans might want to temp =  temp_c_to_f(temp) about here.
+                temp_list.append([temp, sensor])
 
 if len(temp_list) >= 1:
     log_temp_sensor(log_path, temp_list)
