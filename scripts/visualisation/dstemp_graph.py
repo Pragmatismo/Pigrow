@@ -122,7 +122,7 @@ def add_log(linktolog):
         print("No data, no graph...")
         exit()
 
-def make_graph(da,ta):
+def make_graph(da,ta, fill_colours):
     plt.figure(1)
     ax = plt.subplot()
   #  ax.bar(da, ta, width=0.01, color='k', linewidth = 0)
@@ -136,10 +136,9 @@ def make_graph(da,ta):
         ax.fill_between(da, ta, 0,where=ta > dangerhigh, alpha=0.6, color='darkred')
     ax.xaxis_date()
     plt.title("Time Perod; " + str(da[0].strftime("%b-%d %H:%M")) + " to " + str(da[-1].strftime("%b-%d %H:%M")) + " UTC")
-    plt.ylabel("Humidity")
+    plt.ylabel("Temp")
     fig = plt.gcf()
-    fig.canvas.set_window_title('Humidity Graph')
-    maxh = ta
+    fig.canvas.set_window_title('DS18B20 Temp Graph')
     fig.autofmt_xdate()
     #plt.show()
     plt.savefig(graph_path)
@@ -150,7 +149,7 @@ print "----------------------------------"
 secago = thetime - log_date[-1]
 print "most recent temp - " + str(log_temp[-1])[0:4] + " - " + str(secago) + " seconds ago"
 print "----------------------------------"
-make_graph(log_date, log_temp)
+make_graph(log_date, log_temp, fill_colours)
 
 print("Graph of last " + str(hours_to_show) + " hours of temp data created and saved to " + graph_path)
 
