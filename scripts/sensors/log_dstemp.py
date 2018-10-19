@@ -92,6 +92,7 @@ def temp_c_to_f(temp_c):
 temp_list = []
 if single == True:
     temp = read_temp_sensor(sensor_path)
+    sensor = sensor_path.split("devices/")[1].split("/w1")[0]
     if not temp == None:
         #americans might want to temp =  temp_c_to_f(temp) about here.
         temp_list.append([temp, sensor])
