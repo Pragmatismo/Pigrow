@@ -29,7 +29,7 @@ for argu in sys.argv[1:]:
                 list_of_sensors = thevalue.split(",")
                 single = False
             else:
-                senor_path = "/sys/bus/w1/devices/" + thevalue + "/w1_slave"
+                sensor_path = "/sys/bus/w1/devices/" + thevalue + "/w1_slave"
                 single = True
         elif thearg == 'log' or thearg == 'log_path':
             log_path = thevalue
