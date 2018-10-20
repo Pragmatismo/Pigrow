@@ -5803,7 +5803,7 @@ class sensors_ctrl_pnl(wx.Panel):
         MainApp.sensors_info_pannel.sensor_list.s_name = ""
         log_path = ""
         if 'log_path' in MainApp.config_ctrl_pannel.dirlocs_dict:
-            log_path = MainApp.config_ctrl_pannel.dirlocs_dict["log_path"]
+            log_path = MainApp.config_ctrl_pannel.dirlocs_dict["log_path"] + "dstemp_log.py"
         MainApp.sensors_info_pannel.sensor_list.s_log = log_path
         MainApp.sensors_info_pannel.sensor_list.s_loc = ""
         MainApp.sensors_info_pannel.sensor_list.s_extra = ""
