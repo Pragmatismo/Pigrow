@@ -342,10 +342,34 @@ class system_ctrl_pnl(wx.Panel):
         return gpio_pins
 
     def add_1wire(self, e):
+        # the line dtoverlay=w1-gpio,gpiopin=4
         if self.add_1wire_btn.GetLabel() == "add to config":
-            print("Sorry, adding the 1wire overlay to the config file is not yet a feature")
+            msg = 'What gpio pin is the 1wire connected to?' #Seperate with a comma if using more than one.'
+            generic = '4'
+            onewire_dbox = wx.TextEntryDialog(self, msg, "1wire GPIO pin select", generic)
+            if onewire_dbox.ShowModal() == wx.ID_OK:
+                pin_numbers = onewire_dbox.GetValue()
+            else:
+                return "cancelled"
+            onewire_dbox.Destroy()
+            gpio_pin = "gpiopin=" + str(pin_numbers)
+            dt_cmd = "dtoverlay=w1-gpio," + gpio_pin
+            #out, error = MainApp.localfiles_ctrl_pannel.run_on_pi('sudo echo "' + dt_cmd + '" >> /boot/config.txt')
+            print('echo "' + dt_cmd + '" >> /boot/config.txt')
+            #print(" Added " + dt_cmd + " to /boot/config.txt")
+            print(" - THIS CODE IS IN TESTING AND CURRENTLY DISABLED -")
         elif self.add_1wire_btn.GetLabel() == "edit config":
             print("sorry, editing the config file is not yet an option")
+            out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("cat /boot/config.txt")
+            config_txt_lines = out.splitlines()
+            for line in config_txt_lines:
+                if "dtoverlay=w1-gpio" in line:
+                    print (line)
+                    if "#" in line:
+                        print(" editing config.txt found a #")
+
+
+
 
     def run_cmd_on_pi_click(self, e):
         msg = 'Input command to run on pi\n\n This will run the command and wait for it to finish before\ngiving results and resuming the gui'
