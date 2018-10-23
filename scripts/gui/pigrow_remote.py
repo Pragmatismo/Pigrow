@@ -193,10 +193,14 @@ class system_ctrl_pnl(wx.Panel):
         # pi gpio overlay controlls
         self.find_i2c_btn = wx.Button(self, label='i2c check')
         self.find_i2c_btn.Bind(wx.EVT_BUTTON, self.find_i2c_devices)
-        self.find_1wire_btn = wx.Button(self, label='1 wire check')
-        self.find_1wire_btn.Bind(wx.EVT_BUTTON, self.find_1wire_devices)
         self.i2c_baudrate_btn = wx.Button(self, label='baudrate')
         self.i2c_baudrate_btn.Bind(wx.EVT_BUTTON, self.set_baudrate)
+        self.i2c_baudrate_btn.Disable()
+        self.find_1wire_btn = wx.Button(self, label='1 wire check')
+        self.find_1wire_btn.Bind(wx.EVT_BUTTON, self.find_1wire_devices)
+        self.add_1wire_btn = wx.Button(self, label='config')
+        self.add_1wire_btn.Bind(wx.EVT_BUTTON, self.add_1wire)
+        self.add_1wire_btn.Disable()
         # run command on pi button
         self.run_cmd_on_pi_btn = wx.Button(self, label='Run Command On Pi')
         self.run_cmd_on_pi_btn.Bind(wx.EVT_BUTTON, self.run_cmd_on_pi_click)
@@ -208,6 +212,9 @@ class system_ctrl_pnl(wx.Panel):
         i2c_sizer = wx.BoxSizer(wx.HORIZONTAL)
         i2c_sizer.Add(self.find_i2c_btn, 0, wx.ALL|wx.EXPAND, 3)
         i2c_sizer.Add(self.i2c_baudrate_btn, 0, wx.ALL|wx.EXPAND, 3)
+        onewire_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        onewire_sizer.Add(self.find_1wire_btn, 0, wx.ALL|wx.EXPAND, 3)
+        onewire_sizer.Add(self.add_1wire_btn, 0, wx.ALL|wx.EXPAND, 3)
         main_sizer = wx.BoxSizer(wx.VERTICAL)
         main_sizer.Add(self.tab_label, 0, wx.ALL|wx.EXPAND, 3)
         main_sizer.Add(self.read_system_btn, 0, wx.ALL|wx.EXPAND, 3)
@@ -218,7 +225,7 @@ class system_ctrl_pnl(wx.Panel):
         main_sizer.Add(power_sizer, 0, wx.ALL|wx.EXPAND, 3)
         main_sizer.AddStretchSpacer(1)
         main_sizer.Add(i2c_sizer, 0, wx.ALL|wx.EXPAND, 3)
-        main_sizer.Add(self.find_1wire_btn, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.Add(onewire_sizer, 0, wx.ALL|wx.EXPAND, 3)
         main_sizer.AddStretchSpacer(1)
         main_sizer.Add(self.run_cmd_on_pi_btn, 0, wx.ALL|wx.EXPAND, 3)
 
@@ -270,29 +277,75 @@ class system_ctrl_pnl(wx.Panel):
             module_text = "1wire module NOT enabled\n"
 
 
+
         # Check config file for 1wire overlay
         #/boot/config.txt file should include the line 'dtoverlay=w1-gpio'
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("cat /boot/config.txt")
         config_file = out.splitlines()
         overlay_count = 0
+        onewire_gpio_pins = []
         for line in config_file:
             line = line.strip()
             if "dtoverlay" in line and "w1-gpio" in line:
-                if line[0] == "#":
-                    print ("dtoverlay=w1-gpio is disabled")
-                    overlay_count += 1
-                    onewire_config_file = "onewire overlay disabled"
+                if "#" in line:
+                    hash_location = line.find("#")
+                    option_loction = line.find("dtoverlay")
+                    if hash_location < option_loction:
+                        print ("dtoverlay=w1-gpio is disabled")
+                        overlay_count += 1
+                        onewire_config_file = "onewire overlay disabled in config"
+                    else:
+                        print("dtoverlay=w1-gpio found and active")
+                        overlay_count += 1
+                        onewire_config_file = "onewire overlay enabled in config\n"
+                        onewire_gpio_pins.append(self.check_for_gpiopin_num(line))
                 else:
-                    print("dtoverlay=w1-gpio found and active")
+                    print("dtoverlay=w1-gpio found, active")
                     overlay_count += 1
-                    onewire_config_file = "onewire overlay enabled"
+                    onewire_config_file = "onewire overlay enabled in config\n"
+                    onewire_gpio_pins.append(self.check_for_gpiopin_num(line))
+        # mention if it's not shown at all or if it's shown too many times.
         if overlay_count == 0:
             print("dtoverlay=w1-gpio not found in config enabled or otherwise")
             onewire_config_file = "onewire overlay not in config file"
+            self.add_1wire_btn.SetLabel("add to config")
+        if overlay_count > 1:
+            print("dtoverlay=w1-gpio mentioned more than once")
+            onewire_config_file = "onewire overlay in config file multipul times, remove all but one to limit confusion.\n"
+        # mention which gpio pins are being used
+        if overlay_count > 0:
+            if len(onewire_gpio_pins) == 0:
+                print("   - one wire using default pin")
+                onewire_config_file += "  - one wire using default pin"
+            else:
+                print("   - one wire using GPIO " + str(onewire_gpio_pins))
+                onewire_config_file += "   - one wire using GPIO " + str(onewire_gpio_pins)
+            self.add_1wire_btn.SetLabel("edit config")
+        self.add_1wire_btn.Enable()
         # assemble final message and print to screen
         final_1wire_text = module_text + therm_module_text + other_modules + onewire_config_file
         system_info_pnl.sys_1wire_info.SetLabel(final_1wire_text)
         MainApp.window_self.Layout()
+
+    def check_for_gpiopin_num(self, line):
+        gpio_pins = []
+        if "#" in line:
+            line = line.split("#")[0]
+        if "dtoverlay=w1-gpio" in line:
+            if "," in line:
+                parts = line.split(",")
+                for part in parts:
+                    if "gpiopin=" in part:
+                        pin = part.split("=")[1]
+                        print("found w1 overlay using pin " + pin)
+                        gpio_pins.append(pin)
+        return gpio_pins
+
+    def add_1wire(self, e):
+        if self.add_1wire_btn.GetLabel() == "add to config":
+            print("Sorry, adding the 1wire overlay to the config file is not yet a feature")
+        elif self.add_1wire_btn.GetLabel() == "edit config":
+            print("sorry, editing the config file is not yet an option")
 
     def run_cmd_on_pi_click(self, e):
         msg = 'Input command to run on pi\n\n This will run the command and wait for it to finish before\ngiving results and resuming the gui'
@@ -367,6 +420,7 @@ class system_ctrl_pnl(wx.Panel):
             return "i2c not found"
         # if i2c bus found perform aditional checks, updates the textbox and returns the bus number
         # check if baurdrate is changed in Config
+        self.i2c_baudrate_btn.Enable()
         i2c_baudrate = self.check_i2c_baudrate(i2c_bus_number)
         i2c_text += " baudrate " + str(i2c_baudrate)
         #
@@ -769,7 +823,7 @@ class system_info_pnl(wx.Panel):
         uart_l = wx.StaticText(self,  label='UART -')
         system_info_pnl.sys_uart_info = wx.StaticText(self,  label='-uart info (not implimented)-')
         onewire_l = wx.StaticText(self,  label='1 Wire -')
-        system_info_pnl.sys_1wire_info = wx.StaticText(self,  label='-1 wire info (not implimented)-')
+        system_info_pnl.sys_1wire_info = wx.StaticText(self,  label='-1 wire info-')
 
         # network pannel - lower half
         #wifi deatils
@@ -6485,12 +6539,26 @@ class pi_link_pnl(wx.Panel):
         system_info_pnl.sys_pi_revision.SetLabel("")
         system_info_pnl.sys_pi_date.SetLabel("")
         system_info_pnl.sys_pc_date.SetLabel("")
+        system_info_pnl.sys_i2c_info.SetLabel("")
+        system_info_pnl.sys_uart_info.SetLabel("")
+        system_info_pnl.sys_1wire_info.SetLabel("")
+        MainApp.system_ctrl_pannel.i2c_baudrate_btn.Disable()
+        MainApp.system_ctrl_pannel.add_1wire_btn.Disable()
         #system_info_pnl.sys_time_diff.SetLabel("")
         # clear config ctrl text and tables
         try:
             MainApp.config_ctrl_pannel.dirlocs_dict.clear()
+        except:
+            pass
+        try:
             MainApp.config_ctrl_pannel.config_dict.clear()
+        except:
+            pass
+        try:
             MainApp.config_ctrl_pannel.gpio_dict.clear()
+        except:
+            pass
+        try:
             MainApp.config_ctrl_pannel.gpio_on_dict.clear()
         except:
             pass
@@ -6523,7 +6591,6 @@ class pi_link_pnl(wx.Panel):
         localfiles_info_pnl.config_files.DeleteAllItems()
         localfiles_info_pnl.logs_files.DeleteAllItems()
         # graphing tab clear
-        graphing_info_pnl.graph_img_box.SetBitmap(blank)
         graphing_ctrl_pnl.blank_options_ui_elements(MainApp.graphing_ctrl_pannel)
         MainApp.graphing_ctrl_pannel.graph_cb.SetValue("")
         MainApp.graphing_ctrl_pannel.select_script_cb.SetValue("")
