@@ -21,6 +21,8 @@ for argu in sys.argv[1:]:
         print("")
         print(" usage: cam_change_setting.py conf=" + homedir + "/Pigrow/config/camera_settings.txt b_val=200")
         print("     ")
+        print(" use; cam_change_setting.py -flags")
+        print("                to see a list of settings")
         sys.exit(0)
     elif argu == '-flags':
         print("conf=" + homedir + "/Pigrow/config/camera_settings.txt")
@@ -54,7 +56,7 @@ if len(setting_to_change) == 0:
     sys.exit()
 if not os.path.isfile(settings_file_path):
     print("Settings file doesn't exist, check the path and try again")
-    sys.exit() 
+    sys.exit()
 
 # load settings file
 with open(settings_file_path, "r") as file:
