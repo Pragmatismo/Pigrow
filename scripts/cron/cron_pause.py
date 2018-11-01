@@ -43,20 +43,21 @@ print("    ")
 print(" Read cron, looking for lines containing " + script + " to change...")
 cron_text = ""
 for line in current_cron:
-    if script in line:
-        if pause == "true":
-            if not "#" in line.split(" ")[0]:
-                line = "#" + line
-                print(" paused - " + line)
-            else:
-                print("line was already paused - " + line)
-        elif pause == "false":
-            if "#" in line.split(" ")[0]:
-                after_hash = line.split("#")[1]
-                line = after_hash + line.split(after_hash)[1]
-                print(" unpaused - " + line)
-            else:
-                print(" line was already unpaused - " + line)
+    if not "cron_pause" in line:
+        if script in line:
+            if pause == "true":
+                if not "#" in line.split(" ")[0]:
+                    line = "#" + line
+                    print(" paused - " + line)
+                else:
+                    print("line was already paused - " + line)
+            elif pause == "false":
+                if "#" in line.split(" ")[0]:
+                    after_hash = line.split("#")[1]
+                    line = after_hash + line.split(after_hash)[1]
+                    print(" unpaused - " + line)
+                else:
+                    print(" line was already unpaused - " + line)
     cron_text = cron_text + line + "\n"
 
 #print cron_text
