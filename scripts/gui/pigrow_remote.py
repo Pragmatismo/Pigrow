@@ -50,9 +50,9 @@
 ####     MainApp.localfiles_ctrl_pannel.download_file_to_folder("/home/" + pi_link_pnl.target_user + "/Pigrow/graphs/graph.png", "graphs/graph.png"
 #
 ###                 upload a file to the raspberry pi
-##    MainApp.localfiles_ctrl_pannel.upload_file_to_fodler(local_path, remote_path):
+##    MainApp.localfiles_ctrl_pannel.upload_file_to_folder(local_path, remote_path):
 #           local_path and remote_path should be full and explicit paths
-####     MainApp.localfiles_ctrl_pannel.upload_file_to_fodler(localfiles_info_pnl.local_path + "temp/temp.txt", "/home/" + pi_link_pnl.target_user + "/Pigrow/temp/temp.txt")
+####     MainApp.localfiles_ctrl_pannel.upload_file_to_folder(localfiles_info_pnl.local_path + "temp/temp.txt", "/home/" + pi_link_pnl.target_user + "/Pigrow/temp/temp.txt")
 #
 #
 #
@@ -1431,7 +1431,7 @@ class install_dialog(wx.Dialog):
             os.makedirs(local_temp_path)
         with open(local_temp_dirlocs_path, "w") as temp_local:
             temp_local.write(dirlocs_text)
-        MainApp.localfiles_ctrl_pannel.upload_file_to_fodler(local_temp_dirlocs_path, "/home/" + pi_link_pnl.target_user + "/Pigrow/config/dirlocs.txt")
+        MainApp.localfiles_ctrl_pannel.upload_file_to_folder(local_temp_dirlocs_path, "/home/" + pi_link_pnl.target_user + "/Pigrow/config/dirlocs.txt")
         print(" - uploaded new dirlocs to pigrow config folder")
 
     def update_pip(self):
@@ -4228,7 +4228,7 @@ class localfiles_ctrl_pnl(wx.Panel):
         print(("    file copied to " + str(local_path)))
         return local_path
 
-    def upload_file_to_fodler(self, local_path, remote_path):
+    def upload_file_to_folder(self, local_path, remote_path):
         # Copies a folder from the local machine onto the pigrow
         # local_path and remote_path should be full and explicit paths
         port = 22
@@ -4830,7 +4830,7 @@ class camconf_info_pnl(scrolled.ScrolledPanel):
         # placing the information boxes
         # top row
         ccf_label = wx.StaticText(self,  label='Camera Config file', size=(150,30))
-        self.camconf_path_tc = wx.TextCtrl(self, value="cam config path", size=(350, 30))
+        self.camconf_path_tc = wx.TextCtrl(self, value="", size=(350, 30))
         # Top bar info
         # basic settings - left col
         b_label = wx.StaticText(self,  label='Brightness;')
@@ -5142,15 +5142,19 @@ class camconf_ctrl_pnl(wx.Panel):
 
     def read_cam_config_click(self, e):
         #
-        try:
-            MainApp.camconf_info_pannel.camconf_path_tc.SetValue(MainApp.config_ctrl_pannel.dirlocs_dict['camera_settings'])
-        except:
-            raise
-            MainApp.camconf_info_pannel.camconf_path_tc.SetValue("none")
-            print("Camera config not set in dirlocs")
+        if MainApp.camconf_info_pannel.camconf_path_tc.GetValue() == "":
+            try:
+                MainApp.camconf_info_pannel.camconf_path_tc.SetValue(MainApp.config_ctrl_pannel.dirlocs_dict['camera_settings'])
+            except:
+                #raise
+                MainApp.camconf_info_pannel.camconf_path_tc.SetValue("/home/" + pi_link_pnl.target_user + "/Pigrow/config.camera_settings.txt")
+                print("Camera config location not set in dirlocs, using default location.")
         #
         pi_cam_settings_path = MainApp.camconf_info_pannel.camconf_path_tc.GetValue()
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("cat " + pi_cam_settings_path)
+        if out == "":
+            print("Unable to read settings file -" + pi_cam_settings_path)
+            return None
         cam_settings = out.splitlines()
         self.camera_settings_dict = {}
         for line in cam_settings:
@@ -5210,11 +5214,10 @@ class camconf_ctrl_pnl(wx.Panel):
         config_text += "fsw_extra=" + str(MainApp.camconf_info_pannel.extra_cmds_string_fs_tb.GetValue()) + "\n"
     #    config_text += "uvc_extra=" + str("")
         # Ask if user really wants to update
-    #    chgdep = upload_dialog(None, title='upload settings to pi')
-    #    chgdep.ShowModal()
-    #    name_of_file = chgdep.settings_file_name
-    #    chgdep.Destroy()
-        filename_dbox = wx.TextEntryDialog(self, 'Upload config file with name, \n\nChange when using more than one camera', 'Upload config to Pi?', 'camera_settings.txt')
+        camera_settings_path = MainApp.camconf_info_pannel.camconf_path_tc.GetValue()
+        remote_path = os.path.dirname(camera_settings_path)
+        config_file_name = os.path.basename(camera_settings_path)
+        filename_dbox = wx.TextEntryDialog(self, 'Upload config file with name, \n\n(Change when using more than one camera)', 'Upload config to Pi?', config_file_name)
         if filename_dbox.ShowModal() == wx.ID_OK:
             cam_config_file_name = filename_dbox.GetValue()
         else:
@@ -5227,9 +5230,9 @@ class camconf_ctrl_pnl(wx.Panel):
         local_cam_settings_file = os.path.join(temp_local, cam_config_file_name)
         with open(local_cam_settings_file, "w") as f:
             f.write(config_text)
-        remote_path = MainApp.config_ctrl_pannel.dirlocs_dict['path']
-        remote_conf_path = os.path.join(remote_path, 'config/', cam_config_file_name)
-        MainApp.localfiles_ctrl_pannel.upload_file_to_fodler(local_cam_settings_file, remote_conf_path)
+        remote_path = MainApp.config_ctrl_pannel.dirlocs_dict['path'] + "/config/"
+        remote_conf_path = os.path.join(remote_path, cam_config_file_name)
+        MainApp.localfiles_ctrl_pannel.upload_file_to_folder(local_cam_settings_file, remote_conf_path)
 
 
     def list_cams_click(self, e):
@@ -5247,8 +5250,9 @@ class camconf_ctrl_pnl(wx.Panel):
 
     def take_saved_set_click(self, e):
         print("Taking photo using camcap.py")
+        settings_file = MainApp.camconf_info_pannel.camconf_path_tc.GetValue()
         outpath = '/home/' + pi_link_pnl.target_user + '/Pigrow/temp/'
-        cmd = '/home/' + pi_link_pnl.target_user + '/Pigrow/scripts/cron/camcap.py caps=' + outpath
+        cmd = '/home/' + pi_link_pnl.target_user + '/Pigrow/scripts/cron/camcap.py caps=' + outpath + ' set=' + settings_file
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi(cmd)
         output = out + error
         print (out, error)
@@ -5768,7 +5772,6 @@ class timelapse_ctrl_pnl(wx.Panel):
         main_sizer.Add(render_bar_sizer, 0, wx.ALL|wx.EXPAND, 3)
         main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.AddStretchSpacer(1)
-
         self.SetSizer(main_sizer)
 
         #create blank lists
