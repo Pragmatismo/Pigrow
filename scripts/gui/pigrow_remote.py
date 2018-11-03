@@ -58,7 +58,7 @@
 #
 ###      Useful Variables - Path info
 ##
-##  temp_local = localfiles_info_pnl.local_path + "temp/"
+##  temp_local = localfiles_info_pnl.local_path + "/temp/"
 ##  remote_path = "/home/" + pi_link_pnl.target_user + "/Pigrow/"
 #
 #  SETTINGS FOR THE GUI TO USE
@@ -198,12 +198,14 @@ class system_ctrl_pnl(wx.Panel):
         self.i2c_baudrate_btn.Disable()
         self.find_1wire_btn = wx.Button(self, label='1 wire check')
         self.find_1wire_btn.Bind(wx.EVT_BUTTON, self.find_1wire_devices)
-        self.add_1wire_btn = wx.Button(self, label='config')
+        self.add_1wire_btn = wx.Button(self, label='Add 1w')
         self.add_1wire_btn.Bind(wx.EVT_BUTTON, self.add_1wire)
         self.add_1wire_btn.Disable()
         # run command on pi button
         self.run_cmd_on_pi_btn = wx.Button(self, label='Run Command On Pi')
         self.run_cmd_on_pi_btn.Bind(wx.EVT_BUTTON, self.run_cmd_on_pi_click)
+        self.edit_boot_config_btn = wx.Button(self, label='Edit /boot/config.txt')
+        self.edit_boot_config_btn.Bind(wx.EVT_BUTTON, self.edit_boot_config_click)
 
         # Sizers
         power_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -218,19 +220,28 @@ class system_ctrl_pnl(wx.Panel):
         main_sizer = wx.BoxSizer(wx.VERTICAL)
         main_sizer.Add(self.tab_label, 0, wx.ALL|wx.EXPAND, 3)
         main_sizer.Add(self.read_system_btn, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.AddStretchSpacer(1)
         main_sizer.Add(self.install_pigrow_btn, 0, wx.ALL|wx.EXPAND, 3)
         main_sizer.Add(self.update_pigrow_btn, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.AddStretchSpacer(1)
         main_sizer.Add(power_sizer, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.AddStretchSpacer(1)
         main_sizer.Add(i2c_sizer, 0, wx.ALL|wx.EXPAND, 3)
         main_sizer.Add(onewire_sizer, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.AddStretchSpacer(1)
         main_sizer.Add(self.run_cmd_on_pi_btn, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.Add(self.edit_boot_config_btn, 0, wx.ALL|wx.EXPAND, 3)
 
         self.SetSizer(main_sizer)
 
+
+    def edit_boot_config_click(self ,e):
+        boot_conf = edit_boot_config_dialog(None)
+        boot_conf.ShowModal()
 
     def find_ds18b20_devices(self):
         temp_sensor_list = []
@@ -276,100 +287,222 @@ class system_ctrl_pnl(wx.Panel):
         else:
             module_text = "1wire module NOT enabled\n"
 
-
-
         # Check config file for 1wire overlay
         #/boot/config.txt file should include the line 'dtoverlay=w1-gpio'
-        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("cat /boot/config.txt")
-        config_file = out.splitlines()
-        overlay_count = 0
-        onewire_gpio_pins = []
-        for line in config_file:
-            line = line.strip()
-            if "dtoverlay" in line and "w1-gpio" in line:
-                if "#" in line:
-                    hash_location = line.find("#")
-                    option_loction = line.find("dtoverlay")
-                    if hash_location < option_loction:
-                        print ("dtoverlay=w1-gpio is disabled")
-                        overlay_count += 1
-                        onewire_config_file = "onewire overlay disabled in config"
-                    else:
-                        print("dtoverlay=w1-gpio found and active")
-                        overlay_count += 1
-                        onewire_config_file = "onewire overlay enabled in config\n"
-                        onewire_gpio_pins.append(self.check_for_gpiopin_num(line))
+        onewire_pin_list = self.find_dtoverlay_1w_pins()
+        enabled_onewire_overlays_text = "Enabled Overlays on GPIO; "
+        disabled_onewire_overlays_text= "Disabled Overlays on GPIO; "
+        if len(onewire_pin_list) > 0:
+            for overlay in onewire_pin_list:
+                if overlay[0] == True:
+                    enabled_onewire_overlays_text += overlay[1] + ", "
+                    if not overlay[2] == "":
+                        enabled_onewire_overlays_text = enabled_onewire_overlays_text[:-2] + "(" + overlay[2] + "), "
                 else:
-                    print("dtoverlay=w1-gpio found, active")
-                    overlay_count += 1
-                    onewire_config_file = "onewire overlay enabled in config\n"
-                    onewire_gpio_pins.append(self.check_for_gpiopin_num(line))
+                    disabled_onewire_overlays_text += overlay[1] + ","
+                    if not overlay[2] == "":
+                        disabled_onewire_overlays_text = disabled_onewire_overlays_text[:-2] + "(" + str(overlay[2]) + "), "
+            disabled_onewire_overlays_text = disabled_onewire_overlays_text[:-2]
+            onewire_config_file_text = "Found 1wire overlay in /boot/config.txt\n  " + enabled_onewire_overlays_text[:-2]
+            if not disabled_onewire_overlays_text == "Disabled Overlays on GPIO":
+                onewire_config_file_text += "\n  " + disabled_onewire_overlays_text
+            #self.add_1wire_btn.SetLabel("edit config")
+        else:
+            onewire_config_file_text = "1wire overlay not found in /boot/config.txt"
+            #self.add_1wire_btn.SetLabel("add to config")
+
+
+
+        #onewire_gpio_pins = []
+        #config_file = out.splitlines()
+        #overlay_count = 0
+        #out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("cat /boot/config.txt")
+
+        #for line in config_file:
+        #    line = line.strip()
+        #    if "dtoverlay" in line and "w1-gpio" in line:
+        #        if "#" in line:
+        #            hash_location = line.find("#")
+        #            option_loction = line.find("dtoverlay")
+        #            if hash_location < option_loction:
+        #                print ("dtoverlay=w1-gpio is disabled")
+        #                overlay_count += 1
+        #                onewire_config_file = "onewire overlay disabled in config"
+        #            else:
+        #                print("dtoverlay=w1-gpio found and active")
+        #                overlay_count += 1
+        #                onewire_config_file = "onewire overlay enabled in config\n"
+        #                onewire_gpio_pins.append(self.check_for_gpiopin_num(line))
+        #        else:
+        #            print("dtoverlay=w1-gpio found, active")
+        #            overlay_count += 1
+        #            onewire_config_file = "onewire overlay enabled in config\n"
+        #            onewire_gpio_pins.append(self.check_for_gpiopin_num(line))
         # mention if it's not shown at all or if it's shown too many times.
-        if overlay_count == 0:
-            print("dtoverlay=w1-gpio not found in config enabled or otherwise")
-            onewire_config_file = "onewire overlay not in config file"
-            self.add_1wire_btn.SetLabel("add to config")
-        if overlay_count > 1:
-            print("dtoverlay=w1-gpio mentioned more than once")
-            onewire_config_file = "onewire overlay in config file multipul times, remove all but one to limit confusion.\n"
+        #if overlay_count == 0:
+        #    print("dtoverlay=w1-gpio not found in config enabled or otherwise")
+        #    onewire_config_file = "onewire overlay not in config file"
+        #    self.add_1wire_btn.SetLabel("add to config")
+        #if overlay_count > 1:
+        #    print("dtoverlay=w1-gpio mentioned more than once")
+        #    onewire_config_file = "onewire overlay in config file multipul times, remove all but one to limit confusion.\n"
         # mention which gpio pins are being used
-        if overlay_count > 0:
-            if len(onewire_gpio_pins) == 0:
-                print("   - one wire using default pin")
-                onewire_config_file += "  - one wire using default pin"
-            else:
-                print("   - one wire using GPIO " + str(onewire_gpio_pins))
-                onewire_config_file += "   - one wire using GPIO " + str(onewire_gpio_pins)
-            self.add_1wire_btn.SetLabel("edit config")
+        #if overlay_count > 0:
+        #    if len(onewire_gpio_pins) == 0:
+        #        print("   - one wire using default pin")
+        #        onewire_config_file += "  - one wire using default pin"
+        #    else:
+        #        print("   - one wire using GPIO " + str(onewire_gpio_pins))
+        #        onewire_config_file += "   - one wire using GPIO " + str(onewire_gpio_pins)
+
         self.add_1wire_btn.Enable()
         # assemble final message and print to screen
-        final_1wire_text = module_text + therm_module_text + other_modules + onewire_config_file
+        final_1wire_text = module_text + therm_module_text + other_modules + onewire_config_file_text
         system_info_pnl.sys_1wire_info.SetLabel(final_1wire_text)
         MainApp.window_self.Layout()
 
-    def check_for_gpiopin_num(self, line):
-        gpio_pins = []
-        if "#" in line:
-            line = line.split("#")[0]
-        if "dtoverlay=w1-gpio" in line:
-            if "," in line:
-                parts = line.split(",")
-                for part in parts:
-                    if "gpiopin=" in part:
-                        pin = part.split("=")[1]
-                        print("found w1 overlay using pin " + pin)
-                        gpio_pins.append(pin)
-        return gpio_pins
+    #def check_for_gpiopin_num(self, line):
+    #    gpio_pins = []
+    #    if "#" in line:
+    #        line = line.split("#")[0]
+    #    if "dtoverlay=w1-gpio" in line:
+    #        if "," in line:
+    #            parts = line.split(",")
+    #            for part in parts:
+    #                if "gpiopin=" in part:
+    #                    pin = part.split("=")[1]
+    #                    print("found w1 overlay using pin " + pin)
+    #                    gpio_pins.append(pin)
+    #    return gpio_pins
 
     def add_1wire(self, e):
-        # the line dtoverlay=w1-gpio,gpiopin=4
-        if self.add_1wire_btn.GetLabel() == "add to config":
-            msg = 'What gpio pin is the 1wire connected to?' #Seperate with a comma if using more than one.'
-            generic = '4'
-            onewire_dbox = wx.TextEntryDialog(self, msg, "1wire GPIO pin select", generic)
-            if onewire_dbox.ShowModal() == wx.ID_OK:
-                pin_numbers = onewire_dbox.GetValue()
+        msg = "The Device Tree Overlay is a core system component of the raspberry pi "
+        msg += "when adding a One Wire device make sure you select the correct pin.\n"
+        msg += "You may have as many one wire overlays in place as you want, "
+        msg += "but make sure you remove unsused overlays before using the pin for something else.\n\n"
+        msg += 'What gpio pin is the 1wire connected to?'
+        generic = '4'
+        onewire_dbox = wx.TextEntryDialog(self, msg, "1wire GPIO pin select", generic)
+        if onewire_dbox.ShowModal() == wx.ID_OK:
+            pin_number = onewire_dbox.GetValue()
+            if pin_number.isdigit():
+                if int(pin_number) < 28:
+                    num_error = True
+                if int(pin_number) > 1:
+                    num_error = True
             else:
+                num_error = True
+            if num_error == True:
+                err_msg = "Error: Pin must be a number between 2 and 27"
+                d = wx.MessageDialog(self, err_msg, "Error", wx.OK | wx.ICON_ERROR)
+                answer = d.ShowModal()
+                d.Destroy()
                 return "cancelled"
-            onewire_dbox.Destroy()
-            gpio_pin = "gpiopin=" + str(pin_numbers)
-            dt_cmd = "dtoverlay=w1-gpio," + gpio_pin
-            #out, error = MainApp.localfiles_ctrl_pannel.run_on_pi('sudo echo "' + dt_cmd + '" >> /boot/config.txt')
-            print('echo "' + dt_cmd + '" >> /boot/config.txt')
-            #print(" Added " + dt_cmd + " to /boot/config.txt")
-            print(" - THIS CODE IS IN TESTING AND CURRENTLY DISABLED -")
-        elif self.add_1wire_btn.GetLabel() == "edit config":
-            print("sorry, editing the config file is not yet an option")
-            out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("cat /boot/config.txt")
-            config_txt_lines = out.splitlines()
-            for line in config_txt_lines:
-                if "dtoverlay=w1-gpio" in line:
-                    print (line)
-                    if "#" in line:
-                        print(" editing config.txt found a #")
+        else:
+            return "cancelled"
+        onewire_dbox.Destroy()
+        gpio_pin = "gpiopin=" + str(pin_number)
+        dt_cmd = "dtoverlay=w1-gpio," + gpio_pin
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("cat /boot/config.txt")
+        config_text = out + "\n" + dt_cmd
+        self.update_boot_config(config_text)
 
+    def find_dtoverlay_1w_pins(self):
+        ''' This checks on the raspi's /boot/config.txt and lists the gpio
+            numbers used with dtoverlay=w1-gpio then returns a list containing
+            [enabled, gpio_num, line comment]
+        '''
+        print("finding w1 overlays in config file")
+        seek_dtparam = False # this is triggered when the w1 overlay is enabled,
+                             # dtparam= may then be in a subsiquent line
+                             # if not then the default pin is being used.
+        w1_gpio_pins = []
+        w1_gpio_muted = []
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("cat /boot/config.txt")
+        config_txt_lines = out.splitlines()
+        line_enabled = None
+        line_gpio_num = ""
+        line_comment = ""
+        for line in config_txt_lines:
+            # looking to see if gpio pin is set in a subsiquent line
+            if seek_dtparam == True:
+                if "dtoverlay" in line: #start of settings for next dtoverlay (may be another w1 or anything else)
+                    if not "#" in line.split("dtoverlay")[0]:
+                        if line_gpio_num == "":
+                            line_gpio_num = "4"
+                        w1_gpio_pins.append([line_enabled, line_gpio_num, line_comment]) #wring info about previously found overlay,
+                        line_enabled = None
+                        line_gpio_num = ""
+                        line_comment = ""
+                        #if not "#" in line.split("dtoverlay")[0]: #ignore muted overlays
+                        seek_dtparam = False
 
+                if "dtparam" in line and seek_dtparam == True: #seek_dtparam check import here as might muddle with oneline overlay and gpio settings
+                    if not "#" in line.split("dtparam")[0]:
+                        if "gpiopin=" in line:
+                            line_gpio_num=line.split("gpiopin=")[-1] #
+                            #w1_gpio_pins.append([line_enabled, pin, line_comment])
+            # looking to find where the w1-gpio overlay is being loaded.
+            if "dtoverlay=w1-gpio" in line:# next character might be "," or ":" msybe "="(?) to separate the overlay name from its parameters
+                print (line)
+                #check to see if line is disabled with a #
+                if "#" in line:
+                    hash_pos = line.find("#")
+                    line = [line[:hash_pos], line[hash_pos+1:]]
+                    print(line)
+                    if "dtoverlay" in line[0]:
+                        line_enabled = True
+                        command = line[0]
+                        line_comment = line[1]
+                    elif "dtoverlay" in line[1]:
+                        line_enabled = False
+                        command = line[1]
+                    # check to see if a comment exists at the end of the line
+                    if "#" in command: #will only be in disabled comments
+                        hash_pos = command.find("#")
+                        line_comment = command[hash_pos:]
+                        command = command[:hash_pos]
+                        print ("command, line_comment = " + command + " -- " + line_comment)
+                else:
+                    command = line
+                    line_enabled = True
+                # checking the command now it's free from any comments or muting
+                #print (command)
+                if not "gpiopin" in command:
+                    seek_dtparam = True #start checking subsiquent lines for gpio pin number
+                else:
+                    line_gpio_num = command.split("gpiopin=")[1]
+                    print(line_enabled, line_gpio_num, line_comment)
+                    print ("line gpio num =" + line_gpio_num)
+                    # i guess it's possible for someone to set gpio num here then change it in a subsiquent line with  a dtparam
+                    seek_dtparam = True #start checking subsiquent lines for gpio pin number
+        # catch if last line with no other dtoverlay after after
+        print(line_enabled, line_gpio_num, line_comment)
+        if not line_enabled == None:
+            if line_gpio_num == "":
+                line_gpio_num = "4" #default value for when no number is given
+            if not line_enabled == False: #added to ignore disabled lines to avoid bug
+                w1_gpio_pins.append([line_enabled, line_gpio_num, line_comment])
+            else:
+                w1_gpio_muted.append([False, line_gpio_num, line_comment])
+        print("w1_gpio_pins=" + str(w1_gpio_pins))
+        return w1_gpio_pins
 
+    def update_boot_config(self, config_text):
+        question_text = "Are you sure you want to change the pi's /boot/config.txt file?"
+        dbox = wx.MessageDialog(self, question_text, "update pigrow /boot/config.txt?", wx.OK | wx.CANCEL | wx.ICON_QUESTION)
+        answer = dbox.ShowModal()
+        dbox.Destroy()
+        if (answer == wx.ID_OK):
+            sftp = ssh.open_sftp()
+            folder = "/home/" + str(pi_link_pnl.target_user) +  "/Pigrow/temp/"
+            f = sftp.open(folder + 'boot_config.txt', 'w')
+            f.write(config_text)
+            f.close()
+            copy_cmd = "sudo mv /home/" + pi_link_pnl.target_user + "/Pigrow/temp/boot_config.txt /boot/config.txt"
+            out, error = MainApp.localfiles_ctrl_pannel.run_on_pi(copy_cmd)
+            print(out, error)
+            print("Pi's /boot/config,txt file changed")
 
     def run_cmd_on_pi_click(self, e):
         msg = 'Input command to run on pi\n\n This will run the command and wait for it to finish before\ngiving results and resuming the gui'
@@ -405,24 +538,17 @@ class system_ctrl_pnl(wx.Panel):
         raspberry_config = out.splitlines()
         # put it together again chaning settings line
         config_text = ""
+        changed = False
         for line in raspberry_config:
             if "dtparam=i2c_baudrate=" in line:
                 line = "dtparam=i2c_baudrate=" + new_i2c_baudrate
-                print (line)
+                print ("i2c set baudrate changing /boot/config.txt line to " + line)
+                changed = True
             config_text = config_text + line + "\n"
-        # set file path, check temp folder exists, set temp file name
-        #temp_local = localfiles_info_pnl.local_path + "temp/"
-        temp_local = os.path.join(localfiles_info_pnl.local_path, "temp")
-        if not os.path.isdir(temp_local):
-            os.makedirs(temp_local)
-        temp_rasp_config = temp_local + "rasp_config.txt"
-        # write file to local temp folder
-        with open(temp_rasp_config, "w") as file_to_save:
-            file_to_save.write(config_text)
-        # copy onto the raspberry pi
-        MainApp.localfiles_ctrl_pannel.upload_file_to_fodler(temp_rasp_config, "/home/pi/config_temp.txt")
-        # move it into place using super user permissions
-        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo mv /home/pi/config_temp.txt /boot/config.txt")
+        if changed == False:
+            print("/boot/config.txt did not have 'dtparam=12c_baudrate=' so adding it")
+            config_text = config_text + "dtparam=i2c_baudrate=" + new_i2c_baudrate + "\n"
+        self.update_boot_config(config_text)
 
 
     def i2c_check(self):
@@ -776,6 +902,114 @@ class system_ctrl_pnl(wx.Panel):
     def update_pigrow_click(self, e):
         update_dbox = upgrade_pigrow_dialog(None, title='Update Pigrow to Raspberry Pi')
         update_dbox.ShowModal()
+
+class edit_boot_config_dialog(wx.Dialog):
+    def __init__(self, *args, **kw):
+        super(edit_boot_config_dialog, self).__init__(*args, **kw)
+        self.InitUI()
+        self.SetSize((600, 600))
+        self.SetTitle("Edit /boot/config.txt")
+    def InitUI(self):
+        self.boot_config_original, error = MainApp.localfiles_ctrl_pannel.run_on_pi("cat /boot/config.txt")
+        header_text = "This file is an integral part of the the Raspbery Pi's system\n"
+        header_text += " settings loaded here take effect right at the start of the boot procediure\n"
+        header_text += " so even minor errors can cause serious problems."
+        header_text += "\n Please read the offical documentation carefully; https://www.raspberrypi.org/documentation/configuration/config-txt/ "
+        header = wx.StaticText(self, label=header_text)
+        self.config_text = wx.TextCtrl(self, -1, self.boot_config_original, size=(800,600), style=wx.TE_MULTILINE)
+        post_text = "Changes made won't take effect until you reboot your pi"
+        post_text += "\n \nWarning : Mistakes editing this file may cause your Pi to fail to boot"
+        post = wx.StaticText(self, label=post_text)
+        #
+        ok_btn = wx.Button(self, label='OK', size=(175, 30))
+        ok_btn.Bind(wx.EVT_BUTTON, self.ok_click)
+        cancel_btn = wx.Button(self, wx.ID_CANCEL)
+
+        # sizers
+        btnsizer = wx.BoxSizer(wx.HORIZONTAL)
+        btnsizer.AddStretchSpacer(1)
+        btnsizer.Add(ok_btn, 0, wx.ALL, 5)
+        btnsizer.AddStretchSpacer(1)
+        btnsizer.Add(cancel_btn, 0, wx.ALL, 5)
+        btnsizer.AddStretchSpacer(1)
+        main_sizer = wx.BoxSizer(wx.VERTICAL)
+        main_sizer.Add(header, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL|wx.ALL, 3)
+        main_sizer.Add(self.config_text, 0, wx.EXPAND|wx.ALL, 3)
+        main_sizer.Add(post, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL|wx.ALL, 3)
+        main_sizer.Add(btnsizer, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL|wx.ALL, 5)
+        self.SetSizerAndFit(main_sizer)
+
+    def ok_click(self, e):
+        config_text = self.config_text.GetValue()
+        if not config_text == self.boot_config_original:
+            system_ctrl_pnl.update_boot_config(None, config_text)
+
+
+
+class onewire_conf_dialog(wx.Dialog):
+    def __init__(self, *args, **kw):
+        super(onewire_conf_dialog, self).__init__(*args, **kw)
+        self.InitUI()
+        self.SetSize((600, 600))
+        self.SetTitle("One Wire Config")
+    def InitUI(self):
+
+        # draw the pannel and text
+        pnl = wx.Panel(self)
+        title = wx.StaticText(self,  label='Onewire Config File Options')
+        sub_text = wx.StaticText(self,  label='Editing the /boot/config.txt file dtoverlay=w1-gpio entry')
+        enabled_cb = wx.CheckBox(self, label='Enabled')
+        gpiopins_l = wx.StaticText(self, label='GPIO pin numbers')
+        gpiopins_tc = wx.TextCtrl(self)
+        line_l = wx.StaticText(self, label="/boot/config/txt line")
+        self.line_tc = wx.TextCtrl(self)
+        # ok and cancel Buttons
+        self.ok_btn = wx.Button(self, label='OK', size=(175, 30))
+        self.ok_btn.Bind(wx.EVT_BUTTON, self.ok_click)
+        self.cancel_btn = wx.Button(self, label='Cancel', size=(175, 30))
+        self.cancel_btn.Bind(wx.EVT_BUTTON, self.OnClose)
+
+        # set values in check boxes
+        enabled = True
+        gpiopins = ["4"]
+        enabled_cb.Enable(enabled)
+        gpiopins_tc.SetValue(gpiopins)
+        self.make_config_line(enabled, gpiopins)
+        # sizers
+        line_bar_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        line_bar_sizer.Add(enabled_cb, 0, wx.ALL, 2)
+        line_bar_sizer.Add(gpiopins_l, 0, wx.ALL, 2)
+        line_bar_sizer.Add(gpiopins_tc, 0, wx.ALL, 2)
+        buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        buttons_sizer.Add(ok_btn, 0, wx.ALIGN_LEFT, 2)
+        buttons_sizer.Add(cancel_btn, 0, wx.ALIGN_RIGHT, 2)
+        main_sizer = wx.BoxSizer(wx.VERTICAL)
+        main_sizer.Add(title, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
+        main_sizer.Add(sub_text, 0, wx.ALL, 3)
+        main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(line_bar_sizer, 0, wx.ALL, 3)
+        main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(line_l, 0, wx.ALL, 3)
+        main_sizer.Add(self.line_tc, 0, wx.ALL, 3)
+        main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(buttons_sizer, 0, wx.ALL, 3)
+
+    def make_config_line(self, enabled, gpiopins):
+        for gpio in gpiopins:
+            if enabled == True:
+                line = ""
+            else:
+                line = "#"
+            line = line + "dtoverlay=w1-gpio,gpiopin=" + gpio_on_dict + "\n"
+        print (line)
+        self.line_tc.SetValue(line)
+
+    def ok_click(self, e):
+        print("does nothing atm")
+
+    def ok_click(self, e):
+        self.Destroy()
+
 
 class system_info_pnl(wx.Panel):
     #
@@ -1200,23 +1434,60 @@ class install_dialog(wx.Dialog):
         MainApp.localfiles_ctrl_pannel.upload_file_to_fodler(local_temp_dirlocs_path, "/home/" + pi_link_pnl.target_user + "/Pigrow/config/dirlocs.txt")
         print(" - uploaded new dirlocs to pigrow config folder")
 
-    def install_all_pip(self):
-        #updating pip
+    def update_pip(self):
+        # update pip the python package manager
         self.currently_doing.SetLabel("Updating PIP the python install manager")
         self.progress.SetLabel("#########~~~~~~~~~~~~~~~~~~~~")
         wx.Yield()
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo pip install -U pip")
         print (out)
-        #installing dependencies with pip
-        self.currently_doing.SetLabel("Using pip to install praw and pexpect")
+
+    def install_praw(self):
+        # praw is the module for connecting to reddit
+        self.currently_doing.SetLabel("Using pip to install praw")
         self.progress.SetLabel("###########~~~~~~~~~~~~~~~~~~")
         wx.Yield()
-        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo pip install praw pexpect")
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo pip install praw")
         print (out)
-        self.currently_doing.SetLabel(".")
+
+    def install_pexpect(self):
+        # pexpect is the tool used to connect to other pigrows if using pigrow log
+        self.currently_doing.SetLabel("using pip to install pexpect")
         self.progress.SetLabel("#############~~~~~~~~~~~~~~~~")
         wx.Yield()
-        return out
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo pip install pexpect")
+        print (out)
+
+    def install_adafruit_DHT(self):
+        print("starting adafruit install")
+        self.progress.SetLabel("###############~~~~~~~~~~~~~~")
+        self.currently_doing.SetLabel("Using pip to install adafruit_DHT module")
+        wx.Yield()
+        adafruit_install, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo pip install Adafruit_DHT")
+        # the following is the old now obsolte method.
+        #print("installing dependencies using apt")
+        #self.currently_doing.SetLabel("Using apt to install adafruit_dht dependencies")
+        #self.progress.SetLabel("##########################~~~~~~")
+        #wx.Yield()
+        #adafruit_dep, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo apt --yes install build-essential python-dev python-openssl")
+        #print (adafruit_dep, error)
+        #print("- Downloading Adafruit_Python_DHT from Github")
+        #ada_dir = "/home/" + pi_link_pnl.target_user + "/Pigrow/resources/Adafruit_Python_DHT/"
+        #self.currently_doing.SetLabel("Using git to clone (download) the adafruit code")
+        #self.progress.SetLabel("###########################~~~~")
+        #wx.Yield()
+        #adafruit_clone, error = MainApp.localfiles_ctrl_pannel.run_on_pi("git clone https://github.com/adafruit/Adafruit_Python_DHT.git " + ada_dir)
+        #print((adafruit_clone, error))
+        #print("- Dependencies installed, running adafruit_dht : sudo python setup.py install")
+        #self.currently_doing.SetLabel("Using the adafruit_DHT setup.py to install the module")
+        #self.progress.SetLabel("#############################~~")
+        #wx.Yield()
+        #adafruit_install, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo python "+ ada_dir +" setup.py install")
+        #print(adafruit_install, error)
+        #self.currently_doing.SetLabel("...")
+        #self.progress.SetLabel("##############################~")
+        #wx.Yield()
+        print (adafruit_install)
 
     def install_all_apt(self):
         #updating apt package list
@@ -1240,31 +1511,6 @@ class install_dialog(wx.Dialog):
         self.progress.SetLabel("######################~~~~~~~~~")
         wx.Yield()
 
-    def install_adafruit_DHT(self):
-        print("starting adafruit install")
-        print("installing dependencies using apt")
-        self.currently_doing.SetLabel("Using apt to install adafruit_dht dependencies")
-        self.progress.SetLabel("##########################~~~~~~")
-        wx.Yield()
-        adafruit_dep, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo apt --yes install build-essential python-dev python-openssl")
-        print (adafruit_dep, error)
-        print("- Downloading Adafruit_Python_DHT from Github")
-        ada_dir = "/home/" + pi_link_pnl.target_user + "/Pigrow/resources/Adafruit_Python_DHT/"
-        self.currently_doing.SetLabel("Using git to clone (download) the adafruit code")
-        self.progress.SetLabel("###########################~~~~")
-        wx.Yield()
-        adafruit_clone, error = MainApp.localfiles_ctrl_pannel.run_on_pi("git clone https://github.com/adafruit/Adafruit_Python_DHT.git " + ada_dir)
-        print((adafruit_clone, error))
-        print("- Dependencies installed, running adafruit_dht : sudo python setup.py install")
-        self.currently_doing.SetLabel("Using the adafruit_DHT setup.py to install the module")
-        self.progress.SetLabel("#############################~~")
-        wx.Yield()
-        adafruit_install, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo python "+ ada_dir +" setup.py install")
-        print(adafruit_install, error)
-        self.currently_doing.SetLabel("...")
-        self.progress.SetLabel("##############################~")
-        wx.Yield()
-        print (adafruit_install)
 
     def check_program_dependencies(self):
         program_dependencies = ["sshpass", "uvccapture", "mpv"]
@@ -1354,13 +1600,15 @@ except:
         self.install_pigrow()
         self.progress.SetLabel("#######~~~~~~~~~~~~~~~~~~~~~~~~")
         wx.Yield()
-        pip_text = self.install_all_pip()
+        self.update_pip()
+        self.install_praw()
+        self.install_pexpect()
+        self.install_adafruit_DHT()
         self.progress.SetLabel("##############~~~~~~~~~~~~~~~~~")
         wx.Yield()
         self.install_all_apt()
         self.progress.SetLabel("#######################~~~~~~~~")
         wx.Yield()
-        self.install_adafruit_DHT()
         self.progress.SetLabel("####### INSTALL COMPLETE ######")
         wx.Yield()
         self.start_btn.Disable()
@@ -5569,7 +5817,8 @@ class timelapse_ctrl_pnl(wx.Panel):
         self.open_caps_folder(cap_dir, cap_type, cap_set=None)
 
     def select_folder(self):
-        openFileDialog = wx.FileDialog(self, "Select caps folder", "", "", "JPG files (*.jpg)|*.jpg", wx.FD_OPEN | wx.FD_FILE_MUST_EXIST)
+        wildcard = "JPG and PNG files (*.jpg;*.png)|*.jpg;*.png|GIF files (*.gif)|*.gif"
+        openFileDialog = wx.FileDialog(self, "Select caps folder", "", "", wildcard, wx.FD_OPEN | wx.FD_FILE_MUST_EXIST)
         openFileDialog.SetMessage("Select an image from the caps folder you want to import")
         if openFileDialog.ShowModal() == wx.ID_CANCEL:
             return 'none'
@@ -5581,7 +5830,9 @@ class timelapse_ctrl_pnl(wx.Panel):
         self.out_file_tc.SetValue(outfile)
 
     def select_outfile(self):
-        openFileDialog = wx.FileDialog(self, "Select output file", "", "", "AVI files (*.avi)|*.avi", wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT)
+        wildcard = "MP4 files (*.mp4)|*.mp4|AVI files (*.avi)|*.avi"
+        default_path = os.path.join(localfiles_info_pnl.local_path, "timelapse.mp4")
+        openFileDialog = wx.FileDialog(self, "Select output file", "", default_path, wildcard, wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT)
         openFileDialog.SetMessage("Select an image from the caps folder you want to import")
         if openFileDialog.ShowModal() == wx.ID_CANCEL:
             return 'none'
@@ -5827,25 +6078,13 @@ class sensors_info_pnl(wx.Panel):
                 ds18b20_dialog_box = ds18b20_dialog(None)
                 ds18b20_dialog_box.ShowModal()
 
-
 class sensors_ctrl_pnl(wx.Panel):
     def __init__(self, parent):
         wx.Panel.__init__ (self, parent, id=wx.ID_ANY, style=wx.TAB_TRAVERSAL)
         self.SetBackgroundColour('sea green') #TESTING ONLY REMOVE WHEN SIZING IS DONE AND ALL THAT BUSINESS
         wx.StaticText(self,  label='Chirp Soil Moisture Sensor;')
-    #    sensor_opts = ["Soil Moisture"]
-    #    self.sensor_cb = wx.ComboBox(self, choices = sensor_opts, pos=(10,30), size=(265, 30))
-    #    self.sensor_cb.Bind(wx.EVT_COMBOBOX, self.sensor_combo_go)
-        #
-        # THE FOLLOWING IS PROBABLY SHITE
         #
         # Soil Moisture Controlls
-        #
-    #    soil_sensor_opts = ["Soil Moisture"]
-    #    self.soil_sensor_cb = wx.ComboBox(self, choices = soil_sensor_opts, pos=(10,130), size=(265, 30))
-    #    self.soil_sensor_cb.Bind(wx.EVT_COMBOBOX, self.soil_sensor_combo_go)
-        #
-        #
         # Refresh page button
         self.make_table_btn = wx.Button(self, label='make table')
         self.make_table_btn.Bind(wx.EVT_BUTTON, MainApp.sensors_info_pannel.sensor_list.make_sensor_table)
@@ -5943,10 +6182,6 @@ class sensors_ctrl_pnl(wx.Panel):
         # show selected controls
         if self.sensor_cb.GetValue() == "Soil Moisture":
             self.soil_sensor_cb.Hide()
-
-    def soil_sensor_combo_go(self, e):
-        if self.soil_sensor_cb.GetValue() == "chirp":
-            print("Selected Chirp")
 
 class ds18b20_dialog(wx.Dialog):
     """
@@ -6050,8 +6285,6 @@ class ds18b20_dialog(wx.Dialog):
         MainApp.graphing_ctrl_pannel.extra_args.SetValue("log="+log)
         MainApp.view_pnl.view_cb.SetValue("Graphs")
         MainApp.graphing_ctrl_pannel.make_graph_click("e")
-        print("shame this button doesn't do that yet....")
-
 
 
     def read_temp_click(self, e):
@@ -6149,16 +6382,13 @@ class ds18b20_dialog(wx.Dialog):
         else:
             print("Job not currently in cron, adding it...")
             cron_enabled = "True"
-            cron_task = "/home/" + pi_link_pnl.target_user + "/Pigrow/sensors/log_dstemp.py"
+            cron_task = "/home/" + pi_link_pnl.target_user + "/Pigrow/scripts/sensors/log_dstemp.py"
             cron_args = "log=" + self.log_tc.GetValue() + " sensor=" + self.temp_sensor_cb.GetValue()
             timing_string = cron_info_pnl.make_repeating_cron_timestring(self, job_repeat, job_repnum)
             cron_comment = ""
             cron_info_pnl.add_to_repeat_list(MainApp.cron_info_pannel, 'new', cron_enabled, timing_string, cron_task, cron_args, cron_comment)
             #print("Cron job; " + "new" + " " + cron_enabled + " " + timing_string + " " + cron_task + " " + cron_args + " " + cron_comment)
             MainApp.cron_info_pannel.update_cron_click("e")
-
-
-
 
     def OnClose(self, e):
         MainApp.sensors_info_pannel.sensor_list.s_name = ""
