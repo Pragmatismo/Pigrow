@@ -135,20 +135,28 @@ ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 #
 
 class scroll_text_dialog(wx.Dialog):
-    def __init__(self, parent,  text_to_show, title, cancel=True):
+    def __init__(self, parent,  text_to_show, title, cancel=True, readonly=True):
         wx.Dialog.__init__(self, parent, title=(title))
-        text = wx.TextCtrl(self, -1, text_to_show, size=(800,600), style=wx.TE_MULTILINE | wx.TE_READONLY)
+        scroll_text_dialog.text = None
+        if readonly == True:
+            self.text = wx.TextCtrl(self, -1, text_to_show, size=(800,600), style=wx.TE_MULTILINE | wx.TE_READONLY)
+        else:
+            self.text = wx.TextCtrl(self, -1, text_to_show, size=(800,600), style=wx.TE_MULTILINE)
         sizer = wx.BoxSizer(wx.VERTICAL)
         btnsizer = wx.BoxSizer()
         btn = wx.Button(self, wx.ID_OK)
+        btn.Bind(wx.EVT_BUTTON, self.ok_click)
         btnsizer.Add(btn, 0, wx.ALL, 5)
         btnsizer.Add((5,-1), 0, wx.ALL, 5)
         if cancel==True:
             cancel_btn = wx.Button(self, wx.ID_CANCEL)
             btnsizer.Add(cancel_btn, 0, wx.ALL, 5)
-        sizer.Add(text, 0, wx.EXPAND|wx.ALL, 5)
+        sizer.Add(self.text, 0, wx.EXPAND|wx.ALL, 5)
         sizer.Add(btnsizer, 0, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
         self.SetSizerAndFit(sizer)
+    def ok_click(self, e):
+        scroll_text_dialog.text = self.text.GetValue()
+        self.Destroy()
 
 def scale_pic(pic, target_size):
     pic_height = pic.GetHeight()
@@ -3937,10 +3945,28 @@ class localfiles_info_pnl(scrolled.ScrolledPanel):
         localfiles_info_pnl.logs_files.SetItem(0, 3, str(update_status))
 
     def onDoubleClick_config(self, e):
-        print("and nothing happens")
+        index =  e.GetIndex()
+        filename = localfiles_info_pnl.config_files.GetItem(index, 0).GetText()
+        file_path = os.path.join(localfiles_info_pnl.local_path, "config", filename)
+        with open(file_path, "r") as config_file:
+            config_file_text = config_file.read()
+        dbox = scroll_text_dialog(None, config_file_text, "Editing " + filename, True, False)
+        dbox.ShowModal()
+        if scroll_text_dialog.text == None:
+            #print("User aborted")
+            return None
+        else:
+            if not scroll_text_dialog.text == config_file_text:
+                print(scroll_text_dialog.text)
+                with open(file_path, "w") as config_file:
+                    config_file.write(scroll_text_dialog.text)
+                print(" Config file " + filename + " changes saved")
+            else:
+                #print("Config file unchanged")
+                return None
 
     def onDoubleClick_logs(self, e):
-        print("and nothing happens")
+        print("sry nothing happens")
 
 class localfiles_ctrl_pnl(wx.Panel):
     def __init__( self, parent ):
@@ -3963,9 +3989,6 @@ class localfiles_ctrl_pnl(wx.Panel):
         main_sizer.Add(self.clear_downed_btn, 0, wx.ALL|wx.EXPAND, 3)
         main_sizer.Add(self.upload_btn, 0, wx.ALL|wx.EXPAND, 3)
         self.SetSizer(main_sizer)
-
-
-
 
     def clear_downed_click(self, e):
         # looks at local files an remote files removing any from the pigrows
@@ -4000,7 +4023,6 @@ class localfiles_ctrl_pnl(wx.Panel):
             MainApp.status.write_bar("Cleared " + str(count) + " files from the pigrow")
         # when done refreh the file info
         self.update_local_filelist_click("e")
-
 
     def run_on_pi(self, command, write_status=True):
         #Runs a command on the pigrow and returns output and error
@@ -4186,8 +4208,6 @@ class localfiles_ctrl_pnl(wx.Panel):
                 return None, None
         else:
             return None, None
-
-
 
     def download_click(self, e):
         #show download dialog boxes
@@ -4798,6 +4818,7 @@ class graphing_ctrl_pnl(wx.Panel):
             self.select_script_cb.Hide()
             self.get_opts_tb.Hide()
             print("Yah, that's not really an option yet...")
+            print("   ...but it will be soon and it'll be awesome!")
         MainApp.graphing_ctrl_pannel.Layout()
         MainApp.window_self.Layout()
 
