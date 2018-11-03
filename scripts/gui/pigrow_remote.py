@@ -3296,12 +3296,18 @@ class cron_list_pnl(wx.Panel):
         cron_start_up_l = wx.StaticText(self,  label='Cron start up;')
         cron_list_pnl.startup_cron = self.startup_cron_list(self, 1)
         cron_list_pnl.startup_cron.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.onDoubleClick_startup)
+        cron_list_pnl.startup_cron.Bind(wx.EVT_LIST_KEY_DOWN, self.del_item)
+        cron_list_pnl.startup_cron.Bind(wx.EVT_LIST_ITEM_FOCUSED, self.startup_got_focus)
         cron_repeat_l = wx.StaticText(self,  label='Repeating Jobs;')
         cron_list_pnl.repeat_cron = self.repeating_cron_list(self, 1)
         cron_list_pnl.repeat_cron.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.onDoubleClick_repeat)
+        cron_list_pnl.repeat_cron.Bind(wx.EVT_LIST_KEY_DOWN, self.del_item)
+        cron_list_pnl.repeat_cron.Bind(wx.EVT_LIST_ITEM_FOCUSED, self.repeat_got_focus)
         cron_timed_l = wx.StaticText(self,  label='One time triggers;')
         cron_list_pnl.timed_cron = self.other_cron_list(self, 1)
         cron_list_pnl.timed_cron.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.onDoubleClick_timed)
+        cron_list_pnl.timed_cron.Bind(wx.EVT_LIST_KEY_DOWN, self.del_item)
+        cron_list_pnl.timed_cron.Bind(wx.EVT_LIST_ITEM_FOCUSED, self.timed_got_focus)
         # sizers
         main_sizer =  wx.BoxSizer(wx.VERTICAL)
         main_sizer.Add(title_l, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
@@ -3313,6 +3319,39 @@ class cron_list_pnl(wx.Panel):
         main_sizer.Add(cron_timed_l, 0, wx.ALL, 3)
         main_sizer.Add(cron_list_pnl.timed_cron, 1, wx.ALL|wx.EXPAND, 3)
         self.SetSizer(main_sizer)
+
+    def startup_got_focus(self, e):
+        timed_focus = cron_list_pnl.timed_cron.GetFocusedItem()
+        cron_list_pnl.timed_cron.Select(timed_focus, on=0)
+        repeat_focus = cron_list_pnl.repeat_cron.GetFocusedItem()
+        cron_list_pnl.repeat_cron.Select(repeat_focus, on=0)
+
+    def repeat_got_focus(self, e):
+        startup_focus = cron_list_pnl.startup_cron.GetFocusedItem()
+        cron_list_pnl.startup_cron.Select(startup_focus, on=0)
+        timed_focus = cron_list_pnl.timed_cron.GetFocusedItem()
+        cron_list_pnl.timed_cron.Select(timed_focus, on=0)
+
+    def timed_got_focus(self, e):
+        startup_focus = cron_list_pnl.startup_cron.GetFocusedItem()
+        cron_list_pnl.startup_cron.Select(startup_focus, on=0)
+        repeat_focus = cron_list_pnl.repeat_cron.GetFocusedItem()
+        cron_list_pnl.repeat_cron.Select(repeat_focus, on=0)
+
+
+    def del_item(self, e):
+        keycode = e.GetKeyCode()
+        if keycode == wx.WXK_DELETE:
+                mbox = wx.MessageDialog(None, "Delete selected cron job?", "Are you sure?", wx.YES_NO|wx.ICON_QUESTION)
+                sure = mbox.ShowModal()
+                if sure == wx.ID_YES:
+                    if cron_list_pnl.startup_cron.GetSelectedItemCount() == 1:
+                        print(cron_list_pnl.startup_cron.DeleteItem(cron_list_pnl.startup_cron.GetFocusedItem()))
+                    if cron_list_pnl.repeat_cron.GetSelectedItemCount() == 1:
+                        print(cron_list_pnl.repeat_cron.DeleteItem(cron_list_pnl.repeat_cron.GetFocusedItem()))
+                    if cron_list_pnl.timed_cron.GetSelectedItemCount() == 1:
+                        print(cron_list_pnl.timed_cron.DeleteItem(cron_list_pnl.timed_cron.GetFocusedItem()))
+
 
 
     def onDoubleClick_timed(self, e):
@@ -3957,10 +3996,14 @@ class localfiles_info_pnl(scrolled.ScrolledPanel):
             return None
         else:
             if not scroll_text_dialog.text == config_file_text:
-                print(scroll_text_dialog.text)
-                with open(file_path, "w") as config_file:
-                    config_file.write(scroll_text_dialog.text)
-                print(" Config file " + filename + " changes saved")
+                #print(scroll_text_dialog.text)
+                question_text = "Save changes to config file?"
+                dbox = wx.MessageDialog(self, question_text, "Save Changes?", wx.OK | wx.CANCEL | wx.ICON_QUESTION)
+                answer = dbox.ShowModal()
+                if (answer == wx.ID_OK):
+                    with open(file_path, "w") as config_file:
+                        config_file.write(scroll_text_dialog.text)
+                    print(" Config file " + filename + " changes saved")
             else:
                 #print("Config file unchanged")
                 return None
