@@ -266,6 +266,7 @@ class system_ctrl_pnl(wx.Panel):
         therm_module_text = ""
         other_modules = ""
         onewire_config_file = ""
+        # Check running modules for w1 and therm overlay
         print("looking to see if 1wire overlay is turned on")
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("lsmod")
         oneW_modules = ""
@@ -294,94 +295,87 @@ class system_ctrl_pnl(wx.Panel):
                 other_modules += "\n"
         else:
             module_text = "1wire module NOT enabled\n"
-
         # Check config file for 1wire overlay
-        #/boot/config.txt file should include the line 'dtoverlay=w1-gpio'
-        onewire_pin_list = self.find_dtoverlay_1w_pins()
-        enabled_onewire_overlays_text = "Enabled Overlays on GPIO; "
-        disabled_onewire_overlays_text= "Disabled Overlays on GPIO; "
+        #             /boot/config.txt file should include 'dtoverlay=w1-gpio'
+        onewire_pin_list, onewire_err_text = self.find_dtoverlay_1w_pins()
+        enabled_onewire_overlays_text = "Enabled Overlay on GPIO; "
         if len(onewire_pin_list) > 0:
-            for overlay in onewire_pin_list:
-                if overlay[0] == True:
-                    enabled_onewire_overlays_text += overlay[1] + ", "
-                    if not overlay[2] == "":
-                        enabled_onewire_overlays_text = enabled_onewire_overlays_text[:-2] + "(" + overlay[2] + "), "
-                else:
-                    disabled_onewire_overlays_text += overlay[1] + ","
-                    if not overlay[2] == "":
-                        disabled_onewire_overlays_text = disabled_onewire_overlays_text[:-2] + "(" + str(overlay[2]) + "), "
-            disabled_onewire_overlays_text = disabled_onewire_overlays_text[:-2]
-            onewire_config_file_text = "Found 1wire overlay in /boot/config.txt\n  " + enabled_onewire_overlays_text[:-2]
-            if not disabled_onewire_overlays_text == "Disabled Overlays on GPIO":
-                onewire_config_file_text += "\n  " + disabled_onewire_overlays_text
-            #self.add_1wire_btn.SetLabel("edit config")
+            for item in onewire_pin_list:
+                if not item[0] == None:
+                    enabled_onewire_overlays_text += item[0]
+                    if not item[1] == "" and not item[1] == None:
+                        enabled_onewire_overlays_text += " (" + item[1] + "), "
+                    else:
+                        enabled_onewire_overlays_text += ", "
+            onewire_config_file_text = "Found 1wire overlay in /boot/config.txt\n" + enabled_onewire_overlays_text[:-2]
         else:
             onewire_config_file_text = "1wire overlay not found in /boot/config.txt"
-            #self.add_1wire_btn.SetLabel("add to config")
-
-
-
-        #onewire_gpio_pins = []
-        #config_file = out.splitlines()
-        #overlay_count = 0
-        #out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("cat /boot/config.txt")
-
-        #for line in config_file:
-        #    line = line.strip()
-        #    if "dtoverlay" in line and "w1-gpio" in line:
-        #        if "#" in line:
-        #            hash_location = line.find("#")
-        #            option_loction = line.find("dtoverlay")
-        #            if hash_location < option_loction:
-        #                print ("dtoverlay=w1-gpio is disabled")
-        #                overlay_count += 1
-        #                onewire_config_file = "onewire overlay disabled in config"
-        #            else:
-        #                print("dtoverlay=w1-gpio found and active")
-        #                overlay_count += 1
-        #                onewire_config_file = "onewire overlay enabled in config\n"
-        #                onewire_gpio_pins.append(self.check_for_gpiopin_num(line))
-        #        else:
-        #            print("dtoverlay=w1-gpio found, active")
-        #            overlay_count += 1
-        #            onewire_config_file = "onewire overlay enabled in config\n"
-        #            onewire_gpio_pins.append(self.check_for_gpiopin_num(line))
-        # mention if it's not shown at all or if it's shown too many times.
-        #if overlay_count == 0:
-        #    print("dtoverlay=w1-gpio not found in config enabled or otherwise")
-        #    onewire_config_file = "onewire overlay not in config file"
-        #    self.add_1wire_btn.SetLabel("add to config")
-        #if overlay_count > 1:
-        #    print("dtoverlay=w1-gpio mentioned more than once")
-        #    onewire_config_file = "onewire overlay in config file multipul times, remove all but one to limit confusion.\n"
-        # mention which gpio pins are being used
-        #if overlay_count > 0:
-        #    if len(onewire_gpio_pins) == 0:
-        #        print("   - one wire using default pin")
-        #        onewire_config_file += "  - one wire using default pin"
-        #    else:
-        #        print("   - one wire using GPIO " + str(onewire_gpio_pins))
-        #        onewire_config_file += "   - one wire using GPIO " + str(onewire_gpio_pins)
-
+        onewire_config_file_text += "\n" + onewire_err_text
+        # turn on add new one wire overlay button
         self.add_1wire_btn.Enable()
         # assemble final message and print to screen
         final_1wire_text = module_text + therm_module_text + other_modules + onewire_config_file_text
         system_info_pnl.sys_1wire_info.SetLabel(final_1wire_text)
         MainApp.window_self.Layout()
 
-    #def check_for_gpiopin_num(self, line):
-    #    gpio_pins = []
-    #    if "#" in line:
-    #        line = line.split("#")[0]
-    #    if "dtoverlay=w1-gpio" in line:
-    #        if "," in line:
-    #            parts = line.split(",")
-    #            for part in parts:
-    #                if "gpiopin=" in part:
-    #                    pin = part.split("=")[1]
-    #                    print("found w1 overlay using pin " + pin)
-    #                    gpio_pins.append(pin)
-    #    return gpio_pins
+
+    def find_dtoverlay_1w_pins(self):
+        ''' This checks on the raspi's /boot/config.txt and lists the gpio
+            numbers used with dtoverlay=w1-gpio then returns a list containing
+            [gpio_num, line comment]
+            and a text block of error messages
+            all #ed lines are ignored
+        '''
+        print("finding w1 overlays in config file")
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("cat /boot/config.txt")
+        config_txt_lines = out.splitlines()
+        line_enabled = None
+        line_gpio_num = ""
+        line_comment = ""
+        gpio_pins = []
+        err_msg = ""
+        for line in config_txt_lines:
+            comment = None
+            command = None
+            gpio_pin = None
+            if not line.strip()[0:1] == "#":
+                if "dtoverlay=w1-gpio" in line:
+                    if "#" in line:
+                        hash_pos = line.find("#")
+                        command = line[:hash_pos]
+                        comment = line[hash_pos:]
+                    else:
+                        command = line
+                    if "gpiopin=" in command:
+                        gpio_pin = command.split("gpiopin=")[1].strip()
+                        if not gpio_pin.isdigit():
+                            gpio_pin = 'error'
+                            err_msg += "!!! Error reading pi's /boot/config.txt could't determine gpio number -" + command + "\n"
+                    else:
+                        gpio_pin = "default (4)"
+                    gpio_pins.append([gpio_pin, comment])
+                # look to see if gpio pin is changed later in the file...
+                elif "dtparam" in line and "gpiopin" in line:
+                    if "dtparam=gpiopin=" in line:
+                        if "#" in line:
+                            hash_pos = line.find("#")
+                            command = line[:hash_pos]
+                            comment = line[hash_pos:]
+                        else:
+                            command = line
+                        #split the comment section and extract the gpio number
+                        gpio_pin = command.split("dtparam=gpiopin=")[1]
+                        if not gpio_pin.isdigit():
+                            gpio_pin = None
+                            err_msg += "!!! Error reading pi's /boot/config.txt could't determine gpio number -" + command + "\n"
+                        if not len(gpio_pins) == 0:
+                            err_msg += "!!! GPIO pin changed using dtparam=gpiopin= from " + str(gpio_pins[-1][0]) + " to " + str(gpio_pin)
+                            err_msg += "\n    - (this makes it confusing so automatic editing is now disabled)"
+                            gpio_pins[-1] = (gpio_pin, gpio_pins[-1][1])
+                    else:
+                        err_msg += "!!! dtparam gpiopin included in line but we couldn't understand it, "
+                        err_msg += " - if the config file lines works then please msg me with them and what the end result is when using it -" + line + "\n"
+        return gpio_pins, err_msg
 
     def add_1wire(self, e):
         msg = "The Device Tree Overlay is a core system component of the raspberry pi "
@@ -393,10 +387,11 @@ class system_ctrl_pnl(wx.Panel):
         onewire_dbox = wx.TextEntryDialog(self, msg, "1wire GPIO pin select", generic)
         if onewire_dbox.ShowModal() == wx.ID_OK:
             pin_number = onewire_dbox.GetValue()
+            num_error = False
             if pin_number.isdigit():
-                if int(pin_number) < 28:
+                if int(pin_number) > 27:
                     num_error = True
-                if int(pin_number) > 1:
+                if int(pin_number) < 2:
                     num_error = True
             else:
                 num_error = True
@@ -414,87 +409,6 @@ class system_ctrl_pnl(wx.Panel):
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("cat /boot/config.txt")
         config_text = out + "\n" + dt_cmd
         self.update_boot_config(config_text)
-
-    def find_dtoverlay_1w_pins(self):
-        ''' This checks on the raspi's /boot/config.txt and lists the gpio
-            numbers used with dtoverlay=w1-gpio then returns a list containing
-            [enabled, gpio_num, line comment]
-        '''
-        print("finding w1 overlays in config file")
-        seek_dtparam = False # this is triggered when the w1 overlay is enabled,
-                             # dtparam= may then be in a subsiquent line
-                             # if not then the default pin is being used.
-        w1_gpio_pins = []
-        w1_gpio_muted = []
-        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("cat /boot/config.txt")
-        config_txt_lines = out.splitlines()
-        line_enabled = None
-        line_gpio_num = ""
-        line_comment = ""
-        for line in config_txt_lines:
-            # looking to see if gpio pin is set in a subsiquent line
-            if seek_dtparam == True:
-                if "dtoverlay" in line: #start of settings for next dtoverlay (may be another w1 or anything else)
-                    if not "#" in line.split("dtoverlay")[0]:
-                        if line_gpio_num == "":
-                            line_gpio_num = "4"
-                        w1_gpio_pins.append([line_enabled, line_gpio_num, line_comment]) #wring info about previously found overlay,
-                        line_enabled = None
-                        line_gpio_num = ""
-                        line_comment = ""
-                        #if not "#" in line.split("dtoverlay")[0]: #ignore muted overlays
-                        seek_dtparam = False
-
-                if "dtparam" in line and seek_dtparam == True: #seek_dtparam check import here as might muddle with oneline overlay and gpio settings
-                    if not "#" in line.split("dtparam")[0]:
-                        if "gpiopin=" in line:
-                            line_gpio_num=line.split("gpiopin=")[-1] #
-                            #w1_gpio_pins.append([line_enabled, pin, line_comment])
-            # looking to find where the w1-gpio overlay is being loaded.
-            if "dtoverlay=w1-gpio" in line:# next character might be "," or ":" msybe "="(?) to separate the overlay name from its parameters
-                print (line)
-                #check to see if line is disabled with a #
-                if "#" in line:
-                    hash_pos = line.find("#")
-                    line = [line[:hash_pos], line[hash_pos+1:]]
-                    print(line)
-                    if "dtoverlay" in line[0]:
-                        line_enabled = True
-                        command = line[0]
-                        line_comment = line[1]
-                    elif "dtoverlay" in line[1]:
-                        line_enabled = False
-                        command = line[1]
-                    # check to see if a comment exists at the end of the line
-                    if "#" in command: #will only be in disabled comments
-                        hash_pos = command.find("#")
-                        line_comment = command[hash_pos:]
-                        command = command[:hash_pos]
-                        print ("command, line_comment = " + command + " -- " + line_comment)
-                else:
-                    command = line
-                    line_enabled = True
-                # checking the command now it's free from any comments or muting
-                #print (command)
-                if not "gpiopin" in command:
-                    seek_dtparam = True #start checking subsiquent lines for gpio pin number
-                else:
-                    line_gpio_num = command.split("gpiopin=")[1]
-                    print(line_enabled, line_gpio_num, line_comment)
-                    print ("line gpio num =" + line_gpio_num)
-                    # i guess it's possible for someone to set gpio num here then change it in a subsiquent line with  a dtparam
-                    seek_dtparam = True #start checking subsiquent lines for gpio pin number
-        # catch if last line with no other dtoverlay after after
-        print(line_enabled, line_gpio_num, line_comment)
-        if not line_enabled == None:
-            if line_gpio_num == "":
-                line_gpio_num = "4" #default value for when no number is given
-            if not line_enabled == False: #added to ignore disabled lines to avoid bug
-                w1_gpio_pins.append([line_enabled, line_gpio_num, line_comment])
-            else:
-                w1_gpio_muted.append([False, line_gpio_num, line_comment])
-        print("w1_gpio_pins=" + str(w1_gpio_pins))
-        return w1_gpio_pins
 
     def update_boot_config(self, config_text):
         question_text = "Are you sure you want to change the pi's /boot/config.txt file?"
@@ -529,36 +443,7 @@ class system_ctrl_pnl(wx.Panel):
         dbox = scroll_text_dialog(None, str(out) + str(error), "Output of " + str(cmd_to_run), False)
         dbox.ShowModal()
         dbox.Destroy()
-
-
-    def set_baudrate(self, e):
-        new_i2c_baudrate = "30000"
-        # ask the user what baudrate they want to set
-        baud_dbox = wx.TextEntryDialog(self, 'Set i2c baudrate in /boot/config.txt to', 'Change i2c baudrate', new_i2c_baudrate)
-        if baud_dbox.ShowModal() == wx.ID_OK:
-            new_i2c_baudrate = baud_dbox.GetValue()
-        else:
-            return "cancelled"
-        baud_dbox.Destroy()
-        #
-        print("changing the i2c baudrate")
-        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("cat /boot/config.txt")
-        raspberry_config = out.splitlines()
-        # put it together again chaning settings line
-        config_text = ""
-        changed = False
-        for line in raspberry_config:
-            if "dtparam=i2c_baudrate=" in line:
-                line = "dtparam=i2c_baudrate=" + new_i2c_baudrate
-                print ("i2c set baudrate changing /boot/config.txt line to " + line)
-                changed = True
-            config_text = config_text + line + "\n"
-        if changed == False:
-            print("/boot/config.txt did not have 'dtparam=12c_baudrate=' so adding it")
-            config_text = config_text + "dtparam=i2c_baudrate=" + new_i2c_baudrate + "\n"
-        self.update_boot_config(config_text)
-
-
+        # I2C
     def i2c_check(self):
         # checking for i2c folder in /dev/
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("ls /dev/*i2c*")
@@ -589,6 +474,33 @@ class system_ctrl_pnl(wx.Panel):
         system_info_pnl.sys_i2c_info.SetLabel(i2c_text)
         # return
         return i2c_bus_number
+
+    def set_baudrate(self, e):
+        new_i2c_baudrate = "30000"
+        # ask the user what baudrate they want to set
+        baud_dbox = wx.TextEntryDialog(self, 'Set i2c baudrate in /boot/config.txt to', 'Change i2c baudrate', new_i2c_baudrate)
+        if baud_dbox.ShowModal() == wx.ID_OK:
+            new_i2c_baudrate = baud_dbox.GetValue()
+        else:
+            return "cancelled"
+        baud_dbox.Destroy()
+        #
+        print("changing the i2c baudrate")
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("cat /boot/config.txt")
+        raspberry_config = out.splitlines()
+        # put it together again chaning settings line
+        config_text = ""
+        changed = False
+        for line in raspberry_config:
+            if "dtparam=i2c_baudrate=" in line:
+                line = "dtparam=i2c_baudrate=" + new_i2c_baudrate
+                print ("i2c set baudrate changing /boot/config.txt line to " + line)
+                changed = True
+            config_text = config_text + line + "\n"
+        if changed == False:
+            print("/boot/config.txt did not have 'dtparam=12c_baudrate=' so adding it")
+            config_text = config_text + "dtparam=i2c_baudrate=" + new_i2c_baudrate + "\n"
+        self.update_boot_config(config_text)
 
     def check_i2c_baudrate(self, i2c_bus_number):
         # ask pi to read the pi's boot congif file for i2c baudrate info
@@ -641,7 +553,7 @@ class system_ctrl_pnl(wx.Panel):
             # returning a list of i2c device addresses
             MainApp.window_self.Layout()
             return i2c_addresses
-
+        # power controls
     def reboot_pigrow_click(self, e):
         dbox = wx.MessageDialog(self, "Are you sure you want to reboot the pigrow?", "reboot pigrow?", wx.OK | wx.CANCEL | wx.ICON_QUESTION)
         answer = dbox.ShowModal()
@@ -659,7 +571,7 @@ class system_ctrl_pnl(wx.Panel):
             out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo shutdown now")
             MainApp.pi_link_pnl.link_with_pi_btn_click("e")
             print((out, error))
-
+        # system checks
     def check_pi_diskspace(self):
         #check pi for hdd/sd card space
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("df -l /")
@@ -849,8 +761,11 @@ class system_ctrl_pnl(wx.Panel):
                 elif len(camera_list) > 1:
                     for cam in camera_list:
                         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("udevadm info --query=all " + cam + " |grep ID_MODEL=")
-                        cam_name = out.split("=")[1].strip()
-                        cam_text = cam_name + "\n       on " + cam + "\n"
+                        if not "=" in out:
+                            cam_name = "possibly picam?"
+                        else:
+                            cam_name = out.split("=")[1].strip()
+                            cam_text = cam_name + "\n       on " + cam + "\n"
             except:
                 print("probably a picam")
                 cam_text = "possibly a pi cam is connected?"
@@ -951,6 +866,7 @@ class edit_boot_config_dialog(wx.Dialog):
         config_text = self.config_text.GetValue()
         if not config_text == self.boot_config_original:
             system_ctrl_pnl.update_boot_config(None, config_text)
+            self.Destroy()
 
 
 
