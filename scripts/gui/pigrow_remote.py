@@ -174,6 +174,22 @@ def scale_pic(pic, target_size):
         #print(pic_width, pic_height, sizeratio, new_width, target_size, scale_pic.GetWidth(), scale_pic.GetHeight())
     return scale_pic
 
+def is_a_valid_and_free_gpio(gpio_pin):
+    '''
+    This checks if a GPIO pin is valid and currently not linked
+    to anything in the config file.
+    takes an str or int of the gpio number.
+    returns - True or False
+    '''
+    if not str(gpio_pin).isdigit():
+        return False
+    gpio_pin = int(gpio_pin)
+    if gpio_pin < 2:
+        return False
+    if gpio_pin > 27:
+        return False
+    #add check here to see if pin is already used in config file
+    return True
 
 #
 #
@@ -208,6 +224,9 @@ class system_ctrl_pnl(wx.Panel):
         self.find_1wire_btn.Bind(wx.EVT_BUTTON, self.find_1wire_devices)
         self.add_1wire_btn = wx.Button(self, label='Add 1w')
         self.add_1wire_btn.Bind(wx.EVT_BUTTON, self.add_1wire)
+        self.edit_1wire_btn = wx.Button(self, label='change')
+        self.edit_1wire_btn.Bind(wx.EVT_BUTTON, self.edit_1wire)
+        self.edit_1wire_btn.Disable()
         self.add_1wire_btn.Disable()
         # run command on pi button
         self.run_cmd_on_pi_btn = wx.Button(self, label='Run Command On Pi')
@@ -225,6 +244,7 @@ class system_ctrl_pnl(wx.Panel):
         onewire_sizer = wx.BoxSizer(wx.HORIZONTAL)
         onewire_sizer.Add(self.find_1wire_btn, 0, wx.ALL|wx.EXPAND, 3)
         onewire_sizer.Add(self.add_1wire_btn, 0, wx.ALL|wx.EXPAND, 3)
+        onewire_sizer.Add(self.edit_1wire_btn, 0, wx.ALL|wx.EXPAND, 3)
         main_sizer = wx.BoxSizer(wx.VERTICAL)
         main_sizer.Add(self.tab_label, 0, wx.ALL|wx.EXPAND, 3)
         main_sizer.Add(self.read_system_btn, 0, wx.ALL|wx.EXPAND, 3)
@@ -243,14 +263,9 @@ class system_ctrl_pnl(wx.Panel):
         main_sizer.AddStretchSpacer(1)
         main_sizer.Add(self.run_cmd_on_pi_btn, 0, wx.ALL|wx.EXPAND, 3)
         main_sizer.Add(self.edit_boot_config_btn, 0, wx.ALL|wx.EXPAND, 3)
-
         self.SetSizer(main_sizer)
 
-
-    def edit_boot_config_click(self ,e):
-        boot_conf = edit_boot_config_dialog(None)
-        boot_conf.ShowModal()
-
+    # 1Wire - ds18b20
     def find_ds18b20_devices(self):
         temp_sensor_list = []
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("ls /sys/bus/w1/devices")
@@ -259,7 +274,6 @@ class system_ctrl_pnl(wx.Panel):
             if folder[0:3] == "28-":
                 temp_sensor_list.append(folder)
         return temp_sensor_list
-
 
     def find_1wire_devices(self, e):
         module_text = ""
@@ -310,6 +324,7 @@ class system_ctrl_pnl(wx.Panel):
             onewire_config_file_text = "Found 1wire overlay in /boot/config.txt\n" + enabled_onewire_overlays_text[:-2]
         else:
             onewire_config_file_text = "1wire overlay not found in /boot/config.txt"
+            self.edit_1wire_btn.Disable()
         onewire_config_file_text += "\n" + onewire_err_text
         # turn on add new one wire overlay button
         self.add_1wire_btn.Enable()
@@ -317,7 +332,6 @@ class system_ctrl_pnl(wx.Panel):
         final_1wire_text = module_text + therm_module_text + other_modules + onewire_config_file_text
         system_info_pnl.sys_1wire_info.SetLabel(final_1wire_text)
         MainApp.window_self.Layout()
-
 
     def find_dtoverlay_1w_pins(self):
         ''' This checks on the raspi's /boot/config.txt and lists the gpio
@@ -375,6 +389,8 @@ class system_ctrl_pnl(wx.Panel):
                     else:
                         err_msg += "!!! dtparam gpiopin included in line but we couldn't understand it, "
                         err_msg += " - if the config file lines works then please msg me with them and what the end result is when using it -" + line + "\n"
+        if len(gpio_pin) > 0 and err_msg == "":
+            self.edit_1wire_btn.Enable()
         return gpio_pins, err_msg
 
     def add_1wire(self, e):
@@ -410,6 +426,10 @@ class system_ctrl_pnl(wx.Panel):
         config_text = out + "\n" + dt_cmd
         self.update_boot_config(config_text)
 
+    def edit_1wire(self, e):
+        edit_1wire_dbox = one_wire_change_pin_dbox(None)
+        edit_1wire_dbox.ShowModal()
+
     def update_boot_config(self, config_text):
         question_text = "Are you sure you want to change the pi's /boot/config.txt file?"
         dbox = wx.MessageDialog(self, question_text, "update pigrow /boot/config.txt?", wx.OK | wx.CANCEL | wx.ICON_QUESTION)
@@ -425,25 +445,7 @@ class system_ctrl_pnl(wx.Panel):
             out, error = MainApp.localfiles_ctrl_pannel.run_on_pi(copy_cmd)
             print(out, error)
             print("Pi's /boot/config,txt file changed")
-
-    def run_cmd_on_pi_click(self, e):
-        msg = 'Input command to run on pi\n\n This will run the command and wait for it to finish before\ngiving results and resuming the gui'
-        generic = 'ls ~/Pigrow/'
-        run_cmd_dbox = wx.TextEntryDialog(self, msg, "Run command on pi", generic)
-        if run_cmd_dbox.ShowModal() == wx.ID_OK:
-            cmd_to_run = run_cmd_dbox.GetValue()
-        else:
-            return "cancelled"
-        run_cmd_dbox.Destroy()
-        # run command on the pi
-        print("Running command; " + str(cmd_to_run))
-        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi(cmd_to_run)
-        print(out, error)
-        # tell user about it with a dialog boxes
-        dbox = scroll_text_dialog(None, str(out) + str(error), "Output of " + str(cmd_to_run), False)
-        dbox.ShowModal()
-        dbox.Destroy()
-        # I2C
+    # I2C
     def i2c_check(self):
         # checking for i2c folder in /dev/
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("ls /dev/*i2c*")
@@ -553,7 +555,7 @@ class system_ctrl_pnl(wx.Panel):
             # returning a list of i2c device addresses
             MainApp.window_self.Layout()
             return i2c_addresses
-        # power controls
+    # power controls
     def reboot_pigrow_click(self, e):
         dbox = wx.MessageDialog(self, "Are you sure you want to reboot the pigrow?", "reboot pigrow?", wx.OK | wx.CANCEL | wx.ICON_QUESTION)
         answer = dbox.ShowModal()
@@ -571,7 +573,7 @@ class system_ctrl_pnl(wx.Panel):
             out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo shutdown now")
             MainApp.pi_link_pnl.link_with_pi_btn_click("e")
             print((out, error))
-        # system checks
+    # system checks
     def check_pi_diskspace(self):
         #check pi for hdd/sd card space
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("df -l /")
@@ -779,7 +781,7 @@ class system_ctrl_pnl(wx.Panel):
         local_time_text = local_time.strftime("%a %d %b %X") + " " + str(time.tzname[0]) + " " + local_time.strftime("%Y")
         pi_time = out.strip()
         return local_time_text, out
-
+    # buttons
     def read_system_click(self, e):
         ### pi system interrogation
         # disk space
@@ -826,6 +828,28 @@ class system_ctrl_pnl(wx.Panel):
         update_dbox = upgrade_pigrow_dialog(None, title='Update Pigrow to Raspberry Pi')
         update_dbox.ShowModal()
 
+    def run_cmd_on_pi_click(self, e):
+        msg = 'Input command to run on pi\n\n This will run the command and wait for it to finish before\ngiving results and resuming the gui'
+        generic = 'ls ~/Pigrow/'
+        run_cmd_dbox = wx.TextEntryDialog(self, msg, "Run command on pi", generic)
+        if run_cmd_dbox.ShowModal() == wx.ID_OK:
+            cmd_to_run = run_cmd_dbox.GetValue()
+        else:
+            return "cancelled"
+        run_cmd_dbox.Destroy()
+        # run command on the pi
+        print("Running command; " + str(cmd_to_run))
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi(cmd_to_run)
+        print(out, error)
+        # tell user about it with a dialog boxes
+        dbox = scroll_text_dialog(None, str(out) + str(error), "Output of " + str(cmd_to_run), False)
+        dbox.ShowModal()
+        dbox.Destroy()
+
+    def edit_boot_config_click(self ,e):
+        boot_conf = edit_boot_config_dialog(None)
+        boot_conf.ShowModal()
+
 class edit_boot_config_dialog(wx.Dialog):
     def __init__(self, *args, **kw):
         super(edit_boot_config_dialog, self).__init__(*args, **kw)
@@ -868,70 +892,92 @@ class edit_boot_config_dialog(wx.Dialog):
             system_ctrl_pnl.update_boot_config(None, config_text)
             self.Destroy()
 
-
-
-class onewire_conf_dialog(wx.Dialog):
+class one_wire_change_pin_dbox(wx.Dialog):
+    '''
+    This opens a dialog box whixh allows you to change the gpio pin associated with
+    the one wire devices, it only works with lines that include a ,gpiopin= entry and
+    should not be called when there are complications in the file such as dtparam=gpiopin=
+    being used to change the pin number on a subsiquent line.
+    This is designed to work only with lines added by us or the offical raspi_conf tools,
+    the button for it should be disabled if any complications are in the files
+    '''
     def __init__(self, *args, **kw):
-        super(onewire_conf_dialog, self).__init__(*args, **kw)
+        super(one_wire_change_pin_dbox, self).__init__(*args, **kw)
         self.InitUI()
-        self.SetSize((600, 600))
-        self.SetTitle("One Wire Config")
+        self.SetSize((600, 350))
+        self.SetTitle("Change 1Wire Overlay Pin")
     def InitUI(self):
 
         # draw the pannel and text
         pnl = wx.Panel(self)
-        title = wx.StaticText(self,  label='Onewire Config File Options')
-        sub_text = wx.StaticText(self,  label='Editing the /boot/config.txt file dtoverlay=w1-gpio entry')
-        enabled_cb = wx.CheckBox(self, label='Enabled')
-        gpiopins_l = wx.StaticText(self, label='GPIO pin numbers')
-        gpiopins_tc = wx.TextCtrl(self)
+        title_font = wx.Font(28, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
+        sub_title_font = wx.Font(15, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
+        title = wx.StaticText(self,  label='Change 1wire Pin')
+        title.SetFont(title_font)
+        sub_text = wx.StaticText(self,  label="Editing the /boot/config.txt file's \ndtoverlay=w1-gpio,gpiopin= lines")
+        sub_text.SetFont(sub_title_font)
+        # add drop down box with list of 1wire overlay gpio pins
+        #
+        tochange_gpiopin_l = wx.StaticText(self, label='current 1wire gpio pin -')
+        pin_list = ["list", "of", "gpio", "numbers", "in", "config", "file"]
+        self.tochange_gpiopin_cb = wx.ComboBox(self, choices = pin_list, size=(110, 25))
+        if len(pin_list) > 0:
+            self.tochange_gpiopin_cb.SetValue(pin_list[0])
+        #
+        new_gpiopin_l = wx.StaticText(self, label='Change to GPIO pin -')
+        self.new_gpiopin_tc = wx.TextCtrl(self, size=(110, 25)) # new number
+        self.new_gpiopin_tc.Bind(wx.EVT_TEXT, self.make_config_line)
         line_l = wx.StaticText(self, label="/boot/config/txt line")
-        self.line_tc = wx.TextCtrl(self)
+        self.line_t = wx.StaticText(self, label="")
+        #
         # ok and cancel Buttons
         self.ok_btn = wx.Button(self, label='OK', size=(175, 30))
         self.ok_btn.Bind(wx.EVT_BUTTON, self.ok_click)
         self.cancel_btn = wx.Button(self, label='Cancel', size=(175, 30))
         self.cancel_btn.Bind(wx.EVT_BUTTON, self.OnClose)
 
-        # set values in check boxes
-        enabled = True
-        gpiopins = ["4"]
-        enabled_cb.Enable(enabled)
-        gpiopins_tc.SetValue(gpiopins)
-        self.make_config_line(enabled, gpiopins)
+        # set values in boxes
+
         # sizers
-        line_bar_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        line_bar_sizer.Add(enabled_cb, 0, wx.ALL, 2)
-        line_bar_sizer.Add(gpiopins_l, 0, wx.ALL, 2)
-        line_bar_sizer.Add(gpiopins_tc, 0, wx.ALL, 2)
+        old_gpio_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        old_gpio_sizer.Add(tochange_gpiopin_l, 0, wx.ALL, 2)
+        old_gpio_sizer.Add(self.tochange_gpiopin_cb, 0, wx.ALL, 2)
+        new_gpio_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        new_gpio_sizer.Add(new_gpiopin_l, 0, wx.ALL, 2)
+        new_gpio_sizer.Add(self.new_gpiopin_tc, 0, wx.ALL, 2)
         buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        buttons_sizer.Add(ok_btn, 0, wx.ALIGN_LEFT, 2)
-        buttons_sizer.Add(cancel_btn, 0, wx.ALIGN_RIGHT, 2)
+        buttons_sizer.Add(self.ok_btn, 0, wx.ALIGN_LEFT, 2)
+        buttons_sizer.AddStretchSpacer(1)
+        buttons_sizer.Add(self.cancel_btn, 0, wx.ALIGN_RIGHT, 2)
         main_sizer = wx.BoxSizer(wx.VERTICAL)
         main_sizer.Add(title, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
-        main_sizer.Add(sub_text, 0, wx.ALL, 3)
+        main_sizer.Add(sub_text, 0, wx.ALIGN_CENTER_HORIZONTAL, 3)
         main_sizer.AddStretchSpacer(1)
-        main_sizer.Add(line_bar_sizer, 0, wx.ALL, 3)
+        main_sizer.Add(old_gpio_sizer, 0, wx.ALL, 3)
+        main_sizer.Add(new_gpio_sizer, 0, wx.ALL, 3)
         main_sizer.AddStretchSpacer(1)
         main_sizer.Add(line_l, 0, wx.ALL, 3)
-        main_sizer.Add(self.line_tc, 0, wx.ALL, 3)
+        main_sizer.Add(self.line_t, 0, wx.ALL, 3)
         main_sizer.AddStretchSpacer(1)
-        main_sizer.Add(buttons_sizer, 0, wx.ALL, 3)
+        main_sizer.Add(buttons_sizer, 0, wx.ALIGN_CENTER_HORIZONTAL, 3)
+        self.SetSizer(main_sizer)
 
-    def make_config_line(self, enabled, gpiopins):
-        for gpio in gpiopins:
-            if enabled == True:
-                line = ""
-            else:
-                line = "#"
-            line = line + "dtoverlay=w1-gpio,gpiopin=" + gpio_on_dict + "\n"
-        print (line)
-        self.line_tc.SetValue(line)
+    def make_config_line(self, e):
+        gpiopin = self.new_gpiopin_tc.GetValue()
+        # check pin valid and disable ok button if not, maybe paint box red
+        self.line_t.SetLabel("dtoverlay=w1-gpio,gpiopin=" + gpiopin + "\n")
+        if is_a_valid_and_free_gpio(gpiopin):
+            self.line_t.SetBackgroundColour((250,250,250))
+            self.ok_btn.Enable()
+        else:
+            self.line_t.SetBackgroundColour((230, 100, 100))
+            self.ok_btn.Disable()
+
 
     def ok_click(self, e):
         print("does nothing atm")
 
-    def ok_click(self, e):
+    def OnClose(self, e):
         self.Destroy()
 
 
@@ -4101,8 +4147,16 @@ class localfiles_ctrl_pnl(wx.Panel):
                         caps_message += "\n" + str(len(remote_caps)) + " files on Pigrow \n"
                         # remote image files
                         if len(remote_caps) > 1:
-                            first_remote, first_r_dt = self.filename_to_date(first_img_file)
-                            last_remote, last_r_dt = self.filename_to_date(last_img_file)
+                            try:
+                                first_remote, first_r_dt = self.filename_to_date(first_img_file)
+                            except:
+                                first_remote = "error"
+                                first_r_dt = None
+                            try:
+                                last_remote, last_r_dt = self.filename_to_date(last_img_file)
+                            except:
+                                last_remote = "error"
+                                last_r_dt = None
                             caps_message += "  " + str(first_remote) + " - " + str(last_remote)
                             if not last_r_dt == None:
                                 if not first_r_dt == None:
