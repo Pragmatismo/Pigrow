@@ -275,64 +275,6 @@ class system_ctrl_pnl(wx.Panel):
                 temp_sensor_list.append(folder)
         return temp_sensor_list
 
-    def find_1wire_devices(self, e):
-        module_text = ""
-        therm_module_text = ""
-        other_modules = ""
-        onewire_config_file = ""
-        # Check running modules for w1 and therm overlay
-        print("looking to see if 1wire overlay is turned on")
-        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("lsmod")
-        oneW_modules = ""
-        for line in out.splitlines():
-            if line[0:4] == "wire":
-                oneW_modules = line.split(" ")[-1].split(",")
-        if not oneW_modules == "":
-            if "w1_gpio" in oneW_modules:
-                module_text = "1wire module enabled\n"
-            if "w1_therm" in oneW_modules:
-                therm_module_text = "1wire thermometer module enabled\n"
-                temp_sensor_list = self.find_ds18b20_devices()
-                if len(temp_sensor_list) > 0:
-                    therm_module_text += "Found " + str(len(temp_sensor_list)) + " temp sensors;\n"
-                for item in temp_sensor_list:
-                    therm_module_text += "  - " + str(item) + "\n"
-            else:
-                therm_module_text = "1wire thermometer module NOT enabled\n"
-            other_modules = "other one wire modules loaded"
-            for module in oneW_modules:
-                if not module == "w1_gpio" and not module == "w1_therm":
-                    other_modules += ", " + module
-            if other_modules == "other one wire modules loaded":
-                other_modules = ""
-            else:
-                other_modules += "\n"
-        else:
-            module_text = "1wire module NOT enabled\n"
-        # Check config file for 1wire overlay
-        #             /boot/config.txt file should include 'dtoverlay=w1-gpio'
-        onewire_pin_list, onewire_err_text = self.find_dtoverlay_1w_pins()
-        enabled_onewire_overlays_text = "Enabled Overlay on GPIO; "
-        if len(onewire_pin_list) > 0:
-            for item in onewire_pin_list:
-                if not item[0] == None:
-                    enabled_onewire_overlays_text += item[0]
-                    if not item[1] == "" and not item[1] == None:
-                        enabled_onewire_overlays_text += " (" + item[1] + "), "
-                    else:
-                        enabled_onewire_overlays_text += ", "
-            onewire_config_file_text = "Found 1wire overlay in /boot/config.txt\n" + enabled_onewire_overlays_text[:-2]
-        else:
-            onewire_config_file_text = "1wire overlay not found in /boot/config.txt"
-            self.edit_1wire_btn.Disable()
-        onewire_config_file_text += "\n" + onewire_err_text
-        # turn on add new one wire overlay button
-        self.add_1wire_btn.Enable()
-        # assemble final message and print to screen
-        final_1wire_text = module_text + therm_module_text + other_modules + onewire_config_file_text
-        system_info_pnl.sys_1wire_info.SetLabel(final_1wire_text)
-        MainApp.window_self.Layout()
-
     def find_dtoverlay_1w_pins(self):
         ''' This checks on the raspi's /boot/config.txt and lists the gpio
             numbers used with dtoverlay=w1-gpio then returns a list containing
@@ -392,6 +334,64 @@ class system_ctrl_pnl(wx.Panel):
         if len(gpio_pin) > 0 and err_msg == "":
             self.edit_1wire_btn.Enable()
         return gpio_pins, err_msg
+
+    def find_1wire_devices(self, e):
+        module_text = ""
+        therm_module_text = ""
+        other_modules = ""
+        onewire_config_file = ""
+        # Check running modules for w1 and therm overlay
+        print("looking to see if 1wire overlay is turned on")
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("lsmod")
+        oneW_modules = ""
+        for line in out.splitlines():
+            if line[0:4] == "wire":
+                oneW_modules = line.split(" ")[-1].split(",")
+        if not oneW_modules == "":
+            if "w1_gpio" in oneW_modules:
+                module_text = "1wire module enabled\n"
+            if "w1_therm" in oneW_modules:
+                therm_module_text = "1wire thermometer module enabled\n"
+                temp_sensor_list = self.find_ds18b20_devices()
+                if len(temp_sensor_list) > 0:
+                    therm_module_text += "Found " + str(len(temp_sensor_list)) + " temp sensors;\n"
+                for item in temp_sensor_list:
+                    therm_module_text += "  - " + str(item) + "\n"
+            else:
+                therm_module_text = "1wire thermometer module NOT enabled\n"
+            other_modules = "other one wire modules loaded"
+            for module in oneW_modules:
+                if not module == "w1_gpio" and not module == "w1_therm":
+                    other_modules += ", " + module
+            if other_modules == "other one wire modules loaded":
+                other_modules = ""
+            else:
+                other_modules += "\n"
+        else:
+            module_text = "1wire module NOT enabled\n"
+        # Check config file for 1wire overlay
+        #             /boot/config.txt file should include 'dtoverlay=w1-gpio'
+        onewire_pin_list, onewire_err_text = self.find_dtoverlay_1w_pins()
+        enabled_onewire_overlays_text = "Enabled Overlay on GPIO; "
+        if len(onewire_pin_list) > 0:
+            for item in onewire_pin_list:
+                if not item[0] == None:
+                    enabled_onewire_overlays_text += item[0]
+                    if not item[1] == "" and not item[1] == None:
+                        enabled_onewire_overlays_text += " (" + item[1] + "), "
+                    else:
+                        enabled_onewire_overlays_text += ", "
+            onewire_config_file_text = "Found 1wire overlay in /boot/config.txt\n" + enabled_onewire_overlays_text[:-2]
+        else:
+            onewire_config_file_text = "1wire overlay not found in /boot/config.txt"
+            self.edit_1wire_btn.Disable()
+        onewire_config_file_text += "\n" + onewire_err_text
+        # turn on add new one wire overlay button
+        self.add_1wire_btn.Enable()
+        # assemble final message and print to screen
+        final_1wire_text = module_text + therm_module_text + other_modules + onewire_config_file_text
+        system_info_pnl.sys_1wire_info.SetLabel(final_1wire_text)
+        MainApp.window_self.Layout()
 
     def add_1wire(self, e):
         msg = "The Device Tree Overlay is a core system component of the raspberry pi "
@@ -919,7 +919,13 @@ class one_wire_change_pin_dbox(wx.Dialog):
         # add drop down box with list of 1wire overlay gpio pins
         #
         tochange_gpiopin_l = wx.StaticText(self, label='current 1wire gpio pin -')
-        pin_list = ["list", "of", "gpio", "numbers", "in", "config", "file"]
+        pin_list_with_comment, error_msg = system_ctrl_pnl.find_dtoverlay_1w_pins(MainApp.system_ctrl_pannel)
+        if not error_msg == "":
+            print("!!! /boot/config.txt file too complex for automatic editing, sorry")
+            self.Destroy()
+        pin_list = []
+        for item in pin_list_with_comment:
+            pin_list.append(item[0])
         self.tochange_gpiopin_cb = wx.ComboBox(self, choices = pin_list, size=(110, 25))
         if len(pin_list) > 0:
             self.tochange_gpiopin_cb.SetValue(pin_list[0])
