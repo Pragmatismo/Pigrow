@@ -199,9 +199,19 @@ def is_a_valid_and_free_gpio(gpio_pin):
 class system_ctrl_pnl(wx.Panel):
     def __init__( self, parent ):
         wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, style = wx.TAB_TRAVERSAL )
+        sub_title_font = wx.Font(13, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
+        self.tab_label = wx.StaticText(self,  label='System Config Menu')
+        self.pigrow_side_label = wx.StaticText(self,  label='Pigrow Software')
+        self.system_side_label = wx.StaticText(self,  label='System')
+        self.i2c_side_label = wx.StaticText(self,  label='I2C')
+        self.onewire_side_label = wx.StaticText(self,  label='1Wire')
+        self.tab_label.SetFont(sub_title_font)
+        self.pigrow_side_label.SetFont(sub_title_font)
+        self.system_side_label.SetFont(sub_title_font)
+        self.i2c_side_label.SetFont(sub_title_font)
+        self.onewire_side_label.SetFont(sub_title_font)
         # Start drawing the UI elements
         # tab info
-        self.tab_label = wx.StaticText(self,  label='System Config Menu')
         self.read_system_btn = wx.Button(self, label='Read System Info')
         self.read_system_btn.Bind(wx.EVT_BUTTON, self.read_system_click)
         # pigrow software install and upgrade buttons
@@ -226,8 +236,11 @@ class system_ctrl_pnl(wx.Panel):
         self.add_1wire_btn.Bind(wx.EVT_BUTTON, self.add_1wire)
         self.edit_1wire_btn = wx.Button(self, label='change')
         self.edit_1wire_btn.Bind(wx.EVT_BUTTON, self.edit_1wire)
-        self.edit_1wire_btn.Disable()
+        self.remove_1wire_btn = wx.Button(self, label='remove')
+        self.remove_1wire_btn.Bind(wx.EVT_BUTTON, self.remove_1wire)
         self.add_1wire_btn.Disable()
+        self.edit_1wire_btn.Disable()
+        self.remove_1wire_btn.Disable()
         # run command on pi button
         self.run_cmd_on_pi_btn = wx.Button(self, label='Run Command On Pi')
         self.run_cmd_on_pi_btn.Bind(wx.EVT_BUTTON, self.run_cmd_on_pi_click)
@@ -244,25 +257,30 @@ class system_ctrl_pnl(wx.Panel):
         onewire_sizer = wx.BoxSizer(wx.HORIZONTAL)
         onewire_sizer.Add(self.find_1wire_btn, 0, wx.ALL|wx.EXPAND, 3)
         onewire_sizer.Add(self.add_1wire_btn, 0, wx.ALL|wx.EXPAND, 3)
-        onewire_sizer.Add(self.edit_1wire_btn, 0, wx.ALL|wx.EXPAND, 3)
         main_sizer = wx.BoxSizer(wx.VERTICAL)
         main_sizer.Add(self.tab_label, 0, wx.ALL|wx.EXPAND, 3)
         main_sizer.Add(self.read_system_btn, 0, wx.ALL|wx.EXPAND, 3)
         main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(self.pigrow_side_label, 0, wx.ALL|wx.EXPAND, 2)
         main_sizer.Add(self.install_pigrow_btn, 0, wx.ALL|wx.EXPAND, 3)
         main_sizer.Add(self.update_pigrow_btn, 0, wx.ALL|wx.EXPAND, 3)
         main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(self.system_side_label, 0, wx.ALL|wx.EXPAND, 2)
+        main_sizer.Add(self.run_cmd_on_pi_btn, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.Add(self.edit_boot_config_btn, 0, wx.ALL|wx.EXPAND, 3)
         main_sizer.Add(power_sizer, 0, wx.ALL|wx.EXPAND, 3)
         main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(self.i2c_side_label, 0, wx.ALL|wx.EXPAND, 2)
         main_sizer.Add(i2c_sizer, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.Add(self.onewire_side_label, 0, wx.ALL|wx.EXPAND, 2)
         main_sizer.Add(onewire_sizer, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.Add(self.edit_1wire_btn, 0, wx.ALL|wx.ALIGN_RIGHT, 3)
+        main_sizer.Add(self.remove_1wire_btn, 0, wx.ALL|wx.ALIGN_RIGHT, 3)
         main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.AddStretchSpacer(1)
-        main_sizer.Add(self.run_cmd_on_pi_btn, 0, wx.ALL|wx.EXPAND, 3)
-        main_sizer.Add(self.edit_boot_config_btn, 0, wx.ALL|wx.EXPAND, 3)
         self.SetSizer(main_sizer)
 
     # 1Wire - ds18b20
@@ -331,8 +349,9 @@ class system_ctrl_pnl(wx.Panel):
                     else:
                         err_msg += "!!! dtparam gpiopin included in line but we couldn't understand it, "
                         err_msg += " - if the config file lines works then please msg me with them and what the end result is when using it -" + line + "\n"
-        if len(gpio_pin) > 0 and err_msg == "":
+        if len(gpio_pins) > 0 and err_msg == "":
             self.edit_1wire_btn.Enable()
+            self.remove_1wire_btn.Enable()
         return gpio_pins, err_msg
 
     def find_1wire_devices(self, e):
@@ -385,6 +404,7 @@ class system_ctrl_pnl(wx.Panel):
         else:
             onewire_config_file_text = "1wire overlay not found in /boot/config.txt"
             self.edit_1wire_btn.Disable()
+            self.remove_1wire_btn.Disable()
         onewire_config_file_text += "\n" + onewire_err_text
         # turn on add new one wire overlay button
         self.add_1wire_btn.Enable()
@@ -403,16 +423,8 @@ class system_ctrl_pnl(wx.Panel):
         onewire_dbox = wx.TextEntryDialog(self, msg, "1wire GPIO pin select", generic)
         if onewire_dbox.ShowModal() == wx.ID_OK:
             pin_number = onewire_dbox.GetValue()
-            num_error = False
-            if pin_number.isdigit():
-                if int(pin_number) > 27:
-                    num_error = True
-                if int(pin_number) < 2:
-                    num_error = True
-            else:
-                num_error = True
-            if num_error == True:
-                err_msg = "Error: Pin must be a number between 2 and 27"
+            if is_a_valid_and_free_gpio(pin_number) == False:
+                err_msg = "Error: Pin must be a number between 2 and 27 which isn't currently assigned to another device"
                 d = wx.MessageDialog(self, err_msg, "Error", wx.OK | wx.ICON_ERROR)
                 answer = d.ShowModal()
                 d.Destroy()
@@ -425,10 +437,17 @@ class system_ctrl_pnl(wx.Panel):
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("cat /boot/config.txt")
         config_text = out + "\n" + dt_cmd
         self.update_boot_config(config_text)
+        self.find_1wire_devices("e")
 
     def edit_1wire(self, e):
         edit_1wire_dbox = one_wire_change_pin_dbox(None)
         edit_1wire_dbox.ShowModal()
+        self.find_1wire_devices("e")
+
+    def remove_1wire(self, e):
+        remove_1wire_dbox = remove_onewire_dbox(None)
+        remove_1wire_dbox.ShowModal()
+        self.find_1wire_devices("e")
 
     def update_boot_config(self, config_text):
         question_text = "Are you sure you want to change the pi's /boot/config.txt file?"
@@ -555,6 +574,7 @@ class system_ctrl_pnl(wx.Panel):
             # returning a list of i2c device addresses
             MainApp.window_self.Layout()
             return i2c_addresses
+
     # power controls
     def reboot_pigrow_click(self, e):
         dbox = wx.MessageDialog(self, "Are you sure you want to reboot the pigrow?", "reboot pigrow?", wx.OK | wx.CANCEL | wx.ICON_QUESTION)
@@ -890,7 +910,7 @@ class edit_boot_config_dialog(wx.Dialog):
         config_text = self.config_text.GetValue()
         if not config_text == self.boot_config_original:
             system_ctrl_pnl.update_boot_config(None, config_text)
-            self.Destroy()
+        self.Destroy()
 
 class one_wire_change_pin_dbox(wx.Dialog):
     '''
@@ -935,15 +955,11 @@ class one_wire_change_pin_dbox(wx.Dialog):
         self.new_gpiopin_tc.Bind(wx.EVT_TEXT, self.make_config_line)
         line_l = wx.StaticText(self, label="/boot/config/txt line")
         self.line_t = wx.StaticText(self, label="")
-        #
         # ok and cancel Buttons
         self.ok_btn = wx.Button(self, label='OK', size=(175, 30))
         self.ok_btn.Bind(wx.EVT_BUTTON, self.ok_click)
         self.cancel_btn = wx.Button(self, label='Cancel', size=(175, 30))
         self.cancel_btn.Bind(wx.EVT_BUTTON, self.OnClose)
-
-        # set values in boxes
-
         # sizers
         old_gpio_sizer = wx.BoxSizer(wx.HORIZONTAL)
         old_gpio_sizer.Add(tochange_gpiopin_l, 0, wx.ALL, 2)
@@ -979,9 +995,89 @@ class one_wire_change_pin_dbox(wx.Dialog):
             self.line_t.SetBackgroundColour((230, 100, 100))
             self.ok_btn.Disable()
 
+    def ok_click(self, e):
+        new_line = self.line_t.GetLabel()
+        old_line = "dtoverlay=w1-gpio,gpiopin=" + self.tochange_gpiopin_cb.GetValue()
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("cat /boot/config.txt")
+        config_lines = out.splitlines()
+        config_text = ""
+        for line in config_lines:
+            if old_line in line:
+                print("--Changing " + line + " to " + new_line)
+                line = new_line
+            config_text = config_text + line + "\n"
+        system_ctrl_pnl.update_boot_config(MainApp.system_ctrl_pannel, config_text)
+        self.Destroy()
+
+    def OnClose(self, e):
+        self.Destroy()
+
+class remove_onewire_dbox(wx.Dialog):
+    '''lists the gpio pins mentioned in the 1wire config section of
+       the /boot/config.txt file and gives you the option to remove one line
+       this only works with neat and tidy config files
+    '''
+    def __init__(self, *args, **kw):
+        super(remove_onewire_dbox, self).__init__(*args, **kw)
+        self.InitUI()
+        self.SetSize((600, 350))
+        self.SetTitle("Remove 1Wire Overlay Pin")
+    def InitUI(self):
+
+        # draw the pannel and text
+        pnl = wx.Panel(self)
+        title_font = wx.Font(28, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
+        sub_title_font = wx.Font(15, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
+        title = wx.StaticText(self,  label='Remove 1wire Pin')
+        title.SetFont(title_font)
+        sub_text = wx.StaticText(self,  label="Editing the /boot/config.txt file and removing \n the selected dtoverlay=w1-gpio,gpiopin= line")
+        sub_text.SetFont(sub_title_font)
+        # Select Pin
+        tochange_gpiopin_l = wx.StaticText(self, label='1wire gpio pin to remove from config')
+        pin_list_with_comment, error_msg = system_ctrl_pnl.find_dtoverlay_1w_pins(MainApp.system_ctrl_pannel)
+        if not error_msg == "":
+            print("!!! /boot/config.txt file too complex for automatic editing, sorry")
+            self.Destroy()
+        pin_list = []
+        for item in pin_list_with_comment:
+            pin_list.append(item[0])
+        self.tochange_gpiopin_cb = wx.ComboBox(self, choices = pin_list, size=(110, 25))
+        if len(pin_list) > 0:
+            self.tochange_gpiopin_cb.SetValue(pin_list[0])
+        # ok and cancel Buttons
+        self.ok_btn = wx.Button(self, label='OK', size=(175, 30))
+        self.ok_btn.Bind(wx.EVT_BUTTON, self.ok_click)
+        self.cancel_btn = wx.Button(self, label='Cancel', size=(175, 30))
+        self.cancel_btn.Bind(wx.EVT_BUTTON, self.OnClose)
+        # Sizers
+        old_gpio_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        old_gpio_sizer.Add(tochange_gpiopin_l, 0, wx.ALL, 2)
+        old_gpio_sizer.Add(self.tochange_gpiopin_cb, 0, wx.ALL, 2)
+        buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        buttons_sizer.Add(self.ok_btn, 0, wx.ALIGN_LEFT, 2)
+        buttons_sizer.AddStretchSpacer(1)
+        buttons_sizer.Add(self.cancel_btn, 0, wx.ALIGN_RIGHT, 2)
+        main_sizer = wx.BoxSizer(wx.VERTICAL)
+        main_sizer.Add(title, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
+        main_sizer.Add(sub_text, 0, wx.ALIGN_CENTER_HORIZONTAL, 3)
+        main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(old_gpio_sizer, 0, wx.ALL, 3)
+        main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(buttons_sizer, 0, wx.ALIGN_CENTER_HORIZONTAL, 3)
+        self.SetSizer(main_sizer)
 
     def ok_click(self, e):
-        print("does nothing atm")
+        old_line = "dtoverlay=w1-gpio,gpiopin=" + self.tochange_gpiopin_cb.GetValue()
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("cat /boot/config.txt")
+        config_lines = out.splitlines()
+        config_text = ""
+        for line in config_lines:
+            if not old_line in line:
+                config_text = config_text + line + "\n"
+            else:
+                print(" -- Removing " + line)
+        system_ctrl_pnl.update_boot_config(MainApp.system_ctrl_pannel, config_text)
+        self.Destroy()
 
     def OnClose(self, e):
         self.Destroy()
@@ -6841,6 +6937,8 @@ class pi_link_pnl(wx.Panel):
         system_info_pnl.sys_1wire_info.SetLabel("")
         MainApp.system_ctrl_pannel.i2c_baudrate_btn.Disable()
         MainApp.system_ctrl_pannel.add_1wire_btn.Disable()
+        MainApp.system_ctrl_pannel.edit_1wire_btn.Disable()
+        MainApp.system_ctrl_pannel.remove_1wire_btn.Disable()
         #system_info_pnl.sys_time_diff.SetLabel("")
         # clear config ctrl text and tables
         try:
