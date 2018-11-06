@@ -5711,8 +5711,6 @@ class timelapse_info_pnl(wx.Panel):
         main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
         self.SetSizer(main_sizer)
 
-
-
     def set_first_image(self, filename):
         try:
             first = wx.Image(filename, wx.BITMAP_TYPE_ANY)
@@ -5857,6 +5855,8 @@ class timelapse_ctrl_pnl(wx.Panel):
         # render controlls
         render_l = wx.StaticText(self,  label='Render',size=(100,25))
         render_l.SetFont(sub_title_font)
+        fps_l = wx.StaticText(self,  label='FPS')
+        self.fps_tc = wx.TextCtrl(self, value="25", size=(50,25))
         make_timelapse_btn = wx.Button(self, label='Make Timelapse')
         make_timelapse_btn.Bind(wx.EVT_BUTTON, self.make_timelapse_click)
         play_timelapse_btn = wx.Button(self, label='Play')
@@ -5877,6 +5877,9 @@ class timelapse_ctrl_pnl(wx.Panel):
         file_name_sizer.Add(outfile_l, 0, wx.ALL, 1)
         file_name_sizer.Add(self.out_file_tc, 1, wx.ALL|wx.EXPAND, 1)
         file_name_sizer.Add(set_outfile_btn, 0, wx.ALL, 0)
+        fps_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        fps_sizer.Add(fps_l, 0, wx.ALL, 1)
+        fps_sizer.Add(self.fps_tc, 0, wx.ALL, 1)
         frame_range_sizer = wx.BoxSizer(wx.HORIZONTAL)
         frame_range_sizer.Add(range_l, 0, wx.ALL, 1)
         frame_range_sizer.Add(self.range_tc, 0, wx.ALL, 1)
@@ -5894,6 +5897,7 @@ class timelapse_ctrl_pnl(wx.Panel):
         render_buttons_sizer.Add(play_timelapse_btn, 0, wx.ALL|wx.EXPAND, 3)
         render_bar_sizer =  wx.BoxSizer(wx.VERTICAL)
         render_bar_sizer.Add(render_l, 0, wx.ALL|wx.EXPAND, 3)
+        render_bar_sizer.Add(fps_sizer, 0, wx.ALL|wx.EXPAND, 3)
         render_bar_sizer.Add(file_name_sizer, 0, wx.ALL|wx.EXPAND, 3)
         render_bar_sizer.Add(render_buttons_sizer, 0, wx.ALL|wx.EXPAND, 3)
 
@@ -5927,13 +5931,13 @@ class timelapse_ctrl_pnl(wx.Panel):
         for file in self.trimmed_frame_list:
             frame_list_text_file.write(file + "\n")
         frame_list_text_file.close()
-        infps  = 10
-        #outfps = 10
+        ofps  = self.fps_tc.GetValue()
         outfile= self.out_file_tc.GetValue()
         extra_commands = ""
         print (" ##  making you a timelapse video...")
-        cmd = "mpv mf://@"+listfile+" -mf-fps="+str(infps)
+        cmd = "mpv mf://@"+listfile+" --mf-fps="+str(ofps)
         cmd += " -o "+outfile+" " + extra_commands
+        print(" Running - " + cmd)
         os.system(cmd)
 
     def select_new_caps_set_click(self, e):
@@ -6329,10 +6333,9 @@ class ds18b20_dialog(wx.Dialog):
     def __init__(self, *args, **kw):
         super(ds18b20_dialog, self).__init__(*args, **kw)
         self.InitUI()
-        self.SetSize((700, 400))
+        self.SetSize((700, 300))
         self.SetTitle("DS18B20 Temp Sensor Setup")
         self.Bind(wx.EVT_CLOSE, self.OnClose)
-
 
     def InitUI(self):
         # read values for when editing existing entry
@@ -6350,7 +6353,9 @@ class ds18b20_dialog(wx.Dialog):
             s_rep_txt = ""
         # panel
         pnl = wx.Panel(self)
+        title_font = wx.Font(28, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
         box_label = wx.StaticText(self,  label='DS18B20 Temp Sensor')
+        box_label.SetFont(title_font)
         # table information
         name_l = wx.StaticText(self,  label='Unique Name')
         self.name_tc = wx.TextCtrl(self, size=(400,30))
@@ -6409,7 +6414,8 @@ class ds18b20_dialog(wx.Dialog):
         main_sizer =  wx.BoxSizer(wx.VERTICAL)
         main_sizer.Add(box_label, 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.Add(options_sizer, 0, wx.ALL|wx.EXPAND, 3)
-        main_sizer.Add(buttons_sizer, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(buttons_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
 
         main_sizer.AddStretchSpacer(1)
 
