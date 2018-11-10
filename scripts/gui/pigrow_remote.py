@@ -6785,6 +6785,66 @@ class chirp_dialog(wx.Dialog):
         MainApp.sensors_info_pannel.sensor_list.s_timing = ""
         self.Destroy()
 
+#
+#
+## user logs tab
+#
+#
+
+class user_log_info_pnl(wx.Panel):
+    """
+    This panel allows users to record their own logs manually, things like watering times and height
+    """
+    #
+    #
+    def __init__( self, parent ):
+        win_height = gui_set.height_of_window
+        win_width = gui_set.width_of_window
+        w_space_left = win_width - 285
+        wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, size = wx.Size(w_space_left , win_height-20), style = wx.TAB_TRAVERSAL )
+        # Tab Title
+        title_font = wx.Font(28, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
+        sub_title_font = wx.Font(15, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
+        title_l = wx.StaticText(self,  label='User Log Panel', size=(500,40))
+        title_l.SetFont(title_font)
+        page_sub_title =  wx.StaticText(self,  label='Record information and Log variables manually', size=(550,30))
+        page_sub_title.SetFont(sub_title_font)
+
+
+        #Sizers
+        main_sizer = wx.BoxSizer(wx.VERTICAL)
+        main_sizer.Add(title_l, 0, wx.ALIGN_CENTER_HORIZONTAL, 3)
+        main_sizer.Add(page_sub_title, 0, wx.ALIGN_CENTER_HORIZONTAL, 3)
+        self.SetSizer(main_sizer)
+
+class user_log_ctrl_pnl(wx.Panel):
+    def __init__(self, parent):
+        wx.Panel.__init__ (self, parent, id=wx.ID_ANY, style=wx.TAB_TRAVERSAL)
+        top_label = wx.StaticText(self,  label='User Logs')
+        #
+        self.list_logs_btn = wx.Button(self, label='list logs')
+        self.list_logs_btn.Bind(wx.EVT_BUTTON, self.list_logs)
+
+        # Sizers
+
+        main_sizer =  wx.BoxSizer(wx.VERTICAL)
+        main_sizer.Add(top_label, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(self.list_logs_btn, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
+        #main_sizer.Add(, 0, wx.ALL|wx.EXPAND, 3)
+        #main_sizer.Add(, 0, wx.ALL|wx.EXPAND, 3)
+        #main_sizer.Add(, 0, wx.ALL|wx.EXPAND, 3)
+        #main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
+        #main_sizer.Add(, 0, wx.ALL|wx.EXPAND, 3)
+        #main_sizer.Add(, 0, wx.ALL|wx.EXPAND, 3)
+        #main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
+        #main_sizer.AddStretchSpacer(1)
+        self.SetSizer(main_sizer)
+
+    def list_logs(self, e):
+        print("this button prints this line of text and does nothing else, cool hu?")
 
 #
 #
@@ -7060,7 +7120,7 @@ class view_pnl(wx.Panel):
         self.SetBackgroundColour((230,200,170)) #TESTING ONLY REMOVE WHEN SIZING IS DONE AND ALL THAT BUSINESS
         #view_opts = ['System Config', 'Pigrow Setup', 'Camera Config', 'Cron Timing', 'multi-script', 'Local Files', 'Timelapse', 'Graphs', 'Live View', 'pieye watcher']
         #Showing only completed tabs
-        view_opts = ['System Config', 'Pigrow Setup', 'Camera Config', 'Cron Timing', 'Local Files', 'Timelapse', 'Graphs', 'Sensors']
+        view_opts = ['System Config', 'Pigrow Setup', 'Camera Config', 'Cron Timing', 'Local Files', 'Timelapse', 'Graphs', 'Sensors', "User Logs"]
         self.view_cb = wx.ComboBox(self, choices = view_opts)
         self.view_cb.Bind(wx.EVT_TEXT, self.view_combo_go)
         # sizer
@@ -7088,6 +7148,8 @@ class view_pnl(wx.Panel):
         MainApp.timelapse_ctrl_pannel.Hide()
         MainApp.sensors_info_pannel.Hide()
         MainApp.sensors_ctrl_pannel.Hide()
+        MainApp.user_log_ctrl_pannel.Hide()
+        MainApp.user_log_info_pannel.Hide()
         #show whichever pannels correlate to the option selected
         if display == 'System Config':
             MainApp.system_ctrl_pannel.Show()
@@ -7119,6 +7181,9 @@ class view_pnl(wx.Panel):
         elif display == 'Sensors':
             MainApp.sensors_info_pannel.Show()
             MainApp.sensors_ctrl_pannel.Show()
+        elif display == "User Logs":
+            MainApp.user_log_ctrl_pannel.Show()
+            MainApp.user_log_info_pannel.Show()
             #MainApp.sensors_info_pannel.sensor_table.make_sensor_table(MainApp.sensors_info_pannel.sensor_table, 'e')
         else:
             print("!!! Option not recognised, this is a programming error! sorry")
@@ -7244,6 +7309,8 @@ class MainFrame ( wx.Frame ):
         MainApp.timelapse_ctrl_pannel = timelapse_ctrl_pnl(self)
         MainApp.sensors_info_pannel = sensors_info_pnl(self)
         MainApp.sensors_ctrl_pannel = sensors_ctrl_pnl(self)
+        MainApp.user_log_ctrl_pannel = user_log_ctrl_pnl(self)
+        MainApp.user_log_info_pannel = user_log_info_pnl(self)
         #hide all except the welcome pannel
         MainApp.system_ctrl_pannel.Hide()
         MainApp.system_info_pannel.Hide()
@@ -7261,6 +7328,8 @@ class MainFrame ( wx.Frame ):
         MainApp.timelapse_ctrl_pannel.Hide()
         MainApp.sensors_info_pannel.Hide()
         MainApp.sensors_ctrl_pannel.Hide()
+        MainApp.user_log_ctrl_pannel.Hide()
+        MainApp.user_log_info_pannel.Hide()
         MainApp.status.write_bar("ready...")
         # Sizers
         # left bar
@@ -7276,6 +7345,7 @@ class MainFrame ( wx.Frame ):
         MainApp.side_bar_sizer.Add(MainApp.camconf_ctrl_pannel, 0, wx.EXPAND)
         MainApp.side_bar_sizer.Add(MainApp.timelapse_ctrl_pannel, 0, wx.EXPAND)
         MainApp.side_bar_sizer.Add(MainApp.sensors_ctrl_pannel, 0, wx.EXPAND)
+        MainApp.side_bar_sizer.Add(MainApp.user_log_ctrl_pannel, 0, wx.EXPAND)
         # main AREA
         main_sizer = wx.BoxSizer(wx.HORIZONTAL)
         main_sizer.Add(MainApp.side_bar_sizer, 0)
@@ -7288,6 +7358,7 @@ class MainFrame ( wx.Frame ):
         main_sizer.Add(MainApp.camconf_info_pannel, 0)
         main_sizer.Add(MainApp.timelapse_info_pannel, 0)
         main_sizer.Add(MainApp.sensors_info_pannel, 0)
+        main_sizer.Add(MainApp.user_log_info_pannel, 0)
         MainApp.window_sizer = wx.BoxSizer(wx.VERTICAL)
         MainApp.window_sizer.Add(main_sizer, 0)
         MainApp.window_sizer.Add(MainApp.status, 1, wx.EXPAND)
