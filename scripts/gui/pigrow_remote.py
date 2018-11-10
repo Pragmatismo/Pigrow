@@ -1722,24 +1722,24 @@ class config_ctrl_pnl(wx.Panel):
         self.update_settings_btn = wx.Button(self, label='update pigrow settings')
         self.update_settings_btn.Bind(wx.EVT_BUTTON, self.update_setting_file_on_pi_click)
         #sizers
-        self.main_sizer =  wx.BoxSizer(wx.VERTICAL)
-        self.main_sizer.AddStretchSpacer(1)
-        self.main_sizer.Add(self.config_l, 0, wx.ALL|wx.EXPAND, 3)
-        self.main_sizer.Add(self.update_config_btn, 0, wx.ALL|wx.EXPAND, 3)
-        self.main_sizer.Add(self.update_settings_btn, 0, wx.ALL|wx.EXPAND, 3)
-        self.main_sizer.AddStretchSpacer(1)
-        self.main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
-        self.main_sizer.Add(self.name_box_btn, 0, wx.ALL|wx.EXPAND, 3)
-        self.main_sizer.AddStretchSpacer(1)
-        self.main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
-        self.main_sizer.Add(self.dht_l, 0, wx.ALL|wx.EXPAND, 3)
-        self.main_sizer.Add(self.config_dht_btn, 0, wx.ALL|wx.EXPAND, 3)
-        self.main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
-        self.main_sizer.Add(self.relay_l, 0, wx.ALL|wx.EXPAND, 3)
-        self.main_sizer.Add(self.config_lamp_btn, 0, wx.ALL|wx.EXPAND, 3)
-        self.main_sizer.Add(self.new_gpio_btn , 0, wx.ALL|wx.EXPAND, 3)
-        self.main_sizer.AddStretchSpacer(1)
-        self.SetSizer(self.main_sizer)
+        main_sizer =  wx.BoxSizer(wx.VERTICAL)
+        main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(self.config_l, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.Add(self.update_config_btn, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.Add(self.update_settings_btn, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
+        main_sizer.Add(self.name_box_btn, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
+        main_sizer.Add(self.dht_l, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.Add(self.config_dht_btn, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
+        main_sizer.Add(self.relay_l, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.Add(self.config_lamp_btn, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.Add(self.new_gpio_btn , 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.AddStretchSpacer(1)
+        self.SetSizer(main_sizer)
 
 
 
@@ -5817,7 +5817,6 @@ class timelapse_info_pnl(wx.Panel):
             frame_count = len(MainApp.timelapse_ctrl_pannel.trimmed_frame_list)
             self.ani_frame_count_info.SetLabel(str(frame_count))
 
-
 class timelapse_ctrl_pnl(wx.Panel):
     def __init__(self, parent):
         wx.Panel.__init__ (self, parent, id=wx.ID_ANY, size=(150,-1), style=wx.TAB_TRAVERSAL)
@@ -6809,28 +6808,64 @@ class user_log_info_pnl(wx.Panel):
         title_l.SetFont(title_font)
         page_sub_title =  wx.StaticText(self,  label='Record information and Log variables manually', size=(550,30))
         page_sub_title.SetFont(sub_title_font)
+        user_log_location_l = wx.StaticText(self, label='User log location - ')
+        self.user_log_location_tc = wx.TextCtrl(self, size=(450, 30))
+
+
+        # User Log Input Area
+        add_box_title =  wx.StaticText(self,  label='Write to user log;', size=(300,30))
+        add_box_title.SetFont(sub_title_font)
+        item_l =  wx.StaticText(self,  label='Item -', size=(50,30))
+        variables = ["things", "found", "in", "user", "logs"]
+        self.user_log_variable_text = wx.ComboBox(self, choices = variables, size=(250, 30))
+        self.user_log_input_text = wx.TextCtrl(self, -1, "text to record", size=(300,100), style=wx.TE_MULTILINE)
+        self.add_to_user_log_btn = wx.Button(self, label='Add to User Log')
+        self.add_to_user_log_btn.Bind(wx.EVT_BUTTON, self.add_to_user_log)
 
 
         #Sizers
+        user_log_input_item_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        user_log_input_item_sizer.Add(item_l, 0, wx.ALL, 3)
+        user_log_input_item_sizer.Add(self.user_log_variable_text, 0, wx.ALL, 3)
+        user_log_input_sizer = wx.BoxSizer(wx.VERTICAL)
+        user_log_input_sizer.Add(add_box_title, 0, wx.ALL, 3)
+        user_log_input_sizer.Add(user_log_input_item_sizer, 0, wx.ALL, 3)
+        user_log_input_sizer.Add(self.user_log_input_text, 0, wx.ALL, 3)
+        user_log_input_sizer.Add(self.add_to_user_log_btn, 0, wx.ALIGN_RIGHT, 3)
+        user_log_loc_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        user_log_loc_sizer.Add(user_log_location_l, 0, wx.ALL, 3)
+        user_log_loc_sizer.Add(self.user_log_location_tc, 0, wx.ALL, 3)
         main_sizer = wx.BoxSizer(wx.VERTICAL)
         main_sizer.Add(title_l, 0, wx.ALIGN_CENTER_HORIZONTAL, 3)
         main_sizer.Add(page_sub_title, 0, wx.ALIGN_CENTER_HORIZONTAL, 3)
+        main_sizer.Add(user_log_loc_sizer, 0, wx.ALL, 3)
+        main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
+
+        main_sizer.Add(user_log_input_sizer, 0, wx.ALL, 3)
         self.SetSizer(main_sizer)
+
+    def add_to_user_log(self, e):
+        variable = self.user_log_variable_text.GetValue() # get from dropdown box selection
+        message = self.user_log_input_text.GetValue() #get from text control
+        line = variable + "@" + str(datetime.datetime.now()) + "@" + message + '\n'
+        # write line to end of userlog on pi using echo "line" >> user_log.txt
+        print(" line = " + line)
+        print("Yeah, you can't do that yet.... will be cool when you can tho, rite?")
 
 class user_log_ctrl_pnl(wx.Panel):
     def __init__(self, parent):
         wx.Panel.__init__ (self, parent, id=wx.ID_ANY, style=wx.TAB_TRAVERSAL)
         top_label = wx.StaticText(self,  label='User Logs')
         #
-        self.list_logs_btn = wx.Button(self, label='list logs')
-        self.list_logs_btn.Bind(wx.EVT_BUTTON, self.list_logs)
+        self.read_user_log_btn = wx.Button(self, label='Read User Log')
+        self.read_user_log_btn.Bind(wx.EVT_BUTTON, self.read_user_log)
 
         # Sizers
-
         main_sizer =  wx.BoxSizer(wx.VERTICAL)
         main_sizer.Add(top_label, 0, wx.ALL|wx.EXPAND, 3)
         main_sizer.AddStretchSpacer(1)
-        main_sizer.Add(self.list_logs_btn, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.Add(self.read_user_log_btn, 0, wx.ALL|wx.EXPAND, 3)
         main_sizer.AddStretchSpacer(1)
         main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
         #main_sizer.Add(, 0, wx.ALL|wx.EXPAND, 3)
@@ -6843,8 +6878,10 @@ class user_log_ctrl_pnl(wx.Panel):
         #main_sizer.AddStretchSpacer(1)
         self.SetSizer(main_sizer)
 
-    def list_logs(self, e):
+    def read_user_log(self, e):
+
         print("this button prints this line of text and does nothing else, cool hu?")
+
 
 #
 #
