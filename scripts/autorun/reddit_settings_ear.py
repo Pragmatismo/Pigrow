@@ -15,7 +15,7 @@ cron = CronTab(user=True)  #can be user+True, 'yourusername' or 'root' all work.
 #logs default values
 loc_settings = homedir + "/Pigrow/config/pigrow_config.txt"
 loc_switchlog = homedir + '/Pigrow/logs/switch_log.txt'
-err_log = './'
+err_log = homedir + '/Pigrow/logs/err_log.txt'
 loc_locs = homedir + '/Pigrow/config/dirlocs.txt'
 
 
@@ -63,7 +63,7 @@ try:
     my_password = loc_dic['my_password']
 except:
     message = "REDDIT SETTINGS NOT FOUND IN " + str(loc_locs)
-    pigrow_defs.write_log(script, message, loc_dic['loc_switchlog'])
+    pigrow_defs.write_log(script, message, loc_dic['err_log'])
     raise
 try:
     subreddit = loc_dic["subreddit"]
@@ -72,7 +72,7 @@ try:
     use_wiki = True
 except:
     message = "No subreddit details set, can't update live pages"
-    pigrow_defs.write_log(script, message, loc_dic['loc_switchlog'])
+    pigrow_defs.write_log(script, message, loc_dic['err_log'])
     subreddit = ''
     wiki_title = ''
     live_wiki_title = ''
@@ -84,7 +84,7 @@ except:
     watcher_name = ''
     use_watcher = False
     message = "No trusted user provided, can't recieve orderes"
-    pigrow_defs.write_log(script, message, loc_dic['loc_switchlog'])
+    pigrow_defs.write_log(script, message, loc_dic['err_log'])
 try:
     codeword = loc_dic['watcher_name']
 except:
@@ -92,7 +92,7 @@ except:
 
 if use_wiki == False and use_watcher == False:
     message = "Sorry but without a wiki OR a trusted user there's nothing i can do..."
-    pigrow_defs.write_log(script, message, loc_dic['loc_switchlog'])
+    pigrow_defs.write_log(script, message, loc_dic['err_log'])
     sys.exit()
 
 
@@ -122,7 +122,7 @@ def log_in():
         return True
     except Exception as e:
         message = 'Failed to log into reddit, ' + str(e)
-    pigrow_defs.write_log(script, message, loc_dic['loc_switchlog'])
+    pigrow_defs.write_log(script, message, loc_dic['err_log'])
     return False
 
 connected = False
