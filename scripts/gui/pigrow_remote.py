@@ -3645,7 +3645,7 @@ class cron_job_dialog(wx.Dialog):
         pnl = wx.Panel(self)
         wx.StaticText(self,  label='Cron job editor', pos=(20, 10))
         cron_type_opts = ['startup', 'repeating', 'one time']
-        wx.StaticText(self,  label='cron type;', pos=(165, 10))
+        wx.StaticText(self,  label='timing method;', pos=(165, 10))
         self.cron_type_combo = wx.ComboBox(self, choices = cron_type_opts, pos=(260,10), size=(125, 25))
         self.cron_type_combo.Bind(wx.EVT_COMBOBOX, self.cron_type_combo_go)
         wx.StaticText(self,  label='path;', pos=(10, 50))
@@ -6809,7 +6809,7 @@ class user_log_info_pnl(wx.Panel):
         page_sub_title =  wx.StaticText(self,  label='Record information and Log variables manually', size=(550,30))
         page_sub_title.SetFont(sub_title_font)
         user_log_location_l = wx.StaticText(self, label='User log location - ')
-        self.user_log_location_tc = wx.TextCtrl(self, size=(450, 30))
+        self.user_log_location_tc = wx.TextCtrl(self, value="", size=(450, 30))
 
 
         # User Log Input Area
@@ -6821,6 +6821,7 @@ class user_log_info_pnl(wx.Panel):
         self.user_log_input_text = wx.TextCtrl(self, -1, "text to record", size=(300,100), style=wx.TE_MULTILINE)
         self.add_to_user_log_btn = wx.Button(self, label='Add to User Log')
         self.add_to_user_log_btn.Bind(wx.EVT_BUTTON, self.add_to_user_log)
+        self.add_to_user_log_btn.Disable()
 
 
         #Sizers
@@ -6846,12 +6847,17 @@ class user_log_info_pnl(wx.Panel):
         self.SetSizer(main_sizer)
 
     def add_to_user_log(self, e):
+        log_location = self.user_log_location_tc.GetValue()
         variable = self.user_log_variable_text.GetValue() # get from dropdown box selection
         message = self.user_log_input_text.GetValue() #get from text control
-        line = variable + "@" + str(datetime.datetime.now()) + "@" + message + '\n'
+        single_line_message = ""
+        for line in message.splitlines():
+            single_line_message += " " + line
+        line = variable + "@" + str(datetime.datetime.now()) + "@" + single_line_message
         # write line to end of userlog on pi using echo "line" >> user_log.txt
-        print(" line = " + line)
-        print("Yeah, you can't do that yet.... will be cool when you can tho, rite?")
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi('echo "' + line + '" >> ' + log_location)
+        MainApp.status.write_bar("Written - " + line + " - to " + log_location)
+        print("Written - " + line + " - to " + log_location)
 
 class user_log_ctrl_pnl(wx.Panel):
     def __init__(self, parent):
@@ -6879,6 +6885,9 @@ class user_log_ctrl_pnl(wx.Panel):
         self.SetSizer(main_sizer)
 
     def read_user_log(self, e):
+        user_log_loc = "/home/" + pi_link_pnl.target_user + "/Pigrow/logs/user_log.txt"
+        MainApp.user_log_info_pannel.user_log_location_tc.SetValue(user_log_loc)
+        MainApp.user_log_info_pannel.add_to_user_log_btn.Enable()
 
         print("this button prints this line of text and does nothing else, cool hu?")
 
