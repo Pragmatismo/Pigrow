@@ -5846,6 +5846,9 @@ class timelapse_ctrl_pnl(wx.Panel):
         self.limit_combo = wx.ComboBox(self, choices = limit_options, size=(100,25), value='all')
         calculate_frames_btn = wx.Button(self, label='Calculate Frames')
         calculate_frames_btn.Bind(wx.EVT_BUTTON, self.calculate_frames_click)
+        # make overlay set
+        make_log_overlay_set_btn = wx.Button(self, label='Overlay Log Info')
+        make_log_overlay_set_btn.Bind(wx.EVT_BUTTON, self.make_log_overlay_set)
         # out file
         outfile_l = wx.StaticText(self,  label='Outfile')
         self.out_file_tc = wx.TextCtrl(self)
@@ -5891,6 +5894,8 @@ class timelapse_ctrl_pnl(wx.Panel):
         frame_select_sizer.Add(frame_range_sizer, 0, wx.ALL, 1)
         frame_select_sizer.Add(frame_date_limit_sizer, 0, wx.ALL, 1)
         frame_select_sizer.Add(calculate_frames_btn, 0, wx.ALL|wx.ALIGN_RIGHT, 1)
+        make_overlay_set_sizer = wx.BoxSizer(wx.VERTICAL)
+        make_overlay_set_sizer.Add(make_log_overlay_set_btn, 0, wx.ALL, 3)
         render_buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
         render_buttons_sizer.Add(make_timelapse_btn, 0, wx.ALL|wx.EXPAND, 3)
         render_buttons_sizer.Add(play_timelapse_btn, 0, wx.ALL|wx.EXPAND, 3)
@@ -5908,6 +5913,8 @@ class timelapse_ctrl_pnl(wx.Panel):
         main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.Add(frame_select_sizer, 0, wx.ALL|wx.EXPAND, 3)
         main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
+        main_sizer.Add(make_overlay_set_sizer, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.Add(render_bar_sizer, 0, wx.ALL|wx.EXPAND, 3)
         main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.AddStretchSpacer(1)
@@ -5919,6 +5926,118 @@ class timelapse_ctrl_pnl(wx.Panel):
 
     def start_capture_click(self, e):
         print("Doesn't do anything yet!")
+
+    def make_log_overlay_set(self, e):
+            # write text file of frame to use
+            log_file = "user_log.txt"
+            log_file = "dstemp_window.txt"
+            #log_file = "dstemp_bed.txt"
+            split_character = "@"
+            split_character = ">"
+            date_pos = 0 #1
+            key_pos = None
+            value_pos = 1
+            local_path = localfiles_info_pnl.local_path
+            log_file_path = os.path.join(local_path, "logs", log_file)
+            manual_key_value = os.path.split(log_file_path)[1]
+            print("Test feature overlaying log info onto timelapse graph, working with " + str(len(self.trimmed_frame_list)) + " files.")
+            print(" Testing version using log file - " + log_file_path)
+            # read log files
+            with open(log_file_path, "r") as log_file:
+                log_file_text = log_file.read()
+            log_file_list = []
+            for line in log_file_text.splitlines():
+                if split_character in line:
+                    data = line.split(split_character)
+                    if len(data) == 2 or key_pos == None:
+                        item_key = manual_key_value
+                        item_value = data[value_pos]
+                        try:
+                            item_date = datetime.datetime.strptime(data[date_pos], '%Y-%m-%d %H:%M:%S.%f')
+                        except:
+                            print("Date failed to convert, is it not in %Y-%m-%d %H:%M:%S. format? " + data[1])
+                            item_date = None
+                        item_value = data[value_pos]
+                        if not item_date == None:
+                            log_file_list.append([item_key, item_date, item_value])
+                    #
+                    elif len(data) > 2 and not key_pos == None:
+                        item_key = data[key_pos]
+                        try:
+                            item_date = datetime.datetime.strptime(data[date_pos], '%Y-%m-%d %H:%M:%S.%f')
+                        except:
+                            print("Date failed to convert, is it not in %Y-%m-%d %H:%M:%S. format? " + data[1])
+                            item_date = None
+                        item_value = data[value_pos]
+                        if not item_date == None:
+                            log_file_list.append([item_key, item_date, item_value])
+            print(" Found " + str(len(log_file_list)) + " items in the log" )
+            # WE NOW HAVE A LIST OF THE LOG ITEMS
+            # find a place to put the new caps, change this up so the user can choose when it works
+            new_caps_folder = os.path.join(localfiles_info_pnl.local_path, "new_caps")
+            if not os.path.isdir(new_caps_folder):
+                os.makedirs(new_caps_folder)
+            # associate log entiries with caps files
+            print("________________________________________________________________")
+            print("----------------------------------------------------------------")
+            print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+            for file in self.trimmed_frame_list:
+                file_date = self.date_from_fn(file)
+                most_recent_log_info = []
+                for log_item_num in range(0, len(log_file_list) - 1): # -1 to put in line with position
+                    if log_file_list[log_item_num][1] < file_date: # if the cap is taken after the log item (add check that it's not too long after)
+                        time_diff_log_to_cap = file_date - log_file_list[log_item_num][1]
+                        if len(log_file_list) > log_item_num:
+                            #print(file_date - log_file_list[log_item_num + 1][1])
+                            next_frame_time_diff_log_to_cap = file_date - log_file_list[log_item_num + 1][1]
+                            if next_frame_time_diff_log_to_cap < time_diff_log_to_cap:
+                                most_recent_log_info = log_file_list[log_item_num + 1]
+                            else:
+                                most_recent_log_info = log_file_list[log_item_num]
+                        else:
+                            most_recent_log_info = log_file_list[log_item_num]
+
+
+                # display and write this files info
+                print(most_recent_log_info, file)
+                #time_diff_log_to_cap = most_recent_log_info[1] - file_date
+                text_to_write = most_recent_log_info[0] +"\n Temp = " + most_recent_log_info[2].split(":")[0] + "C"
+                text_to_write += "\n time diff -- " + str(time_diff_log_to_cap)
+                #text_to_write += "\n   -- " + str(file_date) + " - " + str(most_recent_log_info[1])
+                self.WriteTextOnBitmap(text_to_write, file, (900, 600))
+                #self.WriteTextOnBitmap(text_to_write, file, (500, 750))
+
+    def WriteTextOnBitmap(self, text, bitmap_path, pos=(0, 0), font=None, color=None):
+        folder_name_for_output = "edited_caps"
+        new_name = os.path.split(bitmap_path)[1]
+        new_name = "log_" + new_name
+        local_path = localfiles_info_pnl.local_path
+        local_path = os.path.join(local_path, folder_name_for_output)
+        if not os.path.isdir(local_path):
+            os.makedirs(local_path)
+        new_name = os.path.join(local_path, new_name)
+        bitmap = wx.Bitmap(1, 1)
+        bitmap.LoadFile(bitmap_path, wx.BITMAP_TYPE_ANY)
+        # use memoryDC to writ on the image
+        memDC = wx.MemoryDC()
+        # set options
+        if font:
+            memDC.SetFont(font)
+        else:
+            font = wx.Font(40, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
+            memDC.SetFont(font)
+        if color:
+            memDC.SetTextForeground(color)
+        # select image and overlay text
+        memDC.SelectObject(bitmap)
+        try:
+            memDC.DrawText( text, pos[0], pos[1])
+        except :
+            print("unable to add text to image, sorry - " + bitmap_path)
+            raise
+        memDC.SelectObject(wx.NullBitmap)
+        bitmap.SaveFile(new_name, wx.BITMAP_TYPE_JPEG)
+
 
     def make_timelapse_click(self, e):
         # write text file of frame to use
