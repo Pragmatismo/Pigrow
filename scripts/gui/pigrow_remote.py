@@ -5928,116 +5928,8 @@ class timelapse_ctrl_pnl(wx.Panel):
         print("Doesn't do anything yet!")
 
     def make_log_overlay_set(self, e):
-            # write text file of frame to use
-            log_file = "user_log.txt"
-            log_file = "dstemp_window.txt"
-            #log_file = "dstemp_bed.txt"
-            split_character = "@"
-            split_character = ">"
-            date_pos = 0 #1
-            key_pos = None
-            value_pos = 1
-            local_path = localfiles_info_pnl.local_path
-            log_file_path = os.path.join(local_path, "logs", log_file)
-            manual_key_value = os.path.split(log_file_path)[1]
-            print("Test feature overlaying log info onto timelapse graph, working with " + str(len(self.trimmed_frame_list)) + " files.")
-            print(" Testing version using log file - " + log_file_path)
-            # read log files
-            with open(log_file_path, "r") as log_file:
-                log_file_text = log_file.read()
-            log_file_list = []
-            for line in log_file_text.splitlines():
-                if split_character in line:
-                    data = line.split(split_character)
-                    if len(data) == 2 or key_pos == None:
-                        item_key = manual_key_value
-                        item_value = data[value_pos]
-                        try:
-                            item_date = datetime.datetime.strptime(data[date_pos], '%Y-%m-%d %H:%M:%S.%f')
-                        except:
-                            print("Date failed to convert, is it not in %Y-%m-%d %H:%M:%S. format? " + data[1])
-                            item_date = None
-                        item_value = data[value_pos]
-                        if not item_date == None:
-                            log_file_list.append([item_key, item_date, item_value])
-                    #
-                    elif len(data) > 2 and not key_pos == None:
-                        item_key = data[key_pos]
-                        try:
-                            item_date = datetime.datetime.strptime(data[date_pos], '%Y-%m-%d %H:%M:%S.%f')
-                        except:
-                            print("Date failed to convert, is it not in %Y-%m-%d %H:%M:%S. format? " + data[1])
-                            item_date = None
-                        item_value = data[value_pos]
-                        if not item_date == None:
-                            log_file_list.append([item_key, item_date, item_value])
-            print(" Found " + str(len(log_file_list)) + " items in the log" )
-            # WE NOW HAVE A LIST OF THE LOG ITEMS
-            # find a place to put the new caps, change this up so the user can choose when it works
-            new_caps_folder = os.path.join(localfiles_info_pnl.local_path, "new_caps")
-            if not os.path.isdir(new_caps_folder):
-                os.makedirs(new_caps_folder)
-            # associate log entiries with caps files
-            print("________________________________________________________________")
-            print("----------------------------------------------------------------")
-            print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-            for file in self.trimmed_frame_list:
-                file_date = self.date_from_fn(file)
-                most_recent_log_info = []
-                for log_item_num in range(0, len(log_file_list) - 1): # -1 to put in line with position
-                    if log_file_list[log_item_num][1] < file_date: # if the cap is taken after the log item (add check that it's not too long after)
-                        time_diff_log_to_cap = file_date - log_file_list[log_item_num][1]
-                        if len(log_file_list) > log_item_num:
-                            #print(file_date - log_file_list[log_item_num + 1][1])
-                            next_frame_time_diff_log_to_cap = file_date - log_file_list[log_item_num + 1][1]
-                            if next_frame_time_diff_log_to_cap < time_diff_log_to_cap:
-                                most_recent_log_info = log_file_list[log_item_num + 1]
-                            else:
-                                most_recent_log_info = log_file_list[log_item_num]
-                        else:
-                            most_recent_log_info = log_file_list[log_item_num]
-
-
-                # display and write this files info
-                print(most_recent_log_info, file)
-                #time_diff_log_to_cap = most_recent_log_info[1] - file_date
-                text_to_write = most_recent_log_info[0] +"\n Temp = " + most_recent_log_info[2].split(":")[0] + "C"
-                text_to_write += "\n time diff -- " + str(time_diff_log_to_cap)
-                #text_to_write += "\n   -- " + str(file_date) + " - " + str(most_recent_log_info[1])
-                self.WriteTextOnBitmap(text_to_write, file, (900, 600))
-                #self.WriteTextOnBitmap(text_to_write, file, (500, 750))
-
-    def WriteTextOnBitmap(self, text, bitmap_path, pos=(0, 0), font=None, color=None):
-        folder_name_for_output = "edited_caps"
-        new_name = os.path.split(bitmap_path)[1]
-        new_name = "log_" + new_name
-        local_path = localfiles_info_pnl.local_path
-        local_path = os.path.join(local_path, folder_name_for_output)
-        if not os.path.isdir(local_path):
-            os.makedirs(local_path)
-        new_name = os.path.join(local_path, new_name)
-        bitmap = wx.Bitmap(1, 1)
-        bitmap.LoadFile(bitmap_path, wx.BITMAP_TYPE_ANY)
-        # use memoryDC to writ on the image
-        memDC = wx.MemoryDC()
-        # set options
-        if font:
-            memDC.SetFont(font)
-        else:
-            font = wx.Font(40, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
-            memDC.SetFont(font)
-        if color:
-            memDC.SetTextForeground(color)
-        # select image and overlay text
-        memDC.SelectObject(bitmap)
-        try:
-            memDC.DrawText( text, pos[0], pos[1])
-        except :
-            print("unable to add text to image, sorry - " + bitmap_path)
-            raise
-        memDC.SelectObject(wx.NullBitmap)
-        bitmap.SaveFile(new_name, wx.BITMAP_TYPE_JPEG)
-
+        make_log_overlay_dbox = make_log_overlay_dialog(None)
+        make_log_overlay_dbox.ShowModal()
 
     def make_timelapse_click(self, e):
         # write text file of frame to use
@@ -6184,7 +6076,6 @@ class timelapse_ctrl_pnl(wx.Panel):
         print("list trimmed to start date " + str(start_point_cutoff) + " now " + str(len(list_trimmed_by_startpoint)) + " frames long")
         return list_trimmed_by_startpoint
 
-
     def date_from_fn(self, thefilename):
         #
         # DOUBLE - use one or the other
@@ -6214,6 +6105,300 @@ class timelapse_ctrl_pnl(wx.Panel):
         cmd = "mpv " + outfile
         os.system(cmd)
         print("Doesn't do anything yet!")
+
+class make_log_overlay_dialog(wx.Dialog):
+    """
+    For creating a set of images with log file data overlaid
+        """
+    def __init__(self, *args, **kw):
+        super(make_log_overlay_dialog, self).__init__(*args, **kw)
+        self.InitUI()
+        self.SetSize((800, 500))
+        self.SetTitle("Make Log Overlay Image Set")
+        self.Bind(wx.EVT_CLOSE, self.OnClose)
+
+    def InitUI(self):
+        '''
+        self.log_file_cb.GetValue()        - name of the log files
+        self.example_line.GetLabel()       - an example line, the last non-blank line inte file
+        self.split_character_tc.GetValue() - character used to split the info in each line (@, >, etc)
+        '''
+        # setting options
+        log_file = "user_log.txt"
+        log_file = "dstemp_window.txt"
+        log_file = "dstemp_bed.txt"
+        split_character = "@"
+        split_character = ">"
+        date_pos = 0 #1
+        key_pos = None
+        value_pos = 1
+        local_path = localfiles_info_pnl.local_path
+        log_file_path = os.path.join(local_path, "logs", log_file)
+        manual_key_value = os.path.split(log_file_path)[1]
+
+        # panel
+        pnl = wx.Panel(self)
+        title_font = wx.Font(28, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
+        sub_title_font = wx.Font(15, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
+        box_label = wx.StaticText(self,  label='Create Log Overlay Image Set')
+        box_label.SetFont(title_font)
+        # log file select - drop down box
+        log_path_l = wx.StaticText(self,  label='Log - ')
+        local_path = localfiles_info_pnl.local_path
+        local_logs_path = os.path.join(local_path, "logs")
+        local_log_files = caps_files = os.listdir(local_logs_path)
+        self.log_file_cb = wx.ComboBox(self, choices = local_log_files)
+        self.log_file_cb.Bind(wx.EVT_TEXT, self.log_file_cb_go)
+        self.download_log_btn = wx.Button(self, label='download')
+        self.download_log_btn.Bind(wx.EVT_BUTTON, self.download_log_click)
+        # log file data grabbing options (split character, position of date, key (or label), value)
+        log_path_l = wx.StaticText(self,  label='Data Extraction Options')
+        log_path_l.SetFont(sub_title_font)
+        example_line_l = wx.StaticText(self,  label='Example Line -')
+        self.example_line = wx.StaticText(self,  label='')
+        # split line character
+        split_character_l = wx.StaticText(self,  label='Split Character')
+        self.split_character_tc = wx.TextCtrl(self, size=(110, 25))
+        self.split_character_tc.Bind(wx.EVT_TEXT, self.split_line_text)
+        #
+        date_pos_l = wx.StaticText(self,  label='Date Position')
+        self.date_pos_cb = wx.ComboBox(self, size=(110, 25),choices = [])
+        self.date_pos_cb.Bind(wx.EVT_TEXT, self.date_pos_go)
+        self.date_pos_cb.Disable()
+        self.date_pos_ex = wx.StaticText(self,  label='')
+        value_pos_l = wx.StaticText(self,  label='Value Position')
+        self.value_pos_cb = wx.ComboBox(self, size=(110, 25),choices = [])
+        self.value_pos_cb.Disable()
+        self.value_pos_ex = wx.StaticText(self,  label='')
+        key_pos_l = wx.StaticText(self,  label='Key Position')
+        self.key_pos_cb = wx.ComboBox(self, size=(110, 25),choices = [])
+        self.key_pos_cb.Disable()
+        self.key_pos_ex = wx.StaticText(self,  label='')
+
+
+        # screen pos, colour, style
+        # overwrite or rename checkbox
+
+        # ok and cancel Buttons
+        self.make_btn = wx.Button(self, label='OK', size=(175, 30))
+        self.make_btn.Bind(wx.EVT_BUTTON, self.make_click)
+        self.cancel_btn = wx.Button(self, label='Cancel', size=(175, 30))
+        self.cancel_btn.Bind(wx.EVT_BUTTON, self.OnClose)
+
+
+        # Sizers
+        log_path_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        log_path_sizer.Add(log_path_l, 0, wx.ALL, 3)
+        log_path_sizer.Add(self.log_file_cb, 0, wx.ALL, 3)
+        log_path_sizer.Add(self.download_log_btn, 0,  wx.ALL, 3)
+        split_chr_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        split_chr_sizer.Add(split_character_l, 0,  wx.ALL, 3)
+        split_chr_sizer.Add(self.split_character_tc, 0,  wx.ALL, 3)
+
+        data_extract_example_line_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        data_extract_example_line_sizer.Add(example_line_l, 0, wx.ALL, 3)
+        data_extract_example_line_sizer.Add(self.example_line, 0, wx.ALL, 3)
+        data_extract_pos_sizer = wx.GridSizer(3, 3, 0, 0)
+        data_extract_pos_sizer.AddMany( [(date_pos_l, 0, wx.EXPAND),
+            (self.date_pos_cb, 0, wx.EXPAND),
+            (self.date_pos_ex, 0, wx.EXPAND),
+            (value_pos_l, 0, wx.EXPAND),
+            (self.value_pos_cb, 0, wx.EXPAND),
+            (self.value_pos_ex, 0, wx.EXPAND),
+            (key_pos_l, 0, wx.EXPAND),
+            (self.key_pos_cb, 0, wx.EXPAND),
+            (self.key_pos_ex, 0, wx.EXPAND) ])
+        data_extract_sizer = wx.BoxSizer(wx.VERTICAL)
+        data_extract_sizer.Add(log_path_l, 0 , wx.ALL, 3)
+        data_extract_sizer.Add(data_extract_example_line_sizer, 0 , wx.ALIGN_CENTER_HORIZONTAL, 3)
+        data_extract_sizer.Add(split_chr_sizer, 0 , wx.ALL, 3)
+        data_extract_sizer.Add(data_extract_pos_sizer, 0 , wx.ALIGN_CENTER_HORIZONTAL, 3)
+
+        buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        buttons_sizer.Add(self.make_btn, 0,  wx.ALIGN_LEFT, 3)
+        buttons_sizer.Add(self.cancel_btn, 0,  wx.ALIGN_RIGHT, 3)
+        main_sizer =  wx.BoxSizer(wx.VERTICAL)
+        main_sizer.Add(box_label, 0, wx.ALL|wx.EXPAND, 5)
+        main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(log_path_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
+        main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(data_extract_sizer, 0, wx.ALL, 3)
+        main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(buttons_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
+        main_sizer.AddStretchSpacer(1)
+        self.SetSizer(main_sizer)
+
+    def log_file_cb_go(self, e):
+        local_path = localfiles_info_pnl.local_path
+        log_file_to_use = self.log_file_cb.GetValue()
+        log_path = os.path.join(local_path, "logs", log_file_to_use)
+        first_line = ""
+        with open(log_path) as f:
+            while first_line == "":
+                first_line = f.readline()
+        self.example_line.SetLabel(first_line)
+
+    def split_line_text(self, e):
+        split_character = self.split_character_tc.GetValue()
+        if not split_character == "":
+            line = self.example_line.GetLabel()
+            if split_character in line:
+                self.split_line = line.split(split_character)
+                self.date_pos_cb.Clear()
+                self.value_pos_cb.Clear()
+                self.key_pos_cb.Clear()
+                self.date_pos_cb.Enable()
+                self.value_pos_cb.Enable()
+                self.key_pos_cb.Enable()
+                for x in range(0, len(self.split_line)):
+                    self.date_pos_cb.Append(str(x))
+                    self.value_pos_cb.Append(str(x))
+                    self.key_pos_cb.Append(str(x))
+            else:
+                self.date_pos_cb.Disable()
+                self.value_pos_cb.Disable()
+                self.key_pos_cb.Disable()
+
+    def date_pos_go(self, e):
+        date_pos = self.date_pos_cb.GetValue()
+        if date_pos.isdigit():
+            date_pos = int(date_pos)
+            if not date_pos > len(self.split_line):
+                ex_date = self.split_line[date_pos]
+                self.date_pos_ex.SetLabel(ex_date)
+                try:
+                    test_date = datetime.datetime.strptime(ex_date, '%Y-%m-%d %H:%M:%S.%f')
+                    self.date_pos_ex.SetForegroundColour((75,200,75))
+                except:
+                    self.date_pos_ex.SetForegroundColour((220,75,75))
+
+
+
+    def download_log_click(self, e):
+        log_to_update = self.log_file_cb.GetValue()
+        print("wants to update " + log_to_update + " but the button does nothing yet")
+
+    def make_click(self, e):
+        log_file = self.log_file_cb.GetValue()
+        split_character = self.split_character_tc.GetValue()
+        date_pos = int(self.date_pos_cb.GetValue())
+        value_pos = int(self.value_pos_cb.GetValue())
+        key_pos = None
+        x_pos = 100
+        y_pos = 100
+        # write text file of frame to use
+        #log_file = "user_log.txt"
+        #log_file = "dstemp_window.txt"
+        #log_file = "dstemp_bed.txt"
+        #split_character = "@"
+        #split_character = ">"
+        #date_pos = 0 #1
+        #key_pos = None
+        #value_pos = 1
+        local_path = localfiles_info_pnl.local_path
+        log_file_path = os.path.join(local_path, "logs", log_file)
+        manual_key_value = os.path.split(log_file_path)[1]
+        print("Test feature overlaying log info onto timelapse graph, working with " + str(len(MainApp.timelapse_ctrl_pannel.trimmed_frame_list)) + " files.")
+        print(" Testing version using log file - " + log_file_path)
+        # read log files
+        with open(log_file_path, "r") as log_file:
+            log_file_text = log_file.read()
+        log_file_list = []
+        for line in log_file_text.splitlines():
+            if split_character in line:
+                data = line.split(split_character)
+                if len(data) == 2 or key_pos == None:
+                    item_key = manual_key_value
+                    item_value = data[value_pos]
+                    try:
+                        item_date = datetime.datetime.strptime(data[date_pos], '%Y-%m-%d %H:%M:%S.%f')
+                    except:
+                        print("Date failed to convert, is it not in %Y-%m-%d %H:%M:%S. format? " + data[1])
+                        item_date = None
+                    item_value = data[value_pos]
+                    if not item_date == None:
+                        log_file_list.append([item_key, item_date, item_value])
+                #
+                elif len(data) > 2 and not key_pos == None:
+                    item_key = data[key_pos]
+                    try:
+                        item_date = datetime.datetime.strptime(data[date_pos], '%Y-%m-%d %H:%M:%S.%f')
+                    except:
+                        print("Date failed to convert, is it not in %Y-%m-%d %H:%M:%S. format? " + data[1])
+                        item_date = None
+                    item_value = data[value_pos]
+                    if not item_date == None:
+                        log_file_list.append([item_key, item_date, item_value])
+        print(" Found " + str(len(log_file_list)) + " items in the log" )
+        # WE NOW HAVE A LIST OF THE LOG ITEMS
+        # find a place to put the new caps, change this up so the user can choose when it works
+        new_caps_folder = os.path.join(localfiles_info_pnl.local_path, "new_caps")
+        if not os.path.isdir(new_caps_folder):
+            os.makedirs(new_caps_folder)
+        # associate log entiries with caps files
+        print("________________________________________________________________")
+        print("----------------------------------------------------------------")
+        print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        for file in MainApp.timelapse_ctrl_pannel.trimmed_frame_list:
+            file_date = MainApp.timelapse_ctrl_pannel.date_from_fn(file)
+            most_recent_log_info = []
+            for log_item_num in range(0, len(log_file_list) - 1): # -1 to put in line with position
+                if log_file_list[log_item_num][1] < file_date: # if the cap is taken after the log item (add check that it's not too long after)
+                    time_diff_log_to_cap = file_date - log_file_list[log_item_num][1]
+                    if len(log_file_list) > log_item_num:
+                        #print(file_date - log_file_list[log_item_num + 1][1])
+                        next_frame_time_diff_log_to_cap = file_date - log_file_list[log_item_num + 1][1]
+                        if next_frame_time_diff_log_to_cap < time_diff_log_to_cap:
+                            most_recent_log_info = log_file_list[log_item_num + 1]
+                        else:
+                            most_recent_log_info = log_file_list[log_item_num]
+                    else:
+                        most_recent_log_info = log_file_list[log_item_num]
+
+            # display and write this files info
+            print(most_recent_log_info, file)
+            time_diff_log_to_cap = most_recent_log_info[1] - file_date
+            text_to_write = most_recent_log_info[0] +"\n Temp = " + most_recent_log_info[2].split(":")[0] + "C"
+            text_to_write += "\n time diff -- " + str(time_diff_log_to_cap)
+            #text_to_write += "\n   -- " + str(file_date) + " - " + str(most_recent_log_info[1])
+            #self.WriteTextOnBitmap(text_to_write, file, (900, 600))
+            self.WriteTextOnBitmap(text_to_write, file, (x_pos, y_pos))
+
+    def WriteTextOnBitmap(self, text, bitmap_path, pos=(0, 0), font=None, color=None):
+        folder_name_for_output = "edited_caps"
+        new_name = os.path.split(bitmap_path)[1]
+        new_name = "log_" + new_name
+        local_path = localfiles_info_pnl.local_path
+        local_path = os.path.join(local_path, folder_name_for_output)
+        if not os.path.isdir(local_path):
+            os.makedirs(local_path)
+        new_name = os.path.join(local_path, new_name)
+        bitmap = wx.Bitmap(1, 1)
+        bitmap.LoadFile(bitmap_path, wx.BITMAP_TYPE_ANY)
+        # use memoryDC to writ on the image
+        memDC = wx.MemoryDC()
+        # set options
+        if font:
+            memDC.SetFont(font)
+        else:
+            font = wx.Font(40, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
+            memDC.SetFont(font)
+        if color:
+            memDC.SetTextForeground(color)
+        # select image and overlay text
+        memDC.SelectObject(bitmap)
+        try:
+            memDC.DrawText( text, pos[0], pos[1])
+        except :
+            print("unable to add text to image, sorry - " + bitmap_path)
+            raise
+        memDC.SelectObject(wx.NullBitmap)
+        bitmap.SaveFile(new_name, wx.BITMAP_TYPE_JPEG)
+
+    def OnClose(self, e):
+        self.Destroy()
+
+
 
 #
 #
