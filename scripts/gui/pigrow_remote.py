@@ -6256,10 +6256,23 @@ class make_log_overlay_dialog(wx.Dialog):
         with open(log_path) as f:
             while first_line == "":
                 first_line = f.readline()
+        first_line = first_line.strip()
         print(first_line)
         print("----------------------")
-        self.example_line.SetLabel(first_line.strip())
-        self.split_line_text("e")
+        self.example_line.SetLabel(first_line)
+        non_split_characters = ["-", ":", ".", ",", " ", "_"]
+        non_split_characters += ["a","b","c","d","e","f","g","h","i", "j", "k", "l","m","n","o","p","q","r","s","t","u","v","w","x","y","z"]
+        split_chr_choices = []
+        for chr in first_line:
+            if not chr.isdigit() and not chr.lower() in non_split_characters:
+                if not chr in split_chr_choices:
+                    split_chr_choices.append(chr)
+        print (str(split_chr_choices))
+        if len(split_chr_choices) == 1:
+            self.split_character_tc.SetValue(split_chr_choices[0])
+        else:
+            self.split_character_tc.SetValue("")
+            self.clear_and_reset_fields()
 
     def clear_and_reset_fields(self):
         self.date_pos_ex.SetLabel("")
