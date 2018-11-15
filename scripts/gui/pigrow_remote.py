@@ -6258,7 +6258,7 @@ class make_log_overlay_dialog(wx.Dialog):
                 first_line = f.readline()
         print(first_line)
         print("----------------------")
-        self.example_line.SetLabel(first_line)
+        self.example_line.SetLabel(first_line.strip())
         self.split_line_text("e")
 
     def clear_and_reset_fields(self):
@@ -6453,7 +6453,7 @@ class make_log_overlay_dialog(wx.Dialog):
         log_file_list = [] # to be filled with [date, value, key] lists
         for line in log_file_text.splitlines():
             if split_character in line:
-                split_line = line.split(split_character)
+                split_line = line.strip().split(split_character)
                 # Determine date
                 line_date = split_line[date_pos]
                 if not date_split_char == "":
