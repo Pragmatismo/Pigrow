@@ -6183,9 +6183,12 @@ class make_log_overlay_dialog(wx.Dialog):
         # row of key related option
         key_pos_l = wx.StaticText(self,  label='Key Position')
         self.key_pos_cb = wx.ComboBox(self, size=(90, 25),choices = [])
+        self.key_pos_cb.Bind(wx.EVT_TEXT, self.key_pos_go)
         self.key_pos_cb.Disable()
         self.key_pos_split_tc = wx.TextCtrl(self, size=(60, 25))
+        self.key_pos_split_tc.Bind(wx.EVT_TEXT, self.key_pos_split_text)
         self.key_pos_split_cb = wx.ComboBox(self, size=(60, 25))
+        self.key_pos_split_cb.Bind(wx.EVT_TEXT, self.key_pos_split_go)
         self.key_pos_ex = wx.StaticText(self,  label='')
 
 
@@ -6361,6 +6364,39 @@ class make_log_overlay_dialog(wx.Dialog):
                         self.value_pos_cb.SetValue("0")
                         self.value_pos_ex.SetLabel(self.split_line[0])
 
+    def key_pos_go(self, e):
+        key_pos = self.key_pos_cb.GetValue()
+        if not key_pos == "" and not key_pos == "None" and not key_pos == "Manual" and not key_pos == None:
+            self.key_pos_ex.SetLabel(self.split_line[int(key_pos)])
+            self.key_pos_split_tc.Enable()
+        elif key_pos == "Manual":
+            print("NO BOX FOR THAT YET!")
+        else:
+            self.key_pos_split_tc.Disable()
+
+    def key_pos_split_text(self, e):
+        self.key_pos_split_cb.Clear()
+        val_pos_ex = self.key_pos_ex.GetLabel()
+        split_symbol = self.key_pos_split_tc.GetValue()
+        if not split_symbol == "":
+            if split_symbol in val_pos_ex:
+                key_split = val_pos_ex.split(split_symbol)
+                for x in key_split:
+                    self.key_pos_split_cb.Append(x)
+                self.key_pos_split_cb.Enable()
+            else:
+                self.key_pos_split_cb.Disable()
+                self.key_pos_split_cb.SetValue("")
+                self.key_pos_go("e")
+        else:
+            self.key_pos_split_cb.Disable()
+            self.key_pos_split_cb.SetValue("")
+            self.key_pos_go("e")
+
+    def key_pos_split_go(self, e):
+        key_pos_split = self.key_pos_split_cb.GetValue()
+        self.key_pos_ex.SetLabel(key_pos_split)
+
     def value_pos_go(self, e):
         '''
         Triggers when the combobox for selecting which position in the
@@ -6471,12 +6507,17 @@ class make_log_overlay_dialog(wx.Dialog):
         split_character = self.split_character_tc.GetValue()
         date_pos = int(self.date_pos_cb.GetValue())
         value_pos = int(self.value_pos_cb.GetValue())
-        key_pos = None
+        key_pos = self.key_pos_cb.GetValue()
+        if key_pos == "" or key_pos == "None":
+            key_pos = None
+        if not key_pos == "Manual" and not key_pos == None:
+            key_pos = int(key_pos)
         date_split_char = self.date_pos_split_tc.GetValue()
         date_split_pos = self.date_pos_split_cb.GetSelection()
         value_split_char = self.value_pos_split_tc.GetValue()
         value_split_pos = self.value_pos_split_cb.GetSelection()
         key_split_char = self.key_pos_split_tc.GetValue()
+        key_split_pos = self.key_pos_split_cb.GetSelection()
         x_pos = 100
         y_pos = 100
         # Open Log and Read Content into a list of lines
@@ -6489,78 +6530,42 @@ class make_log_overlay_dialog(wx.Dialog):
                 # Determine date
                 line_date = split_line[date_pos]
                 if not date_split_char == "":
-                    line_date = line_date.split(date_split_char)[date_split_pos]
+                    if not date_split_pos == None:
+                        line_date = line_date.split(date_split_char)[date_split_pos]
                 try:
                     line_date = datetime.datetime.strptime(line_date, '%Y-%m-%d %H:%M:%S.%f')
                 except:
                     line_date == None
-                # check if no fraction of a second
+                # check date for case where there's no fraction of a second
                 if type(line_date) == type(""):
                     try:
                         line_date = datetime.datetime.strptime(line_date, '%Y-%m-%d %H:%M:%S')
                     except:
-                        line_date == None    
+                        line_date == None
                 # Determine Value
                 line_value = split_line[value_pos]
                 if not value_split_char == "":
-                    line_value = line_value.split(value_split_char)[value_split_pos]
+                    if not value_split_pos == None:
+                        line_value = line_value.split(value_split_char)[value_split_pos]
                 # Determine Key
-                line_key = ""
+                if not key_pos == None:
+                    if key_pos == "Manual":
+                        line_key = "THERE IS NO MANUAL BOX AT THE MOMENT I'M VERY SORRY BUT IT'S COMING SOON!!!!!"
+                    else:
+                        line_key = split_line[key_pos]
+                    #
+                    if not key_split_char == "":
+                        if not key_split_pos == None:
+                            line_key = line_key.split(key_split_char)[key_split_pos]
+                else:
+                    line_key = ""
                 # Write all (date, value, key) to log_file_list
                 if not line_date == None:
                     if type(line_date) == type(""):
                         print(" Date - " + line_date + " - did not convert, ignoring line.")
                     else:
                         log_file_list.append([line_key, line_date, line_value])
-
-
-
-        #####
-        ##
-        ###### Below is all the old test code...
-        ##
-        #####
-
-        # write text file of frame to use
-        #log_file = "user_log.txt"
-        #log_file = "dstemp_window.txt"
-        #log_file = "dstemp_bed.txt"
-        #split_character = "@"
-        #split_character = ">"
-        #date_pos = 0 #1
-        #key_pos = None
-        #value_pos = 1
-        # manual_key_value = os.path.split(log_file_path)[1]
-        # print("Test feature overlaying log info onto timelapse graph, working with " + str(len(MainApp.timelapse_ctrl_pannel.trimmed_frame_list)) + " files.")
-        # print(" Testing version using log file - " + log_file_path)
-        # # read log files
-        #
-        # for line in log_file_text.splitlines():
-        #     if split_character in line:
-        #         data = line.split(split_character)
-        #         if len(data) == 2 or key_pos == None:
-        #             item_key = manual_key_value
-        #             item_value = data[value_pos]
-        #             try:
-        #                 item_date = datetime.datetime.strptime(data[date_pos], '%Y-%m-%d %H:%M:%S.%f')
-        #             except:
-        #                 print("Date failed to convert, is it not in %Y-%m-%d %H:%M:%S. format? " + data[1])
-        #                 item_date = None
-        #             item_value = data[value_pos]
-        #             if not item_date == None:
-        #                 log_file_list.append([item_key, item_date, item_value])
-        #         #
-        #         elif len(data) > 2 and not key_pos == None:
-        #             item_key = data[key_pos]
-        #             try:
-        #                 item_date = datetime.datetime.strptime(data[date_pos], '%Y-%m-%d %H:%M:%S.%f')
-        #             except:
-        #                 print("Date failed to convert, is it not in %Y-%m-%d %H:%M:%S. format? " + data[1])
-        #                 item_date = None
-        #             item_value = data[value_pos]
-        #             if not item_date == None:
-        #                 log_file_list.append([item_key, item_date, item_value])
-
+                #
         print(" Found " + str(len(log_file_list)) + " items in the log" )
         # WE NOW HAVE A LIST OF THE LOG ITEMS
 
@@ -6580,9 +6585,6 @@ class make_log_overlay_dialog(wx.Dialog):
                     time_diff_log_to_cap = file_date - log_file_list[log_item_num][1]
                     if len(log_file_list) > log_item_num:
                         next_log_item_date = log_file_list[log_item_num + 1][1]
-                        #print(file_date - next_log_item_date)
-                        if not type(line_date) == type(next_log_item_date):
-                            print("-" + str(next_log_item_date) + "-not a-" + str(type(line_date)))
                         next_frame_time_diff_log_to_cap = file_date - next_log_item_date
                         if next_frame_time_diff_log_to_cap < time_diff_log_to_cap:
                             most_recent_log_info = log_file_list[log_item_num + 1]
@@ -6594,10 +6596,9 @@ class make_log_overlay_dialog(wx.Dialog):
             # display and write this files info
             print(most_recent_log_info, file)
             time_diff_log_to_cap = most_recent_log_info[1] - file_date
-            text_to_write = most_recent_log_info[0] + " " + most_recent_log_info[2].split(":")[0]
+            text_to_write = most_recent_log_info[0] + " " + most_recent_log_info[2]
             text_to_write += "\n time diff -- " + str(time_diff_log_to_cap)
             #text_to_write += "\n   -- " + str(file_date) + " - " + str(most_recent_log_info[1])
-            #self.WriteTextOnBitmap(text_to_write, file, (900, 600))
             self.WriteTextOnBitmap(text_to_write, file, (x_pos, y_pos))
 
     def WriteTextOnBitmap(self, text, bitmap_path, pos=(0, 0), font=None, color=None):
