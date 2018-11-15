@@ -6260,19 +6260,22 @@ class make_log_overlay_dialog(wx.Dialog):
         print(first_line)
         print("----------------------")
         self.example_line.SetLabel(first_line)
-        non_split_characters = ["-", ":", ".", ",", " ", "_"]
-        non_split_characters += ["a","b","c","d","e","f","g","h","i", "j", "k", "l","m","n","o","p","q","r","s","t","u","v","w","x","y","z"]
-        split_chr_choices = []
-        for chr in first_line:
-            if not chr.isdigit() and not chr.lower() in non_split_characters:
-                if not chr in split_chr_choices:
-                    split_chr_choices.append(chr)
-        print (str(split_chr_choices))
+        split_chr_choices = self.get_split_chr(first_line)
         if len(split_chr_choices) == 1:
             self.split_character_tc.SetValue(split_chr_choices[0])
         else:
             self.split_character_tc.SetValue("")
             self.clear_and_reset_fields()
+
+    def get_split_chr(self, line):
+        non_split_characters = ["-", ":", ".", ",", " ", "_"]
+        non_split_characters += ["a","b","c","d","e","f","g","h","i", "j", "k", "l","m","n","o","p","q","r","s","t","u","v","w","x","y","z"]
+        split_chr_choices = []
+        for chr in line:
+            if not chr.isdigit() and not chr.lower() in non_split_characters:
+                if not chr in split_chr_choices:
+                    split_chr_choices.append(chr)
+        return split_chr_choices
 
     def clear_and_reset_fields(self):
         self.date_pos_ex.SetLabel("")
@@ -6302,6 +6305,9 @@ class make_log_overlay_dialog(wx.Dialog):
         self.date_pos_split_tc.Disable()
         self.value_pos_split_tc.Disable()
         self.key_pos_split_tc.Disable()
+        self.date_pos_split_tc.SetValue("")
+        self.value_pos_split_tc.SetValue("")
+        self.key_pos_split_tc.SetValue("")
 
     def split_line_text(self, e):
         self.clear_and_reset_fields()
@@ -6321,6 +6327,7 @@ class make_log_overlay_dialog(wx.Dialog):
                 return None
             # check each entry to see if it's a date format we understand
             found = None
+            #self.date_pos_split_tc.SetValue("")
             for item in range(0, len(self.split_line)):
                 try:
                     test_date = datetime.datetime.strptime(self.split_line[item], '%Y-%m-%d %H:%M:%S.%f')
@@ -6329,8 +6336,20 @@ class make_log_overlay_dialog(wx.Dialog):
                     self.date_pos_ex.SetForegroundColour((75,200,75))
                     found = str(item)
                 except:
-                    pass
-            # after sorting through each item in the line react to results and try to guess value if possible
+                    print(self.split_line[item])
+                    split_chr_choices = self.get_split_chr(self.split_line[item])
+                    if len(split_chr_choices) == 1:
+                        item_split_again = self.split_line[item].split(split_chr_choices[0])
+                        for position_in_split_again_item in range(0, len(item_split_again)):
+                            try:
+                                date_to_test = item_split_again[position_in_split_again_item]
+                                print(date_to_test)
+                                test_date = datetime.datetime.strptime(date_to_test, '%Y-%m-%d %H:%M:%S.%f')
+                                self.date_pos_cb.SetValue(str(item))
+                                self.date_pos_split_tc.SetValue(split_chr_choices[0])
+                            except:
+                                pass
+                # after sorting through each item in the line react to results and try to guess value if possible
             if found == None:
                 print("timelapse make log overlay - Could not auto detect date")
             else:
@@ -6475,6 +6494,12 @@ class make_log_overlay_dialog(wx.Dialog):
                     line_date = datetime.datetime.strptime(line_date, '%Y-%m-%d %H:%M:%S.%f')
                 except:
                     line_date == None
+                # check if no fraction of a second
+                if type(line_date) == type(""):
+                    try:
+                        line_date = datetime.datetime.strptime(line_date, '%Y-%m-%d %H:%M:%S')
+                    except:
+                        line_date == None    
                 # Determine Value
                 line_value = split_line[value_pos]
                 if not value_split_char == "":
@@ -6483,7 +6508,10 @@ class make_log_overlay_dialog(wx.Dialog):
                 line_key = ""
                 # Write all (date, value, key) to log_file_list
                 if not line_date == None:
-                    log_file_list.append([line_key, line_date, line_value])
+                    if type(line_date) == type(""):
+                        print(" Date - " + line_date + " - did not convert, ignoring line.")
+                    else:
+                        log_file_list.append([line_key, line_date, line_value])
 
 
 
@@ -6551,8 +6579,11 @@ class make_log_overlay_dialog(wx.Dialog):
                 if log_file_list[log_item_num][1] < file_date: # if the cap is taken after the log item (add check that it's not too long after)
                     time_diff_log_to_cap = file_date - log_file_list[log_item_num][1]
                     if len(log_file_list) > log_item_num:
-                        #print(file_date - log_file_list[log_item_num + 1][1])
-                        next_frame_time_diff_log_to_cap = file_date - log_file_list[log_item_num + 1][1]
+                        next_log_item_date = log_file_list[log_item_num + 1][1]
+                        #print(file_date - next_log_item_date)
+                        if not type(line_date) == type(next_log_item_date):
+                            print("-" + str(next_log_item_date) + "-not a-" + str(type(line_date)))
+                        next_frame_time_diff_log_to_cap = file_date - next_log_item_date
                         if next_frame_time_diff_log_to_cap < time_diff_log_to_cap:
                             most_recent_log_info = log_file_list[log_item_num + 1]
                         else:
