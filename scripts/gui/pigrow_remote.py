@@ -6187,6 +6187,7 @@ class make_log_overlay_dialog(wx.Dialog):
         self.key_pos_cb = wx.ComboBox(self, size=(90, 25),choices = [])
         self.key_pos_cb.Bind(wx.EVT_TEXT, self.key_pos_go)
         self.key_pos_cb.Disable()
+        self.key_manual_l = wx.StaticText(self,  label='Label -')
         self.key_manual_tc = wx.TextCtrl(self, size=(150, 25))
         self.key_pos_split_tc = wx.TextCtrl(self, size=(60, 25))
         self.key_pos_split_tc.Bind(wx.EVT_TEXT, self.key_pos_split_text)
@@ -6200,6 +6201,7 @@ class make_log_overlay_dialog(wx.Dialog):
         display_l.SetFont(sub_title_font)
         display_size_l = wx.StaticText(self,  label='Text Size -')
         self.display_size_tc = wx.TextCtrl(self, size=(60, 25), value="50")
+        # color
         display_colour_l = wx.StaticText(self,  label='Colour -')
         display_colour_r = wx.StaticText(self,  label='r')
         display_colour_g = wx.StaticText(self,  label='g')
@@ -6207,20 +6209,26 @@ class make_log_overlay_dialog(wx.Dialog):
         self.display_colour_r_tc = wx.TextCtrl(self, size=(50, 25), value="0")
         self.display_colour_g_tc = wx.TextCtrl(self, size=(50, 25), value="0")
         self.display_colour_b_tc = wx.TextCtrl(self, size=(50, 25), value="0")
+        self.pick_colour_btn = wx.Button(self, label='Pick Colour', size=(175, 30))
+        self.pick_colour_btn.Bind(wx.EVT_BUTTON, self.pick_colour_click)
+        # pos
         display_pos_l = wx.StaticText(self,  label='Display Position')
         display_x_l = wx.StaticText(self,  label='X -')
         self.display_x_tc = wx.TextCtrl(self, size=(60, 25), value="10")
+        max_x, max_y = self.get_image_size()
+        self.display_x_max = wx.StaticText(self,  label='max -' + str(max_x))
         display_y_l = wx.StaticText(self,  label='Y -')
         self.display_y_tc = wx.TextCtrl(self, size=(60, 25), value="10")
+        self.display_y_max = wx.StaticText(self,  label='max -' + str(max_y))
         self.set_text_pos_btn = wx.Button(self, label='Set Position', size=(175, 30))
-        #self.set_text_pos_btn.Bind(wx.EVT_BUTTON, self.set_text_pos_click)
+        self.set_text_pos_btn.Bind(wx.EVT_BUTTON, self.set_text_pos_click)
 
         # overwrite or rename checkbox
                # ALSO OTHER OPTIONS LIKE DISPLAY TIME DIFF AND ETC
         # ok and cancel Buttons
-        self.make_btn = wx.Button(self, label='OK', size=(175, 30))
+        self.make_btn = wx.Button(self, label='Create', size=(175, 30))
         self.make_btn.Bind(wx.EVT_BUTTON, self.make_click)
-        self.cancel_btn = wx.Button(self, label='Cancel', size=(175, 30))
+        self.cancel_btn = wx.Button(self, label='Close', size=(175, 30))
         self.cancel_btn.Bind(wx.EVT_BUTTON, self.OnClose)
 
 
@@ -6236,7 +6244,7 @@ class make_log_overlay_dialog(wx.Dialog):
         data_extract_example_line_sizer = wx.BoxSizer(wx.HORIZONTAL)
         data_extract_example_line_sizer.Add(example_line_l, 0, wx.ALL, 3)
         data_extract_example_line_sizer.Add(self.example_line, 0, wx.ALL, 3)
-        data_extract_pos_sizer = wx.GridSizer(2, 5, 0, 0)
+        data_extract_pos_sizer = wx.GridSizer(3, 5, 0, 0)
         data_extract_pos_sizer.AddMany( [(date_pos_l, 0, wx.EXPAND),
             (self.date_pos_cb, 0, wx.EXPAND),
             (self.date_pos_split_tc, 0, wx.EXPAND),
@@ -6246,19 +6254,21 @@ class make_log_overlay_dialog(wx.Dialog):
             (self.value_pos_cb, 0, wx.EXPAND),
             (self.value_pos_split_tc, 0, wx.EXPAND),
             (self.value_pos_split_cb, 0, wx.EXPAND),
-            (self.value_pos_ex, 0, wx.EXPAND) ])
-        data_extract_key_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        data_extract_key_sizer.AddMany( [(key_pos_l, 0, wx.EXPAND),
+            (self.value_pos_ex, 0, wx.EXPAND),
+            (key_pos_l, 0, wx.EXPAND),
             (self.key_pos_cb, 0, wx.EXPAND),
             (self.key_pos_split_tc, 0, wx.EXPAND),
             (self.key_pos_split_cb, 0, wx.EXPAND),
-            (self.key_manual_tc, 0, wx.EXPAND),
             (self.key_pos_ex, 0, wx.EXPAND) ])
+        data_extract_label_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        data_extract_label_sizer.Add(self.key_manual_l, 0 , wx.ALL, 3)
+        data_extract_label_sizer.Add(self.key_manual_tc, 0 , wx.ALL, 3)
         data_extract_sizer = wx.BoxSizer(wx.VERTICAL)
         data_extract_sizer.Add(top_l, 0 , wx.ALL, 3)
         data_extract_sizer.Add(data_extract_example_line_sizer, 0 , wx.ALIGN_CENTER_HORIZONTAL, 3)
         data_extract_sizer.Add(split_chr_sizer, 0 , wx.ALL, 3)
         data_extract_sizer.Add(data_extract_pos_sizer, 0 , wx.ALIGN_CENTER_HORIZONTAL, 3)
+        data_extract_sizer.Add(data_extract_label_sizer, 0, wx.ALL, 3)
         # screen pos, colour, style
         text_size_sizer = wx.BoxSizer(wx.HORIZONTAL)
         text_size_sizer.Add(display_size_l, 0, wx.ALL, 3)
@@ -6271,11 +6281,15 @@ class make_log_overlay_dialog(wx.Dialog):
         text_colour_sizer.Add(self.display_colour_g_tc, 0, wx.ALL, 3)
         text_colour_sizer.Add(display_colour_b, 0, wx.ALL, 3)
         text_colour_sizer.Add(self.display_colour_b_tc, 0, wx.ALL, 3)
+        text_colour_sizer.Add(self.pick_colour_btn, 0, wx.ALL, 3)
         test_pos_2ndline_sizer = wx.BoxSizer(wx.HORIZONTAL)
         test_pos_2ndline_sizer.Add(display_x_l, 0, wx.ALL, 3)
         test_pos_2ndline_sizer.Add(self.display_x_tc, 0, wx.ALL, 3)
+        test_pos_2ndline_sizer.Add(self.display_x_max, 0, wx.ALL, 3)
         test_pos_2ndline_sizer.Add(display_y_l, 0, wx.ALL, 3)
         test_pos_2ndline_sizer.Add(self.display_y_tc, 0, wx.ALL, 3)
+        test_pos_2ndline_sizer.Add(self.display_y_max, 0, wx.ALL, 3)
+
         test_pos_2ndline_sizer.Add(self.set_text_pos_btn, 0, wx.ALL, 3)
         test_pos_sizer = wx.BoxSizer(wx.VERTICAL)
         test_pos_sizer.Add(display_pos_l, 0, wx.ALL, 3)
@@ -6295,14 +6309,31 @@ class make_log_overlay_dialog(wx.Dialog):
         main_sizer.Add(log_path_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
         main_sizer.AddStretchSpacer(1)
         main_sizer.Add(data_extract_sizer, 0, wx.ALL, 3)
-        main_sizer.Add(data_extract_key_sizer, 0, wx.ALL, 3)
         main_sizer.AddStretchSpacer(1)
         main_sizer.Add(text_display_sizer, 0, wx.ALL, 3)
         main_sizer.AddStretchSpacer(1)
         main_sizer.Add(buttons_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
         main_sizer.AddStretchSpacer(1)
         self.SetSizer(main_sizer)
-        self.key_manual_tc.Hide()
+
+    def pick_colour_click(self, e):
+        data = wx.ColourData()
+        data.SetChooseFull(True)
+        dialog = wx.ColourDialog(self, data)
+        if dialog.ShowModal() == wx.ID_OK:
+            retData = dialog.GetColourData()
+            col = retData.GetColour()
+        print(col)
+        self.display_colour_r_tc.SetValue(str(col[0]))
+        self.display_colour_g_tc.SetValue(str(col[1]))
+        self.display_colour_b_tc.SetValue(str(col[2]))
+
+    def get_image_size(self):
+        print("Gathering image size is not yet added, sorry")
+        return "xxx", "xxx"
+
+    def set_text_pos_click(self, e):
+        print("Sorry - another button that doesn't do anything yet....")
 
     def log_file_cb_go(self, e):
         local_path = localfiles_info_pnl.local_path
@@ -6425,14 +6456,23 @@ class make_log_overlay_dialog(wx.Dialog):
             self.key_pos_split_tc.Enable()
             self.key_pos_split_tc.Show()
             self.key_pos_split_cb.Show()
+            self.key_manual_l.Hide()
             self.key_manual_tc.Hide()
+            #self.SetSizer(main_sizer)
         elif key_pos == "Manual":
             self.key_pos_split_tc.Hide()
             self.key_pos_split_cb.Hide()
+            self.key_pos_split_cb.SetValue("")
+            self.key_manual_l.Show()
             self.key_manual_tc.Show()
-            print("BOX DOES NOTHING YET!")
-        else:
-            self.key_pos_split_tc.Disable()
+            #self.SetSizer(main_sizer)
+        elif key_pos == "None" or key_pos == "" or key_pos == None:
+        #    self.key_pos_ex.SetLabel("")
+            self.key_pos_split_tc.Hide()
+            self.key_pos_split_cb.SetValue("")
+            self.key_pos_split_cb.Hide()
+            self.key_manual_l.Hide()
+            self.key_manual_tc.Hide()
 
     def key_pos_split_text(self, e):
         self.key_pos_split_cb.Clear()
@@ -6454,8 +6494,12 @@ class make_log_overlay_dialog(wx.Dialog):
             self.key_pos_go("e")
 
     def key_pos_split_go(self, e):
-        key_pos_split = self.key_pos_split_cb.GetValue()
-        self.key_pos_ex.SetLabel(key_pos_split)
+        key_pos = self.key_pos_cb.GetValue()
+        if key_pos == "None" or key_pos == "Manual":
+            self.key_pos_ex.SetLabel("")
+        else:
+            key_pos_split = self.key_pos_split_cb.GetValue()
+            self.key_pos_ex.SetLabel(key_pos_split)
 
     def value_pos_go(self, e):
         '''
@@ -6607,7 +6651,7 @@ class make_log_overlay_dialog(wx.Dialog):
                 # Determine Key
                 if not key_pos == None:
                     if key_pos == "Manual":
-                        line_key = "THERE IS NO MANUAL BOX AT THE MOMENT I'M VERY SORRY BUT IT'S COMING SOON!!!!!"
+                        line_key = self.key_manual_tc.GetValue()
                     else:
                         line_key = split_line[key_pos]
                     #
