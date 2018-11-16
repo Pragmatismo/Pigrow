@@ -6113,7 +6113,7 @@ class make_log_overlay_dialog(wx.Dialog):
     def __init__(self, *args, **kw):
         super(make_log_overlay_dialog, self).__init__(*args, **kw)
         self.InitUI()
-        self.SetSize((800, 500))
+        self.SetSize((700, 600))
         self.SetTitle("Make Log Overlay Image Set")
         self.Bind(wx.EVT_CLOSE, self.OnClose)
 
@@ -6151,9 +6151,11 @@ class make_log_overlay_dialog(wx.Dialog):
         self.log_file_cb.Bind(wx.EVT_TEXT, self.log_file_cb_go)
         self.download_log_btn = wx.Button(self, label='download')
         self.download_log_btn.Bind(wx.EVT_BUTTON, self.download_log_click)
-        # log file data grabbing options (split character, position of date, key (or label), value)
-        log_path_l = wx.StaticText(self,  label='Data Extraction Options')
-        log_path_l.SetFont(sub_title_font)
+        ##
+        # log file data grabbing options (split character, position of date, key/label), value)
+        ##
+        top_l = wx.StaticText(self,  label='Data Extraction Options')
+        top_l.SetFont(sub_title_font)
         example_line_l = wx.StaticText(self,  label='Example Line -')
         self.example_line = wx.StaticText(self,  label='')
         # split line character
@@ -6180,21 +6182,41 @@ class make_log_overlay_dialog(wx.Dialog):
         self.value_pos_split_cb = wx.ComboBox(self, size=(60, 25))
         self.value_pos_split_cb.Bind(wx.EVT_TEXT, self.value_pos_split_go)
         self.value_pos_ex = wx.StaticText(self,  label='')
-        # row of key related option
+        # row of key related options
         key_pos_l = wx.StaticText(self,  label='Key Position')
         self.key_pos_cb = wx.ComboBox(self, size=(90, 25),choices = [])
         self.key_pos_cb.Bind(wx.EVT_TEXT, self.key_pos_go)
         self.key_pos_cb.Disable()
+        self.key_manual_tc = wx.TextCtrl(self, size=(150, 25))
         self.key_pos_split_tc = wx.TextCtrl(self, size=(60, 25))
         self.key_pos_split_tc.Bind(wx.EVT_TEXT, self.key_pos_split_text)
         self.key_pos_split_cb = wx.ComboBox(self, size=(60, 25))
         self.key_pos_split_cb.Bind(wx.EVT_TEXT, self.key_pos_split_go)
         self.key_pos_ex = wx.StaticText(self,  label='')
+        ##
+        # text placement options (size, colour, placement)
+        ##
+        display_l = wx.StaticText(self,  label='Display Options')
+        display_l.SetFont(sub_title_font)
+        display_size_l = wx.StaticText(self,  label='Text Size -')
+        self.display_size_tc = wx.TextCtrl(self, size=(60, 25), value="50")
+        display_colour_l = wx.StaticText(self,  label='Colour -')
+        display_colour_r = wx.StaticText(self,  label='r')
+        display_colour_g = wx.StaticText(self,  label='g')
+        display_colour_b = wx.StaticText(self,  label='b')
+        self.display_colour_r_tc = wx.TextCtrl(self, size=(50, 25), value="0")
+        self.display_colour_g_tc = wx.TextCtrl(self, size=(50, 25), value="0")
+        self.display_colour_b_tc = wx.TextCtrl(self, size=(50, 25), value="0")
+        display_pos_l = wx.StaticText(self,  label='Display Position')
+        display_x_l = wx.StaticText(self,  label='X -')
+        self.display_x_tc = wx.TextCtrl(self, size=(60, 25), value="10")
+        display_y_l = wx.StaticText(self,  label='Y -')
+        self.display_y_tc = wx.TextCtrl(self, size=(60, 25), value="10")
+        self.set_text_pos_btn = wx.Button(self, label='Set Position', size=(175, 30))
+        #self.set_text_pos_btn.Bind(wx.EVT_BUTTON, self.set_text_pos_click)
 
-
-        # screen pos, colour, style
         # overwrite or rename checkbox
-
+               # ALSO OTHER OPTIONS LIKE DISPLAY TIME DIFF AND ETC
         # ok and cancel Buttons
         self.make_btn = wx.Button(self, label='OK', size=(175, 30))
         self.make_btn.Bind(wx.EVT_BUTTON, self.make_click)
@@ -6207,14 +6229,14 @@ class make_log_overlay_dialog(wx.Dialog):
         log_path_sizer.Add(log_path_l, 0, wx.ALL, 3)
         log_path_sizer.Add(self.log_file_cb, 0, wx.ALL, 3)
         log_path_sizer.Add(self.download_log_btn, 0,  wx.ALL, 3)
+        # Data Extraction Area
         split_chr_sizer = wx.BoxSizer(wx.HORIZONTAL)
         split_chr_sizer.Add(split_character_l, 0,  wx.ALL, 3)
         split_chr_sizer.Add(self.split_character_tc, 0,  wx.ALL, 3)
-
         data_extract_example_line_sizer = wx.BoxSizer(wx.HORIZONTAL)
         data_extract_example_line_sizer.Add(example_line_l, 0, wx.ALL, 3)
         data_extract_example_line_sizer.Add(self.example_line, 0, wx.ALL, 3)
-        data_extract_pos_sizer = wx.GridSizer(3, 5, 0, 0)
+        data_extract_pos_sizer = wx.GridSizer(2, 5, 0, 0)
         data_extract_pos_sizer.AddMany( [(date_pos_l, 0, wx.EXPAND),
             (self.date_pos_cb, 0, wx.EXPAND),
             (self.date_pos_split_tc, 0, wx.EXPAND),
@@ -6224,17 +6246,45 @@ class make_log_overlay_dialog(wx.Dialog):
             (self.value_pos_cb, 0, wx.EXPAND),
             (self.value_pos_split_tc, 0, wx.EXPAND),
             (self.value_pos_split_cb, 0, wx.EXPAND),
-            (self.value_pos_ex, 0, wx.EXPAND),
-            (key_pos_l, 0, wx.EXPAND),
+            (self.value_pos_ex, 0, wx.EXPAND) ])
+        data_extract_key_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        data_extract_key_sizer.AddMany( [(key_pos_l, 0, wx.EXPAND),
             (self.key_pos_cb, 0, wx.EXPAND),
             (self.key_pos_split_tc, 0, wx.EXPAND),
             (self.key_pos_split_cb, 0, wx.EXPAND),
+            (self.key_manual_tc, 0, wx.EXPAND),
             (self.key_pos_ex, 0, wx.EXPAND) ])
         data_extract_sizer = wx.BoxSizer(wx.VERTICAL)
-        data_extract_sizer.Add(log_path_l, 0 , wx.ALL, 3)
+        data_extract_sizer.Add(top_l, 0 , wx.ALL, 3)
         data_extract_sizer.Add(data_extract_example_line_sizer, 0 , wx.ALIGN_CENTER_HORIZONTAL, 3)
         data_extract_sizer.Add(split_chr_sizer, 0 , wx.ALL, 3)
         data_extract_sizer.Add(data_extract_pos_sizer, 0 , wx.ALIGN_CENTER_HORIZONTAL, 3)
+        # screen pos, colour, style
+        text_size_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        text_size_sizer.Add(display_size_l, 0, wx.ALL, 3)
+        text_size_sizer.Add(self.display_size_tc, 0, wx.ALL, 3)
+        text_colour_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        text_colour_sizer.Add(display_colour_l, 0, wx.ALL, 3)
+        text_colour_sizer.Add(display_colour_r, 0, wx.ALL, 3)
+        text_colour_sizer.Add(self.display_colour_r_tc, 0, wx.ALL, 3)
+        text_colour_sizer.Add(display_colour_g, 0, wx.ALL, 3)
+        text_colour_sizer.Add(self.display_colour_g_tc, 0, wx.ALL, 3)
+        text_colour_sizer.Add(display_colour_b, 0, wx.ALL, 3)
+        text_colour_sizer.Add(self.display_colour_b_tc, 0, wx.ALL, 3)
+        test_pos_2ndline_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        test_pos_2ndline_sizer.Add(display_x_l, 0, wx.ALL, 3)
+        test_pos_2ndline_sizer.Add(self.display_x_tc, 0, wx.ALL, 3)
+        test_pos_2ndline_sizer.Add(display_y_l, 0, wx.ALL, 3)
+        test_pos_2ndline_sizer.Add(self.display_y_tc, 0, wx.ALL, 3)
+        test_pos_2ndline_sizer.Add(self.set_text_pos_btn, 0, wx.ALL, 3)
+        test_pos_sizer = wx.BoxSizer(wx.VERTICAL)
+        test_pos_sizer.Add(display_pos_l, 0, wx.ALL, 3)
+        test_pos_sizer.Add(test_pos_2ndline_sizer, 0, wx.ALL, 3)
+        text_display_sizer = wx.BoxSizer(wx.VERTICAL)
+        text_display_sizer.Add(display_l, 0, wx.ALL, 3)
+        text_display_sizer.Add(text_size_sizer, 0, wx.ALL, 3)
+        text_display_sizer.Add(text_colour_sizer, 0, wx.ALL, 3)
+        text_display_sizer.Add(test_pos_sizer, 0, wx.ALL, 3)
 
         buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
         buttons_sizer.Add(self.make_btn, 0,  wx.ALIGN_LEFT, 3)
@@ -6245,10 +6295,14 @@ class make_log_overlay_dialog(wx.Dialog):
         main_sizer.Add(log_path_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
         main_sizer.AddStretchSpacer(1)
         main_sizer.Add(data_extract_sizer, 0, wx.ALL, 3)
+        main_sizer.Add(data_extract_key_sizer, 0, wx.ALL, 3)
+        main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(text_display_sizer, 0, wx.ALL, 3)
         main_sizer.AddStretchSpacer(1)
         main_sizer.Add(buttons_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
         main_sizer.AddStretchSpacer(1)
         self.SetSizer(main_sizer)
+        self.key_manual_tc.Hide()
 
     def log_file_cb_go(self, e):
         local_path = localfiles_info_pnl.local_path
@@ -6369,8 +6423,14 @@ class make_log_overlay_dialog(wx.Dialog):
         if not key_pos == "" and not key_pos == "None" and not key_pos == "Manual" and not key_pos == None:
             self.key_pos_ex.SetLabel(self.split_line[int(key_pos)])
             self.key_pos_split_tc.Enable()
+            self.key_pos_split_tc.Show()
+            self.key_pos_split_cb.Show()
+            self.key_manual_tc.Hide()
         elif key_pos == "Manual":
-            print("NO BOX FOR THAT YET!")
+            self.key_pos_split_tc.Hide()
+            self.key_pos_split_cb.Hide()
+            self.key_manual_tc.Show()
+            print("BOX DOES NOTHING YET!")
         else:
             self.key_pos_split_tc.Disable()
 
@@ -6494,7 +6554,6 @@ class make_log_overlay_dialog(wx.Dialog):
         except:
             self.date_pos_ex.SetForegroundColour((220,75,75))
 
-
     def download_log_click(self, e):
         log_to_update = self.log_file_cb.GetValue()
         print("wants to update " + log_to_update + " but the button does nothing yet")
@@ -6518,8 +6577,6 @@ class make_log_overlay_dialog(wx.Dialog):
         value_split_pos = self.value_pos_split_cb.GetSelection()
         key_split_char = self.key_pos_split_tc.GetValue()
         key_split_pos = self.key_pos_split_cb.GetSelection()
-        x_pos = 100
-        y_pos = 100
         # Open Log and Read Content into a list of lines
         with open(log_file_path, "r") as log_file:
             log_file_text = log_file.read()
@@ -6599,7 +6656,29 @@ class make_log_overlay_dialog(wx.Dialog):
             text_to_write = most_recent_log_info[0] + " " + most_recent_log_info[2]
             text_to_write += "\n time diff -- " + str(time_diff_log_to_cap)
             #text_to_write += "\n   -- " + str(file_date) + " - " + str(most_recent_log_info[1])
-            self.WriteTextOnBitmap(text_to_write, file, (x_pos, y_pos))
+            # set colour, size, pos
+            font_size = self.display_size_tc.GetValue()
+            font = wx.Font(int(font_size), wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
+            font_r = self.display_colour_r_tc.GetValue()
+            font_g = self.display_colour_g_tc.GetValue()
+            font_b = self.display_colour_b_tc.GetValue()
+            if not font_r.isdigit():
+                font_r = "250"
+            if not font_g.isdigit():
+                font_g = "250"
+            if not font_b.isdigit():
+                font_b = "250"
+            font_col = [int(font_r), int(font_g), int(font_b)]
+            pos_x  = self.display_x_tc.GetValue()
+            if not pos_x.isdigit():
+                pos_x = "10"
+                print("X value set wrong - setting text placement x to 10")
+            pos_y  = self.display_y_tc.GetValue()
+            if not pos_y.isdigit():
+                pos_y = "10"
+                print("Y value set wrong - setting text placement y to 10")
+            #
+            self.WriteTextOnBitmap(text_to_write, file, pos=(pos_x, pos_y), font=font, color=font_col)
 
     def WriteTextOnBitmap(self, text, bitmap_path, pos=(0, 0), font=None, color=None):
         folder_name_for_output = "edited_caps"
@@ -6618,14 +6697,17 @@ class make_log_overlay_dialog(wx.Dialog):
         if font:
             memDC.SetFont(font)
         else:
-            font = wx.Font(40, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
+            font = wx.Font(40, wx.TELETYPE, wx.ITALIC, wx.NORMAL)
             memDC.SetFont(font)
         if color:
-            memDC.SetTextForeground(color)
+            text_colour = wx.Colour(int(color[0]), int(color[1]), int(color[2]))
+        else:
+            text_colour = x.Colour(0,0,0)
         # select image and overlay text
         memDC.SelectObject(bitmap)
         try:
-            memDC.DrawText( text, pos[0], pos[1])
+            memDC.SetTextForeground(text_colour) #wxColour(color[0], color[1], color[2]))
+            memDC.DrawText(text, int(pos[0]), int(pos[1]))
         except :
             print("unable to add text to image, sorry - " + bitmap_path)
             raise
