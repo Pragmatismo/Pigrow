@@ -5999,24 +5999,24 @@ class timelapse_ctrl_pnl(wx.Panel):
         self.open_caps_folder(cap_dir, cap_type)
 
     def open_caps_folder(self, cap_dir, cap_type="jpg", cap_set=None):
-        self.cap_file_paths = []
+        MainApp.timelapse_ctrl_pannel.cap_file_paths = []
         for filefound in os.listdir(cap_dir):
             if filefound.endswith(cap_type):
                 file_path = os.path.join(cap_dir, filefound)
                 if not cap_set == None:
                     if filefound.split("_")[0] == cap_set:
-                        self.cap_file_paths.append(file_path)
+                        MainApp.timelapse_ctrl_pannel.cap_file_paths.append(file_path)
                 else: #when using all images in the folder regardless of the set
-                    self.cap_file_paths.append(file_path)
-        self.cap_file_paths.sort()
+                    MainApp.timelapse_ctrl_pannel.cap_file_paths.append(file_path)
+        MainApp.timelapse_ctrl_pannel.cap_file_paths.sort()
         # fill the infomation boxes
-        MainApp.timelapse_info_pannel.images_found_info.SetLabel(str(len(self.cap_file_paths)))
+        MainApp.timelapse_info_pannel.images_found_info.SetLabel(str(len(MainApp.timelapse_ctrl_pannel.cap_file_paths)))
         # set first and last images
         MainApp.timelapse_info_pannel.first_frame_no.ChangeValue("1")
-        MainApp.timelapse_info_pannel.last_frame_no.ChangeValue(str(len(self.cap_file_paths)))
-        filename = self.cap_file_paths[0]
+        MainApp.timelapse_info_pannel.last_frame_no.ChangeValue(str(len(MainApp.timelapse_ctrl_pannel.cap_file_paths)))
+        filename = MainApp.timelapse_ctrl_pannel.cap_file_paths[0]
         MainApp.timelapse_info_pannel.set_first_image(filename)
-        filename = self.cap_file_paths[-1]
+        filename = MainApp.timelapse_ctrl_pannel.cap_file_paths[-1]
         MainApp.timelapse_info_pannel.set_last_image(filename)
         MainApp.timelapse_ctrl_pannel.calculate_frames_click("e")
 
@@ -6106,6 +6106,46 @@ class timelapse_ctrl_pnl(wx.Panel):
         os.system(cmd)
         print("Doesn't do anything yet!")
 
+class select_text_pos_on_image(wx.Dialog):
+    """
+    Shows the image on the screen for user to click to place text
+        """
+    def __init__(self, *args, **kw):
+        super(select_text_pos_on_image, self).__init__(*args, **kw)
+        self.InitUI()
+        pic_one = MainApp.timelapse_ctrl_pannel.trimmed_frame_list[0]
+        bitmap = wx.Bitmap(1, 1)
+        bitmap.LoadFile(pic_one, wx.BITMAP_TYPE_ANY)
+        size = bitmap.GetSize()
+        self.SetSize((size[0], size[1]))
+        self.SetTitle("Click to select text box top-left corner")
+        self.Bind(wx.EVT_CLOSE, self.OnClose)
+
+    def InitUI(self):
+        # panel
+        pnl = wx.Panel(self)
+        title_font = wx.Font(28, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
+        sub_title_font = wx.Font(15, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
+        #box_label = wx.StaticText(self,  label='Select Text Placement')
+        #box_label.SetFont(title_font)
+        pic_one = MainApp.timelapse_ctrl_pannel.trimmed_frame_list[0]
+        bitmap = wx.Bitmap(1, 1)
+        bitmap.LoadFile(pic_one, wx.BITMAP_TYPE_ANY)
+        size = bitmap.GetSize()
+        image = wx.StaticBitmap(self, -1, bitmap, size=(size[0], size[1]))
+        image.Bind(wx.EVT_LEFT_DOWN, self.on_click)
+        self.SetSize((size[0]), size[1])
+
+    def on_click(self, e):
+        x, y = e.GetPosition()
+        timelapse_ctrl_pnl.log_x_placement = x
+        timelapse_ctrl_pnl.log_y_placement = y
+        self.Destroy()
+
+    def OnClose(self, e):
+        print("Sorry not yet doing anything")
+        self.Destroy()
+
 class make_log_overlay_dialog(wx.Dialog):
     """
     For creating a set of images with log file data overlaid
@@ -6123,19 +6163,6 @@ class make_log_overlay_dialog(wx.Dialog):
         self.example_line.GetLabel()       - an example line, the last non-blank line inte file
         self.split_character_tc.GetValue() - character used to split the info in each line (@, >, etc)
         '''
-        # setting options
-        log_file = "user_log.txt"
-        log_file = "dstemp_window.txt"
-        log_file = "dstemp_bed.txt"
-        split_character = "@"
-        split_character = ">"
-        date_pos = 0 #1
-        key_pos = None
-        value_pos = 1
-        local_path = localfiles_info_pnl.local_path
-        log_file_path = os.path.join(local_path, "logs", log_file)
-        manual_key_value = os.path.split(log_file_path)[1]
-
         # panel
         pnl = wx.Panel(self)
         title_font = wx.Font(28, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
@@ -6213,11 +6240,11 @@ class make_log_overlay_dialog(wx.Dialog):
         self.pick_colour_btn.Bind(wx.EVT_BUTTON, self.pick_colour_click)
         # pos
         display_pos_l = wx.StaticText(self,  label='Display Position')
-        display_x_l = wx.StaticText(self,  label='X -')
+        display_x_l = wx.StaticText(self,  label='X (right) -')
         self.display_x_tc = wx.TextCtrl(self, size=(60, 25), value="10")
         max_x, max_y = self.get_image_size()
         self.display_x_max = wx.StaticText(self,  label='max -' + str(max_x))
-        display_y_l = wx.StaticText(self,  label='Y -')
+        display_y_l = wx.StaticText(self,  label='Y (down) -')
         self.display_y_tc = wx.TextCtrl(self, size=(60, 25), value="10")
         self.display_y_max = wx.StaticText(self,  label='max -' + str(max_y))
         self.set_text_pos_btn = wx.Button(self, label='Set Position', size=(175, 30))
@@ -6323,17 +6350,26 @@ class make_log_overlay_dialog(wx.Dialog):
         if dialog.ShowModal() == wx.ID_OK:
             retData = dialog.GetColourData()
             col = retData.GetColour()
-        print(col)
         self.display_colour_r_tc.SetValue(str(col[0]))
         self.display_colour_g_tc.SetValue(str(col[1]))
         self.display_colour_b_tc.SetValue(str(col[2]))
 
     def get_image_size(self):
-        print("Gathering image size is not yet added, sorry")
-        return "xxx", "xxx"
+        pic_one = MainApp.timelapse_ctrl_pannel.trimmed_frame_list[0]
+        bitmap = wx.Bitmap(1, 1)
+        bitmap.LoadFile(pic_one, wx.BITMAP_TYPE_ANY)
+        size = bitmap.GetSize()
+        return size[0], size[1]
 
     def set_text_pos_click(self, e):
-        print("Sorry - another button that doesn't do anything yet....")
+        set_text_pos_dbox = select_text_pos_on_image(None)
+        set_text_pos_dbox.ShowModal()
+        x = timelapse_ctrl_pnl.log_x_placement
+        y = timelapse_ctrl_pnl.log_y_placement
+        self.display_x_tc.SetValue(str(x))
+        self.display_y_tc.SetValue(str(y))
+        #print("set_text_pos_click", x, y)
+
 
     def log_file_cb_go(self, e):
         local_path = localfiles_info_pnl.local_path
@@ -6723,11 +6759,17 @@ class make_log_overlay_dialog(wx.Dialog):
                 print("Y value set wrong - setting text placement y to 10")
             #
             self.WriteTextOnBitmap(text_to_write, file, pos=(pos_x, pos_y), font=font, color=font_col)
+        # when it's written the whole set
+        folder_name_for_output = "edited_caps"
+        local_path = localfiles_info_pnl.local_path
+        edited_caps_path = os.path.join(local_path, folder_name_for_output)
+        timelapse_ctrl_pnl.open_caps_folder(None, edited_caps_path)
+        self.Destroy()
 
     def WriteTextOnBitmap(self, text, bitmap_path, pos=(0, 0), font=None, color=None):
         folder_name_for_output = "edited_caps"
         new_name = os.path.split(bitmap_path)[1]
-        new_name = "log_" + new_name
+        #new_name = "log_" + new_name
         local_path = localfiles_info_pnl.local_path
         local_path = os.path.join(local_path, folder_name_for_output)
         if not os.path.isdir(local_path):
