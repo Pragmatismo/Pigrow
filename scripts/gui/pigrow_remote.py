@@ -6249,6 +6249,9 @@ class make_log_overlay_dialog(wx.Dialog):
         self.display_y_max = wx.StaticText(self,  label='max -' + str(max_y))
         self.set_text_pos_btn = wx.Button(self, label='Set Position', size=(175, 30))
         self.set_text_pos_btn.Bind(wx.EVT_BUTTON, self.set_text_pos_click)
+        # tick boxes
+        self.show_time_diff = wx.CheckBox(self, label='Show Time Diff')
+
 
         # overwrite or rename checkbox
                # ALSO OTHER OPTIONS LIKE DISPLAY TIME DIFF AND ETC
@@ -6326,11 +6329,12 @@ class make_log_overlay_dialog(wx.Dialog):
         text_display_sizer.Add(text_size_sizer, 0, wx.ALL, 3)
         text_display_sizer.Add(text_colour_sizer, 0, wx.ALL, 3)
         text_display_sizer.Add(test_pos_sizer, 0, wx.ALL, 3)
-
+        misc_tick_boxes_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        misc_tick_boxes_sizer.Add(self.show_time_diff, 0, wx.ALL, 3)
         buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
         buttons_sizer.Add(self.make_btn, 0,  wx.ALIGN_LEFT, 3)
         buttons_sizer.Add(self.cancel_btn, 0,  wx.ALIGN_RIGHT, 3)
-        main_sizer =  wx.BoxSizer(wx.VERTICAL)
+        main_sizer = wx.BoxSizer(wx.VERTICAL)
         main_sizer.Add(box_label, 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.AddStretchSpacer(1)
         main_sizer.Add(log_path_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
@@ -6338,6 +6342,8 @@ class make_log_overlay_dialog(wx.Dialog):
         main_sizer.Add(data_extract_sizer, 0, wx.ALL, 3)
         main_sizer.AddStretchSpacer(1)
         main_sizer.Add(text_display_sizer, 0, wx.ALL, 3)
+        main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(misc_tick_boxes_sizer, 0, wx.ALL, 3)
         main_sizer.AddStretchSpacer(1)
         main_sizer.Add(buttons_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
         main_sizer.AddStretchSpacer(1)
@@ -6549,6 +6555,8 @@ class make_log_overlay_dialog(wx.Dialog):
             self.value_pos_split_tc.Enable()
         else:
             self.value_pos_split_tc.Disable()
+        self.make_btn_enable()
+
 
     def value_pos_split_text(self, e):
         '''
@@ -6592,9 +6600,15 @@ class make_log_overlay_dialog(wx.Dialog):
                 try:
                     test_date = datetime.datetime.strptime(ex_date, '%Y-%m-%d %H:%M:%S.%f')
                     self.date_pos_ex.SetForegroundColour((75,200,75))
+                    self.date_good = True
                 except:
                     self.date_pos_ex.SetForegroundColour((220,75,75))
                     self.date_pos_split_tc.Enable()
+                    self.date_good = False
+        else:
+            self.date_good = False
+        self.make_btn_enable()
+
 
     def date_pos_split_text(self, e):
         self.date_pos_split_cb.Enable()
@@ -6631,8 +6645,18 @@ class make_log_overlay_dialog(wx.Dialog):
         try:
             test_date = datetime.datetime.strptime(date_pos, '%Y-%m-%d %H:%M:%S.%f')
             self.date_pos_ex.SetForegroundColour((75,200,75))
+            self.date_good = True
         except:
             self.date_pos_ex.SetForegroundColour((220,75,75))
+            self.date_good = False
+        self.make_btn_enable()
+
+    def make_btn_enable(self):
+        val_pos = self.value_pos_cb.GetValue()
+        if self.date_good and val_pos.isdigit():
+            self.make_btn.Enable()
+        else:
+            self.make_btn.Disable()
 
     def download_log_click(self, e):
         log_to_update = self.log_file_cb.GetValue()
@@ -6734,7 +6758,10 @@ class make_log_overlay_dialog(wx.Dialog):
             print(most_recent_log_info, file)
             time_diff_log_to_cap = most_recent_log_info[1] - file_date
             text_to_write = most_recent_log_info[0] + " " + most_recent_log_info[2]
-            text_to_write += "\n time diff -- " + str(time_diff_log_to_cap)
+            if self.show_time_diff.GetValue() == True:
+                text_to_write += "\n time diff -- " + str(time_diff_log_to_cap)
+            else:
+                print(self.show_time_diff.GetValue())
             #text_to_write += "\n   -- " + str(file_date) + " - " + str(most_recent_log_info[1])
             # set colour, size, pos
             font_size = self.display_size_tc.GetValue()
@@ -7520,6 +7547,17 @@ class user_log_info_pnl(wx.Panel):
         user_log_location_l = wx.StaticText(self, label='User log location - ')
         self.user_log_location_tc = wx.TextCtrl(self, value="", size=(450, 30))
 
+        # user log info and user log field info
+        user_info_title =  wx.StaticText(self,  label='Info and User Log Fields;', size=(300,30))
+        user_info_title.SetFont(sub_title_font)
+        new_field_l =  wx.StaticText(self,  label='New User Log Field -')
+        self.field_title = wx.TextCtrl(self, -1, "Field Title", size=(300,30))
+        self.add_field_btn = wx.Button(self, label='Add new field')
+        self.add_field_btn.Bind(wx.EVT_BUTTON, self.add_new_user_log_field)
+        new_user_note_l =  wx.StaticText(self,  label='Add new user note -')
+        self.user_note = wx.TextCtrl(self, -1, "User Note -", size=(300,30))
+        self.add_user_note_btn = wx.Button(self, label='Add note')
+        self.add_user_note_btn.Bind(wx.EVT_BUTTON, self.add_user_note)
 
         # User Log Input Area
         add_box_title =  wx.StaticText(self,  label='Write to user log;', size=(300,30))
@@ -7534,6 +7572,18 @@ class user_log_info_pnl(wx.Panel):
 
 
         #Sizers
+        add_field_line_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        add_field_line_sizer.Add(new_field_l,0, wx.ALL, 3)
+        add_field_line_sizer.Add(self.field_title,0, wx.ALL, 3)
+        add_field_line_sizer.Add(self.add_field_btn,0, wx.ALL, 3)
+        add_user_note_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        add_user_note_sizer.Add(new_user_note_l, 0, wx.ALL, 3)
+        add_user_note_sizer.Add(self.user_note, 0, wx.ALL, 3)
+        add_user_note_sizer.Add(self.add_user_note_btn, 0, wx.ALL, 3)
+        info_and_new_field_sizer = wx.BoxSizer(wx.VERTICAL)
+        info_and_new_field_sizer.Add(user_info_title, 0, wx.ALL, 3)
+        info_and_new_field_sizer.Add(add_field_line_sizer, 0, wx.ALL, 3)
+        info_and_new_field_sizer.Add(add_user_note_sizer, 0, wx.ALL, 3)
         user_log_input_item_sizer = wx.BoxSizer(wx.HORIZONTAL)
         user_log_input_item_sizer.Add(item_l, 0, wx.ALL, 3)
         user_log_input_item_sizer.Add(self.user_log_variable_text, 0, wx.ALL, 3)
@@ -7550,10 +7600,36 @@ class user_log_info_pnl(wx.Panel):
         main_sizer.Add(page_sub_title, 0, wx.ALIGN_CENTER_HORIZONTAL, 3)
         main_sizer.Add(user_log_loc_sizer, 0, wx.ALL, 3)
         main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(info_and_new_field_sizer, 0, wx.ALL, 3)
+        main_sizer.AddStretchSpacer(1)
         main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
-
         main_sizer.Add(user_log_input_sizer, 0, wx.ALL, 3)
         self.SetSizer(main_sizer)
+
+    def write_to_user_info_file(self, label, text):
+        line = str(label) + ">" + str(text) + "\n"
+        user_info_file = os.path.join(localfiles_info_pnl.local_path, "user_info.txt")
+        with open(user_info_file, "a") as file:
+            file.write(line)
+        print(" - Written " + line + " to " + user_info_file)
+
+    def fill_user_log_field_list(self):
+        self.user_log_variable_text.Clear()
+        found_in_user_log_info = ["fix", "this", "here"]
+        self.user_log_variable_text.Append(found_in_user_log_info)
+
+    def add_user_note(self, e):
+        text = self.user_note.GetValue()
+        text = text.replace("\n", "  ")
+        label = "user note"
+        self.write_to_user_info_file(label, text)
+
+    def add_new_user_log_field(self, e):
+        text = self.field_title.GetValue()
+        text = text.replace("\n", "  ")
+        label = "user field"
+        self.write_to_user_info_file(label, text)
+        self.fill_user_log_field_list()
 
     def add_to_user_log(self, e):
         log_location = self.user_log_location_tc.GetValue()
@@ -7596,9 +7672,10 @@ class user_log_ctrl_pnl(wx.Panel):
     def read_user_log(self, e):
         user_log_loc = "/home/" + pi_link_pnl.target_user + "/Pigrow/logs/user_log.txt"
         MainApp.user_log_info_pannel.user_log_location_tc.SetValue(user_log_loc)
-        MainApp.user_log_info_pannel.add_to_user_log_btn.Enable()
 
-        print("this button prints this line of text and does nothing else, cool hu?")
+        print("this button prints this line of text and does little else, cool hu?")
+        MainApp.user_log_info_pannel.add_to_user_log_btn.Enable()
+        MainApp.user_log_info_pannel.fill_user_log_field_list()
 
 
 #
