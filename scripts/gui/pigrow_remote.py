@@ -7555,7 +7555,7 @@ class user_log_info_pnl(wx.Panel):
         self.add_field_btn = wx.Button(self, label='Add new field')
         self.add_field_btn.Bind(wx.EVT_BUTTON, self.add_new_user_log_field)
         new_user_note_l =  wx.StaticText(self,  label='Add new user note -')
-        self.user_note = wx.TextCtrl(self, -1, "User Note -", size=(300,30))
+        self.user_note = wx.TextCtrl(self, -1, "User Note -", size=(300,75), style=wx.TE_MULTILINE)
         self.add_user_note_btn = wx.Button(self, label='Add note')
         self.add_user_note_btn.Bind(wx.EVT_BUTTON, self.add_user_note)
 
@@ -7563,8 +7563,8 @@ class user_log_info_pnl(wx.Panel):
         add_box_title =  wx.StaticText(self,  label='Write to user log;', size=(300,30))
         add_box_title.SetFont(sub_title_font)
         item_l =  wx.StaticText(self,  label='Item -', size=(50,30))
-        variables = ["things", "found", "in", "user", "logs"]
-        self.user_log_variable_text = wx.ComboBox(self, choices = variables, size=(250, 30))
+        variables = []
+        self.user_log_variable_text = wx.ComboBox(self, choices = variables, size=(250, 30), style=wx.TE_READONLY)
         self.user_log_input_text = wx.TextCtrl(self, -1, "text to record", size=(300,100), style=wx.TE_MULTILINE)
         self.add_to_user_log_btn = wx.Button(self, label='Add to User Log')
         self.add_to_user_log_btn.Bind(wx.EVT_BUTTON, self.add_to_user_log)
@@ -7600,10 +7600,10 @@ class user_log_info_pnl(wx.Panel):
         main_sizer.Add(page_sub_title, 0, wx.ALIGN_CENTER_HORIZONTAL, 3)
         main_sizer.Add(user_log_loc_sizer, 0, wx.ALL, 3)
         main_sizer.AddStretchSpacer(1)
-        main_sizer.Add(info_and_new_field_sizer, 0, wx.ALL, 3)
+        main_sizer.Add(user_log_input_sizer, 0, wx.ALL, 3)
         main_sizer.AddStretchSpacer(1)
         main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
-        main_sizer.Add(user_log_input_sizer, 0, wx.ALL, 3)
+        main_sizer.Add(info_and_new_field_sizer, 0, wx.ALL, 3)
         self.SetSizer(main_sizer)
 
     def write_to_user_info_file(self, label, text):
@@ -7688,10 +7688,9 @@ class user_log_ctrl_pnl(wx.Panel):
                     user_note_list.append(line[1])
         print(field_list)
         print(user_note_list)
-
-        print("this button prints these lines of text and does little else, cool hu?")
+        MainApp.user_log_info_pannel.user_log_variable_text.Clear()
+        MainApp.user_log_info_pannel.user_log_variable_text.Append(field_list)
         MainApp.user_log_info_pannel.add_to_user_log_btn.Enable()
-        MainApp.user_log_info_pannel.fill_user_log_field_list()
 
 
 #
@@ -7908,6 +7907,8 @@ class pi_link_pnl(wx.Panel):
         MainApp.graphing_ctrl_pannel.script_text.Hide()
         MainApp.graphing_ctrl_pannel.select_script_cb.Hide()
         MainApp.graphing_ctrl_pannel.get_opts_tb.Hide()
+        MainApp.user_log_info_pannel.user_log_variable_text.Clear()
+        MainApp.user_log_info_pannel.add_to_user_log_btn.Disable()
         MainApp.window_self.Layout()
 
 
