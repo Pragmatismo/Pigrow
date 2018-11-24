@@ -7608,10 +7608,12 @@ class user_log_info_pnl(wx.Panel):
 
     def write_to_user_info_file(self, label, text):
         line = str(label) + ">" + str(text) + "\n"
-        user_info_file = os.path.join(localfiles_info_pnl.local_path, "user_info.txt")
-        with open(user_info_file, "a") as file:
-            file.write(line)
-        print(" - Written " + line + " to " + user_info_file)
+        user_log_info = "/home/" + pi_link_pnl.target_user + "/Pigrow/logs/user_info.txt"
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi('echo "' + line + '" >> ' + user_log_info)
+#        user_info_file = os.path.join(localfiles_info_pnl.local_path, "user_info.txt")
+#        with open(user_info_file, "a") as file:
+#            file.write(line)
+        print(" - Written " + line + " to " + user_log_info)
 
     def fill_user_log_field_list(self):
         self.user_log_variable_text.Clear()
@@ -7672,8 +7674,22 @@ class user_log_ctrl_pnl(wx.Panel):
     def read_user_log(self, e):
         user_log_loc = "/home/" + pi_link_pnl.target_user + "/Pigrow/logs/user_log.txt"
         MainApp.user_log_info_pannel.user_log_location_tc.SetValue(user_log_loc)
+        user_log_info_location = "/home/" + pi_link_pnl.target_user + "/Pigrow/logs/user_info.txt"
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi('cat ' + user_log_info_location)
+        user_log_info_text = out.splitlines()
+        field_list = []
+        user_note_list = []
+        for line in user_log_info_text:
+            if ">" in line:
+                line = line.split(">")
+                if line[0] == "user field":
+                    field_list.append(line[1])
+                elif line[0] == "user note":
+                    user_note_list.append(line[1])
+        print(field_list)
+        print(user_note_list)
 
-        print("this button prints this line of text and does little else, cool hu?")
+        print("this button prints these lines of text and does little else, cool hu?")
         MainApp.user_log_info_pannel.add_to_user_log_btn.Enable()
         MainApp.user_log_info_pannel.fill_user_log_field_list()
 
