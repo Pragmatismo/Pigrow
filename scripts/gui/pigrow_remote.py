@@ -58,7 +58,7 @@
 #
 ###      Useful Variables - Path info
 ##
-##  temp_local = localfiles_info_pnl.local_path + "/temp/"
+##  temp_local = os.path.join(localfiles_info_pnl.local_path, "/temp/")
 ##  remote_path = "/home/" + pi_link_pnl.target_user + "/Pigrow/"
 #
 #  SETTINGS FOR THE GUI TO USE
@@ -6295,7 +6295,7 @@ class make_log_overlay_dialog(wx.Dialog):
         data_extract_label_sizer.Add(self.key_manual_tc, 0 , wx.ALL, 3)
         data_extract_sizer = wx.BoxSizer(wx.VERTICAL)
         data_extract_sizer.Add(top_l, 0 , wx.ALL, 3)
-        data_extract_sizer.Add(data_extract_example_line_sizer, 0 , wx.ALIGN_CENTER_HORIZONTAL, 3)
+        data_extract_sizer.Add(data_extract_example_line_sizer, 0 , wx.ALL, 3)
         data_extract_sizer.Add(split_chr_sizer, 0 , wx.ALL, 3)
         data_extract_sizer.Add(data_extract_pos_sizer, 0 , wx.ALIGN_CENTER_HORIZONTAL, 3)
         data_extract_sizer.Add(data_extract_label_sizer, 0, wx.ALL, 3)
@@ -6384,8 +6384,17 @@ class make_log_overlay_dialog(wx.Dialog):
         first_line = ""
         print("- Reading first line -")
         with open(log_path) as f:
-            while first_line == "":
-                first_line = f.readline()
+            f.seek(0, 2)
+            size = f.tell()
+            print(size)
+            f.seek(0, 0)
+            if not size == 0:
+                while first_line == "":
+                    first_line = f.readline()
+                    if first_line == "\n" or first_line == "\r\n":
+                        first_line = ""
+                    if size == f.tell():
+                        first_line = ' -- Blank File --'
         first_line = first_line.strip()
         print(first_line)
         print("----------------------")
@@ -6660,7 +6669,9 @@ class make_log_overlay_dialog(wx.Dialog):
 
     def download_log_click(self, e):
         log_to_update = self.log_file_cb.GetValue()
-        print("wants to update " + log_to_update + " but the button does nothing yet")
+        user_log_loc = "/home/" + pi_link_pnl.target_user + "/Pigrow/logs/" + log_to_update
+        MainApp.localfiles_ctrl_pannel.download_file_to_folder(user_log_loc, "logs/" + log_to_update)
+        print(" - updated local version of - " + log_to_update)
 
     def make_click(self, e):
         log_file = self.log_file_cb.GetValue()
@@ -7546,16 +7557,27 @@ class user_log_info_pnl(wx.Panel):
         page_sub_title.SetFont(sub_title_font)
         user_log_location_l = wx.StaticText(self, label='User log location - ')
         self.user_log_location_tc = wx.TextCtrl(self, value="", size=(450, 30))
-
+        # user notes
+        user_notes_title =  wx.StaticText(self,  label='User Notes', size=(300,30))
+        user_notes_title.SetFont(sub_title_font)
+        self.ui_user_notes_list = self.user_notes_list(self, 1)
+        # user log
+        user_log_title =  wx.StaticText(self,  label='User Log', size=(300,30))
+        user_log_title.SetFont(sub_title_font)
+        self.show_log_cb = wx.CheckBox(self, label='Show')
+        self.download_log_cb = wx.CheckBox(self, label='Download')
+        self.show_log_cb.SetValue(True)
+        self.download_log_cb.SetValue(True)
+        self.ui_user_log_list = self.user_log_list(self, 1)
         # user log info and user log field info
         user_info_title =  wx.StaticText(self,  label='Info and User Log Fields;', size=(300,30))
         user_info_title.SetFont(sub_title_font)
         new_field_l =  wx.StaticText(self,  label='New User Log Field -')
-        self.field_title = wx.TextCtrl(self, -1, "Field Title", size=(300,30))
+        self.field_title = wx.TextCtrl(self, -1, "", size=(300,30))
         self.add_field_btn = wx.Button(self, label='Add new field')
         self.add_field_btn.Bind(wx.EVT_BUTTON, self.add_new_user_log_field)
         new_user_note_l =  wx.StaticText(self,  label='Add new user note -')
-        self.user_note = wx.TextCtrl(self, -1, "User Note -", size=(300,75), style=wx.TE_MULTILINE)
+        self.user_note = wx.TextCtrl(self, -1, "", size=(300,75), style=wx.TE_MULTILINE)
         self.add_user_note_btn = wx.Button(self, label='Add note')
         self.add_user_note_btn.Bind(wx.EVT_BUTTON, self.add_user_note)
 
@@ -7565,6 +7587,7 @@ class user_log_info_pnl(wx.Panel):
         item_l =  wx.StaticText(self,  label='Item -', size=(50,30))
         variables = []
         self.user_log_variable_text = wx.ComboBox(self, choices = variables, size=(250, 30), style=wx.TE_READONLY)
+        self.user_log_variable_text.Bind(wx.EVT_COMBOBOX, self.user_log_field_select)
         self.user_log_input_text = wx.TextCtrl(self, -1, "text to record", size=(300,100), style=wx.TE_MULTILINE)
         self.add_to_user_log_btn = wx.Button(self, label='Add to User Log')
         self.add_to_user_log_btn.Bind(wx.EVT_BUTTON, self.add_to_user_log)
@@ -7572,6 +7595,9 @@ class user_log_info_pnl(wx.Panel):
 
 
         #Sizers
+        user_notes_sizer = wx.BoxSizer(wx.VERTICAL)
+        user_notes_sizer.Add(user_notes_title,0, wx.ALL, 3)
+        user_notes_sizer.Add(self.ui_user_notes_list,0, wx.ALL, 3)
         add_field_line_sizer = wx.BoxSizer(wx.HORIZONTAL)
         add_field_line_sizer.Add(new_field_l,0, wx.ALL, 3)
         add_field_line_sizer.Add(self.field_title,0, wx.ALL, 3)
@@ -7587,11 +7613,21 @@ class user_log_info_pnl(wx.Panel):
         user_log_input_item_sizer = wx.BoxSizer(wx.HORIZONTAL)
         user_log_input_item_sizer.Add(item_l, 0, wx.ALL, 3)
         user_log_input_item_sizer.Add(self.user_log_variable_text, 0, wx.ALL, 3)
+        user_log_checkbox_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        user_log_checkbox_sizer.Add(self.show_log_cb, 0, wx.ALL, 3)
+        user_log_checkbox_sizer.Add(self.download_log_cb, 0, wx.ALL, 3)
+        user_log_sizer = wx.BoxSizer(wx.VERTICAL)
+        user_log_sizer.Add(user_log_title,0, wx.ALL, 3)
+        user_log_sizer.Add(user_log_checkbox_sizer, 0, wx.ALL, 3)
+        user_log_sizer.Add(self.ui_user_log_list,0, wx.ALL, 3)
         user_log_input_sizer = wx.BoxSizer(wx.VERTICAL)
         user_log_input_sizer.Add(add_box_title, 0, wx.ALL, 3)
         user_log_input_sizer.Add(user_log_input_item_sizer, 0, wx.ALL, 3)
         user_log_input_sizer.Add(self.user_log_input_text, 0, wx.ALL, 3)
         user_log_input_sizer.Add(self.add_to_user_log_btn, 0, wx.ALIGN_RIGHT, 3)
+        user_log_2pannel_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        user_log_2pannel_sizer.Add(user_log_input_sizer, 0, wx.ALL, 3)
+        user_log_2pannel_sizer.Add(user_log_sizer, 0, wx.ALL, 3)
         user_log_loc_sizer = wx.BoxSizer(wx.HORIZONTAL)
         user_log_loc_sizer.Add(user_log_location_l, 0, wx.ALL, 3)
         user_log_loc_sizer.Add(self.user_log_location_tc, 0, wx.ALL, 3)
@@ -7600,11 +7636,44 @@ class user_log_info_pnl(wx.Panel):
         main_sizer.Add(page_sub_title, 0, wx.ALIGN_CENTER_HORIZONTAL, 3)
         main_sizer.Add(user_log_loc_sizer, 0, wx.ALL, 3)
         main_sizer.AddStretchSpacer(1)
-        main_sizer.Add(user_log_input_sizer, 0, wx.ALL, 3)
+        main_sizer.Add(user_notes_sizer, 0, wx.ALL, 3)
+        main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(user_log_2pannel_sizer, 0, wx.ALL, 3)
         main_sizer.AddStretchSpacer(1)
         main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.Add(info_and_new_field_sizer, 0, wx.ALL, 3)
         self.SetSizer(main_sizer)
+
+    def user_log_field_select(self, e):
+        self.ui_user_log_list.DeleteAllItems()
+        show_log = self.show_log_cb.GetValue()
+        download_log = self.download_log_cb.GetValue()
+        #show_log = True
+        #download_log = True
+        show_log_amount = 100
+        if localfiles_info_pnl.local_path == "":
+            show_log = False
+        if show_log:
+            field = self.user_log_variable_text.GetValue()
+            if download_log == True:
+                user_log_loc = "/home/" + pi_link_pnl.target_user + "/Pigrow/logs/user_log.txt"
+                MainApp.localfiles_ctrl_pannel.download_file_to_folder(user_log_loc, "logs/user_log.txt")
+                self.download_log_cb.SetValue(False)
+            local_path = localfiles_info_pnl.local_path
+            local_user_log = os.path.join(local_path, "logs/", "user_log.txt")
+            with open(local_user_log, "r") as file:
+                userlog = file.read()
+            userlog = userlog.splitlines()
+            if len(userlog) > show_log_amount:
+                userlog = userlog[-show_log_amount:]
+            for line in userlog:
+                if "@" in line:
+                    line = line.split("@")
+                    if line[0] == field:
+                        self.ui_user_log_list.InsertItem(0, str(line[2]))
+                        self.ui_user_log_list.SetItem(0, 1, str(line[1]))
+
+
 
     def write_to_user_info_file(self, label, text):
         line = str(label) + ">" + str(text) + "\n"
@@ -7624,14 +7693,17 @@ class user_log_info_pnl(wx.Panel):
         text = self.user_note.GetValue()
         text = text.replace("\n", "  ")
         label = "user note"
-        self.write_to_user_info_file(label, text)
+        if not text == "":
+            self.write_to_user_info_file(label, text)
+            MainApp.user_log_info_pannel.ui_user_notes_list.InsertItem(0, str(text))
 
     def add_new_user_log_field(self, e):
         text = self.field_title.GetValue()
         text = text.replace("\n", "  ")
         label = "user field"
-        self.write_to_user_info_file(label, text)
-        self.fill_user_log_field_list()
+        if not text == "":
+            self.write_to_user_info_file(label, text)
+            self.fill_user_log_field_list()
 
     def add_to_user_log(self, e):
         log_location = self.user_log_location_tc.GetValue()
@@ -7640,11 +7712,28 @@ class user_log_info_pnl(wx.Panel):
         single_line_message = ""
         for line in message.splitlines():
             single_line_message += " " + line
-        line = variable + "@" + str(datetime.datetime.now()) + "@" + single_line_message
+        timenow = str(datetime.datetime.now())
+        line = variable + "@" + timenow + "@" + single_line_message
         # write line to end of userlog on pi using echo "line" >> user_log.txt
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi('echo "' + line + '" >> ' + log_location)
         MainApp.status.write_bar("Written - " + line + " - to " + log_location)
         print("Written - " + line + " - to " + log_location)
+        self.ui_user_log_list.InsertItem(0, str(single_line_message))
+        self.ui_user_log_list.SetItem(0, 1, str(timenow))
+
+    class user_notes_list(wx.ListCtrl):
+        def __init__(self, parent, id, size=(800,200)):
+            wx.ListCtrl.__init__(self, parent, id, size=size, style=wx.LC_REPORT)
+            self.InsertColumn(0, 'Note')
+            self.SetColumnWidth(0, 800)
+
+    class user_log_list(wx.ListCtrl):
+        def __init__(self, parent, id, size=(475,150)):
+            wx.ListCtrl.__init__(self, parent, id, size=size, style=wx.LC_REPORT)
+            self.InsertColumn(0, 'Value')
+            self.InsertColumn(1, 'Date')
+            self.SetColumnWidth(0, 200)
+            self.SetColumnWidth(1, 250)
 
 class user_log_ctrl_pnl(wx.Panel):
     def __init__(self, parent):
@@ -7686,8 +7775,11 @@ class user_log_ctrl_pnl(wx.Panel):
                     field_list.append(line[1])
                 elif line[0] == "user note":
                     user_note_list.append(line[1])
-        print(field_list)
-        print(user_note_list)
+        # User notes
+        MainApp.user_log_info_pannel.ui_user_notes_list.DeleteAllItems()
+        for item in user_note_list:
+            MainApp.user_log_info_pannel.ui_user_notes_list.InsertItem(0, str(item))
+        # fiel list in user log dropdown box
         MainApp.user_log_info_pannel.user_log_variable_text.Clear()
         MainApp.user_log_info_pannel.user_log_variable_text.Append(field_list)
         MainApp.user_log_info_pannel.add_to_user_log_btn.Enable()
