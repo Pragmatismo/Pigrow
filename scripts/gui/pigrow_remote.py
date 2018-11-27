@@ -94,6 +94,7 @@ from stat import S_ISDIR
 try:
     import wx
     import  wx.lib.scrolledpanel as scrolled
+    from wx.lib.masked import NumCtrl
     #print (wx.__version__)
     #import wx.lib.scrolledpanel
 except:
@@ -6221,6 +6222,8 @@ class make_log_overlay_dialog(wx.Dialog):
         self.key_pos_split_cb = wx.ComboBox(self, size=(60, 25))
         self.key_pos_split_cb.Bind(wx.EVT_TEXT, self.key_pos_split_go)
         self.key_pos_ex = wx.StaticText(self,  label='')
+        self.key_matches_l = wx.StaticText(self,  label='Limit to Key Matching -')
+        self.key_matches_tc = wx.TextCtrl(self, size=(150, 25))
         ##
         # text placement options (size, colour, placement)
         ##
@@ -6290,6 +6293,9 @@ class make_log_overlay_dialog(wx.Dialog):
             (self.key_pos_split_tc, 0, wx.EXPAND),
             (self.key_pos_split_cb, 0, wx.EXPAND),
             (self.key_pos_ex, 0, wx.EXPAND) ])
+        key_match_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        key_match_sizer.Add(self.key_matches_l, 0, wx.ALL, 3)
+        key_match_sizer.Add(self.key_matches_tc, 0, wx.ALL, 3)
         data_extract_label_sizer = wx.BoxSizer(wx.HORIZONTAL)
         data_extract_label_sizer.Add(self.key_manual_l, 0 , wx.ALL, 3)
         data_extract_label_sizer.Add(self.key_manual_tc, 0 , wx.ALL, 3)
@@ -6299,6 +6305,7 @@ class make_log_overlay_dialog(wx.Dialog):
         data_extract_sizer.Add(split_chr_sizer, 0 , wx.ALL, 3)
         data_extract_sizer.Add(data_extract_pos_sizer, 0 , wx.ALIGN_CENTER_HORIZONTAL, 3)
         data_extract_sizer.Add(data_extract_label_sizer, 0, wx.ALL, 3)
+        data_extract_sizer.Add(key_match_sizer, 0, wx.ALL, 3)
         # screen pos, colour, style
         text_size_sizer = wx.BoxSizer(wx.HORIZONTAL)
         text_size_sizer.Add(display_size_l, 0, wx.ALL, 3)
@@ -6348,6 +6355,10 @@ class make_log_overlay_dialog(wx.Dialog):
         main_sizer.Add(buttons_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
         main_sizer.AddStretchSpacer(1)
         self.SetSizer(main_sizer)
+        self.key_manual_l.Hide()
+        self.key_manual_tc.Hide()
+        self.key_matches_l.Hide()
+        self.key_matches_tc.Hide()
 
     def pick_colour_click(self, e):
         data = wx.ColourData()
@@ -6509,6 +6520,8 @@ class make_log_overlay_dialog(wx.Dialog):
             self.key_pos_split_cb.Show()
             self.key_manual_l.Hide()
             self.key_manual_tc.Hide()
+            self.key_matches_l.Show()
+            self.key_matches_tc.Show()
             #self.SetSizer(main_sizer)
         elif key_pos == "Manual":
             self.key_pos_split_tc.Hide()
@@ -6516,6 +6529,8 @@ class make_log_overlay_dialog(wx.Dialog):
             self.key_pos_split_cb.SetValue("")
             self.key_manual_l.Show()
             self.key_manual_tc.Show()
+            self.key_matches_l.Hide()
+            self.key_matches_tc.Hide()
             #self.SetSizer(main_sizer)
         elif key_pos == "None" or key_pos == "" or key_pos == None:
         #    self.key_pos_ex.SetLabel("")
@@ -6524,6 +6539,9 @@ class make_log_overlay_dialog(wx.Dialog):
             self.key_pos_split_cb.Hide()
             self.key_manual_l.Hide()
             self.key_manual_tc.Hide()
+            self.key_matches_l.Hide()
+            self.key_matches_tc.Hide()
+        self.Layout()
 
     def key_pos_split_text(self, e):
         self.key_pos_split_cb.Clear()
@@ -6565,7 +6583,6 @@ class make_log_overlay_dialog(wx.Dialog):
         else:
             self.value_pos_split_tc.Disable()
         self.make_btn_enable()
-
 
     def value_pos_split_text(self, e):
         '''
@@ -6617,7 +6634,6 @@ class make_log_overlay_dialog(wx.Dialog):
         else:
             self.date_good = False
         self.make_btn_enable()
-
 
     def date_pos_split_text(self, e):
         self.date_pos_split_cb.Enable()
@@ -6692,6 +6708,7 @@ class make_log_overlay_dialog(wx.Dialog):
         value_split_pos = self.value_pos_split_cb.GetSelection()
         key_split_char = self.key_pos_split_tc.GetValue()
         key_split_pos = self.key_pos_split_cb.GetSelection()
+        key_matches = self.key_matches_tc.GetValue()
         # Open Log and Read Content into a list of lines
         with open(log_file_path, "r") as log_file:
             log_file_text = log_file.read()
@@ -6736,7 +6753,12 @@ class make_log_overlay_dialog(wx.Dialog):
                     if type(line_date) == type(""):
                         print(" Date - " + line_date + " - did not convert, ignoring line.")
                     else:
-                        log_file_list.append([line_key, line_date, line_value])
+                        # check if key selection is limited by matching and ignore those that don't match if so...
+                        if not key_matches == "":
+                            if key_matches == line_key:
+                                log_file_list.append([line_key, line_date, line_value])
+                        else:
+                            log_file_list.append([line_key, line_date, line_value])
                 #
         print(" Found " + str(len(log_file_list)) + " items in the log" )
         # WE NOW HAVE A LIST OF THE LOG ITEMS
@@ -6752,11 +6774,12 @@ class make_log_overlay_dialog(wx.Dialog):
         for file in MainApp.timelapse_ctrl_pannel.trimmed_frame_list:
             file_date = MainApp.timelapse_ctrl_pannel.date_from_fn(file)
             most_recent_log_info = []
+            #log_file_list.reverse()
             for log_item_num in range(0, len(log_file_list) - 1): # -1 to put in line with position
-                if log_file_list[log_item_num][1] < file_date: # if the cap is taken after the log item (add check that it's not too long after)
+                if log_file_list[log_item_num][1] < file_date: # if the cap is taken after the log item
                     time_diff_log_to_cap = file_date - log_file_list[log_item_num][1]
-                    if len(log_file_list) > log_item_num:
-                        next_log_item_date = log_file_list[log_item_num + 1][1]
+                    if len(log_file_list) > log_item_num: # check there's one more log item to check (replace this wholt bit as it may be more than one!)
+                        next_log_item_date = log_file_list[log_item_num + 1][1] #need a loop to find the closest if more than next log entry/img is closer
                         next_frame_time_diff_log_to_cap = file_date - next_log_item_date
                         if next_frame_time_diff_log_to_cap < time_diff_log_to_cap:
                             most_recent_log_info = log_file_list[log_item_num + 1]
@@ -6764,10 +6787,18 @@ class make_log_overlay_dialog(wx.Dialog):
                             most_recent_log_info = log_file_list[log_item_num]
                     else:
                         most_recent_log_info = log_file_list[log_item_num]
+            # check selected log entry isn't too old
+            max_age_dif = datetime.timedelta(hours=1)
+            time_diff_log_to_cap = most_recent_log_info[1] - file_date
+            if not time_diff_log_to_cap > max_age_dif:
+                print(" age is within the limit " + str(time_diff_log_to_cap))
+                write_this_one = True
+            else:
+                print("log item too old..." + str(time_diff_log_to_cap))
+                write_this_one = False
 
             # display and write this files info
             print(most_recent_log_info, file)
-            time_diff_log_to_cap = most_recent_log_info[1] - file_date
             text_to_write = most_recent_log_info[0] + " " + most_recent_log_info[2]
             if self.show_time_diff.GetValue() == True:
                 text_to_write += "\n time diff -- " + str(time_diff_log_to_cap)
@@ -6796,7 +6827,10 @@ class make_log_overlay_dialog(wx.Dialog):
                 pos_y = "10"
                 print("Y value set wrong - setting text placement y to 10")
             #
-            self.WriteTextOnBitmap(text_to_write, file, pos=(pos_x, pos_y), font=font, color=font_col)
+            if write_this_one:
+                self.WriteTextOnBitmap(text_to_write, file, pos=(pos_x, pos_y), font=font, color=font_col)
+            else:
+                self.WriteTextOnBitmap("", file, pos=(pos_x, pos_y), font=font, color=font_col)    
         # when it's written the whole set
         folder_name_for_output = "edited_caps"
         local_path = localfiles_info_pnl.local_path
@@ -7574,6 +7608,8 @@ class user_log_info_pnl(wx.Panel):
         user_info_title.SetFont(sub_title_font)
         new_field_l =  wx.StaticText(self,  label='New User Log Field -')
         self.field_title = wx.TextCtrl(self, -1, "", size=(300,30))
+        opts = ["num", "text", "date only"]
+        self.user_log_variable_type = wx.ComboBox(self, choices=opts, size=(110, 30), value="num", style=wx.TE_READONLY)
         self.add_field_btn = wx.Button(self, label='Add new field')
         self.add_field_btn.Bind(wx.EVT_BUTTON, self.add_new_user_log_field)
         new_user_note_l =  wx.StaticText(self,  label='Add new user note -')
@@ -7589,6 +7625,7 @@ class user_log_info_pnl(wx.Panel):
         self.user_log_variable_text = wx.ComboBox(self, choices = variables, size=(250, 30), style=wx.TE_READONLY)
         self.user_log_variable_text.Bind(wx.EVT_COMBOBOX, self.user_log_field_select)
         self.user_log_input_text = wx.TextCtrl(self, -1, "text to record", size=(300,100), style=wx.TE_MULTILINE)
+        self.user_log_input_num = NumCtrl(self, id=wx.ID_ANY, allowNegative=True, allowNone=False)
         self.add_to_user_log_btn = wx.Button(self, label='Add to User Log')
         self.add_to_user_log_btn.Bind(wx.EVT_BUTTON, self.add_to_user_log)
         self.add_to_user_log_btn.Disable()
@@ -7600,7 +7637,8 @@ class user_log_info_pnl(wx.Panel):
         user_notes_sizer.Add(self.ui_user_notes_list,0, wx.ALL, 3)
         add_field_line_sizer = wx.BoxSizer(wx.HORIZONTAL)
         add_field_line_sizer.Add(new_field_l,0, wx.ALL, 3)
-        add_field_line_sizer.Add(self.field_title,0, wx.ALL, 3)
+        add_field_line_sizer.Add(self.field_title, 0, wx.ALL, 3)
+        add_field_line_sizer.Add(self.user_log_variable_type, 0, wx.ALL, 3)
         add_field_line_sizer.Add(self.add_field_btn,0, wx.ALL, 3)
         add_user_note_sizer = wx.BoxSizer(wx.HORIZONTAL)
         add_user_note_sizer.Add(new_user_note_l, 0, wx.ALL, 3)
@@ -7623,6 +7661,7 @@ class user_log_info_pnl(wx.Panel):
         user_log_input_sizer = wx.BoxSizer(wx.VERTICAL)
         user_log_input_sizer.Add(add_box_title, 0, wx.ALL, 3)
         user_log_input_sizer.Add(user_log_input_item_sizer, 0, wx.ALL, 3)
+        user_log_input_sizer.Add(self.user_log_input_num, 0, wx.ALL, 3)
         user_log_input_sizer.Add(self.user_log_input_text, 0, wx.ALL, 3)
         user_log_input_sizer.Add(self.add_to_user_log_btn, 0, wx.ALIGN_RIGHT, 3)
         user_log_2pannel_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -7648,40 +7687,63 @@ class user_log_info_pnl(wx.Panel):
         self.ui_user_log_list.DeleteAllItems()
         show_log = self.show_log_cb.GetValue()
         download_log = self.download_log_cb.GetValue()
-        #show_log = True
-        #download_log = True
         show_log_amount = 100
+        # if no local files folder is set then don't bother trying to load and display file
         if localfiles_info_pnl.local_path == "":
             show_log = False
+        # Display the log in the list ctrl if option to do so is selected
         if show_log:
             field = self.user_log_variable_text.GetValue()
             if download_log == True:
                 user_log_loc = "/home/" + pi_link_pnl.target_user + "/Pigrow/logs/user_log.txt"
                 MainApp.localfiles_ctrl_pannel.download_file_to_folder(user_log_loc, "logs/user_log.txt")
                 self.download_log_cb.SetValue(False)
+            # open local user_log and sort for info
             local_path = localfiles_info_pnl.local_path
             local_user_log = os.path.join(local_path, "logs/", "user_log.txt")
             with open(local_user_log, "r") as file:
                 userlog = file.read()
             userlog = userlog.splitlines()
+            # limit to last X amount of lines (100)
             if len(userlog) > show_log_amount:
                 userlog = userlog[-show_log_amount:]
+            # cycle through and put into text ctrl
             for line in userlog:
                 if "@" in line:
                     line = line.split("@")
                     if line[0] == field:
                         self.ui_user_log_list.InsertItem(0, str(line[2]))
                         self.ui_user_log_list.SetItem(0, 1, str(line[1]))
+        # select which type of input to expect
+        #self.user_log_type = "num"
+        self.user_log_type = None
+        for item in MainApp.user_log_ctrl_pannel.field_list:
+            if item[0] == field:
+                self.user_log_type = item[1]
+        if self.user_log_type == None:
+            print("This field has no type info")
+            self.user_log_type = "text"
+        self.user_log_input_text.SetValue("")
+        #self.user_log_input_num.SetValue("")
+        if self.user_log_type == "num":
+            self.user_log_input_num.Show()
+            self.user_log_input_text.Hide()
+        elif self.user_log_type == "text":
+            self.user_log_input_num.Hide()
+            self.user_log_input_text.Show()
+        elif self.user_log_type == "date only":
+            self.user_log_input_text.Hide()
+            self.user_log_input_num.Hide()
+        MainApp.window_self.Layout()
 
 
 
-    def write_to_user_info_file(self, label, text):
-        line = str(label) + ">" + str(text) + "\n"
+    def write_to_user_info_file(self, label, text, third_col=""):
+        text = text.replace("\n", "  ")
+        text = text.replace(">", "~|~")
+        line = str(label) + ">" + str(text) + ">" + str(third_col)
         user_log_info = "/home/" + pi_link_pnl.target_user + "/Pigrow/logs/user_info.txt"
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi('echo "' + line + '" >> ' + user_log_info)
-#        user_info_file = os.path.join(localfiles_info_pnl.local_path, "user_info.txt")
-#        with open(user_info_file, "a") as file:
-#            file.write(line)
         print(" - Written " + line + " to " + user_log_info)
 
     def fill_user_log_field_list(self):
@@ -7691,35 +7753,50 @@ class user_log_info_pnl(wx.Panel):
 
     def add_user_note(self, e):
         text = self.user_note.GetValue()
-        text = text.replace("\n", "  ")
         label = "user note"
         if not text == "":
             self.write_to_user_info_file(label, text)
             MainApp.user_log_info_pannel.ui_user_notes_list.InsertItem(0, str(text))
 
     def add_new_user_log_field(self, e):
+        var_type = self.user_log_variable_type.GetValue()
         text = self.field_title.GetValue()
-        text = text.replace("\n", "  ")
         label = "user field"
         if not text == "":
-            self.write_to_user_info_file(label, text)
+            self.write_to_user_info_file(label, text, var_type)
             self.fill_user_log_field_list()
 
     def add_to_user_log(self, e):
-        log_location = self.user_log_location_tc.GetValue()
+        # collect field name from combo box
         variable = self.user_log_variable_text.GetValue() # get from dropdown box selection
-        message = self.user_log_input_text.GetValue() #get from text control
+        # determine which box to use for the value
+        if self.user_log_type == "num":
+            message = str(self.user_log_input_num.GetValue()) #get from text control
+            if message == "None":
+                message == "0"
+        elif self.user_log_type == "text":
+            message = self.user_log_input_text.GetValue() #get from text control
+        elif self.user_log_type == "date only":
+            message = variable
+        # find log
+        log_location = self.user_log_location_tc.GetValue()
+        # remove any awkward characters like newline's and seperators
         single_line_message = ""
         for line in message.splitlines():
             single_line_message += " " + line
+        single_line_message == single_line_message.replace("@", "~~at~~")
+        # assemble the line to write to the file
         timenow = str(datetime.datetime.now())
         line = variable + "@" + timenow + "@" + single_line_message
         # write line to end of userlog on pi using echo "line" >> user_log.txt
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi('echo "' + line + '" >> ' + log_location)
+        # tell the user we done it
         MainApp.status.write_bar("Written - " + line + " - to " + log_location)
         print("Written - " + line + " - to " + log_location)
+        # add to the user_log_list list control box
         self.ui_user_log_list.InsertItem(0, str(single_line_message))
         self.ui_user_log_list.SetItem(0, 1, str(timenow))
+        self.download_log_cb.SetValue(True)
 
     class user_notes_list(wx.ListCtrl):
         def __init__(self, parent, id, size=(800,200)):
@@ -7766,22 +7843,26 @@ class user_log_ctrl_pnl(wx.Panel):
         user_log_info_location = "/home/" + pi_link_pnl.target_user + "/Pigrow/logs/user_info.txt"
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi('cat ' + user_log_info_location)
         user_log_info_text = out.splitlines()
-        field_list = []
-        user_note_list = []
+        self.field_list = []
+        self.user_note_list = []
         for line in user_log_info_text:
             if ">" in line:
                 line = line.split(">")
                 if line[0] == "user field":
-                    field_list.append(line[1])
+                    if len(line) > 2:
+                        self.field_list.append([line[1], line[2]])
+                    else:
+                        self.field_list.append([line[1], "text"])
                 elif line[0] == "user note":
-                    user_note_list.append(line[1])
+                        self.user_note_list.append(line[1])
         # User notes
         MainApp.user_log_info_pannel.ui_user_notes_list.DeleteAllItems()
-        for item in user_note_list:
+        for item in self.user_note_list:
             MainApp.user_log_info_pannel.ui_user_notes_list.InsertItem(0, str(item))
         # fiel list in user log dropdown box
         MainApp.user_log_info_pannel.user_log_variable_text.Clear()
-        MainApp.user_log_info_pannel.user_log_variable_text.Append(field_list)
+        for item in self.field_list:
+            MainApp.user_log_info_pannel.user_log_variable_text.Append(item[0])
         MainApp.user_log_info_pannel.add_to_user_log_btn.Enable()
 
 
