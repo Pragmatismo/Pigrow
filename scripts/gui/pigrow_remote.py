@@ -6144,7 +6144,6 @@ class select_text_pos_on_image(wx.Dialog):
         self.Destroy()
 
     def OnClose(self, e):
-        print("Sorry not yet doing anything")
         self.Destroy()
 
 class make_log_overlay_dialog(wx.Dialog):
@@ -6254,10 +6253,13 @@ class make_log_overlay_dialog(wx.Dialog):
         self.set_text_pos_btn.Bind(wx.EVT_BUTTON, self.set_text_pos_click)
         # tick boxes
         self.show_time_diff = wx.CheckBox(self, label='Show Time Diff')
-
+        self.use_prior_log_entries_tb =  wx.CheckBox(self, label='Use Lowest Time Diff')
+        self.use_prior_log_entries_tb.SetValue(True)
+        min_real_time_to_show_logs_l = wx.StaticText(self,  label='Min (real-time) to show -')
+        self.min_real_time_to_show_logs_tc = wx.TextCtrl(self, size=(60, 25), value="15")
 
         # overwrite or rename checkbox
-               # ALSO OTHER OPTIONS LIKE DISPLAY TIME DIFF AND ETC
+
         # ok and cancel Buttons
         self.make_btn = wx.Button(self, label='Create', size=(175, 30))
         self.make_btn.Bind(wx.EVT_BUTTON, self.make_click)
@@ -6338,6 +6340,9 @@ class make_log_overlay_dialog(wx.Dialog):
         text_display_sizer.Add(test_pos_sizer, 0, wx.ALL, 3)
         misc_tick_boxes_sizer = wx.BoxSizer(wx.HORIZONTAL)
         misc_tick_boxes_sizer.Add(self.show_time_diff, 0, wx.ALL, 3)
+        misc_tick_boxes_sizer.Add(self.use_prior_log_entries_tb, 0, wx.ALL, 3)
+        misc_tick_boxes_sizer.Add(min_real_time_to_show_logs_l, 0, wx.ALL, 3)
+        misc_tick_boxes_sizer.Add(self.min_real_time_to_show_logs_tc, 0, wx.ALL, 3)
         buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
         buttons_sizer.Add(self.make_btn, 0,  wx.ALIGN_LEFT, 3)
         buttons_sizer.Add(self.cancel_btn, 0,  wx.ALIGN_RIGHT, 3)
@@ -6387,17 +6392,15 @@ class make_log_overlay_dialog(wx.Dialog):
         self.display_y_tc.SetValue(str(y))
         #print("set_text_pos_click", x, y)
 
-
     def log_file_cb_go(self, e):
         local_path = localfiles_info_pnl.local_path
         log_file_to_use = self.log_file_cb.GetValue()
         log_path = os.path.join(local_path, "logs", log_file_to_use)
         first_line = ""
-        print("- Reading first line -")
+        #print("- Reading first line -")
         with open(log_path) as f:
             f.seek(0, 2)
             size = f.tell()
-            print(size)
             f.seek(0, 0)
             if not size == 0:
                 while first_line == "":
@@ -6407,8 +6410,8 @@ class make_log_overlay_dialog(wx.Dialog):
                     if size == f.tell():
                         first_line = ' -- Blank File --'
         first_line = first_line.strip()
-        print(first_line)
-        print("----------------------")
+        #print("---" + first_line + "---")
+        #print("----------------------")
         self.example_line.SetLabel(first_line)
         split_chr_choices = self.get_split_chr(first_line)
         if len(split_chr_choices) == 1:
@@ -6709,10 +6712,14 @@ class make_log_overlay_dialog(wx.Dialog):
         key_split_char = self.key_pos_split_tc.GetValue()
         key_split_pos = self.key_pos_split_cb.GetSelection()
         key_matches = self.key_matches_tc.GetValue()
+        min_real_time_to_show_logs = int(self.min_real_time_to_show_logs_tc.GetValue())
+        use_prior_log_entries = self.use_prior_log_entries_tb.GetValue()
+
+
         # Open Log and Read Content into a list of lines
         with open(log_file_path, "r") as log_file:
             log_file_text = log_file.read()
-        log_file_list = [] # to be filled with [date, value, key] lists
+        log_data_list = [] # to be filled with [date, value, key] lists
         for line in log_file_text.splitlines():
             if split_character in line:
                 split_line = line.strip().split(split_character)
@@ -6748,7 +6755,7 @@ class make_log_overlay_dialog(wx.Dialog):
                             line_key = line_key.split(key_split_char)[key_split_pos]
                 else:
                     line_key = ""
-                # Write all (date, value, key) to log_file_list
+                # Write all (date, value, key) to log_data_list
                 if not line_date == None:
                     if type(line_date) == type(""):
                         print(" Date - " + line_date + " - did not convert, ignoring line.")
@@ -6756,11 +6763,11 @@ class make_log_overlay_dialog(wx.Dialog):
                         # check if key selection is limited by matching and ignore those that don't match if so...
                         if not key_matches == "":
                             if key_matches == line_key:
-                                log_file_list.append([line_key, line_date, line_value])
+                                log_data_list.append([line_key, line_date, line_value])
                         else:
-                            log_file_list.append([line_key, line_date, line_value])
+                            log_data_list.append([line_key, line_date, line_value])
                 #
-        print(" Found " + str(len(log_file_list)) + " items in the log" )
+        print(" Found " + str(len(log_data_list)) + " items in the log" )
         # WE NOW HAVE A LIST OF THE LOG ITEMS
 
         # find a place to put the new caps, change this up so the user can choose when it works
@@ -6769,42 +6776,48 @@ class make_log_overlay_dialog(wx.Dialog):
             os.makedirs(new_caps_folder)
         # associate log entiries with caps files
         print("________________________________________________________________")
-        print("----------------------------------------------------------------")
-        print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        print("---------------Creating new image set---------------------------")
+        counter = 0
         for file in MainApp.timelapse_ctrl_pannel.trimmed_frame_list:
             file_date = MainApp.timelapse_ctrl_pannel.date_from_fn(file)
-            most_recent_log_info = []
-            #log_file_list.reverse()
-            for log_item_num in range(0, len(log_file_list) - 1): # -1 to put in line with position
-                if log_file_list[log_item_num][1] < file_date: # if the cap is taken after the log item
-                    time_diff_log_to_cap = file_date - log_file_list[log_item_num][1]
-                    if len(log_file_list) > log_item_num: # check there's one more log item to check (replace this wholt bit as it may be more than one!)
-                        next_log_item_date = log_file_list[log_item_num + 1][1] #need a loop to find the closest if more than next log entry/img is closer
-                        next_frame_time_diff_log_to_cap = file_date - next_log_item_date
-                        if next_frame_time_diff_log_to_cap < time_diff_log_to_cap:
-                            most_recent_log_info = log_file_list[log_item_num + 1]
-                        else:
-                            most_recent_log_info = log_file_list[log_item_num]
-                    else:
-                        most_recent_log_info = log_file_list[log_item_num]
+            closest_log_info = []
+            # log data list contains a sequential list of log entries, the most recent is last (assuming that's how the file is written, it should be)
+            #print("len log data list - ", len(log_data_list), " counter = ", counter)
+            first_log_after = None                           # reset counter and first log location
+            while first_log_after == None:                   # loop until we find the first log item after the pics date
+                if log_data_list[counter][1] > file_date:    # if the current list item's date is after the current file's date
+                    first_log_after = counter                # set first_log_after to the position in the log which finishes this loop
+                else:
+                    counter = counter + 1                        # otherwise increase the counter and loop again...
+                if counter > len(log_data_list):             # unless you're already at the end of the list...
+                    first_log_after = len(log_data_list)     # in which case use the final item in the list
+            # test previous date
+            time_diff = self.directionless_timedelta(log_data_list[counter][1], file_date)
+            if use_prior_log_entries == True:
+                test_time_diff = self.directionless_timedelta(log_data_list[counter - 1][1], file_date)
+                if time_diff > test_time_diff:
+                    closest_log_info = log_data_list[first_log_after - 1]
+                else:
+                    closest_log_info = log_data_list[first_log_after]
+            else:
+                closest_log_info = log_data_list[first_log_after]
+            # closest_log_info now set to the closest date or closest date after the image
             # check selected log entry isn't too old
-            max_age_dif = datetime.timedelta(hours=1)
-            time_diff_log_to_cap = most_recent_log_info[1] - file_date
+            max_age_dif = datetime.timedelta(minutes=min_real_time_to_show_logs)
+            #time_diff_log_to_cap = closest_log_info[1] - file_date
+            time_diff_log_to_cap = self.directionless_timedelta(closest_log_info[1], file_date)
             if not time_diff_log_to_cap > max_age_dif:
-                print(" age is within the limit " + str(time_diff_log_to_cap))
+                #print(" age is within the limit " + str(time_diff_log_to_cap))
                 write_this_one = True
             else:
-                print("log item too old..." + str(time_diff_log_to_cap))
+                #print("log item too old..." + str(time_diff_log_to_cap))
                 write_this_one = False
-
-            # display and write this files info
-            print(most_recent_log_info, file)
-            text_to_write = most_recent_log_info[0] + " " + most_recent_log_info[2]
+            # display and write the log info onto the image file
+            #print(closest_log_info, file)
+            text_to_write = closest_log_info[0] + " " + closest_log_info[2]
             if self.show_time_diff.GetValue() == True:
                 text_to_write += "\n time diff -- " + str(time_diff_log_to_cap)
-            else:
-                print(self.show_time_diff.GetValue())
-            #text_to_write += "\n   -- " + str(file_date) + " - " + str(most_recent_log_info[1])
+            #text_to_write += "\n   -- " + str(file_date) + " - " + str(closest_log_info[1])
             # set colour, size, pos
             font_size = self.display_size_tc.GetValue()
             font = wx.Font(int(font_size), wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
@@ -6830,13 +6843,20 @@ class make_log_overlay_dialog(wx.Dialog):
             if write_this_one:
                 self.WriteTextOnBitmap(text_to_write, file, pos=(pos_x, pos_y), font=font, color=font_col)
             else:
-                self.WriteTextOnBitmap("", file, pos=(pos_x, pos_y), font=font, color=font_col)    
+                self.WriteTextOnBitmap("", file, pos=(pos_x, pos_y), font=font, color=font_col)
         # when it's written the whole set
         folder_name_for_output = "edited_caps"
         local_path = localfiles_info_pnl.local_path
         edited_caps_path = os.path.join(local_path, folder_name_for_output)
+        print("  -- Created " + str(len(MainApp.timelapse_ctrl_pannel.trimmed_frame_list)) + " new files in " + edited_caps_path)
         timelapse_ctrl_pnl.open_caps_folder(None, edited_caps_path)
         self.Destroy()
+
+    def directionless_timedelta(self, time1, time2):
+        if time1 > time2:
+            return time1 - time2
+        else:
+            return time2 - time1
 
     def WriteTextOnBitmap(self, text, bitmap_path, pos=(0, 0), font=None, color=None):
         folder_name_for_output = "edited_caps"
