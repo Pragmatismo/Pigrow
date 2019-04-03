@@ -113,6 +113,22 @@ except:
     print("")
     print(" Note: wx must be installed for python3")
     sys.exit(1)
+
+try:
+    import matplotlib
+    matplotlib.use('agg')
+    import matplotlib.pyplot as plt
+except:
+    print(" -------")
+    print("  You don't have matploylib installed, this is used to create graphs")
+    print("  You can ignore this wrning and still use most the functionality of the program")
+    print("  if you want  to use graphs then make sure you have matploylib installed for python 3")
+    print("  the command ")
+    print("      pip install matplotlib")
+    print("  should work on most systems, if not then google your os name + 'install matplotlib'")
+    print(" -----")
+    sys.exit()
+
 try:
     import paramiko
 except:
@@ -158,6 +174,14 @@ class scroll_text_dialog(wx.Dialog):
     def ok_click(self, e):
         scroll_text_dialog.text = self.text.GetValue()
         self.Destroy()
+
+class show_image_dialog(wx.Dialog):
+    def __init__(self, parent,  image_to_show, title):
+        wx.Dialog.__init__(self, parent, title=(title))
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        sizer.Add(wx.StaticBitmap(self, -1, image_to_show))
+        self.SetSizerAndFit(sizer)
+
 
 def scale_pic(pic, target_size):
     pic_height = pic.GetHeight()
@@ -5660,7 +5684,12 @@ class timelapse_info_pnl(wx.Panel):
         self.ani_frame_count_l = wx.StaticText(self,  label='Frame Count')
         self.ani_frame_count_info = wx.StaticText(self,  label='-frame count-')
         # graph area - right side
-        self.size_graph = wx.StaticBitmap(self, -1, blank_img, size=(400, 400))
+        graph_opts = ['-', 'Filesize', 'Time difference']
+        graph_l = wx.StaticText(self,  label='Graph;', pos=(165, 10))
+        self.graph_combo = wx.ComboBox(self, choices = graph_opts, pos=(260,10), size=(125, 25))
+        self.graph_combo.Bind(wx.EVT_COMBOBOX, self.graph_combo_go)
+        self.size_graph = wx.BitmapButton(self, -1, blank_img, size=(400, 400))
+        self.size_graph.Bind(wx.EVT_BUTTON, self.graph_clicked)
         # sizers
         # image area
         first_img_buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -5698,11 +5727,17 @@ class timelapse_info_pnl(wx.Panel):
         text_panel_sizer.AddStretchSpacer(1)
         text_panel_sizer.Add(ani_info_l, 0, wx.ALL, 3)
         text_panel_sizer.Add(ani_panel_sizer, 0, wx.ALL, 3)
+        graph_opts_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        graph_opts_sizer.Add(graph_l, 0, wx.ALL, 3)
+        graph_opts_sizer.Add(self.graph_combo, 0, wx.ALL, 3)
+        graph_sizer = wx.BoxSizer(wx.VERTICAL)
+        graph_sizer.Add(graph_opts_sizer, 0, wx.ALL, 3)
+        graph_sizer.Add(self.size_graph, 0, wx.ALL, 3)
         lower_half_sizer = wx.BoxSizer(wx.HORIZONTAL)
         lower_half_sizer.AddStretchSpacer(1)
         lower_half_sizer.Add(text_panel_sizer, 0, wx.ALL, 3)
         lower_half_sizer.AddStretchSpacer(1)
-        lower_half_sizer.Add(self.size_graph, 0, wx.ALL, 3)
+        lower_half_sizer.Add(graph_sizer, 0, wx.ALL, 3)
         lower_half_sizer.AddStretchSpacer(1)
         main_sizer = wx.BoxSizer(wx.VERTICAL)
         main_sizer.Add(title_l, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
@@ -5711,6 +5746,12 @@ class timelapse_info_pnl(wx.Panel):
         main_sizer.Add(lower_half_sizer, 0,  wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL, 3)
         main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
         self.SetSizer(main_sizer)
+
+    def graph_clicked(self, e):
+        bitmap = self.size_graph.Bitmap
+        dbox = show_image_dialog(None, bitmap, "Graph")
+        dbox.ShowModal()
+        dbox.Destroy()
 
     def set_first_image(self, filename):
         try:
@@ -5818,6 +5859,44 @@ class timelapse_info_pnl(wx.Panel):
             frame_count = len(MainApp.timelapse_ctrl_pannel.trimmed_frame_list)
             self.ani_frame_count_info.SetLabel(str(frame_count))
 
+    def graph_combo_go(self, e):
+        graph_to_show = self.graph_combo.GetValue()
+        if graph_to_show == "Filesize":
+            #print("Making filesize graph...")
+            image_to_show = self.make_filesize_graph()
+        elif graph_to_show  == "Time difference":
+            print("Sorry no timediff graph yet...")
+            image_to_show = wx.Bitmap(400, 400)
+        else:
+            #print("No graph")
+            image_to_show = wx.Bitmap(400, 400)
+        self.size_graph.SetBitmap(image_to_show)
+
+    def make_filesize_graph(self):
+        counter = 0
+        counter_list = []
+        filesize_list = []
+        for file in MainApp.timelapse_ctrl_pannel.trimmed_frame_list:
+            filesize = os.path.getsize(file)
+            counter = counter + 1
+            counter_list.append(counter)
+            filesize_list.append(filesize)
+            #print(counter, filesize)
+        #print("Found ", len(counter_list), " filesizes")
+        plt.figure(1, figsize=(12, 10))
+        ax = plt.subplot()
+        ax.bar(counter_list, filesize_list, color='green')
+        #ax.plot(counter, filesize)
+        plt.title("filesize")
+        plt.xlabel("file number")
+        plt.ylabel("filesize")
+        graph_path = os.path.join(localfiles_info_pnl.local_path, "temp", "filesize_graph.png")
+        print("-------------------", graph_path)
+        plt.savefig(graph_path)
+        plt.close()
+        return wx.Bitmap(graph_path)
+
+
 class timelapse_ctrl_pnl(wx.Panel):
     def __init__(self, parent):
         wx.Panel.__init__ (self, parent, id=wx.ID_ANY, size=(150,-1), style=wx.TAB_TRAVERSAL)
@@ -5845,6 +5924,8 @@ class timelapse_ctrl_pnl(wx.Panel):
         self.limit_to_num = wx.TextCtrl(self, value="", size=(50,25))
         limit_options = ['all', 'hours', 'days', 'weeks','months']
         self.limit_combo = wx.ComboBox(self, choices = limit_options, size=(100,25), value='all')
+        size_min_l = wx.StaticText(self,  label='Min File Size')
+        self.size_min_limit = wx.TextCtrl(self, value="", size=(100,25))
         calculate_frames_btn = wx.Button(self, label='Calculate Frames')
         calculate_frames_btn.Bind(wx.EVT_BUTTON, self.calculate_frames_click)
         # make overlay set
@@ -5890,10 +5971,14 @@ class timelapse_ctrl_pnl(wx.Panel):
         frame_date_limit_sizer.Add(limit_to_l, 0, wx.ALL, 1)
         frame_date_limit_sizer.Add(self.limit_to_num, 0, wx.ALL, 1)
         frame_date_limit_sizer.Add(self.limit_combo, 0, wx.ALL, 1)
+        size_min_limit_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        size_min_limit_sizer.Add(size_min_l, 0, wx.ALL, 1)
+        size_min_limit_sizer.Add(self.size_min_limit, 0, wx.ALL, 1)
         frame_select_sizer = wx.BoxSizer(wx.VERTICAL)
         frame_select_sizer.Add(frame_select_l, 0, wx.ALL, 1)
         frame_select_sizer.Add(frame_range_sizer, 0, wx.ALL, 1)
         frame_select_sizer.Add(frame_date_limit_sizer, 0, wx.ALL, 1)
+        frame_select_sizer.Add(size_min_limit_sizer, 0, wx.ALL, 1)
         frame_select_sizer.Add(calculate_frames_btn, 0, wx.ALL|wx.ALIGN_RIGHT, 1)
         make_overlay_set_sizer = wx.BoxSizer(wx.VERTICAL)
         make_overlay_set_sizer.Add(make_log_overlay_set_btn, 0, wx.ALL, 3)
@@ -6027,22 +6112,39 @@ class timelapse_ctrl_pnl(wx.Panel):
         self.trimmed_frame_list = []
         use_every = self.range_tc.GetValue()
         if not use_every.isdigit():
-            print("Use every is not a digit! setting it to 1")
+            print("Frame selection value 'use_every' is not a digit! setting it to 1")
             use_every = 1
         else:
             use_every = int(use_every)
         first_frame= int(MainApp.timelapse_info_pannel.first_frame_no.GetValue()) -1
         last_frame = int(MainApp.timelapse_info_pannel.last_frame_no.GetValue())
-        for frame in range(first_frame,last_frame,use_every):
+        for frame in range(first_frame, last_frame, use_every):
             self.trimmed_frame_list.append(self.cap_file_paths[frame])
         #print("Trimmed list contains " + str(len(self.trimmed_frame_list)) + " frames")
         # Limit using date options
         start_point_cutoff = self.trim_list_by_date_self_limit_combo()
         if not start_point_cutoff == None:
             self.trimmed_frame_list = self.limit_list_by_start_point(start_point_cutoff, self.trimmed_frame_list)
+        # Limiy using filesize minimum
+        min_filesize = self.size_min_limit.GetValue()
+        if not min_filesize.isdigit():
+            min_filesize = 1
+        self.trimmed_frame_list = self.remove_using_min_filesize(int(min_filesize), self.trimmed_frame_list)
+        print("Trimmed list after handack:", len(self.trimmed_frame_list))
 
         # update screen
         MainApp.timelapse_info_pannel.set_frame_count()
+
+    def remove_using_min_filesize(self, min_filesize, list_to_trim):
+        print("Filesize min, ", min_filesize)
+        newly_trimmed_list = []
+        for file in list_to_trim:
+            filesize = os.path.getsize(file)
+            if filesize > int(min_filesize):
+                newly_trimmed_list.append(file)
+        print("Trimmed list before handack:", len(self.trimmed_frame_list))
+        return newly_trimmed_list
+
 
     def trim_list_by_date_self_limit_combo(self):
         # Establish cut off point
