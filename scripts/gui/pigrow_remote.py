@@ -5688,6 +5688,8 @@ class timelapse_info_pnl(wx.Panel):
         graph_l = wx.StaticText(self,  label='Graph;', pos=(165, 10))
         self.graph_combo = wx.ComboBox(self, choices = graph_opts, pos=(260,10), size=(125, 25))
         self.graph_combo.Bind(wx.EVT_COMBOBOX, self.graph_combo_go)
+        graph_refresh_button = wx.Button(self, label='refresh')
+        graph_refresh_button.Bind(wx.EVT_BUTTON, self.graph_refresh)
         self.size_graph = wx.BitmapButton(self, -1, blank_img, size=(400, 400))
         self.size_graph.Bind(wx.EVT_BUTTON, self.graph_clicked)
         # sizers
@@ -5730,6 +5732,7 @@ class timelapse_info_pnl(wx.Panel):
         graph_opts_sizer = wx.BoxSizer(wx.HORIZONTAL)
         graph_opts_sizer.Add(graph_l, 0, wx.ALL, 3)
         graph_opts_sizer.Add(self.graph_combo, 0, wx.ALL, 3)
+        graph_opts_sizer.Add(graph_refresh_button, 0, wx.ALL, 3)
         graph_sizer = wx.BoxSizer(wx.VERTICAL)
         graph_sizer.Add(graph_opts_sizer, 0, wx.ALL, 3)
         graph_sizer.Add(self.size_graph, 0, wx.ALL, 3)
@@ -5752,6 +5755,7 @@ class timelapse_info_pnl(wx.Panel):
         dbox = show_image_dialog(None, bitmap, "Graph")
         dbox.ShowModal()
         dbox.Destroy()
+
 
     def set_first_image(self, filename):
         try:
@@ -5872,6 +5876,10 @@ class timelapse_info_pnl(wx.Panel):
             image_to_show = wx.Bitmap(400, 400)
         self.size_graph.SetBitmap(image_to_show)
 
+    def graph_refresh(self, e):
+        self.graph_combo_go(None)
+
+
     def make_filesize_graph(self):
         counter = 0
         counter_list = []
@@ -5920,6 +5928,8 @@ class timelapse_ctrl_pnl(wx.Panel):
         frame_select_l.SetFont(sub_title_font)
         range_l = wx.StaticText(self,  label='Use Every')
         self.range_tc = wx.TextCtrl(self, value="1")
+        range_options = ['Strict', 'Average', 'Rolling Average', 'Largest']
+        self.range_combo = wx.ComboBox(self, choices = range_options, size=(100,25), value='Average')
         limit_to_l = wx.StaticText(self,  label='Last')
         self.limit_to_num = wx.TextCtrl(self, value="", size=(50,25))
         limit_options = ['all', 'hours', 'days', 'weeks','months']
@@ -5977,6 +5987,7 @@ class timelapse_ctrl_pnl(wx.Panel):
         frame_select_sizer = wx.BoxSizer(wx.VERTICAL)
         frame_select_sizer.Add(frame_select_l, 0, wx.ALL, 1)
         frame_select_sizer.Add(frame_range_sizer, 0, wx.ALL, 1)
+        frame_select_sizer.Add(self.range_combo, 0, wx.ALL|wx.ALIGN_RIGHT, 1)
         frame_select_sizer.Add(frame_date_limit_sizer, 0, wx.ALL, 1)
         frame_select_sizer.Add(size_min_limit_sizer, 0, wx.ALL, 1)
         frame_select_sizer.Add(calculate_frames_btn, 0, wx.ALL|wx.ALIGN_RIGHT, 1)
@@ -6108,32 +6119,109 @@ class timelapse_ctrl_pnl(wx.Panel):
         MainApp.timelapse_ctrl_pannel.calculate_frames_click("e")
 
     def calculate_frames_click(self, e):
-        # Limit using range function
+        # make frame list
         self.trimmed_frame_list = []
-        use_every = self.range_tc.GetValue()
-        if not use_every.isdigit():
-            print("Frame selection value 'use_every' is not a digit! setting it to 1")
-            use_every = 1
-        else:
-            use_every = int(use_every)
         first_frame= int(MainApp.timelapse_info_pannel.first_frame_no.GetValue()) -1
         last_frame = int(MainApp.timelapse_info_pannel.last_frame_no.GetValue())
-        for frame in range(first_frame, last_frame, use_every):
-            self.trimmed_frame_list.append(self.cap_file_paths[frame])
-        #print("Trimmed list contains " + str(len(self.trimmed_frame_list)) + " frames")
+        for x in range(first_frame, last_frame):
+            self.trimmed_frame_list.append(self.cap_file_paths[x])
+        print("-------\nStarting frame count;", len(self.trimmed_frame_list))
+
         # Limit using date options
         start_point_cutoff = self.trim_list_by_date_self_limit_combo()
         if not start_point_cutoff == None:
             self.trimmed_frame_list = self.limit_list_by_start_point(start_point_cutoff, self.trimmed_frame_list)
-        # Limiy using filesize minimum
+
+
+        # Limit using filesize minimum
         min_filesize = self.size_min_limit.GetValue()
         if not min_filesize.isdigit():
             min_filesize = 1
         self.trimmed_frame_list = self.remove_using_min_filesize(int(min_filesize), self.trimmed_frame_list)
-        print("Trimmed list after handack:", len(self.trimmed_frame_list))
+
+        # limit using range
+        # Limit using range function
+        use_every = self.range_tc.GetValue()
+        if not use_every.isdigit():
+            use_every = None
+        else:
+            use_every = int(use_every)
+        if not use_every == None:
+            range_type = self.range_combo.GetValue()
+            if range_type == "Strict":
+                self.trimmed_frame_list = self.take_every_nth(use_every, self.trimmed_frame_list)
+            elif range_type == "Average":
+                self.trimmed_frame_list = self.find_closest_ave_frames(use_every, self.trimmed_frame_list, type="all")
+            elif range_type == "Rolling Average":
+                self.trimmed_frame_list = self.find_closest_ave_frames(use_every, self.trimmed_frame_list, type="rolling")
+            elif range_type == "Largest":
+                self.trimmed_frame_list = self.find_largest_frames(use_every, self.trimmed_frame_list)
+            print("List trimmed using " + range_type + " every " + str(use_every) + " list contains " + str(len(self.trimmed_frame_list)) + " frames")
 
         # update screen
         MainApp.timelapse_info_pannel.set_frame_count()
+
+    def take_every_nth(self, use_every, original_frame_list):
+        trimmed_list = []
+        for frame in range(0, len(original_frame_list), use_every):
+            trimmed_list.append(original_frame_list[frame])
+        return trimmed_list
+
+    def find_largest_frames(self, block_size, original_frame_list):
+        largest_file_list = []
+        for x in range(0, len(original_frame_list), block_size):
+            temp_list = []
+            for y in range(0, block_size):
+                try:
+                    temp_list.append(original_frame_list[x+y])
+                except:
+                    print("index out of range - because of the y probably")
+            largest_file_size = 0
+            for item in temp_list:
+                filesize = os.path.getsize(item)
+                if largest_file_size < int(filesize):
+                    largest_file_size = int(filesize)
+                    largset_file = (item)
+            largest_file_list.append(largset_file)
+        return largest_file_list
+
+    def find_closest_ave_frames(self, block_size, original_frame_list,type="all"):
+        #find average of all files
+        if type == "all":
+            total_file_size = 0
+            for file in original_frame_list:
+                total_file_size = total_file_size + int(os.path.getsize(file))
+            average_file_size = total_file_size / len(original_frame_list)
+            print(average_file_size)
+        #
+        most_ave_file_list = []
+        for x in range(0, len(original_frame_list), block_size):
+            temp_list = []
+            for y in range(0, block_size):
+                try:
+                    temp_list.append(original_frame_list[x+y])
+                except:
+                    print("index out of range - because of the y probably")
+            # find rolling average file size
+            if type =="rolling":
+                total_file_size = 0
+                for file in temp_list:
+                    total_file_size = total_file_size + int(os.path.getsize(file))
+                average_file_size = total_file_size / len(temp_list)
+                print(average_file_size)
+            # find smallest difference from average
+            smallest_diff = average_file_size + 1
+            for file in temp_list:
+                size = int(os.path.getsize(file))
+                size_diff = abs(average_file_size - size)
+                if smallest_diff > size_diff:
+                    #print("smaller size diference - ", size_diff)
+                    most_average_file = file
+                    smallest_diff = size_diff
+                #else:
+                    #print("nope", size_diff)
+            most_ave_file_list.append(most_average_file)
+        return most_ave_file_list
 
     def remove_using_min_filesize(self, min_filesize, list_to_trim):
         print("Filesize min, ", min_filesize)
@@ -6142,7 +6230,7 @@ class timelapse_ctrl_pnl(wx.Panel):
             filesize = os.path.getsize(file)
             if filesize > int(min_filesize):
                 newly_trimmed_list.append(file)
-        print("Trimmed list before handack:", len(self.trimmed_frame_list))
+        print("filesize - trimmed list to:", len(newly_trimmed_list))
         return newly_trimmed_list
 
 
