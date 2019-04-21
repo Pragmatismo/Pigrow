@@ -7371,29 +7371,88 @@ class ads1115_dialog(wx.Dialog):
         self.add_btn.Bind(wx.EVT_BUTTON, self.add_click)
         self.cancel_btn = wx.Button(self, label='Cancel', size=(175, 30))
         self.cancel_btn.Bind(wx.EVT_BUTTON, self.OnClose)
+        #
+        # hardware information
+        name_l = wx.StaticText(self,  label='Unique Name')
+        self.name_tc = wx.TextCtrl(self, size=(400,30))
+        log_l = wx.StaticText(self,  label='Log Location')
+        self.log_tc = wx.TextCtrl(self, size=(400,30))
+        self.graph_btn = wx.Button(self, label='Graph', size=(175, 30))
+        self.graph_btn.Bind(wx.EVT_BUTTON, self.graph_click)
+        sensor_l = wx.StaticText(self,  label='Sensor Location')
+        # auto list temp sensors
+        asd_list = self.find_ads1115_devices()
+             #---- add line here to remove sensors already added
+        self.loc_cb = wx.ComboBox(self, choices = asd_list, size=(170, 25))
+        self.read_ads1115_btn = wx.Button(self, label='Read ADS1115')
+        self.read_ads1115_btn.Bind(wx.EVT_BUTTON, self.read_ads1115_click)
+        # timing string
+        timeing_l = wx.StaticText(self,  label='Repeating every ')
+        self.rep_num_tc = wx.TextCtrl(self, size=(70,30))
+        cron_repeat_opts = ['min', 'hour', 'day', 'month', 'dow']
+        self.rep_opts_cb = wx.ComboBox(self, choices = cron_repeat_opts, size=(100, 30))
         # Channel settings
+
 
         # need four lines one for each channel, set value type, ranges, +- correction, and tools to perform tuning and calibration.
 
         # Sizers
+        loc_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        loc_sizer.Add(self.loc_cb, 0, wx.ALL|wx.EXPAND, 3)
+        loc_sizer.Add(self.read_ads1115_btn, 0, wx.ALL, 3)
+        timing_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        timing_sizer.Add(self.rep_num_tc, 0, wx.ALL, 3)
+        timing_sizer.Add(self.rep_opts_cb, 0, wx.ALL, 3)
+        log_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        log_sizer.Add(self.log_tc, 2, wx.ALL, 3)
+        log_sizer.Add(self.graph_btn, 0, wx.ALL, 3)
+        options_sizer = wx.GridSizer(4, 2, 1, 4)
+        options_sizer.AddMany([ (name_l, 0, wx.EXPAND),
+            (self.name_tc, 0, wx.EXPAND),
+            (log_l, 0, wx.EXPAND),
+            (log_sizer, 0, wx.EXPAND),
+            (sensor_l, 0, wx.EXPAND),
+            (loc_sizer, 0, wx.EXPAND),
+            (timeing_l, 0, wx.EXPAND),
+            (timing_sizer, 0, wx.EXPAND) ])
         buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
         buttons_sizer.Add(self.add_btn, 0,  wx.ALIGN_LEFT, 3)
         buttons_sizer.Add(self.cancel_btn, 0,  wx.ALIGN_RIGHT, 3)
         main_sizer =  wx.BoxSizer(wx.VERTICAL)
         main_sizer.Add(box_label, 0, wx.ALL|wx.EXPAND, 5)
+        main_sizer.Add(options_sizer, 0, wx.ALL|wx.EXPAND, 3)
         main_sizer.AddStretchSpacer(1)
         main_sizer.Add(buttons_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
         main_sizer.AddStretchSpacer(1)
         self.SetSizer(main_sizer)
 
+
+
+
+        # set values for when reading from double click
+        self.name_tc.SetValue(self.s_name)
+        self.log_tc.SetValue(self.s_log)
+        self.loc_cb.SetValue(self.s_loc)
+        self.rep_num_tc.SetValue(s_rep)
+        self.rep_opts_cb.SetValue(s_rep_txt)
+
+    def read_ads1115_click(self, e):
+        print("does nothing")
+
+    def find_ads1115_devices(self):
+        return ["not written yet"]
+
+    def graph_click(self, e):
+        print("sorry, this does nothing yet")
+
     def add_click(self, e):
-        o_name = "" #self.name_tc.GetValue()
+        o_name = self.name_tc.GetValue()
         o_type = "ADS1115"
-        o_log = "" #self.log_tc.GetValue()
-        o_loc = "" #self.i2c_path_cb.GetValue()
+        o_log = self.log_tc.GetValue()
+        o_loc = self.loc_cb.GetValue()
         o_extra = ""
-        new_cron_num = "" #self.rep_num_tc.GetValue()
-        new_cron_txt = "" #self.rep_opts_cb.GetValue()
+        new_cron_num = self.rep_num_tc.GetValue()
+        new_cron_txt = self.rep_opts_cb.GetValue()
         new_timing_string = str(new_cron_num) + " " + new_cron_txt
 
         # print("adding; ")
@@ -7402,6 +7461,7 @@ class ads1115_dialog(wx.Dialog):
         # print(o_log)
         # print(o_loc)
         # print("______")
+
         # check to see if changes have been made
         changed = "probably something"
         if self.s_name == o_name:
@@ -7433,6 +7493,52 @@ class ads1115_dialog(wx.Dialog):
             MainApp.config_ctrl_pannel.update_setting_file_on_pi_click('e')
         self.Destroy()
 
+    def edit_cron_job(self, o_log, o_loc, job_repeat, job_repnum):
+        print("changing cron...")
+        # check to find cron job handling this sensor
+        line_number_repeting_cron = -1
+        for index in range(0, cron_list_pnl.repeat_cron.GetItemCount()):
+            cmd_path = cron_list_pnl.repeat_cron.GetItem(index, 3).GetText()
+            if "log_ads1115.py" in cmd_path:
+                print(" found - " + cmd_path)
+                cmd_args = cron_list_pnl.repeat_cron.GetItem(index, 4).GetText()
+                if o_loc in cmd_args:
+                    print("Located " + o_loc)
+                    line_number_repeting_cron = index
+        if not line_number_repeting_cron == -1:
+            cron_enabled = cron_list_pnl.repeat_cron.GetItem(line_number_repeting_cron, 1).GetText()
+            cron_task    = cron_list_pnl.repeat_cron.GetItem(line_number_repeting_cron, 3).GetText()
+            sensor_location = self.loc_cb.GetValue()
+            cron_args_original = cron_list_pnl.repeat_cron.GetItem(line_number_repeting_cron, 4).GetText()
+            if "sensor=" in cron_args_original:
+                sensor_args = cron_args_original.split("sensor=")[1].split(" ")[0]
+                if "," in sensor_args:
+                    sensor_list = sensor_args.split(",")
+                else:
+                    sensor_list = [sensor_args]
+            else:
+                sensor_list = [self.loc_cb.GetValue()]
+            sensor_list_text = ""
+            for sensor in sensor_list:
+                sensor_list_text += sensor + ","
+            sensor_list_text = sensor_list_text[0:-1]
+            cron_args    = "log=" + self.log_tc.GetValue() + " sensor=" + sensor_list_text
+            cron_comment = cron_list_pnl.repeat_cron.GetItem(line_number_repeting_cron, 5).GetText()
+            timing_string = cron_info_pnl.make_repeating_cron_timestring(self, job_repeat, job_repnum)
+            #print("Cron job; " + "modified" + " " + cron_enabled + " " + timing_string + " " + cron_task + " " + cron_args + " " + cron_comment)
+            cron_list_pnl.repeat_cron.DeleteItem(line_number_repeting_cron)
+            cron_info_pnl.add_to_repeat_list(MainApp.cron_info_pannel, 'modified', cron_enabled, timing_string, cron_task, cron_args, cron_comment)
+            MainApp.cron_info_pannel.update_cron_click("e")
+        else:
+            print("Job not currently in cron, adding it...")
+            cron_enabled = "True"
+            cron_task = "/home/" + pi_link_pnl.target_user + "/Pigrow/scripts/sensors/log_ads1115.py"
+            cron_args = "log=" + self.log_tc.GetValue() + " sensor=" + self.loc_cb.GetValue()
+            timing_string = cron_info_pnl.make_repeating_cron_timestring(self, job_repeat, job_repnum)
+            cron_comment = ""
+            cron_info_pnl.add_to_repeat_list(MainApp.cron_info_pannel, 'new', cron_enabled, timing_string, cron_task, cron_args, cron_comment)
+            #print("Cron job; " + "new" + " " + cron_enabled + " " + timing_string + " " + cron_task + " " + cron_args + " " + cron_comment)
+            MainApp.cron_info_pannel.update_cron_click("e")
 
 
     def OnClose(self, e):
