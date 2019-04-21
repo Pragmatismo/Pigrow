@@ -7230,6 +7230,10 @@ class sensors_ctrl_pnl(wx.Panel):
         self.ds18b20_l = wx.StaticText(self,  label='DS18B20 Temp Sensor;')
         self.add_ds18b20 = wx.Button(self, label='add new DS18B20')
         self.add_ds18b20.Bind(wx.EVT_BUTTON, self.add_ds18b20_click)
+        #   == ADS1115 Analog to Digital converter i2c_check
+        self.ads1115_l = wx.StaticText(self,  label='ADS1115 ADC;')
+        self.add_ads1115 = wx.Button(self, label='add new ADS1115')
+        self.add_ads1115.Bind(wx.EVT_BUTTON, self.add_ads1115_click)
         # Sizers
 
         main_sizer =  wx.BoxSizer(wx.VERTICAL)
@@ -7244,15 +7248,32 @@ class sensors_ctrl_pnl(wx.Panel):
         main_sizer.Add(self.ds18b20_l, 0, wx.ALL|wx.EXPAND, 3)
         main_sizer.Add(self.add_ds18b20, 0, wx.ALL|wx.EXPAND, 3)
         main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
+        main_sizer.Add(self.ads1115_l, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.Add(self.add_ads1115, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.AddStretchSpacer(1)
         self.SetSizer(main_sizer)
+
+    def add_ads1115_click(self, e):
+        # set blanks for dialog box
+        MainApp.sensors_info_pannel.sensor_list.s_name = ""
+        log_path = ""
+        if 'log_path' in MainApp.config_ctrl_pannel.dirlocs_dict:
+            log_path = MainApp.config_ctrl_pannel.dirlocs_dict["log_path"] + "ads1115_log.txt"
+        MainApp.sensors_info_pannel.sensor_list.s_log = log_path
+        MainApp.sensors_info_pannel.sensor_list.s_loc = ""
+        MainApp.sensors_info_pannel.sensor_list.s_extra = ""
+        MainApp.sensors_info_pannel.sensor_list.s_timing = ""
+        # call dialog box
+        add_ads1115 = ads1115_dialog(None)
+        add_ads1115.ShowModal()
 
     def add_ds18b20_click(self, e):
         # set blanks for dialog box
         MainApp.sensors_info_pannel.sensor_list.s_name = ""
         log_path = ""
         if 'log_path' in MainApp.config_ctrl_pannel.dirlocs_dict:
-            log_path = MainApp.config_ctrl_pannel.dirlocs_dict["log_path"] + "dstemp_log.py"
+            log_path = MainApp.config_ctrl_pannel.dirlocs_dict["log_path"] + "dstemp_log.txt"
         MainApp.sensors_info_pannel.sensor_list.s_log = log_path
         MainApp.sensors_info_pannel.sensor_list.s_loc = ""
         MainApp.sensors_info_pannel.sensor_list.s_extra = ""
@@ -7314,6 +7335,113 @@ class sensors_ctrl_pnl(wx.Panel):
         # show selected controls
         if self.sensor_cb.GetValue() == "Soil Moisture":
             self.soil_sensor_cb.Hide()
+
+class ads1115_dialog(wx.Dialog):
+    """
+    For setting up a ds18b20 temp sensor
+        """
+    def __init__(self, *args, **kw):
+        super(ads1115_dialog, self).__init__(*args, **kw)
+        self.InitUI()
+        self.SetSize((700, 300))
+        self.SetTitle("ADS1115 Setup")
+        self.Bind(wx.EVT_CLOSE, self.OnClose)
+
+    def InitUI(self):
+        # read values for when editing existing entry
+        self.s_name  = MainApp.sensors_info_pannel.sensor_list.s_name
+        self.s_type  = "ADS1115"
+        self.s_log   = MainApp.sensors_info_pannel.sensor_list.s_log
+        self.s_loc   = MainApp.sensors_info_pannel.sensor_list.s_loc
+        self.s_extra = MainApp.sensors_info_pannel.sensor_list.s_extra
+        self.timing_string = MainApp.sensors_info_pannel.sensor_list.s_timing
+        try:
+            s_rep     = MainApp.sensors_info_pannel.sensor_list.s_timing.split(" ")[0]
+            s_rep_txt = MainApp.sensors_info_pannel.sensor_list.s_timing.split(" ")[1]
+        except:
+            s_rep = ""
+            s_rep_txt = ""
+        # panel
+        pnl = wx.Panel(self)
+        title_font = wx.Font(28, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
+        box_label = wx.StaticText(self,  label='ADS1115 Analog to Digital Converter')
+        box_label.SetFont(title_font)
+        # buttons_
+        self.add_btn = wx.Button(self, label='OK', size=(175, 30))
+        self.add_btn.Bind(wx.EVT_BUTTON, self.add_click)
+        self.cancel_btn = wx.Button(self, label='Cancel', size=(175, 30))
+        self.cancel_btn.Bind(wx.EVT_BUTTON, self.OnClose)
+        # Channel settings
+
+        # need four lines one for each channel, set value type, ranges, +- correction, and tools to perform tuning and calibration.
+
+        # Sizers
+        buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        buttons_sizer.Add(self.add_btn, 0,  wx.ALIGN_LEFT, 3)
+        buttons_sizer.Add(self.cancel_btn, 0,  wx.ALIGN_RIGHT, 3)
+        main_sizer =  wx.BoxSizer(wx.VERTICAL)
+        main_sizer.Add(box_label, 0, wx.ALL|wx.EXPAND, 5)
+        main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(buttons_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
+        main_sizer.AddStretchSpacer(1)
+        self.SetSizer(main_sizer)
+
+    def add_click(self, e):
+        o_name = "" #self.name_tc.GetValue()
+        o_type = "ADS1115"
+        o_log = "" #self.log_tc.GetValue()
+        o_loc = "" #self.i2c_path_cb.GetValue()
+        o_extra = ""
+        new_cron_num = "" #self.rep_num_tc.GetValue()
+        new_cron_txt = "" #self.rep_opts_cb.GetValue()
+        new_timing_string = str(new_cron_num) + " " + new_cron_txt
+
+        # print("adding; ")
+        # print(o_name)
+        # print(o_type)
+        # print(o_log)
+        # print(o_loc)
+        # print("______")
+        # check to see if changes have been made
+        changed = "probably something"
+        if self.s_name == o_name:
+            #print("name not changed")
+            if self.s_log == o_log:
+                #print("log path not changed")
+                if self.s_loc == o_loc:
+                    #print("wiring location not changed")
+                    if self.s_extra == o_extra:
+                        #print("extra field not changed")
+                        changed = "nothing"
+                        #nothing has changed in the config file so no need to update.
+        # check to see if changes have been made to the cron timing
+        if self.timing_string == new_timing_string:
+            print(" -- Timing string didn't change -- ")
+        else:
+            self.edit_cron_job(o_log, o_loc, new_cron_txt, new_cron_num)
+
+        # config file changes
+        if changed == "nothing":
+            print("------- config settings not changed -------")
+        else:
+            log_freq = str(new_cron_num) + " " + new_cron_txt
+            MainApp.sensors_info_pannel.sensor_list.add_to_sensor_list(o_name,o_type,o_log,o_loc,o_extra,log_freq)
+            MainApp.config_ctrl_pannel.config_dict["sensor_" + o_name + "_type"] = o_type
+            MainApp.config_ctrl_pannel.config_dict["sensor_" + o_name + "_log"] = o_log
+            MainApp.config_ctrl_pannel.config_dict["sensor_" + o_name + "_loc"] = o_loc
+            MainApp.config_ctrl_pannel.config_dict["sensor_" + o_name + "_extra"] = o_extra
+            MainApp.config_ctrl_pannel.update_setting_file_on_pi_click('e')
+        self.Destroy()
+
+
+
+    def OnClose(self, e):
+        MainApp.sensors_info_pannel.sensor_list.s_name = ""
+        MainApp.sensors_info_pannel.sensor_list.s_log = ""
+        MainApp.sensors_info_pannel.sensor_list.s_loc = ""
+        MainApp.sensors_info_pannel.sensor_list.s_extra = ""
+        MainApp.sensors_info_pannel.sensor_list.s_timing = ""
+        self.Destroy()
 
 class ds18b20_dialog(wx.Dialog):
     """
