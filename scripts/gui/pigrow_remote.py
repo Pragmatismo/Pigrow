@@ -7437,7 +7437,20 @@ class ads1115_dialog(wx.Dialog):
         self.rep_opts_cb.SetValue(s_rep_txt)
 
     def read_ads1115_click(self, e):
-        print("does nothing")
+        script_path = "/home/" + pi_link_pnl.target_user + "/Pigrow/scripts/sensors/log_ads1115.py "
+        cmd = script_path + "log=none address=" + self.loc_cb.GetValue()[0:3]
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi(cmd)
+        val1 = None
+        for line in out.splitlines():
+            if "Written;" in line:
+                line = line.split(">")
+                val1 = line[1]
+                val2 = line[2]
+                val3 = line[3]
+                val4 = line[4]
+                print(val1, val2, val3, val4)
+        if val1 == None:
+            print("Could not read ADS1115 located at " + self.loc_cb.GetValue())
 
     def find_ads1115_devices(self):
         pos_list = ["GND - (0x48)", "VDD - (0x49)", "SDA - (0x4A)", "SCL - (0x4B)"]
