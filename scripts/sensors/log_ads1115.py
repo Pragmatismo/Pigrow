@@ -270,7 +270,7 @@ def convert_to_volt(vals):
             vals[3] = vals[3] * 0.0078125
     return vals
 
-def convert_to_percent():
+def convert_to_percent(vals):
     if show_as_0 == "percent":
         print("Converting to percent is not yet an option, sorry")
     if show_as_1 == "percent":
