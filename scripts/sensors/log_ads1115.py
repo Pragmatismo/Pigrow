@@ -233,8 +233,9 @@ def log_ads1115(log_path, vals):
         log_entry += str(vals[1]) + ">"
         log_entry += str(vals[2]) + ">"
         log_entry += str(vals[3]) + "\n"
-        with open(log_path, "a") as f:
-            f.write(log_entry)
+        if not log_path.lower() == "none":
+            with open(log_path, "a") as f:
+                f.write(log_entry)
         print("Written; " +  log_entry)
 
 
