@@ -271,18 +271,19 @@ def convert_to_volt(vals):
     return vals
 
 def convert_to_percent(vals):
+    max_value = 32767
     if show_as_0 == "percent":
-        print("Converting to percent is not yet an option, sorry")
+        vals[0] = vals[0] / 32767 * 100
     if show_as_1 == "percent":
-        print("Converting to percent is not yet an option, sorry")
+        vals[1] = vals[1] / 32767 * 100
     if show_as_2 == "percent":
-        print("Converting to percent is not yet an option, sorry")
+        vals[2] = vals[2] / 32767 * 100
     if show_as_3 == "percent":
-        print("Converting to percent is not yet an option, sorry")
+        vals[3] = vals[3] / 32767 * 100
     return vals
 
 def centralise_posneg(vals):
-    max_value = 1635.625 * 2
+    max_value = 32767 # 1635.625 * 2
     halfway_point = max_value / 2
     if centralise0 == "true":
         vals[0] = vals[0] - halfway_point
