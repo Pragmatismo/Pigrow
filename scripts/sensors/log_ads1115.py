@@ -273,13 +273,13 @@ def convert_to_volt(vals):
 def convert_to_percent(vals):
     max_value = 32767
     if show_as_0 == "percent":
-        vals[0] = vals[0] / 32767 * 100
+        vals[0] = float(vals[0]) / float(32767) * 100
     if show_as_1 == "percent":
-        vals[1] = vals[1] / 32767 * 100
+        vals[1] = float(vals[1]) / float(32767) * 100
     if show_as_2 == "percent":
-        vals[2] = vals[2] / 32767 * 100
+        vals[2] = float(vals[2]) / float(32767) * 100
     if show_as_3 == "percent":
-        vals[3] = vals[3] / 32767 * 100
+        vals[3] = float(vals[3]) / float(32767) * 100
     return vals
 
 def centralise_posneg(vals):
