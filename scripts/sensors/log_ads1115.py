@@ -9,8 +9,14 @@ except:
     print("Adafruit ADS1x15 python module not installed, instructions can be found easily via goodle")
     sys.exit()
 #default values for setting up the adafruit ads1x15 module
-GAIN = 1
-samples_per_second = 8
+GAIN1 = 1
+GAIN2 = 1
+GAIN3 = 1
+GAIN4 = 1
+samples_per_second1 = 8
+samples_per_second2 = 8
+samples_per_second3 = 8
+samples_per_second4 = 8
 pin_address = "gnd"  #gnd,vdd,sda,sdl - use lower case because argu gets lowercased
 i2c_busnum = 1
 sensor_type = "ads1115"
@@ -38,11 +44,12 @@ for argu in sys.argv[1:]:
         print(" ")
         print(" log=" + homedir + "/Pigrow/logs/ads1115_log.txt")
         print(" ")
-        print(" gain=1")
+        print(" gain1=1")
         print("      use gain to set input voltage range; ")
         print("      2/3 = +/-6.144V/\n      1 = +/-4.096V\n      2 = +/-2.048V\n      4 = +/-1.024V\n      8 = +/-0.512V\n      16 = +/-0.256V")
-        print("      if you're unsure then set to 1 and incraese")
-        print("      if all values are towards the bottom of the graaph.")
+        print("      if you're unsure then set to 1 and increase")
+        print("      if all values are towards the bottom of the graph.")
+        print("    gain1, gain2, gain3, gain4 all apply to individual channels")
         print("")
         print(" address=gnd ")
         print("      the address of the ADS1115 on the i2c register as")
@@ -59,6 +66,7 @@ for argu in sys.argv[1:]:
         print("     at low values the average voltage is taken over")
         print("     a longer period which can be useful in some")
         print("     situations, for faster readings use a higher value.")
+        print("   sps1, sps2, sps3, sps4 all apply to individual channels")
         print("")
         print(" convert_volt=True/False")
         print("             When true it converts the recorded values to volts ")
@@ -77,17 +85,39 @@ for argu in sys.argv[1:]:
         thearg = argu.split('=')[0].lower()
         thevalue = argu.split('=')[1].lower()
         if thearg == 'log' or thearg == 'log_path':
-            log_path = thevalue
+            log_path = argu.split('=')[1]
         elif thearg == 'gain':
-            GAIN = int(thevalue)
+            GAIN1 = int(thevalue)
+            GAIN2 = int(thevalue)
+            GAIN3 = int(thevalue)
+            GAIN4 = int(thevalue)
+        elif thearg == 'gain1':
+            GAIN1 = int(thevalue)
+        elif thearg == 'gain2':
+            GAIN2 = int(thevalue)
+        elif thearg == 'gain3':
+            GAIN3 = int(thevalue)
+        elif thearg == 'gain4':
+            GAIN4 = int(thevalue)
+        elif thearg == 'samples_per_second' or thearg == 'sps':
+            samples_per_second1 = int(thevalue)
+            samples_per_second2 = int(thevalue)
+            samples_per_second3 = int(thevalue)
+            samples_per_second4 = int(thevalue)
+        elif thearg == 'samples_per_second1' or thearg == 'sps1':
+            samples_per_second1 = int(thevalue)
+        elif thearg == 'samples_per_second2' or thearg == 'sps2':
+            samples_per_second2 = int(thevalue)
+        elif thearg == 'samples_per_second3' or thearg == 'sps3':
+            samples_per_second3 = int(thevalue)
+        elif thearg == 'samples_per_second3' or thearg == 'sps3':
+            samples_per_second4 = int(thevalue)
         elif thearg == 'address':
             pin_address = thevalue
         elif thearg == 'bus' or thearg == 'busnum':
             i2c_busnum = int(thevalue)
         elif thearg == 'sensor_type' or thearg == 'sensor':
             sensor_type = thevalue
-        elif thearg == 'samples_per_second' or thearg == 'sps':
-            samples_per_second = int(thevalue)
         elif thearg == "convert_volt" or thearg == "cv" or thearg == "convert_to_volt":
             if thevalue == "false" or thevalue == 'no':
                 convert_volt = False
@@ -129,10 +159,10 @@ print("using log path : " + str(log_path))
 
 def read_adc():
     try:
-        val1 = adc.read_adc(0, gain=GAIN, data_rate=samples_per_second)
-        val2 = adc.read_adc(1, gain=GAIN, data_rate=samples_per_second)
-        val3 = adc.read_adc(2, gain=GAIN, data_rate=samples_per_second)
-        val4 = adc.read_adc(3, gain=GAIN, data_rate=samples_per_second)
+        val1 = adc.read_adc(0, gain=GAIN, data_rate=samples_per_second1)
+        val2 = adc.read_adc(1, gain=GAIN, data_rate=samples_per_second2)
+        val3 = adc.read_adc(2, gain=GAIN, data_rate=samples_per_second3)
+        val4 = adc.read_adc(3, gain=GAIN, data_rate=samples_per_second4)
         print val1, val2, val3, val4
         return [val1, val2, val3, val4]
     except Exception as e:
@@ -141,31 +171,51 @@ def read_adc():
 
 def convert_to_volt(vals):
     # 2/3 gain =  0.1875mV (default) ###(not actually default from what i can tell)
-    if GAIN == 1:
+    # chan 1
+    if GAIN1 == 1:
         vals[0] = vals[0] * 0.125
-        vals[1] = vals[1] * 0.125
-        vals[2] = vals[2] * 0.125
-        vals[3] = vals[3] * 0.125
-    if GAIN == 2:
+    if GAIN1 == 2:
         vals[0] = vals[0] * 0.0625
-        vals[1] = vals[1] * 0.0625
-        vals[2] = vals[2] * 0.0625
-        vals[3] = vals[3] * 0.0625
-    if GAIN == 4:
+    if GAIN1 == 4:
         vals[0] = vals[0] * 0.03125
-        vals[1] = vals[1] * 0.03125
-        vals[2] = vals[2] * 0.03125
-        vals[3] = vals[3] * 0.03125
-    if GAIN == 8:
+    if GAIN1 == 8:
         vals[0] = vals[0] * 0.015625
-        vals[1] = vals[1] * 0.015625
-        vals[2] = vals[2] * 0.015625
-        vals[3] = vals[3] * 0.015625
-    if GAIN == 16:
+    if GAIN1 == 16:
         vals[0] = vals[0] * 0.0078125
+    # chan 2
+    if GAIN2 == 1:
+        vals[1] = vals[1] * 0.125
+    if GAIN2 == 2:
+        vals[1] = vals[1] * 0.0625
+    if GAIN2 == 4:
+        vals[1] = vals[1] * 0.03125
+    if GAIN2 == 8:
+        vals[1] = vals[1] * 0.015625
+    if GAIN2 == 16:
         vals[1] = vals[1] * 0.0078125
+    # chan 3
+    if GAIN3 == 1:
+        vals[2] = vals[2] * 0.125
+    if GAIN3 == 2:
+        vals[2] = vals[2] * 0.0625
+    if GAIN3 == 4:
+        vals[2] = vals[2] * 0.03125
+    if GAIN3 == 8:
+        vals[2] = vals[2] * 0.015625
+    if GAIN3 == 16:
         vals[2] = vals[2] * 0.0078125
+        # chan 4
+    if GAIN4 == 1:
+        vals[3] = vals[3] * 0.125
+    if GAIN4 == 2:
+        vals[3] = vals[3] * 0.0625
+    if GAIN4 == 4:
+        vals[3] = vals[3] * 0.03125
+    if GAIN4 == 8:
+        vals[3] = vals[3] * 0.015625
+    if GAIN4 == 16:
         vals[3] = vals[3] * 0.0078125
+
     return vals
 
 def centralise_posneg(vals):
