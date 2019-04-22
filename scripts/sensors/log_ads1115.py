@@ -162,18 +162,18 @@ for argu in sys.argv[1:]:
         elif thearg == 'show3' or thearg == 'show_as':
             show_as_3 = thevalue
         elif thearg == "centralise":
-            centralise0 = True
-            centralise1 = True
-            centralise2 = True
-            centralise3 = True
+            centralise0 = thevalue
+            centralise1 = thevalue
+            centralise2 = thevalue
+            centralise3 = thevalue
         elif thearg == "centralise0":
-            centralise0 = True
+            centralise0 = thevalue
         elif thearg == "centralise1":
-            centralise1 = True
+            centralise1 = thevalue
         elif thearg == "centralise2":
-            centralise2 = True
+            centralise2 = thevalue
         elif thearg == "centralise3":
-            centralise3 = True
+            centralise3 = thevalue
 
 #setting up the adafruit sensor drivers
 adc = Adafruit_ADS1x15.ADS1115()
