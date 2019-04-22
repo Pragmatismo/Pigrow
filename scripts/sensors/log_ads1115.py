@@ -57,7 +57,7 @@ for argu in sys.argv[1:]:
         print("      2/3 = +/-6.144V/\n      1 = +/-4.096V\n      2 = +/-2.048V\n      4 = +/-1.024V\n      8 = +/-0.512V\n      16 = +/-0.256V")
         print("      if you're unsure then set to 1 and increase")
         print("      if all values are towards the bottom of the graph.")
-        print("    gain0, GAIN0, GAIN1, GAIN2 all apply to individual channels")2
+        print("    gain0, GAIN0, GAIN1, GAIN2 all apply to individual channels")
         print("")
         print(" address=gnd ")
         print("      the address of the ADS1115 on the i2c register as")
