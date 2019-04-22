@@ -247,6 +247,6 @@ if __name__ == '__main__':
             if not centralise == False:
                 vals = centralise_posneg(vals)
         log_ads1115(log_path, vals)
-        print vals
+        #print vals
     else:
         print("failed to find results")
