@@ -7440,7 +7440,14 @@ class ads1115_dialog(wx.Dialog):
         print("does nothing")
 
     def find_ads1115_devices(self):
-        return ["not written yet"]
+        pos_list = ["GND - (0x48)", "VDD - (0x49)", "SDA - (0x4A)", "SCL - (0x4B)"]
+        i2c_devices = system_ctrl_pnl.find_i2c_devices(MainApp.system_ctrl_pannel, "e")
+        ads1115_list = []
+        for device in i2c_devices:
+            for possibly in pos_list:
+                if device in possibly:
+                    ads1115_list.append(possibly)
+        return ads1115_list
 
     def graph_click(self, e):
         print("sorry, this does nothing yet")
@@ -7478,7 +7485,7 @@ class ads1115_dialog(wx.Dialog):
         if self.timing_string == new_timing_string:
             print(" -- Timing string didn't change -- ")
         else:
-            self.edit_cron_job(o_log, o_loc, new_cron_txt, new_cron_num)
+            self.edit_cron_job(o_log, o_loc[0:3], new_cron_txt, new_cron_num)
 
         # config file changes
         if changed == "nothing":
@@ -7505,24 +7512,15 @@ class ads1115_dialog(wx.Dialog):
                 if o_loc in cmd_args:
                     print("Located " + o_loc)
                     line_number_repeting_cron = index
+        # check to see if this is a new job or not
         if not line_number_repeting_cron == -1:
             cron_enabled = cron_list_pnl.repeat_cron.GetItem(line_number_repeting_cron, 1).GetText()
             cron_task    = cron_list_pnl.repeat_cron.GetItem(line_number_repeting_cron, 3).GetText()
-            sensor_location = self.loc_cb.GetValue()
             cron_args_original = cron_list_pnl.repeat_cron.GetItem(line_number_repeting_cron, 4).GetText()
-            if "sensor=" in cron_args_original:
-                sensor_args = cron_args_original.split("sensor=")[1].split(" ")[0]
-                if "," in sensor_args:
-                    sensor_list = sensor_args.split(",")
-                else:
-                    sensor_list = [sensor_args]
-            else:
-                sensor_list = [self.loc_cb.GetValue()]
-            sensor_list_text = ""
-            for sensor in sensor_list:
-                sensor_list_text += sensor + ","
-            sensor_list_text = sensor_list_text[0:-1]
-            cron_args    = "log=" + self.log_tc.GetValue() + " sensor=" + sensor_list_text
+            if "address=" in cron_args_original:
+                sensor_args = cron_args_original.split("address=")[1].split(" ")[0]
+                sensor_loc = [self.loc_cb.GetValue()[0:3]]
+            cron_args    = "log=" + self.log_tc.GetValue() + " address=" + sensor_loc
             cron_comment = cron_list_pnl.repeat_cron.GetItem(line_number_repeting_cron, 5).GetText()
             timing_string = cron_info_pnl.make_repeating_cron_timestring(self, job_repeat, job_repnum)
             #print("Cron job; " + "modified" + " " + cron_enabled + " " + timing_string + " " + cron_task + " " + cron_args + " " + cron_comment)
@@ -7533,7 +7531,7 @@ class ads1115_dialog(wx.Dialog):
             print("Job not currently in cron, adding it...")
             cron_enabled = "True"
             cron_task = "/home/" + pi_link_pnl.target_user + "/Pigrow/scripts/sensors/log_ads1115.py"
-            cron_args = "log=" + self.log_tc.GetValue() + " sensor=" + self.loc_cb.GetValue()
+            cron_args = "log=" + self.log_tc.GetValue() + " address=" + self.loc_cb.GetValue()[0:3]
             timing_string = cron_info_pnl.make_repeating_cron_timestring(self, job_repeat, job_repnum)
             cron_comment = ""
             cron_info_pnl.add_to_repeat_list(MainApp.cron_info_pannel, 'new', cron_enabled, timing_string, cron_task, cron_args, cron_comment)
