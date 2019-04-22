@@ -38,8 +38,8 @@ except Exception as e:
     log_path = homedir + "/Pigrow/logs/ads1115_log.txt"
 
 for argu in sys.argv[1:]:
-    argu = str(argu).lower()
-    if argu == 'help' or argu == '-h' or argu == '--help':
+    argu_l = str(argu).lower()
+    if argu_l == 'help' or argu_l == '-h' or argu_l == '--help':
         print(" Script for logging ADS1115 Analogue to Digital Converter ")
         print(" ")
         print(" log=" + homedir + "/Pigrow/logs/ads1115_log.txt")
@@ -72,7 +72,7 @@ for argu in sys.argv[1:]:
         print("             When true it converts the recorded values to volts ")
         print("             referencing the gain value. ")
         sys.exit()
-    elif argu == '-flags':
+    elif argu_l == '-flags':
         print("log=[LOG_PATH]")
         print("gain=[2/3,1,2,4,8,16]")
         print("sensor_type=[ads1115, ads1015]")
@@ -81,9 +81,9 @@ for argu in sys.argv[1:]:
         print("i2c_busnum=[gnd,vdd,sda,scl]")
         print("convert_volt=[True,False]")
         sys.exit()
-    elif "=" in argu:
-        thearg = argu.split('=')[0].lower()
-        thevalue = argu.split('=')[1].lower()
+    elif "=" in argu_l:
+        thearg = argu_l.split('=')[0]
+        thevalue = argu_l.split('=')[1]
         if thearg == 'log' or thearg == 'log_path':
             log_path = argu.split('=')[1]
         elif thearg == 'gain':
