@@ -221,7 +221,7 @@ def read_adc():
 def convert_to_volt(vals):
     # 2/3 gain =  0.1875mV (default) ###(not actually default from what i can tell)
     # chan 1
-    if show_as_0 == "volt":
+    if "volt" in show_as_0:
         if GAIN0 == 1:
             vals[0] = vals[0] * 0.125
         if GAIN0 == 2:
@@ -233,7 +233,7 @@ def convert_to_volt(vals):
         if GAIN0 == 16:
             vals[0] = vals[0] * 0.0078125
     # chan 2
-    if show_as_1 == "volt":
+    if "volt" in show_as_1:
         if GAIN1 == 1:
             vals[1] = vals[1] * 0.125
         if GAIN1 == 2:
@@ -245,7 +245,7 @@ def convert_to_volt(vals):
         if GAIN1 == 16:
             vals[1] = vals[1] * 0.0078125
     # chan 3
-    if show_as_2 == "volt":
+    if "volt" in show_as_2:
         if GAIN2 == 1:
             vals[2] = vals[2] * 0.125
         if GAIN2 == 2:
@@ -257,7 +257,7 @@ def convert_to_volt(vals):
         if GAIN2 == 16:
             vals[2] = vals[2] * 0.0078125
     # chan 4
-    if show_as_3 == "volt":
+    if "volt" in show_as_3:
         if GAIN3 == 1:
             vals[3] = vals[3] * 0.125
         if GAIN3 == 2:
