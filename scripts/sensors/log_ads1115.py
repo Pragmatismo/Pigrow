@@ -129,11 +129,11 @@ for argu in sys.argv[1:]:
             GAIN3 = int(thevalue)
         elif thearg == 'gain0':
             GAIN0 = int(thevalue)
-        elif thearg == 'GAIN0':
+        elif thearg == 'gain1':
             GAIN1 = int(thevalue)
-        elif thearg == 'GAIN1':
+        elif thearg == 'gain2':
             GAIN2 = int(thevalue)
-        elif thearg == 'GAIN2':
+        elif thearg == 'gain3':
             GAIN3 = int(thevalue)
         elif thearg == 'samples_per_second' or thearg == 'sps':
             samples_per_second0 = int(thevalue)
