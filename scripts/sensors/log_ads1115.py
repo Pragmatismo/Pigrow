@@ -159,10 +159,10 @@ print("using log path : " + str(log_path))
 
 def read_adc():
     try:
-        val1 = adc.read_adc(0, gain=GAIN, data_rate=samples_per_second1)
-        val2 = adc.read_adc(1, gain=GAIN, data_rate=samples_per_second2)
-        val3 = adc.read_adc(2, gain=GAIN, data_rate=samples_per_second3)
-        val4 = adc.read_adc(3, gain=GAIN, data_rate=samples_per_second4)
+        val1 = adc.read_adc(0, gain=GAIN1, data_rate=samples_per_second1)
+        val2 = adc.read_adc(1, gain=GAIN2, data_rate=samples_per_second2)
+        val3 = adc.read_adc(2, gain=GAIN3, data_rate=samples_per_second3)
+        val4 = adc.read_adc(3, gain=GAIN4, data_rate=samples_per_second4)
         print val1, val2, val3, val4
         return [val1, val2, val3, val4]
     except Exception as e:
