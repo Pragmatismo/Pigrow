@@ -7343,7 +7343,7 @@ class ads1115_dialog(wx.Dialog):
     def __init__(self, *args, **kw):
         super(ads1115_dialog, self).__init__(*args, **kw)
         self.InitUI()
-        self.SetSize((700, 300))
+        self.SetSize((750, 650))
         self.SetTitle("ADS1115 Setup")
         self.Bind(wx.EVT_CLOSE, self.OnClose)
 
@@ -7371,7 +7371,6 @@ class ads1115_dialog(wx.Dialog):
         self.add_btn.Bind(wx.EVT_BUTTON, self.add_click)
         self.cancel_btn = wx.Button(self, label='Cancel', size=(175, 30))
         self.cancel_btn.Bind(wx.EVT_BUTTON, self.OnClose)
-        #
         # hardware information
         name_l = wx.StaticText(self,  label='Unique Name')
         self.name_tc = wx.TextCtrl(self, size=(400,30))
@@ -7392,6 +7391,38 @@ class ads1115_dialog(wx.Dialog):
         cron_repeat_opts = ['min', 'hour', 'day', 'month', 'dow']
         self.rep_opts_cb = wx.ComboBox(self, choices = cron_repeat_opts, size=(100, 30))
         # Channel settings
+        chan_l = wx.StaticText(self,  label='Channel')
+        chan_0_l = wx.StaticText(self,  label='A0')
+        chan_1_l = wx.StaticText(self,  label='A1')
+        chan_2_l = wx.StaticText(self,  label='A2')
+        chan_3_l = wx.StaticText(self,  label='A3')
+        gain_l = wx.StaticText(self,  label='Gain')
+        gain_opts = ["1", "2", "4", "8", "16"]
+        self.gain0_cb = wx.ComboBox(self, choices = gain_opts, size=(100, 30))
+        self.gain1_cb = wx.ComboBox(self, choices = gain_opts, size=(100, 30))
+        self.gain2_cb = wx.ComboBox(self, choices = gain_opts, size=(100, 30))
+        self.gain3_cb = wx.ComboBox(self, choices = gain_opts, size=(100, 30))
+        sps_l = wx.StaticText(self,  label='Samples Per Second')
+        #sps_opts_1015 = ["128", "250", "490", "920", "1600", "2400", "3300"]
+        sps_opts_1115= ["8", "16", "32", "64", "128", "250", "475", "860"]
+        self.sps_0_cb = wx.ComboBox(self, choices = sps_opts_1115, size=(100, 30))
+        self.sps_1_cb = wx.ComboBox(self, choices = sps_opts_1115, size=(100, 30))
+        self.sps_2_cb = wx.ComboBox(self, choices = sps_opts_1115, size=(100, 30))
+        self.sps_3_cb = wx.ComboBox(self, choices = sps_opts_1115, size=(100, 30))
+        show_as_l = wx.StaticText(self,  label='Show as')
+        show_as_opts = ['raw', 'volt', 'percent']
+                    # raw - basic output
+                    # volt - gives the voltage value ajusted for gain
+                    # percent - not yet supported in log_ads1115.py
+        self.show_as_0_cb = wx.ComboBox(self, choices = show_as_opts, size=(100, 30))
+        self.show_as_1_cb = wx.ComboBox(self, choices = show_as_opts, size=(100, 30))
+        self.show_as_2_cb = wx.ComboBox(self, choices = show_as_opts, size=(100, 30))
+        self.show_as_3_cb = wx.ComboBox(self, choices = show_as_opts, size=(100, 30))
+        centralise_l = wx.StaticText(self,  label='Centralise')
+        self.centralise_0 = wx.CheckBox(self, label='')
+        self.centralise_1 = wx.CheckBox(self, label='')
+        self.centralise_2 = wx.CheckBox(self, label='')
+        self.centralise_3 = wx.CheckBox(self, label='') # not yet properly supported in log_ads1115.py needs min and max points.
 
 
         # need four lines one for each channel, set value type, ranges, +- correction, and tools to perform tuning and calibration.
@@ -7415,12 +7446,40 @@ class ads1115_dialog(wx.Dialog):
             (loc_sizer, 0, wx.EXPAND),
             (timeing_l, 0, wx.EXPAND),
             (timing_sizer, 0, wx.EXPAND) ])
+        channels_sizer = wx.GridSizer(5, 5, 1, 4)
+        channels_sizer.AddMany([ (chan_l, 0, wx.EXPAND),
+            (chan_0_l, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL),
+            (chan_1_l, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL),
+            (chan_2_l, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL),
+            (chan_3_l, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL),
+            (gain_l, 0, wx.EXPAND),
+            (self.gain0_cb, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL),
+            (self.gain1_cb, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL),
+            (self.gain2_cb, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL),
+            (self.gain3_cb, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL),
+            (sps_l, 0, wx.EXPAND),
+            (self.sps_0_cb, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL),
+            (self.sps_1_cb, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL),
+            (self.sps_2_cb, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL),
+            (self.sps_3_cb, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL),
+            (show_as_l, 0, wx.EXPAND),
+            (self.show_as_0_cb, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL),
+            (self.show_as_1_cb, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL),
+            (self.show_as_2_cb, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL),
+            (self.show_as_3_cb, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL),
+            (centralise_l, 0, wx.EXPAND),
+            (self.centralise_0, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL),
+            (self.centralise_1, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL),
+            (self.centralise_2, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL),
+            (self.centralise_3, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL) ])
         buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
         buttons_sizer.Add(self.add_btn, 0,  wx.ALIGN_LEFT, 3)
         buttons_sizer.Add(self.cancel_btn, 0,  wx.ALIGN_RIGHT, 3)
         main_sizer =  wx.BoxSizer(wx.VERTICAL)
         main_sizer.Add(box_label, 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.Add(options_sizer, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(channels_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
         main_sizer.AddStretchSpacer(1)
         main_sizer.Add(buttons_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
         main_sizer.AddStretchSpacer(1)
@@ -7470,17 +7529,69 @@ class ads1115_dialog(wx.Dialog):
         o_type = "ADS1115"
         o_log = self.log_tc.GetValue()
         o_loc = self.loc_cb.GetValue()
-        o_extra = ""
         new_cron_num = self.rep_num_tc.GetValue()
         new_cron_txt = self.rep_opts_cb.GetValue()
         new_timing_string = str(new_cron_num) + " " + new_cron_txt
+        # get individual channel settings
+        new_a0_gain = self.gain0_cb.GetValue()
+        new_a1_gain = self.gain1_cb.GetValue()
+        new_a2_gain = self.gain2_cb.GetValue()
+        new_a3_gain = self.gain3_cb.GetValue()
+        new_a0_sps = self.sps_0_cb.GetValue()
+        new_a1_sps = self.sps_1_cb.GetValue()
+        new_a2_sps = self.sps_2_cb.GetValue()
+        new_a3_sps = self.sps_3_cb.GetValue()
+        new_a0_show_as = self.show_as_0_cb.GetValue()
+        new_a1_show_as = self.show_as_1_cb.GetValue()
+        new_a2_show_as = self.show_as_2_cb.GetValue()
+        new_a3_show_as = self.show_as_3_cb.GetValue()
+        new_a0_centralise= str(self.centralise_0.GetValue())
+        new_a1_centralise= str(self.centralise_1.GetValue())
+        new_a2_centralise= str(self.centralise_2.GetValue())
+        new_a3_centralise= str(self.centralise_3.GetValue())
+        # create args string
+        # make a text string for each channel
+        a0_sets = ""
+        if not new_a0_gain == "":
+            a0_sets += " gain0=" + new_a0_gain
+        if not new_a0_sps == "":
+            a0_sets += " sps0=" + new_a0_sps
+        if not new_a0_show_as == "":
+            a0_sets += " show0=" + new_a0_show_as
+        if not new_a0_centralise == "False":
+            a0_sets += " centralise0=" + new_a0_centralise
+        a1_sets = ""
+        if not new_a1_gain == "":
+            a1_sets += " gain1=" + new_a1_gain
+        if not new_a1_sps == "":
+            a1_sets += " sps1=" + new_a1_sps
+        if not new_a1_show_as == "":
+            a1_sets += " show1=" + new_a1_show_as
+        if not new_a1_centralise == "False":
+            a1_sets += " centralise1=" + new_a1_centralise
+        a2_sets = ""
+        if not new_a2_gain == "":
+            a2_sets += " gain2=" + new_a2_gain
+        if not new_a2_sps == "":
+            a2_sets += " sps2=" + new_a2_sps
+        if not new_a2_show_as == "":
+            a2_sets += " show2=" + new_a2_show_as
+        if not new_a2_centralise == "False":
+            a2_sets += " centralise2=" + new_a2_centralise
+        a3_sets = ""
+        if not new_a3_gain == "":
+            a3_sets += " gain3=" + new_a3_gain
+        if not new_a3_sps == "":
+            a3_sets += " sps3=" + new_a3_sps
+        if not new_a3_show_as == "":
+            a3_sets += " show3=" + new_a3_show_as
+        if not new_a3_centralise == "False":
+            a3_sets += " centralise3=" + new_a3_centralise
+        # put all four together
+        o_extra = a0_sets + a1_sets + a2_sets + a3_sets
 
-        # print("adding; ")
-        # print(o_name)
-        # print(o_type)
-        # print(o_log)
-        # print(o_loc)
-        # print("______")
+
+
 
         # check to see if changes have been made
         changed = "probably something"
@@ -7532,7 +7643,9 @@ class ads1115_dialog(wx.Dialog):
             cron_args_original = cron_list_pnl.repeat_cron.GetItem(line_number_repeting_cron, 4).GetText()
             if "address=" in cron_args_original:
                 sensor_args = cron_args_original.split("address=")[1].split(" ")[0]
-                sensor_loc = [self.loc_cb.GetValue()[0:3]]
+                sensor_loc = self.loc_cb.GetValue()[0:3]
+            print(self.log_tc.GetValue())
+            print(sensor_loc)
             cron_args    = "log=" + self.log_tc.GetValue() + " address=" + sensor_loc
             cron_comment = cron_list_pnl.repeat_cron.GetItem(line_number_repeting_cron, 5).GetText()
             timing_string = cron_info_pnl.make_repeating_cron_timestring(self, job_repeat, job_repnum)
