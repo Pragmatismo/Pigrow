@@ -7497,7 +7497,8 @@ class ads1115_dialog(wx.Dialog):
 
     def read_ads1115_click(self, e):
         script_path = "/home/" + pi_link_pnl.target_user + "/Pigrow/scripts/sensors/log_ads1115.py "
-        cmd = script_path + "log=none address=" + self.loc_cb.GetValue()[0:3]
+        arg_extra = self.make_extra_settings_string()
+        cmd = script_path + "log=none address=" + self.loc_cb.GetValue()[0:3] + arg_extra
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi(cmd)
         val1 = None
         for line in out.splitlines():
@@ -7522,16 +7523,16 @@ class ads1115_dialog(wx.Dialog):
         return ads1115_list
 
     def graph_click(self, e):
-        print("sorry, this does nothing yet")
+        log = self.log_tc.GetValue()
+        print("wants to graph ds18b20 log - " + log)
+        MainApp.graphing_ctrl_pannel.graph_cb.SetValue('Pigrow')
+        MainApp.graphing_ctrl_pannel.select_script_cb.SetValue('graph_ads1115.py')
+        #MainApp.graphing_ctrl_pannel.get_opts_tb.SetValue(True)
+        MainApp.graphing_ctrl_pannel.extra_args.SetValue("log="+log)
+        MainApp.view_pnl.view_cb.SetValue("Graphs")
+        MainApp.graphing_ctrl_pannel.make_graph_click("e")
 
-    def add_click(self, e):
-        o_name = self.name_tc.GetValue()
-        o_type = "ADS1115"
-        o_log = self.log_tc.GetValue()
-        o_loc = self.loc_cb.GetValue()
-        new_cron_num = self.rep_num_tc.GetValue()
-        new_cron_txt = self.rep_opts_cb.GetValue()
-        new_timing_string = str(new_cron_num) + " " + new_cron_txt
+    def make_extra_settings_string(self):
         # get individual channel settings
         new_a0_gain = self.gain0_cb.GetValue()
         new_a1_gain = self.gain1_cb.GetValue()
@@ -7589,10 +7590,17 @@ class ads1115_dialog(wx.Dialog):
             a3_sets += " centralise3=" + new_a3_centralise
         # put all four together
         o_extra = a0_sets + a1_sets + a2_sets + a3_sets
+        return o_extra
 
-
-
-
+    def add_click(self, e):
+        o_name = self.name_tc.GetValue()
+        o_type = "ADS1115"
+        o_log = self.log_tc.GetValue()
+        o_loc = self.loc_cb.GetValue()
+        new_cron_num = self.rep_num_tc.GetValue()
+        new_cron_txt = self.rep_opts_cb.GetValue()
+        new_timing_string = str(new_cron_num) + " " + new_cron_txt
+        o_extra = self.make_extra_settings_string()
         # check to see if changes have been made
         changed = "probably something"
         if self.s_name == o_name:
@@ -7644,9 +7652,13 @@ class ads1115_dialog(wx.Dialog):
             if "address=" in cron_args_original:
                 sensor_args = cron_args_original.split("address=")[1].split(" ")[0]
                 sensor_loc = self.loc_cb.GetValue()[0:3]
+            else:
+                print("Sorry, address= not found in cronjob, try deleting cronjob and adding this sensor again")
+                return None
             print(self.log_tc.GetValue())
             print(sensor_loc)
-            cron_args    = "log=" + self.log_tc.GetValue() + " address=" + sensor_loc
+            args_extra = self.make_extra_settings_string()
+            cron_args    = "log=" + self.log_tc.GetValue() + " address=" + sensor_loc + args_extra
             cron_comment = cron_list_pnl.repeat_cron.GetItem(line_number_repeting_cron, 5).GetText()
             timing_string = cron_info_pnl.make_repeating_cron_timestring(self, job_repeat, job_repnum)
             #print("Cron job; " + "modified" + " " + cron_enabled + " " + timing_string + " " + cron_task + " " + cron_args + " " + cron_comment)
