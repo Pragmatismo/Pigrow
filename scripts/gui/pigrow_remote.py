@@ -1458,39 +1458,108 @@ class install_dialog(wx.Dialog):
     def __init__(self, *args, **kw):
         super(install_dialog, self).__init__(*args, **kw)
         self.InitUI()
-        self.SetSize((600, 600))
+        self.SetSize((700, 600))
         self.SetTitle("Install Pigrow")
     def InitUI(self):
-        # draw the pannel and text
         pnl = wx.Panel(self)
-        wx.StaticText(self,  label='Install Pigrow', pos=(20, 10))
-        wx.StaticText(self,  label='Tool for installing pigrow code and dependencies', pos=(10, 40))
+        # Header
+        title_font = wx.Font(28, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
+        sub_title_font = wx.Font(15, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
+        header_title = wx.StaticText(self,  label='Install Pigrow')
+        header_sub = wx.StaticText(self,  label='Tool for installing pigrow code and dependencies')
+        header_title.SetFont(title_font)
+        header_sub.SetFont(sub_title_font)
         # Installed components
-        pigrow_base_check = wx.StaticText(self,  label='Pigrow base', pos=(25, 90))
-        #python modules
-        wx.StaticText(self,  label='Python modules;', pos=(10, 120))
-        self.matplotlib_check = wx.StaticText(self,  label='Matplotlib', pos=(25, 150))
-        self.adaDHT_check = wx.StaticText(self,  label='Adafruit_DHT', pos=(25, 180))
-        self.start_btn = wx.Button(self, label='install', pos=(155, 180), size=(70, 30))
-        self.start_btn.Bind(wx.EVT_BUTTON, self.ada_dht_click)
-        self.cron_check = wx.StaticText(self,  label='crontab', pos=(25, 210))
-        self.praw_check = wx.StaticText(self,  label='praw', pos=(300, 150))
-        self.pexpect_check = wx.StaticText(self,  label='pexpect', pos=(300, 180))
-        #programs
-        wx.StaticText(self,  label='Programs;', pos=(10, 240))
-        self.uvccapture_check = wx.StaticText(self,  label='uvccapture', pos=(25, 270))
-        self.mpv_check = wx.StaticText(self,  label='mpv', pos=(25, 300))
-        self.sshpass_check = wx.StaticText(self,  label='sshpass', pos=(300, 270))
+        # Core
+        label_core = wx.StaticText(self,  label='Core components;')
+        label_core.SetFont(sub_title_font)
+        pigrow_base_check = wx.StaticText(self,  label='Pigrow base')
+        self.cron_check = wx.StaticText(self,  label='crontab')
+        # sensors
+        label_sensors = wx.StaticText(self,  label='Sensors;')
+        label_sensors.SetFont(sub_title_font)
+        self.adaDHT_check = wx.StaticText(self,  label='Adafruit_DHT')
+        self.dht_btn = wx.Button(self, label='install', size=(70, 30))
+        self.dht_btn.Bind(wx.EVT_BUTTON, self.ada_dht_click)
+        # Camera
+        label_camera = wx.StaticText(self,  label='Camera;')
+        label_camera.SetFont(sub_title_font)
+        self.uvccapture_check = wx.StaticText(self,  label='uvccapture')
+        # Visualisation
+        label_visualisation = wx.StaticText(self,  label='Visualisation;')
+        label_visualisation.SetFont(sub_title_font)
+        self.matplotlib_check = wx.StaticText(self,  label='Matplotlib')
+        self.mpv_check = wx.StaticText(self,  label='mpv')
+        # Networking
+        label_networking = wx.StaticText(self,  label='Networking;')
+        label_networking.SetFont(sub_title_font)
+        self.praw_check = wx.StaticText(self,  label='praw')
+        self.sshpass_check = wx.StaticText(self,  label='sshpass')
+        self.pexpect_check = wx.StaticText(self,  label='pexpect')
         #status text
-        self.currently_doing = wx.StaticText(self,  label="Currently:", pos=(15, 340))
-        self.currently_doing = wx.StaticText(self,  label='...', pos=(100, 340))
-        self.progress = wx.StaticText(self,  label='...', pos=(15, 370))
+        self.currently_doing_l = wx.StaticText(self,  label="Currently:")
+        self.currently_doing = wx.StaticText(self,  label='...')
+        self.progress = wx.StaticText(self,  label='...')
 
         #ok and cancel buttons
-        self.start_btn = wx.Button(self, label='Start', pos=(15, 400), size=(175, 30))
+        self.start_btn = wx.Button(self, label='Start', size=(175, 30))
         self.start_btn.Bind(wx.EVT_BUTTON, self.start_click)
-        self.cancel_btn = wx.Button(self, label='Cancel', pos=(315, 400), size=(175, 30))
+        self.cancel_btn = wx.Button(self, label='Cancel', size=(175, 30))
         self.cancel_btn.Bind(wx.EVT_BUTTON, self.cancel_click)
+
+        # sizers
+        header_sizer = wx.BoxSizer(wx.VERTICAL)
+        header_sizer.Add(header_title, 0, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 3)
+        header_sizer.Add(header_sub, 0, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 3)
+        base_sizer = wx.BoxSizer(wx.VERTICAL)
+        base_sizer.Add(label_core, 0, wx.EXPAND|wx.ALL, 3)
+        base_sizer.Add(pigrow_base_check, 0, wx.EXPAND|wx.LEFT, 30)
+        base_sizer.Add(self.cron_check, 0, wx.EXPAND|wx.LEFT, 30)
+        sensor_sizer = wx.BoxSizer(wx.VERTICAL)
+        sensor_sizer.Add(label_sensors, 0, wx.EXPAND|wx.ALL, 3)
+        sensor_sizer.Add(self.adaDHT_check, 0, wx.EXPAND|wx.LEFT, 30)
+        sensor_sizer.Add(self.dht_btn, 0, wx.ALL, 3)
+        camera_sizer = wx.BoxSizer(wx.VERTICAL)
+        camera_sizer.Add(label_camera, 0, wx.EXPAND|wx.ALL, 3)
+        camera_sizer.Add(self.uvccapture_check, 0, wx.EXPAND|wx.LEFT, 30)
+        visualisation_sizer = wx.BoxSizer(wx.VERTICAL)
+        visualisation_sizer.Add(label_visualisation, 0, wx.EXPAND|wx.ALL, 3)
+        visualisation_sizer.Add(self.matplotlib_check, 0, wx.EXPAND|wx.LEFT, 30)
+        visualisation_sizer.Add(self.mpv_check, 0, wx.EXPAND|wx.LEFT, 30)
+        networking_sizer = wx.BoxSizer(wx.VERTICAL)
+        networking_sizer.Add(label_networking, 0, wx.EXPAND|wx.ALL, 3)
+        networking_sizer.Add(self.praw_check, 0, wx.EXPAND|wx.LEFT, 30)
+        networking_sizer.Add(self.sshpass_check, 0, wx.EXPAND|wx.LEFT, 30)
+        networking_sizer.Add(self.pexpect_check, 0, wx.EXPAND|wx.LEFT, 30)
+
+        status_text_sizer = wx.BoxSizer(wx.VERTICAL)
+        status_text_sizer.Add(self.currently_doing_l, 0, wx.EXPAND|wx.ALL, 3)
+        status_text_sizer.Add(self.currently_doing, 0, wx.EXPAND|wx.ALL, 3)
+        status_text_sizer.Add(self.progress, 0, wx.EXPAND|wx.ALL, 3)
+
+        buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        buttons_sizer.Add(self.start_btn, 0,  wx.ALIGN_LEFT, 3)
+        buttons_sizer.Add(self.cancel_btn, 0,  wx.ALIGN_RIGHT, 3)
+
+
+        main_sizer = wx.BoxSizer(wx.VERTICAL)
+        main_sizer.Add(header_sizer, 0, wx.ALL|wx.EXPAND|wx.ALIGN_CENTER_VERTICAL, 2)
+        main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(base_sizer, 0, wx.ALL|wx.EXPAND, 2)
+        main_sizer.Add(sensor_sizer, 0, wx.ALL|wx.EXPAND, 2)
+        main_sizer.Add(camera_sizer, 0, wx.ALL|wx.EXPAND, 2)
+        main_sizer.Add(visualisation_sizer, 0, wx.ALL|wx.EXPAND, 2)
+        main_sizer.Add(networking_sizer, 0, wx.ALL|wx.EXPAND, 2)
+        main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(status_text_sizer, 0, wx.ALL|wx.EXPAND|wx.ALIGN_CENTER_VERTICAL, 2)
+        main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(buttons_sizer, 0, wx.ALL|wx.EXPAND|wx.ALIGN_CENTER_VERTICAL, 2)
+        self.SetSizer(main_sizer)
+
+
+
+
+
         #run initial checks
         wx.Yield() #update screen to show changes
         self.check_python_dependencies()
@@ -7209,6 +7278,9 @@ class sensors_info_pnl(wx.Panel):
             elif type == "DS18B20":
                 ds18b20_dialog_box = ds18b20_dialog(None)
                 ds18b20_dialog_box.ShowModal()
+            elif type == "ADS1115":
+                ads1115_dialog_box = ads1115_dialog(None)
+                ads1115_dialog_box.ShowModal()
 
 class sensors_ctrl_pnl(wx.Panel):
     def __init__(self, parent):
@@ -7494,11 +7566,77 @@ class ads1115_dialog(wx.Dialog):
         self.loc_cb.SetValue(self.s_loc)
         self.rep_num_tc.SetValue(s_rep)
         self.rep_opts_cb.SetValue(s_rep_txt)
+        self.set_extras_from_string(self.s_extra)
+
+    def set_extras_from_string(self, extras_string):
+        print (extras_string)
+        extra_list = extras_string.split(" ")
+        for item in extra_list:
+            if ":" in item:
+                item = item.split(":")
+                item_key = item[0]
+                item_value = item[1]
+                print(item_key, item_value)
+                if item_key == "gain0":
+                    self.gain0_cb.SetValue(item_value)
+                elif item_key == "gain1":
+                    self.gain1_cb.SetValue(item_value)
+                elif item_key == "gain2":
+                    self.gain2_cb.SetValue(item_value)
+                elif item_key == "gain3":
+                    self.gain3_cb.SetValue(item_value)
+                elif item_key == "sps0":
+                    self.sps_0_cb.SetValue(item_value)
+                elif item_key == "sps1":
+                    self.sps_1_cb.SetValue(item_value)
+                elif item_key == "sps2":
+                    self.sps_2_cb.SetValue(item_value)
+                elif item_key == "sps3":
+                    self.sps_3_cb.SetValue(item_value)
+                elif item_key == "show0":
+                    self.show_as_0_cb.SetValue(item_value)
+                elif item_key == "show1":
+                    self.show_as_1_cb.SetValue(item_value)
+                elif item_key == "show2":
+                    self.show_as_2_cb.SetValue(item_value)
+                elif item_key == "show3":
+                    self.show_as_3_cb.SetValue(item_value)
+                elif item_key == "centralise0":
+                    self.centralise_0.SetValue(bool(item_value))
+                elif item_key == "centralise1":
+                    self.centralise_1.SetValue(bool(item_value))
+                elif item_key == "centralise2":
+                    self.centralise_2.SetValue(bool(item_value))
+                elif item_key == "centralise3":
+                    self.centralise_3.SetValue(bool(item_value))
+                elif item_key == "gain":
+                    self.gain0_cb.SetValue(item_value)
+                    self.gain1_cb.SetValue(item_value)
+                    self.gain2_cb.SetValue(item_value)
+                    self.gain3_cb.SetValue(item_value)
+                elif item_key == "sps":
+                    self.sps_0_cb.SetValue(item_value)
+                    self.sps_1_cb.SetValue(item_value)
+                    self.sps_2_cb.SetValue(item_value)
+                    self.sps_3_cb.SetValue(item_value)
+                elif item_key == "show":
+                    self.show_as_0_cb.SetValue(item_value)
+                    self.show_as_1_cb.SetValue(item_value)
+                    self.show_as_2_cb.SetValue(item_value)
+                    self.show_as_3_cb.SetValue(item_value)
+                elif item_key == "centralise":
+                    self.centralise_0.SetValue(bool(item_value))
+                    self.centralise_1.SetValue(bool(item_value))
+                    self.centralise_2.SetValue(bool(item_value))
+                    self.centralise_3.SetValue(bool(item_value))
+
 
     def read_ads1115_click(self, e):
         script_path = "/home/" + pi_link_pnl.target_user + "/Pigrow/scripts/sensors/log_ads1115.py "
+        test_log = "/home/" + pi_link_pnl.target_user + "/Pigrow/logs/ads1115_button_test.txt"
         arg_extra = self.make_extra_settings_string()
-        cmd = script_path + "log=none address=" + self.loc_cb.GetValue()[0:3] + arg_extra
+        arg_extra = arg_extra.replace(":", "=")
+        cmd = script_path + "log=" + test_log + " address=" + self.loc_cb.GetValue()[0:3] + arg_extra
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi(cmd)
         val1 = None
         for line in out.splitlines():
@@ -7554,40 +7692,40 @@ class ads1115_dialog(wx.Dialog):
         # make a text string for each channel
         a0_sets = ""
         if not new_a0_gain == "":
-            a0_sets += " gain0=" + new_a0_gain
+            a0_sets += " gain0:" + new_a0_gain
         if not new_a0_sps == "":
-            a0_sets += " sps0=" + new_a0_sps
+            a0_sets += " sps0:" + new_a0_sps
         if not new_a0_show_as == "":
-            a0_sets += " show0=" + new_a0_show_as
+            a0_sets += " show0:" + new_a0_show_as
         if not new_a0_centralise == "False":
-            a0_sets += " centralise0=" + new_a0_centralise
+            a0_sets += " centralise0:" + new_a0_centralise
         a1_sets = ""
         if not new_a1_gain == "":
-            a1_sets += " gain1=" + new_a1_gain
+            a1_sets += " gain1:" + new_a1_gain
         if not new_a1_sps == "":
-            a1_sets += " sps1=" + new_a1_sps
+            a1_sets += " sps1:" + new_a1_sps
         if not new_a1_show_as == "":
-            a1_sets += " show1=" + new_a1_show_as
+            a1_sets += " show1:" + new_a1_show_as
         if not new_a1_centralise == "False":
-            a1_sets += " centralise1=" + new_a1_centralise
+            a1_sets += " centralise1:" + new_a1_centralise
         a2_sets = ""
         if not new_a2_gain == "":
-            a2_sets += " gain2=" + new_a2_gain
+            a2_sets += " gain2:" + new_a2_gain
         if not new_a2_sps == "":
-            a2_sets += " sps2=" + new_a2_sps
+            a2_sets += " sps2:" + new_a2_sps
         if not new_a2_show_as == "":
-            a2_sets += " show2=" + new_a2_show_as
+            a2_sets += " show2:" + new_a2_show_as
         if not new_a2_centralise == "False":
-            a2_sets += " centralise2=" + new_a2_centralise
+            a2_sets += " centralise2:" + new_a2_centralise
         a3_sets = ""
         if not new_a3_gain == "":
-            a3_sets += " gain3=" + new_a3_gain
+            a3_sets += " gain3:" + new_a3_gain
         if not new_a3_sps == "":
-            a3_sets += " sps3=" + new_a3_sps
+            a3_sets += " sps3:" + new_a3_sps
         if not new_a3_show_as == "":
-            a3_sets += " show3=" + new_a3_show_as
+            a3_sets += " show3:" + new_a3_show_as
         if not new_a3_centralise == "False":
-            a3_sets += " centralise3=" + new_a3_centralise
+            a3_sets += " centralise3:" + new_a3_centralise
         # put all four together
         o_extra = a0_sets + a1_sets + a2_sets + a3_sets
         return o_extra
@@ -7658,6 +7796,7 @@ class ads1115_dialog(wx.Dialog):
             print(self.log_tc.GetValue())
             print(sensor_loc)
             args_extra = self.make_extra_settings_string()
+            args_extra = args_extra.replace(":","=")
             cron_args    = "log=" + self.log_tc.GetValue() + " address=" + sensor_loc + args_extra
             cron_comment = cron_list_pnl.repeat_cron.GetItem(line_number_repeting_cron, 5).GetText()
             timing_string = cron_info_pnl.make_repeating_cron_timestring(self, job_repeat, job_repnum)
@@ -8021,7 +8160,7 @@ class chirp_dialog(wx.Dialog):
         self.calibrate_btn.Bind(wx.EVT_BUTTON, self.calibrate_click)
 
     def calibrate_click(self, e):
-        print("oh shit this is gonna get cray-cray")
+        #print("oh shit this is gonna get cray-cray")
         warning_messaage =  "Are you sure you want to calibrate this sensor, it'll take ages "
         warning_messaage += "and you'll need to have a glass of water handy. \n\n"
         warning_messaage += "Please make sure nothing else is using the sensor at the same time."
