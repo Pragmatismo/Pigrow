@@ -1473,29 +1473,28 @@ class install_dialog(wx.Dialog):
         # Core
         label_core = wx.StaticText(self,  label='Core components;')
         label_core.SetFont(sub_title_font)
-        pigrow_base_check = wx.StaticText(self,  label='Pigrow base')
-        self.cron_check = wx.StaticText(self,  label='crontab')
+        self.pigrow_base_check = wx.CheckBox(self,  label='Pigrow base')
+        self.cron_check = wx.CheckBox(self,  label='crontab')
         # sensors
         label_sensors = wx.StaticText(self,  label='Sensors;')
         label_sensors.SetFont(sub_title_font)
-        self.adaDHT_check = wx.StaticText(self,  label='Adafruit_DHT')
-        self.dht_btn = wx.Button(self, label='install', size=(70, 30))
-        self.dht_btn.Bind(wx.EVT_BUTTON, self.ada_dht_click)
+        self.adaDHT_check = wx.CheckBox(self,  label='Adafruit_DHT')
+        self.ada1115_check = wx.CheckBox(self,  label='Adafruit ADS1115')
         # Camera
         label_camera = wx.StaticText(self,  label='Camera;')
         label_camera.SetFont(sub_title_font)
-        self.uvccapture_check = wx.StaticText(self,  label='uvccapture')
+        self.uvccapture_check = wx.CheckBox(self,  label='uvccapture')
         # Visualisation
         label_visualisation = wx.StaticText(self,  label='Visualisation;')
         label_visualisation.SetFont(sub_title_font)
-        self.matplotlib_check = wx.StaticText(self,  label='Matplotlib')
-        self.mpv_check = wx.StaticText(self,  label='mpv')
+        self.matplotlib_check = wx.CheckBox(self,  label='Matplotlib')
+        self.mpv_check = wx.CheckBox(self,  label='mpv')
         # Networking
         label_networking = wx.StaticText(self,  label='Networking;')
         label_networking.SetFont(sub_title_font)
-        self.praw_check = wx.StaticText(self,  label='praw')
-        self.sshpass_check = wx.StaticText(self,  label='sshpass')
-        self.pexpect_check = wx.StaticText(self,  label='pexpect')
+        self.praw_check = wx.CheckBox(self,  label='praw')
+        self.sshpass_check = wx.CheckBox(self,  label='sshpass')
+        self.pexpect_check = wx.CheckBox(self,  label='pexpect')
         #status text
         self.currently_doing_l = wx.StaticText(self,  label="Currently:")
         self.currently_doing = wx.StaticText(self,  label='...')
@@ -1513,12 +1512,12 @@ class install_dialog(wx.Dialog):
         header_sizer.Add(header_sub, 0, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 3)
         base_sizer = wx.BoxSizer(wx.VERTICAL)
         base_sizer.Add(label_core, 0, wx.EXPAND|wx.ALL, 3)
-        base_sizer.Add(pigrow_base_check, 0, wx.EXPAND|wx.LEFT, 30)
+        base_sizer.Add(self.pigrow_base_check, 0, wx.EXPAND|wx.LEFT, 30)
         base_sizer.Add(self.cron_check, 0, wx.EXPAND|wx.LEFT, 30)
         sensor_sizer = wx.BoxSizer(wx.VERTICAL)
         sensor_sizer.Add(label_sensors, 0, wx.EXPAND|wx.ALL, 3)
         sensor_sizer.Add(self.adaDHT_check, 0, wx.EXPAND|wx.LEFT, 30)
-        sensor_sizer.Add(self.dht_btn, 0, wx.ALL, 3)
+        sensor_sizer.Add(self.ada1115_check, 0, wx.EXPAND|wx.LEFT, 30)
         camera_sizer = wx.BoxSizer(wx.VERTICAL)
         camera_sizer.Add(label_camera, 0, wx.EXPAND|wx.ALL, 3)
         camera_sizer.Add(self.uvccapture_check, 0, wx.EXPAND|wx.LEFT, 30)
@@ -1562,7 +1561,13 @@ class install_dialog(wx.Dialog):
 
         #run initial checks
         wx.Yield() #update screen to show changes
+        if not pi_link_pnl.get_box_name() == None:
+            self.pigrow_base_check.SetForegroundColour((75,200,75))
+        else:
+            self.pigrow_base_check.SetForegroundColour((255,75,75))
+            self.pigrow_base_check.SetValue(True)
         self.check_python_dependencies()
+        self.check_python3_dependencies()
         wx.Yield() #update screen to show changes
         self.check_program_dependencies()
 
@@ -1608,6 +1613,14 @@ class install_dialog(wx.Dialog):
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo pip install -U pip")
         print (out)
 
+    def update_pip3(self):
+        # update pip the python package manager
+        self.currently_doing.SetLabel("Updating PIP the python3 install manager")
+        self.progress.SetLabel("#########~~~~~~~~~~~~~~~~~~~~")
+        wx.Yield()
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo pip3 install -U pip")
+        print (out)
+
     def install_praw(self):
         # praw is the module for connecting to reddit
         self.currently_doing.SetLabel("Using pip to install praw")
@@ -1630,30 +1643,29 @@ class install_dialog(wx.Dialog):
         self.currently_doing.SetLabel("Using pip to install adafruit_DHT module")
         wx.Yield()
         adafruit_install, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo pip install Adafruit_DHT")
-        # the following is the old now obsolte method.
-        #print("installing dependencies using apt")
-        #self.currently_doing.SetLabel("Using apt to install adafruit_dht dependencies")
-        #self.progress.SetLabel("##########################~~~~~~")
-        #wx.Yield()
-        #adafruit_dep, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo apt --yes install build-essential python-dev python-openssl")
-        #print (adafruit_dep, error)
-        #print("- Downloading Adafruit_Python_DHT from Github")
-        #ada_dir = "/home/" + pi_link_pnl.target_user + "/Pigrow/resources/Adafruit_Python_DHT/"
-        #self.currently_doing.SetLabel("Using git to clone (download) the adafruit code")
-        #self.progress.SetLabel("###########################~~~~")
-        #wx.Yield()
-        #adafruit_clone, error = MainApp.localfiles_ctrl_pannel.run_on_pi("git clone https://github.com/adafruit/Adafruit_Python_DHT.git " + ada_dir)
-        #print((adafruit_clone, error))
-        #print("- Dependencies installed, running adafruit_dht : sudo python setup.py install")
-        #self.currently_doing.SetLabel("Using the adafruit_DHT setup.py to install the module")
-        #self.progress.SetLabel("#############################~~")
-        #wx.Yield()
-        #adafruit_install, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo python "+ ada_dir +" setup.py install")
-        #print(adafruit_install, error)
-        #self.currently_doing.SetLabel("...")
-        #self.progress.SetLabel("##############################~")
-        #wx.Yield()
         print (adafruit_install)
+
+    def install_adafruit_ads1115(self):
+        print("This currently does nothing, will soon install Adafruit's ADS1115 driver")
+        print("starting adafruit install")
+        self.progress.SetLabel("################~~~~~~~~~~~~~")
+        self.currently_doing.SetLabel("Using pip3 to install adafruit's ADS1x15 driver")
+        wx.Yield()
+        print(" - installing RPI-GPIO module")
+        GPIO_install, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo pip3 install RPI.GPIO")
+        print (GPIO_install)
+        print("-----")
+        print(error)
+        print(" - installing adafruit blinka module")
+        blinka_install, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo pip3 install adafruit-blinka")
+        print (blinka_install)
+        print("-----")
+        print(error)
+        print(" - installing adafruit ads1x15 module")
+        ads1115_install, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo pip3 install adafruit-circuitpython-ads1x15")
+        print (ads1115_install)
+        print("-----")
+        print(error)
 
     def install_all_apt(self):
         #updating apt package list
@@ -1696,15 +1708,52 @@ class install_dialog(wx.Dialog):
             self.uvccapture_check.SetForegroundColour((75,200,75))
         else:
             self.uvccapture_check.SetForegroundColour((255,75,75))
+            self.uvccapture_check.SetValue(True)
         if "mpv" in working_programs:
             self.mpv_check.SetForegroundColour((75,200,75))
         else:
             self.mpv_check.SetForegroundColour((255,75,75))
+            self.mpv_check.SetValue(True)
         if "sshpass" in working_programs:
             self.sshpass_check.SetForegroundColour((75,200,75))
         else:
             self.sshpass_check.SetForegroundColour((255,75,75))
+            self.sshpass_check.SetValue(True)
 
+    def test_py3_module(self, module):
+        module_question = """\
+"try:
+    import """ + module + """
+    print('True')
+except:
+    print('False')" """
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("python3 -c " + module_question)
+        return out
+
+
+    def check_python3_dependencies(self):
+        # Dependencies for ADS1115
+        ads1115_working = True
+        if "True" in self.test_py3_module("board"):
+            print("Adafruit board module installed")
+        else:
+            ads1115_working = False
+            print("Adafruit board module is NOT installed - this is required for the ads1115")
+        if "True" in self.test_py3_module("busio"):
+            print("Adafruit busio module installed")
+        else:
+            ads1115_working = False
+            print("Adafruit board module is NOT installed - this is required for the ads1115")
+        if "True" in self.test_py3_module("adafruit_ads1x15"):
+            print("Adafruit ADS1x15 module installed")
+        else:
+            ads1115_working = False
+            print("Adafruit ads1x15 module is NOT installed - this is required for the ads1115")
+        if ads1115_working == True:
+            self.ada1115_check.SetForegroundColour((75,200,75))
+        else:
+            self.ada1115_check.SetForegroundColour((255,75,75))
+            self.ada1115_check.SetValue(True)
 
     def check_python_dependencies(self):
         python_dependencies = ["matplotlib", "Adafruit_DHT", "praw", "pexpect", "crontab"]
@@ -1721,17 +1770,6 @@ except:
     print('False')" """
 #that gets run with bash on the pi in this next line
             out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("python -c " + module_question)
-        # this is the old way that doesn't always work
-            #out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("python -m " + str(module))
-            #if len(out) > 0:
-            #    working_modules.append(module)
-            #    print("WARNING I THINK THAT MODULE " + module + " may have just run... it's probably fine though." )
-            #elif len(error) > 0:
-            #    if not "is a package and cannot be directly executed" in error and not "No code object available for" in error:
-            #        nonworking_modules.append(module)
-            #    else:
-            #        working_modules.append(module)
-        # that was the old way
             if "True" in out:
                 working_modules.append(module)
             else:
@@ -1741,50 +1779,65 @@ except:
             self.matplotlib_check.SetForegroundColour((75,200,75))
         else:
             self.matplotlib_check.SetForegroundColour((255,75,75))
+            self.matplotlib_check.SetValue(True)
         wx.Yield()
         if "Adafruit_DHT" in working_modules:
             self.adaDHT_check.SetForegroundColour((75,200,75))
         else:
             self.adaDHT_check.SetForegroundColour((255,75,75))
+            self.adaDHT_check.SetValue(True)
         if "crontab" in working_modules:
             self.cron_check.SetForegroundColour((75,200,75))
         else:
             self.cron_check.SetForegroundColour((255,75,75))
+            self.cron_check.SetValue(True)
         if "praw" in working_modules:
             self.praw_check.SetForegroundColour((75,200,75))
         else:
             self.praw_check.SetForegroundColour((255,75,75))
+            self.praw_check.SetValue(True)
         if "pexpect" in working_modules:
             self.pexpect_check.SetForegroundColour((75,200,75))
         else:
             self.pexpect_check.SetForegroundColour((255,75,75))
+            self.pexpect_check.SetValue(True)
 
     def start_click(self, e):
         print("Install process started;")
         self.progress.SetLabel("##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
         wx.Yield()
-        self.install_pigrow()
-        self.progress.SetLabel("#######~~~~~~~~~~~~~~~~~~~~~~~~")
-        wx.Yield()
-        self.update_pip()
-        self.install_praw()
-        self.install_pexpect()
-        self.install_adafruit_DHT()
+        # Base installed via Git Clone
+        if self.pigrow_base_check.GetValue == True:
+            self.install_pigrow()
+            self.progress.SetLabel("#######~~~~~~~~~~~~~~~~~~~~~~~~")
+            wx.Yield()
+        # Dependencies installed using pip
+        if self.praw_check.GetValue() == True or self.pexpect_check.GetValue() == True or self.adaDHT_check.GetValue() == True:
+            self.update_pip()
+        if self.ada1115_check.GetValue() == True:
+            self.update_pip3()
+        if self.praw_check.GetValue() == True:
+            self.install_praw()
+        if self.pexpect_check.GetValue() == True:
+            self.install_pexpect()
+        if self.adaDHT_check.GetValue() == True:
+            self.install_adafruit_DHT()
+        if self.ada1115_check.GetValue() == True:
+            self.install_adafruit_ads1115()
+
         self.progress.SetLabel("##############~~~~~~~~~~~~~~~~~")
         wx.Yield()
-        self.install_all_apt()
+        # Dependencies installed using apt
+
+        #self.install_all_apt()
         self.progress.SetLabel("#######################~~~~~~~~")
         wx.Yield()
+
+        # Final message
         self.progress.SetLabel("####### INSTALL COMPLETE ######")
         wx.Yield()
         self.start_btn.Disable()
         self.cancel_btn.SetLabel("OK")
-
-    def ada_dht_click(self, e):
-        self.install_adafruit_DHT()
-        self.progress.SetLabel("####### INSTALLED adafruit dht22 module ######")
-        wx.Yield()
-
 
     def cancel_click(self, e):
         self.Destroy()
@@ -8855,7 +8908,7 @@ class pi_link_pnl(wx.Panel):
             self.tb_pass.Disable()
             self.seek_for_pigrows_btn.Disable()
 
-    def get_box_name(self):
+    def get_box_name(self=None):
         boxname = None
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("cat /home/" + pi_link_pnl.target_user + "/Pigrow/config/pigrow_config.txt | grep box_name")
         if "=" in out:
