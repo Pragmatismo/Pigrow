@@ -1667,28 +1667,47 @@ class install_dialog(wx.Dialog):
         print("-----")
         print(error)
 
-    def install_all_apt(self):
-        #updating apt package list
+    def update_apt(self):
         self.currently_doing.SetLabel("updating apt the system package manager on the raspberry pi")
         self.progress.SetLabel("################~~~~~~~~~~~~~~~")
         wx.Yield()
-        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo apt update --yes")
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo apt-get update --yes")
         print (out, error)
-        #installing dependencies with apt
-        self.currently_doing.SetLabel("using apt to install matplot lib, sshpass, python-crontab")
-        self.progress.SetLabel("##################~~~~~~~~~~~~~")
-        wx.Yield()
-        python_dep, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo apt --yes install python-matplotlib sshpass python-crontab")
-        print (python_dep, error)
-        self.currently_doing.SetLabel("Using apt to install uvccaptre and mpv")
+
+    def install_uvccaptre(self):
+        self.currently_doing.SetLabel("Using apt to install uvccaptre")
         self.progress.SetLabel("####################~~~~~~~~~~~")
         wx.Yield()
-        image_dep, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo apt --yes install uvccapture mpv")
-        print (image_dep, error)
-        self.currently_doing.SetLabel("..")
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo apt-get --yes install uvccapture")
+        print (out, error)
+
+    def install_mpv(self):
+        self.currently_doing.SetLabel("Using apt to install mpv")
+        self.progress.SetLabel("#####################~~~~~~~~~~")
+        wx.Yield()
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo apt-get --yes install mpv")
+        print (out, error)
+
+    def install_python_matplotlib(self):
+        self.currently_doing.SetLabel("Using apt to install python-matplotlib")
         self.progress.SetLabel("######################~~~~~~~~~")
         wx.Yield()
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo apt-get --yes install python-matplotlib")
+        print (out, error)
 
+    def install_sshpass(self):
+        self.currently_doing.SetLabel("Using apt to install sshpass")
+        self.progress.SetLabel("#######################~~~~~~~~~")
+        wx.Yield()
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo apt-get --yes install sshpass")
+        print (out, error)
+
+    def install_python_crontab(self):
+        self.currently_doing.SetLabel("Using apt to install python-crontab")
+        self.progress.SetLabel("########################~~~~~~~")
+        wx.Yield()
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo apt-get --yes install python-crontab")
+        print (out, error)
 
     def check_program_dependencies(self):
         program_dependencies = ["sshpass", "uvccapture", "mpv"]
@@ -1814,24 +1833,30 @@ except:
         # Dependencies installed using pip
         if self.praw_check.GetValue() == True or self.pexpect_check.GetValue() == True or self.adaDHT_check.GetValue() == True:
             self.update_pip()
-        if self.ada1115_check.GetValue() == True:
-            self.update_pip3()
         if self.praw_check.GetValue() == True:
             self.install_praw()
         if self.pexpect_check.GetValue() == True:
             self.install_pexpect()
         if self.adaDHT_check.GetValue() == True:
             self.install_adafruit_DHT()
+        # installed using update_pip3
+        if self.ada1115_check.GetValue() == True:
+            self.update_pip3()
         if self.ada1115_check.GetValue() == True:
             self.install_adafruit_ads1115()
-
-        self.progress.SetLabel("##############~~~~~~~~~~~~~~~~~")
-        wx.Yield()
         # Dependencies installed using apt
-
-        #self.install_all_apt()
-        self.progress.SetLabel("#######################~~~~~~~~")
-        wx.Yield()
+        if self.uvccapture_check.GetValue() == True or self.mpv_check.GetValue() == True or self.sshpass_check.GetValue() == True or self.matplotlib_check.GetValue() == True or self.cron_check.GetValue() == True:
+            self.update_apt()
+        if self.uvccapture_check.GetValue() == True:
+            self.install_uvccaptre()
+        if self.mpv_check.GetValue() == True:
+            self.install_mpv()
+        if self.sshpass_check.GetValue() == True:
+            self.install_sshpass()
+        if self.matplotlib_check.GetValue() == True:
+            self.install_python_matplotlib()
+        if self.cron_check.GetValue() == True:
+            self.install_python_crontab()
 
         # Final message
         self.progress.SetLabel("####### INSTALL COMPLETE ######")
@@ -4069,9 +4094,11 @@ class localfiles_info_pnl(scrolled.ScrolledPanel):
         localfiles_info_pnl.photo_text = wx.StaticText(self,  label='photo text')
         localfiles_info_pnl.first_photo_title = wx.StaticText(self,  label='first image')
         blank_img = wx.Bitmap(255, 255)
-        localfiles_info_pnl.photo_folder_first_pic = wx.StaticBitmap(self, -1, blank_img, size=(255, 255))
+        localfiles_info_pnl.photo_folder_first_pic = wx.BitmapButton(self, -1, blank_img, size=(255, 255))
+        localfiles_info_pnl.photo_folder_first_pic.Bind(wx.EVT_BUTTON, self.first_img_click)
         localfiles_info_pnl.last_photo_title = wx.StaticText(self,  label='last image')
-        localfiles_info_pnl.photo_folder_last_pic = wx.StaticBitmap(self, -1, blank_img, size=(255, 255))
+        localfiles_info_pnl.photo_folder_last_pic = wx.BitmapButton(self, -1, blank_img, size=(255, 255))
+        localfiles_info_pnl.photo_folder_last_pic.Bind(wx.EVT_BUTTON, self.last_img_click)
         #file list boxes
         config_l = wx.StaticText(self,  label='Config', size=(75,25))
         config_l.SetFont(item_title_font)
@@ -4139,6 +4166,19 @@ class localfiles_info_pnl(scrolled.ScrolledPanel):
         self.SetSizer(main_sizer)
         self.SetupScrolling()
 
+    def first_img_click(self, e):
+        first = wx.Image(self.first_image_path, wx.BITMAP_TYPE_ANY)
+        first = first.ConvertToBitmap()
+        dbox = show_image_dialog(None, first, "First image")
+        dbox.ShowModal()
+        dbox.Destroy()
+
+    def last_img_click(self, e):
+        last = wx.Image(self.final_image_path, wx.BITMAP_TYPE_ANY)
+        last = last.ConvertToBitmap()
+        dbox = show_image_dialog(None, last, "Most recent image")
+        dbox.ShowModal()
+        dbox.Destroy()
 
     class config_file_list(wx.ListCtrl):
         def __init__(self, parent, id, pos=(25, 250), size=(550,200)):
@@ -4368,6 +4408,15 @@ class localfiles_ctrl_pnl(wx.Panel):
                         except Exception as e:
                             print(("-- reading remote caps folder failed; " + str(e)))
                             remote_caps = []
+                        if len(remote_caps) > 1:
+                            for file in remote_caps:
+                                if ".jpg" in file:
+                                    first_r_img_file = file
+                                    break
+                            for file in reversed(remote_caps):
+                                if ".jpg" in file:
+                                    last_r_img_file = file
+                                    break
                         # local caps files
                         if len(caps_files) > 1:
                             for file in caps_files:
@@ -4390,19 +4439,19 @@ class localfiles_ctrl_pnl(wx.Panel):
                                 length_of_local = last_dt - first_dt
                                 caps_message += '\n     ' + str(length_of_local)
                             #draw first and last imagess to the screen
-                            first_image_path = os.path.join(item_path, first_img_file)
-                            final_image_path = os.path.join(item_path, last_img_file)
-                            localfiles_info_pnl.draw_photo_folder_images(MainApp.localfiles_info_pannel, first_image_path, final_image_path)
+                            localfiles_info_pnl.first_image_path = os.path.join(item_path, first_img_file)
+                            localfiles_info_pnl.final_image_path = os.path.join(item_path, last_img_file)
+                            localfiles_info_pnl.draw_photo_folder_images(MainApp.localfiles_info_pannel, localfiles_info_pnl.first_image_path, localfiles_info_pnl.final_image_path)
                         caps_message += "\n" + str(len(remote_caps)) + " files on Pigrow \n"
                         # remote image files
                         if len(remote_caps) > 1:
                             try:
-                                first_remote, first_r_dt = self.filename_to_date(first_img_file)
+                                first_remote, first_r_dt = self.filename_to_date(first_r_img_file)
                             except:
                                 first_remote = "error"
                                 first_r_dt = None
                             try:
-                                last_remote, last_r_dt = self.filename_to_date(last_img_file)
+                                last_remote, last_r_dt = self.filename_to_date(last_r_img_file)
                             except:
                                 last_remote = "error"
                                 last_r_dt = None
@@ -5779,7 +5828,8 @@ class timelapse_info_pnl(wx.Panel):
         # placing the information boxes
         blank_img = wx.Bitmap(400, 400)
         self.first_img_l = wx.StaticText(self,  label='-first image- (date)')
-        self.first_image = wx.StaticBitmap(self, -1, blank_img, size=(400, 400))
+        self.first_image = wx.BitmapButton(self, -1, blank_img, size=(400, 400))
+        self.first_image.Bind(wx.EVT_BUTTON, self.first_image_click)
         first_prev_btn = wx.Button(self, label='<')
         first_prev_btn.Bind(wx.EVT_BUTTON, self.first_prev_click)
         self.first_frame_no = wx.TextCtrl(self, size=(75, 25), style=wx.TE_CENTRE)
@@ -5787,7 +5837,8 @@ class timelapse_info_pnl(wx.Panel):
         first_next_btn = wx.Button(self, label='>')
         first_next_btn.Bind(wx.EVT_BUTTON, self.first_next_click)
         self.last_img_l = wx.StaticText(self,  label='-last image- (date)')
-        self.last_image = wx.StaticBitmap(self, -1, blank_img, size=(400, 400))
+        self.last_image = wx.BitmapButton(self, -1, blank_img, size=(400, 400))
+        self.last_image.Bind(wx.EVT_BUTTON, self.last_image_click)
         last_prev_btn = wx.Button(self, label='<')
         last_prev_btn.Bind(wx.EVT_BUTTON, self.last_prev_click)
         self.last_frame_no = wx.TextCtrl(self, size=(75, 25), style=wx.TE_CENTRE)
@@ -5872,17 +5923,28 @@ class timelapse_info_pnl(wx.Panel):
         main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
         self.SetSizer(main_sizer)
 
+    def first_image_click(self, e):
+        first = self.first_ani_pic.ConvertToBitmap()
+        dbox = show_image_dialog(None, first, "First image")
+        dbox.ShowModal()
+        dbox.Destroy()
+
+    def last_image_click(self, e):
+        last = self.last_ani_pic.ConvertToBitmap()
+        dbox = show_image_dialog(None, last, "Last image")
+        dbox.ShowModal()
+        dbox.Destroy()
+
     def graph_clicked(self, e):
         bitmap = self.size_graph.Bitmap
         dbox = show_image_dialog(None, bitmap, "Graph")
         dbox.ShowModal()
         dbox.Destroy()
 
-
     def set_first_image(self, filename):
         try:
-            first = wx.Image(filename, wx.BITMAP_TYPE_ANY)
-            first = scale_pic(first, 400)
+            self.first_ani_pic = wx.Image(filename, wx.BITMAP_TYPE_ANY)
+            first = scale_pic(self.first_ani_pic, 400)
             first = first.ConvertToBitmap()
             MainApp.timelapse_info_pannel.first_image.SetBitmap(first)
             filename = filename.split("/")[-1]
@@ -5896,8 +5958,8 @@ class timelapse_info_pnl(wx.Panel):
 
     def set_last_image(self, filename):
         try:
-            last = wx.Image(filename, wx.BITMAP_TYPE_ANY)
-            last = scale_pic(last, 400)
+            self.last_ani_pic = wx.Image(filename, wx.BITMAP_TYPE_ANY)
+            last = scale_pic(self.last_ani_pic, 400)
             last = last.ConvertToBitmap()
             MainApp.timelapse_info_pannel.last_image.SetBitmap(last)
             filename = filename.split("/")[-1]
