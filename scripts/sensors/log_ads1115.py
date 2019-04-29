@@ -1,12 +1,15 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 import os
 import sys
 import time
 import datetime
 try:
-    import Adafruit_ADS1x15 #Requires adafruit ads1x15 installed
+    import board
+    import busio
+    import adafruit_ads1x15
+    from adafruit_ads1x15.analog_in import AnalogIn
 except:
-    print("Adafruit ADS1x15 python module not installed, instructions can be found easily via goodle")
+    print("Adafruit ADS1x15 python module not installed, use the remote gui to do so")
     sys.exit()
 #default values for setting up the adafruit ads1x15 module
 GAIN0 = 1
@@ -176,28 +179,31 @@ for argu in sys.argv[1:]:
             centralise3 = thevalue
 
 #setting up the adafruit sensor drivers
-adc = Adafruit_ADS1x15.ADS1115()
+i2c = busio.I2C(board.SCL, board.SDA)
+
 if sensor_type == "ads1115":
+    import adafruit_ads1x15.ads1115 as ADS
     if pin_address == "gnd":
-        adc = Adafruit_ADS1x15.ADS1115(address=0x48, busnum=i2c_busnum)
+        adc = ADS.ADS1115(i2c, address=0x48)
     elif pin_address == "vdd":
-        adc = Adafruit_ADS1x15.ADS1115(address=0x49, busnum=i2c_busnum)
+        adc = ADS.ADS1115(i2c, address=0x49)
     elif pin_address == "sda":
-        adc = Adafruit_ADS1x15.ADS1115(address=0x4A, busnum=i2c_busnum)
+        adc = ADS.ADS1115(i2c, address=0x4A)
     elif pin_address == "scl":
-        adc = Adafruit_ADS1x15.ADS1115(address=0x4B, busnum=i2c_busnum)
+        adc = ADS.ADS1115(i2c, address=0x4B)
     else:
         print("invalid pin address, try gnd vdd sda or scl instead")
         sys.exit()
 elif sensor_type == "ads1015":
+    import adafruit_ads1x15.ads1015 as ADS
     if pin_address == "gnd":
-        adc = Adafruit_ADS1x15.ADS1015(address=0x48, busnum=i2c_busnum)
+        adc = ADS.ADS1015(i2c, address=0x48)
     elif pin_address == "vdd":
-        adc = Adafruit_ADS1x15.ADS1015(address=0x49, busnum=i2c_busnum)
+        adc = ADS.ADS1015(i2c, address=0x49)
     elif pin_address == "sda":
-        adc = Adafruit_ADS1x15.ADS1015(address=0x4A, busnum=i2c_busnum)
+        adc = ADS.ADS1015(i2c, address=0x4A)
     elif pin_address == "scl":
-        adc = Adafruit_ADS1x15.ADS1015(address=0x4B, busnum=i2c_busnum)
+        adc = ADS.ADS0115(i2c, address=0x4B)
     else:
         print("invalid pin address, try gnd vdd sda or scl instead")
         sys.exit()
@@ -205,85 +211,56 @@ elif sensor_type == "ads1015":
 
 print("using log path : " + str(log_path))
 
+def set_channels():
+    chan0 = AnalogIn(adc, ADS.P0)
+    chan1 = AnalogIn(adc, ADS.P1)
+    chan2 = AnalogIn(adc, ADS.P2)
+    chan3 = AnalogIn(adc, ADS.P3)
+    return [chan0, chan1, chan2, chan3]
 
-def read_adc():
-    try:
-        val0 = adc.read_adc(0, gain=GAIN0, data_rate=samples_per_second0)
-        val1 = adc.read_adc(1, gain=GAIN1, data_rate=samples_per_second1)
-        val2 = adc.read_adc(2, gain=GAIN2, data_rate=samples_per_second2)
-        val3 = adc.read_adc(3, gain=GAIN3, data_rate=samples_per_second3)
-        #print val0, val1, val2, val3
-        return [val0, val1, val2, val3]
-    except Exception as e:
-        print("Reading sensor failed - " + str(e))
-        return None
-
-def convert_to_volt(vals):
-    # 2/3 gain =  0.1875mV (default) ###(not actually default from what i can tell)
+def read_adc(channels):
+    vals=["","","",""]
+    # chan 0
+    adc.gain = GAIN0
+    if show_as_0 == "volt" or show_as_0 == "percent":
+        vals[0] = round(channels[0].voltage, 5)
+    else:
+        vals[0] = channels[0].value
     # chan 1
-    if "volt" in show_as_0:
-        if GAIN0 == 1:
-            vals[0] = vals[0] * 0.125
-        if GAIN0 == 2:
-            vals[0] = vals[0] * 0.0625
-        if GAIN0 == 4:
-            vals[0] = vals[0] * 0.03125
-        if GAIN0 == 8:
-            vals[0] = vals[0] * 0.015625
-        if GAIN0 == 16:
-            vals[0] = vals[0] * 0.0078125
+    adc.gain = GAIN1
+    if show_as_1 == "volt" or show_as_1 == "percent":
+        vals[1] = round(channels[1].voltage, 5)
+    else:
+        vals[1] = channels[1].value
     # chan 2
-    if "volt" in show_as_1:
-        if GAIN1 == 1:
-            vals[1] = vals[1] * 0.125
-        if GAIN1 == 2:
-            vals[1] = vals[1] * 0.0625
-        if GAIN1 == 4:
-            vals[1] = vals[1] * 0.03125
-        if GAIN1 == 8:
-            vals[1] = vals[1] * 0.015625
-        if GAIN1 == 16:
-            vals[1] = vals[1] * 0.0078125
+    adc.gain = GAIN2
+    if show_as_2 == "volt" or show_as_2 == "percent":
+        vals[2] = round(channels[2].voltage, 5)
+    else:
+        vals[2] = channels[2].value
     # chan 3
-    if "volt" in show_as_2:
-        if GAIN2 == 1:
-            vals[2] = vals[2] * 0.125
-        if GAIN2 == 2:
-            vals[2] = vals[2] * 0.0625
-        if GAIN2 == 4:
-            vals[2] = vals[2] * 0.03125
-        if GAIN2 == 8:
-            vals[2] = vals[2] * 0.015625
-        if GAIN2 == 16:
-            vals[2] = vals[2] * 0.0078125
-    # chan 4
-    if "volt" in show_as_3:
-        if GAIN3 == 1:
-            vals[3] = vals[3] * 0.125
-        if GAIN3 == 2:
-            vals[3] = vals[3] * 0.0625
-        if GAIN3 == 4:
-            vals[3] = vals[3] * 0.03125
-        if GAIN3 == 8:
-            vals[3] = vals[3] * 0.015625
-        if GAIN3 == 16:
-            vals[3] = vals[3] * 0.0078125
+    adc.gain = GAIN3
+    if show_as_3 == "volt" or show_as_3 == "percent":
+        vals[3] = round(channels[3].voltage, 5)
+    else:
+        vals[3] = channels[3].value
     return vals
 
+
 def convert_to_percent(vals):
-    max_value = 32767
+    max_value = 3.2767
     if show_as_0 == "percent":
-        vals[0] = float(vals[0]) / float(32767) * 100
+        vals[0] = round(float(vals[0]) / float(max_value) * 100, 5)
     if show_as_1 == "percent":
-        vals[1] = float(vals[1]) / float(32767) * 100
+        vals[1] = round(float(vals[1]) / float(max_value) * 100, 5)
     if show_as_2 == "percent":
-        vals[2] = float(vals[2]) / float(32767) * 100
+        vals[2] = round(float(vals[2]) / float(max_value) * 100, 5)
     if show_as_3 == "percent":
-        vals[3] = float(vals[3]) / float(32767) * 100
+        vals[3] = round(float(vals[3]) / float(max_value) * 100, 5)
     return vals
 
 def centralise_posneg(vals):
-    max_value = 32767 # 1635.625 * 2
+    max_value = 3.2767
     halfway_point = max_value / 2
     if centralise0 == "true":
         vals[0] = vals[0] - halfway_point
@@ -296,13 +273,15 @@ def centralise_posneg(vals):
     return vals
 
 def log_ads1115(log_path, vals):
-    if not vals == None:
+    if not vals == ["","","",""]:
+        # add date
         timenow = str(datetime.datetime.now())
         log_entry  = timenow + ">"
-        log_entry += str(vals[0]) + ">"
-        log_entry += str(vals[1]) + ">"
-        log_entry += str(vals[2]) + ">"
-        log_entry += str(vals[3]) + "\n"
+        # list vals
+        for val in vals:
+            log_entry += str(val) + ">"
+        log_entry = log_entry[:-1]
+        # write to file
         if not log_path.lower() == "none":
             with open(log_path, "a") as f:
                 f.write(log_entry)
@@ -310,10 +289,10 @@ def log_ads1115(log_path, vals):
 
 
 if __name__ == '__main__':
-    vals = read_adc()
-    if not vals == None:
+    channels = set_channels()
+    vals = read_adc(channels)
+    if not vals == ["","","",""]:
         vals = centralise_posneg(vals)
-        vals = convert_to_volt(vals)
         vals = convert_to_percent(vals)
         log_ads1115(log_path, vals)
         #print vals
