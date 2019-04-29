@@ -31,8 +31,7 @@ centralise3 = False
 pin_address = "gnd"  #gnd,vdd,sda,sdl - use lower case because argu gets lowercased
 i2c_busnum = 1
 sensor_type = "ads1115"
-convert_volt = True #set false to record results without conversion
-centralise = False #set false not to centralise
+max_volt = 3.2767
 
 homedir = os.environ['HOME']
 
@@ -87,6 +86,9 @@ for argu in sys.argv[1:]:
         print(" centralise=true")
         print("             Centralises the data for sensors with +- values")
         print("  centralise0, centralise1, centralise2, centralise3 for individual channels")
+        print("")
+        print(" max_volt=3.2767")
+        print("            set the maximum voltage used to calculate percent and centralise")
         sys.exit()
     elif argu_l == '-flags':
         print("log=[LOG_PATH]")
@@ -113,6 +115,7 @@ for argu in sys.argv[1:]:
         print("centralise1=[true,false]")
         print("centralise2=[true,false]")
         print("centralise3=[true,false]")
+        print("max_volt=3.2767")
         sys.exit()
     elif "=" in argu_l:
         thearg = argu_l.split('=')[0]
@@ -177,6 +180,12 @@ for argu in sys.argv[1:]:
             centralise2 = thevalue
         elif thearg == "centralise3":
             centralise3 = thevalue
+        elif thearg == "max_volt":
+            try:
+                max_volt=float(thevalue)
+            except:
+                print("!!! max_volt= must be a number ")    
+
 
 #setting up the adafruit sensor drivers
 i2c = busio.I2C(board.SCL, board.SDA)
@@ -248,20 +257,19 @@ def read_adc(channels):
 
 
 def convert_to_percent(vals):
-    max_value = 3.2767
+    max_value = max_volt
     if show_as_0 == "percent":
-        vals[0] = round(float(vals[0]) / float(max_value) * 100, 5)
+        vals[0] = round(float(vals[0]) / float(max_volt) * 100, 5)
     if show_as_1 == "percent":
-        vals[1] = round(float(vals[1]) / float(max_value) * 100, 5)
+        vals[1] = round(float(vals[1]) / float(max_volt) * 100, 5)
     if show_as_2 == "percent":
-        vals[2] = round(float(vals[2]) / float(max_value) * 100, 5)
+        vals[2] = round(float(vals[2]) / float(max_volt) * 100, 5)
     if show_as_3 == "percent":
-        vals[3] = round(float(vals[3]) / float(max_value) * 100, 5)
+        vals[3] = round(float(vals[3]) / float(max_volt) * 100, 5)
     return vals
 
 def centralise_posneg(vals):
-    max_value = 3.2767
-    halfway_point = max_value / 2
+    halfway_point = max_volt / 2
     if centralise0 == "true":
         vals[0] = vals[0] - halfway_point
     if centralise1 == "true":
