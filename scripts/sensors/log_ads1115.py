@@ -194,7 +194,7 @@ for argu in sys.argv[1:]:
             try:
                 round_to = int(thevalue)
             except:
-                print("!!! round= must be a number, using default of 4)
+                print("!!! round= must be a number, using default of 4")
 
 
 #setting up the adafruit sensor drivers
