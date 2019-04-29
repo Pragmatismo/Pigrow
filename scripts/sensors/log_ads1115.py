@@ -32,6 +32,7 @@ pin_address = "gnd"  #gnd,vdd,sda,sdl - use lower case because argu gets lowerca
 i2c_busnum = 1
 sensor_type = "ads1115"
 max_volt = 3.2767
+round_to = 4
 
 homedir = os.environ['HOME']
 
@@ -89,6 +90,9 @@ for argu in sys.argv[1:]:
         print("")
         print(" max_volt=3.2767")
         print("            set the maximum voltage used to calculate percent and centralise")
+        print("")
+        print(" round=4")
+        print("            Round log values to N decimal places")
         sys.exit()
     elif argu_l == '-flags':
         print("log=[LOG_PATH]")
@@ -116,6 +120,7 @@ for argu in sys.argv[1:]:
         print("centralise2=[true,false]")
         print("centralise3=[true,false]")
         print("max_volt=3.2767")
+        print("round=4")
         sys.exit()
     elif "=" in argu_l:
         thearg = argu_l.split('=')[0]
@@ -184,7 +189,12 @@ for argu in sys.argv[1:]:
             try:
                 max_volt=float(thevalue)
             except:
-                print("!!! max_volt= must be a number ")    
+                print("!!! max_volt= must be a number, using default ")
+        elif thearg == "round":
+            try:
+                round_to = int(thevalue)
+            except:
+                print("!!! round= must be a number, using default of 4)
 
 
 #setting up the adafruit sensor drivers
@@ -232,25 +242,25 @@ def read_adc(channels):
     # chan 0
     adc.gain = GAIN0
     if show_as_0 == "volt" or show_as_0 == "percent":
-        vals[0] = round(channels[0].voltage, 5)
+        vals[0] = channels[0].voltage
     else:
         vals[0] = channels[0].value
     # chan 1
     adc.gain = GAIN1
     if show_as_1 == "volt" or show_as_1 == "percent":
-        vals[1] = round(channels[1].voltage, 5)
+        vals[1] = channels[1].voltage
     else:
         vals[1] = channels[1].value
     # chan 2
     adc.gain = GAIN2
     if show_as_2 == "volt" or show_as_2 == "percent":
-        vals[2] = round(channels[2].voltage, 5)
+        vals[2] = channels[2].voltage
     else:
         vals[2] = channels[2].value
     # chan 3
     adc.gain = GAIN3
     if show_as_3 == "volt" or show_as_3 == "percent":
-        vals[3] = round(channels[3].voltage, 5)
+        vals[3] = channels[3].voltage
     else:
         vals[3] = channels[3].value
     return vals
@@ -259,13 +269,13 @@ def read_adc(channels):
 def convert_to_percent(vals):
     max_value = max_volt
     if show_as_0 == "percent":
-        vals[0] = round(float(vals[0]) / float(max_volt) * 100, 5)
+        vals[0] = float(vals[0]) / float(max_volt) * 100
     if show_as_1 == "percent":
-        vals[1] = round(float(vals[1]) / float(max_volt) * 100, 5)
+        vals[1] = float(vals[1]) / float(max_volt) * 100
     if show_as_2 == "percent":
-        vals[2] = round(float(vals[2]) / float(max_volt) * 100, 5)
+        vals[2] = float(vals[2]) / float(max_volt) * 100
     if show_as_3 == "percent":
-        vals[3] = round(float(vals[3]) / float(max_volt) * 100, 5)
+        vals[3] = float(vals[3]) / float(max_volt) * 100
     return vals
 
 def centralise_posneg(vals):
@@ -287,7 +297,7 @@ def log_ads1115(log_path, vals):
         log_entry  = timenow + ">"
         # list vals
         for val in vals:
-            log_entry += str(val) + ">"
+            log_entry += str(round(val, round_to)) + ">"
         log_entry = log_entry[:-1]
         # write to file
         if not log_path.lower() == "none":
