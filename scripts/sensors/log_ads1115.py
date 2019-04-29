@@ -299,7 +299,7 @@ def log_ads1115(log_path, vals):
         for val in vals:
             log_entry += str(round(val, round_to)) + ">"
         log_entry = log_entry[:-1]
-        log_entry += "/n"
+        log_entry += "\n"
         # write to file
         if not log_path.lower() == "none":
             with open(log_path, "a") as f:
