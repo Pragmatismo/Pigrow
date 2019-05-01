@@ -1739,17 +1739,6 @@ class install_dialog(wx.Dialog):
             self.sshpass_check.SetForegroundColour((255,75,75))
             self.sshpass_check.SetValue(True)
 
-    def test_py3_module(self, module):
-        module_question = """\
-"try:
-    import """ + module + """
-    print('True')
-except:
-    print('False')" """
-        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("python3 -c " + module_question)
-        return out
-
-
     def check_python3_dependencies(self):
         # Dependencies for ADS1115
         ads1115_working = True
@@ -1780,19 +1769,12 @@ except:
         nonworking_modules = []
         for module in python_dependencies:
             #print module
-#this mess is the code that gets run on the pi
-            module_question = """\
-"try:
-    import """ + module + """
-    print('True')
-except:
-    print('False')" """
-#that gets run with bash on the pi in this next line
-            out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("python -c " + module_question)
+            out = self.test_py_module(module)
             if "True" in out:
                 working_modules.append(module)
             else:
                 nonworking_modules.append(module)
+        MainApp.status.write_bar("")
         # colour UI
         if "matplotlib" in working_modules:
             self.matplotlib_check.SetForegroundColour((75,200,75))
@@ -1866,6 +1848,30 @@ except:
 
     def cancel_click(self, e):
         self.Destroy()
+
+    def test_py_module(self, module):
+        msg = "  - Testing; " + module
+        MainApp.status.write_bar(msg)
+        print(msg)
+        module_question = """\
+"try:
+    import """ + module + """
+    print('True')
+except:
+    print('False')" """
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("python -c " + module_question)
+        return out
+
+    def test_py3_module(self, module):
+        module_question = """\
+"try:
+    import """ + module + """
+    print('True')
+except:
+    print('False')" """
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("python3 -c " + module_question)
+        return out
+
 
 #
 #
@@ -5856,6 +5862,8 @@ class timelapse_info_pnl(wx.Panel):
         ani_info_l = wx.StaticText(self,  label='Animation Info')
         self.ani_frame_count_l = wx.StaticText(self,  label='Frame Count')
         self.ani_frame_count_info = wx.StaticText(self,  label='-frame count-')
+        self.ani_length_l = wx.StaticText(self,  label='Length ')
+        self.ani_length_info = wx.StaticText(self,  label='--')
         # graph area - right side
         graph_opts = ['-', 'Filesize', 'Time difference']
         graph_l = wx.StaticText(self,  label='Graph;', pos=(165, 10))
@@ -5894,7 +5902,9 @@ class timelapse_info_pnl(wx.Panel):
             (self.spare_info, 0, wx.EXPAND)])
         ani_panel_sizer = wx.GridSizer(3, 2, 0, 0)
         ani_panel_sizer.AddMany([(self.ani_frame_count_l, 0, wx.EXPAND),
-            (self.ani_frame_count_info, 0, wx.EXPAND)])
+            (self.ani_frame_count_info, 0, wx.EXPAND),
+            (self.ani_length_l, 0, wx.EXPAND),
+            (self.ani_length_info, 0, wx.EXPAND),])
         text_panel_sizer = wx.BoxSizer(wx.VERTICAL)
         text_panel_sizer.AddStretchSpacer(1)
         text_panel_sizer.Add(file_info_l, 0, wx.ALL, 3)
@@ -6046,6 +6056,12 @@ class timelapse_info_pnl(wx.Panel):
         else:
             frame_count = len(MainApp.timelapse_ctrl_pannel.trimmed_frame_list)
             self.ani_frame_count_info.SetLabel(str(frame_count))
+        # set length_of_local
+        fps = int(MainApp.timelapse_ctrl_pannel.fps_tc.GetValue())
+        length_in_sec = frame_count / fps
+        length = datetime.timedelta(seconds=length_in_sec)
+        length = str(length).split(".")[0]
+        self.ani_length_info.SetLabel(length)
 
     def graph_combo_go(self, e):
         graph_to_show = self.graph_combo.GetValue()
@@ -6087,7 +6103,6 @@ class timelapse_info_pnl(wx.Panel):
         plt.savefig(graph_path)
         plt.close()
         return wx.Bitmap(graph_path)
-
 
 class timelapse_ctrl_pnl(wx.Panel):
     def __init__(self, parent):
