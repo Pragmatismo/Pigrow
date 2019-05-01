@@ -7351,12 +7351,17 @@ class sensors_info_pnl(wx.Panel):
                         job_extra = cron_list_pnl.repeat_cron.GetItem(index, 4).GetText()
                         extra_name  = "name=" + str(sensor)
                         if "log_chirp.py" in job_name:
-                            if extra_name in job_extra:
+                            if loc[4:] in job_extra:
                                 log_freq = cron_list_pnl.repeat_cron.GetItem(index, 2).GetText()
                                 freq_num, freq_text = cron_list_pnl.repeating_cron_list.parse_cron_string(self, log_freq)
                                 log_freq = str(freq_num) + " " + freq_text
                         if "log_dstemp.py" in job_name:
                             if loc in job_extra:
+                                log_freq = cron_list_pnl.repeat_cron.GetItem(index, 2).GetText()
+                                freq_num, freq_text = cron_list_pnl.repeating_cron_list.parse_cron_string(self, log_freq)
+                                log_freq = str(freq_num) + " " + freq_text
+                        if "log_ads1115.py" in job_name:
+                            if loc[0:3] in job_extra:
                                 log_freq = cron_list_pnl.repeat_cron.GetItem(index, 2).GetText()
                                 freq_num, freq_text = cron_list_pnl.repeating_cron_list.parse_cron_string(self, log_freq)
                                 log_freq = str(freq_num) + " " + freq_text
@@ -7478,7 +7483,7 @@ class sensors_ctrl_pnl(wx.Panel):
             log_path = MainApp.config_ctrl_pannel.dirlocs_dict["log_path"]
         MainApp.sensors_info_pannel.sensor_list.s_log = log_path
         MainApp.sensors_info_pannel.sensor_list.s_loc = ":"
-        MainApp.sensors_info_pannel.sensor_list.s_extra = "min:,max:"
+        MainApp.sensors_info_pannel.sensor_list.s_extra = "min: max:"
         MainApp.sensors_info_pannel.sensor_list.s_timing = ""
         # call the chirp config dialog box
         add_chirp_dbox = chirp_dialog(None, title='Chirp Sensor Config')
@@ -7566,7 +7571,7 @@ class ads1115_dialog(wx.Dialog):
         self.graph_btn = wx.Button(self, label='Graph', size=(175, 30))
         self.graph_btn.Bind(wx.EVT_BUTTON, self.graph_click)
         sensor_l = wx.StaticText(self,  label='Sensor Location')
-        # auto list temp sensors
+        # auto list i2c sensors
         asd_list = self.find_ads1115_devices()
              #---- add line here to remove sensors already added
         self.loc_cb = wx.ComboBox(self, choices = asd_list, size=(170, 25))
@@ -7583,6 +7588,11 @@ class ads1115_dialog(wx.Dialog):
         chan_1_l = wx.StaticText(self,  label='A1')
         chan_2_l = wx.StaticText(self,  label='A2')
         chan_3_l = wx.StaticText(self,  label='A3')
+        values_l = wx.StaticText(self,  label='Value:')
+        self.value_0_l = wx.StaticText(self,  label='--')
+        self.value_1_l = wx.StaticText(self,  label='--')
+        self.value_2_l = wx.StaticText(self,  label='--')
+        self.value_3_l = wx.StaticText(self,  label='--')
         gain_l = wx.StaticText(self,  label='Gain')
         gain_opts = ["1", "2", "4", "8", "16"]
         self.gain0_cb = wx.ComboBox(self, choices = gain_opts, size=(100, 30))
@@ -7610,6 +7620,12 @@ class ads1115_dialog(wx.Dialog):
         self.centralise_1 = wx.CheckBox(self, label='')
         self.centralise_2 = wx.CheckBox(self, label='')
         self.centralise_3 = wx.CheckBox(self, label='') # not yet properly supported in log_ads1115.py needs min and max points.
+        # universal setting_string_tb
+        max_volt_l = wx.StaticText(self,  label='Max Voltage')
+        self.max_volt_tc = wx.TextCtrl(self, value="3.2767", size=(400,30))
+        tound_to_l = wx.StaticText(self,  label='Round to ... decimal places')
+        self.round_to_tc = wx.TextCtrl(self, value="4", size=(400,30))
+
 
 
         # need four lines one for each channel, set value type, ranges, +- correction, and tools to perform tuning and calibration.
@@ -7633,12 +7649,17 @@ class ads1115_dialog(wx.Dialog):
             (loc_sizer, 0, wx.EXPAND),
             (timeing_l, 0, wx.EXPAND),
             (timing_sizer, 0, wx.EXPAND) ])
-        channels_sizer = wx.GridSizer(5, 5, 1, 4)
+        channels_sizer = wx.GridSizer(6, 5, 1, 4)
         channels_sizer.AddMany([ (chan_l, 0, wx.EXPAND),
             (chan_0_l, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL),
             (chan_1_l, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL),
             (chan_2_l, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL),
             (chan_3_l, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL),
+            (values_l, 0, wx.EXPAND),
+            (self.value_0_l, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL),
+            (self.value_1_l, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL),
+            (self.value_2_l, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL),
+            (self.value_3_l, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL),
             (gain_l, 0, wx.EXPAND),
             (self.gain0_cb, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL),
             (self.gain1_cb, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL),
@@ -7659,6 +7680,12 @@ class ads1115_dialog(wx.Dialog):
             (self.centralise_1, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL),
             (self.centralise_2, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL),
             (self.centralise_3, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL) ])
+        max_volt_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        max_volt_sizer.Add(max_volt_l, 0,  wx.ALL, 3)
+        max_volt_sizer.Add(self.max_volt_tc, 0,  wx.ALL, 3)
+        round_to_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        round_to_sizer.Add(tound_to_l, 0,  wx.ALL, 3)
+        round_to_sizer.Add(self.round_to_tc, 0,  wx.ALL, 3)
         buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
         buttons_sizer.Add(self.add_btn, 0,  wx.ALIGN_LEFT, 3)
         buttons_sizer.Add(self.cancel_btn, 0,  wx.ALIGN_RIGHT, 3)
@@ -7667,6 +7694,8 @@ class ads1115_dialog(wx.Dialog):
         main_sizer.Add(options_sizer, 0, wx.ALL|wx.EXPAND, 3)
         main_sizer.AddStretchSpacer(1)
         main_sizer.Add(channels_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
+        main_sizer.Add(max_volt_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
+        main_sizer.Add(round_to_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
         main_sizer.AddStretchSpacer(1)
         main_sizer.Add(buttons_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
         main_sizer.AddStretchSpacer(1)
@@ -7744,6 +7773,10 @@ class ads1115_dialog(wx.Dialog):
                     self.centralise_1.SetValue(bool(item_value))
                     self.centralise_2.SetValue(bool(item_value))
                     self.centralise_3.SetValue(bool(item_value))
+                elif item_key == "max_volt":
+                    self.max_volt_tc.SetValue(item_value)
+                elif item_key == "round":
+                    self.round_to_tc.SetValue(item_value)
 
 
     def read_ads1115_click(self, e):
@@ -7753,16 +7786,20 @@ class ads1115_dialog(wx.Dialog):
         arg_extra = arg_extra.replace(":", "=")
         cmd = script_path + "log=" + test_log + " address=" + self.loc_cb.GetValue()[0:3] + arg_extra
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi(cmd)
-        val1 = None
+        val0 = None
         for line in out.splitlines():
             if "Written;" in line:
                 line = line.split(">")
-                val1 = line[1]
-                val2 = line[2]
-                val3 = line[3]
-                val4 = line[4]
-                print(val1, val2, val3, val4)
-        if val1 == None:
+                val0 = line[1]
+                val1 = line[2]
+                val2 = line[3]
+                val3 = line[4]
+                print("ads1115 reading; ", val0, val1, val2, val3)
+                self.value_0_l.SetLabel(val0)
+                self.value_1_l.SetLabel(val1)
+                self.value_2_l.SetLabel(val2)
+                self.value_3_l.SetLabel(val3)
+        if val0 == None:
             print("Could not read ADS1115 located at " + self.loc_cb.GetValue())
 
     def find_ads1115_devices(self):
@@ -7777,7 +7814,7 @@ class ads1115_dialog(wx.Dialog):
 
     def graph_click(self, e):
         log = self.log_tc.GetValue()
-        print("wants to graph ds18b20 log - " + log)
+        print("Graphing ads1115 log - " + log)
         MainApp.graphing_ctrl_pannel.graph_cb.SetValue('Pigrow')
         MainApp.graphing_ctrl_pannel.select_script_cb.SetValue('graph_ads1115.py')
         #MainApp.graphing_ctrl_pannel.get_opts_tb.SetValue(True)
@@ -7803,6 +7840,14 @@ class ads1115_dialog(wx.Dialog):
         new_a1_centralise= str(self.centralise_1.GetValue())
         new_a2_centralise= str(self.centralise_2.GetValue())
         new_a3_centralise= str(self.centralise_3.GetValue())
+        new_max_volt = self.max_volt_tc.GetValue()
+        if new_max_volt == "":
+            new_max_volt = "3.2767"
+            self.max_volt_tc.SetValue(new_max_volt)
+        new_round_to = self.round_to_tc.GetValue()
+        if new_round_to == "":
+            new_round_to = "4"
+            self.round_to_tc.SetValue(new_round_to)
         # create args string
         # make a text string for each channel
         a0_sets = ""
@@ -7841,8 +7886,13 @@ class ads1115_dialog(wx.Dialog):
             a3_sets += " show3:" + new_a3_show_as
         if not new_a3_centralise == "False":
             a3_sets += " centralise3:" + new_a3_centralise
+        universal_sets = ""
+        if not new_max_volt == "3.2767":
+            universal_sets += " max_volt:" + new_max_volt
+        if not new_round_to == "4":
+            universal_sets += " round:" + new_round_to
         # put all four together
-        o_extra = a0_sets + a1_sets + a2_sets + a3_sets
+        o_extra = a0_sets + a1_sets + a2_sets + a3_sets + universal_sets
         return o_extra
 
     def add_click(self, e):
@@ -7867,8 +7917,8 @@ class ads1115_dialog(wx.Dialog):
                         changed = "nothing"
                         #nothing has changed in the config file so no need to update.
         # check to see if changes have been made to the cron timing
-        if self.timing_string == new_timing_string:
-            print(" -- Timing string didn't change -- ")
+        if self.timing_string == new_timing_string and changed == "nothing":
+            print(" -- Timing string didn't change, not did any settings -- ")
         else:
             self.edit_cron_job(o_log, o_loc[0:3], new_cron_txt, new_cron_num)
 
@@ -7892,10 +7942,10 @@ class ads1115_dialog(wx.Dialog):
         for index in range(0, cron_list_pnl.repeat_cron.GetItemCount()):
             cmd_path = cron_list_pnl.repeat_cron.GetItem(index, 3).GetText()
             if "log_ads1115.py" in cmd_path:
-                print(" found - " + cmd_path)
+                print("    -Found  ;- " + cmd_path)
                 cmd_args = cron_list_pnl.repeat_cron.GetItem(index, 4).GetText()
-                if o_loc in cmd_args:
-                    print("Located " + o_loc)
+                if o_loc[0:3].lower() in cmd_args.lower():
+                    print("    -Located; " + o_loc)
                     line_number_repeting_cron = index
         # check to see if this is a new job or not
         if not line_number_repeting_cron == -1:
@@ -7906,10 +7956,8 @@ class ads1115_dialog(wx.Dialog):
                 sensor_args = cron_args_original.split("address=")[1].split(" ")[0]
                 sensor_loc = self.loc_cb.GetValue()[0:3]
             else:
-                print("Sorry, address= not found in cronjob, try deleting cronjob and adding this sensor again")
+                print("Sorry, address= not found in cronjob, try deleting the cronjob and adding this sensor again")
                 return None
-            print(self.log_tc.GetValue())
-            print(sensor_loc)
             args_extra = self.make_extra_settings_string()
             args_extra = args_extra.replace(":","=")
             cron_args    = "log=" + self.log_tc.GetValue() + " address=" + sensor_loc + args_extra
@@ -7923,7 +7971,9 @@ class ads1115_dialog(wx.Dialog):
             print("Job not currently in cron, adding it...")
             cron_enabled = "True"
             cron_task = "/home/" + pi_link_pnl.target_user + "/Pigrow/scripts/sensors/log_ads1115.py"
-            cron_args = "log=" + self.log_tc.GetValue() + " address=" + self.loc_cb.GetValue()[0:3]
+            args_extra = self.make_extra_settings_string()
+            args_extra = args_extra.replace(":","=")
+            cron_args = "log=" + self.log_tc.GetValue() + " address=" + self.loc_cb.GetValue()[0:3] + " " + args_extra
             timing_string = cron_info_pnl.make_repeating_cron_timestring(self, job_repeat, job_repnum)
             cron_comment = ""
             cron_info_pnl.add_to_repeat_list(MainApp.cron_info_pannel, 'new', cron_enabled, timing_string, cron_task, cron_args, cron_comment)
@@ -8083,8 +8133,8 @@ class ds18b20_dialog(wx.Dialog):
                         changed = "nothing"
                         #nothing has changed in the config file so no need to update.
         # check to see if changes have been made to the cron timing
-        if self.timing_string == new_timing_string:
-            print(" -- Timing string didn't change -- ")
+        if self.timing_string == new_timing_string and changed == "nothing":
+            print(" -- Timing string didn't change or any cron settings -- ")
         else:
             self.edit_cron_job(o_log, o_loc, new_cron_txt, new_cron_num)
 
@@ -8169,14 +8219,14 @@ class chirp_dialog(wx.Dialog):
             sensor_chirp01_type=chirp
             sensor_chirp01_log=/home/pi/Pigrow/logs/chirp01.txt
             sensor_chirp01_loc=i2c:0x31
-            sensor_chirp01_extra=min:100,max:1000,etc:,etc:etc,etc
+            sensor_chirp01_extra=min:100 max:1000 etc: etc:
      The gui uses it in the sensor table on the sensors tab;
          sensor_table
             0   name = chirp01
             1   type = chirp
             2   log = /home/pi/Pigrow/logs/chirp01.txt
             3   loc = i2c:0x31
-            4   extra = min:100,max:1000,etc:,etc:etc,etc # split with "," to make lists
+            4   extra = min:100 max:1000 etc: etc:etc,etc # split with " " to make lists
                                                        # then settings are split with ":"
         """
     def __init__(self, *args, **kw):
@@ -8199,8 +8249,8 @@ class chirp_dialog(wx.Dialog):
             s_rep = ""
             s_rep_txt = ""
         # Split s_extra into a list called extras
-        if "," in self.s_extra:
-            extras = self.s_extra.split(",")
+        if " " in self.s_extra:
+            extras = self.s_extra.split(" ")
         else:
             extras = [self.s_extra]
         # Sort list of extras for important information
@@ -8337,19 +8387,9 @@ class chirp_dialog(wx.Dialog):
         o_type = "chirp"
         o_log = self.log_tc.GetValue()
         o_loc = self.wire_type_combo.GetValue() + ":" + self.wire_loc_tc.GetValue()
-        o_min = self.min_tc.GetValue()
-        o_max = self.max_tc.GetValue()
-        min_max = "min:" + o_min + ",max:" + o_max + ","
-        o_extra = min_max + self.extra_tc.GetValue()
-        if o_extra[-1] == ",":
-            o_extra = o_extra[:-1]
-        # print("adding; ")
-        # print(o_name)
-        # print(o_type)
-        # print(o_log)
-        # print(o_loc)
-        # print(o_extra)
-        # print("______")
+        o_extra = self.make_extra_settings_string()
+        new_cron_num = self.rep_num_tc.GetValue()
+        new_cron_txt = self.rep_opts_cb.GetValue()
         changed = "probably something"
         if self.s_name == o_name:
             #print("name not changed")
@@ -8366,10 +8406,10 @@ class chirp_dialog(wx.Dialog):
         new_num = self.rep_num_tc.GetValue()
         new_txt = self.rep_opts_cb.GetValue()
         new_timing_string = str(new_num) + " " + new_txt
-        if self.timing_string == new_timing_string:
-            print(" -- Timing string didn't change -- ")
+        if self.timing_string == new_timing_string and changed == "nothing":
+            print(" -- Timing string didn't change or any settings referenced in cron -- ")
         else:
-            print(" !!! cron job needs to change for this sensor, not doing it tho !!! ")
+            self.edit_cron_job(o_log, o_loc, new_cron_txt, new_cron_num)
 
         # config file changes
         if changed == "nothing":
@@ -8377,18 +8417,65 @@ class chirp_dialog(wx.Dialog):
         else:
             print("!-!-!-! CONFIG SETTINGS CHANGED !-!-!-!")
             MainApp.sensors_info_pannel.sensor_list.add_to_sensor_list(o_name,o_type,o_log,o_loc,o_extra)
-            print(" MOVE THE LINE ABOVE THIS TO THE CORRECT LOCATION")
-            print(" IT NEEDS TO GO AFTER THE DBOX HAS BEEN CALLED AND PULL THE INFO")
-            print(" SO IT CAN DECIDE IF IT NEEDS TO ADD NEW OR UPDATE THE LINE")
-            print("                    ##yawn##")
-            print("")
+            #print(" MOVE THE LINE ABOVE THIS TO THE CORRECT LOCATION")
+            #print(" IT NEEDS TO GO AFTER THE DBOX HAS BEEN CALLED AND PULL THE INFO")
+            #print(" SO IT CAN DECIDE IF IT NEEDS TO ADD NEW OR UPDATE THE LINE")
+            #print("                    ##yawn##")
+            #print("")
             MainApp.config_ctrl_pannel.config_dict["sensor_" + o_name + "_type"] = o_type
             MainApp.config_ctrl_pannel.config_dict["sensor_" + o_name + "_log"] = o_log
             MainApp.config_ctrl_pannel.config_dict["sensor_" + o_name + "_loc"] = o_loc
             MainApp.config_ctrl_pannel.config_dict["sensor_" + o_name + "_extra"] = o_extra
-            print(MainApp.config_ctrl_pannel.config_dict)
+            #print(MainApp.config_ctrl_pannel.config_dict)
             MainApp.config_ctrl_pannel.update_setting_file_on_pi_click('e')
         self.Destroy()
+
+    def make_extra_settings_string(self):
+        o_min = self.min_tc.GetValue()
+        o_max = self.max_tc.GetValue()
+        min_max = "min:" + o_min + " max:" + o_max
+        extra = min_max + " " + self.extra_tc.GetValue()
+        if extra[-1] == " ":
+            extra = extra[:-1]
+        return extra
+
+
+    def edit_cron_job(self, o_log, o_loc, job_repeat, job_repnum):
+        print("changing cron...")
+        # check to find cron job handling this sensor
+        line_number_repeting_cron = -1
+        for index in range(0, cron_list_pnl.repeat_cron.GetItemCount()):
+            cmd_path = cron_list_pnl.repeat_cron.GetItem(index, 3).GetText()
+            if "log_chirp.py" in cmd_path:
+                print(" found - " + cmd_path)
+                cmd_args = cron_list_pnl.repeat_cron.GetItem(index, 4).GetText()
+                if o_loc[4:] in cmd_args:
+                    print("Located " + o_loc)
+                    line_number_repeting_cron = index
+        if not line_number_repeting_cron == -1:
+            cron_enabled = cron_list_pnl.repeat_cron.GetItem(line_number_repeting_cron, 1).GetText()
+            cron_task    = cron_list_pnl.repeat_cron.GetItem(line_number_repeting_cron, 3).GetText()
+            args_extra = self.make_extra_settings_string()
+            args_extra = args_extra.replace(":","=")
+            cron_args = "log=" + self.log_tc.GetValue() + " address=" + self.wire_loc_tc.GetValue() + " " + args_extra
+            cron_comment = cron_list_pnl.repeat_cron.GetItem(line_number_repeting_cron, 5).GetText()
+            timing_string = cron_info_pnl.make_repeating_cron_timestring(self, job_repeat, job_repnum)
+            #print("Cron job; " + "modified" + " " + cron_enabled + " " + timing_string + " " + cron_task + " " + cron_args + " " + cron_comment)
+            cron_list_pnl.repeat_cron.DeleteItem(line_number_repeting_cron)
+            cron_info_pnl.add_to_repeat_list(MainApp.cron_info_pannel, 'modified', cron_enabled, timing_string, cron_task, cron_args, cron_comment)
+            MainApp.cron_info_pannel.update_cron_click("e")
+        else:
+            print("Job not currently in cron, adding it...")
+            cron_enabled = "True"
+            cron_task = "/home/" + pi_link_pnl.target_user + "/Pigrow/scripts/sensors/log_chirp.py"
+            args_extra = self.make_extra_settings_string()
+            args_extra = args_extra.replace(":","=")
+            cron_args = "log=" + self.log_tc.GetValue() + " address=" + self.wire_loc_tc.GetValue() + " " + args_extra
+            timing_string = cron_info_pnl.make_repeating_cron_timestring(self, job_repeat, job_repnum)
+            cron_comment = ""
+            cron_info_pnl.add_to_repeat_list(MainApp.cron_info_pannel, 'new', cron_enabled, timing_string, cron_task, cron_args, cron_comment)
+            #print("Cron job; " + "new" + " " + cron_enabled + " " + timing_string + " " + cron_task + " " + cron_args + " " + cron_comment)
+            MainApp.cron_info_pannel.update_cron_click("e")
 
     def OnClose(self, e):
         MainApp.sensors_info_pannel.sensor_list.s_name = ""
