@@ -1302,30 +1302,68 @@ class upgrade_pigrow_dialog(wx.Dialog):
         self.SetSize((600, 600))
         self.SetTitle("Upgrade Pigrow")
     def InitUI(self):
+        title_font = wx.Font(28, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
+        sub_title_font = wx.Font(16, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
+        sub_title_font = wx.Font(16, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
+        info_font = wx.Font(16, wx.MODERN, wx.ITALIC, wx.NORMAL)
         # draw the pannel and text
         pnl = wx.Panel(self)
-        wx.StaticText(self,  label='Upgrade Pigrow', pos=(20, 10))
-        wx.StaticText(self,  label='Use GIT to update the Pigrow to the newest version.', pos=(5, 40))
-        wx.StaticText(self,  label='Current Status;', pos=(10, 90))
+        title = wx.StaticText(self,  label='Upgrade Pigrow')
+        sub_title = wx.StaticText(self,  label='Use GIT to update the Pigrow to the newest version.')
+        title.SetFont(title_font)
+        sub_title.SetFont(sub_title_font)
         # see which files are changed locally
-        wx.StaticText(self,  label='Local;', pos=(10, 120))
-        local_changes_tb = wx.StaticText(self,  label='--', pos=(90, 120), size=(150,150))
+        local_l = wx.StaticText(self,  label='Local;')
+        local_l.SetFont(sub_title_font)
+        local_changes_tb = wx.StaticText(self,  label='--')
         changes = self.read_git_dif()
         local_changes_tb.SetLabel(str(changes))
         # see which files are changed remotely
-        wx.StaticText(self,  label='Repo;', pos=(10, 270))
-        remote_changes_tb = wx.StaticText(self,  label='--', pos=(90, 270), size=(150,150))
+        repo_l = wx.StaticText(self,  label='Repo;')
+        repo_l.SetFont(sub_title_font)
+        remote_changes_tb = wx.StaticText(self,  label='--')
         repo_changes, num_repo_changed_files = self.read_repo_changes()
         remote_changes_tb.SetLabel(repo_changes)
         # upgrade type
-        wx.StaticText(self,  label='Local Status;', pos=(10, 350))
+        pigrow_status = wx.StaticText(self,  label='Pigrow Status;')
+        pigrow_status.SetFont(sub_title_font)
         upgrade_type = self.determine_upgrade_type(repo_changes)
-        upgrade_type_tb = wx.StaticText(self,  label=upgrade_type, pos=(150, 350))
+        upgrade_type_tb = wx.StaticText(self,  label=upgrade_type)
+        if upgrade_type == "behind":
+            upgrade_type_tb.SetForegroundColour((255,75,75))
+        elif upgrade_type == "up-to-date":
+            upgrade_type_tb.SetForegroundColour((25,150,25))
+        upgrade_type_tb.SetFont(info_font)
         # upgrade and cancel buttons
-        self.upgrade_btn = wx.Button(self, label='Upgrade', pos=(15, 400), size=(175, 30))
+        self.upgrade_btn = wx.Button(self, label='Upgrade', size=(175, 30))
         self.upgrade_btn.Bind(wx.EVT_BUTTON, self.upgrade_click)
-        self.cancel_btn = wx.Button(self, label='Cancel', pos=(315, 400), size=(175, 30))
+        self.cancel_btn = wx.Button(self, label='Cancel', size=(175, 30))
         self.cancel_btn.Bind(wx.EVT_BUTTON, self.cancel_click)
+
+        #Sizers
+        upgrade_type_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        upgrade_type_sizer.Add(pigrow_status, 0, wx.ALL, 4)
+        upgrade_type_sizer.Add(upgrade_type_tb, 0, wx.ALL, 4)
+        local_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        local_sizer.Add(local_l, 0, wx.ALIGN_LEFT|wx.ALL, 4)
+        local_sizer.Add(local_changes_tb, 0, wx.ALIGN_LEFT|wx.EXPAND|wx.ALL, 4)
+        remote_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        remote_sizer.Add(repo_l, 0, wx.ALIGN_LEFT|wx.ALL, 4)
+        remote_sizer.Add(remote_changes_tb, 0, wx.ALIGN_LEFT|wx.EXPAND|wx.ALL, 4)
+        buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        buttons_sizer.Add(self.upgrade_btn, 0, wx.ALIGN_LEFT, 2)
+        buttons_sizer.AddStretchSpacer(1)
+        buttons_sizer.Add(self.cancel_btn, 0, wx.ALIGN_RIGHT, 2)
+        main_sizer = wx.BoxSizer(wx.VERTICAL)
+        main_sizer.Add(title, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
+        main_sizer.Add(sub_title, 0, wx.ALIGN_CENTER_HORIZONTAL, 3)
+        main_sizer.Add(upgrade_type_sizer, 0, wx.TOP, 15)
+        main_sizer.Add(remote_sizer, 0, wx.TOP, 25)
+        main_sizer.Add(local_sizer, 0, wx.TOP, 10)
+        main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(buttons_sizer, 0, wx.ALL, 3)
+        self.SetSizer(main_sizer)
+
 
     # git diff --name-only HEAD@{0} HEAD@{1}      #shows the most recent changes
 
@@ -6051,30 +6089,30 @@ class timelapse_info_pnl(wx.Panel):
         MainApp.timelapse_ctrl_pannel.calculate_frames_click("e")
 
     def set_frame_count(self):
-        if len(MainApp.timelapse_ctrl_pannel.trimmed_frame_list) < 1:
-            frame_count = str(int(self.last_frame_no.GetValue()) - int(self.first_frame_no.GetValue()) + 1)
-        else:
-            frame_count = len(MainApp.timelapse_ctrl_pannel.trimmed_frame_list)
-            self.ani_frame_count_info.SetLabel(str(frame_count))
+        frame_count = len(MainApp.timelapse_ctrl_pannel.trimmed_frame_list)
         # set length_of_local
         fps = int(MainApp.timelapse_ctrl_pannel.fps_tc.GetValue())
         length_in_sec = frame_count / fps
         length = datetime.timedelta(seconds=length_in_sec)
         length = str(length).split(".")[0]
+        self.ani_frame_count_info.SetLabel(str(frame_count))
         self.ani_length_info.SetLabel(length)
 
     def graph_combo_go(self, e):
         graph_to_show = self.graph_combo.GetValue()
         if graph_to_show == "Filesize":
             #print("Making filesize graph...")
+            MainApp.status.write_bar("Creating filesize graph")
             image_to_show = self.make_filesize_graph()
         elif graph_to_show  == "Time difference":
+            MainApp.status.write_bar("Creating time difference graph")
             print("Sorry no timediff graph yet...")
             image_to_show = wx.Bitmap(400, 400)
         else:
             #print("No graph")
             image_to_show = wx.Bitmap(400, 400)
         self.size_graph.SetBitmap(image_to_show)
+        MainApp.status.write_bar("--")
 
     def graph_refresh(self, e):
         self.graph_combo_go(None)
@@ -6330,13 +6368,18 @@ class timelapse_ctrl_pnl(wx.Panel):
         start_point_cutoff = self.trim_list_by_date_self_limit_combo()
         if not start_point_cutoff == None:
             self.trimmed_frame_list = self.limit_list_by_start_point(start_point_cutoff, self.trimmed_frame_list)
-
+        if len(self.trimmed_frame_list) == 0:
+            self.mention_zero_length("limit by date")
+            return None
 
         # Limit using filesize minimum
         min_filesize = self.size_min_limit.GetValue()
         if not min_filesize.isdigit():
             min_filesize = 1
         self.trimmed_frame_list = self.remove_using_min_filesize(int(min_filesize), self.trimmed_frame_list)
+        if len(self.trimmed_frame_list) == 0:
+            self.mention_zero_length("limit by filesize")
+            return None
 
         # limit using range
         # Limit using range function
@@ -6356,8 +6399,20 @@ class timelapse_ctrl_pnl(wx.Panel):
             elif range_type == "Largest":
                 self.trimmed_frame_list = self.find_largest_frames(use_every, self.trimmed_frame_list)
             print("List trimmed using " + range_type + " every " + str(use_every) + " list contains " + str(len(self.trimmed_frame_list)) + " frames")
+        if len(self.trimmed_frame_list) == 0:
+            self.mention_zero_length("use every")
+            return None
 
         # update screen
+        MainApp.timelapse_info_pannel.set_frame_count()
+
+    def mention_zero_length(self, cause):
+        msg = "The current " + cause + " settings would result in a zero length animation"
+        MainApp.status.write_warning(msg)
+        #dbox = scroll_text_dialog(None, msg, "Error; zero length animation", False)
+        #dbox.ShowModal()
+        #dbox.Destroy()
+        self.trimmed_frame_list = []
         MainApp.timelapse_info_pannel.set_frame_count()
 
     def take_every_nth(self, use_every, original_frame_list):
@@ -6437,7 +6492,12 @@ class timelapse_ctrl_pnl(wx.Panel):
         # Establish cut off point
         limit_period_unit = self.limit_combo.GetValue()
         if not limit_period_unit == "all":
-            limit_period = int(self.limit_to_num.GetValue())
+            limit_period = self.limit_to_num.GetValue()
+            if limit_period.isdigit():
+                limit_period = int(limit_period)
+            else:
+                self.limit_to_num.SetValue("1")
+                limit_period = 1
             if limit_period_unit == "days":
                 datecheck = datetime.timedelta(days=limit_period)
                 start_point_cutoff = datetime.datetime.now() - datecheck
