@@ -7264,7 +7264,7 @@ class make_log_overlay_dialog(wx.Dialog):
             #print(closest_log_info, file)
             text_to_write = closest_log_info[0] + " " + closest_log_info[2]
             if self.show_time_diff.GetValue() == True:
-                text_to_write += "\n time diff -- " + str(time_diff_log_to_cap)
+                text_to_write += "\n time diff -- " + str(time_diff_log_to_cap).split(".")[0]
             #text_to_write += "\n   -- " + str(file_date) + " - " + str(closest_log_info[1])
             # set colour, size, pos
             font_size = self.display_size_tc.GetValue()
@@ -7296,8 +7296,18 @@ class make_log_overlay_dialog(wx.Dialog):
         folder_name_for_output = "edited_caps"
         local_path = localfiles_info_pnl.local_path
         edited_caps_path = os.path.join(local_path, folder_name_for_output)
-        print("  -- Created " + str(len(MainApp.timelapse_ctrl_pannel.trimmed_frame_list)) + " new files in " + edited_caps_path)
-        timelapse_ctrl_pnl.open_caps_folder(None, edited_caps_path)
+        created = "  -- Created " + str(len(MainApp.timelapse_ctrl_pannel.trimmed_frame_list)) + " new files in " + edited_caps_path
+        print(created)
+        msg_text = created + "\n\n" + "Switch to " + edited_caps_path + " folder"
+        mbox = wx.MessageDialog(None, msg_text, "Open newly created caps folder?", wx.YES_NO|wx.ICON_QUESTION)
+        sure = mbox.ShowModal()
+        if sure == wx.ID_YES:
+            print("- switching to new folder")
+            MainApp.timelapse_ctrl_pannel.range_tc.SetValue("1")
+            MainApp.timelapse_ctrl_pannel.size_min_limit.SetValue("")
+            timelapse_ctrl_pnl.open_caps_folder(None, edited_caps_path)
+        else:
+            print("= Not switching to new folder")
         self.Destroy()
 
     def directionless_timedelta(self, time1, time2):
