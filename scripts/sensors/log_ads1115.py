@@ -33,6 +33,22 @@ i2c_busnum = 1
 sensor_type = "ads1115"
 max_volt = 3.2767
 round_to = 4
+val0_max_trigger = ""
+val1_max_trigger = ""
+val2_max_trigger = ""
+val3_max_trigger = ""
+val0_min_trigger = ""
+val1_min_trigger = ""
+val2_min_trigger = ""
+val3_min_trigger = ""
+val0_max_script = ""
+val1_max_script = ""
+val2_max_script = ""
+val3_max_script = ""
+val0_min_script = ""
+val1_min_script = ""
+val2_min_script = ""
+val3_min_script = ""
 
 homedir = os.environ['HOME']
 
@@ -93,6 +109,17 @@ for argu in sys.argv[1:]:
         print("")
         print(" round=4")
         print("            Round log values to N decimal places")
+        print("")
+        print(" max_trigger=2.5 max_script=/home/pi/Pigrow/scripts/...")
+        print("           Set a max value above which it'll trigger the script")
+        print("           Values are in the same units as the log is recorded, ")
+        print("           If you want to call a script and supply command line arguments")
+        print("           you should create a .sh file containing the path and those arguments")
+        print(" val0_max_trigger, val0_max_script, val1_max_trigger, etc for individual channels")
+        print("")
+        print(" min_trigger=2.5 min_script=/home/pi/Pigrow/scripts/...")
+        print("           Same as above but triggers using minimum values")
+        print(" val0_min_trigger, val0_min_script, val1_min_trigger, etc for individual channels")
         sys.exit()
     elif argu_l == '-flags':
         print("log=[LOG_PATH]")
@@ -121,6 +148,26 @@ for argu in sys.argv[1:]:
         print("centralise3=[true,false]")
         print("max_volt=3.2767")
         print("round=4")
+        print("max_trigger=")
+        print("val0_max_trigger=")
+        print("val1_max_trigger=")
+        print("val2_max_trigger=")
+        print("val3_max_trigger=")
+        print("min_trigger=")
+        print("val0_min_trigger=")
+        print("val1_min_trigger=")
+        print("val2_min_trigger=")
+        print("val3_min_trigger=")
+        print("max_script=")
+        print("val0_max_script=")
+        print("val1_max_script=")
+        print("val2_max_script=")
+        print("val3_max_script=")
+        print("min_script=")
+        print("val0_min_script=")
+        print("val1_min_script=")
+        print("val2_min_script=")
+        print("val3_min_script=")
         sys.exit()
     elif "=" in argu_l:
         thearg = argu_l.split('=')[0]
@@ -195,6 +242,64 @@ for argu in sys.argv[1:]:
                 round_to = int(thevalue)
             except:
                 print("!!! round= must be a number, using default of 4")
+        # Settings for triggering scripts
+        # max
+        elif thearg == "max_trigger":
+            val0_max_trigger = float(thevalue)
+            val1_max_trigger = float(thevalue)
+            val2_max_trigger = float(thevalue)
+            val3_max_trigger = float(thevalue)
+        elif thearg == "val0_max_trigger":
+            val0_max_trigger = float(thevalue)
+        elif thearg == "val1_max_trigger":
+            val1_max_trigger = float(thevalue)
+        elif thearg == "val2_max_trigger":
+            val2_max_trigger = float(thevalue)
+        elif thearg == "val3_max_trigger":
+            val3_max_trigger = float(thevalue)
+        # min
+        elif thearg == "min_trigger":
+            val0_min_trigger = float(thevalue)
+            val1_min_trigger = float(thevalue)
+            val2_min_trigger = float(thevalue)
+            val3_min_trigger = float(thevalue)
+        elif thearg == "val0_min_trigger":
+            val0_min_trigger = float(thevalue)
+        elif thearg == "val1_min_trigger":
+            val1_min_trigger = float(thevalue)
+        elif thearg == "val2_min_trigger":
+            val2_min_trigger = float(thevalue)
+        elif thearg == "val3_min_trigger":
+            val3_min_trigger = float(thevalue)
+        # setting script paths
+        # max
+        elif thearg == "max_script":
+            val0_max_script = argu.split('=')[1]
+            val1_max_script = argu.split('=')[1]
+            val2_max_script = argu.split('=')[1]
+            val3_max_script = argu.split('=')[1]
+        elif thearg == "val0_max_script":
+            val0_max_script = argu.split('=')[1]
+        elif thearg == "val1_max_script":
+            val1_max_script = argu.split('=')[1]
+        elif thearg == "val2_max_script":
+            val2_max_script = argu.split('=')[1]
+        elif thearg == "val3_max_script":
+            val3_max_script = argu.split('=')[1]
+        # min
+        elif thearg == "min_script":
+            val0_min_script = argu.split('=')[1]
+            val1_min_script = argu.split('=')[1]
+            val2_min_script = argu.split('=')[1]
+            val3_min_script = argu.split('=')[1]
+        elif thearg == "val0_min_script":
+            val0_min_script = argu.split('=')[1]
+        elif thearg == "val1_min_script":
+            val1_min_script = argu.split('=')[1]
+        elif thearg == "val2_min_script":
+            val2_min_script = argu.split('=')[1]
+        elif thearg == "val3_min_script":
+            val3_min_script = argu.split('=')[1]
 
 
 #setting up the adafruit sensor drivers
@@ -307,6 +412,44 @@ def log_ads1115(log_path, vals):
         print("Written; " +  log_entry)
 
 
+def trigger_on_value(vals):
+    # check to see if high threasholds have been broken
+    if not val0_max_trigger == "" and not val0_max_script == "":
+        if vals[0] > val0_max_trigger:
+            print("Channel 0 exceeded it's maximum threashold, running " + val0_max_script)
+            os.system(val0_max_script)
+    if not val1_max_trigger == "" and not val1_max_script == "":
+        if vals[1] > val1_max_trigger:
+            print("Channel 1 exceeded it's maximum threashold, running " + val1_max_script)
+            os.system(val1_max_script)
+    if not val2_max_trigger == "" and not val2_max_script == "":
+        if vals[2] > val2_max_trigger:
+            print("Channel 2 exceeded it's maximum threashold, running " + val2_max_script)
+            os.system(val2_max_script)
+    if not val3_max_trigger == "" and not val3_max_script == "":
+        if vals[3] > val3_max_trigger:
+            print("Channel 3 exceeded it's maximum threashold, running " + val3_max_script)
+            os.system(val3_max_script)
+    # Check to see if low threashold has been broken
+    if not val0_min_trigger == "" and not val0_min_script == "":
+        if vals[0] < val0_min_trigger:
+            print("Channel 0 went under it's minimum threashold, running " + val0_min_script)
+            os.system(val0_min_script)
+    if not val1_min_trigger == "" and not val1_min_script == "":
+        if vals[1] < val1_min_trigger:
+            print("Channel 1 went under it's minimum threashold, running " + val1_min_script)
+            os.system(val1_min_script)
+    if not val2_min_trigger == "" and not val2_min_script == "":
+        if vals[2] < val2_min_trigger:
+            print("Channel 2 went under it's minimum threashold, running " + val2_min_script)
+            os.system(val2_min_script)
+    if not val3_min_trigger == "" and not val3_min_script == "":
+        if vals[3] < val3_min_trigger:
+            print("Channel 3 went under it's minimum threashold, running " + val3_min_script)
+            os.system(val3_min_script)
+
+
+
 if __name__ == '__main__':
     channels = set_channels()
     vals = read_adc(channels)
@@ -314,6 +457,7 @@ if __name__ == '__main__':
         vals = centralise_posneg(vals)
         vals = convert_to_percent(vals)
         log_ads1115(log_path, vals)
+        trigger_on_value(vals)
         #print vals
     else:
         print("failed to find results")
