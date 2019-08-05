@@ -105,8 +105,8 @@ except:
     print("            pip3 install wxpython")
     print("")
     print("on ubuntu try the commands;")
-    print("     sudo apt-get install python3-setuptools")
-    print("     sudo easy_install3 pip")
+    #print("     sudo apt-get install python3-setuptools")
+    #print("     sudo easy_install3 pip")
     print("     pip3 install wxpython")
     print(" or")
     print("   sudo apt install python-wxgtk3.0 ")
@@ -1439,9 +1439,12 @@ class upgrade_pigrow_dialog(wx.Dialog):
             if "insertions" in git_local_details:
                 num_insertions = git_local_details.split("changed, ")[1]
                 num_insertions = num_insertions.split(" insertions")[0]
-            if "deletions" in git_local_details:
-                num_deletions = git_local_details.split("(+), ")[1]
-                num_deletions = num_deletions.split(" deletions")[0]
+            try:
+                if "deletions" in git_local_details:
+                    num_deletions = git_local_details.split("(+), ")[1]
+                    num_deletions = num_deletions.split(" deletions")[0]
+            except:
+                print(" !!!  Could not read the git repo's deletetions info, it's not important though")
             display_text = str(num_files_changed) + " Files changed locally,"
         return changed_files, num_files_changed, num_insertions, num_deletions
 
@@ -1661,10 +1664,10 @@ class install_dialog(wx.Dialog):
 
     def install_praw(self):
         # praw is the module for connecting to reddit
-        self.currently_doing.SetLabel("Using pip to install praw")
+        self.currently_doing.SetLabel("Using pip3 to install praw")
         self.progress.SetLabel("###########~~~~~~~~~~~~~~~~~~")
         wx.Yield()
-        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo pip install praw")
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo pip3 install praw")
         print (out)
 
     def install_pexpect(self):
@@ -1800,9 +1803,15 @@ class install_dialog(wx.Dialog):
         else:
             self.ada1115_check.SetForegroundColour((255,75,75))
             self.ada1115_check.SetValue(True)
+        # Praw - the reddit bot module
+        if "True" in self.test_py3_module("praw"):
+            self.praw_check.SetForegroundColour((75,200,75))
+        else:
+            self.praw_check.SetForegroundColour((255,75,75))
+            self.praw_check.SetValue(True)
 
     def check_python_dependencies(self):
-        python_dependencies = ["matplotlib", "Adafruit_DHT", "praw", "pexpect", "crontab"]
+        python_dependencies = ["matplotlib", "Adafruit_DHT", "pexpect", "crontab"]
         working_modules = []
         nonworking_modules = []
         for module in python_dependencies:
@@ -1830,11 +1839,6 @@ class install_dialog(wx.Dialog):
         else:
             self.cron_check.SetForegroundColour((255,75,75))
             self.cron_check.SetValue(True)
-        if "praw" in working_modules:
-            self.praw_check.SetForegroundColour((75,200,75))
-        else:
-            self.praw_check.SetForegroundColour((255,75,75))
-            self.praw_check.SetValue(True)
         if "pexpect" in working_modules:
             self.pexpect_check.SetForegroundColour((75,200,75))
         else:
@@ -1851,19 +1855,19 @@ class install_dialog(wx.Dialog):
             self.progress.SetLabel("#######~~~~~~~~~~~~~~~~~~~~~~~~")
             wx.Yield()
         # Dependencies installed using pip
-        if self.praw_check.GetValue() == True or self.pexpect_check.GetValue() == True or self.adaDHT_check.GetValue() == True:
+        if self.pexpect_check.GetValue() == True or self.adaDHT_check.GetValue() == True:
             self.update_pip()
-        if self.praw_check.GetValue() == True:
-            self.install_praw()
         if self.pexpect_check.GetValue() == True:
             self.install_pexpect()
         if self.adaDHT_check.GetValue() == True:
             self.install_adafruit_DHT()
         # installed using update_pip3
-        if self.ada1115_check.GetValue() == True:
+        if self.ada1115_check.GetValue() == True or self.praw_check.GetValue() == True:
             self.update_pip3()
         if self.ada1115_check.GetValue() == True:
             self.install_adafruit_ads1115()
+        if self.praw_check.GetValue() == True:
+            self.install_praw()
         # Dependencies installed using apt
         if self.uvccapture_check.GetValue() == True or self.mpv_check.GetValue() == True or self.sshpass_check.GetValue() == True or self.matplotlib_check.GetValue() == True or self.cron_check.GetValue() == True:
             self.update_apt()
@@ -1929,6 +1933,8 @@ class config_ctrl_pnl(wx.Panel):
         self.name_box_btn.Bind(wx.EVT_BUTTON, self.name_box_click)
         self.config_lamp_btn = wx.Button(self, label='config lamp')
         self.config_lamp_btn.Bind(wx.EVT_BUTTON, self.config_lamp_click)
+        self.config_water_btn = wx.Button(self, label='config watering')
+        self.config_water_btn.Bind(wx.EVT_BUTTON, self.config_water_click)
         self.config_dht_btn = wx.Button(self, label='config dht')
         self.config_dht_btn.Bind(wx.EVT_BUTTON, self.config_dht_click)
         self.new_gpio_btn = wx.Button(self, label='Add new relay device')
@@ -1953,6 +1959,7 @@ class config_ctrl_pnl(wx.Panel):
         main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.Add(self.relay_l, 0, wx.ALL|wx.EXPAND, 3)
         main_sizer.Add(self.config_lamp_btn, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.Add(self.config_water_btn, 0, wx.ALL|wx.EXPAND, 3)
         main_sizer.Add(self.new_gpio_btn , 0, wx.ALL|wx.EXPAND, 3)
         main_sizer.AddStretchSpacer(1)
         self.SetSizer(main_sizer)
@@ -2320,6 +2327,10 @@ class config_ctrl_pnl(wx.Panel):
 
     def config_lamp_click(self, e):
         lamp_dbox = config_lamp_dialog(None, title='Config Lamp')
+        lamp_dbox.ShowModal()
+
+    def config_water_click(self, e):
+        lamp_dbox = config_water_dialog(None, title='Config Watering')
         lamp_dbox.ShowModal()
 
     def config_dht_click(self, e):
@@ -2715,6 +2726,65 @@ class config_lamp_dialog(wx.Dialog):
     def cancel_click(self, e):
         print("does nothing")
         self.Destroy()
+
+class config_water_dialog(wx.Dialog):
+    #Dialog box for creating or editing the watering related settings
+    def __init__(self, *args, **kw):
+        super(config_water_dialog, self).__init__(*args, **kw)
+        self.InitUI()
+        self.SetSize((500, 600))
+        self.SetTitle("Config Water")
+    def InitUI(self):
+
+        # draw the pannel and text
+        pnl = wx.Panel(self)
+        title_font = wx.Font(28, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
+        sub_title_font = wx.Font(15, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
+        title_l = wx.StaticText(self,  label='Watering Config')
+        title_l.SetFont(title_font)
+
+        self.ok_btn = wx.Button(self, label='Ok', pos=(15, 450), size=(175, 30))
+        self.ok_btn.Bind(wx.EVT_BUTTON, self.ok_click)
+        self.cancel_btn = wx.Button(self, label='Cancel', pos=(250, 450), size=(175, 30))
+        self.cancel_btn.Bind(wx.EVT_BUTTON, self.cancel_click)
+        self.find_and_show_watering_relay()
+
+        # Sizers
+        buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        buttons_sizer.Add(self.ok_btn, 0, wx.ALL, 5)
+        buttons_sizer.AddStretchSpacer(1)
+        buttons_sizer.Add(self.cancel_btn, 0, wx.ALL, 5)
+        main_sizer =  wx.BoxSizer(wx.VERTICAL)
+        main_sizer.Add(title_l, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(buttons_sizer , 0, wx.ALL|wx.EXPAND, 3)
+        self.SetSizer(main_sizer)
+
+
+    def find_and_show_watering_relay(self):
+        print("Looking for watering device in config")
+        # gpio address
+        if "gpio_water" in MainApp.config_ctrl_pannel.config_dict:
+            print("Found gpio path; ")
+            print(MainApp.config_ctrl_pannel.config_dict["gpio_water"])
+        else:
+            print("Watering Device not found in pigrow's config file")
+        # direction
+        if "gpio_water_on" in MainApp.config_ctrl_pannel.config_dict:
+            print("Found watering relays switch direction; ")
+            print(MainApp.config_ctrl_pannel.config_dict["gpio_water_on"])
+        else:
+            print("Watering devices switch direction not found in pigrow's config file")
+
+
+    def ok_click(self, e):
+        print("config watering currently does nothing!")
+        self.Destroy()
+
+    def cancel_click(self, e):
+        print("Changing watering configuration has ben cancelled")
+        self.Destroy()
+
 
 class doubleclick_gpio_dialog(wx.Dialog):
     #Dialog box for creating for adding or editing device gpio config data
@@ -6106,8 +6176,7 @@ class timelapse_info_pnl(wx.Panel):
             image_to_show = self.make_filesize_graph()
         elif graph_to_show  == "Time difference":
             MainApp.status.write_bar("Creating time difference graph")
-            print("Sorry no timediff graph yet...")
-            image_to_show = wx.Bitmap(400, 400)
+            image_to_show = self.make_time_dif_graph()
         else:
             #print("No graph")
             image_to_show = wx.Bitmap(400, 400)
@@ -6116,6 +6185,34 @@ class timelapse_info_pnl(wx.Panel):
 
     def graph_refresh(self, e):
         self.graph_combo_go(None)
+
+    def make_time_dif_graph(self):
+        counter = 0
+        counter_list = []
+        timediff_list = []
+        time_of_prev_file = MainApp.timelapse_ctrl_pannel.date_from_fn(MainApp.timelapse_ctrl_pannel.trimmed_frame_list[0])
+        for file in MainApp.timelapse_ctrl_pannel.trimmed_frame_list[1:]:
+            time_of_file =  MainApp.timelapse_ctrl_pannel.date_from_fn(file)
+            time_diff = time_of_prev_file - time_of_file
+            counter = counter + 1
+            counter_list.append(counter)
+            timediff_list.append(time_diff.total_seconds())
+            time_of_prev_file = time_of_file
+        # make graph
+        plt.figure(1, figsize=(12, 10))
+        ax = plt.subplot()
+        ax.bar(counter_list, timediff_list, color='green')
+        #ax.plot(counter, filesize)
+        plt.title("Time difference between images")
+        plt.xlabel("File number")
+        plt.ylabel("Time differeence")
+        graph_path = os.path.join(localfiles_info_pnl.local_path, "temp", "timediff_graph.png")
+        print("-------------------", graph_path)
+        plt.savefig(graph_path)
+        plt.close()
+        return wx.Bitmap(graph_path)
+
+
 
 
     def make_filesize_graph(self):
@@ -7620,7 +7717,7 @@ class ads1115_dialog(wx.Dialog):
     def __init__(self, *args, **kw):
         super(ads1115_dialog, self).__init__(*args, **kw)
         self.InitUI()
-        self.SetSize((750, 650))
+        self.SetSize((800, 700))
         self.SetTitle("ADS1115 Setup")
         self.Bind(wx.EVT_CLOSE, self.OnClose)
 
@@ -7705,13 +7802,56 @@ class ads1115_dialog(wx.Dialog):
         self.centralise_1 = wx.CheckBox(self, label='')
         self.centralise_2 = wx.CheckBox(self, label='')
         self.centralise_3 = wx.CheckBox(self, label='') # not yet properly supported in log_ads1115.py needs min and max points.
+        # min-max triggers and script path
+        self.use_script_triggers = wx.StaticText(self, label='Min - Max Triggers')
+        max_l = wx.StaticText(self,  label='Max')
+        self.val0_max_val = wx.TextCtrl(self)
+        self.val1_max_val = wx.TextCtrl(self)
+        self.val2_max_val = wx.TextCtrl(self)
+        self.val3_max_val = wx.TextCtrl(self)
+        max_s_l = wx.StaticText(self,  label='Max Script')
+        self.val0_max_script = wx.TextCtrl(self)
+        self.val1_max_script = wx.TextCtrl(self)
+        self.val2_max_script = wx.TextCtrl(self)
+        self.val3_max_script = wx.TextCtrl(self)
+        min_l = wx.StaticText(self,  label='Min')
+        self.val0_min_val = wx.TextCtrl(self)
+        self.val1_min_val = wx.TextCtrl(self)
+        self.val2_min_val = wx.TextCtrl(self)
+        self.val3_min_val = wx.TextCtrl(self)
+        min_s_l = wx.StaticText(self,  label='Min Script')
+        self.val0_min_script = wx.TextCtrl(self)
+        self.val1_min_script = wx.TextCtrl(self)
+        self.val2_min_script = wx.TextCtrl(self)
+        self.val3_min_script = wx.TextCtrl(self)
         # universal setting_string_tb
         max_volt_l = wx.StaticText(self,  label='Max Voltage')
         self.max_volt_tc = wx.TextCtrl(self, value="3.2767", size=(400,30))
         tound_to_l = wx.StaticText(self,  label='Round to ... decimal places')
         self.round_to_tc = wx.TextCtrl(self, value="4", size=(400,30))
 
-
+        # min-max sizer
+        trigger_sizer = wx.GridSizer(4, 5, 1, 4)
+        trigger_sizer.AddMany([ (max_l, 0, wx.EXPAND),
+            (self.val0_max_val, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL),
+            (self.val1_max_val, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL),
+            (self.val2_max_val, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL),
+            (self.val3_max_val, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL),
+            (max_s_l, 0, wx.EXPAND),
+            (self.val0_max_script, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL),
+            (self.val1_max_script, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL),
+            (self.val2_max_script, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL),
+            (self.val3_max_script, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL),
+            (min_l, 0, wx.EXPAND),
+            (self.val0_min_val, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL),
+            (self.val1_min_val, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL),
+            (self.val2_min_val, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL),
+            (self.val3_min_val, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL),
+            (min_s_l, 0, wx.EXPAND),
+            (self.val0_min_script, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL),
+            (self.val1_min_script, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL),
+            (self.val2_min_script, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL),
+            (self.val3_min_script, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL)])
 
         # need four lines one for each channel, set value type, ranges, +- correction, and tools to perform tuning and calibration.
 
@@ -7779,6 +7919,8 @@ class ads1115_dialog(wx.Dialog):
         main_sizer.Add(options_sizer, 0, wx.ALL|wx.EXPAND, 3)
         main_sizer.AddStretchSpacer(1)
         main_sizer.Add(channels_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
+        main_sizer.Add(self.use_script_triggers, 0, wx.ALL, 3)
+        main_sizer.Add(trigger_sizer, 0, wx.ALL|wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL, 3)
         main_sizer.Add(max_volt_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
         main_sizer.Add(round_to_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
         main_sizer.AddStretchSpacer(1)
@@ -7798,7 +7940,7 @@ class ads1115_dialog(wx.Dialog):
         self.set_extras_from_string(self.s_extra)
 
     def set_extras_from_string(self, extras_string):
-        print (extras_string)
+        #print (extras_string)
         extra_list = extras_string.split(" ")
         for item in extra_list:
             if ":" in item:
@@ -7862,6 +8004,60 @@ class ads1115_dialog(wx.Dialog):
                     self.max_volt_tc.SetValue(item_value)
                 elif item_key == "round":
                     self.round_to_tc.SetValue(item_value)
+                # max values and scripts
+                elif item_key == "max_trigger":
+                    self.val0_max_val.SetValue(item_value)
+                    self.val1_max_val.SetValue(item_value)
+                    self.val2_max_val.SetValue(item_value)
+                    self.val3_max_val.SetValue(item_value)
+                elif item_key == "val0_max_trigger":
+                    self.val0_max_val.SetValue(item_value)
+                elif item_key == "val1_max_trigger":
+                    self.val1_max_val.SetValue(item_value)
+                elif item_key == "val2_max_trigger":
+                    self.val2_max_val.SetValue(item_value)
+                elif item_key == "val3_max_trigger":
+                    self.val3_max_val.SetValue(item_value)
+                elif item_key == "max_script":
+                    self.val0_max_script.SetValue(item_value)
+                    self.val1_max_script.SetValue(item_value)
+                    self.val2_max_script.SetValue(item_value)
+                    self.val3_max_script.SetValue(item_value)
+                elif item_key == "val0_max_script":
+                    self.val0_max_script.SetValue(item_value)
+                elif item_key == "val1_max_script":
+                    self.val1_max_script.SetValue(item_value)
+                elif item_key == "val2_max_script":
+                    self.val2_max_script.SetValue(item_value)
+                elif item_key == "val3_max_script":
+                    self.val3_max_script.SetValue(item_value)
+                # min values and scripts
+                elif item_key == "min_trigger":
+                    self.val0_min_val.SetValue(item_value)
+                    self.val1_min_val.SetValue(item_value)
+                    self.val2_min_val.SetValue(item_value)
+                    self.val3_min_val.SetValue(item_value)
+                elif item_key == "val0_min_trigger":
+                    self.val0_min_val.SetValue(item_value)
+                elif item_key == "val1_min_trigger":
+                    self.val1_min_val.SetValue(item_value)
+                elif item_key == "val2_min_trigger":
+                    self.val2_min_val.SetValue(item_value)
+                elif item_key == "val3_min_trigger":
+                    self.val3_min_val.SetValue(item_value)
+                elif item_key == "max_script":
+                    self.val0_min_script.SetValue(item_value)
+                    self.val1_min_script.SetValue(item_value)
+                    self.val2_min_script.SetValue(item_value)
+                    self.val3_min_script.SetValue(item_value)
+                elif item_key == "val0_max_script":
+                    self.val0_min_script.SetValue(item_value)
+                elif item_key == "val1_max_script":
+                    self.val1_min_script.SetValue(item_value)
+                elif item_key == "val2_max_script":
+                    self.val2_min_script.SetValue(item_value)
+                elif item_key == "val3_max_script":
+                    self.val3_min_script.SetValue(item_value)
 
 
     def read_ads1115_click(self, e):
@@ -7891,10 +8087,11 @@ class ads1115_dialog(wx.Dialog):
         pos_list = ["GND - (0x48)", "VDD - (0x49)", "SDA - (0x4A)", "SCL - (0x4B)"]
         i2c_devices = system_ctrl_pnl.find_i2c_devices(MainApp.system_ctrl_pannel, "e")
         ads1115_list = []
-        for device in i2c_devices:
-            for possibly in pos_list:
-                if device in possibly:
-                    ads1115_list.append(possibly)
+        if not i2c_devices == None:
+            for device in i2c_devices:
+                for possibly in pos_list:
+                    if device in possibly:
+                        ads1115_list.append(possibly)
         return ads1115_list
 
     def graph_click(self, e):
@@ -7926,6 +8123,23 @@ class ads1115_dialog(wx.Dialog):
         new_a2_centralise= str(self.centralise_2.GetValue())
         new_a3_centralise= str(self.centralise_3.GetValue())
         new_max_volt = self.max_volt_tc.GetValue()
+        # min - max values and script triggers
+        val0_max_val = self.val0_max_val.GetValue()
+        val1_max_val = self.val1_max_val.GetValue()
+        val2_max_val = self.val2_max_val.GetValue()
+        val3_max_val = self.val3_max_val.GetValue()
+        val0_max_script = self.val0_max_script.GetValue()
+        val1_max_script = self.val1_max_script.GetValue()
+        val2_max_script = self.val2_max_script.GetValue()
+        val3_max_script = self.val3_max_script.GetValue()
+        val0_min_val = self.val0_min_val.GetValue()
+        val1_min_val = self.val1_min_val.GetValue()
+        val2_min_val = self.val2_min_val.GetValue()
+        val3_min_val = self.val3_min_val.GetValue()
+        val0_min_script = self.val0_min_script.GetValue()
+        val1_min_script = self.val1_min_script.GetValue()
+        val2_min_script = self.val2_min_script.GetValue()
+        val3_min_script = self.val3_min_script.GetValue()
         if new_max_volt == "":
             new_max_volt = "3.2767"
             self.max_volt_tc.SetValue(new_max_volt)
@@ -7976,8 +8190,42 @@ class ads1115_dialog(wx.Dialog):
             universal_sets += " max_volt:" + new_max_volt
         if not new_round_to == "4":
             universal_sets += " round:" + new_round_to
+        # min max
+        min_max_sets = ""
+        if not val0_max_val == "":
+            min_max_sets += " val0_max_trigger:" + val0_max_val
+        if not val1_max_val == "":
+            min_max_sets += " val1_max_trigger:" + val1_max_val
+        if not val2_max_val == "":
+            min_max_sets += " val2_max_trigger:" + val2_max_val
+        if not val3_max_val == "":
+            min_max_sets += " val3_max_trigger:" + val3_max_val
+        if not val0_max_script == "":
+            min_max_sets += " val0_max_script:" + val0_max_script
+        if not val1_max_script == "":
+            min_max_sets += " val1_max_script:" + val1_max_script
+        if not val2_max_script == "":
+            min_max_sets += " val2_max_script:" + val2_max_script
+        if not val3_max_script == "":
+            min_max_sets += " val3_max_script:" + val3_max_script
+        if not val0_min_val == "":
+            min_max_sets += " val0_min_trigger:" + val0_min_val
+        if not val1_min_val == "":
+            min_max_sets += " val1_min_trigger:" + val1_min_val
+        if not val2_min_val == "":
+            min_max_sets += " val2_min_trigger:" + val2_min_val
+        if not val3_min_val == "":
+            min_max_sets += " val3_min_trigger:" + val3_min_val
+        if not val0_min_script == "":
+            min_max_sets += "val0_min_script:" + val0_min_script
+        if not val1_min_script == "":
+            min_max_sets += "val1_min_script:" + val1_min_script
+        if not val2_min_script == "":
+            min_max_sets += "val2_min_script:" + val2_min_script
+        if not val3_min_script == "":
+            min_max_sets += "val3_min_script:" + val3_min_script
         # put all four together
-        o_extra = a0_sets + a1_sets + a2_sets + a3_sets + universal_sets
+        o_extra = a0_sets + a1_sets + a2_sets + a3_sets + universal_sets + min_max_sets
         return o_extra
 
     def add_click(self, e):
