@@ -2746,6 +2746,8 @@ class config_water_dialog(wx.Dialog):
         self.gpio_loc_box_l = wx.StaticText(self,  label='GPIO Pin')
         self.gpio_loc_box = wx.TextCtrl(self, size=(70,30))
         self.gpio_direction_box_l = wx.StaticText(self,  label='Switch direction')
+        directs = ['none', 'low', 'high']
+        self.gpio_direction_box = wx.ComboBox(self, choices=directs,size=(75,30))
 
 
 
@@ -2763,6 +2765,7 @@ class config_water_dialog(wx.Dialog):
         gpio_loc_box_sizer.Add(self.gpio_loc_box, 0, wx.ALL, 3)
         gpio_d_box_sizer = wx.BoxSizer(wx.HORIZONTAL)
         gpio_d_box_sizer.Add(self.gpio_direction_box_l, 0, wx.ALL, 3)
+        gpio_d_box_sizer.Add(self.gpio_direction_box, 0, wx.ALL, 3)
         buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
         buttons_sizer.Add(self.ok_btn, 0, wx.ALL, 5)
         buttons_sizer.AddStretchSpacer(1)
@@ -2786,17 +2789,41 @@ class config_water_dialog(wx.Dialog):
             self.gpio_loc_box.SetValue(MainApp.config_ctrl_pannel.config_dict["gpio_water"])
         else:
             print("Watering Device not found in pigrow's config file")
-            self.gpio_loc_box.SetValue("none set")
+            self.gpio_loc_box.SetValue("none")
         # direction
         if "gpio_water_on" in MainApp.config_ctrl_pannel.config_dict:
             print("Found watering relays switch direction; ")
             print(MainApp.config_ctrl_pannel.config_dict["gpio_water_on"])
+            self.gpio_direction_box.SetValue(MainApp.config_ctrl_pannel.config_dict["gpio_water_on"])
         else:
             print("Watering devices switch direction not found in pigrow's config file")
+            self.gpio_direction_box.SetValue('none')
 
 
     def ok_click(self, e):
         print("config watering currently does nothing!")
+        # Check for changes to settings file
+        # gpio pin
+        if 'gpio_water' in MainApp.config_ctrl_pannel.config_dict:
+            current_gpio = MainApp.config_ctrl_pannel.config_dict["gpio_water"]
+        else:
+            current_gpio = "none"
+        if current_gpio == self.gpio_loc_box.GetValue().strip():
+            print("GPIO Pin not changed")
+        else:
+            print("GPIO Pin changed")
+        # switch direction
+        if 'gpio_water_on' in MainApp.config_ctrl_pannel.config_dict:
+            current_switch_direct = MainApp.config_ctrl_pannel.config_dict["gpio_water_on"]
+        else:
+            current_switch_direct = 'none'
+        if current_switch_direct == self.gpio_direction_box.GetValue().strip():
+            print("Switch Direction not changed")
+        else:
+            print("Switch Direction changed")
+
+
+        #
         self.Destroy()
 
     def cancel_click(self, e):
