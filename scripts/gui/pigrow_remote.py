@@ -2742,20 +2742,36 @@ class config_water_dialog(wx.Dialog):
         sub_title_font = wx.Font(15, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
         title_l = wx.StaticText(self,  label='Watering Config')
         title_l.SetFont(title_font)
+        # gpio info
+        self.gpio_loc_box_l = wx.StaticText(self,  label='GPIO Pin')
+        self.gpio_loc_box = wx.TextCtrl(self, size=(70,30))
+        self.gpio_direction_box_l = wx.StaticText(self,  label='Switch direction')
 
+
+
+        # ok / cancel buttons
         self.ok_btn = wx.Button(self, label='Ok', pos=(15, 450), size=(175, 30))
         self.ok_btn.Bind(wx.EVT_BUTTON, self.ok_click)
         self.cancel_btn = wx.Button(self, label='Cancel', pos=(250, 450), size=(175, 30))
         self.cancel_btn.Bind(wx.EVT_BUTTON, self.cancel_click)
+        # set info in boxes
         self.find_and_show_watering_relay()
 
         # Sizers
+        gpio_loc_box_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        gpio_loc_box_sizer.Add(self.gpio_loc_box_l, 0, wx.ALL, 3)
+        gpio_loc_box_sizer.Add(self.gpio_loc_box, 0, wx.ALL, 3)
+        gpio_d_box_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        gpio_d_box_sizer.Add(self.gpio_direction_box_l, 0, wx.ALL, 3)
         buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
         buttons_sizer.Add(self.ok_btn, 0, wx.ALL, 5)
         buttons_sizer.AddStretchSpacer(1)
         buttons_sizer.Add(self.cancel_btn, 0, wx.ALL, 5)
         main_sizer =  wx.BoxSizer(wx.VERTICAL)
         main_sizer.Add(title_l, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(gpio_loc_box_sizer, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.Add(gpio_d_box_sizer, 0, wx.ALL|wx.EXPAND, 3)
         main_sizer.AddStretchSpacer(1)
         main_sizer.Add(buttons_sizer , 0, wx.ALL|wx.EXPAND, 3)
         self.SetSizer(main_sizer)
@@ -2767,8 +2783,10 @@ class config_water_dialog(wx.Dialog):
         if "gpio_water" in MainApp.config_ctrl_pannel.config_dict:
             print("Found gpio path; ")
             print(MainApp.config_ctrl_pannel.config_dict["gpio_water"])
+            self.gpio_loc_box.SetValue(MainApp.config_ctrl_pannel.config_dict["gpio_water"])
         else:
             print("Watering Device not found in pigrow's config file")
+            self.gpio_loc_box.SetValue("none set")
         # direction
         if "gpio_water_on" in MainApp.config_ctrl_pannel.config_dict:
             print("Found watering relays switch direction; ")
