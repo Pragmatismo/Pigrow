@@ -2568,59 +2568,118 @@ class config_lamp_dialog(wx.Dialog):
         self.SetSize((500, 600))
         self.SetTitle("Config Lamp")
     def InitUI(self):
-        #
+        # get settings
         on_hour = int(MainApp.config_ctrl_pannel.config_dict["time_lamp_on"].split(":")[0])
         on_min = int(MainApp.config_ctrl_pannel.config_dict["time_lamp_on"].split(":")[1])
         off_hour = int(MainApp.config_ctrl_pannel.config_dict["time_lamp_off"].split(":")[0])
         off_min = int(MainApp.config_ctrl_pannel.config_dict["time_lamp_off"].split(":")[1])
-
         # draw the pannel and text
+        # title
         pnl = wx.Panel(self)
-        wx.StaticText(self,  label='Lamp Config;', pos=(20, 10))
-        # hour on - first line
-        wx.StaticText(self,  label='on time', pos=(10, 50))
-        self.on_hour_spin = wx.SpinCtrl(self, min=0, max=23, value=str(on_hour), pos=(80, 35), size=(60, 50))
+        title_font = wx.Font(28, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
+        sub_title_font = wx.Font(15, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
+        title_l = wx.StaticText(self,  label='Lamp Config')
+        title_l.SetFont(title_font)
+        # Timing Dials
+        #   hour on - first line
+        on_label = wx.StaticText(self,  label='on time')
+        self.on_hour_spin = wx.SpinCtrl(self, min=0, max=23, value=str(on_hour))
         self.on_hour_spin.Bind(wx.EVT_SPINCTRL, self.on_spun)
-        wx.StaticText(self,  label=':', pos=(145, 50))
-        self.on_min_spin = wx.SpinCtrl(self, min=0, max=59, value=str(on_min), pos=(155, 35), size=(60, 50))
+        on_colon = wx.StaticText(self,  label=':')
+        self.on_min_spin = wx.SpinCtrl(self, min=0, max=59, value=str(on_min))
         self.on_min_spin.Bind(wx.EVT_SPINCTRL, self.on_spun)
-        # length on on period - second line
-        wx.StaticText(self,  label='Lamp on for ', pos=(25, 100))
-        self.on_period_h_spin = wx.SpinCtrl(self, min=0, max=23, value="", pos=(130, 85), size=(60, 50))
+        #   length on on period - second line
+        duration_label = wx.StaticText(self,  label='Lamp on for ')
+        self.on_period_h_spin = wx.SpinCtrl(self, min=0, max=23, value="")
         self.on_period_h_spin.Bind(wx.EVT_SPINCTRL, self.on_spun)
-        wx.StaticText(self,  label='hours and ', pos=(195, 100))
-        self.on_period_m_spin = wx.SpinCtrl(self, min=0, max=59, value="", pos=(280, 85), size=(60, 50))
+        duration_mid = wx.StaticText(self,  label='hours and ')
+        self.on_period_m_spin = wx.SpinCtrl(self, min=0, max=59, value="")
         self.on_period_m_spin.Bind(wx.EVT_SPINCTRL, self.on_spun)
-        wx.StaticText(self,  label='min', pos=(345, 100))
-        # off time - third line (worked out by above or manual input)
-        wx.StaticText(self,  label='off time', pos=(10, 150))
-        self.off_hour_spin = wx.SpinCtrl(self, min=0, max=23, value=str(off_hour), pos=(80, 135), size=(60, 50))
+        duration_min = wx.StaticText(self,  label='min')
+        #   off time - third line (worked out by above or manual input)
+        off_label = wx.StaticText(self,  label='off time')
+        self.off_hour_spin = wx.SpinCtrl(self, min=0, max=23, value=str(off_hour))
         self.off_hour_spin.Bind(wx.EVT_SPINCTRL, self.off_spun)
-        wx.StaticText(self,  label=':', pos=(145, 150))
-        self.off_min_spin = wx.SpinCtrl(self, min=0, max=59, value=str(off_min), pos=(155, 135), size=(60, 50))
+        off_mid = wx.StaticText(self,  label=':')
+        self.off_min_spin = wx.SpinCtrl(self, min=0, max=59, value=str(off_min))
         self.off_min_spin.Bind(wx.EVT_SPINCTRL, self.off_spun)
+        #
         # cron timing of switches
-        wx.StaticText(self,  label='Cron Timing of Switches;', pos=(10, 250))
-        wx.StaticText(self,  label='Current                          New', pos=(50, 280))
+        # labels
+        cron_label = wx.StaticText(self,  label='Cron Timing of Switches;')
+        blank = wx.StaticText(self,  label=' ')
+        current_label = wx.StaticText(self,  label='Current')
+        new_label = wx.StaticText(self,  label='New')
+        cron_on_label = wx.StaticText(self,  label=" on;")
+        cron_off_label = wx.StaticText(self,  label="off;")
+        # cron strings
         lamp_on_string = MainApp.config_ctrl_pannel.get_cron_time("lamp_on.py").strip()
         lamp_off_string = MainApp.config_ctrl_pannel.get_cron_time("lamp_off.py").strip()
-        wx.StaticText(self,  label=" on;", pos=(20, 310))
-        wx.StaticText(self,  label="off;", pos=(20, 340))
-        self.cron_lamp_on = wx.StaticText(self,  label=lamp_on_string, pos=(60, 310))
-        self.cron_lamp_off = wx.StaticText(self,  label=lamp_off_string, pos=(60, 340))
+        self.cron_lamp_on = wx.StaticText(self,  label=lamp_on_string)
+        self.cron_lamp_off = wx.StaticText(self,  label=lamp_off_string)
         new_on_string = (str(on_min) + " " + str(on_hour) + " * * *")
         new_off_string = (str(off_min) + " " + str(off_hour) + " * * *")
-        self.new_on_string_text = wx.StaticText(self,  label=new_on_string, pos=(220, 310))
-        self.new_off_string_text = wx.StaticText(self,  label=new_off_string, pos=(220, 340))
+        self.new_on_string_text = wx.StaticText(self,  label=new_on_string,)
+        self.new_off_string_text = wx.StaticText(self,  label=new_off_string)
+        #
         # set lamp period values
         on_period_hour, on_period_min = self.calc_light_period(on_hour, on_min, off_hour, off_min)
         self.on_period_h_spin.SetValue(on_period_hour)
         self.on_period_m_spin.SetValue(on_period_min)
         #ok and cancel buttons
-        self.ok_btn = wx.Button(self, label='Ok', pos=(15, 450), size=(175, 30))
+        self.ok_btn = wx.Button(self, label='Ok', size=(175, 30))
         self.ok_btn.Bind(wx.EVT_BUTTON, self.ok_click)
-        self.cancel_btn = wx.Button(self, label='Cancel', pos=(250, 450), size=(175, 30))
+        self.cancel_btn = wx.Button(self, label='Cancel', size=(175, 30))
         self.cancel_btn.Bind(wx.EVT_BUTTON, self.cancel_click)
+
+        # Sizers
+        # timing
+        on_time_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        on_time_sizer.Add(on_label, 0, wx.ALL, 5)
+        on_time_sizer.Add(self.on_hour_spin, 0, wx.ALL, 5)
+        on_time_sizer.Add(on_colon, 0, wx.ALL, 5)
+        on_time_sizer.Add(self.on_min_spin, 0, wx.ALL, 5)
+        on_duration_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        on_duration_sizer.Add(duration_label, 0, wx.ALL, 5)
+        on_duration_sizer.Add(self.on_period_h_spin, 0, wx.ALL, 5)
+        on_duration_sizer.Add(duration_mid, 0, wx.ALL, 5)
+        on_duration_sizer.Add(self.on_period_m_spin, 0, wx.ALL, 5)
+        on_duration_sizer.Add(duration_min, 0, wx.ALL, 5)
+        off_time_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        off_time_sizer.Add(off_label, 0, wx.ALL, 5)
+        off_time_sizer.Add(self.off_hour_spin, 0, wx.ALL, 5)
+        off_time_sizer.Add(off_mid, 0, wx.ALL, 5)
+        off_time_sizer.Add(self.off_min_spin, 0, wx.ALL, 5)
+        #cron
+        cron_info_sizer = wx.GridSizer(3, 3, 0, 0)
+        cron_info_sizer.AddMany( [(blank, 0, wx.EXPAND),
+            (current_label, 0, wx.EXPAND),
+            (new_label, 0, wx.EXPAND),
+            (cron_on_label, 0, wx.EXPAND),
+            (self.cron_lamp_on, 0, wx.EXPAND),
+            (self.new_on_string_text, 0, wx.EXPAND),
+            (cron_off_label, 0, wx.EXPAND),
+            (self.cron_lamp_off, 0, wx.EXPAND),
+            (self.new_off_string_text, 0, wx.EXPAND)])
+        # buttons
+        buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        buttons_sizer.Add(self.ok_btn, 0, wx.ALL, 5)
+        buttons_sizer.AddStretchSpacer(1)
+        buttons_sizer.Add(self.cancel_btn, 0, wx.ALL, 5)
+        # main sizer
+        main_sizer =  wx.BoxSizer(wx.VERTICAL)
+        main_sizer.Add(title_l, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(on_time_sizer, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.Add(on_duration_sizer, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.Add(off_time_sizer, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(cron_label, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.Add(cron_info_sizer, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(buttons_sizer , 0, wx.ALL|wx.EXPAND, 3)
+        self.SetSizer(main_sizer)
+
 
     def on_spun(self, e):
         # make light hour and min into time delta
@@ -2747,7 +2806,8 @@ class config_water_dialog(wx.Dialog):
         self.gpio_loc_box = wx.TextCtrl(self, size=(70,30))
         self.gpio_direction_box_l = wx.StaticText(self,  label='Switch direction')
         directs = ['low', 'high']
-        self.gpio_direction_box = wx.ComboBox(self, choices=directs,size=(75,30))
+        self.gpio_direction_box = wx.ComboBox(self, choices=directs,size=(100,30))
+        #
 
 
 
@@ -2761,11 +2821,10 @@ class config_water_dialog(wx.Dialog):
 
         # Sizers
         gpio_loc_box_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        gpio_loc_box_sizer.Add(self.gpio_loc_box_l, 0, wx.ALL, 3)
-        gpio_loc_box_sizer.Add(self.gpio_loc_box, 0, wx.ALL, 3)
-        gpio_d_box_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        gpio_d_box_sizer.Add(self.gpio_direction_box_l, 0, wx.ALL, 3)
-        gpio_d_box_sizer.Add(self.gpio_direction_box, 0, wx.ALL, 3)
+        gpio_loc_box_sizer.Add(self.gpio_loc_box_l, 0, wx.LEFT, 10)
+        gpio_loc_box_sizer.Add(self.gpio_loc_box, 0, wx.LEFT, 10)
+        gpio_loc_box_sizer.Add(self.gpio_direction_box_l, 0, wx.LEFT, 50)
+        gpio_loc_box_sizer.Add(self.gpio_direction_box, 0, wx.LEFT, 10)
         buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
         buttons_sizer.Add(self.ok_btn, 0, wx.ALL, 5)
         buttons_sizer.AddStretchSpacer(1)
@@ -2774,7 +2833,7 @@ class config_water_dialog(wx.Dialog):
         main_sizer.Add(title_l, 0, wx.ALL|wx.EXPAND, 3)
         main_sizer.AddStretchSpacer(1)
         main_sizer.Add(gpio_loc_box_sizer, 0, wx.ALL|wx.EXPAND, 3)
-        main_sizer.Add(gpio_d_box_sizer, 0, wx.ALL|wx.EXPAND, 3)
+        #main_sizer.Add(gpio_d_box_sizer, 0, wx.ALL|wx.EXPAND, 3)
         main_sizer.AddStretchSpacer(1)
         main_sizer.Add(buttons_sizer , 0, wx.ALL|wx.EXPAND, 3)
         self.SetSizer(main_sizer)
