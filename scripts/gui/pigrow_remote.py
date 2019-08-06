@@ -2100,7 +2100,8 @@ class config_ctrl_pnl(wx.Panel):
                         elif len(line_split) == 3:
                             self.gpio_on_dict[str(line_split[1])] = item[1]
                     else:
-                        self.config_dict[item[0]] = item[1]
+                        if not item[1] == "":
+                            self.config_dict[item[0]] = item[1]
                 except:
                     print(("!!error reading value from config file; " + str(item)))
         # we've now created self.config_dict with a list of all the items in the config file
@@ -2354,7 +2355,6 @@ class config_ctrl_pnl(wx.Panel):
             print((device, gpio, wiring))
             config_ctrl_pnl.add_to_GPIO_list(MainApp.config_ctrl_pannel, device, gpio, wiring, currently='UNLINKED')
             MainApp.config_ctrl_pannel.update_setting_file_on_pi_click("e")
-            MainApp.config_ctrl_pannel.update_pigrow_setup_pannel_information_click("e")
 
         else:
             print ("cancelled")
@@ -2408,8 +2408,10 @@ class config_ctrl_pnl(wx.Panel):
             device = config_info_pnl.gpio_table.GetItem(count, 0).GetText()
             gpio = config_info_pnl.gpio_table.GetItem(count, 1).GetText()
             wiring = config_info_pnl.gpio_table.GetItem(count, 2).GetText()
-            gpio_config_block += "\ngpio_" + device + "=" + gpio
-            gpio_config_block += "\ngpio_" + device + "_on=" + wiring
+            if not str("gpio_" + device) in self.config_dict: #check for doubles, so can update by writing to config_dict
+                gpio_config_block += "\ngpio_" + device + "=" + gpio
+            if not str("gpio_" + device + "_on") in self.config_dict:
+                gpio_config_block += "\ngpio_" + device + "_on=" + wiring
         # list all non-gpio settings
         other_settings = ""
         for key, value in list(self.config_dict.items()):
@@ -2513,8 +2515,6 @@ class config_info_pnl(scrolled.ScrolledPanel):
                 if sure == wx.ID_YES:
                     config_info_pnl.gpio_table.DeleteItem(config_info_pnl.gpio_table.GetFocusedItem())
                     MainApp.config_ctrl_pannel.update_setting_file_on_pi_click("e")
-                    #MainApp.config_ctrl_pannel.update_pigrow_setup_pannel_information_click("e")
-
 
     class GPIO_list(wx.ListCtrl):
         def __init__(self, parent, id, pos=(5,635), size=(570,160)):
@@ -2558,6 +2558,7 @@ class config_info_pnl(scrolled.ScrolledPanel):
             config_info_pnl.gpio_table.SetStringItem(index, 1, str(new_gpio))
             config_info_pnl.gpio_table.SetStringItem(index, 2, str(new_wiring))
             config_info_pnl.gpio_table.SetStringItem(index, 3, str(new_currently))
+            MainApp.config_ctrl_pannel.update_setting_file_on_pi_click("e")
 
 class config_lamp_dialog(wx.Dialog):
     #Dialog box for creating for adding or editing the lamp timing settings
@@ -2705,7 +2706,6 @@ class config_lamp_dialog(wx.Dialog):
             MainApp.config_ctrl_pannel.config_dict["time_lamp_on"] = time_lamp_on
             MainApp.config_ctrl_pannel.config_dict["time_lamp_off"] = time_lamp_off
             MainApp.config_ctrl_pannel.update_setting_file_on_pi_click("e")
-            MainApp.config_ctrl_pannel.update_pigrow_setup_pannel_information_click("e")
         self.Destroy()
 
     def change_cron_trigger(self, script, new_time):
@@ -2746,7 +2746,7 @@ class config_water_dialog(wx.Dialog):
         self.gpio_loc_box_l = wx.StaticText(self,  label='GPIO Pin')
         self.gpio_loc_box = wx.TextCtrl(self, size=(70,30))
         self.gpio_direction_box_l = wx.StaticText(self,  label='Switch direction')
-        directs = ['none', 'low', 'high']
+        directs = ['low', 'high']
         self.gpio_direction_box = wx.ComboBox(self, choices=directs,size=(75,30))
 
 
@@ -2781,20 +2781,19 @@ class config_water_dialog(wx.Dialog):
 
 
     def find_and_show_watering_relay(self):
+        print(MainApp.config_ctrl_pannel.gpio_on_dict)
         print("Looking for watering device in config")
         # gpio address
-        if "gpio_water" in MainApp.config_ctrl_pannel.config_dict:
-            print("Found gpio path; ")
-            print(MainApp.config_ctrl_pannel.config_dict["gpio_water"])
-            self.gpio_loc_box.SetValue(MainApp.config_ctrl_pannel.config_dict["gpio_water"])
+        if "water" in MainApp.config_ctrl_pannel.gpio_dict:
+            self.gpio_loc_box.SetValue(MainApp.config_ctrl_pannel.gpio_dict["water"])
         else:
             print("Watering Device not found in pigrow's config file")
             self.gpio_loc_box.SetValue("none")
+
         # direction
-        if "gpio_water_on" in MainApp.config_ctrl_pannel.config_dict:
+        if "water" in MainApp.config_ctrl_pannel.gpio_on_dict:
             print("Found watering relays switch direction; ")
-            print(MainApp.config_ctrl_pannel.config_dict["gpio_water_on"])
-            self.gpio_direction_box.SetValue(MainApp.config_ctrl_pannel.config_dict["gpio_water_on"])
+            self.gpio_direction_box.SetValue(MainApp.config_ctrl_pannel.gpio_on_dict["water"])
         else:
             print("Watering devices switch direction not found in pigrow's config file")
             self.gpio_direction_box.SetValue('none')
@@ -2803,24 +2802,30 @@ class config_water_dialog(wx.Dialog):
     def ok_click(self, e):
         print("config watering currently does nothing!")
         # Check for changes to settings file
+        settings_changed = False
+        new_gpio = self.gpio_loc_box.GetValue().strip()
+        new_switch_direction = self.gpio_direction_box.GetValue().strip()
         # gpio pin
-        if 'gpio_water' in MainApp.config_ctrl_pannel.config_dict:
-            current_gpio = MainApp.config_ctrl_pannel.config_dict["gpio_water"]
+        if 'water' in MainApp.config_ctrl_pannel.gpio_dict:
+            current_gpio = MainApp.config_ctrl_pannel.gpio_dict["water"]
         else:
             current_gpio = "none"
-        if current_gpio == self.gpio_loc_box.GetValue().strip():
-            print("GPIO Pin not changed")
-        else:
-            print("GPIO Pin changed")
+        if not current_gpio == new_gpio:
+            settings_changed = True
         # switch direction
-        if 'gpio_water_on' in MainApp.config_ctrl_pannel.config_dict:
-            current_switch_direct = MainApp.config_ctrl_pannel.config_dict["gpio_water_on"]
+        if 'water' in MainApp.config_ctrl_pannel.gpio_on_dict:
+            current_switch_direction = MainApp.config_ctrl_pannel.gpio_on_dict["water"]
         else:
-            current_switch_direct = 'none'
-        if current_switch_direct == self.gpio_direction_box.GetValue().strip():
-            print("Switch Direction not changed")
-        else:
-            print("Switch Direction changed")
+            current_switch_direction = 'none'
+        if not current_switch_direction == new_switch_direction:
+            settings_changed = True
+        # Update settings file
+        if settings_changed == True:
+            # Add to the config_dict so it get's written to the pi then loading into the relay table
+            MainApp.config_ctrl_pannel.config_dict["gpio_water"] = new_gpio
+            MainApp.config_ctrl_pannel.config_dict["gpio_water_on"] = new_switch_direction
+            MainApp.config_ctrl_pannel.update_setting_file_on_pi_click("e")
+
 
 
         #
@@ -2994,6 +2999,8 @@ class edit_gpio_dialog(wx.Dialog):
         for item in switches:
             if item[-6:] == "_on.py":
                 switch_list.append(item.split("_")[0])
+            elif item.split('_')[0] == "timed":
+                switch_list.append(item.split("_")[1].split(".")[0])
         return switch_list
 
     def list_unused_devices(self, switch_list):
