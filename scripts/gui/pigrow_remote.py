@@ -1687,7 +1687,6 @@ class install_dialog(wx.Dialog):
         print (adafruit_install)
 
     def install_adafruit_ads1115(self):
-        print("This currently does nothing, will soon install Adafruit's ADS1115 driver")
         print("starting adafruit install")
         self.progress.SetLabel("################~~~~~~~~~~~~~")
         self.currently_doing.SetLabel("Using pip3 to install adafruit's ADS1x15 driver")
@@ -2783,7 +2782,7 @@ class config_lamp_dialog(wx.Dialog):
         return "done"
 
     def cancel_click(self, e):
-        print("does nothing")
+        print("Cancelled")
         self.Destroy()
 
 class config_water_dialog(wx.Dialog):
@@ -2811,8 +2810,20 @@ class config_water_dialog(wx.Dialog):
         self.control_choices_l = wx.StaticText(self,  label='Control Using')
         control_choices = ['any', 'timed', 'sensor']
         self.control_choices_box = wx.ComboBox(self, choices=control_choices,size=(100,30))
-        #
-
+        self.control_choices_box.Bind(wx.EVT_TEXT, self.control_choice_box_go)
+        # # #
+        # Shown when 'any' is selected
+        msg = 'Manual control selected.\n\n '
+        msg += 'Configure cron jobs manually using\n'
+        msg += '     .../switches/timed_water.py\n'
+        msg += '\n'
+        msg += 'Other sensor and logic driven scripts coming soon'
+        self.any_l = wx.StaticText(self,  label=msg)
+        # Shown when timed is selected
+        self.timed_l = wx.StaticText(self,  label='Water controlled by a timed_water.py cron job')
+        # Shown when sensor is selected
+        msg = 'Unfortunately this is not yet implemented,\nan update will be coming soon'
+        self.sensor_l = wx.StaticText(self,  label=msg)
 
 
         # ok / cancel buttons
@@ -2832,6 +2843,17 @@ class config_water_dialog(wx.Dialog):
         control_choice_sizer = wx.BoxSizer(wx.HORIZONTAL)
         control_choice_sizer.Add(self.control_choices_l, 0, wx.ALL, 5)
         control_choice_sizer.Add(self.control_choices_box, 0, wx.ALL, 5)
+        # shown only when 'any' is selected
+        any_sizer = wx.BoxSizer(wx.VERTICAL)
+        any_sizer.Add(self.any_l, 0, wx.ALL, 5)
+        # shown only when 'timed' is selected
+        timed_sizer = wx.BoxSizer(wx.VERTICAL)
+        timed_sizer.Add(self.timed_l, 0, wx.ALL, 5)
+        # shown only when 'sensor' is selected
+        sensor_sizer = wx.BoxSizer(wx.VERTICAL)
+        sensor_sizer.Add(self.sensor_l, 0, wx.ALL, 5)
+
+        #
         buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
         buttons_sizer.Add(self.ok_btn, 0, wx.ALL, 5)
         buttons_sizer.AddStretchSpacer(1)
@@ -2841,13 +2863,34 @@ class config_water_dialog(wx.Dialog):
         main_sizer.AddStretchSpacer(1)
         main_sizer.Add(gpio_loc_box_sizer, 0, wx.ALL|wx.EXPAND, 3)
         main_sizer.Add(control_choice_sizer, 0, wx.ALL|wx.EXPAND, 3)
-        #main_sizer.Add(gpio_d_box_sizer, 0, wx.ALL|wx.EXPAND, 3)
+        # shown only when selected
+        main_sizer.Add(timed_sizer, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.Add(sensor_sizer, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.Add(any_sizer, 0, wx.ALL|wx.EXPAND, 3)
         main_sizer.AddStretchSpacer(1)
         main_sizer.Add(buttons_sizer , 0, wx.ALL|wx.EXPAND, 3)
         self.SetSizer(main_sizer)
 
+    def hide_hideable_ui(self):
+        self.timed_l.Hide()
+        self.sensor_l.Hide()
+        self.any_l.Hide()
+
+    def control_choice_box_go(self, e):
+        self.hide_hideable_ui()
+        control_choice = self.control_choices_box.GetValue()
+        if control_choice == 'timed':
+            self.timed_l.Show()
+        if control_choice == 'sensor':
+            self.sensor_l.Show()
+        if control_choice == 'any':
+            self.any_l.Show()
+        self.Layout()
+
 
     def find_and_show_watering_relay(self):
+        # all relay config settings are stored in gpio_dict and gpio_on_dict
+        # other settings in the config_dict
         print(MainApp.config_ctrl_pannel.gpio_on_dict)
         print("Looking for watering device in config")
         # gpio address
@@ -2874,7 +2917,6 @@ class config_water_dialog(wx.Dialog):
 
 
     def ok_click(self, e):
-        print("config watering currently does nothing!")
         # Check for changes to settings file
         settings_changed = False
         new_gpio = self.gpio_loc_box.GetValue().strip()
@@ -2895,8 +2937,8 @@ class config_water_dialog(wx.Dialog):
         if not current_switch_direction == new_switch_direction:
             settings_changed = True
         #
-        if 'water_control' in MainApp.config_ctrl_pannel.gpio_on_dict:
-            current_control_option = MainApp.config_ctrl_pannel.gpio_on_dict["water"]
+        if 'water_control' in MainApp.config_ctrl_pannel.config_dict:
+            current_control_option = MainApp.config_ctrl_pannel.config_dict["water_control"]
         else:
             current_control_option = 'none'
         if not current_control_option == new_control_option:
@@ -3370,7 +3412,7 @@ class edit_dht_dialog(wx.Dialog):
         self.Destroy()
 
     def cancel_click(self, e):
-        print("nothing happens")
+        print("Cancelled")
         self.Destroy()
 
 #
@@ -4510,7 +4552,7 @@ class localfiles_info_pnl(scrolled.ScrolledPanel):
                 return None
 
     def onDoubleClick_logs(self, e):
-        print("sry nothing happens")
+        print("sry nothing happens - this will be added soon")
 
 class localfiles_ctrl_pnl(wx.Panel):
     def __init__( self, parent ):
