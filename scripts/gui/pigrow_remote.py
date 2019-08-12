@@ -2807,6 +2807,10 @@ class config_water_dialog(wx.Dialog):
         self.gpio_direction_box_l = wx.StaticText(self,  label='Switch direction')
         directs = ['low', 'high']
         self.gpio_direction_box = wx.ComboBox(self, choices=directs,size=(100,30))
+        # control options
+        self.control_choices_l = wx.StaticText(self,  label='Control Using')
+        control_choices = ['any', 'timed', 'sensor']
+        self.control_choices_box = wx.ComboBox(self, choices=control_choices,size=(100,30))
         #
 
 
@@ -2825,6 +2829,9 @@ class config_water_dialog(wx.Dialog):
         gpio_loc_box_sizer.Add(self.gpio_loc_box, 0, wx.LEFT, 10)
         gpio_loc_box_sizer.Add(self.gpio_direction_box_l, 0, wx.LEFT, 50)
         gpio_loc_box_sizer.Add(self.gpio_direction_box, 0, wx.LEFT, 10)
+        control_choice_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        control_choice_sizer.Add(self.control_choices_l, 0, wx.ALL, 5)
+        control_choice_sizer.Add(self.control_choices_box, 0, wx.ALL, 5)
         buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
         buttons_sizer.Add(self.ok_btn, 0, wx.ALL, 5)
         buttons_sizer.AddStretchSpacer(1)
@@ -2833,6 +2840,7 @@ class config_water_dialog(wx.Dialog):
         main_sizer.Add(title_l, 0, wx.ALL|wx.EXPAND, 3)
         main_sizer.AddStretchSpacer(1)
         main_sizer.Add(gpio_loc_box_sizer, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.Add(control_choice_sizer, 0, wx.ALL|wx.EXPAND, 3)
         #main_sizer.Add(gpio_d_box_sizer, 0, wx.ALL|wx.EXPAND, 3)
         main_sizer.AddStretchSpacer(1)
         main_sizer.Add(buttons_sizer , 0, wx.ALL|wx.EXPAND, 3)
@@ -2846,7 +2854,7 @@ class config_water_dialog(wx.Dialog):
         if "water" in MainApp.config_ctrl_pannel.gpio_dict:
             self.gpio_loc_box.SetValue(MainApp.config_ctrl_pannel.gpio_dict["water"])
         else:
-            print("Watering Device not found in pigrow's config file")
+            print("Watering Device not found in pigrow's settings file")
             self.gpio_loc_box.SetValue("none")
 
         # direction
@@ -2854,8 +2862,15 @@ class config_water_dialog(wx.Dialog):
             print("Found watering relays switch direction; ")
             self.gpio_direction_box.SetValue(MainApp.config_ctrl_pannel.gpio_on_dict["water"])
         else:
-            print("Watering devices switch direction not found in pigrow's config file")
+            print("Watering devices switch direction not found in pigrow's settings file")
             self.gpio_direction_box.SetValue('none')
+        # control
+        if 'water_control' in MainApp.config_ctrl_pannel.config_dict:
+            print("Found watering control option; ")
+            self.control_choices_box.SetValue(MainApp.config_ctrl_pannel.config_dict["water_control"])
+        else:
+            print("Watering devices control option not found in pigrow's config file")
+            self.control_choices_box.SetValue('none')
 
 
     def ok_click(self, e):
@@ -2864,6 +2879,7 @@ class config_water_dialog(wx.Dialog):
         settings_changed = False
         new_gpio = self.gpio_loc_box.GetValue().strip()
         new_switch_direction = self.gpio_direction_box.GetValue().strip()
+        new_control_option = self.control_choices_box.GetValue()
         # gpio pin
         if 'water' in MainApp.config_ctrl_pannel.gpio_dict:
             current_gpio = MainApp.config_ctrl_pannel.gpio_dict["water"]
@@ -2878,11 +2894,20 @@ class config_water_dialog(wx.Dialog):
             current_switch_direction = 'none'
         if not current_switch_direction == new_switch_direction:
             settings_changed = True
+        #
+        if 'water_control' in MainApp.config_ctrl_pannel.gpio_on_dict:
+            current_control_option = MainApp.config_ctrl_pannel.gpio_on_dict["water"]
+        else:
+            current_control_option = 'none'
+        if not current_control_option == new_control_option:
+            settings_changed = True
+
         # Update settings file
         if settings_changed == True:
             # Add to the config_dict so it get's written to the pi then loading into the relay table
             MainApp.config_ctrl_pannel.config_dict["gpio_water"] = new_gpio
             MainApp.config_ctrl_pannel.config_dict["gpio_water_on"] = new_switch_direction
+            MainApp.config_ctrl_pannel.config_dict["water_control"] = new_control_option
             MainApp.config_ctrl_pannel.update_setting_file_on_pi_click("e")
 
 
