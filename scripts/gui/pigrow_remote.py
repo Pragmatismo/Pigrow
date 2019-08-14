@@ -2330,8 +2330,8 @@ class config_ctrl_pnl(wx.Panel):
         lamp_dbox.ShowModal()
 
     def config_water_click(self, e):
-        lamp_dbox = config_water_dialog(None, title='Config Watering')
-        lamp_dbox.ShowModal()
+        self.water_dbox = config_water_dialog(None, title='Config Watering')
+        self.water_dbox.ShowModal()
 
     def config_dht_click(self, e):
         dht_dbox = edit_dht_dialog(None, title='Config DHT')
@@ -2838,8 +2838,8 @@ class config_water_dialog(wx.Dialog):
         self.flow_rate_l = wx.StaticText(self,  label=msg)
         self.calibrate_flow_rate_btn = wx.Button(self, label=' \nCalibrate\nFlow Rate\n ')
         self.calibrate_flow_rate_btn.Bind(wx.EVT_BUTTON, self.calibrate_flow_rate_click)
-        self.flow_rate_per_second_value = wx.StaticText(self,  label='--')
-        self.flow_rate_per_second_l = wx.StaticText(self,  label=' Litres Per Secpmd')
+        self.flow_rate_per_min_value = wx.StaticText(self,  label='--')
+        self.flow_rate_per_min_l = wx.StaticText(self,  label=' Litres Per Min')
         # quick flow rate and volume calulator
 
 
@@ -2889,8 +2889,8 @@ class config_water_dialog(wx.Dialog):
         #
         # flow rate Calibration tool
         flow_per_sec_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        flow_per_sec_sizer.Add(self.flow_rate_per_second_value, 0, wx.ALL, 5)
-        flow_per_sec_sizer.Add(self.flow_rate_per_second_l, 0, wx.ALL, 5)
+        flow_per_sec_sizer.Add(self.flow_rate_per_min_value, 0, wx.ALL, 5)
+        flow_per_sec_sizer.Add(self.flow_rate_per_min_l, 0, wx.ALL, 5)
         calibrate_flow_rate_sizer = wx.BoxSizer(wx.HORIZONTAL)
         calibrate_flow_rate_sizer.Add(self.calibrate_flow_rate_btn, 0, wx.ALL, 5)
         calibrate_flow_rate_sizer.Add(flow_per_sec_sizer, 0, wx.ALL, 5)
@@ -2919,9 +2919,9 @@ class config_water_dialog(wx.Dialog):
         self.SetSizer(main_sizer)
 
     def calibrate_flow_rate_click(self, e):
-        print("!!! Sorry, calibrating the flow rate is not fully implemented yet, check back in a few hours...")
         calibrate_water_dbox = calibrate_water_flow_rate_dialog(None)
         calibrate_water_dbox.ShowModal()
+        self.Layout()
 
 
     def add_new_timed_watering_click(self, e):
@@ -2935,6 +2935,7 @@ class config_water_dialog(wx.Dialog):
         self.tpta_water_volume_value.Hide()
         self.sensor_l.Hide()
         self.any_l.Hide()
+        self.Layout()
 
     def control_choice_box_go(self, e):
         self.hide_hideable_ui()
@@ -2978,6 +2979,13 @@ class config_water_dialog(wx.Dialog):
         else:
             print("Watering devices control option not found in pigrow's config file")
             self.control_choices_box.SetValue('none')
+        # flow rate
+        if 'water_flow_rate' in MainApp.config_ctrl_pannel.config_dict:
+            print("Found water flow rate; ")
+            self.flow_rate_per_min_value.SetLabel(MainApp.config_ctrl_pannel.config_dict["water_flow_rate"])
+        else:
+            print("Water flow rate option not found in pigrow's config file")
+            self.flow_rate_per_min_value.SetLabel("none")
 
 
     def ok_click(self, e):
@@ -2986,6 +2994,7 @@ class config_water_dialog(wx.Dialog):
         new_gpio = self.gpio_loc_box.GetValue().strip()
         new_switch_direction = self.gpio_direction_box.GetValue().strip()
         new_control_option = self.control_choices_box.GetValue()
+        new_flow_rate = self.flow_rate_per_min_value.GetLabel()
         # gpio pin
         if 'water' in MainApp.config_ctrl_pannel.gpio_dict:
             current_gpio = MainApp.config_ctrl_pannel.gpio_dict["water"]
@@ -3000,12 +3009,19 @@ class config_water_dialog(wx.Dialog):
             current_switch_direction = 'none'
         if not current_switch_direction == new_switch_direction:
             settings_changed = True
-        #
+        # water control
         if 'water_control' in MainApp.config_ctrl_pannel.config_dict:
             current_control_option = MainApp.config_ctrl_pannel.config_dict["water_control"]
         else:
             current_control_option = 'none'
         if not current_control_option == new_control_option:
+            settings_changed = True
+        # water flow rate
+        if 'water_flow_rate' in MainApp.config_ctrl_pannel.config_dict:
+            current_flow_rate = MainApp.config_ctrl_pannel.config_dict["water_flow_rate"]
+        else:
+            current_flow_rate = 'none'
+        if not current_flow_rate == new_flow_rate:
             settings_changed = True
 
         # Update settings file
@@ -3014,6 +3030,8 @@ class config_water_dialog(wx.Dialog):
             MainApp.config_ctrl_pannel.config_dict["gpio_water"] = new_gpio
             MainApp.config_ctrl_pannel.config_dict["gpio_water_on"] = new_switch_direction
             MainApp.config_ctrl_pannel.config_dict["water_control"] = new_control_option
+            if not new_flow_rate == "none" or not new_flow_rate == "":
+                MainApp.config_ctrl_pannel.config_dict["water_flow_rate"] = new_flow_rate
             MainApp.config_ctrl_pannel.update_setting_file_on_pi_click("e")
 
 
@@ -3082,24 +3100,58 @@ class calibrate_water_flow_rate_dialog(wx.Dialog):
         self.time_count = self.time_count + 1
         self.running_time_value.SetLabel(str(self.time_count))
 
+    def turn_on(self, water_gpio_pin, water_gpio_direction):
+        if water_gpio_direction == 'low':
+            on_cmd = 'generic_low.py'
+        elif water_gpio_direction == 'high':
+            on_cmd = 'generic_high.py'
+        cmd = "/home/" + pi_link_pnl.target_user + "/Pigrow/scripts/switches/" + on_cmd + " gpio=" + water_gpio_pin
+        print(" Running - " + cmd)
+        MainApp.localfiles_ctrl_pannel.run_on_pi(cmd)
+
+    def turn_off(self, water_gpio_pin, water_gpio_direction):
+        if water_gpio_direction == 'high':
+            on_cmd = 'generic_low.py'
+        elif water_gpio_direction == 'low':
+            on_cmd = 'generic_high.py'
+        cmd = "/home/" + pi_link_pnl.target_user + "/Pigrow/scripts/switches/" + on_cmd + " gpio=" + water_gpio_pin
+        print(" Running - " + cmd)
+        MainApp.localfiles_ctrl_pannel.run_on_pi(cmd)
+
     def go_click(self, e):
         button_label = self.go_btn.GetLabel()
+        water_gpio_pin = MainApp.config_ctrl_pannel.water_dbox.gpio_loc_box.GetValue()
+        water_gpio_direction = MainApp.config_ctrl_pannel.water_dbox.gpio_direction_box.GetValue()
         if button_label == "Start":
             print(" Note - This feature is still being written, it currently does not store the results")
             self.time_count = 0
             self.timer.Start(1000)
             self.go_btn.SetLabel("Stop")
+            print(" Setting GPIO " + water_gpio_pin + " to " + water_gpio_direction + " ( - ON - )")
+            self.turn_on(water_gpio_pin, water_gpio_direction)
         else:
             self.timer.Stop()
             self.go_btn.SetLabel("Start")
+            print(" Setting GPIO " + water_gpio_pin + " to the opposite of " + water_gpio_direction + " ( - OFF - )")
+            self.turn_off(water_gpio_pin, water_gpio_direction)
             total_time = int(self.running_time_value.GetLabel())
             container_size = int(self.container_size_box.GetValue())
-            flowrate = container_size / total_time
+            flowrate = round(container_size / total_time, 4)
             print(" Total Time - " + str(total_time) + " seconds to fill a " + str(container_size) + " VOLUME UNIT container")
             print(" Flowrate of " + str(flowrate) + " VOLUME UNIT per second, or " + str(flowrate * 60) + ' VOLUME UNIT per min')
+            msg = "Set the flow rate to " + str(flowrate*60) + " litres per minute"
+            mbox = wx.MessageDialog(None, msg, "Set flow rate?", wx.YES_NO|wx.ICON_QUESTION)
+            sure = mbox.ShowModal()
+            if sure == wx.ID_YES:
+                MainApp.config_ctrl_pannel.water_dbox.flow_rate_per_min_value.SetLabel(str(flowrate*60))
+                self.Destroy()
 
     def OnClose(self, e):
-        self.timer.Stop()
+        if not self.go_btn.GetLabel() == "Start":
+            water_gpio_pin = MainApp.config_ctrl_pannel.water_dbox.gpio_loc_box.GetValue()
+            water_gpio_direction = MainApp.config_ctrl_pannel.water_dbox.gpio_direction_box.GetValue()
+            self.turn_off(water_gpio_pin, water_gpio_direction)
+            self.timer.Stop()
         self.Destroy()
 
 
