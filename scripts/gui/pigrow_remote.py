@@ -2821,9 +2821,26 @@ class config_water_dialog(wx.Dialog):
         self.any_l = wx.StaticText(self,  label=msg)
         # Shown when timed is selected
         self.timed_l = wx.StaticText(self,  label='Water controlled by a timed_water.py cron job')
+        # add new cron watering job
+        self.water_duration_l = wx.StaticText(self,  label='Watering duration in seconds')
+        self.water_duration = wx.TextCtrl(self, value="")
+        self.total_water_volume_l = wx.StaticText(self,  label='Total water to be pumped;')
+        self.tpta_water_volume_value = wx.StaticText(self,  label='--')
+        self.add_new_timed_watering_btn = wx.Button(self, label=' \nAdd new\nWatering Job\n ')
+        self.add_new_timed_watering_btn.Bind(wx.EVT_BUTTON, self.add_new_timed_watering_click)
+
         # Shown when sensor is selected
         msg = 'Unfortunately this is not yet implemented,\nan update will be coming soon'
         self.sensor_l = wx.StaticText(self,  label=msg)
+        # # #
+        # flow rate Calibration tool
+        msg = 'Flow Rate calibration;'
+        self.flow_rate_l = wx.StaticText(self,  label=msg)
+        self.calibrate_flow_rate_btn = wx.Button(self, label=' \nCalibrate\nFlow Rate\n ')
+        self.calibrate_flow_rate_btn.Bind(wx.EVT_BUTTON, self.calibrate_flow_rate_click)
+        self.flow_rate_per_second_value = wx.StaticText(self,  label='--')
+        self.flow_rate_per_second_l = wx.StaticText(self,  label=' Litres Per Secpmd')
+        # quick flow rate and volume calulator
 
 
         # ok / cancel buttons
@@ -2843,15 +2860,43 @@ class config_water_dialog(wx.Dialog):
         control_choice_sizer = wx.BoxSizer(wx.HORIZONTAL)
         control_choice_sizer.Add(self.control_choices_l, 0, wx.ALL, 5)
         control_choice_sizer.Add(self.control_choices_box, 0, wx.ALL, 5)
+        # Options only shown depending on control choice
         # shown only when 'any' is selected
         any_sizer = wx.BoxSizer(wx.VERTICAL)
         any_sizer.Add(self.any_l, 0, wx.ALL, 5)
         # shown only when 'timed' is selected
         timed_sizer = wx.BoxSizer(wx.VERTICAL)
         timed_sizer.Add(self.timed_l, 0, wx.ALL, 5)
+        #
+        water_duration_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        water_duration_sizer.Add(self.water_duration_l, 0, wx.ALL, 2)
+        water_duration_sizer.Add(self.water_duration, 0, wx.ALL, 2)
+        total_volume_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        total_volume_sizer.Add(self.total_water_volume_l, 0, wx.ALL, 2)
+        total_volume_sizer.Add(self.tpta_water_volume_value, 0, wx.ALL, 2)
+        water_duration_and_total_sizer = wx.BoxSizer(wx.VERTICAL)
+        water_duration_and_total_sizer.Add(water_duration_sizer, 0, wx.LEFT, 30)
+        water_duration_and_total_sizer.Add(total_volume_sizer, 0, wx.LEFT, 30)
+        add_new_job_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        add_new_job_sizer.Add(self.add_new_timed_watering_btn, 0, wx.LEFT, 20)
+        add_new_job_sizer.Add(water_duration_and_total_sizer, 0, wx.ALL, 5)
+        timed_sizer.Add(add_new_job_sizer, 0, wx.ALL, 5)
+
+
         # shown only when 'sensor' is selected
         sensor_sizer = wx.BoxSizer(wx.VERTICAL)
         sensor_sizer.Add(self.sensor_l, 0, wx.ALL, 5)
+        #
+        # flow rate Calibration tool
+        flow_per_sec_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        flow_per_sec_sizer.Add(self.flow_rate_per_second_value, 0, wx.ALL, 5)
+        flow_per_sec_sizer.Add(self.flow_rate_per_second_l, 0, wx.ALL, 5)
+        calibrate_flow_rate_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        calibrate_flow_rate_sizer.Add(self.calibrate_flow_rate_btn, 0, wx.ALL, 5)
+        calibrate_flow_rate_sizer.Add(flow_per_sec_sizer, 0, wx.ALL, 5)
+        flow_rate_sizer = wx.BoxSizer(wx.VERTICAL)
+        flow_rate_sizer.Add(self.flow_rate_l, 0, wx.ALL, 5)
+        flow_rate_sizer.Add(calibrate_flow_rate_sizer, 0, wx.ALL, 5)
 
         #
         buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -2868,11 +2913,23 @@ class config_water_dialog(wx.Dialog):
         main_sizer.Add(sensor_sizer, 0, wx.ALL|wx.EXPAND, 3)
         main_sizer.Add(any_sizer, 0, wx.ALL|wx.EXPAND, 3)
         main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(flow_rate_sizer, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.AddStretchSpacer(1)
         main_sizer.Add(buttons_sizer , 0, wx.ALL|wx.EXPAND, 3)
         self.SetSizer(main_sizer)
 
+    def calibrate_flow_rate_click(self, e):
+        print("Sorry, calibrating the flow rate is not implemented yet, check back in a few hours...")
+
+    def add_new_timed_watering_click(self, e):
+        print("this is not implemented yet but will be soon...")
+
     def hide_hideable_ui(self):
         self.timed_l.Hide()
+        self.water_duration_l.Hide()
+        self.water_duration.Hide()
+        self.total_water_volume_l.Hide()
+        self.tpta_water_volume_value.Hide()
         self.sensor_l.Hide()
         self.any_l.Hide()
 
@@ -2881,6 +2938,10 @@ class config_water_dialog(wx.Dialog):
         control_choice = self.control_choices_box.GetValue()
         if control_choice == 'timed':
             self.timed_l.Show()
+            self.water_duration_l.Show()
+            self.water_duration.Show()
+            self.total_water_volume_l.Show()
+            self.tpta_water_volume_value.Show()
         if control_choice == 'sensor':
             self.sensor_l.Show()
         if control_choice == 'any':
