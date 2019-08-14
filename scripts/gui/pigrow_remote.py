@@ -3074,16 +3074,32 @@ class calibrate_water_flow_rate_dialog(wx.Dialog):
         main_sizer.Add(buttons_sizer , 0, wx.ALL|wx.EXPAND, 3)
         self.SetSizer(main_sizer)
 
+        # Timer
+        self.timer = wx.Timer(self)
+        self.Bind(wx.EVT_TIMER, self.update, self.timer)
+
+    def update(self, event):
+        self.time_count = self.time_count + 1
+        self.running_time_value.SetLabel(str(self.time_count))
+
     def go_click(self, e):
         button_label = self.go_btn.GetLabel()
         if button_label == "Start":
-            print("doing nothing")
+            print(" Note - This feature is still being written, it currently does not store the results")
+            self.time_count = 0
+            self.timer.Start(1000)
             self.go_btn.SetLabel("Stop")
         else:
-            print("Stopped doing nothing... (but not started doing anything)")
+            self.timer.Stop()
             self.go_btn.SetLabel("Start")
+            total_time = int(self.running_time_value.GetLabel())
+            container_size = int(self.container_size_box.GetValue())
+            flowrate = container_size / total_time
+            print(" Total Time - " + str(total_time) + " seconds to fill a " + str(container_size) + " VOLUME UNIT container")
+            print(" Flowrate of " + str(flowrate) + " VOLUME UNIT per second, or " + str(flowrate * 60) + ' VOLUME UNIT per min')
 
     def OnClose(self, e):
+        self.timer.Stop()
         self.Destroy()
 
 
