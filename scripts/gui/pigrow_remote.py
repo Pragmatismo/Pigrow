@@ -2919,7 +2919,10 @@ class config_water_dialog(wx.Dialog):
         self.SetSizer(main_sizer)
 
     def calibrate_flow_rate_click(self, e):
-        print("Sorry, calibrating the flow rate is not implemented yet, check back in a few hours...")
+        print("!!! Sorry, calibrating the flow rate is not fully implemented yet, check back in a few hours...")
+        calibrate_water_dbox = calibrate_water_flow_rate_dialog(None)
+        calibrate_water_dbox.ShowModal()
+
 
     def add_new_timed_watering_click(self, e):
         print("this is not implemented yet but will be soon...")
@@ -3021,6 +3024,70 @@ class config_water_dialog(wx.Dialog):
     def cancel_click(self, e):
         print("Changing watering configuration has ben cancelled")
         self.Destroy()
+
+class calibrate_water_flow_rate_dialog(wx.Dialog):
+    #Dialog box for creating for adding or editing device gpio config data
+    def __init__(self, *args, **kw):
+        super(calibrate_water_flow_rate_dialog, self).__init__(*args, **kw)
+        self.InitUI()
+        self.SetSize((450, 300))
+        self.SetTitle("Calibrate Water Flow Rate")
+    def InitUI(self):
+        # draw the pannel and text
+        pnl = wx.Panel(self)
+        title_font = wx.Font(26, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
+        sub_title_font = wx.Font(15, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
+        title_l = wx.StaticText(self,  label='Calibrate Water Flow Rate')
+        title_l.SetFont(title_font)
+        msg = 'Time how long it takes to fill a measured\ncontainer to determine the flow rate of\nyour pump.'
+        sub_title_l = wx.StaticText(self,  label=msg)
+        sub_title_l.SetFont(sub_title_font)
+        # container size input
+        self.container_size_l = wx.StaticText(self,  label='Container Size')
+        self.container_size_box = wx.TextCtrl(self, size=(70,30))
+        # Running Time
+        self.running_time_l = wx.StaticText(self,  label='Time Elapsed; ')
+        self.running_time_value = wx.StaticText(self,  label='--')
+        # ok / cancel buttons
+        self.go_btn = wx.Button(self, label='Start', pos=(15, 450), size=(175, 30))
+        self.go_btn.Bind(wx.EVT_BUTTON, self.go_click)
+        self.cancel_btn = wx.Button(self, label='Cancel', pos=(250, 450), size=(175, 30))
+        self.cancel_btn.Bind(wx.EVT_BUTTON, self.OnClose)
+
+        flow_rate_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        flow_rate_sizer.Add(self.container_size_l, 0, wx.ALL, 5)
+        flow_rate_sizer.Add(self.container_size_box, 0, wx.ALL, 5)
+        running_time_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        running_time_sizer.Add(self.running_time_l, 0, wx.ALL, 5)
+        running_time_sizer.Add(self.running_time_value, 0, wx.ALL, 5)
+        buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        buttons_sizer.Add(self.go_btn, 0, wx.ALL, 5)
+        buttons_sizer.AddStretchSpacer(1)
+        buttons_sizer.Add(self.cancel_btn, 0, wx.ALL, 5)
+        main_sizer =  wx.BoxSizer(wx.VERTICAL)
+        main_sizer.Add(title_l, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.Add(sub_title_l, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(flow_rate_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
+        main_sizer.Add(running_time_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
+        main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(buttons_sizer , 0, wx.ALL|wx.EXPAND, 3)
+        self.SetSizer(main_sizer)
+
+    def go_click(self, e):
+        button_label = self.go_btn.GetLabel()
+        if button_label == "Start":
+            print("doing nothing")
+            self.go_btn.SetLabel("Stop")
+        else:
+            print("Stopped doing nothing... (but not started doing anything)")
+            self.go_btn.SetLabel("Start")
+
+    def OnClose(self, e):
+        self.Destroy()
+
+
+
 
 
 class doubleclick_gpio_dialog(wx.Dialog):
