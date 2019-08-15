@@ -2790,7 +2790,7 @@ class config_water_dialog(wx.Dialog):
     def __init__(self, *args, **kw):
         super(config_water_dialog, self).__init__(*args, **kw)
         self.InitUI()
-        self.SetSize((500, 600))
+        self.SetSize((600, 600))
         self.SetTitle("Config Water")
     def InitUI(self):
 
@@ -2822,12 +2822,17 @@ class config_water_dialog(wx.Dialog):
         # Shown when timed is selected
         self.timed_l = wx.StaticText(self,  label='Water controlled by a timed_water.py cron job')
         # add new cron watering job
+        # Water Duration
         self.water_duration_l = wx.StaticText(self,  label='Watering duration in seconds')
         self.water_duration = wx.TextCtrl(self, value="")
+        self.water_duration.Bind(wx.EVT_TEXT, self.water_duration_text_change)
         self.total_water_volume_l = wx.StaticText(self,  label='Total water to be pumped;')
-        self.tpta_water_volume_value = wx.StaticText(self,  label='--')
+        self.total_water_volume_unit = wx.StaticText(self,  label='litres')
+        self.total_water_volume_value = wx.StaticText(self,  label='--')
         self.add_new_timed_watering_btn = wx.Button(self, label=' \nAdd new\nWatering Job\n ')
         self.add_new_timed_watering_btn.Bind(wx.EVT_BUTTON, self.add_new_timed_watering_click)
+        self.manual_run_watering_btn = wx.Button(self, label=' \nRun Pump\nTimed\n ')
+        self.manual_run_watering_btn.Bind(wx.EVT_BUTTON, self.manual_run_watering_click)
 
         # Shown when sensor is selected
         msg = 'Unfortunately this is not yet implemented,\nan update will be coming soon'
@@ -2873,13 +2878,15 @@ class config_water_dialog(wx.Dialog):
         water_duration_sizer.Add(self.water_duration, 0, wx.ALL, 2)
         total_volume_sizer = wx.BoxSizer(wx.HORIZONTAL)
         total_volume_sizer.Add(self.total_water_volume_l, 0, wx.ALL, 2)
-        total_volume_sizer.Add(self.tpta_water_volume_value, 0, wx.ALL, 2)
+        total_volume_sizer.Add(self.total_water_volume_value, 0, wx.ALL, 2)
+        total_volume_sizer.Add(self.total_water_volume_unit, 0, wx.ALL, 2)
         water_duration_and_total_sizer = wx.BoxSizer(wx.VERTICAL)
         water_duration_and_total_sizer.Add(water_duration_sizer, 0, wx.LEFT, 30)
         water_duration_and_total_sizer.Add(total_volume_sizer, 0, wx.LEFT, 30)
         add_new_job_sizer = wx.BoxSizer(wx.HORIZONTAL)
         add_new_job_sizer.Add(self.add_new_timed_watering_btn, 0, wx.LEFT, 20)
         add_new_job_sizer.Add(water_duration_and_total_sizer, 0, wx.ALL, 5)
+        add_new_job_sizer.Add(self.manual_run_watering_btn, 0, wx.LEFT, 10)
         timed_sizer.Add(add_new_job_sizer, 0, wx.ALL, 5)
 
 
@@ -2918,21 +2925,45 @@ class config_water_dialog(wx.Dialog):
         main_sizer.Add(buttons_sizer , 0, wx.ALL|wx.EXPAND, 3)
         self.SetSizer(main_sizer)
 
+    def water_duration_text_change(self, e):
+        flow_rate = self.flow_rate_per_min_value.GetLabel()
+        time_to_run = self.water_duration.GetValue()
+        try:
+            water_volume = round((float(flow_rate)/60) * float(time_to_run), 4)
+        except:
+            water_volume = ''
+        self.total_water_volume_value.SetLabel(str(water_volume))
+        self.Layout()
+
     def calibrate_flow_rate_click(self, e):
         calibrate_water_dbox = calibrate_water_flow_rate_dialog(None)
         calibrate_water_dbox.ShowModal()
         self.Layout()
 
-
     def add_new_timed_watering_click(self, e):
         print("this is not implemented yet but will be soon...")
+
+    def manual_run_watering_click(self, e):
+        duration = self.water_duration.GetValue()
+        try:
+            duration = int(duration)
+        except:
+            print("Duration needs to be a number")
+            return None
+        cmd = "/home/" + pi_link_pnl.target_user + "/Pigrow/scripts/switches/timed_water.py duration=" + str(duration)
+        msg = "Run the water for " + str(duration) + " seconds?\n\nYou will not be able to cancel this once it starts."
+        dbox = wx.MessageDialog(self, msg, "Manual Watering Event", wx.OK | wx.CANCEL | wx.ICON_QUESTION)
+        answer = dbox.ShowModal()
+        if (answer == wx.ID_OK):
+            print(" Running - " + cmd)
+            MainApp.localfiles_ctrl_pannel.run_on_pi(cmd)
 
     def hide_hideable_ui(self):
         self.timed_l.Hide()
         self.water_duration_l.Hide()
         self.water_duration.Hide()
         self.total_water_volume_l.Hide()
-        self.tpta_water_volume_value.Hide()
+        self.total_water_volume_value.Hide()
         self.sensor_l.Hide()
         self.any_l.Hide()
         self.Layout()
@@ -2945,7 +2976,7 @@ class config_water_dialog(wx.Dialog):
             self.water_duration_l.Show()
             self.water_duration.Show()
             self.total_water_volume_l.Show()
-            self.tpta_water_volume_value.Show()
+            self.total_water_volume_value.Show()
         if control_choice == 'sensor':
             self.sensor_l.Show()
         if control_choice == 'any':
@@ -2981,7 +3012,7 @@ class config_water_dialog(wx.Dialog):
             self.control_choices_box.SetValue('none')
         # flow rate
         if 'water_flow_rate' in MainApp.config_ctrl_pannel.config_dict:
-            print("Found water flow rate; ")
+            #print("Found water flow rate; ")
             self.flow_rate_per_min_value.SetLabel(MainApp.config_ctrl_pannel.config_dict["water_flow_rate"])
         else:
             print("Water flow rate option not found in pigrow's config file")
@@ -3123,7 +3154,6 @@ class calibrate_water_flow_rate_dialog(wx.Dialog):
         water_gpio_pin = MainApp.config_ctrl_pannel.water_dbox.gpio_loc_box.GetValue()
         water_gpio_direction = MainApp.config_ctrl_pannel.water_dbox.gpio_direction_box.GetValue()
         if button_label == "Start":
-            print(" Note - This feature is still being written, it currently does not store the results")
             self.time_count = 0
             self.timer.Start(1000)
             self.go_btn.SetLabel("Stop")
@@ -3137,8 +3167,8 @@ class calibrate_water_flow_rate_dialog(wx.Dialog):
             total_time = int(self.running_time_value.GetLabel())
             container_size = int(self.container_size_box.GetValue())
             flowrate = round(container_size / total_time, 4)
-            print(" Total Time - " + str(total_time) + " seconds to fill a " + str(container_size) + " VOLUME UNIT container")
-            print(" Flowrate of " + str(flowrate) + " VOLUME UNIT per second, or " + str(flowrate * 60) + ' VOLUME UNIT per min')
+            print(" Total Time - " + str(total_time) + " seconds to fill a " + str(container_size) + " litre container")
+            print(" Flowrate of " + str(flowrate) + " litres per second, or " + str(flowrate * 60) + ' litres per min')
             msg = "Set the flow rate to " + str(flowrate*60) + " litres per minute"
             mbox = wx.MessageDialog(None, msg, "Set flow rate?", wx.YES_NO|wx.ICON_QUESTION)
             sure = mbox.ShowModal()
