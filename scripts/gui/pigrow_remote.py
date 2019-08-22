@@ -2824,11 +2824,12 @@ class config_water_dialog(wx.Dialog):
         # add new cron watering job
         # Water Duration
         self.water_duration_l = wx.StaticText(self,  label='Watering duration in seconds')
-        self.water_duration = wx.TextCtrl(self, value="")
+        self.water_duration = wx.TextCtrl(self, value="", style=wx.TE_PROCESS_ENTER)
         self.water_duration.Bind(wx.EVT_TEXT, self.water_duration_text_change)
         self.total_water_volume_l = wx.StaticText(self,  label='Total water to be pumped;')
         self.total_water_volume_unit = wx.StaticText(self,  label='litres')
-        self.total_water_volume_value = wx.StaticText(self,  label='--')
+        self.total_water_volume_value = wx.TextCtrl(self,  value='', style=wx.TE_PROCESS_ENTER)
+        self.total_water_volume_value.Bind(wx.EVT_TEXT, self.water_volume_text_change)
         self.add_new_timed_watering_btn = wx.Button(self, label=' \nAdd new\nWatering Job\n ')
         self.add_new_timed_watering_btn.Bind(wx.EVT_BUTTON, self.add_new_timed_watering_click)
         self.manual_run_watering_btn = wx.Button(self, label=' \nRun Pump\nTimed\n ')
@@ -2843,7 +2844,7 @@ class config_water_dialog(wx.Dialog):
         self.flow_rate_l = wx.StaticText(self,  label=msg)
         self.calibrate_flow_rate_btn = wx.Button(self, label=' \nCalibrate\nFlow Rate\n ')
         self.calibrate_flow_rate_btn.Bind(wx.EVT_BUTTON, self.calibrate_flow_rate_click)
-        self.flow_rate_per_min_value = wx.StaticText(self,  label='--')
+        self.flow_rate_per_min_value = wx.StaticText(self,  label='')
         self.flow_rate_per_min_l = wx.StaticText(self,  label=' Litres Per Min')
         # quick flow rate and volume calulator
 
@@ -2932,12 +2933,25 @@ class config_water_dialog(wx.Dialog):
             water_volume = round((float(flow_rate)/60) * float(time_to_run), 4)
         except:
             water_volume = ''
-        self.total_water_volume_value.SetLabel(str(water_volume))
+        self.total_water_volume_value.ChangeValue(str(water_volume))
         self.Layout()
+
+    def water_volume_text_change(self, e):
+        flow_rate = self.flow_rate_per_min_value.GetLabel()
+        volume = self.total_water_volume_value.GetValue()
+        try:
+            time_to_run = round(float(volume) / (float(flow_rate)/60), 4)
+        except:
+            time_to_run = ""
+        self.water_duration.ChangeValue(str(time_to_run))
+        self.Layout()
+
 
     def calibrate_flow_rate_click(self, e):
         calibrate_water_dbox = calibrate_water_flow_rate_dialog(None)
         calibrate_water_dbox.ShowModal()
+        if not self.flow_rate_per_min_value.GetLabel() == "":
+            self.total_water_volume_value.Enable(True)
         self.Layout()
 
     def add_new_timed_watering_click(self, e):
@@ -2946,12 +2960,14 @@ class config_water_dialog(wx.Dialog):
     def manual_run_watering_click(self, e):
         duration = self.water_duration.GetValue()
         try:
-            duration = int(duration)
+            print(duration)
+            duration = round(float(duration), 0)
+            duration = str(duration).split('.')[0]
         except:
-            print("Duration needs to be a number")
+            print("Watering duration needs to be a number")
             return None
-        cmd = "/home/" + pi_link_pnl.target_user + "/Pigrow/scripts/switches/timed_water.py duration=" + str(duration)
-        msg = "Run the water for " + str(duration) + " seconds?\n\nYou will not be able to cancel this once it starts."
+        cmd = "/home/" + pi_link_pnl.target_user + "/Pigrow/scripts/switches/timed_water.py duration=" + duration
+        msg = "Run the water for " + duration + " seconds?\n\nYou will not be able to cancel this once it starts."
         dbox = wx.MessageDialog(self, msg, "Manual Watering Event", wx.OK | wx.CANCEL | wx.ICON_QUESTION)
         answer = dbox.ShowModal()
         if (answer == wx.ID_OK):
@@ -3014,9 +3030,11 @@ class config_water_dialog(wx.Dialog):
         if 'water_flow_rate' in MainApp.config_ctrl_pannel.config_dict:
             #print("Found water flow rate; ")
             self.flow_rate_per_min_value.SetLabel(MainApp.config_ctrl_pannel.config_dict["water_flow_rate"])
+            self.total_water_volume_value.Enable(True)
         else:
             print("Water flow rate option not found in pigrow's config file")
-            self.flow_rate_per_min_value.SetLabel("none")
+            self.flow_rate_per_min_value.SetLabel("")
+            self.total_water_volume_value.Enable(False)
 
 
     def ok_click(self, e):
