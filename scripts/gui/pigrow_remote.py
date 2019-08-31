@@ -2846,7 +2846,7 @@ class config_water_dialog(wx.Dialog):
                     job_extra = cron_list_pnl.timed_cron.GetItem(index, 4).GetText()
                     water_time = cron_list_pnl.timed_cron.GetItem(index, 2).GetText()
                     duration = self.check_for_duration(job_extra)
-                    self.add_to_timed_water_list(line_num, enabled, 'timed', water_time, duration)
+                    self.add_to_timed_water_list(line_num, enabled, 'exact time', water_time, duration)
             # add start up jobs
             startup_cron_list_count = cron_list_pnl.startup_cron.GetItemCount()
             for index in range(0, startup_cron_list_count):
@@ -2908,6 +2908,21 @@ class config_water_dialog(wx.Dialog):
         self.add_new_timed_watering_btn.Bind(wx.EVT_BUTTON, self.add_new_timed_watering_click)
         self.manual_run_watering_btn = wx.Button(self, label=' \nRun Pump\nTimed\n ')
         self.manual_run_watering_btn.Bind(wx.EVT_BUTTON, self.manual_run_watering_click)
+        # timing method
+        self.timing_choices_l = wx.StaticText(self,  label='Timing')
+        timing_choices = ['exact time', 'repeating']
+        self.timing_choices_box = wx.ComboBox(self, choices=timing_choices,size=(100,30))
+        self.timing_choices_box.Bind(wx.EVT_TEXT, self.timing_choice_box_go)
+        # timing repeating
+        self.repeat_time = wx.TextCtrl(self, size=(80, 25))
+        rep_time_choices = ['min', 'hour', 'day', 'month', 'dow']
+        self.rep_time_box = wx.ComboBox(self, choices=rep_time_choices,size=(100,30))
+        #timing exact
+        self.min_time = wx.TextCtrl(self, size=(50, 25))
+        self.hour_time = wx.TextCtrl(self, size=(50, 25))
+        self.day_time = wx.TextCtrl(self, size=(50, 25))
+        self.month_time = wx.TextCtrl(self, size=(50, 25))
+        self.dow_time = wx.TextCtrl(self, size=(50, 25))
         # timed job list
         self.watering_jobs_cron_list = self.timed_watering_list(self, 1)
 
@@ -2936,10 +2951,15 @@ class config_water_dialog(wx.Dialog):
 
         # Sizers
         gpio_loc_box_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        gpio_loc_box_sizer.Add(self.gpio_loc_box_l, 0, wx.LEFT, 10)
-        gpio_loc_box_sizer.Add(self.gpio_loc_box, 0, wx.LEFT, 10)
-        gpio_loc_box_sizer.Add(self.gpio_direction_box_l, 0, wx.LEFT, 50)
-        gpio_loc_box_sizer.Add(self.gpio_direction_box, 0, wx.LEFT, 10)
+        gpio_loc_box_sizer.Add(self.gpio_loc_box_l, 0, wx.LEFT, 5)
+        gpio_loc_box_sizer.Add(self.gpio_loc_box, 0, wx.LEFT, 5)
+        gpio_dir_box_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        gpio_dir_box_sizer.Add(self.gpio_direction_box_l, 0, wx.LEFT, 5)
+        gpio_dir_box_sizer.Add(self.gpio_direction_box, 0, wx.LEFT, 5)
+        gpio_sizer = wx.BoxSizer(wx.VERTICAL)
+        gpio_sizer.Add(gpio_loc_box_sizer, 0, wx.ALL|wx.EXPAND, 3)
+        gpio_sizer.Add(gpio_dir_box_sizer, 0, wx.ALL|wx.EXPAND, 3)
+        #
         control_choice_sizer = wx.BoxSizer(wx.HORIZONTAL)
         control_choice_sizer.Add(self.control_choices_l, 0, wx.ALL, 5)
         control_choice_sizer.Add(self.control_choices_box, 0, wx.ALL, 5)
@@ -2948,8 +2968,20 @@ class config_water_dialog(wx.Dialog):
         any_sizer = wx.BoxSizer(wx.VERTICAL)
         any_sizer.Add(self.any_l, 0, wx.ALL, 5)
         # shown only when 'timed' is selected
+        timing_mode_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        timing_mode_sizer.Add(self.timing_choices_l, 0, wx.ALL, 5)
+        timing_mode_sizer.Add(self.timing_choices_box, 0, wx.ALL, 5)
+        timing_mode_sizer.AddStretchSpacer(1)
+        timing_mode_sizer.Add(self.repeat_time, 0, wx.ALL, 5)
+        timing_mode_sizer.Add(self.rep_time_box, 0, wx.ALL, 5)
+        timing_mode_sizer.Add(self.min_time, 0, wx.ALL, 5)
+        timing_mode_sizer.Add(self.hour_time, 0, wx.ALL, 5)
+        timing_mode_sizer.Add(self.day_time, 0, wx.ALL, 5)
+        timing_mode_sizer.Add(self.month_time, 0, wx.ALL, 5)
+        timing_mode_sizer.Add(self.dow_time, 0, wx.ALL, 5)
         timed_sizer = wx.BoxSizer(wx.VERTICAL)
         timed_sizer.Add(self.timed_l, 0, wx.ALL, 5)
+
         #
         water_duration_sizer = wx.BoxSizer(wx.HORIZONTAL)
         water_duration_sizer.Add(self.water_duration_l, 0, wx.ALL, 2)
@@ -2966,6 +2998,7 @@ class config_water_dialog(wx.Dialog):
         add_new_job_sizer.Add(water_duration_and_total_sizer, 0, wx.ALL, 5)
         add_new_job_sizer.Add(self.manual_run_watering_btn, 0, wx.LEFT, 10)
         timed_sizer.Add(add_new_job_sizer, 0, wx.ALL, 5)
+        timed_sizer.Add(timing_mode_sizer, 0, wx.ALL, 5)
         timed_sizer.Add(self.watering_jobs_cron_list, 0, wx.ALL, 5)
 
 
@@ -2985,6 +3018,12 @@ class config_water_dialog(wx.Dialog):
         flow_rate_sizer.Add(calibrate_flow_rate_sizer, 0, wx.ALL, 5)
 
         #
+        top_bar_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        top_bar_sizer.Add(gpio_sizer, 0, wx.ALL, 5)
+        top_bar_sizer.AddStretchSpacer(1)
+        top_bar_sizer.Add(flow_rate_sizer, 0, wx.ALL, 5)
+
+        #
         buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
         buttons_sizer.Add(self.ok_btn, 0, wx.ALL, 5)
         buttons_sizer.AddStretchSpacer(1)
@@ -2992,14 +3031,13 @@ class config_water_dialog(wx.Dialog):
         main_sizer =  wx.BoxSizer(wx.VERTICAL)
         main_sizer.Add(title_l, 0, wx.ALL|wx.EXPAND, 3)
         main_sizer.AddStretchSpacer(1)
-        main_sizer.Add(gpio_loc_box_sizer, 0, wx.ALL|wx.EXPAND, 3)
-        main_sizer.Add(control_choice_sizer, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.Add(top_bar_sizer, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.AddStretchSpacer(1)
         # shown only when selected
+        main_sizer.Add(control_choice_sizer, 0, wx.ALL|wx.EXPAND, 3)
         main_sizer.Add(timed_sizer, 0, wx.ALL|wx.EXPAND, 3)
         main_sizer.Add(sensor_sizer, 0, wx.ALL|wx.EXPAND, 3)
         main_sizer.Add(any_sizer, 0, wx.ALL|wx.EXPAND, 3)
-        main_sizer.AddStretchSpacer(1)
-        main_sizer.Add(flow_rate_sizer, 0, wx.ALL|wx.EXPAND, 3)
         main_sizer.AddStretchSpacer(1)
         main_sizer.Add(buttons_sizer , 0, wx.ALL|wx.EXPAND, 3)
         self.SetSizer(main_sizer)
@@ -3036,8 +3074,32 @@ class config_water_dialog(wx.Dialog):
 
     def add_new_timed_watering_click(self, e):
         print("this is not implemented yet but will be soon...")
+        # Watering Duration
         duration = self.water_duration.GetValue()
-        self.timed_watering_list.add_to_timed_water_list(self.watering_jobs_cron_list, 'new', 'true', 'not set yet', 'not set yet', duration)
+        if not duration.isdigit():
+            msg = "You must set a watering duration or volume"
+            msg += "\n\n The watering duration must be a whole number of seconds\n without any decimal points or commas"
+            wx.MessageBox(msg, 'Error', wx.OK | wx.ICON_ERROR)
+            return None
+        # Watering Timing
+        timing_choice = self.timing_choices_box.GetValue()
+        if not timing_choice == 'exact time' and not timing_choice == 'repeating':
+            msg = "You must select a timing method and time"
+            wx.MessageBox(msg, 'Error', wx.OK | wx.ICON_ERROR)
+            return None
+        if timing_choice == 'exact time':
+            timing_min = self.min_time.GetValue()
+            timing_hour = self.hour_time.GetValue()
+            timing_day = self.day_time.GetValue()
+            timing_month = self.month_time.GetValue()
+            timing_dow = self.dow_time.GetValue()
+            time_text = "FEATURE NOT IMPLEMENTED YET"
+        elif timing_choice == 'repeating':
+            repeat_num = self.repeat_time.GetValue()
+            repeat_text = self.rep_time_box.GetValue()
+            time_text = repeat_num + " " + repeat_text
+        # add to the list table
+        self.timed_watering_list.add_to_timed_water_list(self.watering_jobs_cron_list, 'new', 'true', timing_choice, time_text, duration)
 
     def manual_run_watering_click(self, e):
         duration = self.water_duration.GetValue()
@@ -3064,6 +3126,15 @@ class config_water_dialog(wx.Dialog):
         self.total_water_volume_value.Hide()
         self.sensor_l.Hide()
         self.any_l.Hide()
+        self.timing_choices_l.Hide()
+        self.timing_choices_box.Hide()
+        self.repeat_time.Hide()
+        self.rep_time_box.Hide()
+        self.min_time.Hide()
+        self.hour_time.Hide()
+        self.day_time.Hide()
+        self.month_time.Hide()
+        self.dow_time.Hide()
         self.Layout()
 
     def control_choice_box_go(self, e):
@@ -3075,12 +3146,33 @@ class config_water_dialog(wx.Dialog):
             self.water_duration.Show()
             self.total_water_volume_l.Show()
             self.total_water_volume_value.Show()
+            self.timing_choices_l.Show()
+            self.timing_choices_box.Show()
         if control_choice == 'sensor':
             self.sensor_l.Show()
         if control_choice == 'any':
             self.any_l.Show()
         self.Layout()
 
+    def timing_choice_box_go(self, e):
+        timing_choice = self.timing_choices_box.GetValue()
+        if timing_choice == 'repeating':
+            self.min_time.Hide()
+            self.hour_time.Hide()
+            self.day_time.Hide()
+            self.month_time.Hide()
+            self.dow_time.Hide()
+            self.repeat_time.Show()
+            self.rep_time_box.Show()
+        elif timing_choice == 'exact time':
+            self.min_time.Show()
+            self.hour_time.Show()
+            self.day_time.Show()
+            self.month_time.Show()
+            self.dow_time.Show()
+            self.repeat_time.Hide()
+            self.rep_time_box.Hide()
+        self.Layout()
 
     def find_and_show_watering_relay(self):
         # all relay config settings are stored in gpio_dict and gpio_on_dict
