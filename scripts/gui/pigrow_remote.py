@@ -2786,6 +2786,80 @@ class config_lamp_dialog(wx.Dialog):
         self.Destroy()
 
 class config_water_dialog(wx.Dialog):
+    # list of timed watering jobs
+    class timed_watering_list(wx.ListCtrl):
+        def __init__(self, parent, id, size=(600,100)):
+            wx.ListCtrl.__init__(self, parent, id, size=size, style=wx.LC_REPORT)
+            self.InsertColumn(0, 'Line') #remove this if not needed
+            self.InsertColumn(1, 'Enabled')
+            self.InsertColumn(2, 'Timing Mode')
+            self.InsertColumn(3, 'Time')
+            self.InsertColumn(4, 'Duration')
+            #self.SetColumnWidth(0, 50)
+            #self.SetColumnWidth(1, 50)
+            #self.SetColumnWidth(2, 100)
+            #self.SetColumnWidth(3, 150)
+
+        def add_to_timed_water_list(self, line, enabled, timing_type, time, duration):
+            self.InsertItem(0, str(line))
+            self.SetItem(0, 1, str(enabled))
+            self.SetItem(0, 2, str(timing_type))
+            self.SetItem(0, 3, str(time))
+            self.SetItem(0, 4, str(duration))
+
+        def check_for_duration(self, job_extra):
+            if 'duration=' in job_extra:
+                duration = job_extra.split('duration=')[1].split(' ')[0]
+            elif 's=' in job_extra:
+                duration = job_extra.split('s=')[1].split(' ')[0]
+            elif 'd=' in job_extra:
+                duration = job_extra.split('d=')[1].split(' ')[0]
+            else:
+                duration = 'not set'
+            return duration
+
+        def fill_watering_job_list(self):
+            print("Looing for watering jobs in cron tables")
+            self.DeleteAllItems()  # clear out existing data so it's not doubled
+            # add repeating jobs
+            repeat_cron_list_count = cron_list_pnl.repeat_cron.GetItemCount()
+            water_time = "not found"
+            for index in range(0, repeat_cron_list_count):
+                job_name  = cron_list_pnl.repeat_cron.GetItem(index, 3).GetText()
+                if "timed_water.py" in job_name:
+                    line_num = cron_list_pnl.repeat_cron.GetItem(index, 0).GetText()
+                    enabled = cron_list_pnl.repeat_cron.GetItem(index, 1).GetText()
+                    job_extra = cron_list_pnl.repeat_cron.GetItem(index, 4).GetText()
+                    water_time = cron_list_pnl.repeat_cron.GetItem(index, 2).GetText()
+                    # convert cron timing string into human readable text
+                    freq_num, freq_text = cron_list_pnl.repeating_cron_list.parse_cron_string(self, water_time)
+                    water_time = str(freq_num) + " " + freq_text
+                    duration = self.check_for_duration(job_extra)
+                    self.add_to_timed_water_list(line_num, enabled, 'repeating', water_time, duration)
+            # add timed jobs
+            onetime_cron_list_count = cron_list_pnl.timed_cron.GetItemCount()
+            for index in range(0, onetime_cron_list_count):
+                job_name  = cron_list_pnl.timed_cron.GetItem(index, 3).GetText()
+                if "timed_water.py" in job_name:
+                    line_num = cron_list_pnl.timed_cron.GetItem(index, 0).GetText()
+                    enabled = cron_list_pnl.timed_cron.GetItem(index, 1).GetText()
+                    job_extra = cron_list_pnl.timed_cron.GetItem(index, 4).GetText()
+                    water_time = cron_list_pnl.timed_cron.GetItem(index, 2).GetText()
+                    duration = self.check_for_duration(job_extra)
+                    self.add_to_timed_water_list(line_num, enabled, 'timed', water_time, duration)
+            # add start up jobs
+            startup_cron_list_count = cron_list_pnl.startup_cron.GetItemCount()
+            for index in range(0, startup_cron_list_count):
+                job_name  = cron_list_pnl.startup_cron.GetItem(index, 3).GetText()
+                if "timed_water.py" in job_name:
+                    line_num = cron_list_pnl.startup_cron.GetItem(index, 0).GetText()
+                    enabled = cron_list_pnl.startup_cron.GetItem(index, 1).GetText()
+                    job_extra = cron_list_pnl.startup_cron.GetItem(index, 4).GetText()
+                    duration = self.check_for_duration(job_extra)
+                    self.add_to_timed_water_list(line_num, enabled, 'startup', 'EVERY REBOOT', duration)
+
+
+
     #Dialog box for creating or editing the watering related settings
     def __init__(self, *args, **kw):
         super(config_water_dialog, self).__init__(*args, **kw)
@@ -2834,6 +2908,9 @@ class config_water_dialog(wx.Dialog):
         self.add_new_timed_watering_btn.Bind(wx.EVT_BUTTON, self.add_new_timed_watering_click)
         self.manual_run_watering_btn = wx.Button(self, label=' \nRun Pump\nTimed\n ')
         self.manual_run_watering_btn.Bind(wx.EVT_BUTTON, self.manual_run_watering_click)
+        # timed job list
+        self.watering_jobs_cron_list = self.timed_watering_list(self, 1)
+
 
         # Shown when sensor is selected
         msg = 'Unfortunately this is not yet implemented,\nan update will be coming soon'
@@ -2889,6 +2966,7 @@ class config_water_dialog(wx.Dialog):
         add_new_job_sizer.Add(water_duration_and_total_sizer, 0, wx.ALL, 5)
         add_new_job_sizer.Add(self.manual_run_watering_btn, 0, wx.LEFT, 10)
         timed_sizer.Add(add_new_job_sizer, 0, wx.ALL, 5)
+        timed_sizer.Add(self.watering_jobs_cron_list, 0, wx.ALL, 5)
 
 
         # shown only when 'sensor' is selected
@@ -2926,6 +3004,8 @@ class config_water_dialog(wx.Dialog):
         main_sizer.Add(buttons_sizer , 0, wx.ALL|wx.EXPAND, 3)
         self.SetSizer(main_sizer)
 
+        self.watering_jobs_cron_list.fill_watering_job_list()
+
     def water_duration_text_change(self, e):
         flow_rate = self.flow_rate_per_min_value.GetLabel()
         time_to_run = self.water_duration.GetValue()
@@ -2956,6 +3036,8 @@ class config_water_dialog(wx.Dialog):
 
     def add_new_timed_watering_click(self, e):
         print("this is not implemented yet but will be soon...")
+        duration = self.water_duration.GetValue()
+        self.timed_watering_list.add_to_timed_water_list(self.watering_jobs_cron_list, 'new', 'true', 'not set yet', 'not set yet', duration)
 
     def manual_run_watering_click(self, e):
         duration = self.water_duration.GetValue()
