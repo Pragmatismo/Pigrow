@@ -1515,6 +1515,7 @@ class install_dialog(wx.Dialog):
         label_core = wx.StaticText(self,  label='Core components;')
         label_core.SetFont(sub_title_font)
         self.pigrow_base_check = wx.CheckBox(self,  label='Pigrow base')
+        self.pigrow_dirlocs_check = wx.CheckBox(self,  label='Locations File')
         self.cron_check = wx.CheckBox(self,  label='crontab')
         # sensors
         label_sensors = wx.StaticText(self,  label='Sensors;')
@@ -1554,6 +1555,7 @@ class install_dialog(wx.Dialog):
         base_sizer = wx.BoxSizer(wx.VERTICAL)
         base_sizer.Add(label_core, 0, wx.EXPAND|wx.ALL, 3)
         base_sizer.Add(self.pigrow_base_check, 0, wx.EXPAND|wx.LEFT, 30)
+        base_sizer.Add(self.pigrow_dirlocs_check, 0, wx.EXPAND|wx.LEFT, 30)
         base_sizer.Add(self.cron_check, 0, wx.EXPAND|wx.LEFT, 30)
         sensor_sizer = wx.BoxSizer(wx.VERTICAL)
         sensor_sizer.Add(label_sensors, 0, wx.EXPAND|wx.ALL, 3)
@@ -1607,10 +1609,32 @@ class install_dialog(wx.Dialog):
         else:
             self.pigrow_base_check.SetForegroundColour((255,75,75))
             self.pigrow_base_check.SetValue(True)
+        self.check_dirlocs()
         self.check_python_dependencies()
         self.check_python3_dependencies()
         wx.Yield() #update screen to show changes
         self.check_program_dependencies()
+
+    def check_dirlocs(self):
+        print(" Checking for existence and validity of dirlocs.txt")
+        dirlocs_path = "/home/" + pi_link_pnl.target_user + "/Pigrow/config/dirlocs.txt"
+        locs_file, error = MainApp.localfiles_ctrl_pannel.run_on_pi("cat " + dirlocs_path)
+        if not 'No such file or directory' in locs_file:
+            locs_file = locs_file.splitlines()
+            for line in locs_file:
+                if line[0:5] == "path=":
+                    listed_path = line.split("path=")[1]
+                    if not listed_path == "/home/" + pi_link_pnl.target_user + "/Pigrow/":
+                        print("!!! Error in dirlocs, path does not match current path")
+                    else:
+                        print("   valid path found in dirlocs.txt", line)
+                        self.pigrow_dirlocs_check.SetForegroundColour((75,200,75))
+                        return True
+        self.pigrow_dirlocs_check.SetForegroundColour((200,75,75))
+        self.pigrow_base_check.SetValue(True)
+        return False
+
+
 
     def install_pigrow(self):
         self.currently_doing.SetLabel("using git to clone (download) pigrow code")
@@ -1624,15 +1648,18 @@ class install_dialog(wx.Dialog):
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("mkdir ~/Pigrow/graphs/")
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("mkdir ~/Pigrow/logs/")
         # make dirlocs with pi's username
-        self.create_dirlocs_from_template()
-        self.currently_doing.SetLabel("-")
-        self.progress.SetLabel("######~~~~~~~~~~~~~~~~~~~~~~~")
+        #self.create_dirlocs_from_template()
+        #self.currently_doing.SetLabel("-")
+        #self.progress.SetLabel("######~~~~~~~~~~~~~~~~~~~~~~~")
         wx.Yield()
 
     def create_dirlocs_from_template(self):
+        print("Creting dirlocs.txt from template")
+        self.currently_doing.SetLabel("Creating dirlocs from template")
+        # grab template from pi and swap wildcards for username
         dirlocs_template, error = MainApp.localfiles_ctrl_pannel.run_on_pi("cat ~/Pigrow/config/templates/dirlocs_temp.txt")
         dirlocs_text = dirlocs_template.replace("**", str("/home/" + pi_link_pnl.target_user))
-        #print (dirlocs_text)
+        # Create a local version of dirloc.txt to upload onto pi
         if localfiles_info_pnl.local_path == "":
             localfiles_info_pnl.local_path = os.path.join(MainApp.localfiles_path, str(pi_link_pnl.boxname))
         local_temp_path = os.path.join(localfiles_info_pnl.local_path, "temp")
@@ -1849,10 +1876,17 @@ class install_dialog(wx.Dialog):
         self.progress.SetLabel("##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
         wx.Yield()
         # Base installed via Git Clone
-        if self.pigrow_base_check.GetValue == True:
+        if self.pigrow_base_check.GetValue() == True:
             self.install_pigrow()
-            self.progress.SetLabel("#######~~~~~~~~~~~~~~~~~~~~~~~~")
+            self.progress.SetLabel("#####~~~~~~~~~~~~~~~~~~~~~~~~~~")
             wx.Yield()
+        # make dirlocs with pi's username
+        if self.pigrow_dirlocs_check.GetValue() == True:
+            self.create_dirlocs_from_template()
+            self.currently_doing.SetLabel("-")
+            self.progress.SetLabel("########~~~~~~~~~~~~~~~~~~~~~~~")
+            wx.Yield()
+        else:
         # Dependencies installed using pip
         if self.pexpect_check.GetValue() == True or self.adaDHT_check.GetValue() == True:
             self.update_pip()
@@ -2788,7 +2822,7 @@ class config_lamp_dialog(wx.Dialog):
 class config_water_dialog(wx.Dialog):
     # list of timed watering jobs
     class timed_watering_list(wx.ListCtrl):
-        def __init__(self, parent, id, size=(600,100)):
+        def __init__(self, parent, id, size=(600,200)):
             wx.ListCtrl.__init__(self, parent, id, size=size, style=wx.LC_REPORT)
             self.InsertColumn(0, 'Line') #remove this if not needed
             self.InsertColumn(1, 'Enabled')
@@ -2864,7 +2898,7 @@ class config_water_dialog(wx.Dialog):
     def __init__(self, *args, **kw):
         super(config_water_dialog, self).__init__(*args, **kw)
         self.InitUI()
-        self.SetSize((600, 600))
+        self.SetSize((650, 700))
         self.SetTitle("Config Water")
     def InitUI(self):
 
@@ -2917,6 +2951,7 @@ class config_water_dialog(wx.Dialog):
         self.repeat_time = wx.TextCtrl(self, size=(80, 25))
         rep_time_choices = ['min', 'hour', 'day', 'month', 'dow']
         self.rep_time_box = wx.ComboBox(self, choices=rep_time_choices,size=(100,30))
+        self.rep_time_key = wx.StaticText(self,  label='Min          :  Hour        :  Day       :  Month    :  Day Of Week')
         #timing exact
         self.min_time = wx.TextCtrl(self, size=(50, 25))
         self.hour_time = wx.TextCtrl(self, size=(50, 25))
@@ -2979,10 +3014,7 @@ class config_water_dialog(wx.Dialog):
         timing_mode_sizer.Add(self.day_time, 0, wx.ALL, 5)
         timing_mode_sizer.Add(self.month_time, 0, wx.ALL, 5)
         timing_mode_sizer.Add(self.dow_time, 0, wx.ALL, 5)
-        timed_sizer = wx.BoxSizer(wx.VERTICAL)
-        timed_sizer.Add(self.timed_l, 0, wx.ALL, 5)
 
-        #
         water_duration_sizer = wx.BoxSizer(wx.HORIZONTAL)
         water_duration_sizer.Add(self.water_duration_l, 0, wx.ALL, 2)
         water_duration_sizer.Add(self.water_duration, 0, wx.ALL, 2)
@@ -2993,12 +3025,17 @@ class config_water_dialog(wx.Dialog):
         water_duration_and_total_sizer = wx.BoxSizer(wx.VERTICAL)
         water_duration_and_total_sizer.Add(water_duration_sizer, 0, wx.LEFT, 30)
         water_duration_and_total_sizer.Add(total_volume_sizer, 0, wx.LEFT, 30)
+        #water_duration_and_total_sizer.Add(timing_mode_sizer, 0, wx.ALL, 5)
+        #water_duration_and_total_sizer.Add(self.rep_time_key, 0, wx.LEFT, 175)
         add_new_job_sizer = wx.BoxSizer(wx.HORIZONTAL)
         add_new_job_sizer.Add(self.add_new_timed_watering_btn, 0, wx.LEFT, 20)
         add_new_job_sizer.Add(water_duration_and_total_sizer, 0, wx.ALL, 5)
         add_new_job_sizer.Add(self.manual_run_watering_btn, 0, wx.LEFT, 10)
+        timed_sizer = wx.BoxSizer(wx.VERTICAL)
+        timed_sizer.Add(self.timed_l, 0, wx.ALL, 5)
         timed_sizer.Add(add_new_job_sizer, 0, wx.ALL, 5)
         timed_sizer.Add(timing_mode_sizer, 0, wx.ALL, 5)
+        timed_sizer.Add(self.rep_time_key, 0, wx.LEFT, 175)
         timed_sizer.Add(self.watering_jobs_cron_list, 0, wx.ALL, 5)
 
 
@@ -3074,6 +3111,7 @@ class config_water_dialog(wx.Dialog):
 
     def add_new_timed_watering_click(self, e):
         print("this is not implemented yet but will be soon...")
+        task_path = "/home/" + pi_link_pnl.target_user + "/Pigrow/scripts/switches/timed_water.py"
         # Watering Duration
         duration = self.water_duration.GetValue()
         if not duration.isdigit():
@@ -3093,13 +3131,17 @@ class config_water_dialog(wx.Dialog):
             timing_day = self.day_time.GetValue()
             timing_month = self.month_time.GetValue()
             timing_dow = self.dow_time.GetValue()
-            time_text = "FEATURE NOT IMPLEMENTED YET"
+            time_text = cron_info_pnl.make_onetime_cron_timestring(None, timing_min, timing_hour, timing_day, timing_month, timing_dow)
+            cron_info_pnl.add_to_onetime_list(None, 'new', True, time_text, task_path, 'duration=' + duration, '')
         elif timing_choice == 'repeating':
             repeat_num = self.repeat_time.GetValue()
             repeat_text = self.rep_time_box.GetValue()
             time_text = repeat_num + " " + repeat_text
+            timing_string = cron_info_pnl.make_repeating_cron_timestring(None, repeat_num, repeat_text)
+            cron_info_pnl.add_to_repeat_list(None, 'new', True, timing_string, task_path, 'duration=' + duration, '')
         # add to the list table
         self.timed_watering_list.add_to_timed_water_list(self.watering_jobs_cron_list, 'new', 'true', timing_choice, time_text, duration)
+        cron_info_pnl.update_cron_click(MainApp.cron_info_pannel, 'e')
 
     def manual_run_watering_click(self, e):
         duration = self.water_duration.GetValue()
@@ -3135,6 +3177,11 @@ class config_water_dialog(wx.Dialog):
         self.day_time.Hide()
         self.month_time.Hide()
         self.dow_time.Hide()
+        self.rep_time_key.Hide()
+        self.total_water_volume_unit.Hide()
+        self.add_new_timed_watering_btn.Hide()
+        self.manual_run_watering_btn.Hide()
+        self.watering_jobs_cron_list.Hide()
         self.Layout()
 
     def control_choice_box_go(self, e):
@@ -3148,6 +3195,10 @@ class config_water_dialog(wx.Dialog):
             self.total_water_volume_value.Show()
             self.timing_choices_l.Show()
             self.timing_choices_box.Show()
+            self.total_water_volume_unit.Show()
+            self.add_new_timed_watering_btn.Show()
+            self.manual_run_watering_btn.Show()
+            self.watering_jobs_cron_list.Show()
         if control_choice == 'sensor':
             self.sensor_l.Show()
         if control_choice == 'any':
@@ -3162,6 +3213,7 @@ class config_water_dialog(wx.Dialog):
             self.day_time.Hide()
             self.month_time.Hide()
             self.dow_time.Hide()
+            self.rep_time_key.Hide()
             self.repeat_time.Show()
             self.rep_time_box.Show()
         elif timing_choice == 'exact time':
@@ -3170,6 +3222,7 @@ class config_water_dialog(wx.Dialog):
             self.day_time.Show()
             self.month_time.Show()
             self.dow_time.Show()
+            self.rep_time_key.Show()
             self.repeat_time.Hide()
             self.rep_time_box.Hide()
         self.Layout()
@@ -3375,10 +3428,6 @@ class calibrate_water_flow_rate_dialog(wx.Dialog):
             self.turn_off(water_gpio_pin, water_gpio_direction)
             self.timer.Stop()
         self.Destroy()
-
-
-
-
 
 class doubleclick_gpio_dialog(wx.Dialog):
     #Dialog box for creating for adding or editing device gpio config data
@@ -4034,7 +4083,7 @@ class cron_info_pnl(wx.Panel):
             if int(repeat_num) in range(0,59):
                 cron_time_string = '*/' + str(repeat_num)
             else:
-                print("Cron sting wrong, fix it before updating")
+                print("Cron string min wrong, fix it before updating")
                 return 'fail'
         else:
             cron_time_string = '*'
@@ -4042,7 +4091,7 @@ class cron_info_pnl(wx.Panel):
             if int(repeat_num) in range(0,23):
                 cron_time_string += ' */' + str(repeat_num)
             else:
-                print("Cron sting wrong, fix it before updating")
+                print("Cron string hour wrong, fix it before updating")
                 return 'fail'
         else:
             cron_time_string += ' *'
@@ -4050,7 +4099,7 @@ class cron_info_pnl(wx.Panel):
             if int(repeat_num) in range(1,31):
                 cron_time_string += ' */' + str(repeat_num)
             else:
-                print("Cron sting wrong, fix it before updating")
+                print("Cron string day wrong, fix it before updating")
                 return 'fail'
         else:
             cron_time_string += ' *'
@@ -4058,7 +4107,7 @@ class cron_info_pnl(wx.Panel):
             if int(repeat_num) in range(1,12):
                 cron_time_string += ' */' + str(repeat_num)
             else:
-                print("Cron sting wrong, fix it before updating")
+                print("Cron sting month wrong, fix it before updating")
                 return 'fail'
         else:
             cron_time_string += ' *'
@@ -4066,7 +4115,7 @@ class cron_info_pnl(wx.Panel):
             if int(repeat_num) in range(1,12):
                 cron_time_string += ' */' + str(repeat_num)
             else:
-                print("Cron sting wrong, fix it before updating")
+                print("Cron string dow wrong, fix it before updating")
                 return 'fail'
         else:
             cron_time_string += ' *'
