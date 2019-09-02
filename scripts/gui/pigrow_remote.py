@@ -1637,11 +1637,12 @@ class install_dialog(wx.Dialog):
 
 
     def install_pigrow(self):
+        print(" Cloning git repo onto pi")
         self.currently_doing.SetLabel("using git to clone (download) pigrow code")
         self.progress.SetLabel("####~~~~~~~~~~~~~~~~~~~~~~~~~~~")
         wx.Yield()
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("git clone https://github.com/Pragmatismo/Pigrow ~/Pigrow/")
-        print(out)
+        print(out, error)
         self.currently_doing.SetLabel("creating empty folders")
         self.progress.SetLabel("#####~~~~~~~~~~~~~~~~~~~~~~~~~")
         wx.Yield()
