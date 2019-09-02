@@ -1641,16 +1641,13 @@ class install_dialog(wx.Dialog):
         self.progress.SetLabel("####~~~~~~~~~~~~~~~~~~~~~~~~~~~")
         wx.Yield()
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("git clone https://github.com/Pragmatismo/Pigrow ~/Pigrow/")
-        self.currently_doing.SetLabel("creating folders and config")
+        print(out)
+        self.currently_doing.SetLabel("creating empty folders")
         self.progress.SetLabel("#####~~~~~~~~~~~~~~~~~~~~~~~~~")
         wx.Yield()
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("mkdir ~/Pigrow/caps/")
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("mkdir ~/Pigrow/graphs/")
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("mkdir ~/Pigrow/logs/")
-        # make dirlocs with pi's username
-        #self.create_dirlocs_from_template()
-        #self.currently_doing.SetLabel("-")
-        #self.progress.SetLabel("######~~~~~~~~~~~~~~~~~~~~~~~")
         wx.Yield()
 
     def create_dirlocs_from_template(self):
