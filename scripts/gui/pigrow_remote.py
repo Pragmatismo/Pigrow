@@ -1886,7 +1886,6 @@ class install_dialog(wx.Dialog):
             self.currently_doing.SetLabel("-")
             self.progress.SetLabel("########~~~~~~~~~~~~~~~~~~~~~~~")
             wx.Yield()
-        else:
         # Dependencies installed using pip
         if self.pexpect_check.GetValue() == True or self.adaDHT_check.GetValue() == True:
             self.update_pip()
