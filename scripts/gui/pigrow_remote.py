@@ -5085,12 +5085,14 @@ class localfiles_ctrl_pnl(wx.Panel):
             error = stderr.read()
             out = out.decode()
             error = error.decode()
+            if write_status == True:
+                MainApp.status.write_bar("ready...")
         except Exception as e:
             error = "failed running command;" + str(command) + " with error - " + str(e)
             print(error)
+            if write_status == True:
+                MainApp.status.write_warning("FAILED: Check your connection")
             return "", error
-        if write_status == True:
-            MainApp.status.write_bar("ready...")
         return out, error
 
     def update_local_filelist_click(self, e):
@@ -5689,16 +5691,7 @@ class graphing_ctrl_pnl(wx.Panel):
         # extra arguments string
         self.extra_args_label = wx.StaticText(self,  label='Commandline Flags;')
         self.extra_args = wx.TextCtrl(self)
-        # hideing all pigrow graphing UI elements until graph on pigrow is selected
-        self.pigraph_text.Hide()
-        self.script_text.Hide()
-        self.select_script_cb.Hide()
-        self.get_opts_tb.Hide()
-        self.blank_options_ui_elements()
-        #self.opts_cb.Hide()
-        #self.opts_text.Hide()
-        #self.command_line_opts_value_list_cb.Hide()
-        #self.add_arg_btn.Hide()
+
 
         # Sizers
         make_graph_sizer =  wx.BoxSizer(wx.HORIZONTAL)
@@ -5723,7 +5716,55 @@ class graphing_ctrl_pnl(wx.Panel):
         self.main_sizer.Add(make_graph_sizer, 0, wx.ALL|wx.EXPAND, 3)
         self.SetSizer(self.main_sizer)
 
+        # hideing all pigrow graphing UI elements until graph on pigrow is selected
+        self.hide_make_on_pi_ui_elements()
+        #
+        ### for local graph construction
 
+    def hide_make_on_pi_ui_elements(self):
+        self.pigraph_text.Hide()
+        self.script_text.Hide()
+        self.select_script_cb.Hide()
+        self.get_opts_tb.Hide()
+        self.extra_args_label.Hide()
+        self.extra_args.Hide()
+        self.make_graph_btn.Hide()
+        self.download_graph.Hide()
+        self.blank_options_ui_elements()
+        #MainApp.graphing_ctrl_pannel.Layout()
+        #MainApp.window_self.Layout()
+
+    def show_make_on_pi_ui_elements(self):
+        self.pigraph_text.Show()
+        self.script_text.Show()
+        self.select_script_cb.Show()
+        self.get_opts_tb.Show()
+        self.extra_args_label.Show()
+        self.extra_args.Show()
+        self.make_graph_btn.Show()
+        self.download_graph.Show()
+        #MainApp.graphing_ctrl_pannel.Layout()
+        #MainApp.window_self.Layout()
+
+    def graph_engine_combo_go(self, e):
+        # combo box selects if you want to make graphs on pi or locally
+        # then shows the relevent UI elements for that option.
+        graph_mode = self.graph_cb.GetValue()
+        if graph_mode == 'Pigrow':
+            # show ui elements
+            self.show_make_on_pi_ui_elements()
+            # Find graphing scripts and list them in combo box
+            select_script_opts = self.get_graphing_scripts()
+            for x in select_script_opts:
+                self.select_script_cb.Append(x)
+        elif graph_mode == 'local':
+            self.hide_make_on_pi_ui_elements()
+            print("Yah, that's not really an option yet...")
+            print("   ...but it will be soon and it'll be awesome!")
+        MainApp.graphing_ctrl_pannel.Layout()
+        MainApp.window_self.Layout()
+
+    # Make on Pi controlls
     def get_opts_click(self, e):
         #turns on UI elements for automatically found script options
         #then asks get_script_options to ask the script on the pi to list flags
@@ -5774,7 +5815,6 @@ class graphing_ctrl_pnl(wx.Panel):
         self.command_line_opts_value_list_cb.Hide()
         self.command_line_opts_value_list_cb.SetValue("")
         self.add_arg_btn.Hide()
-
 
     def opt_combo_go(self, e):
         #selects which UI elements to show for command line option values and defaults
@@ -5858,36 +5898,12 @@ class graphing_ctrl_pnl(wx.Panel):
         MainApp.graphing_info_pannel.SetupScrolling()
         MainApp.window_self.Layout()
 
-
     def clear_graph_area(self):
         # usage = MainApp.graphing_info_pannel.clear_graph_area()
         children = MainApp.graphing_info_pannel.graph_sizer.GetChildren()
         for child in children:
             item = child.GetWindow()
             item.Destroy()
-
-    def graph_engine_combo_go(self, e):
-        # combo box selects if you want to make graphs on pi or locally
-        # then shows the relevent UI elements for that option.
-        graph_mode = self.graph_cb.GetValue()
-        if graph_mode == 'Pigrow':
-            select_script_opts = self.get_graphing_scripts()
-            self.pigraph_text.Show()
-            self.script_text.Show()
-            self.select_script_cb.Show()
-            self.select_script_cb.Clear()
-            for x in select_script_opts:
-                self.select_script_cb.Append(x)
-            self.get_opts_tb.Show()
-        if graph_mode == 'local':
-            self.pigraph_text.Hide()
-            self.script_text.Hide()
-            self.select_script_cb.Hide()
-            self.get_opts_tb.Hide()
-            print("Yah, that's not really an option yet...")
-            print("   ...but it will be soon and it'll be awesome!")
-        MainApp.graphing_ctrl_pannel.Layout()
-        MainApp.window_self.Layout()
 
     def select_script_combo_go(self, e):
         #this is the same as pressing the button to enable asking the script
@@ -5898,6 +5914,9 @@ class graphing_ctrl_pnl(wx.Panel):
         self.get_opts_click("fake event")
         #graphing_script = self.select_script_cb.GetValue()
         #print graphing_script
+
+    # Make locally controlls
+
 
 #
 #
