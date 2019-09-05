@@ -5655,7 +5655,6 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
 class graphing_ctrl_pnl(wx.Panel):
     def __init__( self, parent ):
         wx.Panel.__init__ (self, parent, id=wx.ID_ANY, style=wx.TAB_TRAVERSAL)
-        self.SetBackgroundColour('sea green') #TESTING ONLY REMOVE WHEN SIZING IS DONE AND ALL THAT BUSINESS
         # Start drawing the UI elements
         #graphing engine selection
         make_graph_l = wx.StaticText(self,  label='Make graphs on;')
@@ -5691,9 +5690,18 @@ class graphing_ctrl_pnl(wx.Panel):
         # extra arguments string
         self.extra_args_label = wx.StaticText(self,  label='Commandline Flags;')
         self.extra_args = wx.TextCtrl(self)
+        #
+        ### for local graph construction
+        self.select_log_btn = wx.Button(self, label='Select Log File')
+        self.select_log_btn.Bind(wx.EVT_BUTTON, self.select_log_click)
+
 
 
         # Sizers
+        # local opts size
+        local_opts_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        local_opts_sizer.Add(self.select_log_btn, 0, wx.ALL, 3)
+
         make_graph_sizer =  wx.BoxSizer(wx.HORIZONTAL)
         make_graph_sizer.Add(self.make_graph_btn, 0, wx.ALL|wx.EXPAND, 3)
         make_graph_sizer.Add(self.download_graph, 0, wx.ALL|wx.EXPAND, 3)
@@ -5714,12 +5722,12 @@ class graphing_ctrl_pnl(wx.Panel):
         self.main_sizer.Add(self.extra_args, 0, wx.ALL|wx.EXPAND, 3)
         self.main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
         self.main_sizer.Add(make_graph_sizer, 0, wx.ALL|wx.EXPAND, 3)
+        self.main_sizer.Add(local_opts_sizer, 0, wx.ALL|wx.EXPAND, 3)
         self.SetSizer(self.main_sizer)
 
         # hideing all pigrow graphing UI elements until graph on pigrow is selected
         self.hide_make_on_pi_ui_elements()
-        #
-        ### for local graph construction
+        self.hide_make_local_ui_elements()
 
     def hide_make_on_pi_ui_elements(self):
         self.pigraph_text.Hide()
@@ -5731,8 +5739,6 @@ class graphing_ctrl_pnl(wx.Panel):
         self.make_graph_btn.Hide()
         self.download_graph.Hide()
         self.blank_options_ui_elements()
-        #MainApp.graphing_ctrl_pannel.Layout()
-        #MainApp.window_self.Layout()
 
     def show_make_on_pi_ui_elements(self):
         self.pigraph_text.Show()
@@ -5743,15 +5749,21 @@ class graphing_ctrl_pnl(wx.Panel):
         self.extra_args.Show()
         self.make_graph_btn.Show()
         self.download_graph.Show()
-        #MainApp.graphing_ctrl_pannel.Layout()
-        #MainApp.window_self.Layout()
+
+
+    def hide_make_local_ui_elements(self):
+        self.select_log_btn.Hide()
+
+    def show_make_local_ui_elements(self):
+        self.select_log_btn.Show()
 
     def graph_engine_combo_go(self, e):
         # combo box selects if you want to make graphs on pi or locally
         # then shows the relevent UI elements for that option.
         graph_mode = self.graph_cb.GetValue()
         if graph_mode == 'Pigrow':
-            # show ui elements
+            # select ui elements
+            self.hide_make_local_ui_elements()
             self.show_make_on_pi_ui_elements()
             # Find graphing scripts and list them in combo box
             select_script_opts = self.get_graphing_scripts()
@@ -5759,10 +5771,22 @@ class graphing_ctrl_pnl(wx.Panel):
                 self.select_script_cb.Append(x)
         elif graph_mode == 'local':
             self.hide_make_on_pi_ui_elements()
-            print("Yah, that's not really an option yet...")
-            print("   ...but it will be soon and it'll be awesome!")
+            self.show_make_local_ui_elements()
+            print("Yah, this doesn't do anythig yet...")
+            print("   ...but work is in progress so it will soon, and it'll be awesome!")
         MainApp.graphing_ctrl_pannel.Layout()
         MainApp.window_self.Layout()
+
+    # Make locally controlls
+    def select_log_click(self, e):
+        wildcard = "TXT and LOG files (*.txt;*.log)|*.txt;*.log"
+        openFileDialog = wx.FileDialog(self, "Select log file", "", "", wildcard, wx.FD_OPEN | wx.FD_FILE_MUST_EXIST)
+        openFileDialog.SetMessage("Select log file to import")
+        if openFileDialog.ShowModal() == wx.ID_CANCEL:
+            print("Cancelled")
+        new_cap_path = openFileDialog.GetPath()
+        print("Want's to use ", new_cap_path, " but this button does nothing at the moment" )
+
 
     # Make on Pi controlls
     def get_opts_click(self, e):
@@ -5915,7 +5939,6 @@ class graphing_ctrl_pnl(wx.Panel):
         #graphing_script = self.select_script_cb.GetValue()
         #print graphing_script
 
-    # Make locally controlls
 
 
 #
