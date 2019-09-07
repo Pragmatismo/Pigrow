@@ -5656,6 +5656,78 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
         self.data_extraction_l.SetFont(sub_title_font)
         self.example_line_l = wx.StaticText(self,  label='Example Line -')
         self.example_line = wx.StaticText(self,  label='')
+        # this bit copied from timelapse make overlay dialogs
+        # split line character
+        self.split_character_l = wx.StaticText(self,  label='Split Character')
+        self.split_character_tc = wx.TextCtrl(self, size=(90, 25))
+        #.split_character_tc.Bind(wx.EVT_TEXT, self.split_line_text)
+        # row of date related options
+        self.date_pos_l = wx.StaticText(self,  label='Date Position')
+        self.date_pos_cb = wx.ComboBox(self, size=(90, 25),choices = [])
+        #self.date_pos_cb.Bind(wx.EVT_TEXT, self.date_pos_go)
+        self.date_pos_cb.Disable()
+        self.date_pos_split_tc = wx.TextCtrl(self, size=(60, 25))
+        #self.date_pos_split_tc.Bind(wx.EVT_TEXT, self.date_pos_split_text)
+        self.date_pos_split_cb = wx.ComboBox(self, size=(60, 25))
+        #self.date_pos_split_cb.Bind(wx.EVT_TEXT, self.date_pos_split_select)
+        self.date_pos_ex = wx.StaticText(self,  label='')
+        # row of value related options
+        self.value_pos_l = wx.StaticText(self,  label='Value Position')
+        self.value_pos_cb = wx.ComboBox(self, size=(90, 25),choices = [])
+        #self.value_pos_cb.Bind(wx.EVT_TEXT, self.value_pos_go)
+        self.value_pos_cb.Disable()
+        self.value_pos_split_tc = wx.TextCtrl(self, size=(60, 25))
+        #self.value_pos_split_tc.Bind(wx.EVT_TEXT, self.value_pos_split_text)
+        self.value_pos_split_cb = wx.ComboBox(self, size=(60, 25))
+        #self.value_pos_split_cb.Bind(wx.EVT_TEXT, self.value_pos_split_go)
+        self.value_pos_ex = wx.StaticText(self,  label='')
+        # row of key related options
+        self.key_pos_l = wx.StaticText(self,  label='Key Position')
+        self.key_pos_cb = wx.ComboBox(self, size=(90, 25),choices = [])
+        #self.key_pos_cb.Bind(wx.EVT_TEXT, self.key_pos_go)
+        self.key_pos_cb.Disable()
+        self.key_manual_l = wx.StaticText(self,  label='Label -')
+        self.key_manual_tc = wx.TextCtrl(self, size=(150, 25))
+        self.key_pos_split_tc = wx.TextCtrl(self, size=(60, 25))
+        #self.key_pos_split_tc.Bind(wx.EVT_TEXT, self.key_pos_split_text)
+        self.key_pos_split_cb = wx.ComboBox(self, size=(60, 25))
+        #self.key_pos_split_cb.Bind(wx.EVT_TEXT, self.key_pos_split_go)
+        self.key_pos_ex = wx.StaticText(self,  label='')
+        self.key_matches_l = wx.StaticText(self,  label='Limit to Key Matching -')
+        self.key_matches_tc = wx.TextCtrl(self, size=(150, 25))
+        # data extract sizer grid
+        split_chr_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        split_chr_sizer.Add(self.split_character_l, 0,  wx.ALL, 3)
+        split_chr_sizer.Add(self.split_character_tc, 0,  wx.ALL, 3)
+        data_extract_pos_sizer = wx.GridSizer(3, 5, 0, 0)
+        data_extract_pos_sizer.AddMany( [(self.date_pos_l, 0, wx.EXPAND),
+            (self.date_pos_cb, 0, wx.EXPAND),
+            (self.date_pos_split_tc, 0, wx.EXPAND),
+            (self.date_pos_split_cb, 0, wx.EXPAND),
+            (self.date_pos_ex, 0, wx.EXPAND),
+            (self.value_pos_l, 0, wx.EXPAND),
+            (self.value_pos_cb, 0, wx.EXPAND),
+            (self.value_pos_split_tc, 0, wx.EXPAND),
+            (self.value_pos_split_cb, 0, wx.EXPAND),
+            (self.value_pos_ex, 0, wx.EXPAND),
+            (self.key_pos_l, 0, wx.EXPAND),
+            (self.key_pos_cb, 0, wx.EXPAND),
+            (self.key_pos_split_tc, 0, wx.EXPAND),
+            (self.key_pos_split_cb, 0, wx.EXPAND),
+            (self.key_pos_ex, 0, wx.EXPAND) ])
+        key_match_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        key_match_sizer.Add(self.key_matches_l, 0, wx.ALL, 3)
+        key_match_sizer.Add(self.key_matches_tc, 0, wx.ALL, 3)
+        data_extract_label_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        data_extract_label_sizer.Add(self.key_manual_l, 0 , wx.ALL, 3)
+        data_extract_label_sizer.Add(self.key_manual_tc, 0 , wx.ALL, 3)
+        fields_extract_sizer = wx.BoxSizer(wx.VERTICAL)
+        #fields_extract_sizer.Add(self.top_l, 0 , wx.ALL, 3)
+        #fields_extract_sizer.Add(data_extract_example_line_sizer, 0 , wx.ALL, 3)
+        fields_extract_sizer.Add(split_chr_sizer, 0 , wx.ALL, 3)
+        fields_extract_sizer.Add(data_extract_pos_sizer, 0 , wx.ALIGN_CENTER_HORIZONTAL, 3)
+        fields_extract_sizer.Add(data_extract_label_sizer, 0, wx.ALL, 3)
+        fields_extract_sizer.Add(key_match_sizer, 0, wx.ALL, 3)
 
 
 
@@ -5669,6 +5741,7 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
         data_extract_sizer = wx.BoxSizer(wx.VERTICAL)
         data_extract_sizer.Add(self.data_extraction_l, 0, wx.ALL, 5)
         data_extract_sizer.Add(example_line_sizer, 0, wx.ALL, 5)
+        data_extract_sizer.Add(fields_extract_sizer, 0, wx.ALL, 3)
 
         #
         self.graph_sizer = wx.BoxSizer(wx.VERTICAL)
@@ -5685,12 +5758,54 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
         self.data_extraction_l.Hide()
         self.example_line_l.Hide()
         self.example_line.Hide()
+        self.split_character_l.Hide()
+        self.split_character_tc.Hide()
+        self.date_pos_l.Hide()
+        self.date_pos_cb.Hide()
+        self.date_pos_split_tc.Hide()
+        self.date_pos_split_cb.Hide()
+        self.date_pos_ex.Hide()
+        self.value_pos_l.Hide()
+        self.value_pos_cb.Hide()
+        self.value_pos_split_tc.Hide()
+        self.value_pos_split_cb.Hide()
+        self.value_pos_ex.Hide()
+        self.key_pos_l.Hide()
+        self.key_pos_cb.Hide()
+        self.key_manual_l.Hide()
+        self.key_manual_tc.Hide()
+        self.key_pos_split_tc.Hide()
+        self.key_pos_split_cb.Hide()
+        self.key_pos_ex.Hide()
+        self.key_matches_l.Hide()
+        self.key_matches_tc.Hide()
         self.Layout()
 
     def show_data_extract(self):
         self.data_extraction_l.Show()
         self.example_line_l.Show()
         self.example_line.Show()
+        self.split_character_l.Show()
+        self.split_character_tc.Show()
+        self.date_pos_l.Show()
+        self.date_pos_cb.Show()
+        self.date_pos_split_tc.Show()
+        self.date_pos_split_cb.Show()
+        self.date_pos_ex.Show()
+        self.value_pos_l.Show()
+        self.value_pos_cb.Show()
+        self.value_pos_split_tc.Show()
+        self.value_pos_split_cb.Show()
+        self.value_pos_ex.Show()
+        self.key_pos_l.Show()
+        self.key_pos_cb.Show()
+        self.key_manual_l.Show()
+        self.key_manual_tc.Show()
+        self.key_pos_split_tc.Show()
+        self.key_pos_split_cb.Show()
+        self.key_pos_ex.Show()
+        self.key_matches_l.Show()
+        self.key_matches_tc.Show()
         self.Layout()
 
 class graphing_ctrl_pnl(wx.Panel):
@@ -5830,7 +5945,7 @@ class graphing_ctrl_pnl(wx.Panel):
         if openFileDialog.ShowModal() == wx.ID_CANCEL:
             print("Cancelled")
         log_path = openFileDialog.GetPath()
-        print("Want's to use ", log_path, " but this button does nothing at the moment" )
+        print("Want's to use ", log_path, " but this button only shows the ui at the moment amd doesn't do anything else" )
         MainApp.graphing_info_pannel.show_data_extract()
 
 
