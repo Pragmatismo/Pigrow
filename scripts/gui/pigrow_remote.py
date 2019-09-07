@@ -5379,7 +5379,13 @@ class file_download_dialog(wx.Dialog):
         ## Downloading files from the pi
         # connecting the sftp pipe
         port = 22
-        ssh_tran = paramiko.Transport(pi_link_pnl.target_ip, port)
+        if not len(pi_link_pnl.target_ip.split(".")) == 4:
+            import socket
+            sock = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
+            sock.connect((pi_link_pnl.target_ip, port))
+            ssh_tran = paramiko.Transport(sock=sock)
+        else:
+            ssh_tran = paramiko.Transport(pi_link_pnl.target_ip, port)
 
         print(("#sb#  - connecting transport pipe... " + pi_link_pnl.target_ip + " port:" + str(port)))
         MainApp.status.write_bar("connecting transport pipe... " + pi_link_pnl.target_ip + " port:" + str(port))
@@ -5637,20 +5643,55 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
     # controlled by the graphing_ctrl_pnl
     #
     def __init__( self, parent ):
+        sub_title_font = wx.Font(15, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
         win_height = gui_set.height_of_window
         win_width = gui_set.width_of_window
         w_space_left = win_width - 285
         scrolled.ScrolledPanel.__init__ ( self, parent, id = wx.ID_ANY, size = wx.Size(w_space_left , win_height-20), style = wx.HSCROLL|wx.VSCROLL )
         ## Draw UI elements
-        graphing_info_pnl.graph_txt = wx.StaticText(self,  label='Graphs;')
+        self.graph_txt = wx.StaticText(self,  label='Graphs;')
+        self.graph_txt.SetFont(sub_title_font)
+        # for local graphing
+        self.data_extraction_l = wx.StaticText(self,  label='Data Extraction Options')
+        self.data_extraction_l.SetFont(sub_title_font)
+        self.example_line_l = wx.StaticText(self,  label='Example Line -')
+        self.example_line = wx.StaticText(self,  label='')
+
+
+
+
+
         # Sizers
+        # local graphing
+        example_line_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        example_line_sizer.Add(self.example_line_l, 0, wx.ALL, 0)
+        example_line_sizer.Add(self.example_line, 0, wx.ALL, 0)
+        data_extract_sizer = wx.BoxSizer(wx.VERTICAL)
+        data_extract_sizer.Add(self.data_extraction_l, 0, wx.ALL, 5)
+        data_extract_sizer.Add(example_line_sizer, 0, wx.ALL, 5)
+
+        #
         self.graph_sizer = wx.BoxSizer(wx.VERTICAL)
         #self.graph_sizer.Add(wx.StaticText(self,  label='problem'), 0, wx.ALL|wx.EXPAND, 3)
         self.main_sizer =  wx.BoxSizer(wx.VERTICAL)
-        self.main_sizer.Add(graphing_info_pnl.graph_txt, 0, wx.ALL|wx.EXPAND, 3)
+        self.main_sizer.Add(data_extract_sizer, 0, wx.ALL|wx.EXPAND, 3)
+        self.main_sizer.Add(self.graph_txt, 0, wx.ALL|wx.EXPAND, 3)
         self.main_sizer.Add(self.graph_sizer, 0, wx.ALL, 0)
         self.SetSizer(self.main_sizer)
         self.SetupScrolling()
+        self.hide_data_extract()
+
+    def hide_data_extract(self):
+        self.data_extraction_l.Hide()
+        self.example_line_l.Hide()
+        self.example_line.Hide()
+        self.Layout()
+
+    def show_data_extract(self):
+        self.data_extraction_l.Show()
+        self.example_line_l.Show()
+        self.example_line.Show()
+        self.Layout()
 
 class graphing_ctrl_pnl(wx.Panel):
     def __init__( self, parent ):
@@ -5753,6 +5794,10 @@ class graphing_ctrl_pnl(wx.Panel):
 
     def hide_make_local_ui_elements(self):
         self.select_log_btn.Hide()
+        try:
+            MainApp.graphing_info_pannel.hide_data_extract()
+        except:
+            pass
 
     def show_make_local_ui_elements(self):
         self.select_log_btn.Show()
@@ -5784,8 +5829,11 @@ class graphing_ctrl_pnl(wx.Panel):
         openFileDialog.SetMessage("Select log file to import")
         if openFileDialog.ShowModal() == wx.ID_CANCEL:
             print("Cancelled")
-        new_cap_path = openFileDialog.GetPath()
-        print("Want's to use ", new_cap_path, " but this button does nothing at the moment" )
+        log_path = openFileDialog.GetPath()
+        print("Want's to use ", log_path, " but this button does nothing at the moment" )
+        MainApp.graphing_info_pannel.show_data_extract()
+
+
 
 
     # Make on Pi controlls
