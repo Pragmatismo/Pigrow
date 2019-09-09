@@ -5660,38 +5660,38 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
         # split line character
         self.split_character_l = wx.StaticText(self,  label='Split Character')
         self.split_character_tc = wx.TextCtrl(self, size=(90, 25))
-        #.split_character_tc.Bind(wx.EVT_TEXT, self.split_line_text)
+        self.split_character_tc.Bind(wx.EVT_TEXT, self.split_line_text)
         # row of date related options
         self.date_pos_l = wx.StaticText(self,  label='Date Position')
         self.date_pos_cb = wx.ComboBox(self, size=(90, 25),choices = [])
-        #self.date_pos_cb.Bind(wx.EVT_TEXT, self.date_pos_go)
+        self.date_pos_cb.Bind(wx.EVT_TEXT, self.date_pos_go)
         self.date_pos_cb.Disable()
         self.date_pos_split_tc = wx.TextCtrl(self, size=(60, 25))
-        #self.date_pos_split_tc.Bind(wx.EVT_TEXT, self.date_pos_split_text)
+        self.date_pos_split_tc.Bind(wx.EVT_TEXT, self.date_pos_split_text)
         self.date_pos_split_cb = wx.ComboBox(self, size=(60, 25))
-        #self.date_pos_split_cb.Bind(wx.EVT_TEXT, self.date_pos_split_select)
+        self.date_pos_split_cb.Bind(wx.EVT_TEXT, self.date_pos_split_select)
         self.date_pos_ex = wx.StaticText(self,  label='')
         # row of value related options
         self.value_pos_l = wx.StaticText(self,  label='Value Position')
         self.value_pos_cb = wx.ComboBox(self, size=(90, 25),choices = [])
-        #self.value_pos_cb.Bind(wx.EVT_TEXT, self.value_pos_go)
+        self.value_pos_cb.Bind(wx.EVT_TEXT, self.value_pos_go)
         self.value_pos_cb.Disable()
         self.value_pos_split_tc = wx.TextCtrl(self, size=(60, 25))
-        #self.value_pos_split_tc.Bind(wx.EVT_TEXT, self.value_pos_split_text)
+        self.value_pos_split_tc.Bind(wx.EVT_TEXT, self.value_pos_split_text)
         self.value_pos_split_cb = wx.ComboBox(self, size=(60, 25))
-        #self.value_pos_split_cb.Bind(wx.EVT_TEXT, self.value_pos_split_go)
+        self.value_pos_split_cb.Bind(wx.EVT_TEXT, self.value_pos_split_go)
         self.value_pos_ex = wx.StaticText(self,  label='')
         # row of key related options
         self.key_pos_l = wx.StaticText(self,  label='Key Position')
         self.key_pos_cb = wx.ComboBox(self, size=(90, 25),choices = [])
-        #self.key_pos_cb.Bind(wx.EVT_TEXT, self.key_pos_go)
+        self.key_pos_cb.Bind(wx.EVT_TEXT, self.key_pos_go)
         self.key_pos_cb.Disable()
         self.key_manual_l = wx.StaticText(self,  label='Label -')
         self.key_manual_tc = wx.TextCtrl(self, size=(150, 25))
         self.key_pos_split_tc = wx.TextCtrl(self, size=(60, 25))
-        #self.key_pos_split_tc.Bind(wx.EVT_TEXT, self.key_pos_split_text)
+        self.key_pos_split_tc.Bind(wx.EVT_TEXT, self.key_pos_split_text)
         self.key_pos_split_cb = wx.ComboBox(self, size=(60, 25))
-        #self.key_pos_split_cb.Bind(wx.EVT_TEXT, self.key_pos_split_go)
+        self.key_pos_split_cb.Bind(wx.EVT_TEXT, self.key_pos_split_go)
         self.key_pos_ex = wx.StaticText(self,  label='')
         self.key_matches_l = wx.StaticText(self,  label='Limit to Key Matching -')
         self.key_matches_tc = wx.TextCtrl(self, size=(150, 25))
@@ -5728,10 +5728,6 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
         fields_extract_sizer.Add(data_extract_pos_sizer, 0 , wx.ALIGN_CENTER_HORIZONTAL, 3)
         fields_extract_sizer.Add(data_extract_label_sizer, 0, wx.ALL, 3)
         fields_extract_sizer.Add(key_match_sizer, 0, wx.ALL, 3)
-
-
-
-
 
         # Sizers
         # local graphing
@@ -5808,6 +5804,322 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
         self.key_matches_tc.Show()
         self.Layout()
 
+    def clear_and_reset_fields(self):
+        self.date_pos_ex.SetLabel("")
+        self.value_pos_ex.SetLabel("")
+        self.key_pos_ex.SetLabel("")
+        self.date_pos_cb.SetValue("")
+        self.value_pos_cb.SetValue("")
+        self.key_pos_cb.SetValue("None")
+        self.date_pos_cb.Disable()
+        self.value_pos_cb.Disable()
+        self.key_pos_cb.Disable()
+        self.date_pos_cb.Clear()
+        self.value_pos_cb.Clear()
+        self.key_pos_cb.Clear()
+        self.key_pos_cb.Append("None")
+        self.key_pos_cb.Append("Manual")
+        #
+        self.date_pos_split_cb.Disable()
+        self.date_pos_split_cb.SetValue("")
+        self.date_pos_split_cb.Clear()
+        self.value_pos_split_cb.Disable()
+        self.value_pos_split_cb.SetValue("")
+        self.value_pos_split_cb.Clear()
+        self.key_pos_split_cb.Disable()
+        self.key_pos_split_cb.SetValue("")
+        self.key_pos_split_cb.Clear()
+        self.date_pos_split_tc.Disable()
+        self.value_pos_split_tc.Disable()
+        self.key_pos_split_tc.Disable()
+        self.date_pos_split_tc.SetValue("")
+        self.value_pos_split_tc.SetValue("")
+        self.key_pos_split_tc.SetValue("")
+        self.key_pos_ex.SetLabel("")
+
+    def split_line_text(self, e):
+        self.clear_and_reset_fields()
+        split_character = self.split_character_tc.GetValue()
+        if not split_character == "":
+            line = self.example_line.GetLabel()
+            if split_character in line:
+                self.split_line = line.split(split_character)
+                self.date_pos_cb.Enable()
+                self.value_pos_cb.Enable()
+                self.key_pos_cb.Enable()
+                for x in range(0, len(self.split_line)):
+                    self.date_pos_cb.Append(str(x))
+                    self.value_pos_cb.Append(str(x))
+                    self.key_pos_cb.Append(str(x))
+            else:
+                return None
+            # check each entry to see if it's a date format we understand
+            found = None
+            #self.date_pos_split_tc.SetValue("")
+            for item in range(0, len(self.split_line)):
+                try:
+                    test_date = datetime.datetime.strptime(self.split_line[item], '%Y-%m-%d %H:%M:%S.%f')
+                    self.date_pos_cb.SetValue(str(item))
+                    self.date_pos_ex.SetLabel(self.split_line[item])
+                    self.date_pos_ex.SetForegroundColour((75,200,75))
+                    found = str(item)
+                except:
+                    split_chr_choices = MainApp.graphing_ctrl_pannel.get_split_chr(self.split_line[item])
+                    if len(split_chr_choices) == 1:
+                        item_split_again = self.split_line[item].split(split_chr_choices[0])
+                        for position_in_split_again_item in range(0, len(item_split_again)):
+                            try:
+                                date_to_test = item_split_again[position_in_split_again_item]
+                                print(date_to_test)
+                                test_date = datetime.datetime.strptime(date_to_test, '%Y-%m-%d %H:%M:%S.%f')
+                                self.date_pos_cb.SetValue(str(item))
+                                self.date_pos_split_tc.SetValue(split_chr_choices[0])
+                                found = str(item)
+                            except:
+                                pass
+                # after sorting through each item in the line react to results and try to guess value if possible
+            if found == None:
+                print("local graphing tab - Could not auto detect date")
+            else:
+                if len(self.split_line) == 2:
+                    if found == "0":
+                        self.value_pos_cb.SetValue("1")
+                        self.value_pos_ex.SetLabel(self.split_line[1])
+                    elif found == "1":
+                        self.value_pos_cb.SetValue("0")
+                        self.value_pos_ex.SetLabel(self.split_line[0])
+
+    def key_pos_go(self, e):
+        key_pos = self.key_pos_cb.GetValue()
+        if not key_pos == "" and not key_pos == "None" and not key_pos == "Manual" and not key_pos == None:
+            self.key_pos_ex.SetLabel(self.split_line[int(key_pos)])
+            self.key_pos_split_tc.Enable()
+            self.key_pos_split_tc.Show()
+            self.key_pos_split_cb.Show()
+            self.key_manual_l.Hide()
+            self.key_manual_tc.Hide()
+            self.key_matches_l.Show()
+            self.key_matches_tc.Show()
+            #self.SetSizer(main_sizer)
+        elif key_pos == "Manual":
+            self.key_pos_split_tc.Hide()
+            self.key_pos_split_cb.Hide()
+            self.key_pos_split_cb.SetValue("")
+            self.key_manual_l.Show()
+            self.key_manual_tc.Show()
+            self.key_matches_l.Hide()
+            self.key_matches_tc.Hide()
+            self.key_pos_ex.SetLabel("")
+            #self.SetSizer(main_sizer)
+        elif key_pos == "None" or key_pos == "" or key_pos == None:
+        #    self.key_pos_ex.SetLabel("")
+            self.key_pos_split_tc.Hide()
+            self.key_pos_split_cb.SetValue("")
+            self.key_pos_split_cb.Hide()
+            self.key_manual_l.Hide()
+            self.key_manual_tc.Hide()
+            self.key_matches_l.Hide()
+            self.key_matches_tc.Hide()
+            self.key_pos_ex.SetLabel("")
+        self.Layout()
+
+    def key_pos_split_text(self, e):
+        self.key_pos_split_cb.Clear()
+        val_pos_ex = self.key_pos_ex.GetLabel()
+        split_symbol = self.key_pos_split_tc.GetValue()
+        if not split_symbol == "":
+            if split_symbol in val_pos_ex:
+                key_split = val_pos_ex.split(split_symbol)
+                for x in key_split:
+                    self.key_pos_split_cb.Append(x)
+                self.key_pos_split_cb.Enable()
+            else:
+                self.key_pos_split_cb.Disable()
+                self.key_pos_split_cb.SetValue("")
+                self.key_pos_go("e")
+        else:
+            self.key_pos_split_cb.Disable()
+            self.key_pos_split_cb.SetValue("")
+            self.key_pos_go("e")
+
+    def key_pos_split_go(self, e):
+        key_pos = self.key_pos_cb.GetValue()
+        if key_pos == "None" or key_pos == "Manual":
+            self.key_pos_ex.SetLabel("")
+        else:
+            key_pos_split = self.key_pos_split_cb.GetValue()
+            self.key_pos_ex.SetLabel(key_pos_split)
+
+    def value_pos_go(self, e):
+        '''
+        Triggers when the combobox for selecting which position in the
+        split line the value to display is found.
+           - The value might then be split again if needed using value_pos_split_tc
+        '''
+        val_pos = self.value_pos_cb.GetValue()
+        if not val_pos == "":
+            self.value_pos_ex.SetLabel(self.split_line[int(val_pos)])
+            self.value_pos_split_tc.Enable()
+            self.make_btn_enable()
+        else:
+            self.value_pos_split_tc.Disable()
+
+    def value_pos_split_text(self, e):
+        '''
+        Triggers when the text in the textctrl for splitting the
+        value (which should be already split from the log line)
+        is changed either by user or machine.
+        '''
+        self.value_pos_split_cb.Clear()
+        val_pos_ex = self.value_pos_ex.GetLabel()
+        split_symbol = self.value_pos_split_tc.GetValue()
+        if not split_symbol == "":
+            if split_symbol in val_pos_ex:
+                value_split = val_pos_ex.split(split_symbol)
+                for x in value_split:
+                    self.value_pos_split_cb.Append(x)
+                self.value_pos_split_cb.Enable()
+            else:
+                self.value_pos_split_cb.Disable()
+                self.value_pos_split_cb.SetValue("")
+                self.value_pos_go("e")
+        else:
+            self.value_pos_split_cb.Disable()
+            self.value_pos_split_cb.SetValue("")
+            self.value_pos_go("e")
+
+    def value_pos_split_go(self, e):
+        '''
+        displays the text as an example if value has been split again
+        after being split from the original log entry line.
+        '''
+        value_pos_split = self.value_pos_split_cb.GetValue()
+        self.value_pos_ex.SetLabel(value_pos_split)
+        self.make_btn_enable()
+
+    def date_pos_go(self, e):
+        date_pos = self.date_pos_cb.GetValue()
+        if date_pos.isdigit():
+            date_pos = int(date_pos)
+            if not date_pos > len(self.split_line):
+                ex_date = self.split_line[date_pos]
+                self.date_pos_ex.SetLabel(ex_date)
+                try:
+                    test_date = datetime.datetime.strptime(ex_date, '%Y-%m-%d %H:%M:%S.%f')
+                    self.date_pos_ex.SetForegroundColour((75,200,75))
+                    self.date_good = True
+                except:
+                    self.date_pos_ex.SetForegroundColour((220,75,75))
+                    self.date_pos_split_tc.Enable()
+                    self.date_good = False
+        else:
+            self.date_good = False
+        self.make_btn_enable()
+
+    def date_pos_split_text(self, e):
+        self.date_pos_split_cb.Enable()
+        date_pos_ex = self.date_pos_ex.GetLabel()
+        split_symbol = self.date_pos_split_tc.GetValue()
+        if not split_symbol == "":
+            if split_symbol in date_pos_ex:
+                date_split = date_pos_ex.split(split_symbol)
+                self.date_pos_split_cb.Clear()
+                for x in date_split:
+                    self.date_pos_split_cb.Append(x)
+                if len(date_split) == 2:
+                    try:
+                        test_date = datetime.datetime.strptime(date_split[0], '%Y-%m-%d %H:%M:%S.%f')
+                        self.date_pos_split_cb.SetValue(date_split[0])
+                    except:
+                        try:
+                            test_date = datetime.datetime.strptime(date_split[1], '%Y-%m-%d %H:%M:%S.%f')
+                            self.date_pos_split_cb.SetValue(date_split[1])
+                        except:
+                            print(" - local graphing pnl can't auto determine date - " + str(date_split))
+            else:
+                self.date_pos_split_cb.Disable()
+                self.date_pos_split_cb.SetValue("")
+                self.date_pos_go("e")
+        else:
+            self.date_pos_split_cb.Disable()
+            self.date_pos_split_cb.SetValue("")
+            self.date_pos_go("e")
+
+    def date_pos_split_select(self, e):
+        date_pos = self.date_pos_split_cb.GetValue()
+        self.date_pos_ex.SetLabel(date_pos)
+        try:
+            test_date = datetime.datetime.strptime(date_pos, '%Y-%m-%d %H:%M:%S.%f')
+            self.date_pos_ex.SetForegroundColour((75,200,75))
+            self.date_good = True
+        except:
+            self.date_pos_ex.SetForegroundColour((220,75,75))
+            self.date_good = False
+        self.make_btn_enable()
+
+    def make_btn_enable(self):
+        val_ex = self.value_pos_ex.GetLabel()
+        val_good = False
+        if val_ex.isdigit():
+            val_good = True
+        else:
+            try:
+                test = float(val_ex)
+                val_good = True
+            except:
+                val_good = False
+        # if valid turn on graphing buttons
+        if self.date_good and val_good == True:
+            #print("Local Graphing - valid data")
+            MainApp.graphing_ctrl_pannel.local_simple_bar.Enable()
+        else:
+            #print("local graphing - not got valid data")
+            MainApp.graphing_ctrl_pannel.local_simple_bar.Disable()
+
+    def read_log_date_and_value(self):
+        date_list = []
+        value_list = []
+        split_chr = self.split_character_tc.GetValue()
+        date_pos = int(self.date_pos_cb.GetValue())
+        date_split = self.date_pos_split_tc.GetValue()
+        date_split_pos = self.date_pos_split_cb.GetSelection()
+        value_pos = int(self.value_pos_cb.GetValue())
+        value_split = self.value_pos_split_tc.GetValue()
+        value_split_pos = self.value_pos_split_cb.GetSelection()
+        for line in MainApp.graphing_ctrl_pannel.log_to_graph:
+            line_items = line.split(split_chr)
+            # date
+            date = line_items[date_pos]
+            if not date_split == "":
+                date = date.split(date_split)[date_split_pos]
+            if "." in date:
+                date = date.split(".")[0]
+            try:
+                date = datetime.datetime.strptime(date, '%Y-%m-%d %H:%M:%S')
+            except:
+                print("date not valid -" + str(date))
+                date = ""
+            # value
+            value = line_items[value_pos]
+            if not value_split == "":
+                value = line_items[value_pos]
+                value = value.split(value_split)[value_split_pos]
+            try:
+                value = float(value)
+            except:
+                    print('value not valid -' + str(value))
+                    value = ""
+            # add to lists
+            if not date == "" and not value == "":
+                date_list.append(date)
+                value_list.append(value)
+        return date_list, value_list
+
+
+
+
+
+
 class graphing_ctrl_pnl(wx.Panel):
     def __init__( self, parent ):
         wx.Panel.__init__ (self, parent, id=wx.ID_ANY, style=wx.TAB_TRAVERSAL)
@@ -5850,13 +6162,19 @@ class graphing_ctrl_pnl(wx.Panel):
         ### for local graph construction
         self.select_log_btn = wx.Button(self, label='Select Log File')
         self.select_log_btn.Bind(wx.EVT_BUTTON, self.select_log_click)
+        self.local_simple_bar = wx.Button(self, label='Simple Bar Chart')
+        self.local_simple_bar.Bind(wx.EVT_BUTTON, self.local_simple_bar_go)
+        self.local_simple_bar.Disable()
 
 
 
         # Sizers
         # local opts size
-        local_opts_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        local_opts_sizer = wx.BoxSizer(wx.VERTICAL)
         local_opts_sizer.Add(self.select_log_btn, 0, wx.ALL, 3)
+        local_opts_sizer.AddStretchSpacer(1)
+        local_opts_sizer.Add(self.local_simple_bar, 0, wx.ALL, 3)
+        local_opts_sizer.AddStretchSpacer(1)
 
         make_graph_sizer =  wx.BoxSizer(wx.HORIZONTAL)
         make_graph_sizer.Add(self.make_graph_btn, 0, wx.ALL|wx.EXPAND, 3)
@@ -5932,8 +6250,6 @@ class graphing_ctrl_pnl(wx.Panel):
         elif graph_mode == 'local':
             self.hide_make_on_pi_ui_elements()
             self.show_make_local_ui_elements()
-            print("Yah, this doesn't do anythig yet...")
-            print("   ...but work is in progress so it will soon, and it'll be awesome!")
         MainApp.graphing_ctrl_pannel.Layout()
         MainApp.window_self.Layout()
 
@@ -5941,12 +6257,89 @@ class graphing_ctrl_pnl(wx.Panel):
     def select_log_click(self, e):
         wildcard = "TXT and LOG files (*.txt;*.log)|*.txt;*.log"
         openFileDialog = wx.FileDialog(self, "Select log file", "", "", wildcard, wx.FD_OPEN | wx.FD_FILE_MUST_EXIST)
+        openFileDialog.SetDirectory(localfiles_info_pnl.local_path)
         openFileDialog.SetMessage("Select log file to import")
         if openFileDialog.ShowModal() == wx.ID_CANCEL:
             print("Cancelled")
+            return None
         log_path = openFileDialog.GetPath()
-        print("Want's to use ", log_path, " but this button only shows the ui at the moment amd doesn't do anything else" )
+        print("Want's to use ", log_path, " but this features isn't finished yet...." )
         MainApp.graphing_info_pannel.show_data_extract()
+        # Open log file
+        with open(log_path) as f:
+            self.log_to_graph = f.read()
+        self.log_to_graph = self.log_to_graph.splitlines()
+        if len(self.log_to_graph) == 0:
+            print(" --- Log file is empty")
+        MainApp.graphing_info_pannel.example_line.SetLabel(self.log_to_graph[0])
+        split_chr_choices = self.get_split_chr(self.log_to_graph[0])
+        if len(split_chr_choices) == 1:
+            MainApp.graphing_info_pannel.split_character_tc.SetValue(split_chr_choices[0])
+        else:
+            MainApp.graphing_info_pannel.split_character_tc.SetValue("")
+            MainApp.graphing_info_pannel.clear_and_reset_fields()
+
+    def get_split_chr(self, line):
+        non_split_characters = ["-", ":", ".", ",", " ", "_"]
+        non_split_characters += ["a","b","c","d","e","f","g","h","i", "j", "k", "l","m","n","o","p","q","r","s","t","u","v","w","x","y","z"]
+        split_chr_choices = []
+        for chr in line:
+            if not chr.isdigit() and not chr.lower() in non_split_characters:
+                if not chr in split_chr_choices:
+                    split_chr_choices.append(chr)
+        return split_chr_choices
+
+    def local_simple_bar_go(self, e):
+        print("Want's to create a bar graph but that's not coded yet...")
+        date_list, value_list = MainApp.graphing_info_pannel.read_log_date_and_value()
+        print(" - first ten dates and values from the log...")
+        print(date_list[0:10])
+        print(value_list[0:10])
+        temp_unit = "C"
+        # define graph space
+        plt.figure(1)
+        ax = plt.subplot()
+        # make the graph
+        #ax.bar(date_list, value_list, width=0.01, color='green', linewidth = 1) #this is horribly processor intensive don't use it
+        ax.plot(date_list, value_list, color='black', lw=2)
+        # colour hot and cold porions of the graph
+        #value_list = np.array(value_list)
+        #if not dangercold == None:
+        #    ax.fill_between(date_list, value_list, 0,where=value_list < dangercold, alpha=0.6, color='darkblue')
+        #if not toocold == None:
+        #    ax.fill_between(date_list, value_list, 0,where=value_list < toocold, alpha=0.6, color='blue')
+        #if not toohot == None:
+        #    ax.fill_between(date_list, value_list, 0,where=value_list > toohot, alpha=0.6, color='red')
+        #if not dangerhot == None:
+        #    ax.fill_between(date_list, value_list, 0,where=value_list > dangerhot, alpha=0.6, color='darkred')
+        # add titles and axis labels
+        fig = plt.gcf()
+        fig.canvas.set_window_title('Temperature Graph')
+        plt.title("Time Perod; " + str(date_list[0].strftime("%b-%d %H:%M")) + " to " + str(date_list[-1].strftime("%b-%d %H:%M")) + " ")
+        # Y temp axis
+        plt.ylabel("Temp in " + temp_unit)
+        #if not ymax == "default":
+        #    plt.ylim(ymax=ymax)
+        #if not ymin == "default":
+        #    plt.ylim(ymin=ymin)
+        # X date axis
+        ax.xaxis_date()
+        # i should write some code here to only show the parts of the date that are needed
+        #ax.xaxis.set_major_formatter(mpl.dates.DateFormatter('%d-%b %H:%M'))
+        fig.autofmt_xdate()
+        # show or save graph
+        #plt.show()
+        #print("line graph created and saved to " + graph_path)
+        graph_path = os.path.join(localfiles_info_pnl.local_path, "bar_graph.png")
+        plt.savefig(graph_path)
+        #fig.clf()
+
+
+
+
+
+
+
 
 
 
