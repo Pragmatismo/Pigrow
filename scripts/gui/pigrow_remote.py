@@ -5693,7 +5693,7 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
         self.key_pos_split_cb = wx.ComboBox(self, size=(60, 25))
         self.key_pos_split_cb.Bind(wx.EVT_TEXT, self.key_pos_split_go)
         self.key_pos_ex = wx.StaticText(self,  label='')
-        self.key_matches_l = wx.StaticText(self,  label='Limit to Key Matching -')
+        self.key_matches_l = wx.StaticText(self,  label='Limit to Key Containing -')
         self.key_matches_tc = wx.TextCtrl(self, size=(150, 25))
         # data extract sizer grid
         split_chr_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -6138,7 +6138,7 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
                     key = key.split(key_split)[key_pos_split]
                 # if key matching is selected
                 if not key_matches == "":
-                    if not key == key_matches:
+                    if not key_matches in key:
                         key = False
             # if manual key is selected
             elif not key_manual == "":
@@ -6152,10 +6152,6 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
                 value_list.append(value)
                 key_list.append(key)
         return date_list, value_list, key_list
-
-
-
-
 
 
 class graphing_ctrl_pnl(wx.Panel):
@@ -6378,7 +6374,7 @@ class graphing_ctrl_pnl(wx.Panel):
         graph_path = os.path.join(localfiles_info_pnl.local_path, "line_graph.png")
         plt.savefig(graph_path)
         print("line graph created and saved to " + graph_path)
-        #fig.clf()
+        fig.clf()
 
     def switch_log_graph_go(self, e):
         print("User wants to graph the switch log, i'm still working on that though....")
@@ -6386,10 +6382,69 @@ class graphing_ctrl_pnl(wx.Panel):
         # lamp_on.py@2018-05-05 06:00:02.022281@lamp turned on
         # lamp_off.py@2018-05-05 23:00:02.647168@lamp turned off
         date_list, value_list, key_list = MainApp.graphing_info_pannel.read_log_date_and_value()
-        print(" - first ten dates, values and keys from the log...")
-        print(date_list[0:10])
-        print(value_list[0:10])
+        #print(" - first ten dates, values and keys from the log...")
+        #print(date_list[0:10])
+        #print(value_list[0:10])
         print(key_list[0:10])
+        print("-----------")
+        dates_to_graph = []
+        values_to_graph = []
+        dictionary_of_sets = {}
+        for item in range(0, len(date_list)):
+            if "_on.py" in key_list[item]:
+                device_name = key_list[item].split("_on.py")[0]
+                if device_name in dictionary_of_sets:
+                    #print(device_name)
+                    values_to_graph = dictionary_of_sets[device_name][0]
+                    dates_to_graph = dictionary_of_sets[device_name][1]
+                    #print(values_to_graph)
+                    values_to_graph.append(1)
+                    dates_to_graph.append(date_list[item])
+                    dictionary_of_sets[device_name]=[values_to_graph, dates_to_graph]
+                else:
+                    values_to_graph = [1]
+                    dates_to_graph = [date_list[item]]
+                    dictionary_of_sets[device_name]=[values_to_graph, dates_to_graph]
+
+            elif "_off.py" in key_list[item]:
+                device_name = key_list[item].split("_off.py")[0]
+                if device_name in dictionary_of_sets:
+                    values_to_graph = dictionary_of_sets[device_name][0]
+                    dates_to_graph = dictionary_of_sets[device_name][1]
+                    values_to_graph.append(0)
+                    dates_to_graph.append(date_list[item])
+                    data = [values_to_graph, dates_to_graph]
+                    dictionary_of_sets[device_name]=data
+                else:
+                    values_to_graph = [0]
+                    dates_to_graph = [date_list[item]]
+                    data = [values_to_graph, dates_to_graph]
+                    dictionary_of_sets[device_name] = data
+            #    device_name = key_list[item].split("_off.py")[0]
+        #        values_to_graph = dictionary_of_sets[device_name].append(0)
+        #        dictionary_of_sets[device_name]=values_to_graph
+            else:
+                item = None
+        #print(dictionary_of_sets)
+        # graph
+        plt.figure(1)
+        ax = plt.subplot()
+        for key, value in dictionary_of_sets.items():
+            print(key)
+            date_list = value[1]
+            value_list = value[0]
+            ax.plot(date_list, value_list, lw=2, label=key)
+        ax.legend()
+        fig = plt.gcf()
+        fig.canvas.set_window_title('Switch Log Graph')
+        plt.title("Time Perod; " + str(date_list[0].strftime("%b-%d %H:%M")) + " to " + str(date_list[-1].strftime("%b-%d %H:%M")) + " ")
+        ax.xaxis_date()
+        fig.autofmt_xdate()
+        graph_path = os.path.join(localfiles_info_pnl.local_path, "switch_log_graph.png")
+        plt.savefig(graph_path)
+        print("line graph created and saved to " + graph_path)
+        fig.clf()
+
 
 
 
