@@ -6071,14 +6071,15 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
         # if valid turn on graphing buttons
         if self.date_good and val_good == True:
             #print("Local Graphing - valid data")
-            MainApp.graphing_ctrl_pannel.local_simple_bar.Enable()
+            MainApp.graphing_ctrl_pannel.local_simple_line.Enable()
         else:
             #print("local graphing - not got valid data")
-            MainApp.graphing_ctrl_pannel.local_simple_bar.Disable()
+            MainApp.graphing_ctrl_pannel.local_simple_line.Disable()
 
-    def read_log_date_and_value(self):
+    def read_log_date_and_value(self, numbers_only = False):
         date_list = []
         value_list = []
+        key_list = []
         split_chr = self.split_character_tc.GetValue()
         date_pos = int(self.date_pos_cb.GetValue())
         date_split = self.date_pos_split_tc.GetValue()
@@ -6086,6 +6087,25 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
         value_pos = int(self.value_pos_cb.GetValue())
         value_split = self.value_pos_split_tc.GetValue()
         value_split_pos = self.value_pos_split_cb.GetSelection()
+        # key position or label
+        key_pos = self.key_pos_cb.GetValue()
+        key_split = self.key_pos_split_tc.GetValue()
+        key_pos_split = int(self.key_pos_split_cb.GetSelection())
+
+        if key_pos == 'Manual':
+            key_manual = self.key_manual_tc.GetValue()
+            key_pos = ""
+        else:
+            key_manual = ""
+            if not key_pos == 'None':
+                key_pos = int(key_pos)
+            else:
+                key_pos = ""
+        if self.key_matches_tc.IsEnabled() == True:
+            key_matches = self.key_matches_tc.GetValue()
+        else:
+            key_matches = ""
+        #
         for line in MainApp.graphing_ctrl_pannel.log_to_graph:
             line_items = line.split(split_chr)
             # date
@@ -6104,16 +6124,34 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
             if not value_split == "":
                 value = line_items[value_pos]
                 value = value.split(value_split)[value_split_pos]
-            try:
-                value = float(value)
-            except:
-                    print('value not valid -' + str(value))
-                    value = ""
+            if numbers_only == True:
+                try:
+                    value = float(value)
+                except:
+                        print('value not valid -' + str(value))
+                        value = ""
+
+            # key
+            if not key_pos == "":
+                key = line_items[key_pos]
+                if not key_split == "":
+                    key = key.split(key_split)[key_pos_split]
+                # if key matching is selected
+                if not key_matches == "":
+                    if not key == key_matches:
+                        key = False
+            # if manual key is selected
+            elif not key_manual == "":
+                key = key_manual
+            elif key_pos == "" and key_manual == "":
+                key = ""
+
             # add to lists
-            if not date == "" and not value == "":
+            if not date == "" and not value == "" and not key == False:
                 date_list.append(date)
                 value_list.append(value)
-        return date_list, value_list
+                key_list.append(key)
+        return date_list, value_list, key_list
 
 
 
@@ -6162,9 +6200,11 @@ class graphing_ctrl_pnl(wx.Panel):
         ### for local graph construction
         self.select_log_btn = wx.Button(self, label='Select Log File')
         self.select_log_btn.Bind(wx.EVT_BUTTON, self.select_log_click)
-        self.local_simple_bar = wx.Button(self, label='Simple Bar Chart')
-        self.local_simple_bar.Bind(wx.EVT_BUTTON, self.local_simple_bar_go)
-        self.local_simple_bar.Disable()
+        self.local_simple_line = wx.Button(self, label='Simple Line Graph')
+        self.local_simple_line.Bind(wx.EVT_BUTTON, self.local_simple_line_go)
+        self.local_simple_line.Disable()
+        self.switch_log_graph = wx.Button(self, label='Switch Log Graph')
+        self.switch_log_graph.Bind(wx.EVT_BUTTON, self.switch_log_graph_go)
 
 
 
@@ -6173,7 +6213,10 @@ class graphing_ctrl_pnl(wx.Panel):
         local_opts_sizer = wx.BoxSizer(wx.VERTICAL)
         local_opts_sizer.Add(self.select_log_btn, 0, wx.ALL, 3)
         local_opts_sizer.AddStretchSpacer(1)
-        local_opts_sizer.Add(self.local_simple_bar, 0, wx.ALL, 3)
+        local_opts_sizer.Add(self.local_simple_line, 0, wx.ALL, 3)
+        local_opts_sizer.AddStretchSpacer(1)
+        local_opts_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
+        local_opts_sizer.Add(self.switch_log_graph, 0, wx.ALL, 3)
         local_opts_sizer.AddStretchSpacer(1)
 
         make_graph_sizer =  wx.BoxSizer(wx.HORIZONTAL)
@@ -6224,9 +6267,10 @@ class graphing_ctrl_pnl(wx.Panel):
         self.make_graph_btn.Show()
         self.download_graph.Show()
 
-
     def hide_make_local_ui_elements(self):
         self.select_log_btn.Hide()
+        self.local_simple_line.Hide()
+        self.switch_log_graph.Hide()
         try:
             MainApp.graphing_info_pannel.hide_data_extract()
         except:
@@ -6234,6 +6278,8 @@ class graphing_ctrl_pnl(wx.Panel):
 
     def show_make_local_ui_elements(self):
         self.select_log_btn.Show()
+        self.local_simple_line.Show()
+        self.switch_log_graph.Show()
 
     def graph_engine_combo_go(self, e):
         # combo box selects if you want to make graphs on pi or locally
@@ -6263,7 +6309,7 @@ class graphing_ctrl_pnl(wx.Panel):
             print("Cancelled")
             return None
         log_path = openFileDialog.GetPath()
-        print("Want's to use ", log_path, " but this features isn't finished yet...." )
+        print(" - Using ", log_path, " to make a graph locally" )
         MainApp.graphing_info_pannel.show_data_extract()
         # Open log file
         with open(log_path) as f:
@@ -6289,12 +6335,12 @@ class graphing_ctrl_pnl(wx.Panel):
                     split_chr_choices.append(chr)
         return split_chr_choices
 
-    def local_simple_bar_go(self, e):
-        print("Want's to create a bar graph but that's not coded yet...")
-        date_list, value_list = MainApp.graphing_info_pannel.read_log_date_and_value()
-        print(" - first ten dates and values from the log...")
-        print(date_list[0:10])
-        print(value_list[0:10])
+    def local_simple_line_go(self, e):
+        print("Want's to create a bar graph...  This feature is in progress and currently only has very basic features")
+        date_list, value_list, key_list = MainApp.graphing_info_pannel.read_log_date_and_value(numbers_only=True)
+        #print(" - first ten dates and values from the log...")
+        #print(date_list[0:10])
+        #print(value_list[0:10])
         temp_unit = "C"
         # define graph space
         plt.figure(1)
@@ -6314,10 +6360,10 @@ class graphing_ctrl_pnl(wx.Panel):
         #    ax.fill_between(date_list, value_list, 0,where=value_list > dangerhot, alpha=0.6, color='darkred')
         # add titles and axis labels
         fig = plt.gcf()
-        fig.canvas.set_window_title('Temperature Graph')
+        fig.canvas.set_window_title('Simple Line Graph')
         plt.title("Time Perod; " + str(date_list[0].strftime("%b-%d %H:%M")) + " to " + str(date_list[-1].strftime("%b-%d %H:%M")) + " ")
         # Y temp axis
-        plt.ylabel("Temp in " + temp_unit)
+        #plt.ylabel("Temp in " + temp_unit)
         #if not ymax == "default":
         #    plt.ylim(ymax=ymax)
         #if not ymin == "default":
@@ -6329,10 +6375,23 @@ class graphing_ctrl_pnl(wx.Panel):
         fig.autofmt_xdate()
         # show or save graph
         #plt.show()
-        #print("line graph created and saved to " + graph_path)
-        graph_path = os.path.join(localfiles_info_pnl.local_path, "bar_graph.png")
+        graph_path = os.path.join(localfiles_info_pnl.local_path, "line_graph.png")
         plt.savefig(graph_path)
+        print("line graph created and saved to " + graph_path)
         #fig.clf()
+
+    def switch_log_graph_go(self, e):
+        print("User wants to graph the switch log, i'm still working on that though....")
+        # example switch log lines
+        # lamp_on.py@2018-05-05 06:00:02.022281@lamp turned on
+        # lamp_off.py@2018-05-05 23:00:02.647168@lamp turned off
+        date_list, value_list, key_list = MainApp.graphing_info_pannel.read_log_date_and_value()
+        print(" - first ten dates, values and keys from the log...")
+        print(date_list[0:10])
+        print(value_list[0:10])
+        print(key_list[0:10])
+
+
 
 
 
