@@ -6241,6 +6241,8 @@ class graphing_ctrl_pnl(wx.Panel):
         self.select_log_btn.Bind(wx.EVT_BUTTON, self.select_log_click)
         self.local_simple_line = wx.Button(self, label='Simple Line Graph')
         self.local_simple_line.Bind(wx.EVT_BUTTON, self.local_simple_line_go)
+        self.local_box_plot = wx.Button(self, label='Box Plot Graph')
+        self.local_box_plot.Bind(wx.EVT_BUTTON, self.local_box_plot_go)
         self.local_simple_line.Disable()
         self.switch_log_graph = wx.Button(self, label='Switch Log Graph')
         self.switch_log_graph.Bind(wx.EVT_BUTTON, self.switch_log_graph_go)
@@ -6253,6 +6255,7 @@ class graphing_ctrl_pnl(wx.Panel):
         local_opts_sizer.Add(self.select_log_btn, 0, wx.ALL, 3)
         local_opts_sizer.AddStretchSpacer(1)
         local_opts_sizer.Add(self.local_simple_line, 0, wx.ALL, 3)
+        local_opts_sizer.Add(self.local_box_plot, 0, wx.ALL, 3)
         local_opts_sizer.AddStretchSpacer(1)
         local_opts_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
         local_opts_sizer.Add(self.switch_log_graph, 0, wx.ALL, 3)
@@ -6428,6 +6431,139 @@ class graphing_ctrl_pnl(wx.Panel):
         print("line graph created and saved to " + graph_path)
         fig.clf()
 
+    def local_box_plot_go(self, e):
+        print("Making EpiphanyHermit's competition winning box plot...")
+        date_list, temp_list, key_list = MainApp.graphing_info_pannel.read_log_date_and_value(numbers_only=True)
+        toocold= 19
+        dangercold=5
+        toohot=22
+        dangerhot=45
+        import numpy as np
+        from matplotlib.lines import Line2D
+        from matplotlib.patches import Polygon
+        from matplotlib.ticker import StrMethodFormatter
+
+        # Start and End colors for the gradient
+        startColor = (118,205,38)
+        endColor = (38,118,204)
+        dangercoldColor = 'xkcd:purplish blue'
+        toocoldColor = 'xkcd:light blue'
+        toohotColor = 'xkcd:orange'
+        dangerhotColor = 'xkcd:red'
+
+        # Group the data by hour
+        hours = [[] for i in range(24)]
+        for i in range(len(date_list)):
+            h = int(date_list[i].strftime('%H'))
+            hours[h].append(temp_list[i])
+
+        # give the graph a rectangular formatr
+        fig, ax1 = plt.subplots(figsize=(10, 6))
+        fig.subplots_adjust(left=0.1, right=0.9, top=0.9, bottom=0.15)
+        fig.suptitle('Median Temperature by Hour', fontsize=14, fontweight='bold')
+
+        bp = ax1.boxplot(hours,whis=0,widths=1,showfliers=False,showcaps=False,medianprops=dict(linestyle=''),boxprops=dict(linestyle=''))
+        ax1.set_axisbelow(True)
+        ax1.set_title(min(date_list).strftime("%B %d, %Y") + ' - ' + max(date_list).strftime("%B %d, %Y"), fontsize=10)
+
+        # x-axis
+        labels = [item.get_text() for item in ax1.get_xticklabels()]
+        for i in range(24):
+            labels[i] = str(i).zfill(2) + ':00'
+        ax1.set_xticklabels(labels,rotation=45,fontsize=8)
+        ax1.set_xlim(0, 25)
+        ax1.set_xlabel('Hour of the Day')
+
+        # y-axis
+        fmt = StrMethodFormatter('{x:,g}°')
+        ax1.yaxis.set_major_formatter(fmt)
+        ax1.yaxis.grid(True, linestyle='-', which='major', color='lightgrey', alpha=0.5)
+        ax1.set_ylabel('Temperature in Celsius')
+
+        # legend
+        custom_lines = [Line2D([0], [0], color=dangerhotColor, lw=2),
+                        Line2D([0], [0], color=toohotColor, lw=2),
+                        Line2D([0], [0], color=toocoldColor, lw=2),
+                        Line2D([0], [0], color=dangercoldColor, lw=2)]
+
+        plt.legend(custom_lines, [('%.2f°' % dangerhot).replace(".00°","°")
+                , ('%.2f°' % toohot).replace(".00°","°")
+                , ('%.2f°' % toocold).replace(".00°","°")
+                , ('%.2f°' % dangercold).replace(".00°","°")]
+                , bbox_to_anchor=(1.02,1)
+                , loc="upper left")
+
+        plt.subplots_adjust(right=0.85)
+
+        # given a defined start and stop, calculate 24 shade gradient
+        boxColors = [[] for i in range(24)]
+        for i in range(24):
+            for j in range(3):
+                newColor = 0
+                step = abs(startColor[j] - endColor[j]) / 24
+                if startColor[j] > endColor[j]:
+                    newColor = (startColor[j] - (i * step)) / 255
+                else:
+                    newColor = (startColor[j] + (i * step)) / 255
+                boxColors[i].append(newColor)
+
+        # Apply box specific info: color, median, warning
+        minEdge = 100
+        maxEdge = 0
+        medians = list(range(24))
+        for i in range(24):
+            box = bp['boxes'][i]
+            boxX = []
+            boxY = []
+            for j in range(5):
+                boxX.append(box.get_xdata()[j])
+                boxY.append(box.get_ydata()[j])
+            boxCoords = np.column_stack([boxX, boxY])
+
+            # Find min & max box edges to set y-axis limits
+            if minEdge > min(boxY):
+                minEdge = min(boxY)
+            if maxEdge < max(boxY):
+                maxEdge = max(boxY)
+
+            # Alert user to dangerous temps
+            warning = 'none'
+            if min(hours[i]) <= toocold and min(hours[i]) > dangercold:
+                warning = toocoldColor
+            if min(hours[i]) <= dangercold:
+                warning = dangercoldColor
+            if max(hours[i]) >= toohot and max(hours[i]) < dangerhot:
+                warning = toohotColor
+            if max(hours[i]) >= dangerhot:
+                warning = dangerhotColor
+
+            # Color the box and set the edge color, if applicable
+            boxPolygon = Polygon(boxCoords, facecolor=boxColors[i],edgecolor=warning)
+            ax1.add_patch(boxPolygon)
+
+            # add median data
+            med = bp['medians'][i]
+            medians[i] = med.get_ydata()[0]
+
+        top = maxEdge + 1
+        bottom = minEdge - 1
+        ax1.set_ylim(bottom, top)
+
+        # Add the medians just above the hour marks
+        pos = np.arange(24) + 1
+        upperLabels = [str(np.round(s, 2)) for s in medians]
+        weights = ['bold', 'semibold']
+        k = -1
+        for tick, label in zip(range(24), ax1.get_xticklabels()):
+            w = tick % 2
+            k = k + 1
+            ax1.text(pos[tick],bottom + (bottom*0.02),upperLabels[tick],horizontalalignment='center',size='x-small',weight=weights[w],color=boxColors[k])
+        graph_path = os.path.join(localfiles_info_pnl.local_path, "box_plot.png")
+        print("Box plot created and saved to " + graph_path)
+        plt.savefig(graph_path)
+        fig.clf()
+
+
     def parse_switch_log_for_relays(self, add_data_to_square = True):
         date_list, value_list, key_list = MainApp.graphing_info_pannel.read_log_date_and_value()
         #print(" - first ten dates, values and keys from the log...")
@@ -6438,6 +6574,7 @@ class graphing_ctrl_pnl(wx.Panel):
         dates_to_graph = []
         values_to_graph = []
         dictionary_of_sets = {}
+        power_on_markers = []
         for item in range(0, len(date_list)):
             if "_on.py" in key_list[item]:
                 device_name = key_list[item].split("_on.py")[0]
@@ -6482,9 +6619,13 @@ class graphing_ctrl_pnl(wx.Panel):
                     #    device_name = key_list[item].split("_off.py")[0]
                     #        values_to_graph = dictionary_of_sets[device_name].append(0)
                     #        dictionary_of_sets[device_name]=values_to_graph
+            elif "chechDHT.py" in key_list[item]:
+                if "Script initialised, performing lamp state check" in value_list[item]:
+                    print("Found turn on at " + str(date_list[item]))
+                    power_on_markers.append(date_list[item])
             else:
                 item = None
-        return dictionary_of_sets
+        return dictionary_of_sets, power_on_markers
 
 
     def switch_log_graph_go(self, e):
@@ -6493,7 +6634,7 @@ class graphing_ctrl_pnl(wx.Panel):
         # example switch log lines
         # lamp_on.py@2018-05-05 06:00:02.022281@lamp turned on
         # lamp_off.py@2018-05-05 23:00:02.647168@lamp turned off
-        dictionary_of_sets = self.parse_switch_log_for_relays()
+        dictionary_of_sets, power_on_markers = self.parse_switch_log_for_relays()
         # graph
         plt.figure(1, figsize=(15, 10))
         ax = plt.subplot()
@@ -6501,7 +6642,9 @@ class graphing_ctrl_pnl(wx.Panel):
             print(key)
             date_list = value[1]
             value_list = value[0]
-            ax.plot(date_list, value_list, lw=2, label=key)
+            ax.plot(date_list, value_list, lw=1, label=key)
+        for x in power_on_markers:
+            plt.axvline(x, color='#d62728')
         ax.legend()
         fig = plt.gcf()
         fig.canvas.set_window_title('Switch Log Graph')
@@ -6516,7 +6659,7 @@ class graphing_ctrl_pnl(wx.Panel):
 
 
     def switch_log_relay_weekly(self, e):
-        dictionary_of_sets = self.parse_switch_log_for_relays()
+        dictionary_of_sets, power_on_markers = self.parse_switch_log_for_relays()
         # graph
         for key, value in dictionary_of_sets.items():
             date_list = dictionary_of_sets[1]
