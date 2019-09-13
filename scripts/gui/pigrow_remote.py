@@ -93,6 +93,7 @@ import datetime
 from stat import S_ISDIR
 try:
     import wx
+    import wx.adv
     import  wx.lib.scrolledpanel as scrolled
     from wx.lib.masked import NumCtrl
     #print (wx.__version__)
@@ -5728,6 +5729,22 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
         fields_extract_sizer.Add(data_extract_pos_sizer, 0 , wx.ALIGN_CENTER_HORIZONTAL, 3)
         fields_extract_sizer.Add(data_extract_label_sizer, 0, wx.ALL, 3)
         fields_extract_sizer.Add(key_match_sizer, 0, wx.ALL, 3)
+        # data trimming
+        # time and date controlls
+        self.data_controls = wx.StaticText(self,  label='Data Controls;')
+        self.data_controls.SetFont(sub_title_font)
+        self.start_date_l = wx.StaticText(self,  label='Start at -')
+        self.start_date_picer = wx.adv.DatePickerCtrl( self, wx.ID_ANY, wx.DefaultDateTime)
+        self.end_date_l = wx.StaticText(self,  label='Finish at -')
+        self.end_date_picer = wx.adv.DatePickerCtrl( self, wx.ID_ANY, wx.DefaultDateTime)
+        time_and_date_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        time_and_date_sizer.Add(self.start_date_l, 0, wx.ALL, 2)
+        time_and_date_sizer.Add(self.start_date_picer, 0, wx.ALL, 2)
+        time_and_date_sizer.Add(self.end_date_l, 0, wx.ALL, 2)
+        time_and_date_sizer.Add(self.end_date_picer, 0, wx.ALL, 2)
+        data_trimming_sizer = wx.BoxSizer(wx.VERTICAL)
+        data_trimming_sizer.Add(self.data_controls, 0, wx.ALL|wx.EXPAND, 4)
+        data_trimming_sizer.Add(time_and_date_sizer, 0, wx.ALL, 0)
 
         # Sizers
         # local graphing
@@ -5744,6 +5761,7 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
         #self.graph_sizer.Add(wx.StaticText(self,  label='problem'), 0, wx.ALL|wx.EXPAND, 3)
         self.main_sizer =  wx.BoxSizer(wx.VERTICAL)
         self.main_sizer.Add(data_extract_sizer, 0, wx.ALL|wx.EXPAND, 3)
+        self.main_sizer.Add(data_trimming_sizer, 0, wx.ALL|wx.EXPAND, 3)
         self.main_sizer.Add(self.graph_txt, 0, wx.ALL|wx.EXPAND, 3)
         self.main_sizer.Add(self.graph_sizer, 0, wx.ALL, 0)
         self.SetSizer(self.main_sizer)
@@ -6008,6 +6026,7 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
                     test_date = datetime.datetime.strptime(ex_date, '%Y-%m-%d %H:%M:%S.%f')
                     self.date_pos_ex.SetForegroundColour((75,200,75))
                     self.date_good = True
+                    MainApp.graphing_ctrl_pannel.set_dates_to_log()
                 except:
                     self.date_pos_ex.SetForegroundColour((220,75,75))
                     self.date_pos_split_tc.Enable()
@@ -6052,6 +6071,7 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
             test_date = datetime.datetime.strptime(date_pos, '%Y-%m-%d %H:%M:%S.%f')
             self.date_pos_ex.SetForegroundColour((75,200,75))
             self.date_good = True
+            MainApp.graphing_ctrl_pannel.set_dates_to_log()
         except:
             self.date_pos_ex.SetForegroundColour((220,75,75))
             self.date_good = False
@@ -6076,7 +6096,11 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
             #print("local graphing - not got valid data")
             MainApp.graphing_ctrl_pannel.local_simple_line.Disable()
 
-    def read_log_date_and_value(self, numbers_only = False):
+    def read_log_date_and_value(self, numbers_only = False, limit_by_date = True, date_only = False):
+        print("Reading log")
+        if limit_by_date == True:
+            first_date = MainApp.graphing_info_pannel.start_date_picer.GetValue()
+            last_date = MainApp.graphing_info_pannel.end_date_picer.GetValue()
         date_list = []
         value_list = []
         key_list = []
@@ -6084,28 +6108,29 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
         date_pos = int(self.date_pos_cb.GetValue())
         date_split = self.date_pos_split_tc.GetValue()
         date_split_pos = self.date_pos_split_cb.GetSelection()
-        value_pos = int(self.value_pos_cb.GetValue())
-        value_split = self.value_pos_split_tc.GetValue()
-        value_split_pos = self.value_pos_split_cb.GetSelection()
-        # key position or label
-        key_pos = self.key_pos_cb.GetValue()
-        key_split = self.key_pos_split_tc.GetValue()
-        key_pos_split = int(self.key_pos_split_cb.GetSelection())
+        if not date_only == True:
+            value_pos = int(self.value_pos_cb.GetValue())
+            value_split = self.value_pos_split_tc.GetValue()
+            value_split_pos = self.value_pos_split_cb.GetSelection()
+            # key position or label
+            key_pos = self.key_pos_cb.GetValue()
+            key_split = self.key_pos_split_tc.GetValue()
+            key_pos_split = int(self.key_pos_split_cb.GetSelection())
 
-        if key_pos == 'Manual':
-            key_manual = self.key_manual_tc.GetValue()
-            key_pos = ""
-        else:
-            key_manual = ""
-            if not key_pos == 'None':
-                key_pos = int(key_pos)
-            else:
+            if key_pos == 'Manual':
+                key_manual = self.key_manual_tc.GetValue()
                 key_pos = ""
-        if self.key_matches_tc.IsEnabled() == True:
-            key_matches = self.key_matches_tc.GetValue()
-        else:
-            key_matches = ""
-        #
+            else:
+                key_manual = ""
+                if not key_pos == 'None':
+                    key_pos = int(key_pos)
+                else:
+                    key_pos = ""
+            if self.key_matches_tc.IsEnabled() == True:
+                key_matches = self.key_matches_tc.GetValue()
+            else:
+                key_matches = ""
+        # date
         for line in MainApp.graphing_ctrl_pannel.log_to_graph:
             line_items = line.split(split_chr)
             # date
@@ -6116,42 +6141,60 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
                 date = date.split(".")[0]
             try:
                 date = datetime.datetime.strptime(date, '%Y-%m-%d %H:%M:%S')
+                if limit_by_date == True:
+                    if date > last_date or date < first_date:
+                        date = ""
             except:
                 print("date not valid -" + str(date))
                 date = ""
             # value
-            value = line_items[value_pos]
-            if not value_split == "":
+            if not date_only == True:
                 value = line_items[value_pos]
-                value = value.split(value_split)[value_split_pos]
-            if numbers_only == True:
-                try:
-                    value = float(value)
-                except:
-                        print('value not valid -' + str(value))
-                        value = ""
+                if not value_split == "":
+                    value = line_items[value_pos]
+                    value = value.split(value_split)[value_split_pos]
+                if numbers_only == True:
+                    try:
+                        value = float(value)
+                    except:
+                            print('value not valid -' + str(value))
+                            value = ""
 
-            # key
-            if not key_pos == "":
-                key = line_items[key_pos]
-                if not key_split == "":
-                    key = key.split(key_split)[key_pos_split]
-                # if key matching is selected
-                if not key_matches == "":
-                    if not key_matches in key:
-                        key = False
-            # if manual key is selected
-            elif not key_manual == "":
-                key = key_manual
-            elif key_pos == "" and key_manual == "":
-                key = ""
+                # key
+                if not key_pos == "":
+                    key = line_items[key_pos]
+                    if not key_split == "":
+                        key = key.split(key_split)[key_pos_split]
+                    # if key matching is selected
+                    if not key_matches == "":
+                        if not key_matches in key:
+                            key = False
+                # if manual key is selected
+                elif not key_manual == "":
+                    key = key_manual
+                elif key_pos == "" and key_manual == "":
+                    key = ""
 
-            # add to lists
-            if not date == "" and not value == "" and not key == False:
+                # add to lists
+                if not date == "" and not value == "" and not key == False:
+                    date_list.append(date)
+                    value_list.append(value)
+                    key_list.append(key)
+            else:
                 date_list.append(date)
-                value_list.append(value)
-                key_list.append(key)
-        return date_list, value_list, key_list
+        # end of loop - return appropriate lists
+        if date_only == False:
+            return date_list, value_list, key_list
+        else:
+            return date_list
+
+    def show_local_graph(self, graph_path):
+        MainApp.graphing_info_pannel.graph_sizer.Add(wx.StaticBitmap(MainApp.graphing_info_pannel, -1, wx.Image(graph_path, wx.BITMAP_TYPE_ANY).ConvertToBitmap()), 0, wx.ALL, 2)
+        #MainApp.graphing_info_pannel.graph_sizer.Layout()
+        MainApp.graphing_info_pannel.main_sizer.Layout()
+        #MainApp.camconf_info_pannel.SetSizer(MainApp.graphing_info_pannel.main_sizer)
+        MainApp.graphing_info_pannel.SetupScrolling()
+        MainApp.window_self.Layout()
 
 
 class graphing_ctrl_pnl(wx.Panel):
@@ -6321,6 +6364,15 @@ class graphing_ctrl_pnl(wx.Panel):
             MainApp.graphing_info_pannel.split_character_tc.SetValue("")
             MainApp.graphing_info_pannel.clear_and_reset_fields()
 
+    def set_dates_to_log(self):
+        date_list = MainApp.graphing_info_pannel.read_log_date_and_value(limit_by_date = False,  date_only = True)
+        first_date = date_list[0]
+        last_date = date_list[-1]
+        MainApp.graphing_info_pannel.start_date_picer.SetRange(first_date, last_date)
+        MainApp.graphing_info_pannel.start_date_picer.SetValue(first_date)
+        MainApp.graphing_info_pannel.end_date_picer.SetRange(first_date, last_date)
+        MainApp.graphing_info_pannel.end_date_picer.SetValue(last_date)
+
     def get_split_chr(self, line):
         non_split_characters = ["-", ":", ".", ",", " ", "_"]
         non_split_characters += ["a","b","c","d","e","f","g","h","i", "j", "k", "l","m","n","o","p","q","r","s","t","u","v","w","x","y","z"]
@@ -6339,7 +6391,7 @@ class graphing_ctrl_pnl(wx.Panel):
         #print(value_list[0:10])
         temp_unit = "C"
         # define graph space
-        plt.figure(1)
+        plt.figure(1, figsize=(15, 10))
         ax = plt.subplot()
         # make the graph
         #ax.bar(date_list, value_list, width=0.01, color='green', linewidth = 1) #this is horribly processor intensive don't use it
@@ -6376,11 +6428,7 @@ class graphing_ctrl_pnl(wx.Panel):
         print("line graph created and saved to " + graph_path)
         fig.clf()
 
-    def switch_log_graph_go(self, e):
-        print("User wants to graph the switch log, i'm still working on that though....")
-        # example switch log lines
-        # lamp_on.py@2018-05-05 06:00:02.022281@lamp turned on
-        # lamp_off.py@2018-05-05 23:00:02.647168@lamp turned off
+    def parse_switch_log_for_relays(self):
         date_list, value_list, key_list = MainApp.graphing_info_pannel.read_log_date_and_value()
         #print(" - first ten dates, values and keys from the log...")
         #print(date_list[0:10])
@@ -6420,14 +6468,23 @@ class graphing_ctrl_pnl(wx.Panel):
                     dates_to_graph = [date_list[item]]
                     data = [values_to_graph, dates_to_graph]
                     dictionary_of_sets[device_name] = data
-            #    device_name = key_list[item].split("_off.py")[0]
-        #        values_to_graph = dictionary_of_sets[device_name].append(0)
-        #        dictionary_of_sets[device_name]=values_to_graph
+                    #    device_name = key_list[item].split("_off.py")[0]
+                    #        values_to_graph = dictionary_of_sets[device_name].append(0)
+                    #        dictionary_of_sets[device_name]=values_to_graph
             else:
                 item = None
-        #print(dictionary_of_sets)
+        return dictionary_of_sets
+
+
+    def switch_log_graph_go(self, e):
+        # date limits
+        print("User wants to graph the switch log, i'm still working on that though....")
+        # example switch log lines
+        # lamp_on.py@2018-05-05 06:00:02.022281@lamp turned on
+        # lamp_off.py@2018-05-05 23:00:02.647168@lamp turned off
+        dictionary_of_sets = self.parse_switch_log_for_relays()
         # graph
-        plt.figure(1)
+        plt.figure(1, figsize=(15, 10))
         ax = plt.subplot()
         for key, value in dictionary_of_sets.items():
             print(key)
@@ -6444,6 +6501,20 @@ class graphing_ctrl_pnl(wx.Panel):
         plt.savefig(graph_path)
         print("line graph created and saved to " + graph_path)
         fig.clf()
+        MainApp.graphing_info_pannel.show_local_graph(graph_path)
+
+
+    def switch_log_relay_weekly(self, e):
+        dictionary_of_sets = self.parse_switch_log_for_relays()
+        # graph
+        for key, value in dictionary_of_sets.items():
+            date_list = dictionary_of_sets[1]
+            value_list = value[0]
+
+
+        plt.figure(1, figsize=(15, 10))
+        ax = plt.subplot()
+        ax.plot(date_list, value_list, lw=2, label=key)
 
 
 
