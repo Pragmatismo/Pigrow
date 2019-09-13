@@ -6428,7 +6428,7 @@ class graphing_ctrl_pnl(wx.Panel):
         print("line graph created and saved to " + graph_path)
         fig.clf()
 
-    def parse_switch_log_for_relays(self):
+    def parse_switch_log_for_relays(self, add_data_to_square = True):
         date_list, value_list, key_list = MainApp.graphing_info_pannel.read_log_date_and_value()
         #print(" - first ten dates, values and keys from the log...")
         #print(date_list[0:10])
@@ -6442,12 +6442,17 @@ class graphing_ctrl_pnl(wx.Panel):
             if "_on.py" in key_list[item]:
                 device_name = key_list[item].split("_on.py")[0]
                 if device_name in dictionary_of_sets:
-                    #print(device_name)
                     values_to_graph = dictionary_of_sets[device_name][0]
                     dates_to_graph = dictionary_of_sets[device_name][1]
-                    #print(values_to_graph)
+                    #adding extra data to square the graph
+                    if add_data_to_square == True:
+                        values_to_graph.append(0)
+                        time_minus_a_second = date_list[item] + datetime.timedelta(0,-1)
+                        dates_to_graph.append(time_minus_a_second)
+                    # adding new data point
                     values_to_graph.append(1)
                     dates_to_graph.append(date_list[item])
+                    # putting data back into dictionary
                     dictionary_of_sets[device_name]=[values_to_graph, dates_to_graph]
                 else:
                     values_to_graph = [1]
@@ -6459,6 +6464,12 @@ class graphing_ctrl_pnl(wx.Panel):
                 if device_name in dictionary_of_sets:
                     values_to_graph = dictionary_of_sets[device_name][0]
                     dates_to_graph = dictionary_of_sets[device_name][1]
+                    #adding extra data to square the graph
+                    if add_data_to_square == True:
+                        values_to_graph.append(1)
+                        time_minus_a_second = date_list[item] + datetime.timedelta(0,-1)
+                        dates_to_graph.append(time_minus_a_second)
+                    # adding new data point
                     values_to_graph.append(0)
                     dates_to_graph.append(date_list[item])
                     data = [values_to_graph, dates_to_graph]
