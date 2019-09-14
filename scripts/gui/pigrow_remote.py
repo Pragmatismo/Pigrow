@@ -90,6 +90,7 @@ import sys
 import platform
 import time
 import datetime
+import numpy as np
 from stat import S_ISDIR
 try:
     import wx
@@ -119,6 +120,9 @@ try:
     import matplotlib
     matplotlib.use('agg')
     import matplotlib.pyplot as plt
+    from matplotlib.lines import Line2D
+    from matplotlib.patches import Polygon
+    from matplotlib.ticker import StrMethodFormatter
 except:
     print(" -------")
     print("  You don't have matploylib installed, this is used to create graphs")
@@ -6243,6 +6247,10 @@ class graphing_ctrl_pnl(wx.Panel):
         self.local_simple_line.Bind(wx.EVT_BUTTON, self.local_simple_line_go)
         self.local_box_plot = wx.Button(self, label='Box Plot Graph')
         self.local_box_plot.Bind(wx.EVT_BUTTON, self.local_box_plot_go)
+        self.over_threasholds_by_hour = wx.Button(self, label='Threashold by hour')
+        self.over_threasholds_by_hour.Bind(wx.EVT_BUTTON, self.over_threasholds_by_hour_go)
+        self.threasholds_pie = wx.Button(self, label='Threashold Pie')
+        self.threasholds_pie.Bind(wx.EVT_BUTTON, self.threasholds_pie_go)
         self.local_simple_line.Disable()
         self.switch_log_graph = wx.Button(self, label='Switch Log Graph')
         self.switch_log_graph.Bind(wx.EVT_BUTTON, self.switch_log_graph_go)
@@ -6256,11 +6264,13 @@ class graphing_ctrl_pnl(wx.Panel):
         local_opts_sizer.AddStretchSpacer(1)
         local_opts_sizer.Add(self.local_simple_line, 0, wx.ALL, 3)
         local_opts_sizer.Add(self.local_box_plot, 0, wx.ALL, 3)
+        local_opts_sizer.Add(self.over_threasholds_by_hour, 0, wx.ALL, 3)
+        local_opts_sizer.Add(self.threasholds_pie, 0, wx.ALL, 3)
+
         local_opts_sizer.AddStretchSpacer(1)
         local_opts_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
         local_opts_sizer.Add(self.switch_log_graph, 0, wx.ALL, 3)
         local_opts_sizer.AddStretchSpacer(1)
-
         make_graph_sizer =  wx.BoxSizer(wx.HORIZONTAL)
         make_graph_sizer.Add(self.make_graph_btn, 0, wx.ALL|wx.EXPAND, 3)
         make_graph_sizer.Add(self.download_graph, 0, wx.ALL|wx.EXPAND, 3)
@@ -6429,6 +6439,137 @@ class graphing_ctrl_pnl(wx.Panel):
         graph_path = os.path.join(localfiles_info_pnl.local_path, "line_graph.png")
         plt.savefig(graph_path)
         print("line graph created and saved to " + graph_path)
+        MainApp.graphing_info_pannel.show_local_graph(graph_path)
+        fig.clf()
+
+    def over_threasholds_by_hour_go(self, e):
+        date_list, temp_list, key_list = MainApp.graphing_info_pannel.read_log_date_and_value(numbers_only=True)
+        toocold= 19
+        dangercold=5
+        toohot=22
+        dangerhot=45
+        print("Making EpiphanyHermit's damger temps by hour graph...")
+
+
+        # Colors for the danger temps
+        dangercoldColor = 'xkcd:purplish blue'
+        toocoldColor = 'xkcd:light blue'
+        toohotColor = 'xkcd:orange'
+        dangerhotColor = 'xkcd:red'
+
+        # Group the data by hour
+        dangerhotArray = [0]*24
+        toohotArray = [0]*24
+        toocoldArray = [0]*24
+        dangercoldArray = [0]*24
+        for i in range(len(date_list)):
+            h = int(date_list[i].strftime('%H'))
+            if temp_list[i] >= dangerhot:
+                dangerhotArray[h] += 1
+            elif temp_list[i] >= toohot:
+                toohotArray[h] += 1
+            elif temp_list[i] <= dangercold:
+                dangercoldArray[h] += 1
+            elif temp_list[i] <= toocold:
+                toocoldArray[h] += 1
+
+        ind = np.arange(24)  # the x locations for the groups
+        width = 0.25  # the width of the bars
+
+        fig, ax = plt.subplots()
+        rects1 = ax.bar(ind - width/2, dangercoldArray, width, yerr=None, color=dangercoldColor, label='DC')
+        rects2 = ax.bar(ind - width/4, toocoldArray, width, yerr=None, color=toocoldColor, label='TC')
+        rects3 = ax.bar(ind + width/4, toohotArray, width, yerr=None, color=toohotColor, label='TH')
+        rects4 = ax.bar(ind + width/2, dangerhotArray, width, yerr=None, color=dangerhotColor, label='DH')
+
+        # Add some text for labels, title and custom x-axis tick labels, etc.
+        fig.suptitle('Dangerous Temperature by Hour', fontsize=14, fontweight='bold')
+        ax.set_ylabel('Counts')
+        ax.set_title(min(date_list).strftime("%B %d, %Y") + ' - ' + max(date_list).strftime("%B %d, %Y"), fontsize=10)
+        ax.set_xticks(ind)
+        labels = ('00:00', '01:00', '02:00', '03:00', '04:00','05:00','06:00','07:00','08:00','09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00','19:00','20:00','21:00','22:00','23:00')
+        ax.set_xticklabels(labels,rotation=45)
+        ax.legend()
+        graph_path = os.path.join(localfiles_info_pnl.local_path, "minmax_hour_plot.png")
+        print("danger temps created and saved to " + graph_path)
+        plt.savefig(graph_path)
+        MainApp.graphing_info_pannel.show_local_graph(graph_path)
+        fig.clf()
+
+    def threasholds_pie_go(self, e):
+        date_list, temp_list, key_list = MainApp.graphing_info_pannel.read_log_date_and_value(numbers_only=True)
+        toocold= 19
+        dangercold=5
+        toohot=22
+        dangerhot=45
+        print("Making EpiphanyHermit's pie...")
+        sliceColors = ['xkcd:red',
+                       'xkcd:orange',
+                       'xkcd:light green',
+                       'xkcd:light blue',
+                       'xkcd:purplish blue']
+
+        tempThresholds = [('%.2f°' % dangerhot).replace(".00°","°")
+            , ('%.2f°' % toohot).replace(".00°","°")
+            , ('{:.2f}° < > {:.2f}°'.format(toohot,toocold)).replace(".00°","°")
+            , ('%.2f°' % toocold).replace(".00°","°")
+            , ('%.2f°' % dangercold).replace(".00°","°")]
+
+        # Group the data by classification
+        tempCount = [0,0,0,0,0]
+        for i in range(len(date_list)):
+            if temp_list[i] >= dangerhot:
+                tempCount[0] += 1
+            elif temp_list[i] >= toohot:
+                tempCount[1] += 1
+            elif temp_list[i] <= dangercold:
+                tempCount[4] += 1
+            elif temp_list[i] <= toocold:
+                tempCount[3] += 1
+            else:
+                tempCount[2] += 1
+
+        # The slices will be ordered and plotted counter-clockwise.
+        temps = list()
+        colors = list()
+        for i in range(5):
+            if tempCount[i] == 0:
+                continue
+            temps.append(tempCount[i])
+            colors.append(sliceColors[i])
+
+        plt.pie(temps, colors=colors, autopct='%1.1f%%', pctdistance=1.16)
+
+        #draw a circle at the center of the pie
+        centre_circle = plt.Circle((0,0), 0.75, color='black', fc='white',linewidth=0)
+        fig = plt.gcf()
+        fig.gca().add_artist(centre_circle)
+        fig.suptitle('Temperature Groups', fontsize=14, fontweight='bold')
+        plt.title(min(date_list).strftime("%B %d, %Y") + ' - ' + max(date_list).strftime("%B %d, %Y"), fontsize=10, y=1.07)
+
+        # Set aspect ratio to be equal so that pie is drawn as a circle.
+        plt.axis('equal')
+
+        # legend
+        custom_lines = [Line2D([0], [0], color=sliceColors[0], lw=2),
+                        Line2D([0], [0], color=sliceColors[1], lw=2),
+                        Line2D([0], [0], color=sliceColors[2], lw=2),
+                        Line2D([0], [0], color=sliceColors[3], lw=2),
+                        Line2D([0], [0], color=sliceColors[4], lw=2)]
+
+        fig.legend(custom_lines, [tempThresholds[0]
+                , tempThresholds[1]
+                , tempThresholds[2]
+                , tempThresholds[3]
+                , tempThresholds[4]]
+                , bbox_to_anchor=(.97,.97)
+                , loc="upper right")
+
+        fig.subplots_adjust(right=0.85, top=0.83)
+        graph_path = os.path.join(localfiles_info_pnl.local_path, "threashold_pie.png")
+        print("pie created and saved to " + graph_path)
+        plt.savefig(graph_path)
+        MainApp.graphing_info_pannel.show_local_graph(graph_path)
         fig.clf()
 
     def local_box_plot_go(self, e):
@@ -6438,10 +6579,7 @@ class graphing_ctrl_pnl(wx.Panel):
         dangercold=5
         toohot=22
         dangerhot=45
-        import numpy as np
-        from matplotlib.lines import Line2D
-        from matplotlib.patches import Polygon
-        from matplotlib.ticker import StrMethodFormatter
+
 
         # Start and End colors for the gradient
         startColor = (118,205,38)
@@ -6561,6 +6699,7 @@ class graphing_ctrl_pnl(wx.Panel):
         graph_path = os.path.join(localfiles_info_pnl.local_path, "box_plot.png")
         print("Box plot created and saved to " + graph_path)
         plt.savefig(graph_path)
+        MainApp.graphing_info_pannel.show_local_graph(graph_path)
         fig.clf()
 
 
