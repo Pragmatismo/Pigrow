@@ -60,6 +60,9 @@
 ##
 ##  temp_local = os.path.join(localfiles_info_pnl.local_path, "/temp/")
 ##  remote_path = "/home/" + pi_link_pnl.target_user + "/Pigrow/"
+##
+##  box_name = MainApp.config_ctrl_pannel.config_dict["box_name"]
+##  box_name = pi_link_pnl.boxname
 #
 #  SETTINGS FOR THE GUI TO USE
 #    # Called as gui_set
@@ -6154,6 +6157,7 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
             else:
                 key_matches = ""
         # date
+        #print("length of log " + str(len(MainApp.graphing_ctrl_pannel.log_to_graph)))
         for line in MainApp.graphing_ctrl_pannel.log_to_graph:
             line_items = line.split(split_chr)
             # date
@@ -6405,7 +6409,9 @@ class graphing_ctrl_pnl(wx.Panel):
             MainApp.graphing_info_pannel.clear_and_reset_fields()
 
     def set_dates_to_log(self):
+        print("reading list of dates")
         date_list = MainApp.graphing_info_pannel.read_log_date_and_value(limit_by_date = False,  date_only = True)
+        print("Date list created")
         first_date = date_list[0]
         last_date = date_list[-1]
         MainApp.graphing_info_pannel.start_date_picer.SetRange(first_date, last_date)
@@ -6437,7 +6443,95 @@ class graphing_ctrl_pnl(wx.Panel):
 
     def graph_preset_cb_go(self ,e):
         graph_option = self.graph_presets_cb.GetValue()
-        print("Want's to use " + graph_option)
+        MainApp.graphing_info_pannel.show_data_extract()
+        print("Want's to use preset from " + graph_option)
+        graph_presets_path = os.path.join(os.getcwd(), "graph_presets")
+        graph_presets_path = os.path.join(graph_presets_path, graph_option)
+        with open(graph_presets_path) as f:
+            graph_presets = f.read()
+        graph_presets = graph_presets.splitlines()
+        preset_settings = {}
+        for line in graph_presets:
+            if "=" in line:
+                key = line.split("=")[0]
+                value = line.split("=")[1]
+                preset_settings[key]=value
+        print(preset_settings)
+        #
+        #
+        # set and load log
+        if "log_path" in preset_settings:
+            local_logs_path = os.path.join(localfiles_info_pnl.local_path, "logs")
+            log_path = os.path.join(local_logs_path, preset_settings["log_path"])
+            with open(log_path) as f:
+                self.log_to_graph = f.read()
+            self.log_to_graph = self.log_to_graph.splitlines()
+            if len(self.log_to_graph) == 0:
+                print(" --- Log file " + log_path + " is empty")
+            else:
+                MainApp.graphing_info_pannel.example_line.SetLabel(self.log_to_graph[0])
+        else:
+            print("Log path not found in presets file")
+        # set boxes
+        # data extract
+        if "split_chr" in preset_settings:
+            MainApp.graphing_info_pannel.split_character_tc.SetValue(preset_settings["split_chr"])
+        if "date_pos" in preset_settings:
+            MainApp.graphing_info_pannel.date_pos_cb.SetValue(preset_settings["date_pos"])
+        if "date_split" in preset_settings:
+            if not preset_settings["date_split_pos"] == "":
+                MainApp.graphing_info_pannel.date_pos_split_tc.SetValue(preset_settings["date_split"])
+        if "date_split_pos" in preset_settings:
+            if not preset_settings["date_split_pos"] == "":
+                MainApp.graphing_info_pannel.date_pos_split_cb.SetValue(preset_settings["date_split_pos"])
+        if "value_pos" in preset_settings:
+            MainApp.graphing_info_pannel.value_pos_cb.SetValue(preset_settings["value_pos"])
+        if "value_split" in preset_settings:
+            if not preset_settings["value_split"] == "":
+                MainApp.graphing_info_pannel.value_pos_split_tc.SetValue(preset_settings["value_split"])
+        if "value_split_pos" in preset_settings:
+            if not preset_settings["value_split_pos"] == "":
+                MainApp.graphing_info_pannel.value_pos_split_cb.SetValue(preset_settings["value_split_pos"])
+        if "key_pos" in preset_settings:
+            MainApp.graphing_info_pannel.key_pos_cb.SetValue(preset_settings["key_pos"])
+        if "key_split" in preset_settings:
+            if not preset_settings["key_split"] == "":
+                MainApp.graphing_info_pannel.key_pos_split_tc.SetValue(preset_settings["key_split"])
+        if "key_split_pos" in preset_settings:
+            if not preset_settings["key_split_pos"] == "":
+                MainApp.graphing_info_pannel.key_pos_split_cb.SetValue(preset_settings["key_split_pos"])
+        if "key_match" in preset_settings:
+            MainApp.graphing_info_pannel.key_matches_tc.SetValue(preset_settings["key_match"])
+        if "key_manual" in preset_settings:
+            if not preset_settings["key_manual"] == "":
+                MainApp.graphing_info_pannel.key_manual_tc.SetValue(preset_settings["key_manual"])
+        # setting
+        if "value_range_source" in preset_settings:
+            value_range_source = preset_settings["value_range_source"]
+        if value_range_source == "config":
+            if "low" in preset_settings:
+                low_loc = preset_settings["low"]
+                if not low_loc == "":
+                    if low_loc in MainApp.config_ctrl_pannel.config_dict:
+                        low_value = MainApp.config_ctrl_pannel.config_dict[low_loc]
+                        MainApp.graphing_info_pannel.low_tc.SetValue(low_value)
+                        danger_low = ((float(low_value) / 100) * 80)
+                        MainApp.graphing_info_pannel.danger_low_tc.SetValue(str(danger_low))
+            if "high" in preset_settings:
+                high_loc = preset_settings["high"]
+                if not high_loc == "":
+                    if high_loc in MainApp.config_ctrl_pannel.config_dict:
+                        high_value = MainApp.config_ctrl_pannel.config_dict[high_loc]
+                        MainApp.graphing_info_pannel.high_tc.SetValue(high_value)
+                        danger_high = ((float(high_value) / 100) * 120)
+                        MainApp.graphing_info_pannel.danger_high_tc.SetValue(str(danger_high))
+        else:
+            MainApp.graphing_info_pannel.low_tc.SetValue(preset_settings["low"])        
+            MainApp.graphing_info_pannel.danger_low_tc.SetValue(preset_settings["danger_low"])
+            MainApp.graphing_info_pannel.high_tc.SetValue(preset_settings["high"])
+            MainApp.graphing_info_pannel.danger_high_tc.SetValue(preset_settings["danger_high"])
+
+
 
     # make graphs
     def local_simple_line_go(self, e):
@@ -6488,10 +6582,10 @@ class graphing_ctrl_pnl(wx.Panel):
 
     def over_threasholds_by_hour_go(self, e):
         date_list, temp_list, key_list = MainApp.graphing_info_pannel.read_log_date_and_value(numbers_only=True)
-        dangercold = int(MainApp.graphing_info_pannel.danger_low_tc.GetValue())
-        toocold = int(MainApp.graphing_info_pannel.low_tc.GetValue())
-        toohot = int(MainApp.graphing_info_pannel.high_tc.GetValue())
-        dangerhot = int(MainApp.graphing_info_pannel.danger_high_tc.GetValue())
+        dangercold = float(MainApp.graphing_info_pannel.danger_low_tc.GetValue())
+        toocold = float(MainApp.graphing_info_pannel.low_tc.GetValue())
+        toohot = float(MainApp.graphing_info_pannel.high_tc.GetValue())
+        dangerhot = float(MainApp.graphing_info_pannel.danger_high_tc.GetValue())
         print(dangercold, toocold, toohot, dangerhot)
         print("Making EpiphanyHermit's damger temps by hour graph...")
 
@@ -6543,10 +6637,10 @@ class graphing_ctrl_pnl(wx.Panel):
 
     def threasholds_pie_go(self, e):
         date_list, temp_list, key_list = MainApp.graphing_info_pannel.read_log_date_and_value(numbers_only=True)
-        dangercold = int(MainApp.graphing_info_pannel.danger_low_tc.GetValue())
-        toocold = int(MainApp.graphing_info_pannel.low_tc.GetValue())
-        toohot = int(MainApp.graphing_info_pannel.high_tc.GetValue())
-        dangerhot = int(MainApp.graphing_info_pannel.danger_high_tc.GetValue())
+        dangercold = float(MainApp.graphing_info_pannel.danger_low_tc.GetValue())
+        toocold = float(MainApp.graphing_info_pannel.low_tc.GetValue())
+        toohot = float(MainApp.graphing_info_pannel.high_tc.GetValue())
+        dangerhot = float(MainApp.graphing_info_pannel.danger_high_tc.GetValue())
         print("Making EpiphanyHermit's pie...")
         sliceColors = ['xkcd:red',
                        'xkcd:orange',
@@ -6620,10 +6714,10 @@ class graphing_ctrl_pnl(wx.Panel):
     def local_box_plot_go(self, e):
         print("Making EpiphanyHermit's competition winning box plot...")
         date_list, temp_list, key_list = MainApp.graphing_info_pannel.read_log_date_and_value(numbers_only=True)
-        dangercold = int(MainApp.graphing_info_pannel.danger_low_tc.GetValue())
-        toocold = int(MainApp.graphing_info_pannel.low_tc.GetValue())
-        toohot = int(MainApp.graphing_info_pannel.high_tc.GetValue())
-        dangerhot = int(MainApp.graphing_info_pannel.danger_high_tc.GetValue())
+        dangercold = float(MainApp.graphing_info_pannel.danger_low_tc.GetValue())
+        toocold = float(MainApp.graphing_info_pannel.low_tc.GetValue())
+        toohot = float(MainApp.graphing_info_pannel.high_tc.GetValue())
+        dangerhot = float(MainApp.graphing_info_pannel.danger_high_tc.GetValue())
         print(dangercold, toocold, toohot, dangerhot)
 
 
