@@ -5735,7 +5735,7 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
         fields_extract_sizer.Add(key_match_sizer, 0, wx.ALL, 3)
         # data trimming
         # time and date controlls
-        self.data_controls = wx.StaticText(self,  label='Data Controls;')
+        self.data_controls = wx.StaticText(self,  label='Settings;')
         self.data_controls.SetFont(sub_title_font)
         self.start_date_l = wx.StaticText(self,  label='Start at -')
         self.start_date_picer = wx.adv.DatePickerCtrl( self, wx.ID_ANY, wx.DefaultDateTime)
@@ -5749,6 +5749,24 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
         data_trimming_sizer = wx.BoxSizer(wx.VERTICAL)
         data_trimming_sizer.Add(self.data_controls, 0, wx.ALL|wx.EXPAND, 4)
         data_trimming_sizer.Add(time_and_date_sizer, 0, wx.ALL, 0)
+        # high-low values
+        self.danger_low_l = wx.StaticText(self,  label='Danger Low -')
+        self.danger_low_tc = wx.TextCtrl(self, size=(60, 25))
+        self.low_l = wx.StaticText(self,  label='Low -')
+        self.low_tc = wx.TextCtrl(self, size=(60, 25))
+        self.high_l = wx.StaticText(self,  label='High -')
+        self.high_tc = wx.TextCtrl(self, size=(60, 25))
+        self.danger_high_l = wx.StaticText(self,  label='Danger High -')
+        self.danger_high_tc = wx.TextCtrl(self, size=(60, 25))
+        high_low_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        high_low_sizer.Add(self.danger_low_l, 0, wx.ALL, 3)
+        high_low_sizer.Add(self.danger_low_tc, 0, wx.ALL, 3)
+        high_low_sizer.Add(self.low_l, 0, wx.ALL, 3)
+        high_low_sizer.Add(self.low_tc, 0, wx.ALL, 3)
+        high_low_sizer.Add(self.high_l, 0, wx.ALL, 3)
+        high_low_sizer.Add(self.high_tc, 0, wx.ALL, 3)
+        high_low_sizer.Add(self.danger_high_l, 0, wx.ALL, 3)
+        high_low_sizer.Add(self.danger_high_tc, 0, wx.ALL, 3)
 
         # Sizers
         # local graphing
@@ -5766,6 +5784,7 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
         self.main_sizer =  wx.BoxSizer(wx.VERTICAL)
         self.main_sizer.Add(data_extract_sizer, 0, wx.ALL|wx.EXPAND, 3)
         self.main_sizer.Add(data_trimming_sizer, 0, wx.ALL|wx.EXPAND, 3)
+        self.main_sizer.Add(high_low_sizer, 0, wx.ALL|wx.EXPAND, 3)
         self.main_sizer.Add(self.graph_txt, 0, wx.ALL|wx.EXPAND, 3)
         self.main_sizer.Add(self.graph_sizer, 0, wx.ALL, 0)
         self.SetSizer(self.main_sizer)
@@ -6210,7 +6229,7 @@ class graphing_ctrl_pnl(wx.Panel):
         graph_opts = ['Pigrow', 'local']
         self.graph_cb = wx.ComboBox(self, choices = graph_opts)
         self.graph_cb.Bind(wx.EVT_TEXT, self.graph_engine_combo_go)
-        # shared buttons
+        # remote buttons
         self.make_graph_btn = wx.Button(self, label='Make Graph')
         self.make_graph_btn.Bind(wx.EVT_BUTTON, self.make_graph_click)
         self.download_graph = wx.CheckBox(self, label='download')
@@ -6219,6 +6238,12 @@ class graphing_ctrl_pnl(wx.Panel):
         ### for pi based graphing only
         self.pigraph_text = wx.StaticText(self,  label='Graphing directly on the pigrow\n saves having to download logs')
         # select graphing script
+        #presets
+        graph_preset_opts = ['BLANK']
+        self.graph_presets_cb = wx.ComboBox(self, choices = graph_preset_opts)
+        self.graph_presets_cb.Bind(wx.EVT_COMBOBOX, self.graph_preset_cb_go)
+        self.discover_graph_presets()
+        # manual
         self.script_text = wx.StaticText(self,  label='Graphing Script;')
         select_script_opts = ['BLANK']
         self.select_script_cb = wx.ComboBox(self, choices = select_script_opts)
@@ -6276,6 +6301,8 @@ class graphing_ctrl_pnl(wx.Panel):
         make_graph_sizer.Add(self.download_graph, 0, wx.ALL|wx.EXPAND, 3)
         self.main_sizer = wx.BoxSizer(wx.VERTICAL)
         self.main_sizer.Add(make_graph_l, 0, wx.ALL|wx.EXPAND, 3)
+        self.main_sizer.Add(self.graph_presets_cb, 0, wx.ALL|wx.EXPAND, 3)
+        self.main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
         self.main_sizer.Add(self.graph_cb, 0, wx.ALL|wx.EXPAND, 3)
         self.main_sizer.Add(self.pigraph_text, 0, wx.ALL|wx.EXPAND, 3)
         self.main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
@@ -6396,6 +6423,23 @@ class graphing_ctrl_pnl(wx.Panel):
                     split_chr_choices.append(chr)
         return split_chr_choices
 
+    # graph presets
+
+    def discover_graph_presets(self):
+        graph_presets_path = os.path.join(os.getcwd(), "graph_presets")
+        graph_presets = os.listdir(graph_presets_path)
+        self.graph_presets_cb.Clear()
+        for file in graph_presets:
+            print(file)
+            self.graph_presets_cb.Append(file)
+
+
+
+    def graph_preset_cb_go(self ,e):
+        graph_option = self.graph_presets_cb.GetValue()
+        print("Want's to use " + graph_option)
+
+    # make graphs
     def local_simple_line_go(self, e):
         print("Want's to create a bar graph...  This feature is in progress and currently only has very basic features")
         date_list, value_list, key_list = MainApp.graphing_info_pannel.read_log_date_and_value(numbers_only=True)
@@ -6444,10 +6488,11 @@ class graphing_ctrl_pnl(wx.Panel):
 
     def over_threasholds_by_hour_go(self, e):
         date_list, temp_list, key_list = MainApp.graphing_info_pannel.read_log_date_and_value(numbers_only=True)
-        toocold= 19
-        dangercold=5
-        toohot=22
-        dangerhot=45
+        dangercold = int(MainApp.graphing_info_pannel.danger_low_tc.GetValue())
+        toocold = int(MainApp.graphing_info_pannel.low_tc.GetValue())
+        toohot = int(MainApp.graphing_info_pannel.high_tc.GetValue())
+        dangerhot = int(MainApp.graphing_info_pannel.danger_high_tc.GetValue())
+        print(dangercold, toocold, toohot, dangerhot)
         print("Making EpiphanyHermit's damger temps by hour graph...")
 
 
@@ -6498,10 +6543,10 @@ class graphing_ctrl_pnl(wx.Panel):
 
     def threasholds_pie_go(self, e):
         date_list, temp_list, key_list = MainApp.graphing_info_pannel.read_log_date_and_value(numbers_only=True)
-        toocold= 19
-        dangercold=5
-        toohot=22
-        dangerhot=45
+        dangercold = int(MainApp.graphing_info_pannel.danger_low_tc.GetValue())
+        toocold = int(MainApp.graphing_info_pannel.low_tc.GetValue())
+        toohot = int(MainApp.graphing_info_pannel.high_tc.GetValue())
+        dangerhot = int(MainApp.graphing_info_pannel.danger_high_tc.GetValue())
         print("Making EpiphanyHermit's pie...")
         sliceColors = ['xkcd:red',
                        'xkcd:orange',
@@ -6575,10 +6620,11 @@ class graphing_ctrl_pnl(wx.Panel):
     def local_box_plot_go(self, e):
         print("Making EpiphanyHermit's competition winning box plot...")
         date_list, temp_list, key_list = MainApp.graphing_info_pannel.read_log_date_and_value(numbers_only=True)
-        toocold= 19
-        dangercold=5
-        toohot=22
-        dangerhot=45
+        dangercold = int(MainApp.graphing_info_pannel.danger_low_tc.GetValue())
+        toocold = int(MainApp.graphing_info_pannel.low_tc.GetValue())
+        toohot = int(MainApp.graphing_info_pannel.high_tc.GetValue())
+        dangerhot = int(MainApp.graphing_info_pannel.danger_high_tc.GetValue())
+        print(dangercold, toocold, toohot, dangerhot)
 
 
         # Start and End colors for the gradient
