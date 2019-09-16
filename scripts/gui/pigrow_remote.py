@@ -5819,6 +5819,21 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
         self.key_pos_ex.Hide()
         self.key_matches_l.Hide()
         self.key_matches_tc.Hide()
+        # settings
+        self.danger_low_l.Hide()
+        self.danger_low_tc.Hide()
+        self.low_l.Hide()
+        self.low_tc.Hide()
+        self.high_l.Hide()
+        self.high_tc.Hide()
+        self.danger_high_l.Hide()
+        self.danger_high_tc.Hide()
+        self.data_controls.Hide()
+        self.data_controls.Hide()
+        self.start_date_l.Hide()
+        self.start_date_picer.Hide()
+        self.end_date_l.Hide()
+        self.end_date_picer.Hide()
         self.Layout()
 
     def show_data_extract(self):
@@ -5846,6 +5861,21 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
         self.key_pos_ex.Show()
         self.key_matches_l.Show()
         self.key_matches_tc.Show()
+        # setting
+        self.danger_low_l.Show()
+        self.danger_low_tc.Show()
+        self.low_l.Show()
+        self.low_tc.Show()
+        self.high_l.Show()
+        self.high_tc.Show()
+        self.danger_high_l.Show()
+        self.danger_high_tc.Show()
+        self.data_controls.Show()
+        self.data_controls.Show()
+        self.start_date_l.Show()
+        self.start_date_picer.Show()
+        self.end_date_l.Show()
+        self.end_date_picer.Show()
         self.Layout()
 
     def clear_and_reset_fields(self):
@@ -6118,9 +6148,17 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
         if self.date_good and val_good == True:
             #print("Local Graphing - valid data")
             MainApp.graphing_ctrl_pannel.local_simple_line.Enable()
+            MainApp.graphing_ctrl_pannel.local_color_line.Enable()
+            MainApp.graphing_ctrl_pannel.local_box_plot.Enable()
+            MainApp.graphing_ctrl_pannel.over_threasholds_by_hour.Enable()
+            MainApp.graphing_ctrl_pannel.threasholds_pie.Enable()
         else:
             #print("local graphing - not got valid data")
             MainApp.graphing_ctrl_pannel.local_simple_line.Disable()
+            MainApp.graphing_ctrl_pannel.local_color_line.Disable()
+            MainApp.graphing_ctrl_pannel.local_box_plot.Disable()
+            MainApp.graphing_ctrl_pannel.over_threasholds_by_hour.Disable()
+            MainApp.graphing_ctrl_pannel.threasholds_pie.Disable()
 
     def read_log_date_and_value(self, numbers_only = False, limit_by_date = True, date_only = False):
         print("Reading log")
@@ -6243,17 +6281,15 @@ class graphing_ctrl_pnl(wx.Panel):
         self.pigraph_text = wx.StaticText(self,  label='Graphing directly on the pigrow\n saves having to download logs')
         # select graphing script
         #presets
-        graph_preset_opts = ['BLANK']
-        self.graph_presets_cb = wx.ComboBox(self, choices = graph_preset_opts)
+        self.preset_text = wx.StaticText(self,  label='Preset')
+        self.graph_presets_cb = wx.ComboBox(self, choices=['BLANK'])
         self.graph_presets_cb.Bind(wx.EVT_COMBOBOX, self.graph_preset_cb_go)
         self.discover_graph_presets()
         # manual
         self.script_text = wx.StaticText(self,  label='Graphing Script;')
-        select_script_opts = ['BLANK']
-        self.select_script_cb = wx.ComboBox(self, choices = select_script_opts)
+        self.select_script_cb = wx.ComboBox(self, choices = ['BLANK'])
         self.select_script_cb.Bind(wx.EVT_COMBOBOX, self.select_script_combo_go)
-        script_opts_opts = ['BLANK']
-        self.opts_cb = wx.ComboBox(self, choices = script_opts_opts)
+        self.opts_cb = wx.ComboBox(self, choices=['BLANK'])
         self.opts_cb.Bind(wx.EVT_COMBOBOX, self.opt_combo_go)
         # list box for of graphing options
         self.get_opts_tb = wx.CheckBox(self, label='Get Options')
@@ -6274,6 +6310,8 @@ class graphing_ctrl_pnl(wx.Panel):
         self.select_log_btn.Bind(wx.EVT_BUTTON, self.select_log_click)
         self.local_simple_line = wx.Button(self, label='Simple Line Graph')
         self.local_simple_line.Bind(wx.EVT_BUTTON, self.local_simple_line_go)
+        self.local_color_line = wx.Button(self, label='Color Line Graph')
+        self.local_color_line.Bind(wx.EVT_BUTTON, self.local_color_line_go)
         self.local_box_plot = wx.Button(self, label='Box Plot Graph')
         self.local_box_plot.Bind(wx.EVT_BUTTON, self.local_box_plot_go)
         self.over_threasholds_by_hour = wx.Button(self, label='Threashold by hour')
@@ -6281,6 +6319,10 @@ class graphing_ctrl_pnl(wx.Panel):
         self.threasholds_pie = wx.Button(self, label='Threashold Pie')
         self.threasholds_pie.Bind(wx.EVT_BUTTON, self.threasholds_pie_go)
         self.local_simple_line.Disable()
+        self.local_color_line.Disable()
+        self.local_box_plot.Disable()
+        self.over_threasholds_by_hour.Disable()
+        self.threasholds_pie.Disable()
         self.switch_log_graph = wx.Button(self, label='Switch Log Graph')
         self.switch_log_graph.Bind(wx.EVT_BUTTON, self.switch_log_graph_go)
 
@@ -6292,6 +6334,7 @@ class graphing_ctrl_pnl(wx.Panel):
         local_opts_sizer.Add(self.select_log_btn, 0, wx.ALL, 3)
         local_opts_sizer.AddStretchSpacer(1)
         local_opts_sizer.Add(self.local_simple_line, 0, wx.ALL, 3)
+        local_opts_sizer.Add(self.local_color_line, 0, wx.ALL, 3)
         local_opts_sizer.Add(self.local_box_plot, 0, wx.ALL, 3)
         local_opts_sizer.Add(self.over_threasholds_by_hour, 0, wx.ALL, 3)
         local_opts_sizer.Add(self.threasholds_pie, 0, wx.ALL, 3)
@@ -6305,9 +6348,10 @@ class graphing_ctrl_pnl(wx.Panel):
         make_graph_sizer.Add(self.download_graph, 0, wx.ALL|wx.EXPAND, 3)
         self.main_sizer = wx.BoxSizer(wx.VERTICAL)
         self.main_sizer.Add(make_graph_l, 0, wx.ALL|wx.EXPAND, 3)
-        self.main_sizer.Add(self.graph_presets_cb, 0, wx.ALL|wx.EXPAND, 3)
-        self.main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
         self.main_sizer.Add(self.graph_cb, 0, wx.ALL|wx.EXPAND, 3)
+        self.main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
+        self.main_sizer.Add(self.preset_text, 0, wx.ALL|wx.EXPAND, 3)
+        self.main_sizer.Add(self.graph_presets_cb, 0, wx.ALL|wx.EXPAND, 3)
         self.main_sizer.Add(self.pigraph_text, 0, wx.ALL|wx.EXPAND, 3)
         self.main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
         self.main_sizer.Add(self.script_text, 0, wx.ALL|wx.EXPAND, 3)
@@ -6352,8 +6396,15 @@ class graphing_ctrl_pnl(wx.Panel):
 
     def hide_make_local_ui_elements(self):
         self.select_log_btn.Hide()
+        self.preset_text.Hide()
+        self.graph_presets_cb.Hide()
         self.local_simple_line.Hide()
+        self.local_color_line.Hide()
+        self.local_box_plot.Hide()
+        self.over_threasholds_by_hour.Hide()
+        self.threasholds_pie.Hide()
         self.switch_log_graph.Hide()
+
         try:
             MainApp.graphing_info_pannel.hide_data_extract()
         except:
@@ -6361,7 +6412,13 @@ class graphing_ctrl_pnl(wx.Panel):
 
     def show_make_local_ui_elements(self):
         self.select_log_btn.Show()
+        self.preset_text.Show()
+        self.graph_presets_cb.Show()
         self.local_simple_line.Show()
+        self.local_color_line.Show()
+        self.local_box_plot.Show()
+        self.over_threasholds_by_hour.Show()
+        self.threasholds_pie.Show()
         self.switch_log_graph.Show()
 
     def graph_engine_combo_go(self, e):
@@ -6409,9 +6466,7 @@ class graphing_ctrl_pnl(wx.Panel):
             MainApp.graphing_info_pannel.clear_and_reset_fields()
 
     def set_dates_to_log(self):
-        print("reading list of dates")
         date_list = MainApp.graphing_info_pannel.read_log_date_and_value(limit_by_date = False,  date_only = True)
-        print("Date list created")
         first_date = date_list[0]
         last_date = date_list[-1]
         MainApp.graphing_info_pannel.start_date_picer.SetRange(first_date, last_date)
@@ -6456,7 +6511,7 @@ class graphing_ctrl_pnl(wx.Panel):
                 key = line.split("=")[0]
                 value = line.split("=")[1]
                 preset_settings[key]=value
-        print(preset_settings)
+        #print(preset_settings)
         #
         #
         # set and load log
@@ -6526,7 +6581,7 @@ class graphing_ctrl_pnl(wx.Panel):
                         danger_high = ((float(high_value) / 100) * 120)
                         MainApp.graphing_info_pannel.danger_high_tc.SetValue(str(danger_high))
         else:
-            MainApp.graphing_info_pannel.low_tc.SetValue(preset_settings["low"])        
+            MainApp.graphing_info_pannel.low_tc.SetValue(preset_settings["low"])
             MainApp.graphing_info_pannel.danger_low_tc.SetValue(preset_settings["danger_low"])
             MainApp.graphing_info_pannel.high_tc.SetValue(preset_settings["high"])
             MainApp.graphing_info_pannel.danger_high_tc.SetValue(preset_settings["danger_high"])
@@ -6535,7 +6590,38 @@ class graphing_ctrl_pnl(wx.Panel):
 
     # make graphs
     def local_simple_line_go(self, e):
-        print("Want's to create a bar graph...  This feature is in progress and currently only has very basic features")
+        print("Want's to create a simple line graph...  ")
+        date_list, value_list, key_list = MainApp.graphing_info_pannel.read_log_date_and_value(numbers_only=True)
+        key_unit = ""
+        ymax = ""
+        ymin = ""
+        fig = plt.gcf()
+        fig.canvas.set_window_title('Simple Line Graph')
+        plt.figure(1, figsize=(15, 10))
+        plt.title("Time Perod; " + str(date_list[0].strftime("%b-%d %H:%M")) + " to " + str(date_list[-1].strftime("%b-%d %H:%M")) + " ")
+        plt.ylabel(key_list[0]) # + " in " + key_unit)
+        if not ymax == "":
+            plt.ylim(ymax=ymax)
+        if not ymin == "":
+            plt.ylim(ymin=ymin)
+        ax = plt.subplot()
+        ax.plot(date_list, value_list, color='black', lw=1)
+        ax.xaxis_date()
+        fig.autofmt_xdate()
+        graph_path = os.path.join(localfiles_info_pnl.local_path, "line_graph.png")
+        plt.savefig(graph_path)
+        print("line graph created and saved to " + graph_path)
+        MainApp.graphing_info_pannel.show_local_graph(graph_path)
+        fig.clf()
+
+    def local_color_line_go(self, e):
+        dangercold = float(MainApp.graphing_info_pannel.danger_low_tc.GetValue())
+        toocold = float(MainApp.graphing_info_pannel.low_tc.GetValue())
+        toohot = float(MainApp.graphing_info_pannel.high_tc.GetValue())
+        dangerhot = float(MainApp.graphing_info_pannel.danger_high_tc.GetValue())
+        ymax=""
+        ymin=""
+        print("Want's to create a color line graph...")
         date_list, value_list, key_list = MainApp.graphing_info_pannel.read_log_date_and_value(numbers_only=True)
         #print(" - first ten dates and values from the log...")
         #print(date_list[0:10])
@@ -6548,25 +6634,25 @@ class graphing_ctrl_pnl(wx.Panel):
         #ax.bar(date_list, value_list, width=0.01, color='green', linewidth = 1) #this is horribly processor intensive don't use it
         ax.plot(date_list, value_list, color='black', lw=2)
         # colour hot and cold porions of the graph
-        #value_list = np.array(value_list)
-        #if not dangercold == None:
-        #    ax.fill_between(date_list, value_list, 0,where=value_list < dangercold, alpha=0.6, color='darkblue')
-        #if not toocold == None:
-        #    ax.fill_between(date_list, value_list, 0,where=value_list < toocold, alpha=0.6, color='blue')
-        #if not toohot == None:
-        #    ax.fill_between(date_list, value_list, 0,where=value_list > toohot, alpha=0.6, color='red')
-        #if not dangerhot == None:
-        #    ax.fill_between(date_list, value_list, 0,where=value_list > dangerhot, alpha=0.6, color='darkred')
+        value_list = np.array(value_list)
+        if not dangercold == None:
+            ax.fill_between(date_list, value_list, 0,where=value_list < dangercold, alpha=0.6, color='darkblue')
+        if not toocold == None:
+            ax.fill_between(date_list, value_list, 0,where=value_list < toocold, alpha=0.6, color='blue')
+        if not toohot == None:
+            ax.fill_between(date_list, value_list, 0,where=value_list > toohot, alpha=0.6, color='red')
+        if not dangerhot == None:
+            ax.fill_between(date_list, value_list, 0,where=value_list > dangerhot, alpha=0.6, color='darkred')
         # add titles and axis labels
         fig = plt.gcf()
         fig.canvas.set_window_title('Simple Line Graph')
         plt.title("Time Perod; " + str(date_list[0].strftime("%b-%d %H:%M")) + " to " + str(date_list[-1].strftime("%b-%d %H:%M")) + " ")
         # Y temp axis
-        #plt.ylabel("Temp in " + temp_unit)
-        #if not ymax == "default":
-        #    plt.ylim(ymax=ymax)
-        #if not ymin == "default":
-        #    plt.ylim(ymin=ymin)
+        plt.ylabel(key_list[0])
+        if not ymax == "":
+            plt.ylim(ymax=ymax)
+        if not ymin == "":
+            plt.ylim(ymin=ymin)
         # X date axis
         ax.xaxis_date()
         # i should write some code here to only show the parts of the date that are needed
@@ -6586,7 +6672,7 @@ class graphing_ctrl_pnl(wx.Panel):
         toocold = float(MainApp.graphing_info_pannel.low_tc.GetValue())
         toohot = float(MainApp.graphing_info_pannel.high_tc.GetValue())
         dangerhot = float(MainApp.graphing_info_pannel.danger_high_tc.GetValue())
-        print(dangercold, toocold, toohot, dangerhot)
+        #print(dangercold, toocold, toohot, dangerhot)
         print("Making EpiphanyHermit's damger temps by hour graph...")
 
 
