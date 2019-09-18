@@ -6149,6 +6149,7 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
             #print("Local Graphing - valid data")
             MainApp.graphing_ctrl_pannel.local_simple_line.Enable()
             MainApp.graphing_ctrl_pannel.local_color_line.Enable()
+            MainApp.graphing_ctrl_pannel.local_simple_bar.Enable()
             MainApp.graphing_ctrl_pannel.local_box_plot.Enable()
             MainApp.graphing_ctrl_pannel.over_threasholds_by_hour.Enable()
             MainApp.graphing_ctrl_pannel.threasholds_pie.Enable()
@@ -6156,6 +6157,7 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
             #print("local graphing - not got valid data")
             MainApp.graphing_ctrl_pannel.local_simple_line.Disable()
             MainApp.graphing_ctrl_pannel.local_color_line.Disable()
+            MainApp.graphing_ctrl_pannel.local_simple_bar.Disable()
             MainApp.graphing_ctrl_pannel.local_box_plot.Disable()
             MainApp.graphing_ctrl_pannel.over_threasholds_by_hour.Disable()
             MainApp.graphing_ctrl_pannel.threasholds_pie.Disable()
@@ -6312,6 +6314,8 @@ class graphing_ctrl_pnl(wx.Panel):
         self.local_simple_line.Bind(wx.EVT_BUTTON, self.local_simple_line_go)
         self.local_color_line = wx.Button(self, label='Color Line Graph')
         self.local_color_line.Bind(wx.EVT_BUTTON, self.local_color_line_go)
+        self.local_simple_bar = wx.Button(self, label='Simple Bar Graph')
+        self.local_simple_bar.Bind(wx.EVT_BUTTON, self.local_simple_bar_go)
         self.local_box_plot = wx.Button(self, label='Box Plot Graph')
         self.local_box_plot.Bind(wx.EVT_BUTTON, self.local_box_plot_go)
         self.over_threasholds_by_hour = wx.Button(self, label='Threashold by hour')
@@ -6320,6 +6324,7 @@ class graphing_ctrl_pnl(wx.Panel):
         self.threasholds_pie.Bind(wx.EVT_BUTTON, self.threasholds_pie_go)
         self.local_simple_line.Disable()
         self.local_color_line.Disable()
+        self.local_simple_bar.Disable()
         self.local_box_plot.Disable()
         self.over_threasholds_by_hour.Disable()
         self.threasholds_pie.Disable()
@@ -6335,6 +6340,7 @@ class graphing_ctrl_pnl(wx.Panel):
         local_opts_sizer.AddStretchSpacer(1)
         local_opts_sizer.Add(self.local_simple_line, 0, wx.ALL, 3)
         local_opts_sizer.Add(self.local_color_line, 0, wx.ALL, 3)
+        local_opts_sizer.Add(self.local_simple_bar, 0, wx.ALL, 3)
         local_opts_sizer.Add(self.local_box_plot, 0, wx.ALL, 3)
         local_opts_sizer.Add(self.over_threasholds_by_hour, 0, wx.ALL, 3)
         local_opts_sizer.Add(self.threasholds_pie, 0, wx.ALL, 3)
@@ -6400,6 +6406,7 @@ class graphing_ctrl_pnl(wx.Panel):
         self.graph_presets_cb.Hide()
         self.local_simple_line.Hide()
         self.local_color_line.Hide()
+        self.local_simple_bar.Hide()
         self.local_box_plot.Hide()
         self.over_threasholds_by_hour.Hide()
         self.threasholds_pie.Hide()
@@ -6416,6 +6423,7 @@ class graphing_ctrl_pnl(wx.Panel):
         self.graph_presets_cb.Show()
         self.local_simple_line.Show()
         self.local_color_line.Show()
+        self.local_simple_bar.Show()
         self.local_box_plot.Show()
         self.over_threasholds_by_hour.Show()
         self.threasholds_pie.Show()
@@ -6508,8 +6516,9 @@ class graphing_ctrl_pnl(wx.Panel):
         preset_settings = {}
         for line in graph_presets:
             if "=" in line:
-                key = line.split("=")[0]
-                value = line.split("=")[1]
+                equals_pos = line.find("=")
+                key = line[:equals_pos]
+                value = line[equals_pos + 1:]
                 preset_settings[key]=value
         #print(preset_settings)
         #
@@ -6631,7 +6640,6 @@ class graphing_ctrl_pnl(wx.Panel):
         plt.figure(1, figsize=(15, 10))
         ax = plt.subplot()
         # make the graph
-        #ax.bar(date_list, value_list, width=0.01, color='green', linewidth = 1) #this is horribly processor intensive don't use it
         ax.plot(date_list, value_list, color='black', lw=2)
         # colour hot and cold porions of the graph
         value_list = np.array(value_list)
@@ -6666,6 +6674,31 @@ class graphing_ctrl_pnl(wx.Panel):
         MainApp.graphing_info_pannel.show_local_graph(graph_path)
         fig.clf()
 
+    def local_simple_bar_go(self, e):
+        print("Want's to create a simple bar graph...  ")
+        date_list, value_list, key_list = MainApp.graphing_info_pannel.read_log_date_and_value(numbers_only=True)
+        key_unit = ""
+        ymax = ""
+        ymin = ""
+        fig = plt.gcf()
+        fig.canvas.set_window_title('Simple Bar Graph')
+        plt.figure(1, figsize=(15, 10))
+        plt.title("Time Perod; " + str(date_list[0].strftime("%b-%d %H:%M")) + " to " + str(date_list[-1].strftime("%b-%d %H:%M")) + " ")
+        plt.ylabel(key_list[0]) # + " in " + key_unit)
+        if not ymax == "":
+            plt.ylim(ymax=ymax)
+        if not ymin == "":
+            plt.ylim(ymin=ymin)
+        ax = plt.subplot()
+        ax.bar(date_list, value_list,width=0.01, linewidth = 1 )
+        ax.xaxis_date()
+        fig.autofmt_xdate()
+        graph_path = os.path.join(localfiles_info_pnl.local_path, "bar_graph.png")
+        plt.savefig(graph_path)
+        print("bar graph created and saved to " + graph_path)
+        MainApp.graphing_info_pannel.show_local_graph(graph_path)
+        fig.clf()
+
     def over_threasholds_by_hour_go(self, e):
         date_list, temp_list, key_list = MainApp.graphing_info_pannel.read_log_date_and_value(numbers_only=True)
         dangercold = float(MainApp.graphing_info_pannel.danger_low_tc.GetValue())
@@ -6673,7 +6706,7 @@ class graphing_ctrl_pnl(wx.Panel):
         toohot = float(MainApp.graphing_info_pannel.high_tc.GetValue())
         dangerhot = float(MainApp.graphing_info_pannel.danger_high_tc.GetValue())
         #print(dangercold, toocold, toohot, dangerhot)
-        print("Making EpiphanyHermit's damger temps by hour graph...")
+        print("Making EpiphanyHermit's warningd by hour graph...")
 
 
         # Colors for the danger temps
@@ -6708,7 +6741,7 @@ class graphing_ctrl_pnl(wx.Panel):
         rects4 = ax.bar(ind + width/2, dangerhotArray, width, yerr=None, color=dangerhotColor, label='DH')
 
         # Add some text for labels, title and custom x-axis tick labels, etc.
-        fig.suptitle('Dangerous Temperature by Hour', fontsize=14, fontweight='bold')
+        fig.suptitle('Dangerous Values by Hour', fontsize=14, fontweight='bold')
         ax.set_ylabel('Counts')
         ax.set_title(min(date_list).strftime("%B %d, %Y") + ' - ' + max(date_list).strftime("%B %d, %Y"), fontsize=10)
         ax.set_xticks(ind)
@@ -6716,7 +6749,7 @@ class graphing_ctrl_pnl(wx.Panel):
         ax.set_xticklabels(labels,rotation=45)
         ax.legend()
         graph_path = os.path.join(localfiles_info_pnl.local_path, "minmax_hour_plot.png")
-        print("danger temps created and saved to " + graph_path)
+        print("danger values graph created and saved to " + graph_path)
         plt.savefig(graph_path)
         MainApp.graphing_info_pannel.show_local_graph(graph_path)
         fig.clf()
@@ -6769,7 +6802,7 @@ class graphing_ctrl_pnl(wx.Panel):
         centre_circle = plt.Circle((0,0), 0.75, color='black', fc='white',linewidth=0)
         fig = plt.gcf()
         fig.gca().add_artist(centre_circle)
-        fig.suptitle('Temperature Groups', fontsize=14, fontweight='bold')
+        fig.suptitle('Value Groups', fontsize=14, fontweight='bold')
         plt.title(min(date_list).strftime("%B %d, %Y") + ' - ' + max(date_list).strftime("%B %d, %Y"), fontsize=10, y=1.07)
 
         # Set aspect ratio to be equal so that pie is drawn as a circle.
@@ -6824,7 +6857,7 @@ class graphing_ctrl_pnl(wx.Panel):
         # give the graph a rectangular formatr
         fig, ax1 = plt.subplots(figsize=(10, 6))
         fig.subplots_adjust(left=0.1, right=0.9, top=0.9, bottom=0.15)
-        fig.suptitle('Median Temperature by Hour', fontsize=14, fontweight='bold')
+        fig.suptitle('Median Value by Hour', fontsize=14, fontweight='bold')
 
         bp = ax1.boxplot(hours,whis=0,widths=1,showfliers=False,showcaps=False,medianprops=dict(linestyle=''),boxprops=dict(linestyle=''))
         ax1.set_axisbelow(True)
@@ -6842,7 +6875,7 @@ class graphing_ctrl_pnl(wx.Panel):
         fmt = StrMethodFormatter('{x:,g}°')
         ax1.yaxis.set_major_formatter(fmt)
         ax1.yaxis.grid(True, linestyle='-', which='major', color='lightgrey', alpha=0.5)
-        ax1.set_ylabel('Temperature in Celsius')
+        #ax1.set_ylabel('Value')
 
         # legend
         custom_lines = [Line2D([0], [0], color=dangerhotColor, lw=2),
@@ -6928,7 +6961,7 @@ class graphing_ctrl_pnl(wx.Panel):
         MainApp.graphing_info_pannel.show_local_graph(graph_path)
         fig.clf()
 
-
+    # switch log
     def parse_switch_log_for_relays(self, add_data_to_square = True):
         date_list, value_list, key_list = MainApp.graphing_info_pannel.read_log_date_and_value()
         #print(" - first ten dates, values and keys from the log...")
@@ -6992,7 +7025,6 @@ class graphing_ctrl_pnl(wx.Panel):
                 item = None
         return dictionary_of_sets, power_on_markers
 
-
     def switch_log_graph_go(self, e):
         # date limits
         print("User wants to graph the switch log, i'm still working on that though....")
@@ -7033,7 +7065,20 @@ class graphing_ctrl_pnl(wx.Panel):
 
         plt.figure(1, figsize=(15, 10))
         ax = plt.subplot()
+        #
         ax.plot(date_list, value_list, lw=2, label=key)
+        #
+        ax.legend()
+        fig = plt.gcf()
+        fig.canvas.set_window_title('Switch Log Graph')
+        plt.title("Time Perod; " + str(date_list[0].strftime("%b-%d %H:%M")) + " to " + str(date_list[-1].strftime("%b-%d %H:%M")) + " ")
+        ax.xaxis_date()
+        fig.autofmt_xdate()
+        graph_path = os.path.join(localfiles_info_pnl.local_path, "switch_log_graph.png")
+        plt.savefig(graph_path)
+        print("line graph created and saved to " + graph_path)
+        fig.clf()
+        MainApp.graphing_info_pannel.show_local_graph(graph_path)
 
 
 
