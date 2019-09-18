@@ -1,0 +1,10 @@
+log_path=switch_log.txt
+split_chr=@
+date_pos=1
+value_pos=2
+key_pos=0
+value_range_source=manual
+danger_low=-1
+low=0.1
+high=0.9
+danger_high=2
