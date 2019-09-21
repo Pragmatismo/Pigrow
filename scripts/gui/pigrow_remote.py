@@ -6540,6 +6540,7 @@ class graphing_ctrl_pnl(wx.Panel):
         # data extract
         if "split_chr" in preset_settings:
             MainApp.graphing_info_pannel.split_character_tc.SetValue(preset_settings["split_chr"])
+        # date
         if "date_pos" in preset_settings:
             MainApp.graphing_info_pannel.date_pos_cb.SetValue(preset_settings["date_pos"])
         if "date_split" in preset_settings:
@@ -6547,7 +6548,8 @@ class graphing_ctrl_pnl(wx.Panel):
                 MainApp.graphing_info_pannel.date_pos_split_tc.SetValue(preset_settings["date_split"])
         if "date_split_pos" in preset_settings:
             if not preset_settings["date_split_pos"] == "":
-                MainApp.graphing_info_pannel.date_pos_split_cb.SetValue(preset_settings["date_split_pos"])
+                MainApp.graphing_info_pannel.date_pos_split_cb.SetSelection(int(preset_settings["date_split_pos"]))
+        # value
         if "value_pos" in preset_settings:
             MainApp.graphing_info_pannel.value_pos_cb.SetValue(preset_settings["value_pos"])
         if "value_split" in preset_settings:
@@ -6555,7 +6557,9 @@ class graphing_ctrl_pnl(wx.Panel):
                 MainApp.graphing_info_pannel.value_pos_split_tc.SetValue(preset_settings["value_split"])
         if "value_split_pos" in preset_settings:
             if not preset_settings["value_split_pos"] == "":
-                MainApp.graphing_info_pannel.value_pos_split_cb.SetValue(preset_settings["value_split_pos"])
+                MainApp.graphing_info_pannel.value_pos_split_cb.SetSelection(int(preset_settings["value_split_pos"]))
+                MainApp.graphing_info_pannel.value_pos_split_go("e")
+        # key
         if "key_pos" in preset_settings:
             MainApp.graphing_info_pannel.key_pos_cb.SetValue(preset_settings["key_pos"])
         if "key_split" in preset_settings:
@@ -6563,7 +6567,8 @@ class graphing_ctrl_pnl(wx.Panel):
                 MainApp.graphing_info_pannel.key_pos_split_tc.SetValue(preset_settings["key_split"])
         if "key_split_pos" in preset_settings:
             if not preset_settings["key_split_pos"] == "":
-                MainApp.graphing_info_pannel.key_pos_split_cb.SetValue(preset_settings["key_split_pos"])
+                MainApp.graphing_info_pannel.key_pos_split_cb.SetSelection(int(preset_settings["key_split_pos"]))
+                MainApp.graphing_info_pannel.key_pos_split_go("e")
         if "key_match" in preset_settings:
             MainApp.graphing_info_pannel.key_matches_tc.SetValue(preset_settings["key_match"])
         if "key_manual" in preset_settings:
