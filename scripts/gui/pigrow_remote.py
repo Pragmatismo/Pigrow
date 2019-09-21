@@ -5703,6 +5703,8 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
         self.key_pos_ex = wx.StaticText(self,  label='')
         self.key_matches_l = wx.StaticText(self,  label='Limit to Key Containing -')
         self.key_matches_tc = wx.TextCtrl(self, size=(150, 25))
+        self.rem_from_val_l = wx.StaticText(self,  label='Remove from Value -')
+        self.rem_from_val_tc = wx.TextCtrl(self, size=(150, 25))
         # data extract sizer grid
         split_chr_sizer = wx.BoxSizer(wx.HORIZONTAL)
         split_chr_sizer.Add(self.split_character_l, 0,  wx.ALL, 3)
@@ -5726,6 +5728,8 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
         key_match_sizer = wx.BoxSizer(wx.HORIZONTAL)
         key_match_sizer.Add(self.key_matches_l, 0, wx.ALL, 3)
         key_match_sizer.Add(self.key_matches_tc, 0, wx.ALL, 3)
+        key_match_sizer.Add(self.rem_from_val_l, 0, wx.ALL, 3)
+        key_match_sizer.Add(self.rem_from_val_tc, 0, wx.ALL, 3)
         data_extract_label_sizer = wx.BoxSizer(wx.HORIZONTAL)
         data_extract_label_sizer.Add(self.key_manual_l, 0 , wx.ALL, 3)
         data_extract_label_sizer.Add(self.key_manual_tc, 0 , wx.ALL, 3)
@@ -5819,6 +5823,8 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
         self.key_pos_ex.Hide()
         self.key_matches_l.Hide()
         self.key_matches_tc.Hide()
+        self.rem_from_val_l.Hide()
+        self.rem_from_val_tc.Hide()
         # settings
         self.danger_low_l.Hide()
         self.danger_low_tc.Hide()
@@ -5861,6 +5867,8 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
         self.key_pos_ex.Show()
         self.key_matches_l.Show()
         self.key_matches_tc.Show()
+        self.rem_from_val_l.Show()
+        self.rem_from_val_tc.Show()
         # setting
         self.danger_low_l.Show()
         self.danger_low_tc.Show()
@@ -6136,6 +6144,11 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
     def make_btn_enable(self):
         val_ex = self.value_pos_ex.GetLabel()
         val_good = False
+        rem_from_val = self.rem_from_val_tc.GetValue()
+        print("value example:", val_ex, "  rem_from_val:", rem_from_val)
+        if not rem_from_val == "":
+            val_ex = val_ex.replace(rem_from_val, "")
+        print("val_ex after replace:",val_ex)
         if val_ex.isdigit():
             val_good = True
         else:
@@ -6220,6 +6233,11 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
                 if not value_split == "":
                     value = line_items[value_pos]
                     value = value.split(value_split)[value_split_pos]
+                # remove from value
+                rem_from_val = self.rem_from_val_tc.GetValue()
+                if not rem_from_val == "":
+                    value = value.replace(rem_from_val, "")
+                # perform checks for numbers only when selected
                 if numbers_only == True:
                     try:
                         value = float(value)
@@ -6550,6 +6568,8 @@ class graphing_ctrl_pnl(wx.Panel):
             if not preset_settings["date_split_pos"] == "":
                 MainApp.graphing_info_pannel.date_pos_split_cb.SetSelection(int(preset_settings["date_split_pos"]))
         # value
+        if "value_rem" in preset_settings:
+            MainApp.graphing_info_pannel.rem_from_val_tc.SetValue(preset_settings["value_rem"])
         if "value_pos" in preset_settings:
             MainApp.graphing_info_pannel.value_pos_cb.SetValue(preset_settings["value_pos"])
         if "value_split" in preset_settings:
