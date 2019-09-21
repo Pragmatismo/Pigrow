@@ -5689,6 +5689,8 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
         self.value_pos_split_cb = wx.ComboBox(self, size=(60, 25))
         self.value_pos_split_cb.Bind(wx.EVT_TEXT, self.value_pos_split_go)
         self.value_pos_ex = wx.StaticText(self,  label='')
+        self.rem_from_val_l = wx.StaticText(self,  label='Remove from Value -')
+        self.rem_from_val_tc = wx.TextCtrl(self, size=(150, 25))
         # row of key related options
         self.key_pos_l = wx.StaticText(self,  label='Key Position')
         self.key_pos_cb = wx.ComboBox(self, size=(90, 25),choices = [])
@@ -5703,8 +5705,6 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
         self.key_pos_ex = wx.StaticText(self,  label='')
         self.key_matches_l = wx.StaticText(self,  label='Limit to Key Containing -')
         self.key_matches_tc = wx.TextCtrl(self, size=(150, 25))
-        self.rem_from_val_l = wx.StaticText(self,  label='Remove from Value -')
-        self.rem_from_val_tc = wx.TextCtrl(self, size=(150, 25))
         # data extract sizer grid
         split_chr_sizer = wx.BoxSizer(wx.HORIZONTAL)
         split_chr_sizer.Add(self.split_character_l, 0,  wx.ALL, 3)
@@ -5748,11 +5748,17 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
         self.start_date_picer = wx.adv.DatePickerCtrl( self, wx.ID_ANY, wx.DefaultDateTime)
         self.end_date_l = wx.StaticText(self,  label='Finish at -')
         self.end_date_picer = wx.adv.DatePickerCtrl( self, wx.ID_ANY, wx.DefaultDateTime)
+        self.limit_date_to_last_l = wx.StaticText(self,  label='Limit to ')
+        limit_choices = ["none", "day", "week", "month", "year"]
+        self.limit_date_to_last_cb = wx.ComboBox(self, size=(90, 25),choices = limit_choices)
+        self.limit_date_to_last_cb.Bind(wx.EVT_TEXT, self.limit_date_to_last_go)
         time_and_date_sizer = wx.BoxSizer(wx.HORIZONTAL)
         time_and_date_sizer.Add(self.start_date_l, 0, wx.ALL, 2)
         time_and_date_sizer.Add(self.start_date_picer, 0, wx.ALL, 2)
         time_and_date_sizer.Add(self.end_date_l, 0, wx.ALL, 2)
         time_and_date_sizer.Add(self.end_date_picer, 0, wx.ALL, 2)
+        time_and_date_sizer.Add(self.limit_date_to_last_l, 0, wx.ALL, 2)
+        time_and_date_sizer.Add(self.limit_date_to_last_cb, 0, wx.ALL, 2)
         data_trimming_sizer = wx.BoxSizer(wx.VERTICAL)
         data_trimming_sizer.Add(self.data_controls, 0, wx.ALL|wx.EXPAND, 4)
         data_trimming_sizer.Add(time_and_date_sizer, 0, wx.ALL, 0)
@@ -5952,7 +5958,6 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
                         for position_in_split_again_item in range(0, len(item_split_again)):
                             try:
                                 date_to_test = item_split_again[position_in_split_again_item]
-                                print(date_to_test)
                                 test_date = datetime.datetime.strptime(date_to_test, '%Y-%m-%d %H:%M:%S.%f')
                                 self.date_pos_cb.SetValue(str(item))
                                 self.date_pos_split_tc.SetValue(split_chr_choices[0])
@@ -6145,10 +6150,10 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
         val_ex = self.value_pos_ex.GetLabel()
         val_good = False
         rem_from_val = self.rem_from_val_tc.GetValue()
-        print("value example:", val_ex, "  rem_from_val:", rem_from_val)
+        #print("value example:", val_ex, "  rem_from_val:", rem_from_val)
         if not rem_from_val == "":
             val_ex = val_ex.replace(rem_from_val, "")
-        print("val_ex after replace:",val_ex)
+        #print("val_ex after replace:",val_ex)
         if val_ex.isdigit():
             val_good = True
         else:
@@ -6175,11 +6180,44 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
             MainApp.graphing_ctrl_pannel.over_threasholds_by_hour.Disable()
             MainApp.graphing_ctrl_pannel.threasholds_pie.Disable()
 
+    def limit_date_to_last_go(self, e):
+        current_datetime = datetime.datetime.now()
+        limit_setting = self.limit_date_to_last_cb.GetValue()
+        is_set, range_start, range_end = MainApp.graphing_info_pannel.end_date_picer.GetRange()
+        MainApp.graphing_info_pannel.end_date_picer.SetRange(range_start, current_datetime)
+        MainApp.graphing_info_pannel.start_date_picer.SetRange(range_start, current_datetime)
+        print("Limiting date to ", limit_setting)
+        if limit_setting == "none":
+            if not self.date_pos_cb.GetValue() == "":
+                MainApp.graphing_ctrl_pannel.set_dates_to_log()
+            return None
+        elif limit_setting == "day":
+            limit = datetime.timedelta(days=1)
+        elif limit_setting == "week":
+            limit = datetime.timedelta(weeks=1)
+        elif limit_setting == "month":
+            limit = datetime.timedelta(weeks=4)
+        elif limit_setting == "year":
+            limit = datetime.timedelta(weeks=52)
+        new_start_datetime = current_datetime - limit
+        self.start_date_picer.SetValue(new_start_datetime)
+        self.end_date_picer.SetValue(current_datetime)
+
+
     def read_log_date_and_value(self, numbers_only = False, limit_by_date = True, date_only = False):
-        print("Reading log")
+        # cancel if no date value set
+        if self.date_pos_cb.GetValue() == "":
+            print(" -- Attempted to read log without date position set")
+            if date_only == False:
+                return [], [], []
+            else:
+                return []
+        # read date limits
         if limit_by_date == True:
             first_date = MainApp.graphing_info_pannel.start_date_picer.GetValue()
             last_date = MainApp.graphing_info_pannel.end_date_picer.GetValue()
+        # read log into lists
+        print("Reading log")
         date_list = []
         value_list = []
         key_list = []
@@ -6242,9 +6280,8 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
                     try:
                         value = float(value)
                     except:
-                            print('value not valid -' + str(value))
-                            value = ""
-
+                        print('value not valid -' + str(value))
+                        value = ""
                 # key
                 if not key_pos == "":
                     key = line_items[key_pos]
@@ -6266,8 +6303,13 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
                     value_list.append(value)
                     key_list.append(key)
             else:
-                date_list.append(date)
+                if not date == "":
+                    date_list.append(date)
         # end of loop - return appropriate lists
+        #print("len date list read log:", len(date_list))
+        if len(date_list) == 0:
+            dmsg = "No valid log entries were found, check settings and try again"
+            wx.MessageBox(dmsg, 'No data', wx.OK | wx.ICON_INFORMATION)
         if date_only == False:
             return date_list, value_list, key_list
         else:
@@ -6517,12 +6559,12 @@ class graphing_ctrl_pnl(wx.Panel):
         graph_presets = os.listdir(graph_presets_path)
         self.graph_presets_cb.Clear()
         for file in graph_presets:
-            print(file)
             self.graph_presets_cb.Append(file)
 
-
-
     def graph_preset_cb_go(self ,e):
+        # blank settings from prior use
+        limit_setting = MainApp.graphing_info_pannel.limit_date_to_last_cb.SetValue('none')
+        # load presets
         graph_option = self.graph_presets_cb.GetValue()
         MainApp.graphing_info_pannel.show_data_extract()
         print("Want's to use preset from " + graph_option)
@@ -6538,8 +6580,6 @@ class graphing_ctrl_pnl(wx.Panel):
                 key = line[:equals_pos]
                 value = line[equals_pos + 1:]
                 preset_settings[key]=value
-        #print(preset_settings)
-        #
         #
         # set and load log
         if "log_path" in preset_settings:
@@ -6626,6 +6666,8 @@ class graphing_ctrl_pnl(wx.Panel):
     def local_simple_line_go(self, e):
         print("Want's to create a simple line graph...  ")
         date_list, value_list, key_list = MainApp.graphing_info_pannel.read_log_date_and_value(numbers_only=True)
+        if len(date_list) == 0:
+            return None
         key_unit = ""
         ymax = ""
         ymin = ""
@@ -6657,6 +6699,8 @@ class graphing_ctrl_pnl(wx.Panel):
         ymin=""
         print("Want's to create a color line graph...")
         date_list, value_list, key_list = MainApp.graphing_info_pannel.read_log_date_and_value(numbers_only=True)
+        if len(date_list) == 0:
+            return None
         #print(" - first ten dates and values from the log...")
         #print(date_list[0:10])
         #print(value_list[0:10])
@@ -6702,6 +6746,8 @@ class graphing_ctrl_pnl(wx.Panel):
     def local_simple_bar_go(self, e):
         print("Want's to create a simple bar graph...  ")
         date_list, value_list, key_list = MainApp.graphing_info_pannel.read_log_date_and_value(numbers_only=True)
+        if len(date_list) == 0:
+            return None
         key_unit = ""
         ymax = ""
         ymin = ""
@@ -6726,6 +6772,8 @@ class graphing_ctrl_pnl(wx.Panel):
 
     def over_threasholds_by_hour_go(self, e):
         date_list, temp_list, key_list = MainApp.graphing_info_pannel.read_log_date_and_value(numbers_only=True)
+        if len(date_list) == 0:
+            return None
         dangercold = float(MainApp.graphing_info_pannel.danger_low_tc.GetValue())
         toocold = float(MainApp.graphing_info_pannel.low_tc.GetValue())
         toohot = float(MainApp.graphing_info_pannel.high_tc.GetValue())
@@ -6781,6 +6829,8 @@ class graphing_ctrl_pnl(wx.Panel):
 
     def threasholds_pie_go(self, e):
         date_list, temp_list, key_list = MainApp.graphing_info_pannel.read_log_date_and_value(numbers_only=True)
+        if len(date_list) == 0:
+            return None
         dangercold = float(MainApp.graphing_info_pannel.danger_low_tc.GetValue())
         toocold = float(MainApp.graphing_info_pannel.low_tc.GetValue())
         toohot = float(MainApp.graphing_info_pannel.high_tc.GetValue())
@@ -6858,6 +6908,8 @@ class graphing_ctrl_pnl(wx.Panel):
     def local_box_plot_go(self, e):
         print("Making EpiphanyHermit's competition winning box plot...")
         date_list, temp_list, key_list = MainApp.graphing_info_pannel.read_log_date_and_value(numbers_only=True)
+        if len(date_list) == 0:
+            return None
         dangercold = float(MainApp.graphing_info_pannel.danger_low_tc.GetValue())
         toocold = float(MainApp.graphing_info_pannel.low_tc.GetValue())
         toohot = float(MainApp.graphing_info_pannel.high_tc.GetValue())
@@ -6989,11 +7041,8 @@ class graphing_ctrl_pnl(wx.Panel):
     # switch log
     def parse_switch_log_for_relays(self, add_data_to_square = True):
         date_list, value_list, key_list = MainApp.graphing_info_pannel.read_log_date_and_value()
-        #print(" - first ten dates, values and keys from the log...")
-        #print(date_list[0:10])
-        #print(value_list[0:10])
-        print(key_list[0:10])
-        print("-----------")
+        if len(date_list) == 0:
+            return None
         dates_to_graph = []
         values_to_graph = []
         dictionary_of_sets = {}
@@ -7061,7 +7110,6 @@ class graphing_ctrl_pnl(wx.Panel):
         plt.figure(1, figsize=(15, 10))
         ax = plt.subplot()
         for key, value in dictionary_of_sets.items():
-            print(key)
             date_list = value[1]
             value_list = value[0]
             ax.plot(date_list, value_list, lw=1, label=key)
@@ -7104,13 +7152,6 @@ class graphing_ctrl_pnl(wx.Panel):
         print("line graph created and saved to " + graph_path)
         fig.clf()
         MainApp.graphing_info_pannel.show_local_graph(graph_path)
-
-
-
-
-
-
-
 
 
 
