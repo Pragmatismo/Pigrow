@@ -2,7 +2,7 @@ log_path=selflog.txt
 split_chr=>
 date_pos=10
 date_split==
-date_split_pos=2
+date_split_pos=1
 value_pos=7
 value_split==
 value_split_pos=1
