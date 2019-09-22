@@ -6227,6 +6227,7 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
             MainApp.graphing_ctrl_pannel.local_box_plot.Enable()
             MainApp.graphing_ctrl_pannel.over_threasholds_by_hour.Enable()
             MainApp.graphing_ctrl_pannel.threasholds_pie.Enable()
+            MainApp.graphing_ctrl_pannel.value_diff_graph.Enable()
         else:
             #print("local graphing - not got valid data")
             MainApp.graphing_ctrl_pannel.local_simple_line.Disable()
@@ -6235,6 +6236,7 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
             MainApp.graphing_ctrl_pannel.local_box_plot.Disable()
             MainApp.graphing_ctrl_pannel.over_threasholds_by_hour.Disable()
             MainApp.graphing_ctrl_pannel.threasholds_pie.Disable()
+            MainApp.graphing_ctrl_pannel.value_diff_graph.Disable()
 
     def limit_date_to_last_go(self, e):
         current_datetime = datetime.datetime.now()
@@ -6434,13 +6436,14 @@ class graphing_ctrl_pnl(wx.Panel):
         ### for local graph construction
         self.select_log_btn = wx.Button(self, label='Select Log File')
         self.select_log_btn.Bind(wx.EVT_BUTTON, self.select_log_click)
+        # graphs
         self.local_simple_line = wx.Button(self, label='Simple Line Graph')
         self.local_simple_line.Bind(wx.EVT_BUTTON, self.local_simple_line_go)
         self.local_color_line = wx.Button(self, label='Color Line Graph')
         self.local_color_line.Bind(wx.EVT_BUTTON, self.local_color_line_go)
         self.local_simple_bar = wx.Button(self, label='Simple Bar Graph')
         self.local_simple_bar.Bind(wx.EVT_BUTTON, self.local_simple_bar_go)
-        self.local_box_plot = wx.Button(self, label='Box Plot Graph')
+        self.local_box_plot = wx.Button(self, label='Hourly Box Plot Graph')
         self.local_box_plot.Bind(wx.EVT_BUTTON, self.local_box_plot_go)
         self.over_threasholds_by_hour = wx.Button(self, label='Threashold by hour')
         self.over_threasholds_by_hour.Bind(wx.EVT_BUTTON, self.over_threasholds_by_hour_go)
@@ -6452,6 +6455,10 @@ class graphing_ctrl_pnl(wx.Panel):
         self.local_box_plot.Disable()
         self.over_threasholds_by_hour.Disable()
         self.threasholds_pie.Disable()
+        self.value_diff_graph = wx.Button(self, label='Value Diff Graph')
+        self.value_diff_graph.Bind(wx.EVT_BUTTON, self.value_diff_graph_go)
+        self.log_time_diff_graph = wx.Button(self, label='Time Diff Graph')
+        self.log_time_diff_graph.Bind(wx.EVT_BUTTON, self.log_time_diff_graph_go)
         self.switch_log_graph = wx.Button(self, label='Switch Log Graph')
         self.switch_log_graph.Bind(wx.EVT_BUTTON, self.switch_log_graph_go)
 
@@ -6468,6 +6475,9 @@ class graphing_ctrl_pnl(wx.Panel):
         local_opts_sizer.Add(self.local_box_plot, 0, wx.ALL, 3)
         local_opts_sizer.Add(self.over_threasholds_by_hour, 0, wx.ALL, 3)
         local_opts_sizer.Add(self.threasholds_pie, 0, wx.ALL, 3)
+        local_opts_sizer.AddStretchSpacer(1)
+        local_opts_sizer.Add(self.value_diff_graph, 0, wx.ALL, 3)
+        local_opts_sizer.Add(self.log_time_diff_graph, 0, wx.ALL, 3)
 
         local_opts_sizer.AddStretchSpacer(1)
         local_opts_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
@@ -6534,6 +6544,8 @@ class graphing_ctrl_pnl(wx.Panel):
         self.local_box_plot.Hide()
         self.over_threasholds_by_hour.Hide()
         self.threasholds_pie.Hide()
+        self.log_time_diff_graph.Hide()
+        self.value_diff_graph.Hide()
         self.switch_log_graph.Hide()
 
         try:
@@ -6551,6 +6563,8 @@ class graphing_ctrl_pnl(wx.Panel):
         self.local_box_plot.Show()
         self.over_threasholds_by_hour.Show()
         self.threasholds_pie.Show()
+        self.log_time_diff_graph.Show()
+        self.value_diff_graph.Show()
         self.switch_log_graph.Show()
 
     def graph_engine_combo_go(self, e):
@@ -7138,6 +7152,93 @@ class graphing_ctrl_pnl(wx.Panel):
         MainApp.graphing_info_pannel.show_local_graph(graph_path)
         fig.clf()
         MainApp.status.write_bar("ready...")
+
+    def log_time_diff_graph_go(self, e):
+        print("Want's to create a simple line graph...  ")
+        # read data from log
+        date_list = MainApp.graphing_info_pannel.read_log_date_and_value(numbers_only=True, date_only=True)
+        if len(date_list) < 2:
+            return None
+        MainApp.status.write_bar("-- Creating a time diff graph from " + str(len(date_list)) + " values")
+        # read graph settings from ui boxes
+        key_unit = ""
+        ymax = MainApp.graphing_info_pannel.axis_y_max_cb.GetValue()
+        ymin = MainApp.graphing_info_pannel.axis_y_min_cb.GetValue()
+        size_h, size_v = self.get_graph_size_from_ui()
+        # create list of time diffs
+        counter = 0
+        counter_list = []
+        timediff_list = []
+        time_of_prev_item = date_list[0]
+        for current_items_time in date_list[1:]:
+            time_diff = time_of_prev_item - current_items_time
+            counter = counter + 1
+            counter_list.append(counter)
+            timediff_list.append(time_diff.total_seconds())
+            time_of_prev_item = current_items_time
+        # start making the graph
+        fig = plt.gcf()
+        fig.canvas.set_window_title('Time Diff Graph')
+        fig, ax = plt.subplots(figsize=(size_h, size_v))
+        plt.title("Time difference between log entries\nTime Perod; " + str(date_list[0].strftime("%b-%d %H:%M")) + " to " + str(date_list[-1].strftime("%b-%d %H:%M")) + " ")
+        plt.ylabel("Time difference in seconds")
+        if not ymax == "":
+            plt.ylim(ymax=int(ymax))
+        if not ymin == "":
+            plt.ylim(ymin=int(ymin))
+        ax.plot(counter_list, timediff_list, color='black', lw=1)
+        #ax.xaxis_date()
+        #fig.autofmt_xdate()
+        graph_path = os.path.join(localfiles_info_pnl.local_path, "time_diff_graph.png")
+        plt.savefig(graph_path)
+        print("time diff graph created and saved to " + graph_path)
+        MainApp.graphing_info_pannel.show_local_graph(graph_path)
+        fig.clf()
+        MainApp.status.write_bar("ready...")
+
+    def value_diff_graph_go(self, e):
+        print("Want's to create a value differnce graph...  ")
+        # read data from log
+        date_list, value_list, key_list = MainApp.graphing_info_pannel.read_log_date_and_value(numbers_only=True)
+        if len(date_list) < 2:
+            return None
+        MainApp.status.write_bar("-- Creating a value diff graph from " + str(len(date_list)) + " values")
+        # read graph settings from ui boxes
+        key_unit = ""
+        ymax = MainApp.graphing_info_pannel.axis_y_max_cb.GetValue()
+        ymin = MainApp.graphing_info_pannel.axis_y_min_cb.GetValue()
+        size_h, size_v = self.get_graph_size_from_ui()
+        # create list of Value diffs
+        #counter = 0
+        #counter_list = []
+        value_dif_list = []
+        prior_value = value_list[0]
+        for current_value in value_list[1:]:
+            value_diff = prior_value - current_value
+            #counter = counter + 1
+            #counter_list.append(counter)
+            value_dif_list.append(value_diff)
+            prior_value = current_value
+        # start making the graph
+        fig = plt.gcf()
+        fig.canvas.set_window_title('Value Diff Graph')
+        fig, ax = plt.subplots(figsize=(size_h, size_v))
+        plt.title("Value difference between log entries\nTime Perod; " + str(date_list[0].strftime("%b-%d %H:%M")) + " to " + str(date_list[-1].strftime("%b-%d %H:%M")) + " ")
+        plt.ylabel("Value difference")
+        if not ymax == "":
+            plt.ylim(ymax=int(ymax))
+        if not ymin == "":
+            plt.ylim(ymin=int(ymin))
+        ax.plot(date_list[1:], value_dif_list, color='black', lw=1)
+        ax.xaxis_date()
+        fig.autofmt_xdate()
+        graph_path = os.path.join(localfiles_info_pnl.local_path, "value_diff_graph.png")
+        plt.savefig(graph_path)
+        print("Value diff graph created and saved to " + graph_path)
+        MainApp.graphing_info_pannel.show_local_graph(graph_path)
+        fig.clf()
+        MainApp.status.write_bar("ready...")
+
 
     # switch log
     def parse_switch_log_for_relays(self, add_data_to_square = True):
