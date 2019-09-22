@@ -5780,6 +5780,24 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
         high_low_sizer.Add(self.high_tc, 0, wx.ALL, 3)
         high_low_sizer.Add(self.danger_high_l, 0, wx.ALL, 3)
         high_low_sizer.Add(self.danger_high_tc, 0, wx.ALL, 3)
+        # graph axis limits
+        self.axis_y_min_l = wx.StaticText(self,  label='Y axis minimum')
+        self.axis_y_min_cb = wx.TextCtrl(self, size=(60, 25))
+        self.axis_y_max_l = wx.StaticText(self,  label='Y axis maximum')
+        self.axis_y_max_cb = wx.TextCtrl(self, size=(60, 25))
+        self.size_h_l = wx.StaticText(self,  label='Width')
+        self.size_h_cb = wx.TextCtrl(self, size=(60, 25), value="10")
+        self.size_v_l = wx.StaticText(self,  label='Height')
+        self.size_v_cb = wx.TextCtrl(self, size=(60, 25), value="15")
+        axis_limits_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        axis_limits_sizer.Add(self.axis_y_min_l, 0, wx.ALL, 3)
+        axis_limits_sizer.Add(self.axis_y_min_cb, 0, wx.ALL, 3)
+        axis_limits_sizer.Add(self.axis_y_max_l, 0, wx.ALL, 3)
+        axis_limits_sizer.Add(self.axis_y_max_cb, 0, wx.ALL, 3)
+        axis_limits_sizer.Add(self.size_h_l, 0, wx.ALL, 3)
+        axis_limits_sizer.Add(self.size_h_cb, 0, wx.ALL, 3)
+        axis_limits_sizer.Add(self.size_v_l, 0, wx.ALL, 3)
+        axis_limits_sizer.Add(self.size_v_cb, 0, wx.ALL, 3)
 
         # Sizers
         # local graphing
@@ -5798,6 +5816,7 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
         self.main_sizer.Add(data_extract_sizer, 0, wx.ALL|wx.EXPAND, 3)
         self.main_sizer.Add(data_trimming_sizer, 0, wx.ALL|wx.EXPAND, 3)
         self.main_sizer.Add(high_low_sizer, 0, wx.ALL|wx.EXPAND, 3)
+        self.main_sizer.Add(axis_limits_sizer, 0, wx.ALL|wx.EXPAND, 3)
         self.main_sizer.Add(self.graph_txt, 0, wx.ALL|wx.EXPAND, 3)
         self.main_sizer.Add(self.graph_sizer, 0, wx.ALL, 0)
         self.SetSizer(self.main_sizer)
@@ -5831,6 +5850,10 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
         self.key_matches_tc.Hide()
         self.rem_from_val_l.Hide()
         self.rem_from_val_tc.Hide()
+        self.size_h_l.Hide()
+        self.size_h_cb.Hide()
+        self.size_v_l.Hide()
+        self.size_v_cb.Hide()
         # settings
         self.danger_low_l.Hide()
         self.danger_low_tc.Hide()
@@ -5846,6 +5869,16 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
         self.start_date_picer.Hide()
         self.end_date_l.Hide()
         self.end_date_picer.Hide()
+        self.limit_date_to_last_l.Hide()
+        self.limit_date_to_last_cb.Hide()
+        self.axis_y_min_l.Hide()
+        self.axis_y_min_cb.Hide()
+        self.axis_y_max_l.Hide()
+        self.axis_y_max_cb.Hide()
+        self.size_h_l.Hide()
+        self.size_h_cb.Hide()
+        self.size_v_l.Hide()
+        self.size_v_cb.Hide()
         self.Layout()
 
     def show_data_extract(self):
@@ -5890,6 +5923,16 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
         self.start_date_picer.Show()
         self.end_date_l.Show()
         self.end_date_picer.Show()
+        self.limit_date_to_last_l.Show()
+        self.limit_date_to_last_cb.Show()
+        self.axis_y_min_l.Show()
+        self.axis_y_min_cb.Show()
+        self.axis_y_max_l.Show()
+        self.axis_y_max_cb.Show()
+        self.size_h_l.Show()
+        self.size_h_cb.Show()
+        self.size_v_l.Show()
+        self.size_v_cb.Show()
         self.Layout()
 
     def clear_and_reset_fields(self):
@@ -5924,6 +5967,11 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
         self.value_pos_split_tc.SetValue("")
         self.key_pos_split_tc.SetValue("")
         self.key_pos_ex.SetLabel("")
+
+        self.axis_y_min_cb.SetValue("")
+        self.axis_y_max_cb.SetValue("")
+        #self.size_h_cb.SetValue("15")
+        #self.size_v_cb.SetValue("10")
 
     def split_line_text(self, e):
         self.clear_and_reset_fields()
@@ -6202,7 +6250,6 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
         new_start_datetime = current_datetime - limit
         self.start_date_picer.SetValue(new_start_datetime)
         self.end_date_picer.SetValue(current_datetime)
-
 
     def read_log_date_and_value(self, numbers_only = False, limit_by_date = True, date_only = False):
         # cancel if no date value set
@@ -6660,27 +6707,44 @@ class graphing_ctrl_pnl(wx.Panel):
             MainApp.graphing_info_pannel.high_tc.SetValue(preset_settings["high"])
             MainApp.graphing_info_pannel.danger_high_tc.SetValue(preset_settings["danger_high"])
 
+    def get_graph_size_from_ui(self):
+        try:
+            size_h = int(MainApp.graphing_info_pannel.size_h_cb.GetValue())
+        except:
+            size_h = 10
+        try:
+            size_v = int(MainApp.graphing_info_pannel.size_v_cb.GetValue())
+        except:
+            raise
+            size_v = 10
+        return size_h, size_v
+
+
 
 
     # make graphs
     def local_simple_line_go(self, e):
         print("Want's to create a simple line graph...  ")
+        # read data from log
         date_list, value_list, key_list = MainApp.graphing_info_pannel.read_log_date_and_value(numbers_only=True)
         if len(date_list) == 0:
             return None
+        MainApp.status.write_bar("-- Creating a simple line graph from " + str(len(date_list)) + " values")
+        # read graph settings from ui boxes
         key_unit = ""
-        ymax = ""
-        ymin = ""
+        ymax = MainApp.graphing_info_pannel.axis_y_max_cb.GetValue()
+        ymin = MainApp.graphing_info_pannel.axis_y_min_cb.GetValue()
+        size_h, size_v = self.get_graph_size_from_ui()
+        # start making the graph
         fig = plt.gcf()
         fig.canvas.set_window_title('Simple Line Graph')
-        plt.figure(1, figsize=(15, 10))
+        fig, ax = plt.subplots(figsize=(size_h, size_v))
         plt.title("Time Perod; " + str(date_list[0].strftime("%b-%d %H:%M")) + " to " + str(date_list[-1].strftime("%b-%d %H:%M")) + " ")
         plt.ylabel(key_list[0]) # + " in " + key_unit)
         if not ymax == "":
-            plt.ylim(ymax=ymax)
+            plt.ylim(ymax=int(ymax))
         if not ymin == "":
-            plt.ylim(ymin=ymin)
-        ax = plt.subplot()
+            plt.ylim(ymin=int(ymin))
         ax.plot(date_list, value_list, color='black', lw=1)
         ax.xaxis_date()
         fig.autofmt_xdate()
@@ -6689,25 +6753,26 @@ class graphing_ctrl_pnl(wx.Panel):
         print("line graph created and saved to " + graph_path)
         MainApp.graphing_info_pannel.show_local_graph(graph_path)
         fig.clf()
+        MainApp.status.write_bar("ready...")
 
     def local_color_line_go(self, e):
+        # read graph settings from ui boxes
+        key_unit = ""
+        ymax = MainApp.graphing_info_pannel.axis_y_max_cb.GetValue()
+        ymin = MainApp.graphing_info_pannel.axis_y_min_cb.GetValue()
         dangercold = float(MainApp.graphing_info_pannel.danger_low_tc.GetValue())
         toocold = float(MainApp.graphing_info_pannel.low_tc.GetValue())
         toohot = float(MainApp.graphing_info_pannel.high_tc.GetValue())
         dangerhot = float(MainApp.graphing_info_pannel.danger_high_tc.GetValue())
-        ymax=""
-        ymin=""
+        size_h, size_v = self.get_graph_size_from_ui()
+        # read data from the log
         print("Want's to create a color line graph...")
         date_list, value_list, key_list = MainApp.graphing_info_pannel.read_log_date_and_value(numbers_only=True)
         if len(date_list) == 0:
             return None
-        #print(" - first ten dates and values from the log...")
-        #print(date_list[0:10])
-        #print(value_list[0:10])
-        temp_unit = "C"
+        MainApp.status.write_bar("-- Creating a colour line graph from " + str(len(date_list)) + " values")
         # define graph space
-        plt.figure(1, figsize=(15, 10))
-        ax = plt.subplot()
+        fig, ax = plt.subplots(figsize=(size_h, size_v))
         # make the graph
         ax.plot(date_list, value_list, color='black', lw=2)
         # colour hot and cold porions of the graph
@@ -6727,9 +6792,9 @@ class graphing_ctrl_pnl(wx.Panel):
         # Y temp axis
         plt.ylabel(key_list[0])
         if not ymax == "":
-            plt.ylim(ymax=ymax)
+            plt.ylim(ymax=int(ymax))
         if not ymin == "":
-            plt.ylim(ymin=ymin)
+            plt.ylim(ymin=int(ymin))
         # X date axis
         ax.xaxis_date()
         # i should write some code here to only show the parts of the date that are needed
@@ -6742,25 +6807,29 @@ class graphing_ctrl_pnl(wx.Panel):
         print("line graph created and saved to " + graph_path)
         MainApp.graphing_info_pannel.show_local_graph(graph_path)
         fig.clf()
+        MainApp.status.write_bar("ready...")
 
     def local_simple_bar_go(self, e):
         print("Want's to create a simple bar graph...  ")
+        # read log
         date_list, value_list, key_list = MainApp.graphing_info_pannel.read_log_date_and_value(numbers_only=True)
         if len(date_list) == 0:
             return None
+        MainApp.status.write_bar("-- Creating a simple bar graph from " + str(len(date_list)) + " values")
+        # read graph settings from ui boxes
         key_unit = ""
-        ymax = ""
-        ymin = ""
-        fig = plt.gcf()
+        ymax = MainApp.graphing_info_pannel.axis_y_max_cb.GetValue()
+        ymin = MainApp.graphing_info_pannel.axis_y_min_cb.GetValue()
+        size_h, size_v = self.get_graph_size_from_ui()
+        # define the graph space
+        fig, ax = plt.subplots(figsize=(size_h, size_v))
         fig.canvas.set_window_title('Simple Bar Graph')
-        plt.figure(1, figsize=(15, 10))
         plt.title("Time Perod; " + str(date_list[0].strftime("%b-%d %H:%M")) + " to " + str(date_list[-1].strftime("%b-%d %H:%M")) + " ")
         plt.ylabel(key_list[0]) # + " in " + key_unit)
         if not ymax == "":
-            plt.ylim(ymax=ymax)
+            plt.ylim(ymax=int(ymax))
         if not ymin == "":
-            plt.ylim(ymin=ymin)
-        ax = plt.subplot()
+            plt.ylim(ymin=int(ymin))
         ax.bar(date_list, value_list,width=0.01, linewidth = 1 )
         ax.xaxis_date()
         fig.autofmt_xdate()
@@ -6769,25 +6838,27 @@ class graphing_ctrl_pnl(wx.Panel):
         print("bar graph created and saved to " + graph_path)
         MainApp.graphing_info_pannel.show_local_graph(graph_path)
         fig.clf()
+        MainApp.status.write_bar("ready...")
 
     def over_threasholds_by_hour_go(self, e):
+        # read log
         date_list, temp_list, key_list = MainApp.graphing_info_pannel.read_log_date_and_value(numbers_only=True)
         if len(date_list) == 0:
             return None
+        MainApp.status.write_bar("-- Creating a threasholds by hour graph from " + str(len(date_list)) + " values")
+        # read graph settings from ui boxes
         dangercold = float(MainApp.graphing_info_pannel.danger_low_tc.GetValue())
         toocold = float(MainApp.graphing_info_pannel.low_tc.GetValue())
         toohot = float(MainApp.graphing_info_pannel.high_tc.GetValue())
         dangerhot = float(MainApp.graphing_info_pannel.danger_high_tc.GetValue())
-        #print(dangercold, toocold, toohot, dangerhot)
+        size_h, size_v = self.get_graph_size_from_ui()
+        # start making graph
         print("Making EpiphanyHermit's warningd by hour graph...")
-
-
         # Colors for the danger temps
         dangercoldColor = 'xkcd:purplish blue'
         toocoldColor = 'xkcd:light blue'
         toohotColor = 'xkcd:orange'
         dangerhotColor = 'xkcd:red'
-
         # Group the data by hour
         dangerhotArray = [0]*24
         toohotArray = [0]*24
@@ -6803,16 +6874,13 @@ class graphing_ctrl_pnl(wx.Panel):
                 dangercoldArray[h] += 1
             elif temp_list[i] <= toocold:
                 toocoldArray[h] += 1
-
         ind = np.arange(24)  # the x locations for the groups
         width = 0.25  # the width of the bars
-
-        fig, ax = plt.subplots()
+        fig, ax = plt.subplots(figsize=(size_h, size_v))
         rects1 = ax.bar(ind - width/2, dangercoldArray, width, yerr=None, color=dangercoldColor, label='DC')
         rects2 = ax.bar(ind - width/4, toocoldArray, width, yerr=None, color=toocoldColor, label='TC')
         rects3 = ax.bar(ind + width/4, toohotArray, width, yerr=None, color=toohotColor, label='TH')
         rects4 = ax.bar(ind + width/2, dangerhotArray, width, yerr=None, color=dangerhotColor, label='DH')
-
         # Add some text for labels, title and custom x-axis tick labels, etc.
         fig.suptitle('Dangerous Values by Hour', fontsize=14, fontweight='bold')
         ax.set_ylabel('Counts')
@@ -6826,15 +6894,20 @@ class graphing_ctrl_pnl(wx.Panel):
         plt.savefig(graph_path)
         MainApp.graphing_info_pannel.show_local_graph(graph_path)
         fig.clf()
+        MainApp.status.write_bar("ready...")
 
     def threasholds_pie_go(self, e):
+        # read the log
         date_list, temp_list, key_list = MainApp.graphing_info_pannel.read_log_date_and_value(numbers_only=True)
         if len(date_list) == 0:
             return None
+        MainApp.status.write_bar("-- Creating a threasholds pie from " + str(len(date_list)) + " values")
+        # read settings from ui
         dangercold = float(MainApp.graphing_info_pannel.danger_low_tc.GetValue())
         toocold = float(MainApp.graphing_info_pannel.low_tc.GetValue())
         toohot = float(MainApp.graphing_info_pannel.high_tc.GetValue())
         dangerhot = float(MainApp.graphing_info_pannel.danger_high_tc.GetValue())
+        # start making graph
         print("Making EpiphanyHermit's pie...")
         sliceColors = ['xkcd:red',
                        'xkcd:orange',
@@ -6904,19 +6977,21 @@ class graphing_ctrl_pnl(wx.Panel):
         plt.savefig(graph_path)
         MainApp.graphing_info_pannel.show_local_graph(graph_path)
         fig.clf()
+        MainApp.status.write_bar("ready...")
 
     def local_box_plot_go(self, e):
-        print("Making EpiphanyHermit's competition winning box plot...")
+        # reading the log
         date_list, temp_list, key_list = MainApp.graphing_info_pannel.read_log_date_and_value(numbers_only=True)
         if len(date_list) == 0:
             return None
+        MainApp.status.write_bar("-- Creating a local box plot from " + str(len(date_list)) + " values")
+        # reading settings from ui
         dangercold = float(MainApp.graphing_info_pannel.danger_low_tc.GetValue())
         toocold = float(MainApp.graphing_info_pannel.low_tc.GetValue())
         toohot = float(MainApp.graphing_info_pannel.high_tc.GetValue())
         dangerhot = float(MainApp.graphing_info_pannel.danger_high_tc.GetValue())
-        print(dangercold, toocold, toohot, dangerhot)
-
-
+        # start making graph
+        print("Making EpiphanyHermit's competition winning box plot...")
         # Start and End colors for the gradient
         startColor = (118,205,38)
         endColor = (38,118,204)
@@ -7037,9 +7112,11 @@ class graphing_ctrl_pnl(wx.Panel):
         plt.savefig(graph_path)
         MainApp.graphing_info_pannel.show_local_graph(graph_path)
         fig.clf()
+        MainApp.status.write_bar("ready...")
 
     # switch log
     def parse_switch_log_for_relays(self, add_data_to_square = True):
+        MainApp.status.write_bar(" -- Reading switch log")
         date_list, value_list, key_list = MainApp.graphing_info_pannel.read_log_date_and_value()
         if len(date_list) == 0:
             return None
@@ -7097,6 +7174,7 @@ class graphing_ctrl_pnl(wx.Panel):
                     power_on_markers.append(date_list[item])
             else:
                 item = None
+        MainApp.status.write_bar("ready...")
         return dictionary_of_sets, power_on_markers
 
     def switch_log_graph_go(self, e):
@@ -7105,10 +7183,11 @@ class graphing_ctrl_pnl(wx.Panel):
         # example switch log lines
         # lamp_on.py@2018-05-05 06:00:02.022281@lamp turned on
         # lamp_off.py@2018-05-05 23:00:02.647168@lamp turned off
+        MainApp.status.write_bar("-- Creating a graph of the switch log")
         dictionary_of_sets, power_on_markers = self.parse_switch_log_for_relays()
+        size_h, size_v = self.get_graph_size_from_ui()
         # graph
-        plt.figure(1, figsize=(15, 10))
-        ax = plt.subplot()
+        fig, ax = plt.subplots(figsize=(size_h, size_v))
         for key, value in dictionary_of_sets.items():
             date_list = value[1]
             value_list = value[0]
@@ -7126,18 +7205,19 @@ class graphing_ctrl_pnl(wx.Panel):
         print("line graph created and saved to " + graph_path)
         fig.clf()
         MainApp.graphing_info_pannel.show_local_graph(graph_path)
+        MainApp.status.write_bar("ready...")
 
 
     def switch_log_relay_weekly(self, e):
         dictionary_of_sets, power_on_markers = self.parse_switch_log_for_relays()
+        size_h, size_v = self.get_graph_size_from_ui()
         # graph
         for key, value in dictionary_of_sets.items():
             date_list = dictionary_of_sets[1]
             value_list = value[0]
 
 
-        plt.figure(1, figsize=(15, 10))
-        ax = plt.subplot()
+        fig, ax = plt.subplots(figsize=(size_h, size_v))
         #
         ax.plot(date_list, value_list, lw=2, label=key)
         #
