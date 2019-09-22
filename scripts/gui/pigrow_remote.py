@@ -5745,8 +5745,10 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
         self.data_controls = wx.StaticText(self,  label='Settings;')
         self.data_controls.SetFont(sub_title_font)
         self.start_date_l = wx.StaticText(self,  label='Start at -')
+        self.start_time_picer = wx.adv.TimePickerCtrl( self, wx.ID_ANY, wx.DefaultDateTime)
         self.start_date_picer = wx.adv.DatePickerCtrl( self, wx.ID_ANY, wx.DefaultDateTime)
         self.end_date_l = wx.StaticText(self,  label='Finish at -')
+        self.end_time_picer = wx.adv.TimePickerCtrl( self, wx.ID_ANY, wx.DefaultDateTime)
         self.end_date_picer = wx.adv.DatePickerCtrl( self, wx.ID_ANY, wx.DefaultDateTime)
         self.limit_date_to_last_l = wx.StaticText(self,  label='Limit to ')
         limit_choices = ["none", "day", "week", "month", "year"]
@@ -5754,8 +5756,10 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
         self.limit_date_to_last_cb.Bind(wx.EVT_TEXT, self.limit_date_to_last_go)
         time_and_date_sizer = wx.BoxSizer(wx.HORIZONTAL)
         time_and_date_sizer.Add(self.start_date_l, 0, wx.ALL, 2)
+        time_and_date_sizer.Add(self.start_time_picer, 0, wx.ALL, 2)
         time_and_date_sizer.Add(self.start_date_picer, 0, wx.ALL, 2)
         time_and_date_sizer.Add(self.end_date_l, 0, wx.ALL, 2)
+        time_and_date_sizer.Add(self.end_time_picer, 0, wx.ALL, 2)
         time_and_date_sizer.Add(self.end_date_picer, 0, wx.ALL, 2)
         time_and_date_sizer.Add(self.limit_date_to_last_l, 0, wx.ALL, 2)
         time_and_date_sizer.Add(self.limit_date_to_last_cb, 0, wx.ALL, 2)
@@ -5786,9 +5790,9 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
         self.axis_y_max_l = wx.StaticText(self,  label='Y axis maximum')
         self.axis_y_max_cb = wx.TextCtrl(self, size=(60, 25))
         self.size_h_l = wx.StaticText(self,  label='Width')
-        self.size_h_cb = wx.TextCtrl(self, size=(60, 25), value="10")
+        self.size_h_cb = wx.TextCtrl(self, size=(60, 25), value="12")
         self.size_v_l = wx.StaticText(self,  label='Height')
-        self.size_v_cb = wx.TextCtrl(self, size=(60, 25), value="15")
+        self.size_v_cb = wx.TextCtrl(self, size=(60, 25), value="7")
         axis_limits_sizer = wx.BoxSizer(wx.HORIZONTAL)
         axis_limits_sizer.Add(self.axis_y_min_l, 0, wx.ALL, 3)
         axis_limits_sizer.Add(self.axis_y_min_cb, 0, wx.ALL, 3)
@@ -5866,8 +5870,10 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
         self.data_controls.Hide()
         self.data_controls.Hide()
         self.start_date_l.Hide()
+        self.start_time_picer.Hide()
         self.start_date_picer.Hide()
         self.end_date_l.Hide()
+        self.end_time_picer.Hide()
         self.end_date_picer.Hide()
         self.limit_date_to_last_l.Hide()
         self.limit_date_to_last_cb.Hide()
@@ -5920,8 +5926,10 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
         self.data_controls.Show()
         self.data_controls.Show()
         self.start_date_l.Show()
+        self.start_time_picer.Show()
         self.start_date_picer.Show()
         self.end_date_l.Show()
+        self.end_time_picer.Show()
         self.end_date_picer.Show()
         self.limit_date_to_last_l.Show()
         self.limit_date_to_last_cb.Show()
@@ -6248,7 +6256,9 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
         elif limit_setting == "year":
             limit = datetime.timedelta(weeks=52)
         new_start_datetime = current_datetime - limit
+        self.start_time_picer.SetValue(new_start_datetime)
         self.start_date_picer.SetValue(new_start_datetime)
+        self.end_time_picer.SetValue(datetime.datetime(year = 3000, month = 1, day = 1, hour = 23, minute = 59, second = 59))
         self.end_date_picer.SetValue(current_datetime)
 
     def read_log_date_and_value(self, numbers_only = False, limit_by_date = True, date_only = False):
@@ -6261,8 +6271,14 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
                 return []
         # read date limits
         if limit_by_date == True:
+            first_time = MainApp.graphing_info_pannel.start_time_picer.GetValue()
             first_date = MainApp.graphing_info_pannel.start_date_picer.GetValue()
+            first_datetime = datetime.datetime(year = first_date.year, month = first_date.month + 1, day = first_date.day, hour = first_time.hour, minute = first_time.minute, second = first_time.second)
+            last_time = MainApp.graphing_info_pannel.end_time_picer.GetValue()
             last_date = MainApp.graphing_info_pannel.end_date_picer.GetValue()
+            last_datetime = datetime.datetime(year = last_date.year, month = last_date.month + 1, day = last_date.day, hour = last_time.hour, minute = last_time.minute, second = last_time.second)
+            #print(first_datetime, last_datetime)
+
         # read log into lists
         print("Reading log")
         date_list = []
@@ -6307,9 +6323,10 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
             try:
                 date = datetime.datetime.strptime(date, '%Y-%m-%d %H:%M:%S')
                 if limit_by_date == True:
-                    if date > last_date or date < first_date:
+                    if date > last_datetime or date < first_datetime:
                         date = ""
             except:
+                raise
                 print("date not valid -" + str(date))
                 date = ""
             # value
@@ -6586,7 +6603,9 @@ class graphing_ctrl_pnl(wx.Panel):
         last_date = date_list[-1]
         MainApp.graphing_info_pannel.start_date_picer.SetRange(first_date, last_date)
         MainApp.graphing_info_pannel.start_date_picer.SetValue(first_date)
+        MainApp.graphing_info_pannel.start_time_picer.SetValue(first_date)
         MainApp.graphing_info_pannel.end_date_picer.SetRange(first_date, last_date)
+        MainApp.graphing_info_pannel.end_time_picer.SetValue(last_date)
         MainApp.graphing_info_pannel.end_date_picer.SetValue(last_date)
 
     def get_split_chr(self, line):
@@ -6717,6 +6736,12 @@ class graphing_ctrl_pnl(wx.Panel):
         except:
             raise
             size_v = 10
+        if size_v > 655:
+            size_v = 655
+            MainApp.graphing_info_pannel.size_v_cb.SetValue("655")
+        if size_h > 655:
+            size_h = 655
+            MainApp.graphing_info_pannel.size_h_cb.SetValue("655")
         return size_h, size_v
 
 
@@ -7168,6 +7193,53 @@ class graphing_ctrl_pnl(wx.Panel):
                     #    device_name = key_list[item].split("_off.py")[0]
                     #        values_to_graph = dictionary_of_sets[device_name].append(0)
                     #        dictionary_of_sets[device_name]=values_to_graph
+            elif "water.py" in key_list[item]:
+                device_name = key_list[item].split(".py")[0]
+                if "watered for " in value_list[item]:
+                    water_duration = value_list[item].split("watered for ")[1]
+                if " seconds." in water_duration:
+                    water_duration = water_duration.split(" seconds.")[0]
+                water_duration = int(water_duration)
+                print("water duration ", water_duration)
+                # if it already exists grab the list and add to it
+                if device_name in dictionary_of_sets:
+                    values_to_graph = dictionary_of_sets[device_name][0]
+                    dates_to_graph = dictionary_of_sets[device_name][1]
+                    #adding extra data to square the graph
+                    if add_data_to_square == True:
+                        values_to_graph.append(0)
+                        time_minus_a_second = date_list[item] + datetime.timedelta(0,-1)
+                        dates_to_graph.append(time_minus_a_second)
+                    # adding new data point for start of watering
+                    values_to_graph.append(1)
+                    dates_to_graph.append(date_list[item])
+                    # adding new data point for end of watering
+                    values_to_graph.append(1)
+                    time_plus_duration = date_list[item] + datetime.timedelta(0,water_duration)
+                    dates_to_graph.append(time_plus_duration)
+                    # adding final square
+                    values_to_graph.append(0)
+                    time_plus_duration_and_a_second = date_list[item] + datetime.timedelta(0,water_duration+1)
+                    dates_to_graph.append(time_plus_duration_and_a_second)
+                    # put everything back in the dictionary ready for the next log entry
+                    data = [values_to_graph, dates_to_graph]
+                    dictionary_of_sets[device_name]=data
+                else:
+                    # adding new data point for start of watering
+                    values_to_graph.append(1)
+                    dates_to_graph.append(date_list[item])
+                    # adding new data point for end of watering
+                    values_to_graph.append(1)
+                    time_plus_duration = date_list[item] + datetime.timedelta(0,water_duration)
+                    dates_to_graph.append(time_plus_duration)
+                    # adding final square
+                    values_to_graph.append(0)
+                    time_plus_duration_and_a_second = date_list[item] + datetime.timedelta(0,water_duration+1)
+                    dates_to_graph.append(time_plus_duration_and_a_second)
+                    # put everything back in the dictionary ready for the next log entry
+                    data = [values_to_graph, dates_to_graph]
+                    dictionary_of_sets[device_name] = data
+            # get list of start up times."
             elif "chechDHT.py" in key_list[item]:
                 if "Script initialised, performing lamp state check" in value_list[item]:
                     print("Found turn on at " + str(date_list[item]))
