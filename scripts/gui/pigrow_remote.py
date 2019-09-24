@@ -6228,6 +6228,7 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
             MainApp.graphing_ctrl_pannel.local_box_plot.Enable()
             MainApp.graphing_ctrl_pannel.over_threasholds_by_hour.Enable()
             MainApp.graphing_ctrl_pannel.threasholds_pie.Enable()
+            MainApp.graphing_ctrl_pannel.dividied_daily.Enable()
             MainApp.graphing_ctrl_pannel.value_diff_graph.Enable()
         else:
             #print("local graphing - not got valid data")
@@ -6237,6 +6238,7 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
             MainApp.graphing_ctrl_pannel.local_box_plot.Disable()
             MainApp.graphing_ctrl_pannel.over_threasholds_by_hour.Disable()
             MainApp.graphing_ctrl_pannel.threasholds_pie.Disable()
+            MainApp.graphing_ctrl_pannel.dividied_daily.Disable()
             MainApp.graphing_ctrl_pannel.value_diff_graph.Disable()
 
     def limit_date_to_last_go(self, e):
@@ -6413,7 +6415,8 @@ class graphing_ctrl_pnl(wx.Panel):
         self.preset_text = wx.StaticText(self,  label='Preset')
         self.graph_presets_cb = wx.ComboBox(self, choices=['BLANK'])
         self.graph_presets_cb.Bind(wx.EVT_COMBOBOX, self.graph_preset_cb_go)
-        self.discover_graph_presets()
+        self.graph_preset_all = wx.CheckBox(self, label='all')
+        self.graph_preset_all.Bind(wx.EVT_CHECKBOX, self.preset_all_click)
         # manual
         self.script_text = wx.StaticText(self,  label='Graphing Script;')
         self.select_script_cb = wx.ComboBox(self, choices = ['BLANK'])
@@ -6458,6 +6461,7 @@ class graphing_ctrl_pnl(wx.Panel):
         self.local_box_plot.Disable()
         self.over_threasholds_by_hour.Disable()
         self.threasholds_pie.Disable()
+        self.dividied_daily.Disable()
         self.value_diff_graph = wx.Button(self, label='Value Diff Graph')
         self.value_diff_graph.Bind(wx.EVT_BUTTON, self.value_diff_graph_go)
         self.log_time_diff_graph = wx.Button(self, label='Time Diff Graph')
@@ -6490,12 +6494,15 @@ class graphing_ctrl_pnl(wx.Panel):
         make_graph_sizer =  wx.BoxSizer(wx.HORIZONTAL)
         make_graph_sizer.Add(self.make_graph_btn, 0, wx.ALL|wx.EXPAND, 3)
         make_graph_sizer.Add(self.download_graph, 0, wx.ALL|wx.EXPAND, 3)
+        graph_preset_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        graph_preset_sizer.Add(self.graph_presets_cb, 0, wx.ALL|wx.EXPAND, 3)
+        graph_preset_sizer.Add(self.graph_preset_all, 0, wx.ALL|wx.EXPAND, 3)
         self.main_sizer = wx.BoxSizer(wx.VERTICAL)
         self.main_sizer.Add(make_graph_l, 0, wx.ALL|wx.EXPAND, 3)
         self.main_sizer.Add(self.graph_cb, 0, wx.ALL|wx.EXPAND, 3)
         self.main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
         self.main_sizer.Add(self.preset_text, 0, wx.ALL|wx.EXPAND, 3)
-        self.main_sizer.Add(self.graph_presets_cb, 0, wx.ALL|wx.EXPAND, 3)
+        self.main_sizer.Add(graph_preset_sizer, 0, wx.ALL|wx.EXPAND, 3)
         self.main_sizer.Add(self.pigraph_text, 0, wx.ALL|wx.EXPAND, 3)
         self.main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
         self.main_sizer.Add(self.script_text, 0, wx.ALL|wx.EXPAND, 3)
@@ -6542,6 +6549,7 @@ class graphing_ctrl_pnl(wx.Panel):
         self.select_log_btn.Hide()
         self.preset_text.Hide()
         self.graph_presets_cb.Hide()
+        self.graph_preset_all.Hide()
         self.local_simple_line.Hide()
         self.local_color_line.Hide()
         self.local_simple_bar.Hide()
@@ -6562,6 +6570,7 @@ class graphing_ctrl_pnl(wx.Panel):
         self.select_log_btn.Show()
         self.preset_text.Show()
         self.graph_presets_cb.Show()
+        self.graph_preset_all.Show()
         self.local_simple_line.Show()
         self.local_color_line.Show()
         self.local_simple_bar.Show()
@@ -6588,6 +6597,7 @@ class graphing_ctrl_pnl(wx.Panel):
         elif graph_mode == 'local':
             self.hide_make_on_pi_ui_elements()
             self.show_make_local_ui_elements()
+            self.discover_graph_presets()
         MainApp.graphing_ctrl_pannel.Layout()
         MainApp.window_self.Layout()
 
@@ -6641,14 +6651,41 @@ class graphing_ctrl_pnl(wx.Panel):
     # graph presets
 
     def discover_graph_presets(self):
+        show_all = self.graph_preset_all.GetValue()
         graph_presets_path = os.path.join(os.getcwd(), "graph_presets")
         graph_presets = os.listdir(graph_presets_path)
         self.graph_presets_cb.Clear()
         graph_preset_list = []
         for file in graph_presets:
-            graph_preset_list.append(file)
+            if show_all == False:
+                current_presets_path = os.path.join(graph_presets_path, file)
+                log_path = self.get_log_path_from_preset(current_presets_path)
+                if not log_path == None:
+                    if os.path.isfile(log_path) == True:
+                        graph_preset_list.append(file)
+            else:
+                graph_preset_list.append(file)
         graph_preset_list.sort()
         self.graph_presets_cb.Append(graph_preset_list)
+
+    def get_log_path_from_preset(self, graph_presets_path):
+        local_logs_path = os.path.join(localfiles_info_pnl.local_path, "logs")
+        with open(graph_presets_path) as f:
+            graph_presets = f.read()
+        graph_presets = graph_presets.splitlines()
+        for line in graph_presets:
+            if "=" in line:
+                equals_pos = line.find("=")
+                key = line[:equals_pos]
+                value = line[equals_pos + 1:]
+                if key == "log_path":
+                    log_path = os.path.join(local_logs_path, value)
+                    return log_path
+        return None
+
+    def preset_all_click(self, e):
+        self.discover_graph_presets()
+
 
     def graph_preset_cb_go(self ,e):
         # blank settings from prior use
@@ -7180,7 +7217,7 @@ class graphing_ctrl_pnl(wx.Panel):
         timediff_list = []
         time_of_prev_item = date_list[0]
         for current_items_time in date_list[1:]:
-            time_diff = time_of_prev_item - current_items_time
+            time_diff = current_items_time - time_of_prev_item
             counter = counter + 1
             counter_list.append(counter)
             timediff_list.append(time_diff.total_seconds())
