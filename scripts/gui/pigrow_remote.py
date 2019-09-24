@@ -123,6 +123,7 @@ try:
     import matplotlib
     matplotlib.use('agg')
     import matplotlib.pyplot as plt
+    import matplotlib.dates as mdates
     from matplotlib.lines import Line2D
     from matplotlib.patches import Polygon
     from matplotlib.ticker import StrMethodFormatter
@@ -6449,6 +6450,8 @@ class graphing_ctrl_pnl(wx.Panel):
         self.over_threasholds_by_hour.Bind(wx.EVT_BUTTON, self.over_threasholds_by_hour_go)
         self.threasholds_pie = wx.Button(self, label='Threashold Pie')
         self.threasholds_pie.Bind(wx.EVT_BUTTON, self.threasholds_pie_go)
+        self.dividied_daily = wx.Button(self, label='Divided Daily')
+        self.dividied_daily.Bind(wx.EVT_BUTTON, self.divided_daily_go)
         self.local_simple_line.Disable()
         self.local_color_line.Disable()
         self.local_simple_bar.Disable()
@@ -6475,6 +6478,7 @@ class graphing_ctrl_pnl(wx.Panel):
         local_opts_sizer.Add(self.local_box_plot, 0, wx.ALL, 3)
         local_opts_sizer.Add(self.over_threasholds_by_hour, 0, wx.ALL, 3)
         local_opts_sizer.Add(self.threasholds_pie, 0, wx.ALL, 3)
+        local_opts_sizer.Add(self.dividied_daily, 0, wx.ALL, 3)
         local_opts_sizer.AddStretchSpacer(1)
         local_opts_sizer.Add(self.value_diff_graph, 0, wx.ALL, 3)
         local_opts_sizer.Add(self.log_time_diff_graph, 0, wx.ALL, 3)
@@ -6544,6 +6548,7 @@ class graphing_ctrl_pnl(wx.Panel):
         self.local_box_plot.Hide()
         self.over_threasholds_by_hour.Hide()
         self.threasholds_pie.Hide()
+        self.dividied_daily.Hide()
         self.log_time_diff_graph.Hide()
         self.value_diff_graph.Hide()
         self.switch_log_graph.Hide()
@@ -6563,6 +6568,7 @@ class graphing_ctrl_pnl(wx.Panel):
         self.local_box_plot.Show()
         self.over_threasholds_by_hour.Show()
         self.threasholds_pie.Show()
+        self.dividied_daily.Show()
         self.log_time_diff_graph.Show()
         self.value_diff_graph.Show()
         self.switch_log_graph.Show()
@@ -6638,8 +6644,11 @@ class graphing_ctrl_pnl(wx.Panel):
         graph_presets_path = os.path.join(os.getcwd(), "graph_presets")
         graph_presets = os.listdir(graph_presets_path)
         self.graph_presets_cb.Clear()
+        graph_preset_list = []
         for file in graph_presets:
-            self.graph_presets_cb.Append(file)
+            graph_preset_list.append(file)
+        graph_preset_list.sort()
+        self.graph_presets_cb.Append(graph_preset_list)
 
     def graph_preset_cb_go(self ,e):
         # blank settings from prior use
@@ -7237,6 +7246,58 @@ class graphing_ctrl_pnl(wx.Panel):
         print("Value diff graph created and saved to " + graph_path)
         MainApp.graphing_info_pannel.show_local_graph(graph_path)
         fig.clf()
+        MainApp.status.write_bar("ready...")
+
+    def divided_daily_go(self, e):
+        # read log
+        date_list, value_list, key_list = MainApp.graphing_info_pannel.read_log_date_and_value(numbers_only=True)
+        if len(date_list) == 0:
+            return None
+        MainApp.status.write_bar("-- Creating a daily values graph from " + str(len(date_list)) + " values")
+        # read graph settings from ui boxes
+        ymax = MainApp.graphing_info_pannel.axis_y_max_cb.GetValue()
+        ymin = MainApp.graphing_info_pannel.axis_y_min_cb.GetValue()
+        size_h, size_v = self.get_graph_size_from_ui()
+        # start making graph
+        print("Making divided daily graph...")
+        dictionary_of_sets = {}
+        for log_item_pos in range(0, len(date_list)):
+            day_group = date_list[log_item_pos].strftime("%Y:%m:%d")
+            log_time = date_list[log_item_pos]
+            log_time = log_time.replace(year=1980, month=1, day=1)
+            if day_group in dictionary_of_sets:
+                # Read existing lists of dates and values
+                values_to_graph = dictionary_of_sets[day_group][0]
+                dates_to_graph = dictionary_of_sets[day_group][1]
+                # add current value and date to lists
+                values_to_graph.append(value_list[log_item_pos])
+                dates_to_graph.append(log_time)
+            else:
+                # create new date and value lists if the day_group doesn't exists yet
+                values_to_graph = [value_list[log_item_pos]]
+                dates_to_graph = [log_time]
+            # put the lists of values and dates into the dictionary of sets under the daygroup key
+            dictionary_of_sets[day_group]=[values_to_graph, dates_to_graph]
+        fig, ax = plt.subplots(figsize=(size_h, size_v))
+        for key, value in dictionary_of_sets.items():
+            days_date_list = value[1]
+            days_value_list = value[0]
+            ax.plot(days_date_list, days_value_list, lw=1, label=key)
+        ax.legend()
+        plt.title("Daily Values\nTime Perod; " + str(date_list[0].strftime("%b-%d %H:%M")) + " to " + str(date_list[-1].strftime("%b-%d %H:%M")) + " ")
+        ax.xaxis_date()
+        ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
+        fig.autofmt_xdate()
+        plt.ylabel(key_list[0]) # + " in " + key_unit)
+        if not ymax == "":
+            plt.ylim(ymax=int(ymax))
+        if not ymin == "":
+            plt.ylim(ymin=int(ymin))
+        graph_path = os.path.join(localfiles_info_pnl.local_path, "divided_days.png")
+        plt.savefig(graph_path)
+        print("divided days created and saved to " + graph_path)
+        fig.clf()
+        MainApp.graphing_info_pannel.show_local_graph(graph_path)
         MainApp.status.write_bar("ready...")
 
 
