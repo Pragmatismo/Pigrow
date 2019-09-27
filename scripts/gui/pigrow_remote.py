@@ -6440,6 +6440,17 @@ class graphing_ctrl_pnl(wx.Panel):
         ### for local graph construction
         self.select_log_btn = wx.Button(self, label='Select Log File')
         self.select_log_btn.Bind(wx.EVT_BUTTON, self.select_log_click)
+        # make_graph_from_imported_module
+        self.refresh_module_graph_btn = wx.Button(self, label='R')
+        self.refresh_module_graph_btn.Bind(wx.EVT_BUTTON, self.refresh_module_graph_go)
+        self.module_graph_choice = wx.ComboBox(self,  size=(200, 30), choices = self.get_module_options())
+        self.module_graph_btn = wx.Button(self, label='Make')
+        self.module_graph_btn.Bind(wx.EVT_BUTTON, self.make_graph_from_imported_module)
+        module_graph_sizer =  wx.BoxSizer(wx.HORIZONTAL)
+        module_graph_sizer.Add(self.refresh_module_graph_btn, 0, wx.ALL, 3)
+        module_graph_sizer.Add(self.module_graph_choice, 0, wx.ALL|wx.EXPAND, 3)
+        module_graph_sizer.Add(self.module_graph_btn, 0, wx.ALL, 3)
+
         # graphs
         self.local_simple_line = wx.Button(self, label='Simple Line Graph')
         self.local_simple_line.Bind(wx.EVT_BUTTON, self.local_simple_line_go)
@@ -6475,6 +6486,8 @@ class graphing_ctrl_pnl(wx.Panel):
         # local opts size
         local_opts_sizer = wx.BoxSizer(wx.VERTICAL)
         local_opts_sizer.Add(self.select_log_btn, 0, wx.ALL, 3)
+        local_opts_sizer.AddStretchSpacer(1)
+        local_opts_sizer.Add(module_graph_sizer, 0, wx.ALL, 3)
         local_opts_sizer.AddStretchSpacer(1)
         local_opts_sizer.Add(self.local_simple_line, 0, wx.ALL, 3)
         local_opts_sizer.Add(self.local_color_line, 0, wx.ALL, 3)
@@ -6560,6 +6573,9 @@ class graphing_ctrl_pnl(wx.Panel):
         self.log_time_diff_graph.Hide()
         self.value_diff_graph.Hide()
         self.switch_log_graph.Hide()
+        self.module_graph_choice.Hide()
+        self.module_graph_btn.Hide()
+        self.refresh_module_graph_btn.Hide()
 
         try:
             MainApp.graphing_info_pannel.hide_data_extract()
@@ -6581,6 +6597,9 @@ class graphing_ctrl_pnl(wx.Panel):
         self.log_time_diff_graph.Show()
         self.value_diff_graph.Show()
         self.switch_log_graph.Show()
+        self.module_graph_choice.Show()
+        self.module_graph_btn.Show()
+        self.refresh_module_graph_btn.Show()
 
     def graph_engine_combo_go(self, e):
         # combo box selects if you want to make graphs on pi or locally
@@ -6650,7 +6669,7 @@ class graphing_ctrl_pnl(wx.Panel):
 
     # graph presets
 
-    def discover_graph_presets(self):
+    def discover_graph_presets(self, e=""):
         show_all = self.graph_preset_all.GetValue()
         graph_presets_path = os.path.join(os.getcwd(), "graph_presets")
         graph_presets = os.listdir(graph_presets_path)
@@ -6667,6 +6686,8 @@ class graphing_ctrl_pnl(wx.Panel):
                 graph_preset_list.append(file)
         graph_preset_list.sort()
         self.graph_presets_cb.Append(graph_preset_list)
+
+
 
     def get_log_path_from_preset(self, graph_presets_path):
         local_logs_path = os.path.join(localfiles_info_pnl.local_path, "logs")
@@ -6685,7 +6706,6 @@ class graphing_ctrl_pnl(wx.Panel):
 
     def preset_all_click(self, e):
         self.discover_graph_presets()
-
 
     def graph_preset_cb_go(self ,e):
         # blank settings from prior use
@@ -6804,7 +6824,56 @@ class graphing_ctrl_pnl(wx.Panel):
             MainApp.graphing_info_pannel.size_h_cb.SetValue("655")
         return size_h, size_v
 
+    def get_module_options(self):
+        list_of_modules = []
+        graph_modules_folder = os.path.join(os.getcwd(), "graph_modules")
+        module_options = os.listdir(graph_modules_folder)
+        for file in module_options:
+            if "graph_" in file:
+                file = file.split("graph_")[1]
+                if ".py" in file:
+                    file = file.split(".py")[0]
+                    list_of_modules.append(file)
+        return list_of_modules
 
+    def refresh_module_graph_go(self, e):
+        self.module_graph_choice.Clear()
+        module_list = self.get_module_options()
+        self.module_graph_choice.Append(module_list)
+
+
+    def make_graph_from_imported_module(self, e):
+        print("Want's to create a graph using a external module...  ")
+        # read data from log
+        date_list, value_list, key_list = MainApp.graphing_info_pannel.read_log_date_and_value(numbers_only=True)
+        if len(date_list) == 0:
+            return None
+        MainApp.status.write_bar("-- Creating a graph from a module using  " + str(len(date_list)) + " values")
+        module_path = graph_presets_path = os.path.join(os.getcwd(), "graph_modules", "simple_line.py")
+        # read graph settings from ui boxes
+        key_unit = ""
+        ymax = MainApp.graphing_info_pannel.axis_y_max_cb.GetValue()
+        ymin = MainApp.graphing_info_pannel.axis_y_min_cb.GetValue()
+        dangercold = float(MainApp.graphing_info_pannel.danger_low_tc.GetValue())
+        toocold = float(MainApp.graphing_info_pannel.low_tc.GetValue())
+        toohot = float(MainApp.graphing_info_pannel.high_tc.GetValue())
+        dangerhot = float(MainApp.graphing_info_pannel.danger_high_tc.GetValue())
+        size_h, size_v = self.get_graph_size_from_ui()
+        module_name = self.module_graph_choice.GetValue()
+        file_name = module_name + "_graph.png"
+        graph_path = os.path.join(localfiles_info_pnl.local_path, file_name)
+        # import and run the graph script
+        graph_modules_folder = os.path.join(os.getcwd(), "graph_modules")
+        sys.path.append(graph_modules_folder)
+        module_name = "graph_" + module_name
+        if module_name in sys.modules:
+            del sys.modules[module_name]
+        exec("from " + module_name + " import make_graph", globals())
+        make_graph(date_list, value_list, key_list, graph_path, ymax, ymin, size_h, size_v, dangerhot, toohot, toocold, dangercold)
+        #
+        print("module_graph created and saved to " + graph_path)
+        MainApp.graphing_info_pannel.show_local_graph(graph_path)
+        MainApp.status.write_bar("ready...")
 
 
     # make graphs
