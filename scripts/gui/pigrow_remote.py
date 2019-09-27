@@ -6441,10 +6441,10 @@ class graphing_ctrl_pnl(wx.Panel):
         self.select_log_btn = wx.Button(self, label='Select Log File')
         self.select_log_btn.Bind(wx.EVT_BUTTON, self.select_log_click)
         # make_graph_from_imported_module
-        self.refresh_module_graph_btn = wx.Button(self, label='R')
+        self.refresh_module_graph_btn = wx.Button(self, label='R', size=(40,30))
         self.refresh_module_graph_btn.Bind(wx.EVT_BUTTON, self.refresh_module_graph_go)
-        self.module_graph_choice = wx.ComboBox(self,  size=(200, 30), choices = self.get_module_options())
-        self.module_graph_btn = wx.Button(self, label='Make')
+        self.module_graph_choice = wx.ComboBox(self,  size=(150, 30), choices = self.get_module_options())
+        self.module_graph_btn = wx.Button(self, label='Make', size=(60,30))
         self.module_graph_btn.Bind(wx.EVT_BUTTON, self.make_graph_from_imported_module)
         module_graph_sizer =  wx.BoxSizer(wx.HORIZONTAL)
         module_graph_sizer.Add(self.refresh_module_graph_btn, 0, wx.ALL, 3)
