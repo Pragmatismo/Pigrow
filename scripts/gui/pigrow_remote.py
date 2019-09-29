@@ -8687,9 +8687,6 @@ class timelapse_info_pnl(wx.Panel):
         plt.close()
         return wx.Bitmap(graph_path)
 
-
-
-
     def make_filesize_graph(self):
         counter = 0
         counter_list = []
@@ -8719,10 +8716,10 @@ class timelapse_ctrl_pnl(wx.Panel):
         wx.Panel.__init__ (self, parent, id=wx.ID_ANY, size=(150,-1), style=wx.TAB_TRAVERSAL)
         sub_title_font = wx.Font(13, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
         # Capture controlls
-        quick_capture_l = wx.StaticText(self,  label='Quick Capture',size=(100,25))
-        quick_capture_l.SetFont(sub_title_font)
-        capture_start_btn = wx.Button(self, label='Start capture')
-        capture_start_btn.Bind(wx.EVT_BUTTON, self.start_capture_click)
+        #quick_capture_l = wx.StaticText(self,  label='Quick Capture',size=(100,25))
+        #quick_capture_l.SetFont(sub_title_font)
+        #capture_start_btn = wx.Button(self, label='Start capture')
+        #capture_start_btn.Bind(wx.EVT_BUTTON, self.start_capture_click)
         # path options
         path_l = wx.StaticText(self,  label='Image Path',size=(100,25))
         path_l.SetFont(sub_title_font)
@@ -8750,6 +8747,8 @@ class timelapse_ctrl_pnl(wx.Panel):
         # make overlay set
         make_log_overlay_set_btn = wx.Button(self, label='Overlay Log Info')
         make_log_overlay_set_btn.Bind(wx.EVT_BUTTON, self.make_log_overlay_set)
+        make_image_overlay_set_btn = wx.Button(self, label='Overlay Image Set')
+        make_image_overlay_set_btn.Bind(wx.EVT_BUTTON, self.make_image_overlay_set)
         # out file
         outfile_l = wx.StaticText(self,  label='Outfile')
         self.out_file_tc = wx.TextCtrl(self)
@@ -8766,9 +8765,9 @@ class timelapse_ctrl_pnl(wx.Panel):
         play_timelapse_btn.Bind(wx.EVT_BUTTON, self.play_timelapse_click)
 
         # Sizers
-        capture_bar_sizer =  wx.BoxSizer(wx.VERTICAL)
-        capture_bar_sizer.Add(quick_capture_l, 0, wx.ALL|wx.EXPAND, 3)
-        capture_bar_sizer.Add(capture_start_btn, 0, wx.ALL|wx.EXPAND, 3)
+        #capture_bar_sizer =  wx.BoxSizer(wx.VERTICAL)
+        #capture_bar_sizer.Add(quick_capture_l, 0, wx.ALL|wx.EXPAND, 3)
+        #capture_bar_sizer.Add(capture_start_btn, 0, wx.ALL|wx.EXPAND, 3)
         file_bar_select_butt_sizer = wx.BoxSizer(wx.HORIZONTAL)
         file_bar_select_butt_sizer.Add(select_set_btn, 0, wx.ALL|wx.EXPAND, 3)
         file_bar_select_butt_sizer.Add(select_folder_btn, 0, wx.ALL|wx.EXPAND, 3)
@@ -8802,6 +8801,7 @@ class timelapse_ctrl_pnl(wx.Panel):
         frame_select_sizer.Add(calculate_frames_btn, 0, wx.ALL|wx.ALIGN_RIGHT, 1)
         make_overlay_set_sizer = wx.BoxSizer(wx.VERTICAL)
         make_overlay_set_sizer.Add(make_log_overlay_set_btn, 0, wx.ALL, 3)
+        make_overlay_set_sizer.Add(make_image_overlay_set_btn, 0, wx.ALL, 3)
         render_buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
         render_buttons_sizer.Add(make_timelapse_btn, 0, wx.ALL|wx.EXPAND, 3)
         render_buttons_sizer.Add(play_timelapse_btn, 0, wx.ALL|wx.EXPAND, 3)
@@ -8812,8 +8812,8 @@ class timelapse_ctrl_pnl(wx.Panel):
         render_bar_sizer.Add(render_buttons_sizer, 0, wx.ALL|wx.EXPAND, 3)
 
         main_sizer =  wx.BoxSizer(wx.VERTICAL)
-        main_sizer.AddStretchSpacer(1)
-        main_sizer.Add(capture_bar_sizer, 0, wx.ALL|wx.EXPAND, 3)
+        #main_sizer.AddStretchSpacer(1)
+        #main_sizer.Add(capture_bar_sizer, 0, wx.ALL|wx.EXPAND, 3)
         main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.Add(file_bar_sizer, 0, wx.ALL|wx.EXPAND, 3)
         main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
@@ -8836,6 +8836,10 @@ class timelapse_ctrl_pnl(wx.Panel):
     def make_log_overlay_set(self, e):
         make_log_overlay_dbox = make_log_overlay_dialog(None)
         make_log_overlay_dbox.ShowModal()
+
+    def make_image_overlay_set(self, e):
+        make_image_overlay_dbox = make_combined_image_set_dialog(None)
+        make_image_overlay_dbox.ShowModal()
 
     def make_timelapse_click(self, e):
         # write text file of frame to use
@@ -9058,7 +9062,6 @@ class timelapse_ctrl_pnl(wx.Panel):
                 newly_trimmed_list.append(file)
         print("filesize - trimmed list to:", len(newly_trimmed_list))
         return newly_trimmed_list
-
 
     def trim_list_by_date_self_limit_combo(self):
         # Establish cut off point
@@ -9925,8 +9928,104 @@ class make_log_overlay_dialog(wx.Dialog):
     def OnClose(self, e):
         self.Destroy()
 
+class make_combined_image_set_dialog(wx.Dialog):
+    """
+    For creating a set of images with another set overlaid
+        """
+    def __init__(self, *args, **kw):
+        super(make_combined_image_set_dialog, self).__init__(*args, **kw)
+        self.InitUI()
+        self.SetSize((700, 600))
+        self.SetTitle("Make Image Overlay Image Set")
+        self.Bind(wx.EVT_CLOSE, self.OnClose)
+
+    def InitUI(self):
+        # panel
+        pnl = wx.Panel(self)
+        title_font = wx.Font(28, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
+        sub_title_font = wx.Font(15, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
+        box_label = wx.StaticText(self,  label='Create Picture in Picture Set')
+        box_label.SetFont(title_font)
+        # log file select - drop down box
+        log_path_l = wx.StaticText(self,  label='Log - ')
+        self.select_images_btn = wx.Button(self, label='Select image set to inlay')
+        self.select_images_btn.Bind(wx.EVT_BUTTON, self.select_images_click)
+
+        # ok and cancel Buttons
+        self.make_btn = wx.Button(self, label='Create', size=(175, 30))
+        self.make_btn.Bind(wx.EVT_BUTTON, self.make_click)
+        self.cancel_btn = wx.Button(self, label='Close', size=(175, 30))
+        self.cancel_btn.Bind(wx.EVT_BUTTON, self.OnClose)
+        buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        buttons_sizer.Add(self.make_btn, 0,  wx.ALIGN_LEFT, 3)
+        buttons_sizer.Add(self.cancel_btn, 0,  wx.ALIGN_RIGHT, 3)
+        main_sizer = wx.BoxSizer(wx.VERTICAL)
+        main_sizer.Add(box_label, 0, wx.ALL|wx.EXPAND, 5)
+        main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(self.select_images_btn, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
+        main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(buttons_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
+        self.SetSizer(main_sizer)
 
 
+
+    def select_images_click(self, e):
+        file = MainApp.timelapse_ctrl_pannel.select_folder()
+        self.caps_to_inlay = os.path.split(file)[0]
+
+
+    def make_click(self, e):
+        print("not yet, sorry....")
+        # set folder for second image set
+        new_caps_folder = os.path.join(localfiles_info_pnl.local_path, "new_picinpic")
+        if not os.path.isdir(new_caps_folder):
+            os.makedirs(new_caps_folder)
+        # make list of files in the second image set
+        second_cap_file_paths = []
+        for filefound in os.listdir(self.caps_to_inlay):
+            file_path = os.path.join(self.caps_to_inlay, filefound)
+            second_cap_file_paths.append(file_path)
+        second_cap_file_paths.sort()
+        # cycle through main image set
+        counter = 0
+        for x in range(0, len(MainApp.timelapse_ctrl_pannel.trimmed_frame_list)):
+            file_date = MainApp.timelapse_ctrl_pannel.date_from_fn(MainApp.timelapse_ctrl_pannel.trimmed_frame_list[x])
+            #
+            first_log_after = None
+            while first_log_after == None:                   # loop until we find the first log item after the pics date
+                new_file_date = MainApp.timelapse_ctrl_pannel.date_from_fn(second_cap_file_paths[counter])
+                if new_file_date > file_date:
+                    first_log_after = counter
+                else:
+                    counter = counter + 1
+                if counter > len(second_cap_file_paths):
+                    first_log_after = len(second_cap_file_paths)
+            new_file_name = "two_image_" + str(datetime.datetime.timestamp(file_date)).split(".")[0] + ".jpg"
+            print(x, counter, file_date, new_file_date, new_file_name)
+            new_file_name = os.path.join(new_caps_folder, new_file_name)
+            self.paint_image_on_image(MainApp.timelapse_ctrl_pannel.trimmed_frame_list[x], second_cap_file_paths[counter], new_file_name)
+
+    def paint_image_on_image(self, main_image, sub_image, new_name):
+        dist_from_top = 10
+        dist_from_left = 10
+        scale_to_percent = 50
+
+        bitmap = wx.Bitmap(1, 1)
+        bitmap.LoadFile(main_image, wx.BITMAP_TYPE_ANY)
+        sub_bitmap = wx.Bitmap(1, 1)
+        sub_bitmap.LoadFile(sub_image, wx.BITMAP_TYPE_ANY)
+        size_w, size_h = sub_bitmap.GetSize()
+        sub_dc = wx.MemoryDC(sub_bitmap)
+        dc = wx.MemoryDC(bitmap)
+        new_w = size_w / 100 * scale_to_percent
+        new_h = size_h / 100 * scale_to_percent
+        dc.StretchBlit(dist_from_left, dist_from_top, new_w, new_h, sub_dc, 0, 0, size_w, size_h)
+        # StretchBlit(self, xdest, ydest, dstWidth, dstHeight, source, xsrc, ysrc, srcWidth, srcHeight, logicalFunc=COPY, useMask=False, xsrcMask=DefaultCoord, ysrcMask=DefaultCoord)
+        bitmap.SaveFile(new_name, wx.BITMAP_TYPE_JPEG)
+
+
+    def OnClose(self, e):
+        self.Destroy()
 #
 #
 #
