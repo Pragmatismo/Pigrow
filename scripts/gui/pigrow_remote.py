@@ -1525,7 +1525,8 @@ class install_dialog(wx.Dialog):
         label_core.SetFont(sub_title_font)
         self.pigrow_base_check = wx.CheckBox(self,  label='Pigrow base')
         self.pigrow_dirlocs_check = wx.CheckBox(self,  label='Locations File')
-        self.cron_check = wx.CheckBox(self,  label='crontab')
+        self.config_wiz_check = wx.CheckBox(self,  label='Set-up Wizard')
+        self.cron_check = wx.CheckBox(self,  label='python crontab')
         # sensors
         label_sensors = wx.StaticText(self,  label='Sensors;')
         label_sensors.SetFont(sub_title_font)
@@ -1565,6 +1566,7 @@ class install_dialog(wx.Dialog):
         base_sizer.Add(label_core, 0, wx.EXPAND|wx.ALL, 3)
         base_sizer.Add(self.pigrow_base_check, 0, wx.EXPAND|wx.LEFT, 30)
         base_sizer.Add(self.pigrow_dirlocs_check, 0, wx.EXPAND|wx.LEFT, 30)
+        base_sizer.Add(self.config_wiz_check, 0, wx.EXPAND|wx.LEFT, 30)
         base_sizer.Add(self.cron_check, 0, wx.EXPAND|wx.LEFT, 30)
         sensor_sizer = wx.BoxSizer(wx.VERTICAL)
         sensor_sizer.Add(label_sensors, 0, wx.EXPAND|wx.ALL, 3)
@@ -1613,12 +1615,10 @@ class install_dialog(wx.Dialog):
 
         #run initial checks
         wx.Yield() #update screen to show changes
-        if not pi_link_pnl.get_box_name() == None:
-            self.pigrow_base_check.SetForegroundColour((75,200,75))
-        else:
-            self.pigrow_base_check.SetForegroundColour((255,75,75))
-            self.pigrow_base_check.SetValue(True)
+
+        self.check_for_pigrow_base()
         self.check_dirlocs()
+        self.check_config()
         self.check_python_dependencies()
         self.check_python3_dependencies()
         wx.Yield() #update screen to show changes
@@ -1642,6 +1642,47 @@ class install_dialog(wx.Dialog):
         self.pigrow_dirlocs_check.SetForegroundColour((200,75,75))
         self.pigrow_base_check.SetValue(True)
         return False
+
+    def check_for_pigrow_base(self):
+        print("Checking for pigrow code on raspberry pi")
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("ls /home/" + pi_link_pnl.target_user + "/Piglrow/")
+        if not "No such file or directory" in out or not "No such file or directory" in error:
+            self.pigrow_base_check.SetForegroundColour((75,200,75))
+        else:
+            self.pigrow_base_check.SetForegroundColour((255,75,75))
+            self.pigrow_base_check.SetValue(True)
+
+    def check_config(self):
+        print("Checking config file contains box name")
+        if not pi_link_pnl.get_box_name() == None:
+            self.config_wiz_check.SetForegroundColour((75,200,75))
+        else:
+            self.config_wiz_check.SetForegroundColour((255,75,75))
+            self.config_wiz_check.SetValue(True)
+
+    def config_wizard(self):
+        print("Sorry, config wizard is not written yet -working on it right now....")
+        # set box name
+        msg = "Select a name for your pigrow."
+        msg += "\n\n This will be used to identify your pigrow and to name the local folder in which\n "
+        msg += "files from or associated with the pigrow will be stored. \n\n "
+        msg += "Ideally choose a simple and descriptive name, like Veg, Flowering, Bedroom, or Greenhouse"
+        name_box_dbox = wx.TextEntryDialog(self, msg, "Name your Pigrow")
+        if name_box_dbox.ShowModal() == wx.ID_OK:
+            box_name = name_box_dbox.GetValue()
+            MainApp.config_ctrl_pannel.config_dict["box_name"] = box_name
+            pi_link_pnl.boxname = box_name  #to maintain persistance if needed elsewhere later
+            MainApp.pi_link_pnl.link_status_text.SetLabel("linked with - " + box_name)
+            MainApp.config_ctrl_pannel.update_setting_file_on_pi_click("e")
+        else:
+            print ("User decided not to set the box name")
+
+        ## set control sensor
+        # set dht22 location
+
+        # turn on checkDHT in cron
+
+        ##
 
 
 
@@ -1890,6 +1931,12 @@ class install_dialog(wx.Dialog):
         # make dirlocs with pi's username
         if self.pigrow_dirlocs_check.GetValue() == True:
             self.create_dirlocs_from_template()
+            self.currently_doing.SetLabel("-")
+            self.progress.SetLabel("########~~~~~~~~~~~~~~~~~~~~~~~")
+            wx.Yield()
+        # run the setup wizard
+        if self.config_wiz_check.GetValue() == True:
+            self.config_wizard()
             self.currently_doing.SetLabel("-")
             self.progress.SetLabel("########~~~~~~~~~~~~~~~~~~~~~~~")
             wx.Yield()
