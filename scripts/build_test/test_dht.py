@@ -1,6 +1,6 @@
 #!/usr/bin/python
 import sys
-sensor = ""
+sensor = "dht22"
 
 for argu in sys.argv[1:]:
     if argu == '-h' or argu == '--help':
@@ -15,9 +15,9 @@ for argu in sys.argv[1:]:
     elif argu.split('=')[0] == "gpio":
         gpio = argu.split('=')[1]
     elif argu.split('=')[0] == "sensor":
-        if argu.split('=')[1].lower() == 'dth22':
+        if argu.split('=')[1].lower() == 'dht22':
             sensor = "dht22"
-        elif argu.split('=')[1].lower() == 'dth11':
+        elif argu.split('=')[1].lower() == 'dht11':
             sensor = "dht11"
         elif argu.split('=')[1].lower() == 'am2302':
             sensor = "am2302"
