@@ -19,23 +19,24 @@ def lamp_on(set_dic, switch_log):
     msg = ("")
     msg +=("      #############################################\n")
     msg +=("      ##         Turning the lamp - ON         ##\n")
-    if 'gpio_lamp' in set_dic and not str(set_dic['gpio_lamp']).strip() == '':
-        gpio_pin = int(set_dic['gpio_lamp'])
-        gpio_pin_on = set_dic['gpio_lamp_on']
-        import RPi.GPIO as GPIO
-        GPIO.setmode(GPIO.BCM)
-        GPIO.setwarnings(False)
-        GPIO.setup(gpio_pin, GPIO.OUT)
-        if gpio_pin_on == "low":
-            GPIO.output(gpio_pin, GPIO.LOW)
-        elif gpio_pin_on == "high":
-            GPIO.output(gpio_pin, GPIO.HIGH)
-        else:
-            msg +=("      !!       CAN'T DETERMINE GPIO DIRECTION    !!\n")
-            msg +=("      !!  run config program or edit config.txt  !!\n")
-            msg +=("      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n")
-            pigrow_defs.write_log(script, 'Failed - no direction set in config', switch_log)
-            return msg
+    if 'gpio_lamp' in set_dic:
+        if not str(set_dic['gpio_lamp']).strip() == '':
+            gpio_pin = int(set_dic['gpio_lamp'])
+            gpio_pin_on = set_dic['gpio_lamp_on']
+            import RPi.GPIO as GPIO
+            GPIO.setmode(GPIO.BCM)
+            GPIO.setwarnings(False)
+            GPIO.setup(gpio_pin, GPIO.OUT)
+            if gpio_pin_on == "low":
+                GPIO.output(gpio_pin, GPIO.LOW)
+            elif gpio_pin_on == "high":
+                GPIO.output(gpio_pin, GPIO.HIGH)
+            else:
+                msg +=("      !!       CAN'T DETERMINE GPIO DIRECTION    !!\n")
+                msg +=("      !!  run config program or edit config.txt  !!\n")
+                msg +=("      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n")
+                pigrow_defs.write_log(script, 'Failed - no direction set in config', switch_log)
+                return msg
 
     else:
         msg +=("      !!               NO lamp SET             !!\n")
@@ -52,7 +53,11 @@ def lamp_on(set_dic, switch_log):
 if __name__ == '__main__':
 
     ### default settings
-    loc_dic = pigrow_defs.load_locs(homedir + "/Pigrow/config/dirlocs.txt")
-    set_dic = pigrow_defs.load_settings(loc_dic['loc_settings'], err_log=loc_dic['err_log'],)
-    msg = lamp_on(set_dic, loc_dic['loc_switchlog'])
-    print msg
+    dirlocs_path = homedir + "/Pigrow/config/dirlocs.txt"
+    if os.path.isfile(dirlocs_path):
+        loc_dic = pigrow_defs.load_locs(dirlocs_path)
+        set_dic = pigrow_defs.load_settings(loc_dic['loc_settings'], err_log=loc_dic['err_log'],)
+        msg = lamp_on(set_dic, loc_dic['loc_switchlog'])
+        print msg
+    else:
+        print("!!!! Locations file does not exist at " + dirlocs_path)
