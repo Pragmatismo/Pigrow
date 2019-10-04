@@ -1667,23 +1667,154 @@ class install_dialog(wx.Dialog):
         msg += "\n\n This will be used to identify your pigrow and to name the local folder in which\n "
         msg += "files from or associated with the pigrow will be stored. \n\n "
         msg += "Ideally choose a simple and descriptive name, like Veg, Flowering, Bedroom, or Greenhouse"
-        name_box_dbox = wx.TextEntryDialog(self, msg, "Name your Pigrow")
-        if name_box_dbox.ShowModal() == wx.ID_OK:
-            box_name = name_box_dbox.GetValue()
-            MainApp.config_ctrl_pannel.config_dict["box_name"] = box_name
-            pi_link_pnl.boxname = box_name  #to maintain persistance if needed elsewhere later
-            MainApp.pi_link_pnl.link_status_text.SetLabel("linked with - " + box_name)
-            MainApp.config_ctrl_pannel.update_setting_file_on_pi_click("e")
-        else:
-            print ("User decided not to set the box name")
+        valid_name = False
+        while valid_name == False:
+            name_box_dbox = wx.TextEntryDialog(self, msg, "Name your Pigrow")
+            if name_box_dbox.ShowModal() == wx.ID_OK:
+                box_name = name_box_dbox.GetValue()
+                if not box_name == "":
+                    MainApp.config_ctrl_pannel.config_dict["box_name"] = box_name
+                    pi_link_pnl.boxname = box_name  #to maintain persistance if needed elsewhere later
+                    MainApp.pi_link_pnl.link_status_text.SetLabel("linked with - " + box_name)
+                    MainApp.config_ctrl_pannel.update_setting_file_on_pi_click("e")
+                    valid_name = True
+                else:
+                    w_msg = "You must select a name for your pigrow"
+                    dbox = wx.MessageDialog(self, w_msg, "Error", wx.OK | wx.ICON_ERROR)
+                    answer = dbox.ShowModal()
+                    dbox.Destroy()
+            else:
+                print ("User decided not to set the box name")
+                valid_name = True
 
         ## set control sensor
-        # set dht22 location
+        msg = "Temp and Humid Control Sensor\n\n"
+        msg += "The control sensor is used to determine the temperature and humidity values used to "
+        msg += "control the heater, humidifer, dehumidifer and temperature linked fans."
+        msg += "\n\nAt the moment the only option is DHT22 but that will change soon... "
+        msg += "\n\n Config control sensor now?"
+        dbox = wx.MessageDialog(self, msg, "Control Sensor", wx.OK | wx.CANCEL | wx.ICON_QUESTION)
+        answer = dbox.ShowModal()
+        dbox.Destroy()
+        #if user said ok then upload file to pi
+        if (answer == wx.ID_OK):
+            print("using dht22 as control sensor")
+            self.set_control_sensor_to_dht22()
+        else:
+            print ("User decided not to configue the control sensor at this time.")
+        ## Relay devices
+        msg = "Configure Relay Devices\n\n"
+        msg += "The relays are used to control the power to your devices, the turn on the lights, heater and etc."
+        msg += "\n\n options to configure relays during install will be added here soon, for now add and configure them into pigrow config tab."
+        dbox = wx.MessageDialog(self, msg, "Relay Devices", wx.OK | wx.CANCEL | wx.ICON_QUESTION)
+        answer = dbox.ShowModal()
+        dbox.Destroy()
+        #if user said ok then upload file to pi
+        if (answer == wx.ID_OK):
+            print("wants to config relays but that feature isn't written yet") 
 
-        # turn on checkDHT in cron
 
-        ##
 
+    def set_control_sensor_to_dht22(self):
+        # gpio pin
+        msg = "Set DHT22 GPIO pin\n\n"
+        msg += "Input the GPIO number of which you connected the DHT22 data pin to."
+        valid_gpio = False
+        while valid_gpio == False:
+            dht22_gpio_dbox = wx.TextEntryDialog(self, msg, "DHT22 GPIO")
+            if dht22_gpio_dbox.ShowModal() == wx.ID_OK:
+                DHT22_GPIO = dht22_gpio_dbox.GetValue()
+                if not DHT22_GPIO== "" and DHT22_GPIO.isdigit() == True:
+                    MainApp.config_ctrl_pannel.gpio_dict["dht22sensor"] = DHT22_GPIO
+                    valid_gpio = True
+                else:
+                    w_msg = "You must select a valid GPIO number"
+                    dbox = wx.MessageDialog(self, w_msg, "Error", wx.OK | wx.CANCEL | wx.ICON_QUESTION)
+                    answer = dbox.ShowModal()
+                    dbox.Destroy()
+                    if not (answer == wx.ID_OK):
+                        print("User cancelled dht22 set up")
+                        return "cancelled"
+        # log frequency
+        msg = "Set log frequency\n\n"
+        msg += "Select how frequently to log the dht22 temp and humid data, this also determines how"
+        msg += "frequently it will check temperature and humidity values to decide when to turn on and"
+        msg += "turn off devices.\n\n"
+        msg += "A value between 60 seconds and 1800 seconds (half an hour) is ideal."
+        valid_freq = False
+        while valid_freq == False:
+            dht22_freq_dbox = wx.TextEntryDialog(self, msg, "DHT22 Logging Frequency")
+            if dht22_freq_dbox.ShowModal() == wx.ID_OK:
+                DHT22_freq = dht22_freq_dbox.GetValue()
+                if not DHT22_freq== "" and DHT22_freq.isdigit() == True:
+                    MainApp.config_ctrl_pannel.gpio_dict["log_frequency"] = DHT22_freq
+                    valid_freq = True
+                else:
+                    w_msg = "You must input a time in seconds for how often you want to read the control sensor."
+                    dbox = wx.MessageDialog(self, w_msg, "Error", wx.OK | wx.CANCEL | wx.ICON_QUESTION)
+                    answer = dbox.ShowModal()
+                    dbox.Destroy()
+                    if not (answer == wx.ID_OK):
+                        print("User cancelled dht22 set up")
+                        return "cancelled"
+        # test dht22 and ask user if they want to add to cron
+        args = "gpio=" + DHT22_GPIO + " sensor=dht22"
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("/home/" + pi_link_pnl.target_user + "/Pigrow/scripts/build_test/test_dht.py " + args)
+        out = out.strip()
+        if "temp" in out:
+            out = out.split(" ")
+            temp = out[0].split("=")[1]
+            humid = out[1].split("=")[1]
+        elif "failed" in out:
+            temp = "failed"
+            humid = "failed"
+        else:
+            temp = "error"
+            humid = "error"
+        msg = "Control sensor set to dht22 on GPIO pin " + DHT22_GPIO + " reading every " + DHT22_freq + " seconds.\n\n"
+        msg += " Sensor readings\n            Temp: " + temp + "\n            Humid: " + humid + "\n\n"
+        msg += "You can change these settings and configure switching behaviour in the config dht dialog box found in the Pigrow Setup tab.\n\n"
+        cron_dht_exists, cron_dht_enabled, cron_dht_index = self.check_for_control_script()
+        if cron_dht_exists == False:
+            msg += "To enable the sensor's logging and device switching the script checkDHT.py must be running on the pigrow, this is called at "
+            msg += "start-up by Cron the pi's task scheduling tool."
+            msg += "\n\n, Press ok to add checkDHT.py to crons startup list, or cancel to skip this step."
+        else:
+            msg += "checkDHT.py is already in the start up cron list, possibly from a prior install. "
+            if cron_dht_enabled == False:
+                msg += " But is currently disabled."
+            msg +=  "\n\n Press ok to remove all instances of checkDHT.py from the cron startup list and add it again, "
+            msg += "or press cancel to skip this step."
+        dbox = wx.MessageDialog(self, msg, "Control Sensor Config", wx.OK | wx.CANCEL | wx.ICON_QUESTION)
+        answer = dbox.ShowModal()
+        dbox.Destroy()
+        if (answer == wx.ID_OK):
+            print("Cleaning cron of old checkdht22.py calls...")
+            while cron_dht_exists:
+                print("Removing " + str(cron_dht_index))
+                cron_list_pnl.startup_cron.DeleteItem(cron_dht_index)
+                cron_dht_exists, cron_dht_enabled, cron_dht_index = self.check_for_control_script()
+            print("Adding a new checkDHT.py script to cron")
+            checkDHT_path = "/home/" + str(pi_link_pnl.target_user) +  "/Pigrow/scripts/autorun/checkDHT.py"
+            cron_info_pnl.add_to_startup_list(MainApp.cron_info_pannel, 'new', "True", checkDHT_path, "", "")
+            MainApp.cron_info_pannel.update_cron_click("e")
+        # save settings
+        MainApp.config_ctrl_pannel.update_setting_file_on_pi_click("e")
+        #
+
+    def check_for_control_script(self):
+        last_index = cron_list_pnl.startup_cron.GetItemCount()
+        has_cron_got_check_dht_already = False
+        checkdht_enabled = False
+        checkdht_index = None
+        if not last_index == 0:
+            for index in range(0, last_index):
+                name = cron_list_pnl.startup_cron.GetItem(index, 3).GetText()
+                if "checkDHT.py" in name:
+                    checkdht_enabled = cron_list_pnl.startup_cron.GetItem(index, 1).GetText()
+                    checkdht_index = index
+                    has_cron_got_check_dht_already = True
+        return has_cron_got_check_dht_already, checkdht_enabled, checkdht_index
 
 
     def install_pigrow(self):

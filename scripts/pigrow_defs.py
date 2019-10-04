@@ -36,13 +36,13 @@ def load_settings(loc_settings, err_log="./err.log"):
         with open(loc_settings, "r") as f:
             for line in f:
                 s_item = line.split("=")
-                pi_set[s_item[0]]=s_item[1].rstrip('\n') #adds each setting to dictionary
+                pi_set[s_item[0]]=s_item[1].rstrip() #adds each setting to dictionary
         return pi_set
     except:
         print("Settings not loaded, try running pi_setup")
         if not err_log == False:
             with open(err_log, "a") as f:
-                line = 'update_reddit.py @' + str(datetime.datetime.now()) + '@ settings file error\n'
+                line = 'pigrow_defs.py @' + str(datetime.datetime.now()) + '@ settings file error\n'
                 f.write(line)
             print("Log writen:" + line)
 
