@@ -9,7 +9,7 @@ def load_locs(loc_locs):
     with open(loc_locs, "r") as f:
         for line in f:
             s_item = line.split("=")
-            loc_dic[s_item[0]]=s_item[1].rstrip('\n') #adds each setting to dictionary
+            loc_dic[s_item[0]]=s_item[1].rstrip() #adds each setting to dictionary
     #Check for important options, but doe snothing at the moment...
     if 'loc_switchlog' in loc_dic:
         loc_switchlog = loc_dic['loc_switchlog']
