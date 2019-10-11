@@ -224,7 +224,15 @@ def is_a_valid_and_free_gpio(gpio_pin):
         return False
     #add check here to see if pin is already used in config file
     return True
-
+#
+#
+## Place for persistent stuff
+class shared_data:
+    def __init__(self):
+        #This is a temporary fudge soon to be cleaned and used more widely
+        shared_data.first_value_set = []
+        shared_data.first_date_set = []
+shared_data()
 #
 #
 ## System Pannel
@@ -1198,7 +1206,10 @@ class system_info_pnl(wx.Panel):
         saved_wifi_l = wx.StaticText(self,  label='Saved Wifi Networks')
         system_info_pnl.wifi_list = wx.StaticText(self,  label='-wifi list-')
         found_wifi_l = wx.StaticText(self,  label='Found Wifi Networks')
-        system_info_pnl.available_wifi_list = wx.StaticText(self,  label='-feature not implimented-')
+        self.scan_wifi_btn = wx.Button(self, label='Scan', size=(75, 25))
+        self.scan_wifi_btn.Bind(wx.EVT_BUTTON, self.scan_wifi_btn_click)
+        self.available_wifi_list = wx.StaticText(self,  label='-')
+
         #
         # Sizers
         title_sizer = wx.BoxSizer(wx.VERTICAL)
@@ -1274,7 +1285,7 @@ class system_info_pnl(wx.Panel):
         peripheral_device_sizer.Add(onewire_sizer, 0, wx.LEFT, 30)
         panel_area_sizer = wx.BoxSizer(wx.HORIZONTAL)
         panel_area_sizer.Add(base_system_info_sizer, 0, wx.ALL, 0)
-        panel_area_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_VERTICAL), 0, wx.ALL|wx.EXPAND, 5)
+        panel_area_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(5, -1), style=wx.LI_VERTICAL), 0, wx.ALL|wx.EXPAND, 5)
         panel_area_sizer.Add(peripheral_device_sizer, 0, wx.ALL, 0)
         # wifi area sizers
         current_network_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -1285,9 +1296,12 @@ class system_info_pnl(wx.Panel):
         saved_wifi_sizer = wx.BoxSizer(wx.VERTICAL)
         saved_wifi_sizer.Add(saved_wifi_l, 0, wx.ALL, 5)
         saved_wifi_sizer.Add(system_info_pnl.wifi_list, 0, wx.LEFT, 30)
+        found_wifi_label_and_button = wx.BoxSizer(wx.HORIZONTAL)
+        found_wifi_label_and_button.Add(found_wifi_l, 0, wx.ALL, 5)
+        found_wifi_label_and_button.Add(self.scan_wifi_btn, 0, wx.ALL, 5)
         found_wifi_sizer = wx.BoxSizer(wx.VERTICAL)
-        found_wifi_sizer.Add(found_wifi_l, 0, wx.ALL, 5)
-        found_wifi_sizer.Add(system_info_pnl.available_wifi_list, 0, wx.LEFT, 30)
+        found_wifi_sizer.Add(found_wifi_label_and_button, 0, wx.ALL, 5)
+        found_wifi_sizer.Add(self.available_wifi_list, 0, wx.LEFT, 30)
         wifi_panels_sizer = wx.BoxSizer(wx.HORIZONTAL)
         wifi_panels_sizer.Add(saved_wifi_sizer, 0, wx.ALL, 20)
         wifi_panels_sizer.Add(found_wifi_sizer, 0, wx.ALL, 20)
@@ -1302,6 +1316,21 @@ class system_info_pnl(wx.Panel):
         main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.Add(wifi_area_sizer, 0, wx.ALL, 7)
         self.SetSizer(main_sizer)
+
+    def scan_wifi_btn_click(self, e):
+        print("Pi is scanning for wifi...")
+        MainApp.status.write_bar("Pi is scanning for wifi...")
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo iwlist scan |grep ESSID")
+        out = out.splitlines()
+        list_of_network_text = ""
+        for line in out:
+            if "ESSID:" in line:
+                line = line.split("ESSID:")[1]
+                list_of_network_text += line + "\n"
+        self.available_wifi_list.SetLabel(list_of_network_text)
+        MainApp.status.write_bar("Ready...")
+        MainApp.window_self.Layout()
+
 
 class upgrade_pigrow_dialog(wx.Dialog):
     #Dialog box for installing pigrow software on a raspberry pi remotely
@@ -1614,14 +1643,14 @@ class install_dialog(wx.Dialog):
 
 
         #run initial checks
-        wx.Yield() #update screen to show changes
+        wx.GetApp().Yield() #update screen to show changes
 
         self.check_for_pigrow_base()
         self.check_dirlocs()
         self.check_config()
         self.check_python_dependencies()
         self.check_python3_dependencies()
-        wx.Yield() #update screen to show changes
+        wx.GetApp().Yield() #update screen to show changes
         self.check_program_dependencies()
 
     def check_dirlocs(self):
@@ -1640,13 +1669,14 @@ class install_dialog(wx.Dialog):
                         self.pigrow_dirlocs_check.SetForegroundColour((75,200,75))
                         return True
         self.pigrow_dirlocs_check.SetForegroundColour((200,75,75))
-        self.pigrow_base_check.SetValue(True)
+        self.pigrow_dirlocs_check.SetValue(True)
         return False
 
     def check_for_pigrow_base(self):
         print("Checking for pigrow code on raspberry pi")
-        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("ls /home/" + pi_link_pnl.target_user + "/Piglrow/")
-        if not "No such file or directory" in out or not "No such file or directory" in error:
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("ls /home/" + pi_link_pnl.target_user + "/Pigrow/")
+        print(out, error)
+        if not len(out.splitlines()) < 1:
             self.pigrow_base_check.SetForegroundColour((75,200,75))
         else:
             self.pigrow_base_check.SetForegroundColour((255,75,75))
@@ -1686,7 +1716,8 @@ class install_dialog(wx.Dialog):
             else:
                 print ("User decided not to set the box name")
                 valid_name = True
-
+        ## Selflog
+        self.add_selflog()
         ## set control sensor
         msg = "Temp and Humid Control Sensor\n\n"
         msg += "The control sensor is used to determine the temperature and humidity values used to "
@@ -1696,22 +1727,21 @@ class install_dialog(wx.Dialog):
         dbox = wx.MessageDialog(self, msg, "Control Sensor", wx.OK | wx.CANCEL | wx.ICON_QUESTION)
         answer = dbox.ShowModal()
         dbox.Destroy()
-        #if user said ok then upload file to pi
         if (answer == wx.ID_OK):
             print("using dht22 as control sensor")
             self.set_control_sensor_to_dht22()
+            self.set_temp_and_humid_ranges()
         else:
             print ("User decided not to configue the control sensor at this time.")
         ## Relay devices
         msg = "Configure Relay Devices\n\n"
-        msg += "The relays are used to control the power to your devices, the turn on the lights, heater and etc."
-        msg += "\n\n options to configure relays during install will be added here soon, for now add and configure them into pigrow config tab."
+        msg += "The relays are used to control the power to your devices, they turn on the lights, heater and etc."
+        msg += "\n\n options to configure relays during install will be added here soon, for now add and configure them in the pigrow config tab."
         dbox = wx.MessageDialog(self, msg, "Relay Devices", wx.OK | wx.CANCEL | wx.ICON_QUESTION)
         answer = dbox.ShowModal()
         dbox.Destroy()
-        #if user said ok then upload file to pi
         if (answer == wx.ID_OK):
-            print("wants to config relays but that feature isn't written yet") 
+            print("wants to config relays but that feature isn't written yet")
 
 
 
@@ -1800,7 +1830,93 @@ class install_dialog(wx.Dialog):
             MainApp.cron_info_pannel.update_cron_click("e")
         # save settings
         MainApp.config_ctrl_pannel.update_setting_file_on_pi_click("e")
-        #
+
+    def set_temp_and_humid_ranges(self):
+        # Low Temp
+        msg = "Temp and Humid Control Sensor - Value Ranges\n\n"
+        msg += "The control sensor is used to turn on and off climate control devices, at the moment \n"
+        msg += "the only option is simple switching which uses threashold values to determine if devices should\n"
+        msg += "be turned on or off, but again other options will be added as the pigrow continues to grow.\n"
+        msg += "\n All Temperatures are in C, I'll add the option of using american units soon."
+        msg += "\n\n Set the low temp, if it falls below this temperature the heater will turn on. "
+        valid_temp = False
+        while valid_temp == False:
+            lowtemp_dbox = wx.TextEntryDialog(self, msg, "Set Low Temp in degrees C", "15")
+            if lowtemp_dbox.ShowModal() == wx.ID_OK:
+                lowtemp = lowtemp_dbox.GetValue()
+                if lowtemp.isdigit():
+                    print("Valid Low Temp of - ", lowtemp)
+                    valid_temp = True
+                else:
+                    w_msg = "You must select a temperature in C"
+                    dbox = wx.MessageDialog(self, w_msg, "Error", wx.OK | wx.ICON_ERROR)
+                    answer = dbox.ShowModal()
+                    dbox.Destroy()
+        # Low Temp
+        msg = "Temp and Humid Control Sensor - Value Ranges\n\n"
+        msg += "All Temperatures are in C, I'll add the option of using american units soon."
+        msg += "\n\n Set the High temp, if it rises above this temperature the cooling system will engage.\n\n"
+        msg += "This is generally an extra fan which sucks air out the top of your growspace but can \n"
+        msg += "also be an air chiller, an inlet letting colder outside air in or similar."
+        valid_temp = False
+        while valid_temp == False:
+            hightemp_dbox = wx.TextEntryDialog(self, msg, "Set High Temp in degrees C", "25")
+            if hightemp_dbox.ShowModal() == wx.ID_OK:
+                hightemp = hightemp_dbox.GetValue()
+                if hightemp.isdigit():
+                    print("Valid High Temp of - ", hightemp)
+                    valid_temp = True
+                else:
+                    w_msg = "You must select a temperature in C"
+                    dbox = wx.MessageDialog(self, w_msg, "Error", wx.OK | wx.ICON_ERROR)
+                    answer = dbox.ShowModal()
+                    dbox.Destroy()
+        # low humidity
+        msg = "Temp and Humid Control Sensor - Value Ranges\n\n"
+        msg += "Relative Humidity is measured as a percentage\n\n"
+        msg += "Set the Low Humidity threashold, if the humidity falls bellow this point it will\n"
+        msg += "turn on the humidifier until the humidity rises above this point again. \n"
+        valid_humid = False
+        while valid_humid == False:
+            lowhum_dbox = wx.TextEntryDialog(self, msg, "Set Low Humidity", "35")
+            if lowhum_dbox.ShowModal() == wx.ID_OK:
+                lowhum = lowhum_dbox.GetValue()
+                lowhum = lowhum.replace("%", "")
+                if lowhum.isdigit():
+                    print("Valid Low Humidity of - ", lowhum)
+                    valid_humid = True
+                else:
+                    w_msg = "You must input a number for the low humidity value"
+                    dbox = wx.MessageDialog(self, w_msg, "Error", wx.OK | wx.ICON_ERROR)
+                    answer = dbox.ShowModal()
+                    dbox.Destroy()
+        # high humidity
+        msg = "Temp and Humid Control Sensor - Value Ranges\n\n"
+        msg += "Relative Humidity is measured as a percentage\n\n"
+        msg += "Set the High Humidity threashold, if the humidity rises above this point it will\n"
+        msg += "turn on the dehumidifier until the humidity falls below this point again. \n"
+        valid_humid = False
+        while valid_humid == False:
+            highhum_dbox = wx.TextEntryDialog(self, msg, "Set High Humidity", "70")
+            if highhum_dbox.ShowModal() == wx.ID_OK:
+                highhum = highhum_dbox.GetValue()
+                highhum = highhum.replace("%", "")
+                if highhum.isdigit():
+                    print("Valid High Humidity of - ", highhum)
+                    valid_humid = True
+                else:
+                    w_msg = "You must input a number for the high humidity value"
+                    dbox = wx.MessageDialog(self, w_msg, "Error", wx.OK | wx.ICON_ERROR)
+                    answer = dbox.ShowModal()
+                    dbox.Destroy()
+        print("Completed threashold set-up, saving to pi")
+        MainApp.config_ctrl_pannel.config_dict["heater_templow"] = lowtemp
+        MainApp.config_ctrl_pannel.config_dict["heater_temphigh"] = hightemp
+        MainApp.config_ctrl_pannel.config_dict["humid_low"] = lowhum
+        MainApp.config_ctrl_pannel.config_dict["humid_high"] = highhum
+        MainApp.config_ctrl_pannel.update_setting_file_on_pi_click("e")
+
+            #
 
     def check_for_control_script(self):
         last_index = cron_list_pnl.startup_cron.GetItemCount()
@@ -1816,21 +1932,64 @@ class install_dialog(wx.Dialog):
                     has_cron_got_check_dht_already = True
         return has_cron_got_check_dht_already, checkdht_enabled, checkdht_index
 
+    def add_selflog(self):
+        msg = "Enable Selflog\n\n"
+        msg += "The selflog is a simple python script which is called periodically by cron to log various system \n"
+        msg += "conditions including the Raspberry Pi's cpu temperature, it's available memory and disk space."
+        msg += "\n\n"
+        msg += "These logs can be downloaded and graphed using presets found in the local graphing tools."
+        cron_selflog_exists, cron_selflog_enabled, cron_selflog_index = self.check_for_selflog_script()
+        if cron_selflog_exists == False:
+            msg += "\n\n, Press ok to add selflog.py to cron repeating every fifteen min, or cancel to skip this step."
+        else:
+            msg += "\n\nselflog.py is already in cron's repeating list, possibly from a prior install. "
+            if cron_selflog_enabled == False:
+                msg += " But is currently disabled."
+            msg +=  "\n\n Press ok to remove all instances of selflog.py from the cron repeating list and add it again, "
+            msg += "or press cancel to skip this step."
+        dbox = wx.MessageDialog(self, msg, "Self Log Config", wx.OK | wx.CANCEL | wx.ICON_QUESTION)
+        answer = dbox.ShowModal()
+        dbox.Destroy()
+        if (answer == wx.ID_OK):
+            print("Cleaning cron of old selflog.py calls...")
+            while cron_selflog_exists:
+                print("Removing " + str(cron_selflog_index))
+                cron_list_pnl.repeat_cron.DeleteItem(cron_selflog_index)
+                cron_selflog_exists, cron_selflog_enabled, cron_selflog_index = self.check_for_selflog_script()
+            print("Adding a new selflog.py script to cron")
+            selflog_path = "/home/" + str(pi_link_pnl.target_user) +  "/Pigrow/scripts/cron/selflog.py"
+            cron_info_pnl.add_to_repeat_list(MainApp.cron_info_pannel, 'new', "True", "*/15 * * * *", selflog_path, "", "")
+            MainApp.cron_info_pannel.update_cron_click("e")
+
+    def check_for_selflog_script(self):
+        last_index = cron_list_pnl.repeat_cron.GetItemCount()
+        has_cron_got_selflog_already = False
+        selflog_enabled = False
+        selflog_index = None
+        if not last_index == 0:
+            for index in range(0, last_index):
+                name = cron_list_pnl.repeat_cron.GetItem(index, 3).GetText()
+                if "selflog.py" in name:
+                    selflog_enabled = cron_list_pnl.repeat_cron.GetItem(index, 1).GetText()
+                    selflog_index = index
+                    has_cron_got_selflog_already = True
+        return has_cron_got_selflog_already, selflog_enabled, selflog_index
+
 
     def install_pigrow(self):
         print(" Cloning git repo onto pi")
         self.currently_doing.SetLabel("using git to clone (download) pigrow code")
         self.progress.SetLabel("####~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-        wx.Yield()
+        wx.GetApp().Yield()
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("git clone https://github.com/Pragmatismo/Pigrow ~/Pigrow/")
         print(out, error)
         self.currently_doing.SetLabel("creating empty folders")
         self.progress.SetLabel("#####~~~~~~~~~~~~~~~~~~~~~~~~~")
-        wx.Yield()
+        wx.GetApp().Yield()
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("mkdir ~/Pigrow/caps/")
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("mkdir ~/Pigrow/graphs/")
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("mkdir ~/Pigrow/logs/")
-        wx.Yield()
+        wx.GetApp().Yield()
 
     def create_dirlocs_from_template(self):
         print("Creting dirlocs.txt from template")
@@ -1856,7 +2015,7 @@ class install_dialog(wx.Dialog):
         # update pip the python package manager
         self.currently_doing.SetLabel("Updating PIP the python install manager")
         self.progress.SetLabel("#########~~~~~~~~~~~~~~~~~~~~")
-        wx.Yield()
+        wx.GetApp().Yield()
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo pip install -U pip")
         print (out)
 
@@ -1864,7 +2023,7 @@ class install_dialog(wx.Dialog):
         # update pip the python package manager
         self.currently_doing.SetLabel("Updating PIP the python3 install manager")
         self.progress.SetLabel("#########~~~~~~~~~~~~~~~~~~~~")
-        wx.Yield()
+        wx.GetApp().Yield()
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo pip3 install -U pip")
         print (out)
 
@@ -1872,7 +2031,7 @@ class install_dialog(wx.Dialog):
         # praw is the module for connecting to reddit
         self.currently_doing.SetLabel("Using pip3 to install praw")
         self.progress.SetLabel("###########~~~~~~~~~~~~~~~~~~")
-        wx.Yield()
+        wx.GetApp().Yield()
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo pip3 install praw")
         print (out)
 
@@ -1880,7 +2039,7 @@ class install_dialog(wx.Dialog):
         # pexpect is the tool used to connect to other pigrows if using pigrow log
         self.currently_doing.SetLabel("using pip to install pexpect")
         self.progress.SetLabel("#############~~~~~~~~~~~~~~~~")
-        wx.Yield()
+        wx.GetApp().Yield()
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo pip install pexpect")
         print (out)
 
@@ -1888,7 +2047,7 @@ class install_dialog(wx.Dialog):
         print("starting adafruit install")
         self.progress.SetLabel("###############~~~~~~~~~~~~~~")
         self.currently_doing.SetLabel("Using pip to install adafruit_DHT module")
-        wx.Yield()
+        wx.GetApp().Yield()
         adafruit_install, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo pip install Adafruit_DHT")
         print (adafruit_install)
 
@@ -1896,7 +2055,7 @@ class install_dialog(wx.Dialog):
         print("starting adafruit install")
         self.progress.SetLabel("################~~~~~~~~~~~~~")
         self.currently_doing.SetLabel("Using pip3 to install adafruit's ADS1x15 driver")
-        wx.Yield()
+        wx.GetApp().Yield()
         print(" - installing RPI-GPIO module")
         GPIO_install, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo pip3 install RPI.GPIO")
         print (GPIO_install)
@@ -1916,42 +2075,42 @@ class install_dialog(wx.Dialog):
     def update_apt(self):
         self.currently_doing.SetLabel("updating apt the system package manager on the raspberry pi")
         self.progress.SetLabel("################~~~~~~~~~~~~~~~")
-        wx.Yield()
+        wx.GetApp().Yield()
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo apt-get update --yes")
         print (out, error)
 
     def install_uvccaptre(self):
         self.currently_doing.SetLabel("Using apt to install uvccaptre")
         self.progress.SetLabel("####################~~~~~~~~~~~")
-        wx.Yield()
+        wx.GetApp().Yield()
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo apt-get --yes install uvccapture")
         print (out, error)
 
     def install_mpv(self):
         self.currently_doing.SetLabel("Using apt to install mpv")
         self.progress.SetLabel("#####################~~~~~~~~~~")
-        wx.Yield()
+        wx.GetApp().Yield()
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo apt-get --yes install mpv")
         print (out, error)
 
     def install_python_matplotlib(self):
         self.currently_doing.SetLabel("Using apt to install python-matplotlib")
         self.progress.SetLabel("######################~~~~~~~~~")
-        wx.Yield()
+        wx.GetApp().Yield()
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo apt-get --yes install python-matplotlib")
         print (out, error)
 
     def install_sshpass(self):
         self.currently_doing.SetLabel("Using apt to install sshpass")
         self.progress.SetLabel("#######################~~~~~~~~~")
-        wx.Yield()
+        wx.GetApp().Yield()
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo apt-get --yes install sshpass")
         print (out, error)
 
     def install_python_crontab(self):
         self.currently_doing.SetLabel("Using apt to install python-crontab")
         self.progress.SetLabel("########################~~~~~~~")
-        wx.Yield()
+        wx.GetApp().Yield()
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo apt-get --yes install python-crontab")
         print (out, error)
 
@@ -2033,7 +2192,7 @@ class install_dialog(wx.Dialog):
         else:
             self.matplotlib_check.SetForegroundColour((255,75,75))
             self.matplotlib_check.SetValue(True)
-        wx.Yield()
+        wx.GetApp().Yield()
         if "Adafruit_DHT" in working_modules:
             self.adaDHT_check.SetForegroundColour((75,200,75))
         else:
@@ -2053,24 +2212,18 @@ class install_dialog(wx.Dialog):
     def start_click(self, e):
         print("Install process started;")
         self.progress.SetLabel("##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-        wx.Yield()
+        wx.GetApp().Yield()
         # Base installed via Git Clone
         if self.pigrow_base_check.GetValue() == True:
             self.install_pigrow()
             self.progress.SetLabel("#####~~~~~~~~~~~~~~~~~~~~~~~~~~")
-            wx.Yield()
+            wx.GetApp().Yield()
         # make dirlocs with pi's username
         if self.pigrow_dirlocs_check.GetValue() == True:
             self.create_dirlocs_from_template()
             self.currently_doing.SetLabel("-")
             self.progress.SetLabel("########~~~~~~~~~~~~~~~~~~~~~~~")
-            wx.Yield()
-        # run the setup wizard
-        if self.config_wiz_check.GetValue() == True:
-            self.config_wizard()
-            self.currently_doing.SetLabel("-")
-            self.progress.SetLabel("########~~~~~~~~~~~~~~~~~~~~~~~")
-            wx.Yield()
+            wx.GetApp().Yield()
         # Dependencies installed using pip
         if self.pexpect_check.GetValue() == True or self.adaDHT_check.GetValue() == True:
             self.update_pip()
@@ -2098,10 +2251,16 @@ class install_dialog(wx.Dialog):
             self.install_python_matplotlib()
         if self.cron_check.GetValue() == True:
             self.install_python_crontab()
+        # run the setup wizard
+        if self.config_wiz_check.GetValue() == True:
+            self.config_wizard()
+            self.currently_doing.SetLabel("-")
+            self.progress.SetLabel("##############################~")
+            wx.GetApp().Yield()
 
         # Final message
         self.progress.SetLabel("####### INSTALL COMPLETE ######")
-        wx.Yield()
+        wx.GetApp().Yield()
         self.start_btn.Disable()
         self.cancel_btn.SetLabel("OK")
 
@@ -5255,7 +5414,7 @@ class localfiles_ctrl_pnl(wx.Panel):
                 the_remote_file = pi_caps_path + "/" + the_remote_file
                 MainApp.status.write_bar("clearing - " + the_remote_file)
                 MainApp.localfiles_ctrl_pannel.run_on_pi("rm " + the_remote_file, False)
-                wx.Yield()
+                wx.GetApp().Yield()
                 count = count + 1
             MainApp.status.write_bar("Cleared " + str(count) + " files from the pigrow")
         # when done refreh the file info
@@ -5672,7 +5831,7 @@ class file_download_dialog(wx.Dialog):
             #grabs all files in the list and overwrites them if they already exist locally.
             self.current_file_txt.SetLabel("from; " + remote_file[0])
             self.current_dest_txt.SetLabel("to; " + remote_file[1])
-            wx.Yield() #update screen to show changes
+            wx.GetApp().Yield() #update screen to show changes
             try:
                 self.sftp.get(remote_file[0], remote_file[1])
             except:
@@ -5752,7 +5911,7 @@ class upload_dialog(wx.Dialog):
                     sftp.put(localfiles_ctrl_pnl.cron_backup_file, cron_temp)
                 self.current_file_txt.SetLabel("from; " + localfiles_ctrl_pnl.cron_backup_file)
                 self.current_dest_txt.SetLabel("to; " + cron_temp)
-                wx.Yield()
+                wx.GetApp().Yield()
                 out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("crontab " + cron_temp)
         # make list using selected components to be uploaded, list contains two elemnts [local file, remote destination]
             if self.cb_conf.GetValue() == True:
@@ -5803,7 +5962,7 @@ class upload_dialog(wx.Dialog):
             #grabs all files in the list and overwrites them if they already exist locally.
             self.current_file_txt.SetLabel("from; " + upload_file[0])
             self.current_dest_txt.SetLabel("to; " + upload_file[1])
-            wx.Yield()
+            wx.GetApp().Yield()
             sftp.put(upload_file[0], upload_file[1])
         self.current_file_txt.SetLabel("Done")
         self.current_dest_txt.SetLabel("--")
@@ -6644,6 +6803,11 @@ class graphing_ctrl_pnl(wx.Panel):
         self.threasholds_pie.Bind(wx.EVT_BUTTON, self.threasholds_pie_go)
         self.dividied_daily = wx.Button(self, label='Divided Daily')
         self.dividied_daily.Bind(wx.EVT_BUTTON, self.divided_daily_go)
+        self.graph_compare = wx.Button(self, label='compare')
+        self.graph_compare.Bind(wx.EVT_BUTTON, self.graph_compare_go)
+        self.graph_compare_clear = wx.Button(self, label='clear')
+        self.graph_compare_clear.Bind(wx.EVT_BUTTON, self.graph_compare_clear_go)
+        self.graph_compare_clear.Disable()
         self.local_simple_line.Disable()
         self.local_color_line.Disable()
         self.local_simple_bar.Disable()
@@ -6662,6 +6826,9 @@ class graphing_ctrl_pnl(wx.Panel):
 
         # Sizers
         # local opts size
+        compare_sizer =  wx.BoxSizer(wx.HORIZONTAL)
+        compare_sizer.Add(self.graph_compare, 0, wx.ALL|wx.EXPAND, 3)
+        compare_sizer.Add(self.graph_compare_clear, 0, wx.ALL|wx.EXPAND, 3)
         local_opts_sizer = wx.BoxSizer(wx.VERTICAL)
         local_opts_sizer.Add(self.select_log_btn, 0, wx.ALL, 3)
         local_opts_sizer.AddStretchSpacer(1)
@@ -6674,10 +6841,10 @@ class graphing_ctrl_pnl(wx.Panel):
         local_opts_sizer.Add(self.over_threasholds_by_hour, 0, wx.ALL, 3)
         local_opts_sizer.Add(self.threasholds_pie, 0, wx.ALL, 3)
         local_opts_sizer.Add(self.dividied_daily, 0, wx.ALL, 3)
+        local_opts_sizer.Add(compare_sizer, 0, wx.ALL, 3)
         local_opts_sizer.AddStretchSpacer(1)
         local_opts_sizer.Add(self.value_diff_graph, 0, wx.ALL, 3)
         local_opts_sizer.Add(self.log_time_diff_graph, 0, wx.ALL, 3)
-
         local_opts_sizer.AddStretchSpacer(1)
         local_opts_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
         local_opts_sizer.Add(self.switch_log_graph, 0, wx.ALL, 3)
@@ -6714,6 +6881,9 @@ class graphing_ctrl_pnl(wx.Panel):
         # hideing all pigrow graphing UI elements until graph on pigrow is selected
         self.hide_make_on_pi_ui_elements()
         self.hide_make_local_ui_elements()
+        # making blank lists for compare graphs to use
+        shared_data.first_value_set = []
+        shared_data.first_date_set = []
 
     def hide_make_on_pi_ui_elements(self):
         self.pigraph_text.Hide()
@@ -6754,6 +6924,8 @@ class graphing_ctrl_pnl(wx.Panel):
         self.module_graph_choice.Hide()
         self.module_graph_btn.Hide()
         self.refresh_module_graph_btn.Hide()
+        self.graph_compare.Hide()
+        self.graph_compare_clear.Hide()
 
         try:
             MainApp.graphing_info_pannel.hide_data_extract()
@@ -6778,6 +6950,8 @@ class graphing_ctrl_pnl(wx.Panel):
         self.module_graph_choice.Show()
         self.module_graph_btn.Show()
         self.refresh_module_graph_btn.Show()
+        self.graph_compare.Show()
+        self.graph_compare_clear.Show()
 
     def graph_engine_combo_go(self, e):
         # combo box selects if you want to make graphs on pi or locally
@@ -6864,8 +7038,6 @@ class graphing_ctrl_pnl(wx.Panel):
                 graph_preset_list.append(file)
         graph_preset_list.sort()
         self.graph_presets_cb.Append(graph_preset_list)
-
-
 
     def get_log_path_from_preset(self, graph_presets_path):
         local_logs_path = os.path.join(localfiles_info_pnl.local_path, "logs")
@@ -7019,7 +7191,6 @@ class graphing_ctrl_pnl(wx.Panel):
         module_list = self.get_module_options()
         self.module_graph_choice.Append(module_list)
 
-
     def make_graph_from_imported_module(self, e):
         print("Want's to create a graph using a external module...  ")
         # read data from log
@@ -7047,7 +7218,8 @@ class graphing_ctrl_pnl(wx.Panel):
         if module_name in sys.modules:
             del sys.modules[module_name]
         exec("from " + module_name + " import make_graph", globals())
-        make_graph(date_list, value_list, key_list, graph_path, ymax, ymin, size_h, size_v, dangerhot, toohot, toocold, dangercold)
+        extra = [shared_data.first_value_set, shared_data.first_date_set]
+        make_graph(date_list, value_list, key_list, graph_path, ymax, ymin, size_h, size_v, dangerhot, toohot, toocold, dangercold, extra)
         #
         print("module_graph created and saved to " + graph_path)
         MainApp.graphing_info_pannel.show_local_graph(graph_path)
@@ -7584,6 +7756,55 @@ class graphing_ctrl_pnl(wx.Panel):
         MainApp.graphing_info_pannel.show_local_graph(graph_path)
         MainApp.status.write_bar("ready...")
 
+    def graph_compare_clear_go(self, e):
+        shared_data.first_value_set = []
+        shared_data.first_date_set = []
+        self.graph_compare_clear.Disable()
+
+    def graph_compare_go(self, e):
+        print("Want's to create a comparing graph...  ")
+        # read data from log
+        date_list, value_list, key_list = MainApp.graphing_info_pannel.read_log_date_and_value(numbers_only=True)
+        if len(date_list) == 0:
+            return None
+        MainApp.status.write_bar("-- Creating a compare graph from " + str(len(date_list)) + " values")
+        #
+        if shared_data.first_value_set == []:
+            print(" - Setting first graphing values")
+            shared_data.first_value_set = value_list.copy()
+            shared_data.first_date_set = date_list.copy()
+            self.graph_compare_clear.Enable()
+            return None
+        print(" - Two data sets selected, making comparison...")
+        first_value_list =  shared_data.first_value_set
+        first_date_list  =  shared_data.first_date_set
+
+        # read graph settings from ui boxes
+        key_unit = ""
+        ymax = MainApp.graphing_info_pannel.axis_y_max_cb.GetValue()
+        ymin = MainApp.graphing_info_pannel.axis_y_min_cb.GetValue()
+        size_h, size_v = self.get_graph_size_from_ui()
+        # start making the graph
+        fig = plt.gcf()
+        fig.canvas.set_window_title('Simple Line Graph')
+        fig, ax = plt.subplots(figsize=(size_h, size_v))
+        plt.title("Time Perod; " + str(date_list[0].strftime("%b-%d %H:%M")) + " to " + str(date_list[-1].strftime("%b-%d %H:%M")) + " ")
+        plt.ylabel(key_list[0]) # + " in " + key_unit)
+        if not ymax == "":
+            plt.ylim(ymax=int(ymax))
+        if not ymin == "":
+            plt.ylim(ymin=int(ymin))
+        ax.plot(date_list, value_list, color='black', lw=1)
+        ax.plot(first_date_list, first_value_list, color='blue', lw=1)
+        ax.xaxis_date()
+        fig.autofmt_xdate()
+        graph_path = os.path.join(localfiles_info_pnl.local_path, "compare_graph.png")
+        plt.savefig(graph_path)
+        print("compare graph created and saved to " + graph_path)
+        MainApp.graphing_info_pannel.show_local_graph(graph_path)
+        fig.clf()
+        MainApp.status.write_bar("ready...")
+
 
     # switch log
     def parse_switch_log_for_relays(self, add_data_to_square = True):
@@ -7765,7 +7986,7 @@ class graphing_ctrl_pnl(wx.Panel):
             print("fetching scripts options, warning script must know how to respond to -flags argument")
             self.opts_cb.Show()
             self.add_arg_btn.Show()
-            wx.Yield()
+            wx.GetApp().Yield()
             if not self.select_script_cb.GetValue() == "":
                 self.get_script_options()
         else:
@@ -12036,6 +12257,7 @@ class pi_link_pnl(wx.Panel):
         #system_info_pnl.sys_pigrow_version.SetLabel("")
         system_info_pnl.sys_pigrow_update.SetLabel("")
         system_info_pnl.sys_network_name.SetLabel("")
+        MainApp.system_info_pannel.available_wifi_list.SetLabel('')
         system_info_pnl.wifi_list.SetLabel("")
         system_info_pnl.sys_power_status.SetLabel("")
         system_info_pnl.sys_camera_info.SetLabel("")
@@ -12284,17 +12506,17 @@ class status_bar(wx.Panel):
         self.SetBackgroundColour((150, 150, 120))
         self.status_text.SetForegroundColour(wx.Colour(50,50,50))
         self.status_text.SetLabel(text)
-        wx.Yield()
+        wx.GetApp().Yield()
     def write_blue_bar(self, text):
         self.SetBackgroundColour((50, 50, 200))
         self.status_text.SetForegroundColour(wx.Colour(0,0,0))
         self.status_text.SetLabel(text)
-        wx.Yield()
+        wx.GetApp().Yield()
     def write_warning(self, text):
         self.SetBackgroundColour((200, 100, 100))
         self.status_text.SetForegroundColour(wx.Colour(0,0,0))
         self.status_text.SetLabel(text)
-        wx.Yield()
+        wx.GetApp().Yield()
 
 
 class gui_settings:
