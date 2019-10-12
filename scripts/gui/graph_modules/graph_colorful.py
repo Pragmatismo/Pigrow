@@ -2,7 +2,7 @@
 
 
 
-def make_graph(date_list, value_list, key_list, graph_path, ymax="", ymin="", size_h="", size_v="", dh="", th="", tc="", dc=""):
+def make_graph(date_list, value_list, key_list, graph_path, ymax="", ymin="", size_h="", size_v="", dh="", th="", tc="", dc="", extra=[]):
     print("Making a colourful graph graph...")
     #import the tools we'll be using
     import matplotlib
@@ -39,7 +39,7 @@ def make_graph(date_list, value_list, key_list, graph_path, ymax="", ymin="", si
     #ax.legend() #no need for this it just takes up space
     plt.title("Daily Values\nTime Perod; " + str(date_list[0].strftime("%b-%d %H:%M")) + " to " + str(date_list[-1].strftime("%b-%d %H:%M")) + " ")
     ax.xaxis_date()
-    ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
+    #ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
     fig.autofmt_xdate()
     plt.ylabel(key_list[0]) # + " in " + key_unit)
     if not ymax == "":

@@ -10,7 +10,7 @@
 #
 #
 
-def make_graph(date_list, value_list, key_list, graph_path, ymax="", ymin="", size_h="", size_v="", dh="", th="", tc="", dc=""):
+def make_graph(date_list, value_list, key_list, graph_path, ymax="", ymin="", size_h="", size_v="", dh="", th="", tc="", dc="", extra=[]):
     #
     # Settings
     #
@@ -28,7 +28,6 @@ def make_graph(date_list, value_list, key_list, graph_path, ymax="", ymin="", si
     for x in range(0, len(value_list)):
         running_total = running_total + value_list[x]
     average_value = running_total / len(value_list)
-    print (average_value)
     # rolling average
     rolling_ave_dates = []
     rolling_ave_values = []
@@ -63,7 +62,7 @@ def make_graph(date_list, value_list, key_list, graph_path, ymax="", ymin="", si
         days_value_list = value[0]
         day_total = sum(days_value_list)
         day_average = day_total / len(days_value_list)
-        # mute the following two lines to stop squaring the graph 
+        # mute the following two lines to stop squaring the graph
         daily_ave_dates.append(days_date_list[0])
         daily_ave_values.append(day_average)
         daily_ave_dates.append(days_date_list[-1])
@@ -75,6 +74,7 @@ def make_graph(date_list, value_list, key_list, graph_path, ymax="", ymin="", si
     fig, ax = plt.subplots(figsize=(size_h, size_v))
     plt.title("Time Perod; " + str(date_list[0].strftime("%b-%d %H:%M")) + " to " + str(date_list[-1].strftime("%b-%d %H:%M")) + " ")
     plt.ylabel(key_list[0])
+    plt.grid(axis='y')
     # create plot
     ax.plot(date_list, value_list, color='black', lw=1, label="Raw Data")
     ax.plot(rolling_ave_dates, rolling_ave_values, color='blue', lw=1, label="Rolling Average")

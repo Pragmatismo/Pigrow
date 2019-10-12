@@ -10,7 +10,7 @@
 #
 #
 
-def make_graph(date_list, value_list, key_list, graph_path, ymax="", ymin="", size_h="", size_v="", dh="", th="", tc="", dc=""):
+def make_graph(date_list, value_list, key_list, graph_path, ymax="", ymin="", size_h="", size_v="", dh="", th="", tc="", dc="", extra=[]):
     #
     # User changable options
     log_window_size=251      # set the size of the window when scanning through the log to determine up-down trends
@@ -18,7 +18,7 @@ def make_graph(date_list, value_list, key_list, graph_path, ymax="", ymin="", si
                              # when there's a small blip.
     show_value_in_per="hour" # 'hour' 'min' 'second'
                              # Show the rate of change per second, min, or hour
-    show_grey_bestfit=False   # True or False
+    show_grey_bestfit=True   # True or False
                              # shows the simplified logs gray line over the basic line graph
                              # this can make it more obvious if you want to increase of decrease window size
     #
