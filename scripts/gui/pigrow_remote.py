@@ -230,9 +230,22 @@ def is_a_valid_and_free_gpio(gpio_pin):
 class shared_data:
     def __init__(self):
         #This is a temporary fudge soon to be cleaned and used more widely
+        # paths
+        shared_data.cwd = os.getcwd()
+        shared_data.graph_presets_path = os.path.join(shared_data.cwd, "graph_presets")
+        shared_data.ui_img_path = os.path.join(shared_data.cwd, "ui_images")
+        # graphing logs
+        shared_data.log_to_load = None
         shared_data.first_value_set = []
         shared_data.first_date_set = []
-shared_data()
+        shared_data.first_keys_set = []
+        shared_data.first_valueset_name = ""
+        # icon images
+        no_log_img_path = os.path.join(shared_data.ui_img_path, "log_loaded_none.png")
+        yes_log_img_path = os.path.join(shared_data.ui_img_path, "log_loaded_true.png")
+        shared_data.no_log_image = wx.Image(no_log_img_path, wx.BITMAP_TYPE_ANY).ConvertToBitmap()
+        shared_data.yes_log_image = wx.Image(yes_log_img_path, wx.BITMAP_TYPE_ANY).ConvertToBitmap()
+
 #
 #
 ## System Pannel
@@ -2847,7 +2860,7 @@ class config_info_pnl(scrolled.ScrolledPanel):
         config_info_pnl.gpio_table = self.GPIO_list(self, 1)
         config_info_pnl.gpio_table.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.onDoubleClick_GPIO)
         config_info_pnl.gpio_table.Bind(wx.EVT_LIST_KEY_DOWN, self.del_gpio_item)
-        gpio_pin_image = wx.Image('./pi_zero.png', wx.BITMAP_TYPE_ANY).ConvertToBitmap()
+        gpio_pin_image = wx.Image('pi_zero.png', wx.BITMAP_TYPE_ANY).ConvertToBitmap()
         gpio_diagram = wx.StaticBitmap(self, -1, gpio_pin_image, (gpio_pin_image.GetWidth(), gpio_pin_image.GetHeight()))
         info_sizer = wx.BoxSizer(wx.VERTICAL)
         info_sizer.Add(self.name_l, 0, wx.ALL|wx.EXPAND, 3)
@@ -6000,6 +6013,8 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
         # for local graphing
         self.data_extraction_l = wx.StaticText(self,  label='Data Extraction Options')
         self.data_extraction_l.SetFont(sub_title_font)
+        self.show_hide_date_extract_btn = wx.Button(self, label='hide')
+        self.show_hide_date_extract_btn.Bind(wx.EVT_BUTTON, self.show_hide_date_extract_click)
         self.example_line_l = wx.StaticText(self,  label='Example Line -')
         self.example_line = wx.StaticText(self,  label='')
         # this bit copied from timelapse make overlay dialogs
@@ -6092,18 +6107,10 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
         limit_choices = ["none", "day", "week", "month", "year"]
         self.limit_date_to_last_cb = wx.ComboBox(self, size=(90, 25),choices = limit_choices)
         self.limit_date_to_last_cb.Bind(wx.EVT_TEXT, self.limit_date_to_last_go)
-        time_and_date_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        time_and_date_sizer.Add(self.start_date_l, 0, wx.ALL, 2)
-        time_and_date_sizer.Add(self.start_time_picer, 0, wx.ALL, 2)
-        time_and_date_sizer.Add(self.start_date_picer, 0, wx.ALL, 2)
-        time_and_date_sizer.Add(self.end_date_l, 0, wx.ALL, 2)
-        time_and_date_sizer.Add(self.end_time_picer, 0, wx.ALL, 2)
-        time_and_date_sizer.Add(self.end_date_picer, 0, wx.ALL, 2)
-        time_and_date_sizer.Add(self.limit_date_to_last_l, 0, wx.ALL, 2)
-        time_and_date_sizer.Add(self.limit_date_to_last_cb, 0, wx.ALL, 2)
-        data_trimming_sizer = wx.BoxSizer(wx.VERTICAL)
-        data_trimming_sizer.Add(self.data_controls, 0, wx.ALL|wx.EXPAND, 4)
-        data_trimming_sizer.Add(time_and_date_sizer, 0, wx.ALL, 0)
+
+        graph_options_sizer = wx.BoxSizer(wx.VERTICAL)
+        graph_options_sizer.Add(self.data_controls, 0, wx.ALL|wx.EXPAND, 4)
+
         # high-low values
         self.danger_low_l = wx.StaticText(self,  label='Danger Low -')
         self.danger_low_tc = wx.TextCtrl(self, size=(60, 25))
@@ -6146,17 +6153,30 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
         example_line_sizer = wx.BoxSizer(wx.HORIZONTAL)
         example_line_sizer.Add(self.example_line_l, 0, wx.ALL, 0)
         example_line_sizer.Add(self.example_line, 0, wx.ALL, 0)
+        de_label_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        de_label_sizer.Add(self.data_extraction_l, 0, wx.ALL, 0)
+        de_label_sizer.Add(self.show_hide_date_extract_btn, 0, wx.ALL, 0)
+        time_and_date_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        time_and_date_sizer.Add(self.start_date_l, 0, wx.ALL, 2)
+        time_and_date_sizer.Add(self.start_time_picer, 0, wx.ALL, 2)
+        time_and_date_sizer.Add(self.start_date_picer, 0, wx.ALL, 2)
+        time_and_date_sizer.Add(self.end_date_l, 0, wx.ALL, 2)
+        time_and_date_sizer.Add(self.end_time_picer, 0, wx.ALL, 2)
+        time_and_date_sizer.Add(self.end_date_picer, 0, wx.ALL, 2)
+        time_and_date_sizer.Add(self.limit_date_to_last_l, 0, wx.ALL, 2)
+        time_and_date_sizer.Add(self.limit_date_to_last_cb, 0, wx.ALL, 2)
         data_extract_sizer = wx.BoxSizer(wx.VERTICAL)
-        data_extract_sizer.Add(self.data_extraction_l, 0, wx.ALL, 5)
+        data_extract_sizer.Add(de_label_sizer, 0, wx.ALL, 5)
         data_extract_sizer.Add(example_line_sizer, 0, wx.ALL, 5)
         data_extract_sizer.Add(fields_extract_sizer, 0, wx.ALL, 3)
+        data_extract_sizer.Add(time_and_date_sizer, 0, wx.ALL, 0)
 
         #
         self.graph_sizer = wx.BoxSizer(wx.VERTICAL)
         #self.graph_sizer.Add(wx.StaticText(self,  label='problem'), 0, wx.ALL|wx.EXPAND, 3)
         self.main_sizer =  wx.BoxSizer(wx.VERTICAL)
         self.main_sizer.Add(data_extract_sizer, 0, wx.ALL|wx.EXPAND, 3)
-        self.main_sizer.Add(data_trimming_sizer, 0, wx.ALL|wx.EXPAND, 3)
+        self.main_sizer.Add(graph_options_sizer, 0, wx.ALL|wx.EXPAND, 3)
         self.main_sizer.Add(high_low_sizer, 0, wx.ALL|wx.EXPAND, 3)
         self.main_sizer.Add(axis_limits_sizer, 0, wx.ALL|wx.EXPAND, 3)
         self.main_sizer.Add(self.graph_txt, 0, wx.ALL|wx.EXPAND, 3)
@@ -6164,9 +6184,22 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
         self.SetSizer(self.main_sizer)
         self.SetupScrolling()
         self.hide_data_extract()
+        self.hide_graph_settings()
+
+    def show_hide_date_extract_click(self, e):
+        if self.show_hide_date_extract_btn.GetLabel() == "show":
+            self.show_data_extract()
+            self.show_hide_date_extract_btn.SetLabel("hide")
+        else:
+            self.hide_data_extract()
+            self.data_extraction_l.Show()
+            self.show_hide_date_extract_btn.Show()
+            self.show_hide_date_extract_btn.SetLabel("show")
+        self.Layout()
 
     def hide_data_extract(self):
         self.data_extraction_l.Hide()
+        self.show_hide_date_extract_btn.Hide()
         self.example_line_l.Hide()
         self.example_line.Hide()
         self.split_character_l.Hide()
@@ -6196,6 +6229,17 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
         self.size_h_cb.Hide()
         self.size_v_l.Hide()
         self.size_v_cb.Hide()
+        self.start_date_l.Hide()
+        self.start_time_picer.Hide()
+        self.start_date_picer.Hide()
+        self.end_date_l.Hide()
+        self.end_time_picer.Hide()
+        self.end_date_picer.Hide()
+        self.limit_date_to_last_l.Hide()
+        self.limit_date_to_last_cb.Hide()
+        self.Layout()
+
+    def hide_graph_settings(self):
         # settings
         self.danger_low_l.Hide()
         self.danger_low_tc.Hide()
@@ -6207,14 +6251,6 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
         self.danger_high_tc.Hide()
         self.data_controls.Hide()
         self.data_controls.Hide()
-        self.start_date_l.Hide()
-        self.start_time_picer.Hide()
-        self.start_date_picer.Hide()
-        self.end_date_l.Hide()
-        self.end_time_picer.Hide()
-        self.end_date_picer.Hide()
-        self.limit_date_to_last_l.Hide()
-        self.limit_date_to_last_cb.Hide()
         self.axis_y_min_l.Hide()
         self.axis_y_min_cb.Hide()
         self.axis_y_max_l.Hide()
@@ -6227,6 +6263,7 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
 
     def show_data_extract(self):
         self.data_extraction_l.Show()
+        self.show_hide_date_extract_btn.Show()
         self.example_line_l.Show()
         self.example_line.Show()
         self.split_character_l.Show()
@@ -6252,6 +6289,16 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
         self.key_matches_tc.Show()
         self.rem_from_val_l.Show()
         self.rem_from_val_tc.Show()
+        self.start_date_l.Show()
+        self.start_time_picer.Show()
+        self.start_date_picer.Show()
+        self.end_date_l.Show()
+        self.end_time_picer.Show()
+        self.end_date_picer.Show()
+        self.limit_date_to_last_l.Show()
+        self.limit_date_to_last_cb.Show()
+
+    def show_graph_settings(self):
         # setting
         self.danger_low_l.Show()
         self.danger_low_tc.Show()
@@ -6263,14 +6310,6 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
         self.danger_high_tc.Show()
         self.data_controls.Show()
         self.data_controls.Show()
-        self.start_date_l.Show()
-        self.start_time_picer.Show()
-        self.start_date_picer.Show()
-        self.end_date_l.Show()
-        self.end_time_picer.Show()
-        self.end_date_picer.Show()
-        self.limit_date_to_last_l.Show()
-        self.limit_date_to_last_cb.Show()
         self.axis_y_min_l.Show()
         self.axis_y_min_cb.Show()
         self.axis_y_max_l.Show()
@@ -6559,24 +6598,11 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
         # if valid turn on graphing buttons
         if self.date_good and val_good == True:
             #print("Local Graphing - valid data")
-            MainApp.graphing_ctrl_pannel.local_simple_line.Enable()
-            MainApp.graphing_ctrl_pannel.local_color_line.Enable()
-            MainApp.graphing_ctrl_pannel.local_simple_bar.Enable()
-            MainApp.graphing_ctrl_pannel.local_box_plot.Enable()
-            MainApp.graphing_ctrl_pannel.over_threasholds_by_hour.Enable()
-            MainApp.graphing_ctrl_pannel.threasholds_pie.Enable()
-            MainApp.graphing_ctrl_pannel.dividied_daily.Enable()
-            MainApp.graphing_ctrl_pannel.value_diff_graph.Enable()
+            MainApp.graphing_ctrl_pannel.enable_value_graphs()
         else:
             #print("local graphing - not got valid data")
-            MainApp.graphing_ctrl_pannel.local_simple_line.Disable()
-            MainApp.graphing_ctrl_pannel.local_color_line.Disable()
-            MainApp.graphing_ctrl_pannel.local_simple_bar.Disable()
-            MainApp.graphing_ctrl_pannel.local_box_plot.Disable()
-            MainApp.graphing_ctrl_pannel.over_threasholds_by_hour.Disable()
-            MainApp.graphing_ctrl_pannel.threasholds_pie.Disable()
-            MainApp.graphing_ctrl_pannel.dividied_daily.Disable()
-            MainApp.graphing_ctrl_pannel.value_diff_graph.Disable()
+            MainApp.graphing_ctrl_pannel.disable_value_graphs()
+
 
     def limit_date_to_last_go(self, e):
         current_datetime = datetime.datetime.now()
@@ -6620,12 +6646,18 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
             last_date = MainApp.graphing_info_pannel.end_date_picer.GetValue()
             last_datetime = datetime.datetime(year = last_date.year, month = last_date.month + 1, day = last_date.day, hour = last_time.hour, minute = last_time.minute, second = last_time.second)
             #print(first_datetime, last_datetime)
-
-        # read log into lists
-        print("Reading log")
-        date_list = []
-        value_list = []
-        key_list = []
+        # notify user what we're doing
+        msg = " - Reading Log " + str(shared_data.log_to_load)
+        if date_only == True:
+            msg += " - Dates Only"
+        if limit_by_date == True:
+            msg += " - Limiting by Date"
+        if numbers_only == True:
+            msg += " - Numbers only"
+        print(msg)
+        MainApp.status.write_bar(msg)
+        shared_data.first_valueset_name = os.path.split(shared_data.log_to_load)[1]
+        # get line splitting info from ui boxes
         split_chr = self.split_character_tc.GetValue()
         date_pos = int(self.date_pos_cb.GetValue())
         date_split = self.date_pos_split_tc.GetValue()
@@ -6652,26 +6684,49 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
                 key_matches = self.key_matches_tc.GetValue()
             else:
                 key_matches = ""
-        # date
-        #print("length of log " + str(len(MainApp.graphing_ctrl_pannel.log_to_graph)))
-        for line in MainApp.graphing_ctrl_pannel.log_to_graph:
+        #
+        ##
+        ### loading log from file
+        ##
+        #
+        #log_to_parse = MainApp.graphing_ctrl_pannel.log_to_graph
+        print("  -- Reading log from file")
+        with open(shared_data.log_to_load) as f:
+            log_to_parse = f.read()
+        log_to_parse = log_to_parse.splitlines()
+        if len(log_to_parse) == 0:
+            print(" --- Log file is empty")
+
+        #
+        ##
+        ### read log into lists
+        ##
+        #
+        # define lists to fill
+        date_list = []
+        value_list = []
+        key_list = []
+        # cycle through each line and fill the lists
+        for line in log_to_parse:
             line_items = line.split(split_chr)
-            # date
+            # get date for this log entry
             date = line_items[date_pos]
             if not date_split == "":
                 date = date.split(date_split)[date_split_pos]
             if "." in date:
                 date = date.split(".")[0]
+            # Check date is valid and ignore if not
             try:
                 date = datetime.datetime.strptime(date, '%Y-%m-%d %H:%M:%S')
                 if limit_by_date == True:
                     if date > last_datetime or date < first_datetime:
                         date = ""
             except:
-                raise
+                #raise
                 print("date not valid -" + str(date))
                 date = ""
-            # value
+
+            # get value for this log entry
             if not date_only == True:
                 value = line_items[value_pos]
                 if not value_split == "":
@@ -6688,7 +6743,8 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
                     except:
                         print('value not valid -' + str(value))
                         value = ""
-                # key
+
+                # get key for this log entry
                 if not key_pos == "":
                     key = line_items[key_pos]
                     if not key_split == "":
@@ -6712,11 +6768,13 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
                 if not date == "":
                     date_list.append(date)
         # end of loop - return appropriate lists
-        #print("len date list read log:", len(date_list))
         if len(date_list) == 0:
             dmsg = "No valid log entries were found, check settings and try again"
             wx.MessageBox(dmsg, 'No data', wx.OK | wx.ICON_INFORMATION)
         if date_only == False:
+            shared_data.first_value_set = value_list
+            shared_data.first_date_set = date_list
+            shared_data.first_keys_set = key_list
             return date_list, value_list, key_list
         else:
             return date_list
@@ -6739,21 +6797,14 @@ class graphing_ctrl_pnl(wx.Panel):
         graph_opts = ['Pigrow', 'local']
         self.graph_cb = wx.ComboBox(self, choices = graph_opts)
         self.graph_cb.Bind(wx.EVT_TEXT, self.graph_engine_combo_go)
-        # remote buttons
-        self.make_graph_btn = wx.Button(self, label='Make Graph')
-        self.make_graph_btn.Bind(wx.EVT_BUTTON, self.make_graph_click)
-        self.download_graph = wx.CheckBox(self, label='download')
-        self.download_graph.SetValue(True)
         #
-        ### for pi based graphing only
+        ##
+        ### options shown when graphing on the pigrow
+        ##
+        #
         self.pigraph_text = wx.StaticText(self,  label='Graphing directly on the pigrow\n saves having to download logs')
         # select graphing script
-        #presets
-        self.preset_text = wx.StaticText(self,  label='Preset')
-        self.graph_presets_cb = wx.ComboBox(self, choices=['BLANK'])
-        self.graph_presets_cb.Bind(wx.EVT_COMBOBOX, self.graph_preset_cb_go)
-        self.graph_preset_all = wx.CheckBox(self, label='all')
-        self.graph_preset_all.Bind(wx.EVT_CHECKBOX, self.preset_all_click)
+
         # manual
         self.script_text = wx.StaticText(self,  label='Graphing Script;')
         self.select_script_cb = wx.ComboBox(self, choices = ['BLANK'])
@@ -6773,20 +6824,55 @@ class graphing_ctrl_pnl(wx.Panel):
         # extra arguments string
         self.extra_args_label = wx.StaticText(self,  label='Commandline Flags;')
         self.extra_args = wx.TextCtrl(self)
+        # remote buttons
+        self.make_graph_btn = wx.Button(self, label='Make Graph')
+        self.make_graph_btn.Bind(wx.EVT_BUTTON, self.make_graph_click)
+        self.download_graph = wx.CheckBox(self, label='download')
+        self.download_graph.SetValue(True)
         #
+        ##
         ### for local graph construction
+        ##
+        #
+        # Section Labels
+        sub_title_font = wx.Font(13, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
+        self.data_title_text = wx.StaticText(self,  label='Data Source')
+        self.data_title_text.SetFont(sub_title_font)
+        self.graph_title_text = wx.StaticText(self,  label='Graphs')
+        self.graph_title_text.SetFont(sub_title_font)
+        # current log files info
+
+        self.valset_1_loaded  = wx.StaticBitmap(self, -1, shared_data.no_log_image)
+        self.valset_1_len_l = wx.StaticText(self,  label=' Datapoints : ')
+        self.valset_1_len = wx.StaticText(self,  label='0')
+        self.valset_1_name = wx.StaticText(self,  label='-')
+        self.set_log_btn = wx.Button(self, label='Load Log')
+        self.set_log_btn.Bind(wx.EVT_BUTTON, self.set_log_click)
+
+
+
+
+        #presets
+        self.preset_text = wx.StaticText(self,  label='Preset')
+        self.graph_presets_cb = wx.ComboBox(self, choices=['BLANK'])
+        self.graph_presets_cb.Bind(wx.EVT_COMBOBOX, self.graph_preset_cb_go)
+        self.graph_preset_all = wx.CheckBox(self, label='all')
+        self.graph_preset_all.Bind(wx.EVT_CHECKBOX, self.preset_all_click)
+        # open log
         self.select_log_btn = wx.Button(self, label='Select Log File')
         self.select_log_btn.Bind(wx.EVT_BUTTON, self.select_log_click)
+        # load data using a sucker modules
+        self.module_sucker_text = wx.StaticText(self,  label='Data Sucker Modules')
+        self.module_sucker_cb = wx.ComboBox(self, choices=self.get_module_options("sucker_"))
+        self.module_sucker_go_btn = wx.Button(self, label='Go')
+        self.module_sucker_go_btn.Bind(wx.EVT_BUTTON, self.suck_from_imported_module)
+
         # make_graph_from_imported_module
         self.refresh_module_graph_btn = wx.Button(self, label='R', size=(40,30))
         self.refresh_module_graph_btn.Bind(wx.EVT_BUTTON, self.refresh_module_graph_go)
-        self.module_graph_choice = wx.ComboBox(self,  size=(150, 30), choices = self.get_module_options())
+        self.module_graph_choice = wx.ComboBox(self,  size=(150, 30), choices = self.get_module_options("graph_"))
         self.module_graph_btn = wx.Button(self, label='Make', size=(60,30))
         self.module_graph_btn.Bind(wx.EVT_BUTTON, self.make_graph_from_imported_module)
-        module_graph_sizer =  wx.BoxSizer(wx.HORIZONTAL)
-        module_graph_sizer.Add(self.refresh_module_graph_btn, 0, wx.ALL, 3)
-        module_graph_sizer.Add(self.module_graph_choice, 0, wx.ALL|wx.EXPAND, 3)
-        module_graph_sizer.Add(self.module_graph_btn, 0, wx.ALL, 3)
 
         # graphs
         self.local_simple_line = wx.Button(self, label='Simple Line Graph')
@@ -6822,18 +6908,43 @@ class graphing_ctrl_pnl(wx.Panel):
         self.switch_log_graph = wx.Button(self, label='Switch Log Graph')
         self.switch_log_graph.Bind(wx.EVT_BUTTON, self.switch_log_graph_go)
 
-
-
         # Sizers
-        # local opts size
+        # options used when graphing locally
+        valset_1_len_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        valset_1_len_sizer.Add(self.valset_1_len_l, 0, wx.ALL|wx.EXPAND, 3)
+        valset_1_len_sizer.Add(self.valset_1_len, 0, wx.ALL|wx.EXPAND, 3)
+        valset_1_text_sizer = wx.BoxSizer(wx.VERTICAL)
+        valset_1_text_sizer.Add(valset_1_len_sizer, 0, wx.ALL|wx.EXPAND, 3)
+        valset_1_text_sizer.Add(self.valset_1_name, 0, wx.ALL|wx.EXPAND, 3)
+        valset_1_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        valset_1_sizer.Add(self.valset_1_loaded, 0, wx.ALL|wx.EXPAND, 3)
+        valset_1_sizer.Add(valset_1_text_sizer, 0, wx.ALL|wx.EXPAND, 3)
+        valset_1_sizer.Add(self.set_log_btn, 0, wx.ALL|wx.EXPAND, 3)
+        graph_preset_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        graph_preset_sizer.Add(self.graph_presets_cb, 0, wx.ALL|wx.EXPAND, 3)
+        graph_preset_sizer.Add(self.graph_preset_all, 0, wx.ALL|wx.EXPAND, 3)
+        module_graph_sizer =  wx.BoxSizer(wx.HORIZONTAL)
+        module_graph_sizer.Add(self.refresh_module_graph_btn, 0, wx.ALL, 3)
+        module_graph_sizer.Add(self.module_graph_choice, 0, wx.ALL|wx.EXPAND, 3)
+        module_graph_sizer.Add(self.module_graph_btn, 0, wx.ALL, 3)
+        module_sucker_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        module_sucker_sizer.Add(self.module_sucker_cb, 0, wx.ALL|wx.EXPAND, 3)
+        module_sucker_sizer.Add(self.module_sucker_go_btn, 0, wx.ALL|wx.EXPAND, 3)
         compare_sizer =  wx.BoxSizer(wx.HORIZONTAL)
         compare_sizer.Add(self.graph_compare, 0, wx.ALL|wx.EXPAND, 3)
         compare_sizer.Add(self.graph_compare_clear, 0, wx.ALL|wx.EXPAND, 3)
+        # local opts size
         local_opts_sizer = wx.BoxSizer(wx.VERTICAL)
+        local_opts_sizer.Add(valset_1_sizer, 0, wx.ALL|wx.EXPAND, 3)
+        local_opts_sizer.Add(self.data_title_text, 0, wx.ALL|wx.EXPAND, 3)
+        local_opts_sizer.Add(self.preset_text, 0, wx.ALL|wx.EXPAND, 3)
+        local_opts_sizer.Add(graph_preset_sizer, 0, wx.ALL|wx.EXPAND, 3)
         local_opts_sizer.Add(self.select_log_btn, 0, wx.ALL, 3)
+        local_opts_sizer.Add(self.module_sucker_text, 0, wx.ALL|wx.EXPAND, 3)
+        local_opts_sizer.Add(module_sucker_sizer, 0, wx.ALL, 3)
         local_opts_sizer.AddStretchSpacer(1)
+        local_opts_sizer.Add(self.graph_title_text, 0, wx.ALL|wx.EXPAND, 3)
         local_opts_sizer.Add(module_graph_sizer, 0, wx.ALL, 3)
-        local_opts_sizer.AddStretchSpacer(1)
         local_opts_sizer.Add(self.local_simple_line, 0, wx.ALL, 3)
         local_opts_sizer.Add(self.local_color_line, 0, wx.ALL, 3)
         local_opts_sizer.Add(self.local_simple_bar, 0, wx.ALL, 3)
@@ -6842,38 +6953,36 @@ class graphing_ctrl_pnl(wx.Panel):
         local_opts_sizer.Add(self.threasholds_pie, 0, wx.ALL, 3)
         local_opts_sizer.Add(self.dividied_daily, 0, wx.ALL, 3)
         local_opts_sizer.Add(compare_sizer, 0, wx.ALL, 3)
-        local_opts_sizer.AddStretchSpacer(1)
         local_opts_sizer.Add(self.value_diff_graph, 0, wx.ALL, 3)
         local_opts_sizer.Add(self.log_time_diff_graph, 0, wx.ALL, 3)
-        local_opts_sizer.AddStretchSpacer(1)
-        local_opts_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
+        local_opts_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(5, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
         local_opts_sizer.Add(self.switch_log_graph, 0, wx.ALL, 3)
-        local_opts_sizer.AddStretchSpacer(1)
+        # sizers used for graphing on pigrow
         make_graph_sizer =  wx.BoxSizer(wx.HORIZONTAL)
         make_graph_sizer.Add(self.make_graph_btn, 0, wx.ALL|wx.EXPAND, 3)
         make_graph_sizer.Add(self.download_graph, 0, wx.ALL|wx.EXPAND, 3)
-        graph_preset_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        graph_preset_sizer.Add(self.graph_presets_cb, 0, wx.ALL|wx.EXPAND, 3)
-        graph_preset_sizer.Add(self.graph_preset_all, 0, wx.ALL|wx.EXPAND, 3)
+        # main sizer
+        self.line1 = wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL)
+        self.line2 = wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL)
+        self.line3 = wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL)
+        self.line4 = wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL)
         self.main_sizer = wx.BoxSizer(wx.VERTICAL)
         self.main_sizer.Add(make_graph_l, 0, wx.ALL|wx.EXPAND, 3)
         self.main_sizer.Add(self.graph_cb, 0, wx.ALL|wx.EXPAND, 3)
-        self.main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
-        self.main_sizer.Add(self.preset_text, 0, wx.ALL|wx.EXPAND, 3)
-        self.main_sizer.Add(graph_preset_sizer, 0, wx.ALL|wx.EXPAND, 3)
+        self.main_sizer.Add(self.line1, 0, wx.ALL|wx.EXPAND, 5)
         self.main_sizer.Add(self.pigraph_text, 0, wx.ALL|wx.EXPAND, 3)
-        self.main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
+        self.main_sizer.Add(self.line2, 0, wx.ALL|wx.EXPAND, 5)
         self.main_sizer.Add(self.script_text, 0, wx.ALL|wx.EXPAND, 3)
         self.main_sizer.Add(self.select_script_cb, 0, wx.ALL|wx.EXPAND, 3)
         self.main_sizer.Add(self.get_opts_tb, 0, wx.ALL|wx.EXPAND, 3)
-        self.main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
+        self.main_sizer.Add(self.line3, 0, wx.ALL|wx.EXPAND, 5)
         self.main_sizer.Add(self.opts_cb, 0, wx.ALL|wx.EXPAND, 3)
         self.main_sizer.Add(self.command_line_opts_value_list_cb, 0, wx.ALL|wx.EXPAND, 3)
         self.main_sizer.Add(self.opts_text, 0, wx.ALL|wx.EXPAND, 3)
         self.main_sizer.Add(self.add_arg_btn, 0, wx.ALL|wx.EXPAND, 3)
         self.main_sizer.Add(self.extra_args_label, 0, wx.ALL|wx.EXPAND, 3)
         self.main_sizer.Add(self.extra_args, 0, wx.ALL|wx.EXPAND, 3)
-        self.main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
+        self.main_sizer.Add(self.line4, 0, wx.ALL|wx.EXPAND, 5)
         self.main_sizer.Add(make_graph_sizer, 0, wx.ALL|wx.EXPAND, 3)
         self.main_sizer.Add(local_opts_sizer, 0, wx.ALL|wx.EXPAND, 3)
         self.SetSizer(self.main_sizer)
@@ -6894,6 +7003,10 @@ class graphing_ctrl_pnl(wx.Panel):
         self.extra_args.Hide()
         self.make_graph_btn.Hide()
         self.download_graph.Hide()
+        self.line1.Hide()
+        self.line2.Hide()
+        self.line3.Hide()
+        self.line4.Hide()
         self.blank_options_ui_elements()
 
     def show_make_on_pi_ui_elements(self):
@@ -6905,6 +7018,10 @@ class graphing_ctrl_pnl(wx.Panel):
         self.extra_args.Show()
         self.make_graph_btn.Show()
         self.download_graph.Show()
+        self.line1.Show()
+        self.line2.Show()
+        self.line3.Show()
+        self.line4.Show()
 
     def hide_make_local_ui_elements(self):
         self.select_log_btn.Hide()
@@ -6926,9 +7043,19 @@ class graphing_ctrl_pnl(wx.Panel):
         self.refresh_module_graph_btn.Hide()
         self.graph_compare.Hide()
         self.graph_compare_clear.Hide()
+        self.data_title_text.Hide()
+        self.graph_title_text.Hide()
+        self.valset_1_loaded.Hide()
+        self.valset_1_len_l.Hide()
+        self.valset_1_len.Hide()
+        self.module_sucker_text.Hide()
+        self.module_sucker_cb.Hide()
+        self.module_sucker_go_btn.Hide()
+        self.set_log_btn.Hide()
 
         try:
             MainApp.graphing_info_pannel.hide_data_extract()
+            MainApp.graphing_info_pannel.hide_graph_settings()
         except:
             pass
 
@@ -6952,6 +7079,35 @@ class graphing_ctrl_pnl(wx.Panel):
         self.refresh_module_graph_btn.Show()
         self.graph_compare.Show()
         self.graph_compare_clear.Show()
+        self.data_title_text.Show()
+        self.graph_title_text.Show()
+        self.valset_1_loaded.Show()
+        self.valset_1_len_l.Show()
+        self.valset_1_len.Show()
+        self.module_sucker_text.Show()
+        self.module_sucker_cb.Show()
+        self.module_sucker_go_btn.Show()
+        self.set_log_btn.Show()
+
+    def enable_value_graphs(self):
+        self.local_simple_line.Enable()
+        self.local_color_line.Enable()
+        self.local_simple_bar.Enable()
+        self.local_box_plot.Enable()
+        self.over_threasholds_by_hour.Enable()
+        self.threasholds_pie.Enable()
+        self.dividied_daily.Enable()
+        self.value_diff_graph.Enable()
+
+    def disable_value_graphs(self):
+        self.local_simple_line.Disable()
+        self.local_color_line.Disable()
+        self.local_simple_bar.Disable()
+        self.local_box_plot.Disable()
+        self.over_threasholds_by_hour.Disable()
+        self.threasholds_pie.Disable()
+        self.dividied_daily.Disable()
+        self.value_diff_graph.Disable()
 
     def graph_engine_combo_go(self, e):
         # combo box selects if you want to make graphs on pi or locally
@@ -6972,6 +7128,22 @@ class graphing_ctrl_pnl(wx.Panel):
         MainApp.graphing_ctrl_pannel.Layout()
         MainApp.window_self.Layout()
 
+    def read_example_line_from_file(self, dont_set_ui=False):
+        print(" -- Reading log to get example line")
+        with open(shared_data.log_to_load) as f:
+            log_to_graph = f.read()
+        log_to_graph = log_to_graph.splitlines()
+        if len(log_to_graph) == 0:
+            print(" --- Log file is empty")
+        MainApp.graphing_info_pannel.example_line.SetLabel(log_to_graph[0])
+        if not dont_set_ui == True:
+            split_chr_choices = self.get_split_chr(log_to_graph[0])
+            if len(split_chr_choices) == 1:
+                MainApp.graphing_info_pannel.split_character_tc.SetValue(split_chr_choices[0])
+            else:
+                MainApp.graphing_info_pannel.split_character_tc.SetValue("")
+                MainApp.graphing_info_pannel.clear_and_reset_fields()
+
     # Make locally controlls
     def select_log_click(self, e):
         wildcard = "TXT and LOG files (*.txt;*.log)|*.txt;*.log"
@@ -6984,19 +7156,12 @@ class graphing_ctrl_pnl(wx.Panel):
         log_path = openFileDialog.GetPath()
         print(" - Using ", log_path, " to make a graph locally" )
         MainApp.graphing_info_pannel.show_data_extract()
+        MainApp.graphing_info_pannel.show_graph_settings()
+        # write path to shared data
+        shared_data.log_to_load = log_path
+        shared_data.first_valueset_name = os.path.split(log_path)[1]
         # Open log file
-        with open(log_path) as f:
-            self.log_to_graph = f.read()
-        self.log_to_graph = self.log_to_graph.splitlines()
-        if len(self.log_to_graph) == 0:
-            print(" --- Log file is empty")
-        MainApp.graphing_info_pannel.example_line.SetLabel(self.log_to_graph[0])
-        split_chr_choices = self.get_split_chr(self.log_to_graph[0])
-        if len(split_chr_choices) == 1:
-            MainApp.graphing_info_pannel.split_character_tc.SetValue(split_chr_choices[0])
-        else:
-            MainApp.graphing_info_pannel.split_character_tc.SetValue("")
-            MainApp.graphing_info_pannel.clear_and_reset_fields()
+        self.read_example_line_from_file()
 
     def set_dates_to_log(self):
         date_list = MainApp.graphing_info_pannel.read_log_date_and_value(limit_by_date = False,  date_only = True)
@@ -7019,18 +7184,45 @@ class graphing_ctrl_pnl(wx.Panel):
                     split_chr_choices.append(chr)
         return split_chr_choices
 
+    def set_log_click(self, e):
+        if self.set_log_btn.GetLabel() == "Clear":
+            shared_data.first_value_set = []
+            shared_data.first_date_set = []
+            shared_data.first_keys_set = []
+            shared_data.first_valueset_name = ""
+            self.valset_1_name.SetLabel("-")
+            self.disable_value_graphs()
+            self.valset_1_loaded.SetBitmap(shared_data.no_log_image)
+            self.valset_1_len.SetLabel(str(len(shared_data.first_value_set)))
+            self.set_log_btn.SetLabel("Load Log")
+        else:
+            # read log
+            date_list, value_list, key_list = MainApp.graphing_info_pannel.read_log_date_and_value(numbers_only=True)
+            if len(shared_data.first_date_set) == len(shared_data.first_value_set) and len(shared_data.first_date_set) == len(shared_data.first_keys_set) and len(shared_data.first_date_set) > 0:
+                self.enable_value_graphs()
+                self.valset_1_loaded.SetBitmap(shared_data.yes_log_image)
+                self.valset_1_len.SetLabel(str(len(shared_data.first_value_set)))
+                self.valset_1_name.SetLabel(shared_data.first_valueset_name)
+                self.set_log_btn.SetLabel("Clear")
+                MainApp.graphing_info_pannel.show_hide_date_extract_btn.SetLabel("hide")
+                MainApp.graphing_info_pannel.show_hide_date_extract_click("e")
+                MainApp.window_self.Layout()
+            else:
+                self.valset_1_loaded.SetBitmap(shared_data.no_log_image)
+                self.valset_1_len.SetLabel(str(len(shared_data.first_date_set)), str(len(shared_data.first_value_set)), str(len(shared_data.first_key_set)))
+
     # graph presets
 
     def discover_graph_presets(self, e=""):
         show_all = self.graph_preset_all.GetValue()
-        graph_presets_path = os.path.join(os.getcwd(), "graph_presets")
-        graph_presets = os.listdir(graph_presets_path)
+
+        graph_presets = os.listdir(shared_data.graph_presets_path)
         self.graph_presets_cb.Clear()
         graph_preset_list = []
         for file in graph_presets:
             if show_all == False:
-                current_presets_path = os.path.join(graph_presets_path, file)
-                log_path = self.get_log_path_from_preset(current_presets_path)
+                current_preset_path = os.path.join(shared_data.graph_presets_path, file)
+                log_path = self.get_log_path_from_preset(current_preset_path)
                 if not log_path == None:
                     if os.path.isfile(log_path) == True:
                         graph_preset_list.append(file)
@@ -7039,9 +7231,9 @@ class graphing_ctrl_pnl(wx.Panel):
         graph_preset_list.sort()
         self.graph_presets_cb.Append(graph_preset_list)
 
-    def get_log_path_from_preset(self, graph_presets_path):
+    def get_log_path_from_preset(self, graph_preset_path):
         local_logs_path = os.path.join(localfiles_info_pnl.local_path, "logs")
-        with open(graph_presets_path) as f:
+        with open(graph_preset_path) as f:
             graph_presets = f.read()
         graph_presets = graph_presets.splitlines()
         for line in graph_presets:
@@ -7063,10 +7255,10 @@ class graphing_ctrl_pnl(wx.Panel):
         # load presets
         graph_option = self.graph_presets_cb.GetValue()
         MainApp.graphing_info_pannel.show_data_extract()
+        MainApp.graphing_info_pannel.show_graph_settings()
         print("Want's to use preset from " + graph_option)
-        graph_presets_path = os.path.join(os.getcwd(), "graph_presets")
-        graph_presets_path = os.path.join(graph_presets_path, graph_option)
-        with open(graph_presets_path) as f:
+        graph_preset_path = os.path.join(shared_data.graph_presets_path, graph_option)
+        with open(graph_preset_path) as f:
             graph_presets = f.read()
         graph_presets = graph_presets.splitlines()
         preset_settings = {}
@@ -7081,13 +7273,9 @@ class graphing_ctrl_pnl(wx.Panel):
         if "log_path" in preset_settings:
             local_logs_path = os.path.join(localfiles_info_pnl.local_path, "logs")
             log_path = os.path.join(local_logs_path, preset_settings["log_path"])
-            with open(log_path) as f:
-                self.log_to_graph = f.read()
-            self.log_to_graph = self.log_to_graph.splitlines()
-            if len(self.log_to_graph) == 0:
-                print(" --- Log file " + log_path + " is empty")
-            else:
-                MainApp.graphing_info_pannel.example_line.SetLabel(self.log_to_graph[0])
+            shared_data.first_valueset_name = graph_option
+            shared_data.log_to_load = log_path
+            self.read_example_line_from_file(dont_set_ui=True)
         else:
             print("Log path not found in presets file")
         # set boxes
@@ -7174,31 +7362,38 @@ class graphing_ctrl_pnl(wx.Panel):
             MainApp.graphing_info_pannel.size_h_cb.SetValue("655")
         return size_h, size_v
 
-    def get_module_options(self):
+    def get_module_options(self, module_prefix):
         list_of_modules = []
         graph_modules_folder = os.path.join(os.getcwd(), "graph_modules")
         module_options = os.listdir(graph_modules_folder)
         for file in module_options:
-            if "graph_" in file:
-                file = file.split("graph_")[1]
+            if module_prefix in file:
+                file = file.split(module_prefix)[1]
                 if ".py" in file:
                     file = file.split(".py")[0]
                     list_of_modules.append(file)
         return list_of_modules
 
     def refresh_module_graph_go(self, e):
+        #
         self.module_graph_choice.Clear()
-        module_list = self.get_module_options()
+        module_list = self.get_module_options("graph_")
         self.module_graph_choice.Append(module_list)
+        #
+        self.module_sucker_cb.Clear()
+        module_list = self.get_module_options("sucker_")
+        self.module_sucker_cb.Append(module_list)
 
     def make_graph_from_imported_module(self, e):
         print("Want's to create a graph using a external module...  ")
         # read data from log
-        date_list, value_list, key_list = MainApp.graphing_info_pannel.read_log_date_and_value(numbers_only=True)
+        value_list = shared_data.first_value_set
+        date_list = shared_data.first_date_set
+        key_list = shared_data.first_keys_set
         if len(date_list) == 0:
+            print("No data to make a graph with...")
             return None
         MainApp.status.write_bar("-- Creating a graph from a module using  " + str(len(date_list)) + " values")
-        module_path = graph_presets_path = os.path.join(os.getcwd(), "graph_modules", "simple_line.py")
         # read graph settings from ui boxes
         key_unit = ""
         ymax = MainApp.graphing_info_pannel.axis_y_max_cb.GetValue()
@@ -7225,13 +7420,40 @@ class graphing_ctrl_pnl(wx.Panel):
         MainApp.graphing_info_pannel.show_local_graph(graph_path)
         MainApp.status.write_bar("ready...")
 
+    def suck_from_imported_module(self, e):
+        module_name = self.module_sucker_cb.GetValue()
+        #
+        graph_modules_folder = os.path.join(os.getcwd(), "graph_modules")
+        sys.path.append(graph_modules_folder)
+        module_name = "sucker_" + module_name
+        if module_name in sys.modules:
+            del sys.modules[module_name]
+        exec("from " + module_name + " import run_sucker", globals())
+        extra = [shared_data.first_value_set, shared_data.first_date_set]
+        values, dates, keys = run_sucker()
+        shared_data.first_value_set = values
+        shared_data.first_date_set = dates
+        shared_data.first_keys_set = keys
+        shared_data.first_valueset_name = module_name
+        self.enable_value_graphs()
+        if len(shared_data.first_date_set) == len(shared_data.first_value_set) and len(shared_data.first_date_set) == len(shared_data.first_keys_set) and len(shared_data.first_date_set) > 0:
+            self.valset_1_loaded.SetBitmap(shared_data.yes_log_image)
+            self.valset_1_len.SetLabel(str(len(shared_data.first_value_set)))
+            self.valset_1_name.SetLabel(module_name)
+            self.set_log_btn.SetLabel("Clear")
+            MainApp.window_self.Layout()
+
+        print("Added ", len(values), len(dates), len(keys), " data points.")
 
     # make graphs
     def local_simple_line_go(self, e):
         print("Want's to create a simple line graph...  ")
         # read data from log
-        date_list, value_list, key_list = MainApp.graphing_info_pannel.read_log_date_and_value(numbers_only=True)
+        value_list = shared_data.first_value_set
+        date_list = shared_data.first_date_set
+        key_list = shared_data.first_keys_set
         if len(date_list) == 0:
+            print("No data to make a graph with...")
             return None
         MainApp.status.write_bar("-- Creating a simple line graph from " + str(len(date_list)) + " values")
         # read graph settings from ui boxes
@@ -7271,8 +7493,11 @@ class graphing_ctrl_pnl(wx.Panel):
         size_h, size_v = self.get_graph_size_from_ui()
         # read data from the log
         print("Want's to create a color line graph...")
-        date_list, value_list, key_list = MainApp.graphing_info_pannel.read_log_date_and_value(numbers_only=True)
+        value_list = shared_data.first_value_set
+        date_list = shared_data.first_date_set
+        key_list = shared_data.first_keys_set
         if len(date_list) == 0:
+            print("No data to make a graph with...")
             return None
         MainApp.status.write_bar("-- Creating a colour line graph from " + str(len(date_list)) + " values")
         # define graph space
@@ -7316,8 +7541,11 @@ class graphing_ctrl_pnl(wx.Panel):
     def local_simple_bar_go(self, e):
         print("Want's to create a simple bar graph...  ")
         # read log
-        date_list, value_list, key_list = MainApp.graphing_info_pannel.read_log_date_and_value(numbers_only=True)
+        value_list = shared_data.first_value_set
+        date_list = shared_data.first_date_set
+        key_list = shared_data.first_keys_set
         if len(date_list) == 0:
+            print("No data to make a graph with...")
             return None
         MainApp.status.write_bar("-- Creating a simple bar graph from " + str(len(date_list)) + " values")
         # read graph settings from ui boxes
@@ -7346,8 +7574,11 @@ class graphing_ctrl_pnl(wx.Panel):
 
     def over_threasholds_by_hour_go(self, e):
         # read log
-        date_list, temp_list, key_list = MainApp.graphing_info_pannel.read_log_date_and_value(numbers_only=True)
+        value_list = shared_data.first_value_set
+        date_list = shared_data.first_date_set
+        key_list = shared_data.first_keys_set
         if len(date_list) == 0:
+            print("No data to make a graph with...")
             return None
         MainApp.status.write_bar("-- Creating a threasholds by hour graph from " + str(len(date_list)) + " values")
         # read graph settings from ui boxes
@@ -7370,13 +7601,13 @@ class graphing_ctrl_pnl(wx.Panel):
         dangercoldArray = [0]*24
         for i in range(len(date_list)):
             h = int(date_list[i].strftime('%H'))
-            if temp_list[i] >= dangerhot:
+            if value_list[i] >= dangerhot:
                 dangerhotArray[h] += 1
-            elif temp_list[i] >= toohot:
+            elif value_list[i] >= toohot:
                 toohotArray[h] += 1
-            elif temp_list[i] <= dangercold:
+            elif value_list[i] <= dangercold:
                 dangercoldArray[h] += 1
-            elif temp_list[i] <= toocold:
+            elif value_list[i] <= toocold:
                 toocoldArray[h] += 1
         ind = np.arange(24)  # the x locations for the groups
         width = 0.25  # the width of the bars
@@ -7402,8 +7633,11 @@ class graphing_ctrl_pnl(wx.Panel):
 
     def threasholds_pie_go(self, e):
         # read the log
-        date_list, temp_list, key_list = MainApp.graphing_info_pannel.read_log_date_and_value(numbers_only=True)
+        value_list = shared_data.first_value_set
+        date_list = shared_data.first_date_set
+        key_list = shared_data.first_keys_set
         if len(date_list) == 0:
+            print("No data to make a graph with...")
             return None
         MainApp.status.write_bar("-- Creating a threasholds pie from " + str(len(date_list)) + " values")
         # read settings from ui
@@ -7428,13 +7662,13 @@ class graphing_ctrl_pnl(wx.Panel):
         # Group the data by classification
         tempCount = [0,0,0,0,0]
         for i in range(len(date_list)):
-            if temp_list[i] >= dangerhot:
+            if value_list[i] >= dangerhot:
                 tempCount[0] += 1
-            elif temp_list[i] >= toohot:
+            elif value_list[i] >= toohot:
                 tempCount[1] += 1
-            elif temp_list[i] <= dangercold:
+            elif value_list[i] <= dangercold:
                 tempCount[4] += 1
-            elif temp_list[i] <= toocold:
+            elif value_list[i] <= toocold:
                 tempCount[3] += 1
             else:
                 tempCount[2] += 1
@@ -7485,8 +7719,11 @@ class graphing_ctrl_pnl(wx.Panel):
 
     def local_box_plot_go(self, e):
         # reading the log
-        date_list, temp_list, key_list = MainApp.graphing_info_pannel.read_log_date_and_value(numbers_only=True)
+        value_list = shared_data.first_value_set
+        date_list = shared_data.first_date_set
+        key_list = shared_data.first_keys_set
         if len(date_list) == 0:
+            print("No data to make a graph with...")
             return None
         MainApp.status.write_bar("-- Creating a local box plot from " + str(len(date_list)) + " values")
         # reading settings from ui
@@ -7508,7 +7745,7 @@ class graphing_ctrl_pnl(wx.Panel):
         hours = [[] for i in range(24)]
         for i in range(len(date_list)):
             h = int(date_list[i].strftime('%H'))
-            hours[h].append(temp_list[i])
+            hours[h].append(value_list[i])
 
         # give the graph a rectangular formatr
         fig, ax1 = plt.subplots(figsize=(10, 6))
@@ -7621,7 +7858,9 @@ class graphing_ctrl_pnl(wx.Panel):
     def log_time_diff_graph_go(self, e):
         print("Want's to create a simple line graph...  ")
         # read data from log
-        date_list = MainApp.graphing_info_pannel.read_log_date_and_value(numbers_only=True, date_only=True)
+        value_list = shared_data.first_value_set
+        date_list = shared_data.first_date_set
+        key_list = shared_data.first_keys_set
         if len(date_list) < 2:
             return None
         MainApp.status.write_bar("-- Creating a time diff graph from " + str(len(date_list)) + " values")
@@ -7664,7 +7903,9 @@ class graphing_ctrl_pnl(wx.Panel):
     def value_diff_graph_go(self, e):
         print("Want's to create a value differnce graph...  ")
         # read data from log
-        date_list, value_list, key_list = MainApp.graphing_info_pannel.read_log_date_and_value(numbers_only=True)
+        value_list = shared_data.first_value_set
+        date_list = shared_data.first_date_set
+        key_list = shared_data.first_keys_set
         if len(date_list) < 2:
             return None
         MainApp.status.write_bar("-- Creating a value diff graph from " + str(len(date_list)) + " values")
@@ -7706,8 +7947,11 @@ class graphing_ctrl_pnl(wx.Panel):
 
     def divided_daily_go(self, e):
         # read log
-        date_list, value_list, key_list = MainApp.graphing_info_pannel.read_log_date_and_value(numbers_only=True)
+        value_list = shared_data.first_value_set
+        date_list = shared_data.first_date_set
+        key_list = shared_data.first_keys_set
         if len(date_list) == 0:
+            print("No data to make a graph with...")
             return None
         MainApp.status.write_bar("-- Creating a daily values graph from " + str(len(date_list)) + " values")
         # read graph settings from ui boxes
@@ -7764,8 +8008,11 @@ class graphing_ctrl_pnl(wx.Panel):
     def graph_compare_go(self, e):
         print("Want's to create a comparing graph...  ")
         # read data from log
-        date_list, value_list, key_list = MainApp.graphing_info_pannel.read_log_date_and_value(numbers_only=True)
+        value_list = shared_data.first_value_set
+        date_list = shared_data.first_date_set
+        key_list = shared_data.first_keys_set
         if len(date_list) == 0:
+            print("No data to make a graph with...")
             return None
         MainApp.status.write_bar("-- Creating a compare graph from " + str(len(date_list)) + " values")
         #
@@ -7811,6 +8058,7 @@ class graphing_ctrl_pnl(wx.Panel):
         MainApp.status.write_bar(" -- Reading switch log")
         date_list, value_list, key_list = MainApp.graphing_info_pannel.read_log_date_and_value()
         if len(date_list) == 0:
+            print("No data to make a graph with...")
             return None
         dates_to_graph = []
         values_to_graph = []
@@ -12673,6 +12921,7 @@ class MainApp(MainFrame):
 
 def main():
     app = wx.App()
+    shared_data()
     window = MainApp(None)
     window.Show(True)
     app.MainLoop()
