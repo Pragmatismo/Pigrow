@@ -482,7 +482,7 @@ class system_ctrl_pnl(wx.Panel):
         self.add_1wire_btn.Enable()
         # assemble final message and print to screen
         final_1wire_text = module_text + therm_module_text + other_modules + onewire_config_file_text
-        system_info_pnl.sys_1wire_info.SetLabel(final_1wire_text)
+        MainApp.system_info_pannel.sys_1wire_info.SetLabel(final_1wire_text)
         MainApp.window_self.Layout()
 
     def add_1wire(self, e):
@@ -552,7 +552,7 @@ class system_ctrl_pnl(wx.Panel):
             print (i2c_bus_number)
             print(("trying using bus " + str(i2c_bus_number)))
         else:
-            system_info_pnl.sys_i2c_info.SetLabel("i2c bus not found")
+            MainApp.system_info_pannel.sys_i2c_info.SetLabel("i2c bus not found")
             return "i2c not found"
         # if i2c bus found perform aditional checks, updates the textbox and returns the bus number
         # check if baurdrate is changed in Config
@@ -564,7 +564,7 @@ class system_ctrl_pnl(wx.Panel):
         #
         #
         # change text
-        system_info_pnl.sys_i2c_info.SetLabel(i2c_text)
+        MainApp.system_info_pannel.sys_i2c_info.SetLabel(i2c_text)
         # return
         return i2c_bus_number
 
@@ -637,12 +637,12 @@ class system_ctrl_pnl(wx.Panel):
                         for item in line.split("  "):
                             i2c_addresses.append(item)
             # changing text on screen
-            i2c_text = system_info_pnl.sys_i2c_info.GetLabel().split("\n")[0]
+            i2c_text = MainApp.system_info_pannel.sys_i2c_info.GetLabel().split("\n")[0]
             if len(i2c_addresses) > 0:
                 i2c_text += "\nfound " + str(len(i2c_addresses)) + " devices at; " + str(i2c_addresses)
             else:
                 i2c_text += "\nNo devices found"
-            system_info_pnl.sys_i2c_info.SetLabel(i2c_text)
+            MainApp.system_info_pannel.sys_i2c_info.SetLabel(i2c_text)
             # returning a list of i2c device addresses
             MainApp.window_self.Layout()
             return i2c_addresses
@@ -752,23 +752,23 @@ class system_ctrl_pnl(wx.Panel):
 
         # determine what sort of update is required
         if update_needed == True:
-            system_info_pnl.sys_pigrow_update.SetLabel("update required, " + str(git_num) + " updates behind")
+            MainApp.system_info_pannel.sys_pigrow_update.SetLabel("update required, " + str(git_num) + " updates behind")
             update_type = "clean"
         elif update_needed == False:
-            system_info_pnl.sys_pigrow_update.SetLabel("master branch is upto date")
+            MainApp.system_info_pannel.sys_pigrow_update.SetLabel("master branch is upto date")
             update_type = "none"
         elif update_needed == 'ahead':
-            system_info_pnl.sys_pigrow_update.SetLabel("Caution Required!\nYou modified your Pigrow code")
+            MainApp.system_info_pannel.sys_pigrow_update.SetLabel("Caution Required!\nYou modified your Pigrow code")
             update_type = "merge"
         elif update_needed == 'diverged':
-            system_info_pnl.sys_pigrow_update.SetLabel("Caution Required!\nYou modified your Pigrow code")
+            MainApp.system_info_pannel.sys_pigrow_update.SetLabel("Caution Required!\nYou modified your Pigrow code")
             update_type = "merge"
         elif update_needed == 'error':
             if install_needed == True:
-                system_info_pnl.sys_pigrow_update.SetLabel("Pigrow folder not found.")
+                MainApp.system_info_pannel.sys_pigrow_update.SetLabel("Pigrow folder not found.")
                 update_type = "error"
         else:
-            system_info_pnl.sys_pigrow_update.SetLabel("Some confusion with git, sorry.")
+            MainApp.system_info_pannel.sys_pigrow_update.SetLabel("Some confusion with git, sorry.")
             update_type = "error"
         return update_type
 
@@ -780,13 +780,13 @@ class system_ctrl_pnl(wx.Panel):
         if not "pi 3" in MainApp.system_info_pannel.sys_pi_revision.GetLabel().lower():
             out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("cat /sys/class/leds/led1/brightness")
             if out == "255":
-                system_info_pnl.sys_power_status.SetLabel("no warning")
+                MainApp.system_info_pannel.sys_power_status.SetLabel("no warning")
             elif out == "" or out == None:
-                system_info_pnl.sys_power_status.SetLabel("error, not supported")
+                MainApp.system_info_pannel.sys_power_status.SetLabel("error, not supported")
             else:
-                system_info_pnl.sys_power_status.SetLabel("reads " + str(out) + " low power warning!")
+                MainApp.system_info_pannel.sys_power_status.SetLabel("reads " + str(out) + " low power warning!")
         else:
-            system_info_pnl.sys_power_status.SetLabel("feature disabled on pi 3")
+            MainApp.system_info_pannel.sys_power_status.SetLabel("feature disabled on pi 3")
 
     def check_pi_version(self):
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("cat /proc/device-tree/model")
@@ -878,18 +878,18 @@ class system_ctrl_pnl(wx.Panel):
         ### pi system interrogation
         # disk space
         hdd_total, hdd_percent, hdd_available, hdd_used = self.check_pi_diskspace()
-        system_info_pnl.sys_hdd_total.SetLabel(str(hdd_total) + " KB")
-        system_info_pnl.sys_hdd_remain.SetLabel(str(hdd_available) + " KB")
-        system_info_pnl.sys_hdd_used.SetLabel(str(hdd_used) + " KB (" + str(hdd_percent) + ")")
+        MainApp.system_info_pannel.sys_hdd_total.SetLabel(str(hdd_total) + " KB")
+        MainApp.system_info_pannel.sys_hdd_remain.SetLabel(str(hdd_available) + " KB")
+        MainApp.system_info_pannel.sys_hdd_used.SetLabel(str(hdd_used) + " KB (" + str(hdd_percent) + ")")
         # installed OS
         os_name = self.check_pi_os()
-        system_info_pnl.sys_os_name.SetLabel(os_name)
+        MainApp.system_info_pannel.sys_os_name.SetLabel(os_name)
         # check if pigrow folder exits and read size
         pigrow_size, folder_pcent = self.check_for_pigrow_folder(hdd_used)
         if pigrow_size == "not found":
-            system_info_pnl.sys_pigrow_folder.SetLabel("Pigrow folder now found")
+            MainApp.system_info_pannel.sys_pigrow_folder.SetLabel("Pigrow folder now found")
         else:
-            system_info_pnl.sys_pigrow_folder.SetLabel(str(pigrow_size) + " KB (" +str(folder_pcent) + "% of used)")
+            MainApp.system_info_pannel.sys_pigrow_folder.SetLabel(str(pigrow_size) + " KB (" +str(folder_pcent) + "% of used)")
         # check if git upate needed
         self.check_git() #ugly and deals with UI itself, needs upgrade and clean but git is a headfuck so like oneday...
         # pi board revision
@@ -899,16 +899,16 @@ class system_ctrl_pnl(wx.Panel):
         self.check_pi_power_warning()
         # WIFI
         network_name = self.find_network_name()
-        system_info_pnl.sys_network_name.SetLabel(network_name)
+        MainApp.system_info_pannel.sys_network_name.SetLabel(network_name)
         network_text = self.find_added_wifi()
-        system_info_pnl.wifi_list.SetLabel(network_text)
+        MainApp.system_info_pannel.wifi_list.SetLabel(network_text)
         # camera info
         camera_names = self.find_connected_webcams()
-        system_info_pnl.sys_camera_info.SetLabel(camera_names)
+        MainApp.system_info_pannel.sys_camera_info.SetLabel(camera_names)
         # datetimes and difference
         local_time, pi_time = self.get_pi_time_diff()
-        system_info_pnl.sys_pi_date.SetLabel(pi_time)
-        system_info_pnl.sys_pc_date.SetLabel(str(local_time))
+        MainApp.system_info_pannel.sys_pi_date.SetLabel(pi_time)
+        MainApp.system_info_pannel.sys_pc_date.SetLabel(str(local_time))
         # GPIO info pannel
         self.i2c_check()
         # Tidy the gui up...
@@ -1179,44 +1179,44 @@ class system_info_pnl(wx.Panel):
         self.sys_pi_revision = wx.StaticText(self,  label='--')
         self.sys_pi_revision.SetFont(shared_data.info_font)
         os_name_l = wx.StaticText(self,  label='OS installed -')
-        system_info_pnl.sys_os_name = wx.StaticText(self,  label='--')
-        system_info_pnl.sys_os_name.SetFont(shared_data.info_font)
+        self.sys_os_name = wx.StaticText(self,  label='--')
+        self.sys_os_name.SetFont(shared_data.info_font)
         # Pigrow update status
         pigrow_l = wx.StaticText(self,  label='Pigrow', size=(25,25))
         pigrow_l.SetFont(shared_data.item_title_font)
         update_status_l = wx.StaticText(self,  label='Update Status -')
-        system_info_pnl.sys_pigrow_update = wx.StaticText(self,  label='--')
-        system_info_pnl.sys_pigrow_update.SetFont(shared_data.info_font)
+        self.sys_pigrow_update = wx.StaticText(self,  label='--')
+        self.sys_pigrow_update.SetFont(shared_data.info_font)
         # SDcard details
         storage_space_l = wx.StaticText(self,  label='Storage Space', size=(25,25))
         storage_space_l.SetFont(shared_data.item_title_font)
         total_hdd_l = wx.StaticText(self,  label='               Total  -')
-        system_info_pnl.sys_hdd_total = wx.StaticText(self,  label='--')
-        system_info_pnl.sys_hdd_total.SetFont(shared_data.info_font)
+        self.sys_hdd_total = wx.StaticText(self,  label='--')
+        self.sys_hdd_total.SetFont(shared_data.info_font)
         free_hdd_l = wx.StaticText(self,  label='                Free  -')
-        system_info_pnl.sys_hdd_remain = wx.StaticText(self,  label='--')
-        system_info_pnl.sys_hdd_remain.SetFont(shared_data.info_font)
+        self.sys_hdd_remain = wx.StaticText(self,  label='--')
+        self.sys_hdd_remain.SetFont(shared_data.info_font)
         used_hdd_l = wx.StaticText(self,  label='                 Used  -')
-        system_info_pnl.sys_hdd_used = wx.StaticText(self,  label='--')
-        system_info_pnl.sys_hdd_used.SetFont(shared_data.info_font)
+        self.sys_hdd_used = wx.StaticText(self,  label='--')
+        self.sys_hdd_used.SetFont(shared_data.info_font)
         pigrow_folder_hdd_l = wx.StaticText(self,  label='Pigrow folder  -')
-        system_info_pnl.sys_pigrow_folder = wx.StaticText(self,  label='--')
-        system_info_pnl.sys_pigrow_folder.SetFont(shared_data.info_font)
+        self.sys_pigrow_folder = wx.StaticText(self,  label='--')
+        self.sys_pigrow_folder.SetFont(shared_data.info_font)
         #power level warning details
         power_l = wx.StaticText(self,  label='Power', size=(25,25))
         power_l.SetFont(shared_data.item_title_font)
         power_status_l = wx.StaticText(self,  label='Power Warning -')
-        system_info_pnl.sys_power_status = wx.StaticText(self,  label='--')
-        system_info_pnl.sys_power_status.SetFont(shared_data.info_font)
+        self.sys_power_status = wx.StaticText(self,  label='--')
+        self.sys_power_status.SetFont(shared_data.info_font)
         # Pi datetime vs local pc datetime
         time_l = wx.StaticText(self,  label='Date and Time', size=(25,25))
         time_l.SetFont(shared_data.item_title_font)
         pi_time_l = wx.StaticText(self,  label='Time on Pi -', style=wx.ALIGN_RIGHT)
-        system_info_pnl.sys_pi_date = wx.StaticText(self,  label='--')
-        system_info_pnl.sys_pi_date.SetFont(shared_data.info_font)
+        self.sys_pi_date = wx.StaticText(self,  label='--')
+        self.sys_pi_date.SetFont(shared_data.info_font)
         local_time_l = wx.StaticText(self,  label='Time on local pc -', style=wx.ALIGN_RIGHT)
-        system_info_pnl.sys_pc_date = wx.StaticText(self,  label='--')
-        system_info_pnl.sys_pc_date.SetFont(shared_data.info_font)
+        self.sys_pc_date = wx.StaticText(self,  label='--')
+        self.sys_pc_date.SetFont(shared_data.info_font)
         #
         ## peripheral hardware (top-right)
         #
@@ -1224,31 +1224,31 @@ class system_info_pnl(wx.Panel):
         camera_title_l = wx.StaticText(self,  label='Camera', size=(25,25))
         camera_title_l.SetFont(shared_data.item_title_font)
         camera_l = wx.StaticText(self,  label='Detected -')
-        system_info_pnl.sys_camera_info = wx.StaticText(self,  label='--')
-        system_info_pnl.sys_camera_info.SetFont(shared_data.info_font)
+        self.sys_camera_info = wx.StaticText(self,  label='--')
+        self.sys_camera_info.SetFont(shared_data.info_font)
         # GPIO set up details
         gpio_overlay_l = wx.StaticText(self,  label='GPIO Overlays', size=(25,25))
         gpio_overlay_l.SetFont(shared_data.item_title_font)
         i2c_l = wx.StaticText(self,  label='I2C -', size=(-1,25))
-        system_info_pnl.sys_i2c_info = wx.StaticText(self,  label='--')
-        system_info_pnl.sys_i2c_info.SetFont(shared_data.info_font)
+        self.sys_i2c_info = wx.StaticText(self,  label='--')
+        self.sys_i2c_info.SetFont(shared_data.info_font)
         uart_l = wx.StaticText(self,  label='UART -', size=(-1,25))
-        system_info_pnl.sys_uart_info = wx.StaticText(self,  label='- (not implimented) -', size=(300,25))
-        system_info_pnl.sys_uart_info.SetFont(shared_data.info_font)
+        self.sys_uart_info = wx.StaticText(self,  label='- (not implimented) -', size=(300,25))
+        self.sys_uart_info.SetFont(shared_data.info_font)
         onewire_l = wx.StaticText(self,  label='1 Wire -', size=(-1,25))
-        system_info_pnl.sys_1wire_info = wx.StaticText(self,  label='- click to scan -', size=(300,-1))
-        system_info_pnl.sys_1wire_info.SetFont(shared_data.info_font)
+        self.sys_1wire_info = wx.StaticText(self,  label='- click to scan -', size=(300,-1))
+        self.sys_1wire_info.SetFont(shared_data.info_font)
 
         # network pannel - lower half
         #wifi deatils
         network_l = wx.StaticText(self,  label='Network', size=(90,30))
         network_l.SetFont(shared_data.item_title_font)
         current_network_l = wx.StaticText(self,  label='Connected to -')
-        system_info_pnl.sys_network_name = wx.StaticText(self,  label='-network name-')
-        system_info_pnl.sys_network_name.SetFont(shared_data.info_font)
+        self.sys_network_name = wx.StaticText(self,  label='-network name-')
+        self.sys_network_name.SetFont(shared_data.info_font)
         saved_wifi_l = wx.StaticText(self,  label='Saved Wifi Networks')
         saved_wifi_l.SetFont(shared_data.item_title_font)
-        system_info_pnl.wifi_list = wx.StaticText(self,  label='--')
+        self.wifi_list = wx.StaticText(self,  label='--')
         found_wifi_l = wx.StaticText(self,  label='Found Wifi Networks')
         found_wifi_l.SetFont(shared_data.item_title_font)
         self.scan_wifi_btn = wx.Button(self, label='Scan', size=(75, 25))
@@ -1267,31 +1267,31 @@ class system_info_pnl(wx.Panel):
         hardware_version_sizer.Add(self.sys_pi_revision, 0, wx.ALL|wx.EXPAND, 3)
         os_name_sizer = wx.BoxSizer(wx.HORIZONTAL)
         os_name_sizer.Add(os_name_l, 0, wx.ALL, 3)
-        os_name_sizer.Add(system_info_pnl.sys_os_name, 0, wx.ALL|wx.EXPAND, 3)
+        os_name_sizer.Add(self.sys_os_name, 0, wx.ALL|wx.EXPAND, 3)
         # pigrow update status
         update_status_sizer = wx.BoxSizer(wx.HORIZONTAL)
         update_status_sizer.Add(update_status_l, 0, wx.ALL, 3)
-        update_status_sizer.Add(system_info_pnl.sys_pigrow_update, 0, wx.ALL|wx.EXPAND, 3)
+        update_status_sizer.Add(self.sys_pigrow_update, 0, wx.ALL|wx.EXPAND, 3)
         # sd card
         sd_size_sizer = wx.FlexGridSizer(4, 2, 0, 5)
         sd_size_sizer.AddMany( [(total_hdd_l, 0, wx.ALIGN_RIGHT),
-            (system_info_pnl.sys_hdd_total, 0),
+            (self.sys_hdd_total, 0),
             (free_hdd_l, 0, wx.ALIGN_RIGHT),
-            (system_info_pnl.sys_hdd_remain, 0),
+            (self.sys_hdd_remain, 0),
             (used_hdd_l, 0, wx.ALIGN_RIGHT),
-            (system_info_pnl.sys_hdd_used, 0),
+            (self.sys_hdd_used, 0),
             (pigrow_folder_hdd_l, 0, wx.ALIGN_RIGHT),
-            (system_info_pnl.sys_pigrow_folder, 0)])
+            (self.sys_pigrow_folder, 0)])
         # power
         power_status_sizer = wx.BoxSizer(wx.HORIZONTAL)
         power_status_sizer.Add(power_status_l, 0, wx.ALL, 3)
-        power_status_sizer.Add(system_info_pnl.sys_power_status, 0, wx.ALL|wx.EXPAND, 3)
+        power_status_sizer.Add(self.sys_power_status, 0, wx.ALL|wx.EXPAND, 3)
         # time
         time_sizer = wx.FlexGridSizer(2, 2, 0, 5)
         time_sizer.AddMany( [(pi_time_l, 0, wx.ALIGN_RIGHT),
-            (system_info_pnl.sys_pi_date, 0),
+            (self.sys_pi_date, 0),
             (local_time_l, 0, wx.ALIGN_RIGHT),
-            (system_info_pnl.sys_pc_date, 0)])
+            (self.sys_pc_date, 0)])
         # base system sizer - top-left
         base_system_info_sizer = wx.BoxSizer(wx.VERTICAL)
         base_system_info_sizer.Add(system_l, 0, wx.ALL|wx.EXPAND, 3)
@@ -1308,14 +1308,14 @@ class system_info_pnl(wx.Panel):
         # peripheral hardware (top-right)
         cam_name_sizer = wx.BoxSizer(wx.HORIZONTAL)
         cam_name_sizer.Add(camera_l, 0, wx.ALL, 3)
-        cam_name_sizer.Add(system_info_pnl.sys_camera_info, 0, wx.ALL|wx.EXPAND, 3)
+        cam_name_sizer.Add(self.sys_camera_info, 0, wx.ALL|wx.EXPAND, 3)
         overlays_sizer = wx.FlexGridSizer(3, 2, 3, 5)
         overlays_sizer.AddMany( [(i2c_l, 0, wx.ALIGN_RIGHT),
-            (system_info_pnl.sys_i2c_info, 0),
+            (self.sys_i2c_info, 0),
             (uart_l, 0, wx.ALIGN_RIGHT),
-            (system_info_pnl.sys_uart_info, 0),
+            (self.sys_uart_info, 0),
             (onewire_l, 0, wx.ALIGN_RIGHT),
-            (system_info_pnl.sys_1wire_info, 0)])
+            (self.sys_1wire_info, 0)])
         peripheral_device_sizer = wx.BoxSizer(wx.VERTICAL)
         peripheral_device_sizer.Add(camera_title_l, 0, wx.ALL|wx.EXPAND, 3)
         peripheral_device_sizer.Add(cam_name_sizer, 0, wx.LEFT|wx.EXPAND, 30)
@@ -1329,12 +1329,12 @@ class system_info_pnl(wx.Panel):
         # wifi area sizers
         current_network_sizer = wx.BoxSizer(wx.HORIZONTAL)
         current_network_sizer.Add(current_network_l, 0, wx.LEFT, 3)
-        current_network_sizer.Add(system_info_pnl.sys_network_name, 0, wx.LEFT, 30)
+        current_network_sizer.Add(self.sys_network_name, 0, wx.LEFT, 30)
         wifi_area_sizer = wx.BoxSizer(wx.VERTICAL)
         wifi_area_sizer.Add(network_l, 0, wx.ALL, 0)
         saved_wifi_sizer = wx.BoxSizer(wx.VERTICAL)
         saved_wifi_sizer.Add(saved_wifi_l, 0, wx.ALL, 5)
-        saved_wifi_sizer.Add(system_info_pnl.wifi_list, 0, wx.LEFT, 30)
+        saved_wifi_sizer.Add(self.wifi_list, 0, wx.LEFT, 30)
         found_wifi_label_and_button = wx.BoxSizer(wx.HORIZONTAL)
         found_wifi_label_and_button.Add(found_wifi_l, 0, wx.ALL, 5)
         found_wifi_label_and_button.Add(self.scan_wifi_btn, 0, wx.ALL, 5)
@@ -1577,9 +1577,9 @@ class upgrade_pigrow_dialog(wx.Dialog):
                 print (responce)
                 if len(error) > 0:
                     print(('error:' + str(error)))
-                    system_info_pnl.sys_pigrow_update.SetLabel("--UPDATE ERROR--\n" + error)
+                    MainApp.system_info_pannel.sys_pigrow_update.SetLabel("--UPDATE ERROR--\n" + error)
                 else:
-                    system_info_pnl.sys_pigrow_update.SetLabel("--UPDATED--")
+                    MainApp.system_info_pannel.sys_pigrow_update.SetLabel("--UPDATED--")
                 self.Destroy()
 
 class install_dialog(wx.Dialog):
@@ -12517,29 +12517,27 @@ class pi_link_pnl(wx.Panel):
     def blank_settings(self):
         print("clearing settings")
         # clear system pannel text
-        system_info_pnl.sys_hdd_total.SetLabel("")
-        system_info_pnl.sys_hdd_remain.SetLabel("")
-        system_info_pnl.sys_hdd_used.SetLabel("")
-        system_info_pnl.sys_pigrow_folder.SetLabel("")
-        system_info_pnl.sys_os_name.SetLabel("")
-        #system_info_pnl.sys_pigrow_version.SetLabel("")
-        system_info_pnl.sys_pigrow_update.SetLabel("")
-        system_info_pnl.sys_network_name.SetLabel("")
+        MainApp.system_info_pannel.sys_hdd_total.SetLabel("")
+        MainApp.system_info_pannel.sys_hdd_remain.SetLabel("")
+        MainApp.system_info_pannel.sys_hdd_used.SetLabel("")
+        MainApp.system_info_pannel.sys_pigrow_folder.SetLabel("")
+        MainApp.system_info_pannel.sys_os_name.SetLabel("")
+        MainApp.system_info_pannel.sys_pigrow_update.SetLabel("")
+        MainApp.system_info_pannel.sys_network_name.SetLabel("")
         MainApp.system_info_pannel.available_wifi_list.SetLabel('')
-        system_info_pnl.wifi_list.SetLabel("")
-        system_info_pnl.sys_power_status.SetLabel("")
-        system_info_pnl.sys_camera_info.SetLabel("")
+        MainApp.system_info_pannel.wifi_list.SetLabel("")
+        MainApp.system_info_pannel.sys_power_status.SetLabel("")
+        MainApp.system_info_pannel.sys_camera_info.SetLabel("")
         self.sys_pi_revision.SetLabel("")
-        system_info_pnl.sys_pi_date.SetLabel("")
-        system_info_pnl.sys_pc_date.SetLabel("")
-        system_info_pnl.sys_i2c_info.SetLabel("")
-        system_info_pnl.sys_uart_info.SetLabel("")
-        system_info_pnl.sys_1wire_info.SetLabel("")
+        MainApp.system_info_pannel.sys_pi_date.SetLabel("")
+        MainApp.system_info_pannel.sys_pc_date.SetLabel("")
+        MainApp.system_info_pannel.sys_i2c_info.SetLabel("")
+        MainApp.system_info_pannel.sys_uart_info.SetLabel("")
+        MainApp.system_info_pannel.sys_1wire_info.SetLabel("")
         MainApp.system_ctrl_pannel.i2c_baudrate_btn.Disable()
         MainApp.system_ctrl_pannel.add_1wire_btn.Disable()
         MainApp.system_ctrl_pannel.edit_1wire_btn.Disable()
         MainApp.system_ctrl_pannel.remove_1wire_btn.Disable()
-        #system_info_pnl.sys_time_diff.SetLabel("")
         # clear config ctrl text and tables
         try:
             MainApp.config_ctrl_pannel.dirlocs_dict.clear()
