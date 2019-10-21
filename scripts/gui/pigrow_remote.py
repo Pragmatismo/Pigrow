@@ -6810,8 +6810,10 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
         w_space_left = win_width - 285
         size = wx.Size(win_width, win_height)
         self.SetMinSize(size)
-        self.SetBackgroundColour(wx.Colour(85, 224, 85))
-        MainApp.window_self.Layout()
+        try:
+            MainApp.window_self.Layout()
+        except:
+            pass #to avoid the error on first init    
         self.SetupScrolling()
 
 class graphing_ctrl_pnl(wx.Panel):
