@@ -258,7 +258,11 @@ class shared_data:
         #
         ## Fonts
         #
+        shared_data.title_font = wx.Font(28, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
         shared_data.sub_title_font = wx.Font(15, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
+        shared_data.item_title_font = wx.Font(16, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
+        shared_data.info_font = wx.Font(14, wx.MODERN, wx.ITALIC, wx.NORMAL)
+        shared_data.large_info_font = wx.Font(16, wx.MODERN, wx.ITALIC, wx.NORMAL)
 
 #
 #
@@ -268,17 +272,16 @@ class shared_data:
 class system_ctrl_pnl(wx.Panel):
     def __init__( self, parent ):
         wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, style = wx.TAB_TRAVERSAL )
-        sub_title_font = wx.Font(13, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
         self.tab_label = wx.StaticText(self,  label='System Config Menu')
         self.pigrow_side_label = wx.StaticText(self,  label='Pigrow Software')
         self.system_side_label = wx.StaticText(self,  label='System')
         self.i2c_side_label = wx.StaticText(self,  label='I2C')
         self.onewire_side_label = wx.StaticText(self,  label='1Wire')
-        self.tab_label.SetFont(sub_title_font)
-        self.pigrow_side_label.SetFont(sub_title_font)
-        self.system_side_label.SetFont(sub_title_font)
-        self.i2c_side_label.SetFont(sub_title_font)
-        self.onewire_side_label.SetFont(sub_title_font)
+        self.tab_label.SetFont(shared_data.sub_title_font)
+        self.pigrow_side_label.SetFont(shared_data.sub_title_font)
+        self.system_side_label.SetFont(shared_data.sub_title_font)
+        self.i2c_side_label.SetFont(shared_data.sub_title_font)
+        self.onewire_side_label.SetFont(shared_data.sub_title_font)
         # Start drawing the UI elements
         # tab info
         self.read_system_btn = wx.Button(self, label='Read System Info')
@@ -774,7 +777,7 @@ class system_ctrl_pnl(wx.Panel):
         # this only works on certain versions of the pi
         # it checks the power led value
         # it's normally turned off as a LOW POWER warning
-        if not "pi 3" in system_info_pnl.sys_pi_revision.GetLabel().lower():
+        if not "pi 3" in MainApp.system_info_pannel.sys_pi_revision.GetLabel().lower():
             out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("cat /sys/class/leds/led1/brightness")
             if out == "255":
                 system_info_pnl.sys_power_status.SetLabel("no warning")
@@ -869,7 +872,7 @@ class system_ctrl_pnl(wx.Panel):
         local_time = datetime.datetime.now()
         local_time_text = local_time.strftime("%a %d %b %X") + " " + str(time.tzname[0]) + " " + local_time.strftime("%Y")
         pi_time = out.strip()
-        return local_time_text, out
+        return local_time_text, pi_time
     # buttons
     def read_system_click(self, e):
         ### pi system interrogation
@@ -891,7 +894,7 @@ class system_ctrl_pnl(wx.Panel):
         self.check_git() #ugly and deals with UI itself, needs upgrade and clean but git is a headfuck so like oneday...
         # pi board revision
         pi_version = self.check_pi_version()
-        system_info_pnl.sys_pi_revision.SetLabel(pi_version)
+        MainApp.system_info_pannel.sys_pi_revision.SetLabel(pi_version)
         # check for low power warning
         self.check_pi_power_warning()
         # WIFI
@@ -908,6 +911,8 @@ class system_ctrl_pnl(wx.Panel):
         system_info_pnl.sys_pc_date.SetLabel(str(local_time))
         # GPIO info pannel
         self.i2c_check()
+        # Tidy the gui up...
+        MainApp.window_self.Layout()
 
     def install_click(self, e):
         install_dbox = install_dialog(None, title='Install Pigrow to Raspberry Pi')
@@ -999,12 +1004,11 @@ class one_wire_change_pin_dbox(wx.Dialog):
 
         # draw the pannel and text
         pnl = wx.Panel(self)
-        title_font = wx.Font(28, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
-        sub_title_font = wx.Font(15, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
+
         title = wx.StaticText(self,  label='Change 1wire Pin')
-        title.SetFont(title_font)
+        title.SetFont(shared_data.title_font)
         sub_text = wx.StaticText(self,  label="Editing the /boot/config.txt file's \ndtoverlay=w1-gpio,gpiopin= lines")
-        sub_text.SetFont(sub_title_font)
+        sub_text.SetFont(shared_data.sub_title_font)
         # add drop down box with list of 1wire overlay gpio pins
         #
         tochange_gpiopin_l = wx.StaticText(self, label='current 1wire gpio pin -')
@@ -1095,12 +1099,10 @@ class remove_onewire_dbox(wx.Dialog):
 
         # draw the pannel and text
         pnl = wx.Panel(self)
-        title_font = wx.Font(28, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
-        sub_title_font = wx.Font(15, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
         title = wx.StaticText(self,  label='Remove 1wire Pin')
-        title.SetFont(title_font)
+        title.SetFont(shared_data.title_font)
         sub_text = wx.StaticText(self,  label="Editing the /boot/config.txt file and removing \n the selected dtoverlay=w1-gpio,gpiopin= line")
-        sub_text.SetFont(sub_title_font)
+        sub_text.SetFont(shared_data.sub_title_font)
         # Select Pin
         tochange_gpiopin_l = wx.StaticText(self, label='1wire gpio pin to remove from config')
         pin_list_with_comment, error_msg = system_ctrl_pnl.find_dtoverlay_1w_pins(MainApp.system_ctrl_pannel)
@@ -1158,81 +1160,97 @@ class system_info_pnl(wx.Panel):
     # controlled by the system_ctrl_pnl
     #
     def __init__( self, parent ):
-        win_height = gui_set.height_of_window
-        win_width = gui_set.width_of_window
-        w_space_left = win_width - 285
-        wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, size = wx.Size(w_space_left , win_height-20), style = wx.TAB_TRAVERSAL )
+        wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, style = wx.TAB_TRAVERSAL )
+        parent.Bind(wx.EVT_SIZE, self.resize_window)
         ## Draw UI elements
         # Tab Title
-        title_font = wx.Font(28, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
-        sub_title_font = wx.Font(15, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
         title_l = wx.StaticText(self,  label='System Control Panel', size=(500,40))
-        title_l.SetFont(title_font)
+        title_l.SetFont(shared_data.title_font)
         page_sub_title =  wx.StaticText(self,  label='Configure the raspberry pi on which the pigrow code runs', size=(550,30))
-        page_sub_title.SetFont(sub_title_font)
-        # placing the information boxes
-        item_title_font = wx.Font(15, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
+        page_sub_title.SetFont(shared_data.sub_title_font)
+        #
+        ## placing the information boxes
+        #
         # base system info (Top - Left) Sizer Pannel
-        # Raspberry Pi revision
-        pi_rev_l = wx.StaticText(self,  label='Hardware -')
-        system_info_pnl.sys_pi_revision = wx.StaticText(self,  label='-raspberry pi version-')
-        #SDcard details
-        storage_space_l = wx.StaticText(self,  label='Storage Space', size=(25,25))
-        storage_space_l.SetFont(item_title_font)
-        total_hdd_l = wx.StaticText(self,  label='Total  -')
-        system_info_pnl.sys_hdd_total = wx.StaticText(self,  label='-total -')
-        free_hdd_l = wx.StaticText(self,  label='Free  -')
-        system_info_pnl.sys_hdd_remain = wx.StaticText(self,  label='-free -')
-        used_hdd_l = wx.StaticText(self,  label='Used  -')
-        system_info_pnl.sys_hdd_used = wx.StaticText(self,  label='-Used-')
-        pigrow_folder_hdd_l = wx.StaticText(self,  label='Pigrow folder -')
-        system_info_pnl.sys_pigrow_folder = wx.StaticText(self,  label='-Pigrow folder-')
-        #Software details
+        # System
         system_l = wx.StaticText(self,  label='System', size=(25,25))
-        system_l.SetFont(item_title_font)
-        system_info_pnl.sys_pigrow_update = wx.StaticText(self,  label='-Pigrow update status-')
+        system_l.SetFont(shared_data.item_title_font)
+        pi_rev_l = wx.StaticText(self,  label='Hardware -')
+        self.sys_pi_revision = wx.StaticText(self,  label='--')
+        self.sys_pi_revision.SetFont(shared_data.info_font)
         os_name_l = wx.StaticText(self,  label='OS installed -')
-        system_info_pnl.sys_os_name = wx.StaticText(self,  label='-os installed-')
+        system_info_pnl.sys_os_name = wx.StaticText(self,  label='--')
+        system_info_pnl.sys_os_name.SetFont(shared_data.info_font)
+        # Pigrow update status
         pigrow_l = wx.StaticText(self,  label='Pigrow', size=(25,25))
-        pigrow_l.SetFont(item_title_font)
+        pigrow_l.SetFont(shared_data.item_title_font)
         update_status_l = wx.StaticText(self,  label='Update Status -')
+        system_info_pnl.sys_pigrow_update = wx.StaticText(self,  label='--')
+        system_info_pnl.sys_pigrow_update.SetFont(shared_data.info_font)
+        # SDcard details
+        storage_space_l = wx.StaticText(self,  label='Storage Space', size=(25,25))
+        storage_space_l.SetFont(shared_data.item_title_font)
+        total_hdd_l = wx.StaticText(self,  label='               Total  -')
+        system_info_pnl.sys_hdd_total = wx.StaticText(self,  label='--')
+        system_info_pnl.sys_hdd_total.SetFont(shared_data.info_font)
+        free_hdd_l = wx.StaticText(self,  label='                Free  -')
+        system_info_pnl.sys_hdd_remain = wx.StaticText(self,  label='--')
+        system_info_pnl.sys_hdd_remain.SetFont(shared_data.info_font)
+        used_hdd_l = wx.StaticText(self,  label='                 Used  -')
+        system_info_pnl.sys_hdd_used = wx.StaticText(self,  label='--')
+        system_info_pnl.sys_hdd_used.SetFont(shared_data.info_font)
+        pigrow_folder_hdd_l = wx.StaticText(self,  label='Pigrow folder  -')
+        system_info_pnl.sys_pigrow_folder = wx.StaticText(self,  label='--')
+        system_info_pnl.sys_pigrow_folder.SetFont(shared_data.info_font)
         #power level warning details
         power_l = wx.StaticText(self,  label='Power', size=(25,25))
-        power_l.SetFont(item_title_font)
+        power_l.SetFont(shared_data.item_title_font)
         power_status_l = wx.StaticText(self,  label='Power Warning -')
-        system_info_pnl.sys_power_status = wx.StaticText(self,  label='-power status-')
+        system_info_pnl.sys_power_status = wx.StaticText(self,  label='--')
+        system_info_pnl.sys_power_status.SetFont(shared_data.info_font)
         # Pi datetime vs local pc datetime
         time_l = wx.StaticText(self,  label='Date and Time', size=(25,25))
-        time_l.SetFont(item_title_font)
-        pi_time_l = wx.StaticText(self,  label='Time on Pi -')
-        system_info_pnl.sys_pi_date = wx.StaticText(self,  label='-datetime on pi-')
-        local_time_l = wx.StaticText(self,  label='Time on local pc -')
-        system_info_pnl.sys_pc_date = wx.StaticText(self,  label='-datetime on local pc-')
-        # peripheral hardware (top-right)
+        time_l.SetFont(shared_data.item_title_font)
+        pi_time_l = wx.StaticText(self,  label='Time on Pi -', style=wx.ALIGN_RIGHT)
+        system_info_pnl.sys_pi_date = wx.StaticText(self,  label='--')
+        system_info_pnl.sys_pi_date.SetFont(shared_data.info_font)
+        local_time_l = wx.StaticText(self,  label='Time on local pc -', style=wx.ALIGN_RIGHT)
+        system_info_pnl.sys_pc_date = wx.StaticText(self,  label='--')
+        system_info_pnl.sys_pc_date.SetFont(shared_data.info_font)
+        #
+        ## peripheral hardware (top-right)
+        #
         #camera details
         camera_title_l = wx.StaticText(self,  label='Camera', size=(25,25))
-        camera_title_l.SetFont(item_title_font)
+        camera_title_l.SetFont(shared_data.item_title_font)
         camera_l = wx.StaticText(self,  label='Detected -')
-        system_info_pnl.sys_camera_info = wx.StaticText(self,  label='-camera info-')
+        system_info_pnl.sys_camera_info = wx.StaticText(self,  label='--')
+        system_info_pnl.sys_camera_info.SetFont(shared_data.info_font)
         # GPIO set up details
         gpio_overlay_l = wx.StaticText(self,  label='GPIO Overlays', size=(25,25))
-        gpio_overlay_l.SetFont(item_title_font)
-        i2c_l = wx.StaticText(self,  label='I2C -')
-        system_info_pnl.sys_i2c_info = wx.StaticText(self,  label='-i2c info-')
-        uart_l = wx.StaticText(self,  label='UART -')
-        system_info_pnl.sys_uart_info = wx.StaticText(self,  label='-uart info (not implimented)-')
-        onewire_l = wx.StaticText(self,  label='1 Wire -')
-        system_info_pnl.sys_1wire_info = wx.StaticText(self,  label='-1 wire info-')
+        gpio_overlay_l.SetFont(shared_data.item_title_font)
+        i2c_l = wx.StaticText(self,  label='I2C -', size=(-1,25))
+        system_info_pnl.sys_i2c_info = wx.StaticText(self,  label='--')
+        system_info_pnl.sys_i2c_info.SetFont(shared_data.info_font)
+        uart_l = wx.StaticText(self,  label='UART -', size=(-1,25))
+        system_info_pnl.sys_uart_info = wx.StaticText(self,  label='- (not implimented) -', size=(300,25))
+        system_info_pnl.sys_uart_info.SetFont(shared_data.info_font)
+        onewire_l = wx.StaticText(self,  label='1 Wire -', size=(-1,25))
+        system_info_pnl.sys_1wire_info = wx.StaticText(self,  label='- click to scan -', size=(300,-1))
+        system_info_pnl.sys_1wire_info.SetFont(shared_data.info_font)
 
         # network pannel - lower half
         #wifi deatils
         network_l = wx.StaticText(self,  label='Network', size=(90,30))
-        network_l.SetFont(item_title_font)
+        network_l.SetFont(shared_data.item_title_font)
         current_network_l = wx.StaticText(self,  label='Connected to -')
         system_info_pnl.sys_network_name = wx.StaticText(self,  label='-network name-')
+        system_info_pnl.sys_network_name.SetFont(shared_data.info_font)
         saved_wifi_l = wx.StaticText(self,  label='Saved Wifi Networks')
-        system_info_pnl.wifi_list = wx.StaticText(self,  label='-wifi list-')
+        saved_wifi_l.SetFont(shared_data.item_title_font)
+        system_info_pnl.wifi_list = wx.StaticText(self,  label='--')
         found_wifi_l = wx.StaticText(self,  label='Found Wifi Networks')
+        found_wifi_l.SetFont(shared_data.item_title_font)
         self.scan_wifi_btn = wx.Button(self, label='Scan', size=(75, 25))
         self.scan_wifi_btn.Bind(wx.EVT_BUTTON, self.scan_wifi_btn_click)
         self.available_wifi_list = wx.StaticText(self,  label='-')
@@ -1243,36 +1261,38 @@ class system_info_pnl(wx.Panel):
         title_sizer.Add(title_l, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
         title_sizer.Add(page_sub_title, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
         # base system info (Top - Left) Sizer Pannel
+        # system
         hardware_version_sizer = wx.BoxSizer(wx.HORIZONTAL)
         hardware_version_sizer.Add(pi_rev_l, 0, wx.ALL, 3)
-        hardware_version_sizer.Add(system_info_pnl.sys_pi_revision, 0, wx.ALL|wx.EXPAND, 3)
-        total_hdd_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        total_hdd_sizer.Add(total_hdd_l, 0, wx.ALL|wx.EXPAND, 3)
-        total_hdd_sizer.Add(system_info_pnl.sys_hdd_total, 0, wx.ALL|wx.EXPAND, 3)
-        free_hdd_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        free_hdd_sizer.Add(free_hdd_l, 0, wx.ALL|wx.EXPAND, 3)
-        free_hdd_sizer.Add(system_info_pnl.sys_hdd_remain, 0, wx.ALL|wx.EXPAND, 3)
-        used_hdd_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        used_hdd_sizer.Add(used_hdd_l, 0, wx.ALL|wx.EXPAND, 3)
-        used_hdd_sizer.Add(system_info_pnl.sys_hdd_used, 0, wx.ALL|wx.EXPAND, 3)
-        pigrow_folder_hdd_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        pigrow_folder_hdd_sizer.Add(pigrow_folder_hdd_l, 0, wx.ALL|wx.EXPAND, 3)
-        pigrow_folder_hdd_sizer.Add(system_info_pnl.sys_pigrow_folder, 0, wx.ALL|wx.EXPAND, 3)
-        update_status_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        update_status_sizer.Add(update_status_l, 0, wx.ALL, 3)
-        update_status_sizer.Add(system_info_pnl.sys_pigrow_update, 0, wx.ALL|wx.EXPAND, 3)
+        hardware_version_sizer.Add(self.sys_pi_revision, 0, wx.ALL|wx.EXPAND, 3)
         os_name_sizer = wx.BoxSizer(wx.HORIZONTAL)
         os_name_sizer.Add(os_name_l, 0, wx.ALL, 3)
         os_name_sizer.Add(system_info_pnl.sys_os_name, 0, wx.ALL|wx.EXPAND, 3)
+        # pigrow update status
+        update_status_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        update_status_sizer.Add(update_status_l, 0, wx.ALL, 3)
+        update_status_sizer.Add(system_info_pnl.sys_pigrow_update, 0, wx.ALL|wx.EXPAND, 3)
+        # sd card
+        sd_size_sizer = wx.FlexGridSizer(4, 2, 0, 5)
+        sd_size_sizer.AddMany( [(total_hdd_l, 0, wx.ALIGN_RIGHT),
+            (system_info_pnl.sys_hdd_total, 0),
+            (free_hdd_l, 0, wx.ALIGN_RIGHT),
+            (system_info_pnl.sys_hdd_remain, 0),
+            (used_hdd_l, 0, wx.ALIGN_RIGHT),
+            (system_info_pnl.sys_hdd_used, 0),
+            (pigrow_folder_hdd_l, 0, wx.ALIGN_RIGHT),
+            (system_info_pnl.sys_pigrow_folder, 0)])
+        # power
         power_status_sizer = wx.BoxSizer(wx.HORIZONTAL)
         power_status_sizer.Add(power_status_l, 0, wx.ALL, 3)
         power_status_sizer.Add(system_info_pnl.sys_power_status, 0, wx.ALL|wx.EXPAND, 3)
-        pi_time_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        pi_time_sizer.Add(pi_time_l, 0, wx.ALL, 3)
-        pi_time_sizer.Add(system_info_pnl.sys_pi_date, 0, wx.ALL|wx.EXPAND, 3)
-        pc_time_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        pc_time_sizer.Add(local_time_l, 0, wx.ALL, 3)
-        pc_time_sizer.Add(system_info_pnl.sys_pc_date, 0, wx.ALL|wx.EXPAND, 3)
+        # time
+        time_sizer = wx.FlexGridSizer(2, 2, 0, 5)
+        time_sizer.AddMany( [(pi_time_l, 0, wx.ALIGN_RIGHT),
+            (system_info_pnl.sys_pi_date, 0),
+            (local_time_l, 0, wx.ALIGN_RIGHT),
+            (system_info_pnl.sys_pc_date, 0)])
+        # base system sizer - top-left
         base_system_info_sizer = wx.BoxSizer(wx.VERTICAL)
         base_system_info_sizer.Add(system_l, 0, wx.ALL|wx.EXPAND, 3)
         base_system_info_sizer.Add(hardware_version_sizer, 0, wx.LEFT|wx.EXPAND, 30)
@@ -1280,36 +1300,28 @@ class system_info_pnl(wx.Panel):
         base_system_info_sizer.Add(pigrow_l, 0, wx.ALL|wx.EXPAND, 3)
         base_system_info_sizer.Add(update_status_sizer, 0, wx.LEFT|wx.EXPAND, 30)
         base_system_info_sizer.Add(storage_space_l, 0, wx.ALL|wx.EXPAND, 3)
-        base_system_info_sizer.Add(total_hdd_sizer, 0, wx.LEFT|wx.EXPAND, 30)
-        base_system_info_sizer.Add(free_hdd_sizer, 0, wx.LEFT|wx.EXPAND, 30)
-        base_system_info_sizer.Add(used_hdd_sizer, 0, wx.LEFT|wx.EXPAND, 30)
-        base_system_info_sizer.Add(pigrow_folder_hdd_sizer, 0, wx.LEFT|wx.EXPAND, 30)
+        base_system_info_sizer.Add(sd_size_sizer, 0, wx.LEFT|wx.EXPAND, 30)
         base_system_info_sizer.Add(power_l, 0, wx.ALL|wx.EXPAND, 3)
         base_system_info_sizer.Add(power_status_sizer, 0, wx.LEFT|wx.EXPAND, 30)
         base_system_info_sizer.Add(time_l, 0, wx.ALL|wx.EXPAND, 3)
-        base_system_info_sizer.Add(pi_time_sizer, 0, wx.LEFT|wx.EXPAND, 30)
-        base_system_info_sizer.Add(pc_time_sizer, 0, wx.LEFT|wx.EXPAND, 30)
+        base_system_info_sizer.Add(time_sizer, 0, wx.LEFT, 3)
         # peripheral hardware (top-right)
-        peripheral_device_sizer = wx.BoxSizer(wx.VERTICAL)
-        peripheral_device_sizer.Add(camera_title_l, 0, wx.ALL|wx.EXPAND, 3)
         cam_name_sizer = wx.BoxSizer(wx.HORIZONTAL)
         cam_name_sizer.Add(camera_l, 0, wx.ALL, 3)
         cam_name_sizer.Add(system_info_pnl.sys_camera_info, 0, wx.ALL|wx.EXPAND, 3)
+        overlays_sizer = wx.FlexGridSizer(3, 2, 3, 5)
+        overlays_sizer.AddMany( [(i2c_l, 0, wx.ALIGN_RIGHT),
+            (system_info_pnl.sys_i2c_info, 0),
+            (uart_l, 0, wx.ALIGN_RIGHT),
+            (system_info_pnl.sys_uart_info, 0),
+            (onewire_l, 0, wx.ALIGN_RIGHT),
+            (system_info_pnl.sys_1wire_info, 0)])
+        peripheral_device_sizer = wx.BoxSizer(wx.VERTICAL)
+        peripheral_device_sizer.Add(camera_title_l, 0, wx.ALL|wx.EXPAND, 3)
         peripheral_device_sizer.Add(cam_name_sizer, 0, wx.LEFT|wx.EXPAND, 30)
         peripheral_device_sizer.Add(gpio_overlay_l, 0, wx.ALL|wx.EXPAND, 3)
-
-        i2c_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        i2c_sizer.Add(i2c_l, 1, wx.ALIGN_RIGHT)
-        i2c_sizer.Add(system_info_pnl.sys_i2c_info, 3, wx.EXPAND)
-        uart_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        uart_sizer.Add(uart_l, 1, wx.ALIGN_RIGHT)
-        uart_sizer.Add(system_info_pnl.sys_uart_info, 3, wx.EXPAND)
-        onewire_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        onewire_sizer.Add(onewire_l, 1, wx.ALIGN_RIGHT)
-        onewire_sizer.Add(system_info_pnl.sys_1wire_info, 3, wx.EXPAND)
-        peripheral_device_sizer.Add(i2c_sizer, 0, wx.LEFT, 30)
-        peripheral_device_sizer.Add(uart_sizer, 0, wx.LEFT, 30)
-        peripheral_device_sizer.Add(onewire_sizer, 0, wx.LEFT, 30)
+        peripheral_device_sizer.Add(overlays_sizer, 0, wx.ALL|wx.EXPAND, 3)
+        # Top panel area
         panel_area_sizer = wx.BoxSizer(wx.HORIZONTAL)
         panel_area_sizer.Add(base_system_info_sizer, 0, wx.ALL, 0)
         panel_area_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(5, -1), style=wx.LI_VERTICAL), 0, wx.ALL|wx.EXPAND, 5)
@@ -1330,8 +1342,11 @@ class system_info_pnl(wx.Panel):
         found_wifi_sizer.Add(found_wifi_label_and_button, 0, wx.ALL, 5)
         found_wifi_sizer.Add(self.available_wifi_list, 0, wx.LEFT, 30)
         wifi_panels_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        wifi_panels_sizer.AddStretchSpacer(1)
         wifi_panels_sizer.Add(saved_wifi_sizer, 0, wx.ALL, 20)
+        wifi_panels_sizer.AddStretchSpacer(1)
         wifi_panels_sizer.Add(found_wifi_sizer, 0, wx.ALL, 20)
+        wifi_panels_sizer.AddStretchSpacer(1)
         wifi_area_sizer.Add(current_network_sizer, 0, wx.LEFT, 30)
         wifi_area_sizer.Add(wifi_panels_sizer, 0, wx.ALL, 0)
 
@@ -1343,6 +1358,18 @@ class system_info_pnl(wx.Panel):
         main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.Add(wifi_area_sizer, 0, wx.ALL, 7)
         self.SetSizer(main_sizer)
+
+    def resize_window(self, e):
+        win_width = e.GetSize()[0]
+        win_height = e.GetSize()[1]
+        w_space_left = win_width - 285
+        size = wx.Size(win_width, win_height)
+        self.SetMinSize(size)
+        try:
+            MainApp.window_self.Layout()
+        except:
+            pass #to avoid the error on first init
+        #self.SetupScrolling()
 
     def scan_wifi_btn_click(self, e):
         print("Pi is scanning for wifi...")
@@ -1367,38 +1394,34 @@ class upgrade_pigrow_dialog(wx.Dialog):
         self.SetSize((600, 600))
         self.SetTitle("Upgrade Pigrow")
     def InitUI(self):
-        title_font = wx.Font(28, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
-        sub_title_font = wx.Font(16, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
-        sub_title_font = wx.Font(16, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
-        info_font = wx.Font(16, wx.MODERN, wx.ITALIC, wx.NORMAL)
         # draw the pannel and text
         pnl = wx.Panel(self)
         title = wx.StaticText(self,  label='Upgrade Pigrow')
         sub_title = wx.StaticText(self,  label='Use GIT to update the Pigrow to the newest version.')
-        title.SetFont(title_font)
-        sub_title.SetFont(sub_title_font)
+        title.SetFont(shared_data.title_font)
+        sub_title.SetFont(shared_data.sub_title_font)
         # see which files are changed locally
         local_l = wx.StaticText(self,  label='Local;')
-        local_l.SetFont(sub_title_font)
+        local_l.SetFont(shared_data.sub_title_font)
         local_changes_tb = wx.StaticText(self,  label='--')
         changes = self.read_git_dif()
         local_changes_tb.SetLabel(str(changes))
         # see which files are changed remotely
         repo_l = wx.StaticText(self,  label='Repo;')
-        repo_l.SetFont(sub_title_font)
+        repo_l.SetFont(shared_data.sub_title_font)
         remote_changes_tb = wx.StaticText(self,  label='--')
         repo_changes, num_repo_changed_files = self.read_repo_changes()
         remote_changes_tb.SetLabel(repo_changes)
         # upgrade type
         pigrow_status = wx.StaticText(self,  label='Pigrow Status;')
-        pigrow_status.SetFont(sub_title_font)
+        pigrow_status.SetFont(shared_data.sub_title_font)
         upgrade_type = self.determine_upgrade_type(repo_changes)
         upgrade_type_tb = wx.StaticText(self,  label=upgrade_type)
         if upgrade_type == "behind":
             upgrade_type_tb.SetForegroundColour((255,75,75))
         elif upgrade_type == "up-to-date":
             upgrade_type_tb.SetForegroundColour((25,150,25))
-        upgrade_type_tb.SetFont(info_font)
+        upgrade_type_tb.SetFont(shared_data.info_font)
         # upgrade and cancel buttons
         self.upgrade_btn = wx.Button(self, label='Upgrade', size=(175, 30))
         self.upgrade_btn.Bind(wx.EVT_BUTTON, self.upgrade_click)
@@ -1569,37 +1592,35 @@ class install_dialog(wx.Dialog):
     def InitUI(self):
         pnl = wx.Panel(self)
         # Header
-        title_font = wx.Font(28, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
-        sub_title_font = wx.Font(15, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
         header_title = wx.StaticText(self,  label='Install Pigrow')
         header_sub = wx.StaticText(self,  label='Tool for installing pigrow code and dependencies')
-        header_title.SetFont(title_font)
-        header_sub.SetFont(sub_title_font)
+        header_title.SetFont(shared_data.title_font)
+        header_sub.SetFont(shared_data.sub_title_font)
         # Installed components
         # Core
         label_core = wx.StaticText(self,  label='Core components;')
-        label_core.SetFont(sub_title_font)
+        label_core.SetFont(shared_data.sub_title_font)
         self.pigrow_base_check = wx.CheckBox(self,  label='Pigrow base')
         self.pigrow_dirlocs_check = wx.CheckBox(self,  label='Locations File')
         self.config_wiz_check = wx.CheckBox(self,  label='Set-up Wizard')
         self.cron_check = wx.CheckBox(self,  label='python crontab')
         # sensors
         label_sensors = wx.StaticText(self,  label='Sensors;')
-        label_sensors.SetFont(sub_title_font)
+        label_sensors.SetFont(shared_data.sub_title_font)
         self.adaDHT_check = wx.CheckBox(self,  label='Adafruit_DHT')
         self.ada1115_check = wx.CheckBox(self,  label='Adafruit ADS1115')
         # Camera
         label_camera = wx.StaticText(self,  label='Camera;')
-        label_camera.SetFont(sub_title_font)
+        label_camera.SetFont(shared_data.sub_title_font)
         self.uvccapture_check = wx.CheckBox(self,  label='uvccapture')
         # Visualisation
         label_visualisation = wx.StaticText(self,  label='Visualisation;')
-        label_visualisation.SetFont(sub_title_font)
+        label_visualisation.SetFont(shared_data.sub_title_font)
         self.matplotlib_check = wx.CheckBox(self,  label='Matplotlib')
         self.mpv_check = wx.CheckBox(self,  label='mpv')
         # Networking
         label_networking = wx.StaticText(self,  label='Networking;')
-        label_networking.SetFont(sub_title_font)
+        label_networking.SetFont(shared_data.sub_title_font)
         self.praw_check = wx.CheckBox(self,  label='praw')
         self.sshpass_check = wx.CheckBox(self,  label='sshpass')
         self.pexpect_check = wx.CheckBox(self,  label='pexpect')
@@ -2847,12 +2868,10 @@ class config_info_pnl(scrolled.ScrolledPanel):
         scrolled.ScrolledPanel.__init__ ( self, parent, id = wx.ID_ANY, size = wx.Size(w_space_left , win_height-20), style = wx.HSCROLL|wx.VSCROLL)
         font = wx.Font(15, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
         # Tab Title
-        title_font = wx.Font(28, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
-        sub_title_font = wx.Font(15, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
         title_l = wx.StaticText(self,  label='Pigrow Setup', size=(500,40))
-        title_l.SetFont(title_font)
+        title_l.SetFont(shared_data.title_font)
         page_sub_title =  wx.StaticText(self,  label='Tools to set up the climate control functions of the Pigrow', size=(550,40))
-        page_sub_title.SetFont(sub_title_font)
+        page_sub_title.SetFont(shared_data.sub_title_font)
         # info boxes
         self.name_l = wx.StaticText(self,  label='Box Name;', size=(100,25))
         self.name_l.SetFont(font)
@@ -2979,10 +2998,8 @@ class config_lamp_dialog(wx.Dialog):
         # draw the pannel and text
         # title
         pnl = wx.Panel(self)
-        title_font = wx.Font(28, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
-        sub_title_font = wx.Font(15, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
         title_l = wx.StaticText(self,  label='Lamp Config')
-        title_l.SetFont(title_font)
+        title_l.SetFont(shared_data.title_font)
         # Timing Dials
         #   hour on - first line
         on_label = wx.StaticText(self,  label='on time')
@@ -3274,10 +3291,8 @@ class config_water_dialog(wx.Dialog):
 
         # draw the pannel and text
         pnl = wx.Panel(self)
-        title_font = wx.Font(28, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
-        sub_title_font = wx.Font(15, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
         title_l = wx.StaticText(self,  label='Watering Config')
-        title_l.SetFont(title_font)
+        title_l.SetFont(shared_data.title_font)
         # gpio info
         self.gpio_loc_box_l = wx.StaticText(self,  label='GPIO Pin')
         self.gpio_loc_box = wx.TextCtrl(self, size=(70,30))
@@ -3699,13 +3714,11 @@ class calibrate_water_flow_rate_dialog(wx.Dialog):
     def InitUI(self):
         # draw the pannel and text
         pnl = wx.Panel(self)
-        title_font = wx.Font(26, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
-        sub_title_font = wx.Font(15, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
         title_l = wx.StaticText(self,  label='Calibrate Water Flow Rate')
-        title_l.SetFont(title_font)
+        title_l.SetFont(shared_data.title_font)
         msg = 'Time how long it takes to fill a measured\ncontainer to determine the flow rate of\nyour pump.'
         sub_title_l = wx.StaticText(self,  label=msg)
-        sub_title_l.SetFont(sub_title_font)
+        sub_title_l.SetFont(shared_data.sub_title_font)
         # container size input
         self.container_size_l = wx.StaticText(self,  label='Container Size')
         self.container_size_box = wx.TextCtrl(self, size=(70,30))
@@ -4651,12 +4664,10 @@ class cron_list_pnl(wx.Panel):
         w_space_left = win_width - 285
         wx.Panel.__init__(self, parent, id = wx.ID_ANY, size = wx.Size(w_space_left , win_height-20), style = wx.TAB_TRAVERSAL)
         # Tab Title
-        title_font = wx.Font(28, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
-        sub_title_font = wx.Font(15, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
         title_l = wx.StaticText(self,  label='Cron Tab Control', size=(500,40))
-        title_l.SetFont(title_font)
+        title_l.SetFont(shared_data.title_font)
         page_sub_title =  wx.StaticText(self,  label='Use cron on the pigrow to time events and trigger devices', size=(550,30))
-        page_sub_title.SetFont(sub_title_font)
+        page_sub_title.SetFont(shared_data.sub_title_font)
         # Info boxes
         cron_start_up_l = wx.StaticText(self,  label='Cron start up;')
         cron_list_pnl.startup_cron = self.startup_cron_list(self, 1)
@@ -5203,20 +5214,17 @@ class localfiles_info_pnl(scrolled.ScrolledPanel):
         #set blank variables
         localfiles_info_pnl.local_path = ""
         # top title
-        title_font = wx.Font(28, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
-        sub_title_font = wx.Font(17, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
-        item_title_font = wx.Font(17, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
         page_title =  wx.StaticText(self,  label='Local Files', size=(300,40))
         page_sub_title =  wx.StaticText(self,  label='Files downloaded from the pi and stored locally', size=(550,30))
-        page_title.SetFont(title_font)
-        page_sub_title.SetFont(sub_title_font)
+        page_title.SetFont(shared_data.title_font)
+        page_sub_title.SetFont(shared_data.sub_title_font)
         # placing the information boxes
         local_path_l =  wx.StaticText(self,  label='Local Path -', size=(135, 25))
-        local_path_l.SetFont(item_title_font)
+        local_path_l.SetFont(shared_data.item_title_font)
         localfiles_info_pnl.local_path_txt = wx.StaticText(self,  label='local path')
         #local photo storage info
         photo_l = wx.StaticText(self,  label='Photos', size=(75,25))
-        photo_l.SetFont(item_title_font)
+        photo_l.SetFont(shared_data.item_title_font)
         caps_folder_l = wx.StaticText(self,  label='Caps Folder;')
         localfiles_info_pnl.caps_folder = 'caps'
         localfiles_info_pnl.folder_text = wx.StaticText(self,  label=localfiles_info_pnl.caps_folder)
@@ -5230,18 +5238,18 @@ class localfiles_info_pnl(scrolled.ScrolledPanel):
         localfiles_info_pnl.photo_folder_last_pic.Bind(wx.EVT_BUTTON, self.last_img_click)
         #file list boxes
         config_l = wx.StaticText(self,  label='Config', size=(75,25))
-        config_l.SetFont(item_title_font)
+        config_l.SetFont(shared_data.item_title_font)
         localfiles_info_pnl.config_files = self.config_file_list(self, 1)
         localfiles_info_pnl.config_files.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.onDoubleClick_config)
         logs_l = wx.StaticText(self,  label='Logs', size=(75,25))
-        logs_l.SetFont(item_title_font)
+        logs_l.SetFont(shared_data.item_title_font)
         localfiles_info_pnl.logs_files = self.logs_file_list(self, 1)
         localfiles_info_pnl.logs_files.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.onDoubleClick_logs)
         #localfiles_info_pnl.config_files = self.config_file_list(self, 1, pos=(5, 160), size=(550, 200))
     #    localfiles_info_pnl.config_files.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.onDoubleClick_config)
         #cron info text
         cron_l = wx.StaticText(self,  label='Cron', size=(75,25))
-        cron_l.SetFont(item_title_font)
+        cron_l.SetFont(shared_data.item_title_font)
         localfiles_info_pnl.cron_info = wx.StaticText(self,  label='cron info')
 
         #Sizers
@@ -6813,7 +6821,7 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
         try:
             MainApp.window_self.Layout()
         except:
-            pass #to avoid the error on first init    
+            pass #to avoid the error on first init
         self.SetupScrolling()
 
 class graphing_ctrl_pnl(wx.Panel):
@@ -6863,11 +6871,10 @@ class graphing_ctrl_pnl(wx.Panel):
         ##
         #
         # Section Labels
-        sub_title_font = wx.Font(13, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
         self.data_title_text = wx.StaticText(self,  label='Data Source')
-        self.data_title_text.SetFont(sub_title_font)
+        self.data_title_text.SetFont(shared_data.sub_title_font)
         self.graph_title_text = wx.StaticText(self,  label='Graphs')
-        self.graph_title_text.SetFont(sub_title_font)
+        self.graph_title_text.SetFont(shared_data.sub_title_font)
         # current log files info
 
         self.valset_1_loaded  = wx.StaticBitmap(self, -1, shared_data.no_log_image)
@@ -9085,12 +9092,10 @@ class timelapse_info_pnl(wx.Panel):
         w_space_left = win_width - 285
         wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, size = wx.Size(w_space_left , win_height-20), style = wx.TAB_TRAVERSAL )
         # Tab Title
-        title_font = wx.Font(28, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
-        sub_title_font = wx.Font(15, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
         title_l = wx.StaticText(self,  label='Timelapse Control Panel', size=(500,40))
-        title_l.SetFont(title_font)
+        title_l.SetFont(shared_data.title_font)
         page_sub_title =  wx.StaticText(self,  label='Making timelapse videos using files downloaded from the pigrow', size=(700,30))
-        page_sub_title.SetFont(sub_title_font)
+        page_sub_title.SetFont(shared_data.sub_title_font)
         # placing the information boxes
         blank_img = wx.Bitmap(400, 400)
         self.first_img_l = wx.StaticText(self,  label='-first image- (date)')
@@ -9391,15 +9396,14 @@ class timelapse_info_pnl(wx.Panel):
 class timelapse_ctrl_pnl(wx.Panel):
     def __init__(self, parent):
         wx.Panel.__init__ (self, parent, id=wx.ID_ANY, size=(150,-1), style=wx.TAB_TRAVERSAL)
-        sub_title_font = wx.Font(13, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
         # Capture controlls
         #quick_capture_l = wx.StaticText(self,  label='Quick Capture',size=(100,25))
-        #quick_capture_l.SetFont(sub_title_font)
+        #quick_capture_l.SetFont(shared_data.sub_title_font)
         #capture_start_btn = wx.Button(self, label='Start capture')
         #capture_start_btn.Bind(wx.EVT_BUTTON, self.start_capture_click)
         # path options
         path_l = wx.StaticText(self,  label='Image Path',size=(100,25))
-        path_l.SetFont(sub_title_font)
+        path_l.SetFont(shared_data.sub_title_font)
         open_caps_folder_btn = wx.Button(self, label='Open Caps Folder')
         open_caps_folder_btn.Bind(wx.EVT_BUTTON, self.open_caps_folder_click)
         select_set_btn = wx.Button(self, label='Select\nCaps Set')
@@ -9408,7 +9412,7 @@ class timelapse_ctrl_pnl(wx.Panel):
         select_folder_btn.Bind(wx.EVT_BUTTON, self.select_new_caps_folder_click)
         # frame slect - range, limit to start / end dates, etc
         frame_select_l = wx.StaticText(self,  label='Frames',size=(100,25))
-        frame_select_l.SetFont(sub_title_font)
+        frame_select_l.SetFont(shared_data.sub_title_font)
         range_l = wx.StaticText(self,  label='Use Every')
         self.range_tc = wx.TextCtrl(self, value="1")
         range_options = ['Strict', 'Average', 'Rolling Average', 'Largest']
@@ -9433,7 +9437,7 @@ class timelapse_ctrl_pnl(wx.Panel):
         set_outfile_btn.Bind(wx.EVT_BUTTON, self.set_outfile_click)
         # render controlls
         render_l = wx.StaticText(self,  label='Render',size=(100,25))
-        render_l.SetFont(sub_title_font)
+        render_l.SetFont(shared_data.sub_title_font)
         fps_l = wx.StaticText(self,  label='FPS')
         self.fps_tc = wx.TextCtrl(self, value="25", size=(50,25))
         make_timelapse_btn = wx.Button(self, label='Make Timelapse')
@@ -9826,10 +9830,6 @@ class select_text_pos_on_image(wx.Dialog):
     def InitUI(self):
         # panel
         pnl = wx.Panel(self)
-        title_font = wx.Font(28, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
-        sub_title_font = wx.Font(15, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
-        #box_label = wx.StaticText(self,  label='Select Text Placement')
-        #box_label.SetFont(title_font)
         pic_one = MainApp.timelapse_ctrl_pannel.trimmed_frame_list[0]
         bitmap = wx.Bitmap(1, 1)
         bitmap.LoadFile(pic_one, wx.BITMAP_TYPE_ANY)
@@ -9866,10 +9866,8 @@ class make_log_overlay_dialog(wx.Dialog):
         '''
         # panel
         pnl = wx.Panel(self)
-        title_font = wx.Font(28, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
-        sub_title_font = wx.Font(15, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
         box_label = wx.StaticText(self,  label='Create Log Overlay Image Set')
-        box_label.SetFont(title_font)
+        box_label.SetFont(shared_data.title_font)
         # log file select - drop down box
         log_path_l = wx.StaticText(self,  label='Log - ')
         local_path = localfiles_info_pnl.local_path
@@ -9883,7 +9881,7 @@ class make_log_overlay_dialog(wx.Dialog):
         # log file data grabbing options (split character, position of date, key/label), value)
         ##
         top_l = wx.StaticText(self,  label='Data Extraction Options')
-        top_l.SetFont(sub_title_font)
+        top_l.SetFont(shared_data.sub_title_font)
         example_line_l = wx.StaticText(self,  label='Example Line -')
         self.example_line = wx.StaticText(self,  label='')
         # split line character
@@ -9928,7 +9926,7 @@ class make_log_overlay_dialog(wx.Dialog):
         # text placement options (size, colour, placement)
         ##
         display_l = wx.StaticText(self,  label='Display Options')
-        display_l.SetFont(sub_title_font)
+        display_l.SetFont(shared_data.sub_title_font)
         display_size_l = wx.StaticText(self,  label='Text Size -')
         self.display_size_tc = wx.TextCtrl(self, size=(60, 25), value="50")
         # color
@@ -10619,10 +10617,8 @@ class make_combined_image_set_dialog(wx.Dialog):
     def InitUI(self):
         # panel
         pnl = wx.Panel(self)
-        title_font = wx.Font(28, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
-        sub_title_font = wx.Font(15, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
         box_label = wx.StaticText(self,  label='Create Picture in Picture Set')
-        box_label.SetFont(title_font)
+        box_label.SetFont(shared_data.title_font)
         # log file select - drop down box
         log_path_l = wx.StaticText(self,  label='Log - ')
         self.select_images_btn = wx.Button(self, label='Select image set to inlay')
@@ -10728,12 +10724,10 @@ class sensors_info_pnl(wx.Panel):
         w_space_left = win_width - 285
         wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, size = wx.Size(w_space_left , win_height-20), style = wx.TAB_TRAVERSAL )
         # Tab Title
-        title_font = wx.Font(28, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
-        sub_title_font = wx.Font(15, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
         title_l = wx.StaticText(self,  label='Sensor Control Panel', size=(500,40))
-        title_l.SetFont(title_font)
+        title_l.SetFont(shared_data.title_font)
         page_sub_title =  wx.StaticText(self,  label='Link aditional sensors to the pigrow', size=(550,30))
-        page_sub_title.SetFont(sub_title_font)
+        page_sub_title.SetFont(shared_data.sub_title_font)
         # placing the information boxes
         self.sensor_list = self.sensor_table(self, 1)
         self.sensor_list.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.sensor_table.double_click)
@@ -10988,9 +10982,8 @@ class ads1115_dialog(wx.Dialog):
             s_rep_txt = ""
         # panel
         pnl = wx.Panel(self)
-        title_font = wx.Font(28, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
         box_label = wx.StaticText(self,  label='ADS1115 Analog to Digital Converter')
-        box_label.SetFont(title_font)
+        box_label.SetFont(shared_data.title_font)
         # buttons_
         self.add_btn = wx.Button(self, label='OK', size=(175, 30))
         self.add_btn.Bind(wx.EVT_BUTTON, self.add_click)
@@ -11600,9 +11593,8 @@ class ds18b20_dialog(wx.Dialog):
             s_rep_txt = ""
         # panel
         pnl = wx.Panel(self)
-        title_font = wx.Font(28, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
         box_label = wx.StaticText(self,  label='DS18B20 Temp Sensor')
-        box_label.SetFont(title_font)
+        box_label.SetFont(shared_data.title_font)
         # table information
         name_l = wx.StaticText(self,  label='Unique Name')
         self.name_tc = wx.TextCtrl(self, size=(400,30))
@@ -12087,21 +12079,19 @@ class user_log_info_pnl(wx.Panel):
         w_space_left = win_width - 285
         wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, size = wx.Size(w_space_left , win_height-20), style = wx.TAB_TRAVERSAL )
         # Tab Title
-        title_font = wx.Font(28, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
-        sub_title_font = wx.Font(15, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
         title_l = wx.StaticText(self,  label='User Log Panel', size=(500,40))
-        title_l.SetFont(title_font)
+        title_l.SetFont(shared_data.title_font)
         page_sub_title =  wx.StaticText(self,  label='Record information and Log variables manually', size=(550,30))
-        page_sub_title.SetFont(sub_title_font)
+        page_sub_title.SetFont(shared_data.sub_title_font)
         user_log_location_l = wx.StaticText(self, label='User log location - ')
         self.user_log_location_tc = wx.TextCtrl(self, value="", size=(450, 30))
         # user notes
         user_notes_title =  wx.StaticText(self,  label='User Notes', size=(300,30))
-        user_notes_title.SetFont(sub_title_font)
+        user_notes_title.SetFont(shared_data.sub_title_font)
         self.ui_user_notes_list = self.user_notes_list(self, 1)
         # user log
         user_log_title =  wx.StaticText(self,  label='User Log', size=(300,30))
-        user_log_title.SetFont(sub_title_font)
+        user_log_title.SetFont(shared_data.sub_title_font)
         self.show_log_cb = wx.CheckBox(self, label='Show')
         self.download_log_cb = wx.CheckBox(self, label='Download')
         self.show_log_cb.SetValue(True)
@@ -12109,7 +12099,7 @@ class user_log_info_pnl(wx.Panel):
         self.ui_user_log_list = self.user_log_list(self, 1)
         # user log info and user log field info
         user_info_title =  wx.StaticText(self,  label='Info and User Log Fields;', size=(300,30))
-        user_info_title.SetFont(sub_title_font)
+        user_info_title.SetFont(shared_data.sub_title_font)
         new_field_l =  wx.StaticText(self,  label='New User Log Field -')
         self.field_title = wx.TextCtrl(self, -1, "", size=(300,30))
         opts = ["num", "text", "date only"]
@@ -12123,7 +12113,7 @@ class user_log_info_pnl(wx.Panel):
 
         # User Log Input Area
         add_box_title =  wx.StaticText(self,  label='Write to user log;', size=(300,30))
-        add_box_title.SetFont(sub_title_font)
+        add_box_title.SetFont(shared_data.sub_title_font)
         item_l =  wx.StaticText(self,  label='Item -', size=(50,30))
         variables = []
         self.user_log_variable_text = wx.ComboBox(self, choices = variables, size=(250, 30), style=wx.TE_READONLY)
@@ -12539,7 +12529,7 @@ class pi_link_pnl(wx.Panel):
         system_info_pnl.wifi_list.SetLabel("")
         system_info_pnl.sys_power_status.SetLabel("")
         system_info_pnl.sys_camera_info.SetLabel("")
-        system_info_pnl.sys_pi_revision.SetLabel("")
+        self.sys_pi_revision.SetLabel("")
         system_info_pnl.sys_pi_date.SetLabel("")
         system_info_pnl.sys_pc_date.SetLabel("")
         system_info_pnl.sys_i2c_info.SetLabel("")
@@ -12622,11 +12612,11 @@ class pi_link_pnl(wx.Panel):
             self.tb_user.Disable()
             self.tb_pass.Disable()
             self.seek_for_pigrows_btn.Disable()
-            cron_info_pnl.read_cron_click(MainApp.cron_info_pannel, "event")
-            system_ctrl_pnl.read_system_click(MainApp.system_ctrl_pannel, "event")
-            config_ctrl_pnl.update_pigrow_setup_pannel_information_click(MainApp.config_ctrl_pannel, "event")
-            localfiles_ctrl_pnl.update_local_filelist_click(MainApp.localfiles_ctrl_pannel, "event")
-
+            # Run the functions to fill the pages
+            MainApp.cron_info_pannel.read_cron_click("event")
+            # MainApp.system_ctrl_pannel.read_system_click("event")
+            MainApp.config_ctrl_pannel.update_pigrow_setup_pannel_information_click("event")
+            MainApp.localfiles_ctrl_pannel.update_local_filelist_click("event")
         elif log_on_test == False:
             self.link_status_text.SetLabel("unable to connect")
             ssh.close()
@@ -12635,12 +12625,14 @@ class pi_link_pnl(wx.Panel):
             MainApp.welcome_pannel.Hide()
             MainApp.system_ctrl_pannel.Show()
             MainApp.system_info_pannel.Show()
-            system_ctrl_pnl.read_system_click(MainApp.system_ctrl_pannel, "event")
+            MainApp.window_self.Layout()
+            MainApp.system_ctrl_pannel.read_system_click("event")
             self.link_with_pi_btn.SetLabel('Disconnect')
             self.tb_ip.Disable()
             self.tb_user.Disable()
             self.tb_pass.Disable()
             self.seek_for_pigrows_btn.Disable()
+        MainApp.window_self.Layout()
 
     def get_box_name(self=None):
         boxname = None
@@ -12700,6 +12692,9 @@ class view_pnl(wx.Panel):
         if display == 'System Config':
             MainApp.system_ctrl_pannel.Show()
             MainApp.system_info_pannel.Show()
+            if MainApp.system_info_pannel.sys_pi_revision.GetLabel() == "--":
+                MainApp.window_self.Layout()
+                MainApp.system_ctrl_pannel.read_system_click("event")
         elif display == 'Pigrow Setup':
             MainApp.config_ctrl_pannel.Show()
             MainApp.config_info_pannel.Show()
