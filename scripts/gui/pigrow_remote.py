@@ -255,6 +255,10 @@ class shared_data:
         yes_log_img_path = os.path.join(shared_data.ui_img_path, "log_loaded_true.png")
         shared_data.no_log_image = wx.Image(no_log_img_path, wx.BITMAP_TYPE_ANY).ConvertToBitmap()
         shared_data.yes_log_image = wx.Image(yes_log_img_path, wx.BITMAP_TYPE_ANY).ConvertToBitmap()
+        #
+        ## Fonts
+        #
+        shared_data.sub_title_font = wx.Font(15, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
 
 #
 #
@@ -6012,19 +6016,19 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
     # controlled by the graphing_ctrl_pnl
     #
     def __init__( self, parent ):
-        sub_title_font = wx.Font(15, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
         win_height = gui_set.height_of_window
         win_width = gui_set.width_of_window
         w_space_left = win_width - 285
         scrolled.ScrolledPanel.__init__ ( self, parent, id = wx.ID_ANY, size = wx.Size(w_space_left , win_height-20), style = wx.HSCROLL|wx.VSCROLL )
+        parent.Bind(wx.EVT_SIZE, self.resize_window)
         ## Draw UI elements
-        self.graph_txt = wx.StaticText(self,  label='Graphs;')
+        self.graph_txt = wx.StaticText(self,  label='Graphs;', size=(80, 30))
         self.graphs_clear_btn = wx.Button(self, label='clear', size=(55,27))
         self.graphs_clear_btn.Bind(wx.EVT_BUTTON, MainApp.graphing_ctrl_pannel.clear_graph_area)
-        self.graph_txt.SetFont(sub_title_font)
+        self.graph_txt.SetFont(shared_data.sub_title_font)
         # for local graphing
         self.data_extraction_l = wx.StaticText(self,  label='Data Extraction Options')
-        self.data_extraction_l.SetFont(sub_title_font)
+        self.data_extraction_l.SetFont(shared_data.sub_title_font)
         self.show_hide_date_extract_btn = wx.Button(self, label='hide')
         self.show_hide_date_extract_btn.Bind(wx.EVT_BUTTON, self.show_hide_date_extract_click)
         self.example_line_l = wx.StaticText(self,  label='Example Line -')
@@ -6108,7 +6112,7 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
         # data trimming
         # time and date controlls
         self.data_controls = wx.StaticText(self,  label='Settings;')
-        self.data_controls.SetFont(sub_title_font)
+        self.data_controls.SetFont(shared_data.sub_title_font)
         self.start_date_l = wx.StaticText(self,  label='Start at -')
         self.start_time_picer = wx.adv.TimePickerCtrl( self, wx.ID_ANY, wx.DefaultDateTime)
         self.start_date_picer = wx.adv.DatePickerCtrl( self, wx.ID_ANY, wx.DefaultDateTime)
@@ -6195,7 +6199,7 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
         self.main_sizer.Add(high_low_sizer, 0, wx.ALL|wx.EXPAND, 3)
         self.main_sizer.Add(axis_limits_sizer, 0, wx.ALL|wx.EXPAND, 3)
         self.main_sizer.Add(self.graph_l_sizer, 0, wx.ALL|wx.EXPAND, 3)
-        self.main_sizer.Add(self.graph_sizer, 0, wx.ALL, 0)
+        self.main_sizer.Add(self.graph_sizer, 0, wx.ALL, 0, wx.EXPAND)
         self.SetSizer(self.main_sizer)
         self.SetupScrolling()
         self.hide_data_extract()
@@ -6792,12 +6796,23 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
 
     def show_local_graph(self, graph_path):
         MainApp.graphing_info_pannel.graph_sizer.Add(wx.StaticBitmap(MainApp.graphing_info_pannel, -1, wx.Image(graph_path, wx.BITMAP_TYPE_ANY).ConvertToBitmap()), 0, wx.ALL, 2)
-        #MainApp.graphing_info_pannel.graph_sizer.Layout()
-        MainApp.graphing_info_pannel.main_sizer.Layout()
-        #MainApp.camconf_info_pannel.SetSizer(MainApp.graphing_info_pannel.main_sizer)
-        MainApp.graphing_info_pannel.SetupScrolling()
+        win_width = self.GetSize()[0]
+        win_height = self.GetSize()[1]
+        w_space_left = win_width - 285
+        size = wx.Size(win_width, win_height)
+        self.SetMinSize(size)
         MainApp.window_self.Layout()
+        self.SetupScrolling()
 
+    def resize_window(self, e):
+        win_width = e.GetSize()[0]
+        win_height = e.GetSize()[1]
+        w_space_left = win_width - 285
+        size = wx.Size(win_width, win_height)
+        self.SetMinSize(size)
+        self.SetBackgroundColour(wx.Colour(85, 224, 85))
+        MainApp.window_self.Layout()
+        self.SetupScrolling()
 
 class graphing_ctrl_pnl(wx.Panel):
     def __init__( self, parent ):
@@ -12878,18 +12893,18 @@ class MainFrame ( wx.Frame ):
         # main AREA
         main_sizer = wx.BoxSizer(wx.HORIZONTAL)
         main_sizer.Add(MainApp.side_bar_sizer, 0)
-        main_sizer.Add(MainApp.welcome_pannel, 0)
-        main_sizer.Add(MainApp.system_info_pannel, 0)
-        main_sizer.Add(MainApp.config_info_pannel, 0)
-        main_sizer.Add(MainApp.cron_list_pannel, 0)
-        main_sizer.Add(MainApp.localfiles_info_pannel, 0)
-        main_sizer.Add(MainApp.graphing_info_pannel, 0)
-        main_sizer.Add(MainApp.camconf_info_pannel, 0)
-        main_sizer.Add(MainApp.timelapse_info_pannel, 0)
-        main_sizer.Add(MainApp.sensors_info_pannel, 0)
-        main_sizer.Add(MainApp.user_log_info_pannel, 0)
+        main_sizer.Add(MainApp.welcome_pannel, 0, wx.EXPAND)
+        main_sizer.Add(MainApp.system_info_pannel, 0, wx.EXPAND)
+        main_sizer.Add(MainApp.config_info_pannel, 0, wx.EXPAND)
+        main_sizer.Add(MainApp.cron_list_pannel, 0, wx.EXPAND)
+        main_sizer.Add(MainApp.localfiles_info_pannel, 0, wx.EXPAND)
+        main_sizer.Add(MainApp.graphing_info_pannel, 0, wx.EXPAND)
+        main_sizer.Add(MainApp.camconf_info_pannel, 0, wx.EXPAND)
+        main_sizer.Add(MainApp.timelapse_info_pannel, 0, wx.EXPAND)
+        main_sizer.Add(MainApp.sensors_info_pannel, 0, wx.EXPAND)
+        main_sizer.Add(MainApp.user_log_info_pannel, 0, wx.EXPAND)
         MainApp.window_sizer = wx.BoxSizer(wx.VERTICAL)
-        MainApp.window_sizer.Add(main_sizer, 0)
+        MainApp.window_sizer.Add(main_sizer, 0, wx.EXPAND)
         MainApp.window_sizer.Add(MainApp.status, 1, wx.EXPAND)
         MainApp.window_sizer.Fit(self)
         self.SetSizer(MainApp.window_sizer)
