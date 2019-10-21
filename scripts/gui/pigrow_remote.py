@@ -230,17 +230,27 @@ def is_a_valid_and_free_gpio(gpio_pin):
 class shared_data:
     def __init__(self):
         #This is a temporary fudge soon to be cleaned and used more widely
-        # paths
+        #
+        ## paths
+        #
+        # gui system paths
         shared_data.cwd = os.getcwd()
-        shared_data.graph_presets_path = os.path.join(shared_data.cwd, "graph_presets")
         shared_data.ui_img_path = os.path.join(shared_data.cwd, "ui_images")
+        shared_data.graph_modules_path = os.path.join(shared_data.cwd, "graph_modules")
+        sys.path.append(shared_data.graph_modules_path)
+        shared_data.graph_presets_path = os.path.join(shared_data.cwd, "graph_presets")
+        #
+        ## Temporarily Stored data
+        #
         # graphing logs
         shared_data.log_to_load = None
         shared_data.first_value_set = []
         shared_data.first_date_set = []
         shared_data.first_keys_set = []
         shared_data.first_valueset_name = ""
-        # icon images
+        #
+        ## Icon images
+        #
         no_log_img_path = os.path.join(shared_data.ui_img_path, "log_loaded_none.png")
         yes_log_img_path = os.path.join(shared_data.ui_img_path, "log_loaded_true.png")
         shared_data.no_log_image = wx.Image(no_log_img_path, wx.BITMAP_TYPE_ANY).ConvertToBitmap()
@@ -6009,6 +6019,8 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
         scrolled.ScrolledPanel.__init__ ( self, parent, id = wx.ID_ANY, size = wx.Size(w_space_left , win_height-20), style = wx.HSCROLL|wx.VSCROLL )
         ## Draw UI elements
         self.graph_txt = wx.StaticText(self,  label='Graphs;')
+        self.graphs_clear_btn = wx.Button(self, label='clear', size=(55,27))
+        self.graphs_clear_btn.Bind(wx.EVT_BUTTON, MainApp.graphing_ctrl_pannel.clear_graph_area)
         self.graph_txt.SetFont(sub_title_font)
         # for local graphing
         self.data_extraction_l = wx.StaticText(self,  label='Data Extraction Options')
@@ -6173,13 +6185,16 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
 
         #
         self.graph_sizer = wx.BoxSizer(wx.VERTICAL)
+        self.graph_l_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.graph_l_sizer.Add(self.graph_txt, 0, wx.ALL|wx.EXPAND, 3)
+        self.graph_l_sizer.Add(self.graphs_clear_btn, 0, wx.ALL|wx.EXPAND, 3)
         #self.graph_sizer.Add(wx.StaticText(self,  label='problem'), 0, wx.ALL|wx.EXPAND, 3)
         self.main_sizer =  wx.BoxSizer(wx.VERTICAL)
         self.main_sizer.Add(data_extract_sizer, 0, wx.ALL|wx.EXPAND, 3)
         self.main_sizer.Add(graph_options_sizer, 0, wx.ALL|wx.EXPAND, 3)
         self.main_sizer.Add(high_low_sizer, 0, wx.ALL|wx.EXPAND, 3)
         self.main_sizer.Add(axis_limits_sizer, 0, wx.ALL|wx.EXPAND, 3)
-        self.main_sizer.Add(self.graph_txt, 0, wx.ALL|wx.EXPAND, 3)
+        self.main_sizer.Add(self.graph_l_sizer, 0, wx.ALL|wx.EXPAND, 3)
         self.main_sizer.Add(self.graph_sizer, 0, wx.ALL, 0)
         self.SetSizer(self.main_sizer)
         self.SetupScrolling()
@@ -6225,10 +6240,6 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
         self.key_matches_tc.Hide()
         self.rem_from_val_l.Hide()
         self.rem_from_val_tc.Hide()
-        self.size_h_l.Hide()
-        self.size_h_cb.Hide()
-        self.size_v_l.Hide()
-        self.size_v_cb.Hide()
         self.start_date_l.Hide()
         self.start_time_picer.Hide()
         self.start_date_picer.Hide()
@@ -7398,39 +7409,41 @@ class graphing_ctrl_pnl(wx.Panel):
         key_unit = ""
         ymax = MainApp.graphing_info_pannel.axis_y_max_cb.GetValue()
         ymin = MainApp.graphing_info_pannel.axis_y_min_cb.GetValue()
-        dangercold = float(MainApp.graphing_info_pannel.danger_low_tc.GetValue())
-        toocold = float(MainApp.graphing_info_pannel.low_tc.GetValue())
-        toohot = float(MainApp.graphing_info_pannel.high_tc.GetValue())
-        dangerhot = float(MainApp.graphing_info_pannel.danger_high_tc.GetValue())
+        dangercold = MainApp.graphing_info_pannel.danger_low_tc.GetValue()
+        toocold = MainApp.graphing_info_pannel.low_tc.GetValue()
+        toohot = MainApp.graphing_info_pannel.high_tc.GetValue()
+        dangerhot = MainApp.graphing_info_pannel.danger_high_tc.GetValue()
         size_h, size_v = self.get_graph_size_from_ui()
         module_name = self.module_graph_choice.GetValue()
+        # create name for graph based on the module name
         file_name = module_name + "_graph.png"
         graph_path = os.path.join(localfiles_info_pnl.local_path, file_name)
-        # import and run the graph script
-        graph_modules_folder = os.path.join(os.getcwd(), "graph_modules")
-        sys.path.append(graph_modules_folder)
+        # set module_name to have it's full value
+        print(sys.path)
         module_name = "graph_" + module_name
+        # unload the old module to bring in any changes to the script since it was loaded
         if module_name in sys.modules:
             del sys.modules[module_name]
+        # import the make_graph function as a module
         exec("from " + module_name + " import make_graph", globals())
-        extra = [shared_data.first_value_set, shared_data.first_date_set]
+        # creaty the graph using the imported module
+        extra = [shared_data.first_value_set, shared_data.first_date_set]  #this is temporary testing
         make_graph(date_list, value_list, key_list, graph_path, ymax, ymin, size_h, size_v, dangerhot, toohot, toocold, dangercold, extra)
-        #
+        # Tell the user and show the graph
         print("module_graph created and saved to " + graph_path)
         MainApp.graphing_info_pannel.show_local_graph(graph_path)
         MainApp.status.write_bar("ready...")
 
     def suck_from_imported_module(self, e):
         module_name = self.module_sucker_cb.GetValue()
-        #
-        graph_modules_folder = os.path.join(os.getcwd(), "graph_modules")
-        sys.path.append(graph_modules_folder)
+        # import sucker function from module
         module_name = "sucker_" + module_name
         if module_name in sys.modules:
             del sys.modules[module_name]
         exec("from " + module_name + " import run_sucker", globals())
-        extra = [shared_data.first_value_set, shared_data.first_date_set]
+        # run the function and set the data to the logs
         values, dates, keys = run_sucker()
+        print(" - Sucker added ", len(values), len(dates), len(keys), " data points.")
         shared_data.first_value_set = values
         shared_data.first_date_set = dates
         shared_data.first_keys_set = keys
@@ -7442,8 +7455,8 @@ class graphing_ctrl_pnl(wx.Panel):
             self.valset_1_name.SetLabel(module_name)
             self.set_log_btn.SetLabel("Clear")
             MainApp.window_self.Layout()
-
-        print("Added ", len(values), len(dates), len(keys), " data points.")
+        else:
+            print(" - These lists either aren't the same length or are all empty, that could be a problem for the graph modules.... ")
 
     # make graphs
     def local_simple_line_go(self, e):
@@ -8360,7 +8373,7 @@ class graphing_ctrl_pnl(wx.Panel):
         MainApp.graphing_info_pannel.SetupScrolling()
         MainApp.window_self.Layout()
 
-    def clear_graph_area(self):
+    def clear_graph_area(self, e=""):
         # usage = MainApp.graphing_info_pannel.clear_graph_area()
         children = MainApp.graphing_info_pannel.graph_sizer.GetChildren()
         for child in children:
