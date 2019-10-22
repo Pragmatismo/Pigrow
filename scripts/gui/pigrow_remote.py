@@ -7440,9 +7440,7 @@ class graphing_ctrl_pnl(wx.Panel):
     def local_simple_line_go(self, e):
         print("Want's to create a simple line graph...  ")
         # read data from log
-        value_list = shared_data.first_value_set
-        date_list = shared_data.first_date_set
-        key_list = shared_data.first_keys_set
+        date_list = shared_data.list_of_datasets[0][0]
         if len(date_list) == 0:
             print("No data to make a graph with...")
             return None
@@ -7457,13 +7455,18 @@ class graphing_ctrl_pnl(wx.Panel):
         fig.canvas.set_window_title('Simple Line Graph')
         fig, ax = plt.subplots(figsize=(size_h, size_v))
         plt.title("Time Perod; " + str(date_list[0].strftime("%b-%d %H:%M")) + " to " + str(date_list[-1].strftime("%b-%d %H:%M")) + " ")
-        plt.ylabel(key_list[0]) # + " in " + key_unit)
         if not ymax == "":
             plt.ylim(ymax=int(ymax))
         if not ymin == "":
             plt.ylim(ymin=int(ymin))
-        ax.plot(date_list, value_list, color='black', lw=1)
+        ax.set_prop_cycle(color=['black', 'blue', 'red', 'green'])
+        for x in shared_data.list_of_datasets:
+            date_list = x[0]
+            value_list = x[1]
+            key_list = x[2]
+            ax.plot(date_list, value_list, label=key_list[0], lw=1)
         ax.xaxis_date()
+
         fig.autofmt_xdate()
         graph_path = os.path.join(localfiles_info_pnl.local_path, "line_graph.png")
         plt.savefig(graph_path)
@@ -7474,6 +7477,9 @@ class graphing_ctrl_pnl(wx.Panel):
 
     def local_color_line_go(self, e):
         # read graph settings from ui boxes
+        date_list   = shared_data.list_of_datasets[0][0]
+        value_list  = shared_data.list_of_datasets[0][1]
+        key_list    = shared_data.list_of_datasets[0][2]
         key_unit = ""
         ymax = MainApp.graphing_info_pannel.axis_y_max_cb.GetValue()
         ymin = MainApp.graphing_info_pannel.axis_y_min_cb.GetValue()
@@ -7532,9 +7538,7 @@ class graphing_ctrl_pnl(wx.Panel):
     def local_simple_bar_go(self, e):
         print("Want's to create a simple bar graph...  ")
         # read log
-        value_list = shared_data.first_value_set
-        date_list = shared_data.first_date_set
-        key_list = shared_data.first_keys_set
+        date_list = shared_data.list_of_datasets[0][0]
         if len(date_list) == 0:
             print("No data to make a graph with...")
             return None
@@ -7546,14 +7550,20 @@ class graphing_ctrl_pnl(wx.Panel):
         size_h, size_v = self.get_graph_size_from_ui()
         # define the graph space
         fig, ax = plt.subplots(figsize=(size_h, size_v))
-        fig.canvas.set_window_title('Simple Bar Graph')
         plt.title("Time Perod; " + str(date_list[0].strftime("%b-%d %H:%M")) + " to " + str(date_list[-1].strftime("%b-%d %H:%M")) + " ")
-        plt.ylabel(key_list[0]) # + " in " + key_unit)
         if not ymax == "":
             plt.ylim(ymax=int(ymax))
         if not ymin == "":
             plt.ylim(ymin=int(ymin))
-        ax.bar(date_list, value_list,width=0.01, linewidth = 1 )
+        for x in shared_data.list_of_datasets:
+            date_list = x[0]
+            value_list = x[1]
+            key_list = x[2]
+            ax.bar(date_list, value_list,width=0.01, linewidth = 1, alpha=0.5, label=key_list[0])
+        if len(shared_data.list_of_datasets) > 1:
+            ax.legend()
+        else:
+            plt.ylabel(key_list[0])
         ax.xaxis_date()
         fig.autofmt_xdate()
         graph_path = os.path.join(localfiles_info_pnl.local_path, "bar_graph.png")
@@ -7849,9 +7859,9 @@ class graphing_ctrl_pnl(wx.Panel):
     def log_time_diff_graph_go(self, e):
         print("Want's to create a simple line graph...  ")
         # read data from log
-        value_list = shared_data.first_value_set
-        date_list = shared_data.first_date_set
-        key_list = shared_data.first_keys_set
+        date_list   = shared_data.list_of_datasets[0][0]
+        value_list  = shared_data.list_of_datasets[0][1]
+        key_list    = shared_data.list_of_datasets[0][2]
         if len(date_list) < 2:
             return None
         MainApp.status.write_bar("-- Creating a time diff graph from " + str(len(date_list)) + " values")
@@ -7894,9 +7904,9 @@ class graphing_ctrl_pnl(wx.Panel):
     def value_diff_graph_go(self, e):
         print("Want's to create a value differnce graph...  ")
         # read data from log
-        value_list = shared_data.first_value_set
-        date_list = shared_data.first_date_set
-        key_list = shared_data.first_keys_set
+        date_list   = shared_data.list_of_datasets[0][0]
+        value_list  = shared_data.list_of_datasets[0][1]
+        key_list    = shared_data.list_of_datasets[0][2]
         if len(date_list) < 2:
             return None
         MainApp.status.write_bar("-- Creating a value diff graph from " + str(len(date_list)) + " values")
@@ -7938,9 +7948,9 @@ class graphing_ctrl_pnl(wx.Panel):
 
     def divided_daily_go(self, e):
         # read log
-        value_list = shared_data.first_value_set
-        date_list = shared_data.first_date_set
-        key_list = shared_data.first_keys_set
+        date_list   = shared_data.list_of_datasets[0][0]
+        value_list  = shared_data.list_of_datasets[0][1]
+        key_list    = shared_data.list_of_datasets[0][2]
         if len(date_list) == 0:
             print("No data to make a graph with...")
             return None
@@ -8131,7 +8141,6 @@ class graphing_ctrl_pnl(wx.Panel):
         fig.clf()
         MainApp.graphing_info_pannel.show_local_graph(graph_path)
         MainApp.status.write_bar("ready...")
-
 
     def switch_log_relay_weekly(self, e):
         dictionary_of_sets, power_on_markers = self.parse_switch_log_for_relays()
