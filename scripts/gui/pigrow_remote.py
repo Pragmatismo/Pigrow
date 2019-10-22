@@ -1153,7 +1153,6 @@ class remove_onewire_dbox(wx.Dialog):
     def OnClose(self, e):
         self.Destroy()
 
-
 class system_info_pnl(wx.Panel):
     #
     #  This displays the system info
@@ -1161,7 +1160,6 @@ class system_info_pnl(wx.Panel):
     #
     def __init__( self, parent ):
         wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, style = wx.TAB_TRAVERSAL )
-        parent.Bind(wx.EVT_SIZE, self.resize_window)
         ## Draw UI elements
         # Tab Title
         title_l = wx.StaticText(self,  label='System Control Panel', size=(500,40))
@@ -1359,18 +1357,6 @@ class system_info_pnl(wx.Panel):
         main_sizer.Add(wifi_area_sizer, 0, wx.ALL, 7)
         self.SetSizer(main_sizer)
 
-    def resize_window(self, e):
-        win_width = e.GetSize()[0]
-        win_height = e.GetSize()[1]
-        w_space_left = win_width - 285
-        size = wx.Size(win_width, win_height)
-        self.SetMinSize(size)
-        try:
-            MainApp.window_self.Layout()
-        except:
-            pass #to avoid the error on first init
-        #self.SetupScrolling()
-
     def scan_wifi_btn_click(self, e):
         print("Pi is scanning for wifi...")
         MainApp.status.write_bar("Pi is scanning for wifi...")
@@ -1384,7 +1370,6 @@ class system_info_pnl(wx.Panel):
         self.available_wifi_list.SetLabel(list_of_network_text)
         MainApp.status.write_bar("Ready...")
         MainApp.window_self.Layout()
-
 
 class upgrade_pigrow_dialog(wx.Dialog):
     #Dialog box for installing pigrow software on a raspberry pi remotely
@@ -2862,10 +2847,7 @@ class config_info_pnl(scrolled.ScrolledPanel):
     #  This displays the config info
     # controlled by the config_ctrl_pnl
     def __init__( self, parent ):
-        win_height = gui_set.height_of_window
-        win_width = gui_set.width_of_window
-        w_space_left = win_width - 285
-        scrolled.ScrolledPanel.__init__ ( self, parent, id = wx.ID_ANY, size = wx.Size(w_space_left , win_height-20), style = wx.HSCROLL|wx.VSCROLL)
+        scrolled.ScrolledPanel.__init__ ( self, parent, id = wx.ID_ANY, style = wx.HSCROLL|wx.VSCROLL)
         font = wx.Font(15, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
         # Tab Title
         title_l = wx.StaticText(self,  label='Pigrow Setup', size=(500,40))
@@ -4273,6 +4255,7 @@ class edit_dht_dialog(wx.Dialog):
 class cron_info_pnl(wx.Panel):
     def __init__( self, parent ):
         wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, style = wx.TAB_TRAVERSAL )
+
         wx.StaticText(self,  label='Cron Config Menu', pos=(25, 10))
         self.read_cron_btn = wx.Button(self, label='Read Crontab', pos=(10, 40), size=(175, 30))
         self.read_cron_btn.Bind(wx.EVT_BUTTON, self.read_cron_click)
@@ -4286,6 +4269,8 @@ class cron_info_pnl(wx.Panel):
         main_sizer.Add(self.new_cron_btn, 0, wx.ALL, 5)
         main_sizer.Add(self.update_cron_btn, 0, wx.ALL, 5)
         self.SetSizer(main_sizer)
+
+
 
     def update_cron_click(self, e):
         #make a text file of all the cron jobs
@@ -4643,8 +4628,8 @@ class cron_list_pnl(wx.Panel):
                 return "", ""
 
     class other_cron_list(wx.ListCtrl):
-        def __init__(self, parent, id, pos=(5,530), size=(900,200)):
-            wx.ListCtrl.__init__(self, parent, id, size=size, style=wx.LC_REPORT, pos=pos)
+        def __init__(self, parent, id, pos=(5,530)):
+            wx.ListCtrl.__init__(self, parent, id, style=wx.LC_REPORT, pos=pos)
             self.InsertColumn(0, 'Line')
             self.InsertColumn(1, 'Enabled')
             self.InsertColumn(2, 'Time')
@@ -4659,10 +4644,7 @@ class cron_list_pnl(wx.Panel):
             self.SetColumnWidth(5, 100)
 
     def __init__( self, parent ):
-        win_height = gui_set.height_of_window
-        win_width = gui_set.width_of_window
-        w_space_left = win_width - 285
-        wx.Panel.__init__(self, parent, id = wx.ID_ANY, size = wx.Size(w_space_left , win_height-20), style = wx.TAB_TRAVERSAL)
+        wx.Panel.__init__(self, parent, id = wx.ID_ANY, style = wx.TAB_TRAVERSAL)
         # Tab Title
         title_l = wx.StaticText(self,  label='Cron Tab Control', size=(500,40))
         title_l.SetFont(shared_data.title_font)
@@ -5207,10 +5189,7 @@ class localfiles_info_pnl(scrolled.ScrolledPanel):
     # controlled by the system_ctrl_pnl
     #
     def __init__( self, parent ):
-        win_height = gui_set.height_of_window
-        win_width = gui_set.width_of_window
-        w_space_left = win_width - 285
-        scrolled.ScrolledPanel.__init__ ( self, parent, id = wx.ID_ANY, size = wx.Size(w_space_left , win_height-20), style = wx.HSCROLL|wx.VSCROLL)
+        scrolled.ScrolledPanel.__init__ ( self, parent, id = wx.ID_ANY, style = wx.HSCROLL|wx.VSCROLL)
         #set blank variables
         localfiles_info_pnl.local_path = ""
         # top title
@@ -6024,11 +6003,8 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
     # controlled by the graphing_ctrl_pnl
     #
     def __init__( self, parent ):
-        win_height = gui_set.height_of_window
-        win_width = gui_set.width_of_window
-        w_space_left = win_width - 285
-        scrolled.ScrolledPanel.__init__ ( self, parent, id = wx.ID_ANY, size = wx.Size(w_space_left , win_height-20), style = wx.HSCROLL|wx.VSCROLL )
-        parent.Bind(wx.EVT_SIZE, self.resize_window)
+        scrolled.ScrolledPanel.__init__ ( self, parent, id = wx.ID_ANY, style = wx.HSCROLL|wx.VSCROLL )
+
         ## Draw UI elements
         self.graph_txt = wx.StaticText(self,  label='Graphs;', size=(80, 30))
         self.graphs_clear_btn = wx.Button(self, label='clear', size=(55,27))
@@ -6812,17 +6788,7 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
         MainApp.window_self.Layout()
         self.SetupScrolling()
 
-    def resize_window(self, e):
-        win_width = e.GetSize()[0]
-        win_height = e.GetSize()[1]
-        w_space_left = win_width - 285
-        size = wx.Size(win_width, win_height)
-        self.SetMinSize(size)
-        try:
-            MainApp.window_self.Layout()
-        except:
-            pass #to avoid the error on first init
-        self.SetupScrolling()
+
 
 class graphing_ctrl_pnl(wx.Panel):
     def __init__( self, parent ):
@@ -8427,10 +8393,7 @@ class camconf_info_pnl(scrolled.ScrolledPanel):
     #
     #
     def __init__( self, parent ):
-        win_height = gui_set.height_of_window
-        win_width = gui_set.width_of_window
-        w_space_left = win_width - 285
-        scrolled.ScrolledPanel.__init__ ( self, parent, id = wx.ID_ANY, size = wx.Size(w_space_left , win_height-20), style = wx.HSCROLL|wx.VSCROLL )
+        scrolled.ScrolledPanel.__init__ ( self, parent, id = wx.ID_ANY, style = wx.HSCROLL|wx.VSCROLL )
         ## Draw UI elements
         # placing the information boxes
         # top row
@@ -9087,10 +9050,7 @@ class camconf_ctrl_pnl(wx.Panel):
 
 class timelapse_info_pnl(wx.Panel):
     def __init__( self, parent ):
-        win_height = gui_set.height_of_window
-        win_width = gui_set.width_of_window
-        w_space_left = win_width - 285
-        wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, size = wx.Size(w_space_left , win_height-20), style = wx.TAB_TRAVERSAL )
+        wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, style = wx.TAB_TRAVERSAL )
         # Tab Title
         title_l = wx.StaticText(self,  label='Timelapse Control Panel', size=(500,40))
         title_l.SetFont(shared_data.title_font)
@@ -10719,10 +10679,7 @@ class sensors_info_pnl(wx.Panel):
     #
     #
     def __init__( self, parent ):
-        win_height = gui_set.height_of_window
-        win_width = gui_set.width_of_window
-        w_space_left = win_width - 285
-        wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, size = wx.Size(w_space_left , win_height-20), style = wx.TAB_TRAVERSAL )
+        wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, style = wx.TAB_TRAVERSAL )
         # Tab Title
         title_l = wx.StaticText(self,  label='Sensor Control Panel', size=(500,40))
         title_l.SetFont(shared_data.title_font)
@@ -12528,7 +12485,7 @@ class pi_link_pnl(wx.Panel):
         MainApp.system_info_pannel.wifi_list.SetLabel("")
         MainApp.system_info_pannel.sys_power_status.SetLabel("")
         MainApp.system_info_pannel.sys_camera_info.SetLabel("")
-        self.sys_pi_revision.SetLabel("")
+        MainApp.system_info_pannel.sys_pi_revision.SetLabel("")
         MainApp.system_info_pannel.sys_pi_date.SetLabel("")
         MainApp.system_info_pannel.sys_pc_date.SetLabel("")
         MainApp.system_info_pannel.sys_i2c_info.SetLabel("")
@@ -12818,6 +12775,7 @@ class MainFrame ( wx.Frame ):
     def __init__( self, parent ):
         # Settings
         wx.Frame.__init__ ( self, parent, id = wx.ID_ANY, title = "Pigrow Remote Interface", pos = wx.DefaultPosition, style = wx.DEFAULT_FRAME_STYLE|wx.TAB_TRAVERSAL )
+        self.Bind(wx.EVT_SIZE, self.resize_window)
 
         # always shown pannels
         MainApp.pi_link_pnl = pi_link_pnl(self)
@@ -12908,6 +12866,31 @@ class MainFrame ( wx.Frame ):
         self.SetSizeHints( wx.DefaultSize, wx.DefaultSize )
         self.Layout()
         self.Centre( wx.BOTH )
+
+    def resize_window(self, e):
+        win_width = e.GetSize()[0]
+        win_height = e.GetSize()[1]
+        w_space_left = win_width - 285
+        size = wx.Size(win_width, win_height-75)
+        #self.SetMinSize(size)
+        MainApp.system_info_pannel.SetMinSize(size)
+        MainApp.config_info_pannel.SetMinSize(size)
+        MainApp.cron_list_pannel.SetMinSize(size)
+        MainApp.localfiles_info_pannel.SetMinSize(size)
+        MainApp.graphing_info_pannel.SetMinSize(size)
+        MainApp.camconf_info_pannel.SetMinSize(size)
+        MainApp.timelapse_info_pannel.SetMinSize(size)
+        MainApp.sensors_info_pannel.SetMinSize(size)
+        MainApp.user_log_info_pannel.SetMinSize(size)
+        MainApp.welcome_pannel.SetMinSize(size)
+
+        try:
+            MainApp.window_self.Layout()
+        except:
+            pass #to avoid the error on first init
+        MainApp.graphing_info_pannel.SetupScrolling()
+
+
     def __del__( self ):
         pass
 
