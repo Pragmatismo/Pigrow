@@ -10,18 +10,27 @@
 #
 #
 
-def make_graph(date_list, value_list, key_list, graph_path, ymax="", ymin="", size_h="", size_v="", dh="", th="", tc="", dc="", extra=[]):
+def make_graph(list_of_datasets, graph_path, ymax="", ymin="", size_h="", size_v="", dh="", th="", tc="", dc="", extra=[]):
     import matplotlib
     matplotlib.use('agg')
     import matplotlib.pyplot as plt
     print("Want's to create a line graph using the graph_line.py module...  ")
     # start making the graph
     fig, ax = plt.subplots(figsize=(size_h, size_v))
-    plt.title("Time Perod; " + str(date_list[0].strftime("%b-%d %H:%M")) + " to " + str(date_list[-1].strftime("%b-%d %H:%M")) + " ")
-    plt.ylabel(key_list[0])
     # create plot
-    ax.plot(date_list, value_list, color='blue', lw=1)
+    ax.set_prop_cycle(color=['black', 'blue', 'red', 'green'])
+    for x in list_of_datasets:
+        date_list = x[0]
+        value_list = x[1]
+        key_list = x[2]
+        ax.plot(date_list, value_list, label=key_list[0], lw=1)
     # Set y axis min and max range
+    if len(list_of_datasets) > 1:
+        ax.legend()
+    else:
+        plt.ylabel(key_list[0])
+
+    plt.title("Time Perod; " + str(date_list[0].strftime("%b-%d %H:%M")) + " to " + str(date_list[-1].strftime("%b-%d %H:%M")) + " ")
     if not ymax == "":
         plt.ylim(ymax=int(ymax))
     if not ymin == "":

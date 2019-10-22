@@ -10,7 +10,7 @@
 #
 #
 
-def make_graph(date_list, value_list, key_list, graph_path, ymax="", ymin="", size_h="", size_v="", dh="", th="", tc="", dc="", extra=[]):
+def make_graph(list_of_datasets, graph_path, ymax="", ymin="", size_h="", size_v="", dh="", th="", tc="", dc="", extra=[]):
 
 
     import matplotlib
@@ -24,11 +24,17 @@ def make_graph(date_list, value_list, key_list, graph_path, ymax="", ymin="", si
         else:
             return time2 - time1
 
+    if len(list_of_datasets) < 2:
+        print("!!! You need two logs loaded to run this script ")
+        return None
 
-    log_1_date_list = extra[1]
-    first_value_list = extra[0]
-    log_2_date_list = date_list
-    log_2_value_list = value_list
+    # This compares onyl the first two datasets
+    log_1_date_list = list_of_datasets[0][0]
+    log_1_value_list = list_of_datasets[0][1]
+    key_list_1 = list_of_datasets[0][2]
+    log_2_date_list = list_of_datasets[1][0]
+    log_2_value_list = list_of_datasets[1][1]
+    key_list_2 = list_of_datasets[1][2]
 
     print("First log;", len(log_1_date_list), " Second log;", len(log_2_date_list))
     print("Want's to create a compare graph using the compare module")
@@ -65,22 +71,22 @@ def make_graph(date_list, value_list, key_list, graph_path, ymax="", ymin="", si
                 if time_diff_forward < time_diff_back:
                     #print(" forward dif; ", time_diff_forward, " backward dif: ", time_diff_back)
                     #print("using forward")
-                    matched_list_a_v.append(first_value_list[x])
+                    matched_list_a_v.append(log_1_value_list[x])
                     matched_list_a_d.append(log_1_date_list[x])
                     matched_list_b_v.append(log_2_value_list[log_2_counter])
                     matched_list_b_d.append(log_2_date_list[log_2_counter])
                     time_diffs.append(time_diff_forward)
-                    value_diff = first_value_list[x] - log_2_value_list[log_2_counter]
+                    value_diff = log_1_value_list[x] - log_2_value_list[log_2_counter]
                     value_diffs.append(value_diff)
                 else:
                     #print("using back")
-                    matched_list_a_v.append(first_value_list[x])
+                    matched_list_a_v.append(log_1_value_list[x])
                     matched_list_a_d.append(log_1_date_list[x])
                     matched_list_b_v.append(log_2_value_list[log_2_counter - 1])
                     matched_list_b_d.append(log_2_date_list[log_2_counter - 1])
                     time_diff_back = time_diff_back - time_diff_back - time_diff_back
                     time_diffs.append(time_diff_back)
-                    value_diff = first_value_list[x] - log_2_value_list[log_2_counter - 1]
+                    value_diff = log_1_value_list[x] - log_2_value_list[log_2_counter - 1]
                     value_diffs.append(value_diff)
 
 
@@ -91,13 +97,16 @@ def make_graph(date_list, value_list, key_list, graph_path, ymax="", ymin="", si
     fig, ax = plt.subplots(figsize=(size_h, size_v))
     # Top graph, the two data sets overlaid
     ax1 = plt.subplot(311)
-    ax1.plot(date_list, value_list, color='green', lw=1)
-    ax1.plot(log_1_date_list, first_value_list, color='blue', lw=1)
+    ax1.plot(log_1_date_list, log_1_value_list, color='blue', label=key_list_1[0], lw=1)
+    ax1.plot(log_2_date_list, log_2_value_list, color='green', label=key_list_2[0], lw=1)
     #ax1.plot(matched_list_a_d, matched_list_a_v, color='blue', lw=1)
     #ax1.plot(matched_list_b_d, matched_list_b_v, color='black', lw=1)
     plt.title("Both Logs Overlaid")
-    plt.ylabel(key_list[0])
     plt.grid(True)
+    if key_list_1[0] == key_list_2[0]:
+        plt.ylabel(key_list_1[0])
+    else:
+        ax1.legend()
     ax1.xaxis_date()
     # Second graph, the value difference
     ax2 = plt.subplot(312, sharex=ax1)

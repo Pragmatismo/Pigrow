@@ -10,7 +10,7 @@
 #
 #
 
-def make_graph(date_list, value_list, key_list, graph_path, ymax="", ymin="", size_h="", size_v="", dh="", th="", tc="", dc="", extra=[]):
+def make_graph(list_of_datasets, graph_path, ymax="", ymin="", size_h="", size_v="", dh="", th="", tc="", dc="", extra=[]):
     #
     # User changable options
     log_window_size=251      # set the size of the window when scanning through the log to determine up-down trends
@@ -22,6 +22,8 @@ def make_graph(date_list, value_list, key_list, graph_path, ymax="", ymin="", si
                              # shows the simplified logs gray line over the basic line graph
                              # this can make it more obvious if you want to increase of decrease window size
     #
+
+    #
     #
     import matplotlib
     matplotlib.use('agg')
@@ -30,6 +32,10 @@ def make_graph(date_list, value_list, key_list, graph_path, ymax="", ymin="", si
     import numpy             as np
     from numpy.polynomial.polynomial import polyfit
 
+    # this ignores other datasets and only uses the first one because otherwise it would just look too messy and stupid 
+    date_list   = list_of_datasets[0][0]
+    value_list  = list_of_datasets[0][1]
+    key_list    = list_of_datasets[0][2]
 
     def generate_slope(data, window_size=3, mode='edge'):
     	# mode could be 'constant' for zero padding

@@ -244,6 +244,8 @@ class shared_data:
         #
         # graphing logs
         shared_data.log_to_load = None
+        shared_data.list_of_datasets = []
+        #      [shared_data.first_date_set, shared_data.first_value_set, shared_data.first_keys_set]
         shared_data.first_value_set = []
         shared_data.first_date_set = []
         shared_data.first_keys_set = []
@@ -6847,8 +6849,10 @@ class graphing_ctrl_pnl(wx.Panel):
         self.valset_1_len_l = wx.StaticText(self,  label=' Datapoints : ')
         self.valset_1_len = wx.StaticText(self,  label='0')
         self.valset_1_name = wx.StaticText(self,  label='-')
-        self.set_log_btn = wx.Button(self, label='Load Log')
+        self.set_log_btn = wx.Button(self, label='Add', size=(90,-1))
         self.set_log_btn.Bind(wx.EVT_BUTTON, self.set_log_click)
+        self.clear_log_btn = wx.Button(self, label='Clear', size=(50,-1))
+        self.clear_log_btn.Bind(wx.EVT_BUTTON, self.clear_log_click)
 
 
 
@@ -6890,11 +6894,6 @@ class graphing_ctrl_pnl(wx.Panel):
         self.threasholds_pie.Bind(wx.EVT_BUTTON, self.threasholds_pie_go)
         self.dividied_daily = wx.Button(self, label='Divided Daily')
         self.dividied_daily.Bind(wx.EVT_BUTTON, self.divided_daily_go)
-        self.graph_compare = wx.Button(self, label='compare')
-        self.graph_compare.Bind(wx.EVT_BUTTON, self.graph_compare_go)
-        self.graph_compare_clear = wx.Button(self, label='clear')
-        self.graph_compare_clear.Bind(wx.EVT_BUTTON, self.graph_compare_clear_go)
-        self.graph_compare_clear.Disable()
         self.local_simple_line.Disable()
         self.local_color_line.Disable()
         self.local_simple_bar.Disable()
@@ -6921,6 +6920,7 @@ class graphing_ctrl_pnl(wx.Panel):
         valset_1_sizer.Add(self.valset_1_loaded, 0, wx.ALL|wx.EXPAND, 3)
         valset_1_sizer.Add(valset_1_text_sizer, 0, wx.ALL|wx.EXPAND, 3)
         valset_1_sizer.Add(self.set_log_btn, 0, wx.ALL|wx.EXPAND, 3)
+        valset_1_sizer.Add(self.clear_log_btn, 0, wx.ALL|wx.EXPAND, 3)
         graph_preset_sizer = wx.BoxSizer(wx.HORIZONTAL)
         graph_preset_sizer.Add(self.graph_presets_cb, 0, wx.ALL|wx.EXPAND, 3)
         graph_preset_sizer.Add(self.graph_preset_all, 0, wx.ALL|wx.EXPAND, 3)
@@ -6931,9 +6931,6 @@ class graphing_ctrl_pnl(wx.Panel):
         module_sucker_sizer = wx.BoxSizer(wx.HORIZONTAL)
         module_sucker_sizer.Add(self.module_sucker_cb, 0, wx.ALL|wx.EXPAND, 3)
         module_sucker_sizer.Add(self.module_sucker_go_btn, 0, wx.ALL|wx.EXPAND, 3)
-        compare_sizer =  wx.BoxSizer(wx.HORIZONTAL)
-        compare_sizer.Add(self.graph_compare, 0, wx.ALL|wx.EXPAND, 3)
-        compare_sizer.Add(self.graph_compare_clear, 0, wx.ALL|wx.EXPAND, 3)
         # local opts size
         local_opts_sizer = wx.BoxSizer(wx.VERTICAL)
         local_opts_sizer.Add(valset_1_sizer, 0, wx.ALL|wx.EXPAND, 3)
@@ -6953,7 +6950,6 @@ class graphing_ctrl_pnl(wx.Panel):
         local_opts_sizer.Add(self.over_threasholds_by_hour, 0, wx.ALL, 3)
         local_opts_sizer.Add(self.threasholds_pie, 0, wx.ALL, 3)
         local_opts_sizer.Add(self.dividied_daily, 0, wx.ALL, 3)
-        local_opts_sizer.Add(compare_sizer, 0, wx.ALL, 3)
         local_opts_sizer.Add(self.value_diff_graph, 0, wx.ALL, 3)
         local_opts_sizer.Add(self.log_time_diff_graph, 0, wx.ALL, 3)
         local_opts_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(5, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
@@ -7042,8 +7038,6 @@ class graphing_ctrl_pnl(wx.Panel):
         self.module_graph_choice.Hide()
         self.module_graph_btn.Hide()
         self.refresh_module_graph_btn.Hide()
-        self.graph_compare.Hide()
-        self.graph_compare_clear.Hide()
         self.data_title_text.Hide()
         self.graph_title_text.Hide()
         self.valset_1_loaded.Hide()
@@ -7053,6 +7047,7 @@ class graphing_ctrl_pnl(wx.Panel):
         self.module_sucker_cb.Hide()
         self.module_sucker_go_btn.Hide()
         self.set_log_btn.Hide()
+        self.clear_log_btn.Hide()
 
         try:
             MainApp.graphing_info_pannel.hide_data_extract()
@@ -7078,8 +7073,6 @@ class graphing_ctrl_pnl(wx.Panel):
         self.module_graph_choice.Show()
         self.module_graph_btn.Show()
         self.refresh_module_graph_btn.Show()
-        self.graph_compare.Show()
-        self.graph_compare_clear.Show()
         self.data_title_text.Show()
         self.graph_title_text.Show()
         self.valset_1_loaded.Show()
@@ -7089,6 +7082,7 @@ class graphing_ctrl_pnl(wx.Panel):
         self.module_sucker_cb.Show()
         self.module_sucker_go_btn.Show()
         self.set_log_btn.Show()
+        self.clear_log_btn.Show()
 
     def enable_value_graphs(self):
         self.local_simple_line.Enable()
@@ -7185,32 +7179,29 @@ class graphing_ctrl_pnl(wx.Panel):
                     split_chr_choices.append(chr)
         return split_chr_choices
 
+    def clear_log_click(self, e):
+        shared_data.list_of_datasets = []
+        shared_data.first_valueset_name = ""
+        self.valset_1_name.SetLabel("-")
+        self.disable_value_graphs()
+        self.valset_1_loaded.SetBitmap(shared_data.no_log_image)
+        self.valset_1_len.SetLabel("0")
+
     def set_log_click(self, e):
-        if self.set_log_btn.GetLabel() == "Clear":
-            shared_data.first_value_set = []
-            shared_data.first_date_set = []
-            shared_data.first_keys_set = []
-            shared_data.first_valueset_name = ""
-            self.valset_1_name.SetLabel("-")
-            self.disable_value_graphs()
-            self.valset_1_loaded.SetBitmap(shared_data.no_log_image)
-            self.valset_1_len.SetLabel(str(len(shared_data.first_value_set)))
-            self.set_log_btn.SetLabel("Load Log")
+        date_list, value_list, key_list = MainApp.graphing_info_pannel.read_log_date_and_value(numbers_only=True)
+        if len(date_list) == len(value_list) and len(date_list) == len(key_list) and len(date_list) > 0:
+            self.enable_value_graphs()
+            self.valset_1_loaded.SetBitmap(shared_data.yes_log_image)
+            self.valset_1_len.SetLabel(str(len(date_list)))
+            self.valset_1_name.SetLabel(shared_data.first_valueset_name)
+            shared_data.list_of_datasets.append([date_list, value_list, key_list])
+        #    self.set_log_btn.SetLabel("Clear")
+            MainApp.graphing_info_pannel.show_hide_date_extract_btn.SetLabel("hide")
+            MainApp.graphing_info_pannel.show_hide_date_extract_click("e")
+            MainApp.window_self.Layout()
         else:
-            # read log
-            date_list, value_list, key_list = MainApp.graphing_info_pannel.read_log_date_and_value(numbers_only=True)
-            if len(shared_data.first_date_set) == len(shared_data.first_value_set) and len(shared_data.first_date_set) == len(shared_data.first_keys_set) and len(shared_data.first_date_set) > 0:
-                self.enable_value_graphs()
-                self.valset_1_loaded.SetBitmap(shared_data.yes_log_image)
-                self.valset_1_len.SetLabel(str(len(shared_data.first_value_set)))
-                self.valset_1_name.SetLabel(shared_data.first_valueset_name)
-                self.set_log_btn.SetLabel("Clear")
-                MainApp.graphing_info_pannel.show_hide_date_extract_btn.SetLabel("hide")
-                MainApp.graphing_info_pannel.show_hide_date_extract_click("e")
-                MainApp.window_self.Layout()
-            else:
-                self.valset_1_loaded.SetBitmap(shared_data.no_log_image)
-                self.valset_1_len.SetLabel(str(len(shared_data.first_date_set)), str(len(shared_data.first_value_set)), str(len(shared_data.first_key_set)))
+            self.valset_1_loaded.SetBitmap(shared_data.no_log_image)
+            self.valset_1_len.SetLabel(str(len(date_list)), str(len(value_list)), str(len(key_list)))
 
     # graph presets
 
@@ -7388,13 +7379,13 @@ class graphing_ctrl_pnl(wx.Panel):
     def make_graph_from_imported_module(self, e):
         print("Want's to create a graph using a external module...  ")
         # read data from log
-        value_list = shared_data.first_value_set
-        date_list = shared_data.first_date_set
-        key_list = shared_data.first_keys_set
-        if len(date_list) == 0:
+        count_list = ""
+        for x in shared_data.list_of_datasets:
+            count_list += " " + str(len(x[0]))
+        if len(shared_data.list_of_datasets) == 0:
             print("No data to make a graph with...")
             return None
-        MainApp.status.write_bar("-- Creating a graph from a module using  " + str(len(date_list)) + " values")
+        MainApp.status.write_bar("-- Creating a graph from a module using  " + str(len(count_list)) + " values")
         # read graph settings from ui boxes
         key_unit = ""
         ymax = MainApp.graphing_info_pannel.axis_y_max_cb.GetValue()
@@ -7417,8 +7408,8 @@ class graphing_ctrl_pnl(wx.Panel):
         # import the make_graph function as a module
         exec("from " + module_name + " import make_graph", globals())
         # creaty the graph using the imported module
-        extra = [shared_data.first_value_set, shared_data.first_date_set]  #this is temporary testing
-        make_graph(date_list, value_list, key_list, graph_path, ymax, ymin, size_h, size_v, dangerhot, toohot, toocold, dangercold, extra)
+        extra = shared_data.list_of_datasets  #this is temporary testing
+        make_graph(shared_data.list_of_datasets, graph_path, ymax, ymin, size_h, size_v, dangerhot, toohot, toocold, dangercold, extra)
         # Tell the user and show the graph
         print("module_graph created and saved to " + graph_path)
         MainApp.graphing_info_pannel.show_local_graph(graph_path)
@@ -7434,16 +7425,13 @@ class graphing_ctrl_pnl(wx.Panel):
         # run the function and set the data to the logs
         values, dates, keys = run_sucker()
         print(" - Sucker added ", len(values), len(dates), len(keys), " data points.")
-        shared_data.first_value_set = values
-        shared_data.first_date_set = dates
-        shared_data.first_keys_set = keys
         shared_data.first_valueset_name = module_name
+        shared_data.list_of_datasets.append([dates, values, keys])
         self.enable_value_graphs()
-        if len(shared_data.first_date_set) == len(shared_data.first_value_set) and len(shared_data.first_date_set) == len(shared_data.first_keys_set) and len(shared_data.first_date_set) > 0:
+        if len(dates) == len(values) and len(dates) == len(keys) and len(dates) > 0:
             self.valset_1_loaded.SetBitmap(shared_data.yes_log_image)
-            self.valset_1_len.SetLabel(str(len(shared_data.first_value_set)))
+            self.valset_1_len.SetLabel(str(len(dates)))
             self.valset_1_name.SetLabel(module_name)
-            self.set_log_btn.SetLabel("Clear")
             MainApp.window_self.Layout()
         else:
             print(" - These lists either aren't the same length or are all empty, that could be a problem for the graph modules.... ")
@@ -7577,9 +7565,9 @@ class graphing_ctrl_pnl(wx.Panel):
 
     def over_threasholds_by_hour_go(self, e):
         # read log
-        value_list = shared_data.first_value_set
-        date_list = shared_data.first_date_set
-        key_list = shared_data.first_keys_set
+        date_list   = shared_data.list_of_datasets[0][0]
+        value_list  = shared_data.list_of_datasets[0][1]
+        key_list    = shared_data.list_of_datasets[0][2]
         if len(date_list) == 0:
             print("No data to make a graph with...")
             return None
@@ -7636,9 +7624,9 @@ class graphing_ctrl_pnl(wx.Panel):
 
     def threasholds_pie_go(self, e):
         # read the log
-        value_list = shared_data.first_value_set
-        date_list = shared_data.first_date_set
-        key_list = shared_data.first_keys_set
+        date_list   = shared_data.list_of_datasets[0][0]
+        value_list  = shared_data.list_of_datasets[0][1]
+        key_list    = shared_data.list_of_datasets[0][2]
         if len(date_list) == 0:
             print("No data to make a graph with...")
             return None
@@ -7722,9 +7710,9 @@ class graphing_ctrl_pnl(wx.Panel):
 
     def local_box_plot_go(self, e):
         # reading the log
-        value_list = shared_data.first_value_set
-        date_list = shared_data.first_date_set
-        key_list = shared_data.first_keys_set
+        date_list   = shared_data.list_of_datasets[0][0]
+        value_list  = shared_data.list_of_datasets[0][1]
+        key_list    = shared_data.list_of_datasets[0][2]
         if len(date_list) == 0:
             print("No data to make a graph with...")
             return None
@@ -8002,59 +7990,6 @@ class graphing_ctrl_pnl(wx.Panel):
         fig.clf()
         MainApp.graphing_info_pannel.show_local_graph(graph_path)
         MainApp.status.write_bar("ready...")
-
-    def graph_compare_clear_go(self, e):
-        shared_data.first_value_set = []
-        shared_data.first_date_set = []
-        self.graph_compare_clear.Disable()
-
-    def graph_compare_go(self, e):
-        print("Want's to create a comparing graph...  ")
-        # read data from log
-        value_list = shared_data.first_value_set
-        date_list = shared_data.first_date_set
-        key_list = shared_data.first_keys_set
-        if len(date_list) == 0:
-            print("No data to make a graph with...")
-            return None
-        MainApp.status.write_bar("-- Creating a compare graph from " + str(len(date_list)) + " values")
-        #
-        if shared_data.first_value_set == []:
-            print(" - Setting first graphing values")
-            shared_data.first_value_set = value_list.copy()
-            shared_data.first_date_set = date_list.copy()
-            self.graph_compare_clear.Enable()
-            return None
-        print(" - Two data sets selected, making comparison...")
-        first_value_list =  shared_data.first_value_set
-        first_date_list  =  shared_data.first_date_set
-
-        # read graph settings from ui boxes
-        key_unit = ""
-        ymax = MainApp.graphing_info_pannel.axis_y_max_cb.GetValue()
-        ymin = MainApp.graphing_info_pannel.axis_y_min_cb.GetValue()
-        size_h, size_v = self.get_graph_size_from_ui()
-        # start making the graph
-        fig = plt.gcf()
-        fig.canvas.set_window_title('Simple Line Graph')
-        fig, ax = plt.subplots(figsize=(size_h, size_v))
-        plt.title("Time Perod; " + str(date_list[0].strftime("%b-%d %H:%M")) + " to " + str(date_list[-1].strftime("%b-%d %H:%M")) + " ")
-        plt.ylabel(key_list[0]) # + " in " + key_unit)
-        if not ymax == "":
-            plt.ylim(ymax=int(ymax))
-        if not ymin == "":
-            plt.ylim(ymin=int(ymin))
-        ax.plot(date_list, value_list, color='black', lw=1)
-        ax.plot(first_date_list, first_value_list, color='blue', lw=1)
-        ax.xaxis_date()
-        fig.autofmt_xdate()
-        graph_path = os.path.join(localfiles_info_pnl.local_path, "compare_graph.png")
-        plt.savefig(graph_path)
-        print("compare graph created and saved to " + graph_path)
-        MainApp.graphing_info_pannel.show_local_graph(graph_path)
-        fig.clf()
-        MainApp.status.write_bar("ready...")
-
 
     # switch log
     def parse_switch_log_for_relays(self, add_data_to_square = True):
