@@ -75,9 +75,11 @@ def make_graph(list_of_datasets, graph_path, ymax="", ymin="", size_h="", size_v
     ax.legend()
     # Set y axis min and max range
     if not ymax == "":
-        plt.ylim(ymax=int(ymax))
+        plt.ylim(ymax=int(1))
+        plt.xlim(xmax=int(ymax))
     if not ymin == "":
-        plt.ylim(ymin=int(ymin))
+        plt.xlim(xmin=int(ymin))
+        plt.ylim(ymin=int(0))
     # save the graph
     plt.savefig(graph_path)
     # tidying up after ourselves

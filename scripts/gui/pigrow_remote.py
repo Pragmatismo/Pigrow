@@ -255,8 +255,10 @@ class shared_data:
         #
         no_log_img_path = os.path.join(shared_data.ui_img_path, "log_loaded_none.png")
         yes_log_img_path = os.path.join(shared_data.ui_img_path, "log_loaded_true.png")
+        warn_log_img_path = os.path.join(shared_data.ui_img_path, "log_loaded_none.png")
         shared_data.no_log_image = wx.Image(no_log_img_path, wx.BITMAP_TYPE_ANY).ConvertToBitmap()
         shared_data.yes_log_image = wx.Image(yes_log_img_path, wx.BITMAP_TYPE_ANY).ConvertToBitmap()
+        shared_data.warn_log_image = wx.Image(warn_log_img_path, wx.BITMAP_TYPE_ANY).ConvertToBitmap()
         #
         ## Fonts
         #
@@ -6106,7 +6108,7 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
         self.end_time_picer = wx.adv.TimePickerCtrl( self, wx.ID_ANY, wx.DefaultDateTime)
         self.end_date_picer = wx.adv.DatePickerCtrl( self, wx.ID_ANY, wx.DefaultDateTime)
         self.limit_date_to_last_l = wx.StaticText(self,  label='Limit to ')
-        limit_choices = ["none", "day", "week", "month", "year"]
+        limit_choices = ["none", "day", "week", "month", "year", "1st log"]
         self.limit_date_to_last_cb = wx.ComboBox(self, size=(90, 25),choices = limit_choices)
         self.limit_date_to_last_cb.Bind(wx.EVT_TEXT, self.limit_date_to_last_go)
 
@@ -6159,14 +6161,14 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
         de_label_sizer.Add(self.data_extraction_l, 0, wx.ALL, 0)
         de_label_sizer.Add(self.show_hide_date_extract_btn, 0, wx.ALL, 0)
         time_and_date_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        time_and_date_sizer.Add(self.limit_date_to_last_l, 0, wx.ALL, 2)
+        time_and_date_sizer.Add(self.limit_date_to_last_cb, 0, wx.ALL, 2)
         time_and_date_sizer.Add(self.start_date_l, 0, wx.ALL, 2)
         time_and_date_sizer.Add(self.start_time_picer, 0, wx.ALL, 2)
         time_and_date_sizer.Add(self.start_date_picer, 0, wx.ALL, 2)
         time_and_date_sizer.Add(self.end_date_l, 0, wx.ALL, 2)
         time_and_date_sizer.Add(self.end_time_picer, 0, wx.ALL, 2)
         time_and_date_sizer.Add(self.end_date_picer, 0, wx.ALL, 2)
-        time_and_date_sizer.Add(self.limit_date_to_last_l, 0, wx.ALL, 2)
-        time_and_date_sizer.Add(self.limit_date_to_last_cb, 0, wx.ALL, 2)
         data_extract_sizer = wx.BoxSizer(wx.VERTICAL)
         data_extract_sizer.Add(de_label_sizer, 0, wx.ALL, 5)
         data_extract_sizer.Add(example_line_sizer, 0, wx.ALL, 5)
@@ -6604,7 +6606,6 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
             #print("local graphing - not got valid data")
             MainApp.graphing_ctrl_pannel.disable_value_graphs()
 
-
     def limit_date_to_last_go(self, e):
         current_datetime = datetime.datetime.now()
         limit_setting = self.limit_date_to_last_cb.GetValue()
@@ -6838,13 +6839,9 @@ class graphing_ctrl_pnl(wx.Panel):
         ### for local graph construction
         ##
         #
-        # Section Labels
-        self.data_title_text = wx.StaticText(self,  label='Data Source')
-        self.data_title_text.SetFont(shared_data.sub_title_font)
-        self.graph_title_text = wx.StaticText(self,  label='Graphs')
-        self.graph_title_text.SetFont(shared_data.sub_title_font)
         # current log files info
-
+        self.num_of_logs_loaded = wx.StaticText(self,  label='0', size=(20, 25))
+        self.num_of_logs_loaded.SetFont(shared_data.large_info_font)
         self.valset_1_loaded  = wx.StaticBitmap(self, -1, shared_data.no_log_image)
         self.valset_1_len_l = wx.StaticText(self,  label=' Datapoints : ')
         self.valset_1_len = wx.StaticText(self,  label='0')
@@ -6853,11 +6850,9 @@ class graphing_ctrl_pnl(wx.Panel):
         self.set_log_btn.Bind(wx.EVT_BUTTON, self.set_log_click)
         self.clear_log_btn = wx.Button(self, label='Clear', size=(50,-1))
         self.clear_log_btn.Bind(wx.EVT_BUTTON, self.clear_log_click)
-
-
-
-
         #presets
+        self.data_title_text = wx.StaticText(self,  label='Data Source')
+        self.data_title_text.SetFont(shared_data.sub_title_font)
         self.preset_text = wx.StaticText(self,  label='Preset')
         self.graph_presets_cb = wx.ComboBox(self, choices=['BLANK'])
         self.graph_presets_cb.Bind(wx.EVT_COMBOBOX, self.graph_preset_cb_go)
@@ -6871,13 +6866,21 @@ class graphing_ctrl_pnl(wx.Panel):
         self.module_sucker_cb = wx.ComboBox(self, choices=self.get_module_options("sucker_"))
         self.module_sucker_go_btn = wx.Button(self, label='Go')
         self.module_sucker_go_btn.Bind(wx.EVT_BUTTON, self.suck_from_imported_module)
-
+        # graph section
+        self.graph_title_text = wx.StaticText(self,  label='Graphs', size=(40,30))
+        self.graph_title_text.SetFont(shared_data.sub_title_font)
         # make_graph_from_imported_module
         self.refresh_module_graph_btn = wx.Button(self, label='R', size=(40,30))
         self.refresh_module_graph_btn.Bind(wx.EVT_BUTTON, self.refresh_module_graph_go)
         self.module_graph_choice = wx.ComboBox(self,  size=(150, 30), choices = self.get_module_options("graph_"))
-        self.module_graph_btn = wx.Button(self, label='Make', size=(60,30))
+        self.module_graph_btn = wx.Button(self, label='Make', size=(60,25))
         self.module_graph_btn.Bind(wx.EVT_BUTTON, self.make_graph_from_imported_module)
+        self.animate_module = wx.Button(self, label='Animate')
+        self.animate_module.Bind(wx.EVT_BUTTON, self.animate_module_click)
+        self.animate_show_time_period_l = wx.StaticText(self,  label='Hours to Show')
+        self.animate_show_time_period_tc = wx.TextCtrl(self, value="24")
+        self.animate_roll_speed_l = wx.StaticText(self,  label='Roll Speed Min')
+        self.animate_roll_speed_tc = wx.TextCtrl(self, value="15")
 
         # graphs
         self.local_simple_line = wx.Button(self, label='Simple Line Graph')
@@ -6917,20 +6920,31 @@ class graphing_ctrl_pnl(wx.Panel):
         valset_1_text_sizer.Add(valset_1_len_sizer, 0, wx.ALL|wx.EXPAND, 3)
         valset_1_text_sizer.Add(self.valset_1_name, 0, wx.ALL|wx.EXPAND, 3)
         valset_1_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        valset_1_sizer.Add(self.num_of_logs_loaded, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 3)
         valset_1_sizer.Add(self.valset_1_loaded, 0, wx.ALL|wx.EXPAND, 3)
         valset_1_sizer.Add(valset_1_text_sizer, 0, wx.ALL|wx.EXPAND, 3)
         valset_1_sizer.Add(self.set_log_btn, 0, wx.ALL|wx.EXPAND, 3)
         valset_1_sizer.Add(self.clear_log_btn, 0, wx.ALL|wx.EXPAND, 3)
+        # data import sizers
         graph_preset_sizer = wx.BoxSizer(wx.HORIZONTAL)
         graph_preset_sizer.Add(self.graph_presets_cb, 0, wx.ALL|wx.EXPAND, 3)
         graph_preset_sizer.Add(self.graph_preset_all, 0, wx.ALL|wx.EXPAND, 3)
+        module_sucker_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        module_sucker_sizer.Add(self.module_sucker_cb, 0, wx.ALL|wx.EXPAND, 3)
+        module_sucker_sizer.Add(self.module_sucker_go_btn, 0, wx.ALL|wx.EXPAND, 3)
+        # graph sizers
         module_graph_sizer =  wx.BoxSizer(wx.HORIZONTAL)
         module_graph_sizer.Add(self.refresh_module_graph_btn, 0, wx.ALL, 3)
         module_graph_sizer.Add(self.module_graph_choice, 0, wx.ALL|wx.EXPAND, 3)
         module_graph_sizer.Add(self.module_graph_btn, 0, wx.ALL, 3)
-        module_sucker_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        module_sucker_sizer.Add(self.module_sucker_cb, 0, wx.ALL|wx.EXPAND, 3)
-        module_sucker_sizer.Add(self.module_sucker_go_btn, 0, wx.ALL|wx.EXPAND, 3)
+        module_animate_settings_sizer = wx.FlexGridSizer(2, 2, 0, 5)
+        module_animate_settings_sizer.AddMany( [(self.animate_show_time_period_l, 0, wx.ALIGN_RIGHT),
+            (self.animate_show_time_period_tc, 0),
+            (self.animate_roll_speed_l, 0, wx.ALIGN_RIGHT),
+            (self.animate_roll_speed_tc, 0)])
+        module_animate_main_sizer = wx.BoxSizer(wx.VERTICAL)
+        module_animate_main_sizer.Add(self.animate_module, 0, wx.ALL|wx.EXPAND, 3)
+        module_animate_main_sizer.Add(module_animate_settings_sizer, 0, wx.ALL|wx.EXPAND|wx.ALIGN_RIGHT, 3)
         # local opts size
         local_opts_sizer = wx.BoxSizer(wx.VERTICAL)
         local_opts_sizer.Add(valset_1_sizer, 0, wx.ALL|wx.EXPAND, 3)
@@ -6943,6 +6957,7 @@ class graphing_ctrl_pnl(wx.Panel):
         local_opts_sizer.AddStretchSpacer(1)
         local_opts_sizer.Add(self.graph_title_text, 0, wx.ALL|wx.EXPAND, 3)
         local_opts_sizer.Add(module_graph_sizer, 0, wx.ALL, 3)
+        local_opts_sizer.Add(module_animate_main_sizer, 0, wx.ALL|wx.ALIGN_RIGHT, 3)
         local_opts_sizer.Add(self.local_simple_line, 0, wx.ALL, 3)
         local_opts_sizer.Add(self.local_color_line, 0, wx.ALL, 3)
         local_opts_sizer.Add(self.local_simple_bar, 0, wx.ALL, 3)
@@ -7037,10 +7052,16 @@ class graphing_ctrl_pnl(wx.Panel):
         self.switch_log_graph.Hide()
         self.module_graph_choice.Hide()
         self.module_graph_btn.Hide()
+        self.animate_module.Hide()
+        self.animate_show_time_period_l.Hide()
+        self.animate_show_time_period_tc.Hide()
+        self.animate_roll_speed_l.Hide()
+        self.animate_roll_speed_tc.Hide()
         self.refresh_module_graph_btn.Hide()
         self.data_title_text.Hide()
         self.graph_title_text.Hide()
         self.valset_1_loaded.Hide()
+        self.num_of_logs_loaded.Hide()
         self.valset_1_len_l.Hide()
         self.valset_1_len.Hide()
         self.module_sucker_text.Hide()
@@ -7072,10 +7093,16 @@ class graphing_ctrl_pnl(wx.Panel):
         self.switch_log_graph.Show()
         self.module_graph_choice.Show()
         self.module_graph_btn.Show()
+        self.animate_module.Show()
+        self.animate_show_time_period_l.Show()
+        self.animate_show_time_period_tc.Show()
+        self.animate_roll_speed_l.Show()
+        self.animate_roll_speed_tc.Show()
         self.refresh_module_graph_btn.Show()
         self.data_title_text.Show()
         self.graph_title_text.Show()
         self.valset_1_loaded.Show()
+        self.num_of_logs_loaded.Show()
         self.valset_1_len_l.Show()
         self.valset_1_len.Show()
         self.module_sucker_text.Show()
@@ -7185,23 +7212,35 @@ class graphing_ctrl_pnl(wx.Panel):
         self.valset_1_name.SetLabel("-")
         self.disable_value_graphs()
         self.valset_1_loaded.SetBitmap(shared_data.no_log_image)
+        self.num_of_logs_loaded.SetLabel("0")
         self.valset_1_len.SetLabel("0")
 
     def set_log_click(self, e):
+        print("len of datasets", len(shared_data.list_of_datasets))
         date_list, value_list, key_list = MainApp.graphing_info_pannel.read_log_date_and_value(numbers_only=True)
         if len(date_list) == len(value_list) and len(date_list) == len(key_list) and len(date_list) > 0:
             self.enable_value_graphs()
+            shared_data.list_of_datasets.append([date_list, value_list, key_list])
             self.valset_1_loaded.SetBitmap(shared_data.yes_log_image)
             self.valset_1_len.SetLabel(str(len(date_list)))
             self.valset_1_name.SetLabel(shared_data.first_valueset_name)
-            shared_data.list_of_datasets.append([date_list, value_list, key_list])
-        #    self.set_log_btn.SetLabel("Clear")
+            self.num_of_logs_loaded.SetLabel(str(len(shared_data.list_of_datasets)))
             MainApp.graphing_info_pannel.show_hide_date_extract_btn.SetLabel("hide")
             MainApp.graphing_info_pannel.show_hide_date_extract_click("e")
             MainApp.window_self.Layout()
         else:
-            self.valset_1_loaded.SetBitmap(shared_data.no_log_image)
-            self.valset_1_len.SetLabel(str(len(date_list)), str(len(value_list)), str(len(key_list)))
+            print(" - problem with the lists returned from trying to load log.... ")
+            if len(date_list) == 0:
+                #shared_data.list_of_datasets = shared_data.list_of_datasets[:-1]
+                if len(shared_data.list_of_datasets) == 0:
+                    self.valset_1_loaded.SetBitmap(shared_data.no_log_image)
+                else:
+                    self.valset_1_loaded.SetBitmap(shared_data.yes_log_image)
+            else:
+                self.num_of_logs_loaded.SetLabel(str(len(shared_data.list_of_datasets)))
+                self.valset_1_len.SetLabel(str(len(date_list)) + " " + str(len(value_list)) + " " + str(len(key_list)))
+                self.valset_1_loaded.SetBitmap(shared_data.warn_log_image)
+
 
     # graph presets
 
@@ -7387,7 +7426,6 @@ class graphing_ctrl_pnl(wx.Panel):
             return None
         MainApp.status.write_bar("-- Creating a graph from a module using  " + str(len(count_list)) + " values")
         # read graph settings from ui boxes
-        key_unit = ""
         ymax = MainApp.graphing_info_pannel.axis_y_max_cb.GetValue()
         ymin = MainApp.graphing_info_pannel.axis_y_min_cb.GetValue()
         dangercold = MainApp.graphing_info_pannel.danger_low_tc.GetValue()
@@ -7400,7 +7438,6 @@ class graphing_ctrl_pnl(wx.Panel):
         file_name = module_name + "_graph.png"
         graph_path = os.path.join(localfiles_info_pnl.local_path, file_name)
         # set module_name to have it's full value
-        print(sys.path)
         module_name = "graph_" + module_name
         # unload the old module to bring in any changes to the script since it was loaded
         if module_name in sys.modules:
@@ -7408,12 +7445,113 @@ class graphing_ctrl_pnl(wx.Panel):
         # import the make_graph function as a module
         exec("from " + module_name + " import make_graph", globals())
         # creaty the graph using the imported module
-        extra = shared_data.list_of_datasets  #this is temporary testing
+        extra = ""  #this is temporary testing
         make_graph(shared_data.list_of_datasets, graph_path, ymax, ymin, size_h, size_v, dangerhot, toohot, toocold, dangercold, extra)
         # Tell the user and show the graph
         print("module_graph created and saved to " + graph_path)
         MainApp.graphing_info_pannel.show_local_graph(graph_path)
         MainApp.status.write_bar("ready...")
+
+    def animate_module_click(self, e):
+        MainApp.status.write_bar(" Creating an animation...")
+        # read graph settings from ui boxes
+        ymax = MainApp.graphing_info_pannel.axis_y_max_cb.GetValue()
+        ymin = MainApp.graphing_info_pannel.axis_y_min_cb.GetValue()
+        dangercold = MainApp.graphing_info_pannel.danger_low_tc.GetValue()
+        toocold = MainApp.graphing_info_pannel.low_tc.GetValue()
+        toohot = MainApp.graphing_info_pannel.high_tc.GetValue()
+        dangerhot = MainApp.graphing_info_pannel.danger_high_tc.GetValue()
+        size_h, size_v = self.get_graph_size_from_ui()
+        module_name = self.module_graph_choice.GetValue()
+        # set module_name to have it's full value
+        full_module_name = "graph_" + module_name
+        # unload the old module to bring in any changes to the script since it was loaded
+        if full_module_name in sys.modules:
+            del sys.modules[full_module_name]
+        # import the make_graph function as a module
+        exec("from " + full_module_name + " import make_graph", globals())
+
+        #
+        ## The Animation business...
+        # set start conditions
+        show_time_period = int(self.animate_show_time_period_tc.GetValue())
+        show_time_period = datetime.timedelta(hours=show_time_period)
+        roll_speed = int(self.animate_roll_speed_tc.GetValue())
+        roll_speed_td = datetime.timedelta(minutes=roll_speed)
+        date_list   = shared_data.list_of_datasets[0][0]
+        value_list  = shared_data.list_of_datasets[0][1]
+        key_list    = shared_data.list_of_datasets[0][2]
+        start_of_frame = date_list[0]
+        end_of_frame = date_list[0] + show_time_period
+        # find min max values
+        if ymin == "" or ymax == "":
+            ymin = value_list[0]
+            ymax = value_list[0]
+            for x in value_list:
+                if x > ymax:
+                    ymax = x
+                if x < ymin:
+                    ymin = x
+        # find how many frames to makes
+        time_range_of_whole_set = (date_list[-1] - show_time_period) - date_list[0]
+        time_range_of_whole_set = time_range_of_whole_set.total_seconds()
+        roll_speed_in_seconds = roll_speed * 60
+        amount_of_frames = int(round(time_range_of_whole_set / roll_speed_in_seconds, 0))
+
+        print("amount of frames ", amount_of_frames)
+        #
+        # get name, set folder
+        def_graph_base_name = "ani_" + module_name
+        ani_name_dbox = wx.TextEntryDialog(self, 'Choose a name for your animation', 'Name Animated Graph', def_graph_base_name)
+        if ani_name_dbox.ShowModal() == wx.ID_OK:
+            graph_base_name = ani_name_dbox.GetValue()
+        else:
+            return "cancelled"
+        ani_name_dbox.Destroy()
+        graph_folder_path = os.path.join(localfiles_info_pnl.local_path, graph_base_name)
+        if not os.path.isdir(graph_folder_path):
+            os.makedirs(graph_folder_path)
+
+        #
+        #
+        #
+        #
+        for frame_num in range(0, amount_of_frames):
+            MainApp.status.write_bar(" Creating frame " + str(frame_num) + " of " + str(amount_of_frames))
+            list_of_trimmed_data_sets = []
+            start_of_frame = start_of_frame + roll_speed_td
+            end_of_frame = end_of_frame + roll_speed_td
+            for data_set in shared_data.list_of_datasets:
+                trimmed_date_list  = []
+                trimmed_value_list = []
+                trimmed_key_list   = []
+                date_list   = data_set[0]
+                value_list  = data_set[1]
+                key_list    = data_set[2]
+                for x in range(len(date_list)):
+                    if date_list[x] > start_of_frame and date_list[x] < end_of_frame:
+                        trimmed_date_list.append(date_list[x])
+                        trimmed_value_list.append(value_list[x])
+                        trimmed_key_list.append(key_list[x])
+                data_lists = [trimmed_date_list, trimmed_value_list, trimmed_key_list]
+                list_of_trimmed_data_sets.append(data_lists)
+            #
+            # Create Name
+            rolling_last_datetime = str(datetime.datetime.timestamp(trimmed_date_list[-1])).split(".")[0]
+            current_graph_name = graph_base_name + "_" + str(rolling_last_datetime) + ".png"
+            current_graph_filepath = os.path.join(graph_folder_path, current_graph_name)
+            #
+            extra = []
+            print(" - Creating " + current_graph_filepath)
+            make_graph(list_of_trimmed_data_sets, current_graph_filepath, ymax, ymin, size_h, size_v, dangerhot, toohot, toocold, dangercold, extra)
+
+
+        # Tell the user and show the graph
+        MainApp.graphing_info_pannel.show_local_graph(current_graph_filepath)
+        MainApp.status.write_bar("ready...")
+
+
+
 
     def suck_from_imported_module(self, e):
         module_name = self.module_sucker_cb.GetValue()
@@ -7430,11 +7568,13 @@ class graphing_ctrl_pnl(wx.Panel):
         self.enable_value_graphs()
         if len(dates) == len(values) and len(dates) == len(keys) and len(dates) > 0:
             self.valset_1_loaded.SetBitmap(shared_data.yes_log_image)
+            self.num_of_logs_loaded.SetLabel(str(len(shared_data.list_of_datasets)))
             self.valset_1_len.SetLabel(str(len(dates)))
             self.valset_1_name.SetLabel(module_name)
             MainApp.window_self.Layout()
         else:
             print(" - These lists either aren't the same length or are all empty, that could be a problem for the graph modules.... ")
+            self.valset_1_loaded.SetBitmap(shared_data.warn_log_image)
 
     # make graphs
     def local_simple_line_go(self, e):
@@ -10665,9 +10805,18 @@ class sensors_info_pnl(wx.Panel):
                         sensor_name_list.append(key.split("_")[1])
             for sensor in sensor_name_list:
                 type  = MainApp.config_ctrl_pannel.config_dict['sensor_' + sensor + "_type"]
-                log   = MainApp.config_ctrl_pannel.config_dict['sensor_' + sensor + "_log"]
-                loc   = MainApp.config_ctrl_pannel.config_dict['sensor_' + sensor + "_loc"]
-                extra = MainApp.config_ctrl_pannel.config_dict['sensor_' + sensor + "_extra"]
+                if 'sensor_' + sensor + "_log" in MainApp.config_ctrl_pannel.config_dict:
+                    log   = MainApp.config_ctrl_pannel.config_dict['sensor_' + sensor + "_log"]
+                else:
+                    log = ""
+                if 'sensor_' + sensor + "_loc" in MainApp.config_ctrl_pannel.config_dict:
+                    loc   = MainApp.config_ctrl_pannel.config_dict['sensor_' + sensor + "_loc"]
+                else:
+                    loc = ""
+                if 'sensor_' + sensor + "_extra" in MainApp.config_ctrl_pannel.config_dict:
+                    extra = MainApp.config_ctrl_pannel.config_dict['sensor_' + sensor + "_extra"]
+                else:
+                    extra = ""
                 #
                 # check cron to see if sensor is being logged and how often
                 #

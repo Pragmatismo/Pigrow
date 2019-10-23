@@ -92,6 +92,8 @@ def make_graph(data_sets, graph_path, ymax="", ymin="", size_h="", size_v="", dh
         ax.legend()
 
     # Set y axis min and max range
+    plt.xlim(xmin=int(10))
+    plt.xlim(xmax=int(30))
     if not ymax == "":
         plt.ylim(ymax=int(ymax))
     if not ymin == "":
