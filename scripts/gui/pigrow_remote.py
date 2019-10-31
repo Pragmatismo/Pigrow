@@ -7470,35 +7470,8 @@ class graphing_ctrl_pnl(wx.Panel):
             del sys.modules[full_module_name]
         # import the make_graph function as a module
         exec("from " + full_module_name + " import make_graph", globals())
-
         #
-        ## The Animation business...
-        # set start conditions
-        show_time_period = int(self.animate_show_time_period_tc.GetValue())
-        show_time_period = datetime.timedelta(hours=show_time_period)
-        roll_speed = int(self.animate_roll_speed_tc.GetValue())
-        roll_speed_td = datetime.timedelta(minutes=roll_speed)
-        date_list   = shared_data.list_of_datasets[0][0]
-        value_list  = shared_data.list_of_datasets[0][1]
-        key_list    = shared_data.list_of_datasets[0][2]
-        start_of_frame = date_list[0]
-        end_of_frame = date_list[0] + show_time_period
-        # find min max values
-        if ymin == "" or ymax == "":
-            ymin = value_list[0]
-            ymax = value_list[0]
-            for x in value_list:
-                if x > ymax:
-                    ymax = x
-                if x < ymin:
-                    ymin = x
-        # find how many frames to makes
-        time_range_of_whole_set = (date_list[-1] - show_time_period) - date_list[0]
-        time_range_of_whole_set = time_range_of_whole_set.total_seconds()
-        roll_speed_in_seconds = roll_speed * 60
-        amount_of_frames = int(round(time_range_of_whole_set / roll_speed_in_seconds, 0))
-
-        print("amount of frames ", amount_of_frames)
+        ## Check user really intended to do this
         #
         # get name, set folder
         def_graph_base_name = "ani_" + module_name
@@ -7511,32 +7484,86 @@ class graphing_ctrl_pnl(wx.Panel):
         graph_folder_path = os.path.join(localfiles_info_pnl.local_path, graph_base_name)
         if not os.path.isdir(graph_folder_path):
             os.makedirs(graph_folder_path)
-
         #
+        ## The Animation business...
         #
+        # set start conditions
+        roll_speed = int(self.animate_roll_speed_tc.GetValue())
+        roll_speed_td = datetime.timedelta(minutes=roll_speed)
+        roll_speed_in_seconds = roll_speed * 60
+        date_list   = shared_data.list_of_datasets[0][0]
+        value_list  = shared_data.list_of_datasets[0][1]
+        key_list    = shared_data.list_of_datasets[0][2]
+        start_of_frame = date_list[0]
+        # determine how many frames to make
+        show_time_period = int(self.animate_show_time_period_tc.GetValue())
+        if show_time_period == 0:
+            print(" --------- special mode activated --------- ")
+            special_mode = True
+            print(" ------------------++++-------------------- ")
+        else:
+            special_mode = False
+            print(" ________normal mode___________ ")
+        show_time_period = datetime.timedelta(hours=show_time_period)
+        end_of_frame = date_list[0] + show_time_period
+        time_range_of_whole_set = (date_list[-1] - show_time_period) - date_list[0]
+        time_range_of_whole_set = time_range_of_whole_set.total_seconds()
+        amount_of_frames = int(round(time_range_of_whole_set / roll_speed_in_seconds, 0))
+        print("amount of frames ", amount_of_frames)
+        # find min max values so we can stabalise the graph output
+        if ymin == "" or ymax == "":
+            ymin = value_list[0]
+            ymax = value_list[0]
+            for x in value_list:
+                if x > ymax:
+                    ymax = x
+                if x < ymin:
+                    ymin = x
         #
+        ## Cycle through each frame making the graphs for it
         #
         for frame_num in range(0, amount_of_frames):
             MainApp.status.write_bar(" Creating frame " + str(frame_num) + " of " + str(amount_of_frames))
-            list_of_trimmed_data_sets = []
-            start_of_frame = start_of_frame + roll_speed_td
-            end_of_frame = end_of_frame + roll_speed_td
-            for data_set in shared_data.list_of_datasets:
-                trimmed_date_list  = []
-                trimmed_value_list = []
-                trimmed_key_list   = []
-                date_list   = data_set[0]
-                value_list  = data_set[1]
-                key_list    = data_set[2]
-                for x in range(len(date_list)):
-                    if date_list[x] > start_of_frame and date_list[x] < end_of_frame:
-                        trimmed_date_list.append(date_list[x])
-                        trimmed_value_list.append(value_list[x])
-                        trimmed_key_list.append(key_list[x])
-                data_lists = [trimmed_date_list, trimmed_value_list, trimmed_key_list]
-                list_of_trimmed_data_sets.append(data_lists)
+            if special_mode == False:
+                # create datasets for each frame using rolling start and end dates
+                list_of_trimmed_data_sets = []
+                start_of_frame = start_of_frame + roll_speed_td
+                end_of_frame = end_of_frame + roll_speed_td
+                for data_set in shared_data.list_of_datasets:
+                    trimmed_date_list  = []
+                    trimmed_value_list = []
+                    trimmed_key_list   = []
+                    date_list   = data_set[0]
+                    value_list  = data_set[1]
+                    key_list    = data_set[2]
+                    for x in range(len(date_list)):
+                        if date_list[x] > start_of_frame and date_list[x] < end_of_frame:
+                            trimmed_date_list.append(date_list[x])
+                            trimmed_value_list.append(value_list[x])
+                            trimmed_key_list.append(key_list[x])
+                    data_lists = [trimmed_date_list, trimmed_value_list, trimmed_key_list]
+                    list_of_trimmed_data_sets.append(data_lists)
+            else:
+                print(" - Using special mode")
+                # wrap up single log entries and send them to the grapher
+                start_of_frame = start_of_frame + roll_speed_td
+                current_log_position = 0
+                found_next = False
+                while found_next == False:
+                    if date_list[current_log_position] >= start_of_frame:
+                        found_next = True
+                    else:
+                        current_log_position = current_log_position + 1
+                    if current_log_position > len(date_list):
+                        found_next = True
+                        current_log_position = len(date_list)
+                trimmed_date_list  = [date_list[current_log_position]]
+                trimmed_value_list = [value_list[current_log_position]]
+                trimmed_key_list   = [key_list[current_log_position]]
+                list_of_trimmed_data_sets = [[trimmed_date_list, trimmed_value_list, trimmed_key_list]]
+
             #
-            # Create Name
+            # Create Frame's File Name
             rolling_last_datetime = str(datetime.datetime.timestamp(trimmed_date_list[-1])).split(".")[0]
             current_graph_name = graph_base_name + "_" + str(rolling_last_datetime) + ".png"
             current_graph_filepath = os.path.join(graph_folder_path, current_graph_name)
@@ -10659,6 +10686,9 @@ class make_combined_image_set_dialog(wx.Dialog):
         self.Bind(wx.EVT_CLOSE, self.OnClose)
 
     def InitUI(self):
+        # set Default
+        self.overlay_x = 10
+        self.overlay_y = 10
         # panel
         pnl = wx.Panel(self)
         box_label = wx.StaticText(self,  label='Create Picture in Picture Set')
@@ -10667,6 +10697,9 @@ class make_combined_image_set_dialog(wx.Dialog):
         log_path_l = wx.StaticText(self,  label='Log - ')
         self.select_images_btn = wx.Button(self, label='Select image set to inlay')
         self.select_images_btn.Bind(wx.EVT_BUTTON, self.select_images_click)
+        #
+        self.set_overlay_pos_btn = wx.Button(self, label='Set Position', size=(175, 30))
+        self.set_overlay_pos_btn.Bind(wx.EVT_BUTTON, self.set_overlay_pos_click)
 
         # ok and cancel Buttons
         self.make_btn = wx.Button(self, label='Create', size=(175, 30))
@@ -10680,51 +10713,88 @@ class make_combined_image_set_dialog(wx.Dialog):
         main_sizer.Add(box_label, 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.AddStretchSpacer(1)
         main_sizer.Add(self.select_images_btn, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
+        main_sizer.Add(self.set_overlay_pos_btn, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
         main_sizer.AddStretchSpacer(1)
         main_sizer.Add(buttons_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
         self.SetSizer(main_sizer)
 
-
-
     def select_images_click(self, e):
         file = MainApp.timelapse_ctrl_pannel.select_folder()
-        self.caps_to_inlay = os.path.split(file)[0]
+        caps_to_inlay = os.path.split(file)[0]
+        # make list of file names for the image set to be inlaid
+        shared_data.second_img_file_paths = []
+        for filefound in os.listdir(caps_to_inlay):
+            file_path = os.path.join(caps_to_inlay, filefound)
+            shared_data.second_img_file_paths.append(file_path)
+        shared_data.second_img_file_paths.sort()
+
+    def set_overlay_pos_click(self, e):
+        set_overlay_pos_dbox = select_overlay_pos_on_image(None)
+        set_overlay_pos_dbox.ShowModal()
+        self.overlay_x = timelapse_ctrl_pnl.img_x_placement
+        self.overlay_y = timelapse_ctrl_pnl.img_y_placement
+        #self.display_x_tc.SetValue(str(x))
+        #self.display_y_tc.SetValue(str(y))
+        print("set_overlay_pos_click", x, y)
 
 
     def make_click(self, e):
-        print("not yet, sorry....")
-        # set folder for second image set
-        new_caps_folder = os.path.join(localfiles_info_pnl.local_path, "new_picinpic")
+        # Check user intended to do this and get name of folder to store images
+        msg = 'Choose a name for your new image set\n\n'
+        msg += "This will create a new image set containing " + str(len(MainApp.timelapse_ctrl_pannel.trimmed_frame_list))
+        msg += " frames."
+        folder_name_dbox = wx.TextEntryDialog(self, msg, 'Name Overlaid Image Set', "composit_set")
+        if folder_name_dbox.ShowModal() == wx.ID_OK:
+            comp_base_name = folder_name_dbox.GetValue()
+        else:
+            return "cancelled"
+        folder_name_dbox.Destroy()
+        new_caps_folder = os.path.join(localfiles_info_pnl.local_path, comp_base_name)
         if not os.path.isdir(new_caps_folder):
             os.makedirs(new_caps_folder)
-        # make list of files in the second image set
-        second_cap_file_paths = []
-        for filefound in os.listdir(self.caps_to_inlay):
-            file_path = os.path.join(self.caps_to_inlay, filefound)
-            second_cap_file_paths.append(file_path)
-        second_cap_file_paths.sort()
-        # cycle through main image set
-        counter = 0
-        for x in range(0, len(MainApp.timelapse_ctrl_pannel.trimmed_frame_list)):
-            file_date = MainApp.timelapse_ctrl_pannel.date_from_fn(MainApp.timelapse_ctrl_pannel.trimmed_frame_list[x])
-            #
-            first_log_after = None
-            while first_log_after == None:                   # loop until we find the first log item after the pics date
-                new_file_date = MainApp.timelapse_ctrl_pannel.date_from_fn(second_cap_file_paths[counter])
-                if new_file_date > file_date:
-                    first_log_after = counter
-                else:
-                    counter = counter + 1
-                if counter > len(second_cap_file_paths):
-                    first_log_after = len(second_cap_file_paths)
-            new_file_name = "two_image_" + str(datetime.datetime.timestamp(file_date)).split(".")[0] + ".jpg"
-            print(x, counter, file_date, new_file_date, new_file_name)
-            new_file_name = os.path.join(new_caps_folder, new_file_name)
-            self.paint_image_on_image(MainApp.timelapse_ctrl_pannel.trimmed_frame_list[x], second_cap_file_paths[counter], new_file_name)
+        #
 
-    def paint_image_on_image(self, main_image, sub_image, new_name):
-        dist_from_top = 10
-        dist_from_left = 10
+        # cycle through main image set finding finding the appropriate frame to overlay
+        for x in range(0, len(MainApp.timelapse_ctrl_pannel.trimmed_frame_list)):
+            current_file = MainApp.timelapse_ctrl_pannel.trimmed_frame_list[x]
+            base_date_string = current_file.split(".")[0].split("_")[-1]
+            base_file_date = MainApp.timelapse_ctrl_pannel.date_from_fn(current_file)
+            second_set_frame_num = self.find_closest_frame(base_file_date, shared_data.second_img_file_paths)
+            inlay_file_date = timelapse_ctrl_pnl.date_from_fn(None, shared_data.second_img_file_paths[second_set_frame_num])
+            time_diff_between_overlay_and_base = make_log_overlay_dialog.directionless_timedelta("s", base_file_date, inlay_file_date)
+            # combine images and save to new file
+            new_file_name = "two_image_" + base_date_string + ".jpg"
+            print(x, "/", len(MainApp.timelapse_ctrl_pannel.trimmed_frame_list), " : ", second_set_frame_num, "/", len(shared_data.second_img_file_paths),  " ---- ", time_diff_between_overlay_and_base)
+            new_file_name = os.path.join(new_caps_folder, new_file_name)
+            self.paint_image_on_image(current_file, shared_data.second_img_file_paths[second_set_frame_num], new_file_name, time_diff_between_overlay_and_base)
+        print(" - Image set ", comp_base_name, " completed -")
+
+    def find_closest_frame(self, base_frame_date, second_cap_file_paths):
+        counter = 0
+        first_log_after = None
+        # loop compairing dates until we find the first log item after the pics date
+        while first_log_after == None:
+            inlay_file_date = MainApp.timelapse_ctrl_pannel.date_from_fn(second_cap_file_paths[counter])
+            if inlay_file_date > base_frame_date:
+                first_log_after = counter
+            else:
+                counter = counter + 1
+            if counter > len(second_cap_file_paths):
+                first_log_after = len(second_cap_file_paths)
+
+        # check if prior frame is closer
+        if not first_log_after == 0:
+            time_diff_current_place = make_log_overlay_dialog.directionless_timedelta("s", base_frame_date, inlay_file_date)
+            time_diff_prior_place   = make_log_overlay_dialog.directionless_timedelta("s", base_frame_date, MainApp.timelapse_ctrl_pannel.date_from_fn(second_cap_file_paths[first_log_after - 1]))
+            #time_diff_current_place  = inlay_file_date - base_frame_date
+            #time_diff_prior_place    = MainApp.timelapse_ctrl_pannel.date_from_fn(second_cap_file_paths[first_log_after - 1]) - base_frame_date
+            if time_diff_prior_place < time_diff_current_place:
+                first_log_after = first_log_after - 1
+        return first_log_after
+
+    def paint_image_on_image(self, main_image, sub_image, new_name, time_diff_between_overlay_and_base=""):
+        dist_from_top = self.overlay_y
+        dist_from_left = self.overlay_x
         scale_to_percent = 50
 
         bitmap = wx.Bitmap(1, 1)
@@ -10737,9 +10807,84 @@ class make_combined_image_set_dialog(wx.Dialog):
         new_w = size_w / 100 * scale_to_percent
         new_h = size_h / 100 * scale_to_percent
         dc.StretchBlit(dist_from_left, dist_from_top, new_w, new_h, sub_dc, 0, 0, size_w, size_h)
+        if not time_diff_between_overlay_and_base == "":
+            text = str(time_diff_between_overlay_and_base)
+            text_x = dist_from_left + (new_w / 3)
+            text_y = dist_from_top + new_h + 10
+            dc.SetTextForeground(wx.Colour(240, 120, 90))
+            dc.SetFont(wx.Font(40, wx.TELETYPE, wx.ITALIC, wx.NORMAL))
+            dc.DrawText(text, text_x, text_y)
         # StretchBlit(self, xdest, ydest, dstWidth, dstHeight, source, xsrc, ysrc, srcWidth, srcHeight, logicalFunc=COPY, useMask=False, xsrcMask=DefaultCoord, ysrcMask=DefaultCoord)
         bitmap.SaveFile(new_name, wx.BITMAP_TYPE_JPEG)
 
+    def OnClose(self, e):
+        self.Destroy()
+
+class select_overlay_pos_on_image(wx.Dialog):
+    """
+    Shows the image on the screen for user to click to place overlay
+        """
+    def __init__(self, *args, **kw):
+        super(select_overlay_pos_on_image, self).__init__(*args, **kw)
+        self.InitUI()
+        self.SetTitle("Click to select overlay images top-left corner")
+        self.Bind(wx.EVT_CLOSE, self.OnClose)
+
+    def InitUI(self):
+        # panel
+        pnl = wx.Panel(self)
+        self.scale_to_percent = 50
+        # ok and cancel Buttons
+        self.ok_btn = wx.Button(self, label='Ok', size=(175, 30))
+        self.ok_btn.Bind(wx.EVT_BUTTON, self.ok_click)
+        self.cancel_btn = wx.Button(self, label='Close', size=(175, 30))
+        self.cancel_btn.Bind(wx.EVT_BUTTON, self.OnClose)
+        # display the image
+        pic_one = MainApp.timelapse_ctrl_pannel.trimmed_frame_list[0]
+        self.base_bitmap = wx.Bitmap(1, 1)
+        self.base_bitmap.LoadFile(pic_one, wx.BITMAP_TYPE_ANY)
+        size = self.base_bitmap.GetSize()
+        self.image = wx.StaticBitmap(self, -1, self.base_bitmap, size=(size[0], size[1]))
+        self.image.Bind(wx.EVT_LEFT_DOWN, self.on_click)
+
+        #self.SetSize((size[0]), size[1])
+
+        buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        buttons_sizer.Add(self.ok_btn, 0,  wx.ALIGN_LEFT, 3)
+        buttons_sizer.Add(self.cancel_btn, 0,  wx.ALIGN_RIGHT, 3)
+        main_sizer = wx.BoxSizer(wx.VERTICAL)
+        main_sizer.Add(self.image, 0, wx.ALL, 3)
+        main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(buttons_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
+        main_sizer.AddStretchSpacer(1)
+        self.SetSizerAndFit(main_sizer)
+
+
+    def on_click(self, e):
+        self.x, self.y = e.GetPosition()
+        #
+        overlay_ex_image = shared_data.second_img_file_paths[0]
+        print (overlay_ex_image)
+        inlay_bitmap = wx.Bitmap(1, 1)
+        inlay_bitmap.LoadFile(overlay_ex_image, wx.BITMAP_TYPE_ANY)
+        base_bitmap_path = MainApp.timelapse_ctrl_pannel.trimmed_frame_list[0]
+        base_bitmap = wx.Bitmap(1, 1)
+        base_bitmap.LoadFile(base_bitmap_path, wx.BITMAP_TYPE_ANY)
+        #
+
+        size_w, size_h = inlay_bitmap.GetSize()
+        sub_dc = wx.MemoryDC(inlay_bitmap)
+        base_dc = wx.MemoryDC(base_bitmap)
+        new_w = size_w / 100 * self.scale_to_percent
+        new_h = size_h / 100 * self.scale_to_percent
+        base_dc.StretchBlit(self.x, self.y, new_w, new_h, sub_dc, 0, 0, size_w, size_h)
+        self.image.SetBitmap(base_bitmap)
+
+
+    def ok_click(self, e):
+        timelapse_ctrl_pnl.img_x_placement = self.x
+        timelapse_ctrl_pnl.img_y_placement = self.y
+        self.Destroy()
 
     def OnClose(self, e):
         self.Destroy()
