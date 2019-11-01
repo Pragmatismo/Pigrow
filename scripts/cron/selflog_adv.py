@@ -31,7 +31,6 @@ for argu in sys.argv:
 
 def psutil_info():
     ps_util_info = {}
-    ps_util_info['timenow'] = datetime.datetime.now()
     ps_util_info['cpu_temp'] = psutil.sensors_temperatures(fahrenheit=False)['bcm2835_thermal'][0][1]
     ps_util_info['cpu_ctx_switches']    = psutil.cpu_stats()[0]
     ps_util_info['cpu_interrupts']     = psutil.cpu_stats()[1]
@@ -189,31 +188,35 @@ if __name__ == '__main__':
     scripts_to_check = ['reddit_settings_ear.py','checkDHT.py']# 'chromium-browse'] #this doesn't work :( works for 'atom' and 'bash' needs fix
     print("####################################################")
     print("######### ADV SELF CHECKING INFO LOGGER ############")
-    info = gather_data()
-    #print('Found ' + str(len(info)) + ' graphable metrics')
-    info.update(count_processes())
-    #print('Found ' + str(len(info)) + ' graphable metrics')
-    info.update(get_uptime())
-    #print('Found ' + str(len(info)) + ' graphable metrics')
-    info.update(psutil_info())
-    #print('Found ' + str(len(info)) + ' graphable metrics')
+    line = "timenow=" + str(datetime.datetime.now()) + ">"
+    main_data = gather_data()
+    for key, value in sorted(main_data.items()):
+        line += str(key) + "=" + str(value) + ">"
+    #print('Found ' + str(len(main_data)) + ' graphable metrics in main data')
+    process_count = count_processes()
+    for key, value in sorted(process_count.items()):
+        line += str(key) + "=" + str(value) + ">"
+    #print('Found ' + str(len(process_count)) + ' graphable metrics in process_count')
+    uptime = get_uptime()
+    for key, value in sorted(uptime.items()):
+        line += str(key) + "=" + str(value) + ">"
+    #print('Found ' + str(len(uptime)) + ' graphable metrics in uptime')
+    psutil_info = psutil_info()
+    for key, value in sorted(psutil_info.items()):
+        line += str(key) + "=" + str(value) + ">"
+    #print('Found ' + str(len(psutil_info)) + ' graphable metrics in psutil_info')
     scripts_to_check = ['reddit_settings_ear.py','checkDHT.py']
     for script in scripts_to_check:
-        info.update(check_scripts(script))
-    #print('Increased to ' + str(len(info)) + ' with active script info')
+        script_info = check_scripts(script)
+        for key, value in sorted(script_info.items()):
+            line += str(key) + "=" + str(value) + ">"
+    #print('Found ' + str(len(script_info)) + ' with active script info for ' + script)
 
-    #
-    # Make the dictionary into a line of text for the log
-    #
-    line = ''
-    for key, value in sorted(info.items()):
-        line += str(key) + "=" + str(value) + ">"
-        #print(key, " = ", value)
     #for script in scripts_to_check:
     #    script_status = check_script_running(script)
     #    for key, value in script_status.items():
     #       line += str(script + '_' + key) + "=" + str(value) + ">"
-    line += '\n'
+    line = line[:-1] + '\n'
     # find the log and add a line to it
     if 'adv_self_log' in loc_dic:
         log_location = loc_dic['adv_self_log']
