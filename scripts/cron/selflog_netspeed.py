@@ -30,14 +30,13 @@ def speed_test():
     speed_info = os.popen('speedtest-cli --csv').read()
     speed_info = speed_info.split(',')
     speed_data = {}
-    speed_data['Server ID']    =speed_info[0]
-    speed_data['Sponsor']      =speed_info[1]
-    speed_data['Server_Name']  =speed_info[2]
-    speed_data['Timestamp']    =speed_info[3]
-    speed_data['Distance']     =speed_info[4]
-    speed_data['Ping']         =speed_info[5]
-    speed_data['Download']     =speed_info[6]
-    speed_data['Upload']       =speed_info[7]
+    speed_data['Server ID']    =speed_info[0].strip()
+    speed_data['Sponsor']      =speed_info[1].strip()
+    speed_data['Server_Name']  =speed_info[2].strip()
+    speed_data['Distance']     =speed_info[4].strip()
+    speed_data['Ping']         =speed_info[5].strip()
+    speed_data['Download']     =speed_info[6].strip()
+    speed_data['Upload']       =speed_info[7].strip()
     return speed_data
 
 if __name__ == '__main__':
@@ -49,7 +48,7 @@ if __name__ == '__main__':
     for key, value in sorted(speed_data.items()):
         line += str(key) + "=" + str(value) + ">"
 
-    line = line[:-1]
+    line = line[:-1] + "/n"
     # find the log and add a line to it
     if 'netspeed_log' in loc_dic:
         log_location = loc_dic['netspeed_log']
@@ -58,7 +57,8 @@ if __name__ == '__main__':
     try:
         with open(log_location, "a") as f:
             f.write(line)
-            #print(" - log written - ", line)
+            print(" - log written - ", line)
+            print("----")
     except:
         print["-LOG ERROR-"]
         pigrow_defs.write_log('selflog_netspeed.py', 'writing self log failed', loc_dic['err_log'])
