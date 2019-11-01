@@ -47,7 +47,7 @@ if __name__ == '__main__':
     speed_data = speed_test()
     for key, value in sorted(speed_data.items()):
         line += str(key) + "=" + str(value) + ">"
-    line = line[:-1]
+    line = line[:-1] + "\n"
     # find the log and add a line to it
     if 'netspeed_log' in loc_dic:
         log_location = loc_dic['netspeed_log']
