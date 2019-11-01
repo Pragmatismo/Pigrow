@@ -206,13 +206,13 @@ if __name__ == '__main__':
     # Make the dictionary into a line of text for the log
     #
     line = ''
-    for key, value in info.items():
+    for key, value in sorted(info.items()):
         line += str(key) + "=" + str(value) + ">"
         #print(key, " = ", value)
-    for script in scripts_to_check:
-        script_status = check_script_running(script)
-        for key, value in script_status.items():
-           line += str(script + '_' + key) + "=" + str(value) + ">"
+    #for script in scripts_to_check:
+    #    script_status = check_script_running(script)
+    #    for key, value in script_status.items():
+    #       line += str(script + '_' + key) + "=" + str(value) + ">"
     line += '\n'
     # find the log and add a line to it
     if 'adv_self_log' in loc_dic:
