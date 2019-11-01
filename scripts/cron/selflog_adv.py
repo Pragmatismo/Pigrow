@@ -36,8 +36,8 @@ def psutil_info():
     ps_util_info['cpu_interrupts']     = psutil.cpu_stats()[1]
     ps_util_info['cpu_soft_interrupts'] = psutil.cpu_stats()[2]
     ps_util_info['cpu_frequency']     = psutil.cpu_freq(percpu=False)[0]
-    ps_util_info['min_cpu_frequency'] = psutil.cpu_freq(percpu=False)[1]
-    ps_util_info['max_cpu_frequency'] = psutil.cpu_freq(percpu=False)[2]
+    ps_util_info['cpu_min_frequency'] = psutil.cpu_freq(percpu=False)[1]
+    ps_util_info['cpu_max_frequency'] = psutil.cpu_freq(percpu=False)[2]
     ps_util_info['load_ave1']  = psutil.getloadavg()[0]
     ps_util_info['load_ave5']  = psutil.getloadavg()[1]
     ps_util_info['load_ave15'] = psutil.getloadavg()[2]
@@ -54,24 +54,24 @@ def psutil_info():
     ps_util_info['disk_free']        = psutil.disk_usage("/home/")[2]
     ps_util_info['disk_usage_pcent'] = psutil.disk_usage("/home/")[3]
     # Disk In-Out
-    ps_util_info['read_count']         = psutil.disk_io_counters(perdisk=False, nowrap=True)[0]
-    ps_util_info['write_count']        = psutil.disk_io_counters(perdisk=False, nowrap=True)[1]
-    ps_util_info['read_bytes']         = psutil.disk_io_counters(perdisk=False, nowrap=True)[2]
-    ps_util_info['write_bytes']        = psutil.disk_io_counters(perdisk=False, nowrap=True)[3]
-    ps_util_info['read_time']          = psutil.disk_io_counters(perdisk=False, nowrap=True)[4]
-    ps_util_info['write_time']         = psutil.disk_io_counters(perdisk=False, nowrap=True)[5]
-    ps_util_info['read_merged_count']  = psutil.disk_io_counters(perdisk=False, nowrap=True)[6]
-    ps_util_info['write_merged_count'] = psutil.disk_io_counters(perdisk=False, nowrap=True)[7]
-    ps_util_info['busy_time']          = psutil.disk_io_counters(perdisk=False, nowrap=True)[8]
+    ps_util_info['disk_read_count']         = psutil.disk_io_counters(perdisk=False, nowrap=True)[0]
+    ps_util_info['disk_write_count']        = psutil.disk_io_counters(perdisk=False, nowrap=True)[1]
+    ps_util_info['disk_read_bytes']         = psutil.disk_io_counters(perdisk=False, nowrap=True)[2]
+    ps_util_info['disk_write_bytes']        = psutil.disk_io_counters(perdisk=False, nowrap=True)[3]
+    ps_util_info['disk_read_time']          = psutil.disk_io_counters(perdisk=False, nowrap=True)[4]
+    ps_util_info['disk_write_time']         = psutil.disk_io_counters(perdisk=False, nowrap=True)[5]
+    ps_util_info['disk_read_merged_count']  = psutil.disk_io_counters(perdisk=False, nowrap=True)[6]
+    ps_util_info['disk_write_merged_count'] = psutil.disk_io_counters(perdisk=False, nowrap=True)[7]
+    ps_util_info['disk_busy_time']          = psutil.disk_io_counters(perdisk=False, nowrap=True)[8]
     # Net In-Out
-    ps_util_info['bytes_sent']   = psutil.net_io_counters(pernic=False, nowrap=True)[0]
-    ps_util_info['bytes_recv']   = psutil.net_io_counters(pernic=False, nowrap=True)[1]
-    ps_util_info['packets_sent'] = psutil.net_io_counters(pernic=False, nowrap=True)[2]
-    ps_util_info['packets_recv'] = psutil.net_io_counters(pernic=False, nowrap=True)[3]
-    ps_util_info['errin']        = psutil.net_io_counters(pernic=False, nowrap=True)[4]
-    ps_util_info['errout']       = psutil.net_io_counters(pernic=False, nowrap=True)[5]
-    ps_util_info['dropin']       = psutil.net_io_counters(pernic=False, nowrap=True)[6]
-    ps_util_info['dropout']      = psutil.net_io_counters(pernic=False, nowrap=True)[7]
+    ps_util_info['net_bytes_sent']   = psutil.net_io_counters(pernic=False, nowrap=True)[0]
+    ps_util_info['net_bytes_recv']   = psutil.net_io_counters(pernic=False, nowrap=True)[1]
+    ps_util_info['net_packets_sent'] = psutil.net_io_counters(pernic=False, nowrap=True)[2]
+    ps_util_info['net_packets_recv'] = psutil.net_io_counters(pernic=False, nowrap=True)[3]
+    ps_util_info['net_errin']        = psutil.net_io_counters(pernic=False, nowrap=True)[4]
+    ps_util_info['net_errout']       = psutil.net_io_counters(pernic=False, nowrap=True)[5]
+    ps_util_info['net_dropin']       = psutil.net_io_counters(pernic=False, nowrap=True)[6]
+    ps_util_info['net_dropout']      = psutil.net_io_counters(pernic=False, nowrap=True)[7]
     return ps_util_info
 
 def check_scripts(script):
@@ -87,19 +87,19 @@ def check_scripts(script):
             scripts_data[key + 'cpu_time_user']   = p.cpu_times()[0]
             scripts_data[key + 'cpu_time_system'] = p.cpu_times()[1]
             scripts_data[key + 'create_time'] = p.create_time()
-            scripts_data[key + 'rss']    = p.memory_info()[0]
-            scripts_data[key + 'vms']    = p.memory_info()[1]
-            scripts_data[key + 'shared'] = p.memory_info()[2]
-            scripts_data[key + 'text']   = p.memory_info()[3]
-            scripts_data[key + 'lib']    = p.memory_info()[4]
-            scripts_data[key + 'data']   = p.memory_info()[5]
-            scripts_data[key + 'dirty']  = p.memory_info()[6]
-            scripts_data[key + 'read_count']  = p.io_counters()[0]
-            scripts_data[key + 'write_count'] = p.io_counters()[1]
-            scripts_data[key + 'read_bytes']  = p.io_counters()[2]
-            scripts_data[key + 'write_bytes'] = p.io_counters()[3]
-            scripts_data[key + 'read_chars']  = p.io_counters()[4]
-            scripts_data[key + 'write_chars'] = p.io_counters()[5]
+            scripts_data[key + 'mem_rss']    = p.memory_info()[0]
+            scripts_data[key + 'mem_vms']    = p.memory_info()[1]
+            scripts_data[key + 'mem_shared'] = p.memory_info()[2]
+            scripts_data[key + 'mem_text']   = p.memory_info()[3]
+            scripts_data[key + 'mem_lib']    = p.memory_info()[4]
+            scripts_data[key + 'mem_data']   = p.memory_info()[5]
+            scripts_data[key + 'mem_dirty']  = p.memory_info()[6]
+            scripts_data[key + 'io_read_count']  = p.io_counters()[0]
+            scripts_data[key + 'io_write_count'] = p.io_counters()[1]
+            scripts_data[key + 'io_read_bytes']  = p.io_counters()[2]
+            scripts_data[key + 'io_write_bytes'] = p.io_counters()[3]
+            scripts_data[key + 'io_read_chars']  = p.io_counters()[4]
+            scripts_data[key + 'io_write_chars'] = p.io_counters()[5]
     return scripts_data
 
 def get_uptime():
@@ -139,9 +139,9 @@ def gather_data():
             elif line.split(":")[0]=="MemFree":
                 memfree = line.split(":")[1].strip()
     #send back data in a dictionary
-    return {'memtotal':memtotal,
-            'memfree':memfree,
-            'memavail':memavail,
+    return {'mem_total':memtotal,
+            'mem_free':memfree,
+            'mem_avail':memavail,
             }
 
 def check_script_running(script):
@@ -211,10 +211,9 @@ if __name__ == '__main__':
         for key, value in sorted(script_info.items()):
             line += str(key) + "=" + str(value) + ">"
     #print('Found ' + str(len(script_info)) + ' with active script info for ' + script)
-
     #for script in scripts_to_check:
     #    script_status = check_script_running(script)
-    #    for key, value in script_status.items():
+    #    for key, value in sorted(script_status.items()):
     #       line += str(script + '_' + key) + "=" + str(value) + ">"
     line = line[:-1] + '\n'
     # find the log and add a line to it
