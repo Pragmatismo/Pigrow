@@ -6371,6 +6371,7 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
                 self.date_pos_cb.Enable()
                 self.value_pos_cb.Enable()
                 self.key_pos_cb.Enable()
+                self.value_pos_cb.Append("match text")
                 for x in range(0, len(self.split_line)):
                     self.date_pos_cb.Append(str(x))
                     self.value_pos_cb.Append(str(x))
@@ -6413,37 +6414,63 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
                         self.value_pos_ex.SetLabel(self.split_line[0])
 
     def key_pos_go(self, e):
-        key_pos = self.key_pos_cb.GetValue()
-        if not key_pos == "" and not key_pos == "None" and not key_pos == "Manual" and not key_pos == None:
-            self.key_pos_ex.SetLabel(self.split_line[int(key_pos)])
-            self.key_pos_split_tc.Enable()
-            self.key_pos_split_tc.Show()
-            self.key_pos_split_cb.Show()
-            self.key_manual_l.Hide()
-            self.key_manual_tc.Hide()
-            self.key_matches_l.Show()
-            self.key_matches_tc.Show()
-            #self.SetSizer(main_sizer)
-        elif key_pos == "Manual":
+        val_pos = self.value_pos_cb.GetValue()
+        if not val_pos == "match text":
+            key_pos = self.key_pos_cb.GetValue()
+            if not key_pos == "" and not key_pos == "None" and not key_pos == "Manual" and not key_pos == None:
+                self.key_pos_ex.SetLabel(self.split_line[int(key_pos)])
+                self.key_pos_split_tc.Enable()
+                self.key_pos_split_tc.Show()
+                self.key_pos_split_cb.Show()
+                self.key_manual_l.Hide()
+                self.key_manual_tc.Hide()
+                self.key_matches_l.Show()
+                self.key_matches_tc.Show()
+                #self.SetSizer(main_sizer)
+            elif key_pos == "Manual":
+                self.key_pos_split_tc.Hide()
+                self.key_pos_split_cb.Hide()
+                self.key_pos_split_cb.SetValue("")
+                self.key_manual_l.Show()
+                self.key_manual_tc.Show()
+                self.key_matches_l.Hide()
+                self.key_matches_tc.Hide()
+                self.key_pos_ex.SetLabel("")
+                #self.SetSizer(main_sizer)
+            elif key_pos == "None" or key_pos == "" or key_pos == None:
+            #    self.key_pos_ex.SetLabel("")
+                self.key_pos_split_tc.Hide()
+                self.key_pos_split_cb.SetValue("")
+                self.key_pos_split_cb.Hide()
+                self.key_manual_l.Hide()
+                self.key_manual_tc.Hide()
+                self.key_matches_l.Hide()
+                self.key_matches_tc.Hide()
+                self.key_pos_ex.SetLabel("")
+        else:
+            # Find the value to display as an example when match text is selected
+            line = self.example_line.GetLabel()
+            split_character = self.split_character_tc.GetValue()
+            value_split = self.value_pos_split_tc.GetValue()
+            value_split_pos = self.value_pos_split_cb.GetSelection()
+            key_text = self.key_pos_cb.GetValue()
+            if value_split_pos == 0:
+                t_value_pos = 1
+                t_key_pos = 0
+            else:
+                t_value_pos = 0
+                t_key_pos = 1
+            value = ""
+            if split_character in line:
+                line_items = line.split(split_character)
+                for item in line_items:
+                    if value_split in item:
+                        item_items = item.split(value_split)
+                        if item_items[t_key_pos] == key_text:
+                            value = item_items[t_value_pos]
+            self.key_pos_ex.SetLabel(value)
             self.key_pos_split_tc.Hide()
             self.key_pos_split_cb.Hide()
-            self.key_pos_split_cb.SetValue("")
-            self.key_manual_l.Show()
-            self.key_manual_tc.Show()
-            self.key_matches_l.Hide()
-            self.key_matches_tc.Hide()
-            self.key_pos_ex.SetLabel("")
-            #self.SetSizer(main_sizer)
-        elif key_pos == "None" or key_pos == "" or key_pos == None:
-        #    self.key_pos_ex.SetLabel("")
-            self.key_pos_split_tc.Hide()
-            self.key_pos_split_cb.SetValue("")
-            self.key_pos_split_cb.Hide()
-            self.key_manual_l.Hide()
-            self.key_manual_tc.Hide()
-            self.key_matches_l.Hide()
-            self.key_matches_tc.Hide()
-            self.key_pos_ex.SetLabel("")
         self.Layout()
 
     def key_pos_split_text(self, e):
@@ -6480,11 +6507,24 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
            - The value might then be split again if needed using value_pos_split_tc
         '''
         val_pos = self.value_pos_cb.GetValue()
-        if not val_pos == "":
+        if not val_pos == "" and not val_pos == "match text":
             self.value_pos_ex.SetLabel(self.split_line[int(val_pos)])
             self.value_pos_split_tc.Enable()
+            self.key_pos_split_cb.Show()
+            self.key_pos_split_tc.Show()
             self.make_btn_enable()
-        else:
+            MainApp.window_self.Layout()
+        # special case for matching text
+        if val_pos == "match text":
+            key_matches = self.key_matches_tc.Show()
+            self.value_pos_split_tc.Enable()
+            self.key_pos_split_cb.Hide()
+            self.key_pos_split_tc.Hide()
+            self.make_btn_enable()
+            MainApp.window_self.Layout()
+            self.key_pos_cb.Clear()
+            self.key_pos_cb.SetValue("")
+        if val_pos == "":
             self.value_pos_split_tc.Disable()
 
     def value_pos_split_text(self, e):
@@ -6493,10 +6533,12 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
         value (which should be already split from the log line)
         is changed either by user or machine.
         '''
-        self.value_pos_split_cb.Clear()
-        val_pos_ex = self.value_pos_ex.GetLabel()
+        self.value_pos_split_cb.Clear() # blank combo box to the right of it
+        val_pos = self.value_pos_cb.GetValue()
         split_symbol = self.value_pos_split_tc.GetValue()
-        if not split_symbol == "":
+        if not split_symbol == "" and not val_pos == "match text":
+            # Show the two sides of the selected field or blank it if split character is wrong
+            val_pos_ex = self.value_pos_ex.GetLabel()
             if split_symbol in val_pos_ex:
                 value_split = val_pos_ex.split(split_symbol)
                 for x in value_split:
@@ -6506,19 +6548,50 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
                 self.value_pos_split_cb.Disable()
                 self.value_pos_split_cb.SetValue("")
                 self.value_pos_go("e")
-        else:
+
+        if val_pos == "match text":
+            # set box to 'first' and 'last' to determine which side of the split-text to use as the key
+            self.value_pos_split_cb.Append('0 left')
+            self.value_pos_split_cb.Append('1 right')
+            self.value_pos_split_cb.Enable()
+        if split_symbol == "":
             self.value_pos_split_cb.Disable()
             self.value_pos_split_cb.SetValue("")
             self.value_pos_go("e")
+
+    def use_match_text_key(self):
+        self.key_pos_cb.Clear()
+        #get list of keys
+        example_line = self.example_line.GetLabel()
+        split_chr = self.split_character_tc.GetValue()
+        split_symbol_2 = self.value_pos_split_tc.GetValue()
+        split_pos_2 = self.value_pos_split_cb.GetSelection()
+        list_of_keys = []
+        if split_chr in example_line:
+            example_line = example_line.split(split_chr)
+            for item in example_line:
+                if split_symbol_2 in item:
+                    item = item.split(split_symbol_2)[split_pos_2]
+                    list_of_keys.append(item)
+        self.key_pos_cb.Enable()
+        self.key_pos_cb.Append(list_of_keys)
+        self.key_pos_cb.SetValue(list_of_keys[0])
+
+
 
     def value_pos_split_go(self, e):
         '''
         displays the text as an example if value has been split again
         after being split from the original log entry line.
         '''
+        val_pos = self.value_pos_cb.GetValue()
         value_pos_split = self.value_pos_split_cb.GetValue()
         self.value_pos_ex.SetLabel(value_pos_split)
-        self.make_btn_enable()
+        #
+        if val_pos == "match text":
+            self.use_match_text_key()
+        else:
+            self.make_btn_enable()
 
     def date_pos_go(self, e):
         date_pos = self.date_pos_cb.GetValue()
@@ -6691,7 +6764,6 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
         ### loading log from file
         ##
         #
-        #log_to_parse = MainApp.graphing_ctrl_pannel.log_to_graph
         print("  -- Reading log from file")
         with open(shared_data.log_to_load) as f:
             log_to_parse = f.read()
@@ -6780,6 +6852,120 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
             return date_list, value_list, key_list
         else:
             return date_list
+
+    def read_log_with_text_match(self, numbers_only = False, limit_by_date = True):
+        # cancel if no date value set
+        if self.date_pos_cb.GetValue() == "":
+            print(" -- Attempted to read log without date position set")
+            if date_only == False:
+                return [], [], []
+        # read date limits
+        if limit_by_date == True:
+            first_time = MainApp.graphing_info_pannel.start_time_picer.GetValue()
+            first_date = MainApp.graphing_info_pannel.start_date_picer.GetValue()
+            first_datetime = datetime.datetime(year = first_date.year, month = first_date.month + 1, day = first_date.day, hour = first_time.hour, minute = first_time.minute, second = first_time.second)
+            last_time = MainApp.graphing_info_pannel.end_time_picer.GetValue()
+            last_date = MainApp.graphing_info_pannel.end_date_picer.GetValue()
+            last_datetime = datetime.datetime(year = last_date.year, month = last_date.month + 1, day = last_date.day, hour = last_time.hour, minute = last_time.minute, second = last_time.second)
+            #print(first_datetime, last_datetime)
+        # notify user what we're doing
+        msg = " - Reading Log " + str(shared_data.log_to_load)
+        if limit_by_date == True:
+            msg += " - Limiting by Date"
+        if numbers_only == True:
+            msg += " - Numbers only"
+        print(msg)
+        MainApp.status.write_bar(msg)
+        shared_data.first_valueset_name = os.path.split(shared_data.log_to_load)[1]
+        # get line splitting info from ui boxes
+        split_chr = self.split_character_tc.GetValue()
+        date_pos = int(self.date_pos_cb.GetValue())
+        date_split = self.date_pos_split_tc.GetValue()
+        date_split_pos = self.date_pos_split_cb.GetSelection()
+        value_split = self.value_pos_split_tc.GetValue()
+        value_split_pos = self.value_pos_split_cb.GetSelection()
+        rem_from_val = self.rem_from_val_tc.GetValue()
+        if value_split_pos == 0:
+            t_value_pos = 1
+            t_key_pos = 0
+        else:
+            t_value_pos = 0
+            t_key_pos = 1
+        key_text = self.key_pos_cb.GetValue()
+        #
+        ##
+        ### loading log from file
+        ##
+        #
+        print("  -- Reading log from file")
+        with open(shared_data.log_to_load) as f:
+            log_to_parse = f.read()
+        log_to_parse = log_to_parse.splitlines()
+        if len(log_to_parse) == 0:
+            print(" --- Log file is empty")
+        ##
+        ### read log into lists
+        ##
+        #
+        # define lists to fill
+        date_list = []
+        value_list = []
+        key_list = []
+        # cycle through each line and fill the lists
+        for line in log_to_parse:
+            date = ""
+            value = ""
+            key = ""
+            if split_chr in line:
+                line_items = line.split(split_chr)
+                for item in line_items:
+                    # date - by positional argument only at the moment
+                    date = line_items[date_pos]
+                    if not date_split == "":
+                        date = date.split(date_split)[date_split_pos]
+                    if "." in date:
+                        date = date.split(".")[0]
+                    # Check date is valid and ignore if not
+                    try:
+                        date = datetime.datetime.strptime(date, '%Y-%m-%d %H:%M:%S')
+                        if limit_by_date == True:
+                            if date > last_datetime or date < first_datetime:
+                                date = ""
+                    except:
+                        #raise
+                        print("date not valid -" + str(date))
+                        date = ""
+                    #value
+                    if value_split in item:
+                        item_items = item.split(value_split)
+                        if item_items[t_key_pos] == key_text:
+                            value = item_items[t_value_pos]
+                            key = item_items[t_key_pos]
+                            # remove from value
+                            if not rem_from_val == "":
+                                value = value.replace(rem_from_val, "")
+                            # check it's a number and convert type to float     
+                            try:
+                                value = float(value)
+                            except:
+                                print(" - Value not a valid number; " + str(value))
+                                value = ""
+                    # add to lists
+                    if not date == "" and not value == "" and not key == False:
+                        date_list.append(date)
+                        value_list.append(value)
+                        key_list.append(key)
+        # end of loop - return appropriate lists
+        if len(date_list) == 0:
+            dmsg = "No valid log entries were found, check settings and try again"
+            wx.MessageBox(dmsg, 'No data', wx.OK | wx.ICON_INFORMATION)
+        #shared_data.first_value_set = value_list
+        #shared_data.first_date_set = date_list
+        #shared_data.first_keys_set = key_list
+        return date_list, value_list, key_list
+
+
+
 
     def show_local_graph(self, graph_path):
         MainApp.graphing_info_pannel.graph_sizer.Add(wx.StaticBitmap(MainApp.graphing_info_pannel, -1, wx.Image(graph_path, wx.BITMAP_TYPE_ANY).ConvertToBitmap()), 0, wx.ALL, 2)
@@ -7216,8 +7402,14 @@ class graphing_ctrl_pnl(wx.Panel):
         self.valset_1_len.SetLabel("0")
 
     def set_log_click(self, e):
-        print("len of datasets", len(shared_data.list_of_datasets))
-        date_list, value_list, key_list = MainApp.graphing_info_pannel.read_log_date_and_value(numbers_only=True)
+        #print("number of datasets", len(shared_data.list_of_datasets))
+        val_method = MainApp.graphing_info_pannel.value_pos_cb.GetValue()
+        if val_method == 'match text':
+            print(" -- using text matching to gather data")
+            date_list, value_list, key_list = MainApp.graphing_info_pannel.read_log_with_text_match(numbers_only=True)
+        else:
+            date_list, value_list, key_list = MainApp.graphing_info_pannel.read_log_date_and_value(numbers_only=True)
+        #
         if len(date_list) == len(value_list) and len(date_list) == len(key_list) and len(date_list) > 0:
             self.enable_value_graphs()
             shared_data.list_of_datasets.append([date_list, value_list, key_list])
@@ -7576,9 +7768,6 @@ class graphing_ctrl_pnl(wx.Panel):
         # Tell the user and show the graph
         MainApp.graphing_info_pannel.show_local_graph(current_graph_filepath)
         MainApp.status.write_bar("ready...")
-
-
-
 
     def suck_from_imported_module(self, e):
         module_name = self.module_sucker_cb.GetValue()
@@ -9960,7 +10149,7 @@ class make_log_overlay_dialog(wx.Dialog):
         self.split_character_tc = wx.TextCtrl(self, size=(90, 25))
         self.split_character_tc.Bind(wx.EVT_TEXT, self.split_line_text)
         # row of date related options
-        date_pos_l = wx.StaticText(self,  label='Date Position')
+        date_pos_l = wx.StaticText(self,  label='Date')
         self.date_pos_cb = wx.ComboBox(self, size=(90, 25),choices = [])
         self.date_pos_cb.Bind(wx.EVT_TEXT, self.date_pos_go)
         self.date_pos_cb.Disable()
@@ -9970,7 +10159,7 @@ class make_log_overlay_dialog(wx.Dialog):
         self.date_pos_split_cb.Bind(wx.EVT_TEXT, self.date_pos_split_select)
         self.date_pos_ex = wx.StaticText(self,  label='')
         # row of value related options
-        value_pos_l = wx.StaticText(self,  label='Value Position')
+        value_pos_l = wx.StaticText(self,  label='Value')
         self.value_pos_cb = wx.ComboBox(self, size=(90, 25),choices = [])
         self.value_pos_cb.Bind(wx.EVT_TEXT, self.value_pos_go)
         self.value_pos_cb.Disable()
@@ -9980,7 +10169,7 @@ class make_log_overlay_dialog(wx.Dialog):
         self.value_pos_split_cb.Bind(wx.EVT_TEXT, self.value_pos_split_go)
         self.value_pos_ex = wx.StaticText(self,  label='')
         # row of key related options
-        key_pos_l = wx.StaticText(self,  label='Key Position')
+        key_pos_l = wx.StaticText(self,  label='Key')
         self.key_pos_cb = wx.ComboBox(self, size=(90, 25),choices = [])
         self.key_pos_cb.Bind(wx.EVT_TEXT, self.key_pos_go)
         self.key_pos_cb.Disable()
