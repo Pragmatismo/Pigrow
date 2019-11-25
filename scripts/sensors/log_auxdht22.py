@@ -6,6 +6,7 @@ import Adafruit_DHT
 homedir = os.getenv("HOME")
 sensor_gpio = None
 log_path = homedir + "/Pigrow/logs/auxdht22_log.txt"
+try_attempts = 5
 
 for argu in sys.argv[1:]:
     if "=" in argu:
@@ -63,7 +64,15 @@ def temp_c_to_f(temp_c):
     return temp_f
 
 if not sensor_gpio == None:
-    hum, temp, logt = read_temp_sensor(sensor_gpio)
+    count = 0
+    valid_reading = False
+    while valid_reading == False:
+        hum, temp, logt = read_temp_sensor(sensor_gpio)
+        if not logt == '-1':
+            valid_reading = True
+        count = count + 1
+        if count >= try_attempts:
+            valid_reading = True     
     log_sensor(log_path, hum, temp, logt)
 else:
     print("please set a gpio using the gpio=[number] flag")
