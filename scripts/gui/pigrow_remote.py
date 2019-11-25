@@ -488,6 +488,7 @@ class system_ctrl_pnl(wx.Panel):
         final_1wire_text = module_text + therm_module_text + other_modules + onewire_config_file_text
         MainApp.system_info_pannel.sys_1wire_info.SetLabel(final_1wire_text)
         MainApp.window_self.Layout()
+        print(" - " + module_text + therm_module_text + other_modules + onewire_config_file_text)
 
     def add_1wire(self, e):
         msg = "The Device Tree Overlay is a core system component of the raspberry pi "
@@ -532,14 +533,16 @@ class system_ctrl_pnl(wx.Panel):
         dbox.Destroy()
         if (answer == wx.ID_OK):
             sftp = ssh.open_sftp()
-            folder = "/home/" + str(pi_link_pnl.target_user) +  "/Pigrow/temp/"
+            folder = "/home/" + str(pi_link_pnl.target_user) + "/Pigrow/temp/"
+            out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("mkdir " + folder)
             f = sftp.open(folder + 'boot_config.txt', 'w')
             f.write(config_text)
             f.close()
-            copy_cmd = "sudo mv /home/" + pi_link_pnl.target_user + "/Pigrow/temp/boot_config.txt /boot/config.txt"
+            copy_cmd = "sudo cp --no-preserve=mode,ownership " + folder + "boot_config.txt /boot/config.txt"
+            #copy_cmd = "sudo mv /home/" + pi_link_pnl.target_user + "/Pigrow/temp/boot_config.txt /boot/config.txt"
             out, error = MainApp.localfiles_ctrl_pannel.run_on_pi(copy_cmd)
             print(out, error)
-            print("Pi's /boot/config,txt file changed")
+            print("Pi's /boot/config.txt file changed")
     # I2C
     def i2c_check(self):
         # checking for i2c folder in /dev/
@@ -1074,7 +1077,10 @@ class one_wire_change_pin_dbox(wx.Dialog):
 
     def ok_click(self, e):
         new_line = self.line_t.GetLabel()
-        old_line = "dtoverlay=w1-gpio,gpiopin=" + self.tochange_gpiopin_cb.GetValue()
+        old_pin =  self.tochange_gpiopin_cb.GetValue()
+        old_line = "dtoverlay=w1-gpio,gpiopin=" + old_pin
+        if old_pin == "default (4)":
+            old_line = "dtoverlay=w1-gpio"
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("cat /boot/config.txt")
         config_lines = out.splitlines()
         config_text = ""
@@ -6944,7 +6950,7 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
                             # remove from value
                             if not rem_from_val == "":
                                 value = value.replace(rem_from_val, "")
-                            # check it's a number and convert type to float     
+                            # check it's a number and convert type to float
                             try:
                                 value = float(value)
                             except:
@@ -6976,7 +6982,6 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
         self.SetMinSize(size)
         MainApp.window_self.Layout()
         self.SetupScrolling()
-
 
 
 class graphing_ctrl_pnl(wx.Panel):
