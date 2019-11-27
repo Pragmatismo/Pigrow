@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 import sys, datetime, os
 import numpy as np
 import matplotlib as mpl
