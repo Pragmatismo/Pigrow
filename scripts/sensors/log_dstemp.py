@@ -8,7 +8,7 @@ os.system('modprobe w1-therm')
 homedir = os.getenv("HOME")
 try:
     list_of_sensors = os.listdir("/sys/bus/w1/devices/")
-    print list_of_sensors
+    print (list_of_sensors)
 except:
     print("Can't list sensors, sorry.")
     list_of_sensors = ['']
