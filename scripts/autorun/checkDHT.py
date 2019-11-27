@@ -141,7 +141,7 @@ def heater_control(temp):
     #checks to see if current temp should result in heater on or off
     templow  = float(set_dic['heater_templow'])
     temphigh = float(set_dic['heater_templow'])  ## using templow here is not a mistake, plan is to add buffer zones or some something
-    if cli_output_level = "max":
+    if cli_output_level == "max":
         print(" ~ ~ ~ heater controll function started ~ ~ ~")
         print("        temp    = " + str(temp))
         print("        templow = " + str(templow))
@@ -168,14 +168,14 @@ def heater_control(temp):
     else:
         message = "doing nothing, it's " + str(temp) + " degrees and the heater is " + heater_state
         #print(" --not worth logging but, " + message)
-    if cli_output_level = "max":
+    if cli_output_level == "max":
         print(message)
     #print(" ~ ~ ~ heater controll function finished ~ ~ ~")
 
 def humid_contol(humid,use_fans=False):
     global humid_state
     msg = "  no change"
-    if cli_output_level = "max":
+    if cli_output_level == "max":
         print(" ~ ~ ~ humidifier controll function started ~ ~ ~")
     humid_low  = float(set_dic['humid_low'])
     if humid < humid_low and humid_state != 'up_on':
@@ -192,13 +192,13 @@ def humid_contol(humid,use_fans=False):
         humid_state = 'up_off'
         pigrow_defs.write_log(script, msg,loc_dic['loc_switchlog'])
         humid_off.humid_off(set_dic, loc_dic['loc_switchlog'])
-    if cli_output_level = "max":
+    if cli_output_level == "max":
         print(msg)
 
 def dehumid_control(humid,use_fans=False):
     global dehumid_state
     msg = "  no change"
-    if cli_output_level = "max":
+    if cli_output_level == "max":
         print(" ~ ~ ~ dehumidifier controll function started ~ ~ ~")
     humid_high = float(set_dic['humid_high'])
     if humid > humid_high and dehumid_state != 'down_on':
@@ -215,13 +215,13 @@ def dehumid_control(humid,use_fans=False):
         dehumid_state = 'down_off'
         pigrow_defs.write_log(script, msg,loc_dic['loc_switchlog'])
         dehumid_off.dehumid_off(set_dic, loc_dic['loc_switchlog'])
-    if cli_output_level = "max":
+    if cli_output_level == "max":
         print(msg)
 
 def fan_control(temp, humid, heat_use_fan=True, hum_use_fan=False, dehum_use_fan=False):
     global fans_state
     message = " - No change"
-    if cli_output_level = "max":
+    if cli_output_level == "max":
         print(" -- Fan controll")
     if heat_use_fan == True:
         temphigh = float(set_dic['heater_temphigh'])
@@ -261,7 +261,7 @@ def fan_control(temp, humid, heat_use_fan=True, hum_use_fan=False, dehum_use_fan
             fans_off.fans_off(set_dic, loc_dic['loc_switchlog'])
             fans_state = 'off'
             pigrow_defs.write_log(script, message, loc_dic['loc_switchlog'])
-    if cli_output_level = "max":
+    if cli_output_level == "max":
         print (message)
 
 #
