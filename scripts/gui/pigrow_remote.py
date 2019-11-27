@@ -1582,7 +1582,7 @@ class install_dialog(wx.Dialog):
     def __init__(self, *args, **kw):
         super(install_dialog, self).__init__(*args, **kw)
         self.InitUI()
-        self.SetSize((700, 600))
+        self.SetSize((700, 700))
         self.SetTitle("Install Pigrow")
     def InitUI(self):
         pnl = wx.Panel(self)
