@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #
 #         This script it designed to be run in a continuous loop
 #
@@ -79,7 +79,7 @@ for argu in sys.argv[1:]:
                 hum_use_fan  = False
                 dehum_use_fan  = False
         elif thearg == 'output_level':
-            cli_output_level = thevalue        
+            cli_output_level = thevalue
     elif argu == '-h' or 'help' in argu:
         print("")
         print("  Pigrow DHT log and control loop")
