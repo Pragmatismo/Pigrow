@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 import datetime, sys, os
 # import numpy as np    #only needed for colouring
 import matplotlib as mpl
@@ -132,10 +132,10 @@ log_temp = []
 log_light = []
 log_date = []
 
-print "----------------------------------"
-print "-------Preparing To Graph---------"
-print "---Chirp Soil Moisture Sensor-----"
-print "----------------------------------"
+print ("----------------------------------")
+print ("-------Preparing To Graph---------")
+print ("---Chirp Soil Moisture Sensor-----")
+print ("----------------------------------")
 
 def add_log(linktolog):
     print("-----------------")
@@ -187,10 +187,10 @@ def add_log(linktolog):
         print("No data, no graph...")
         exit()
     # text output
-    print "      ----------------------------------"
+    print ("      ----------------------------------")
     sec_ago = thetime - log_date[-1]
-    print "           most recent Soil moisture - " + str(log_moist[-1])[0:4] + " - " + str(sec_ago) + " seconds ago"
-    print "      ----------------------------------"
+    print ("           most recent Soil moisture - " + str(log_moist[-1])[0:4] + " - " + str(sec_ago) + " seconds ago")
+    print ("      ----------------------------------")
     return log_moist, log_moist_p, log_temp, log_light, log_date
 
 def make_graph(da,ta, path, colour='darkblue', axislabel='Chirp Sensor', line_label=''):
