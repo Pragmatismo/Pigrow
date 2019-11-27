@@ -86,7 +86,6 @@ up = []         # uptime
 cpu_temp = []  #internal temp of the CPU as mesaured by system tools
 
 with open(self_log, "r") as f:
-    print self_log
     for line in f:
         try:
             line = line.split('>')
