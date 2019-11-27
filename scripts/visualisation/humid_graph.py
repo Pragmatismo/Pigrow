@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 import matplotlib as mpl
 mpl.use('Agg')
 import matplotlib.pyplot as plt
@@ -73,10 +73,10 @@ log_date = []
 cut_list_date = []
 thetime = datetime.datetime.now()
 
-print "----------------------------------"
-print "-------Preparing To Graph---------"
-print "-------------Humidity-------------"
-print "----------------------------------"
+print ("----------------------------------")
+print ("-------Preparing To Graph---------")
+print ("-------------Humidity-------------")
+print ("----------------------------------")
 
 def add_log(linktolog):
     with open(linktolog, "r") as f:
@@ -139,10 +139,10 @@ def make_graph(da,ta):
 
 add_log(log_location)
 
-print "----------------------------------"
+print ("----------------------------------")
 secago = thetime - log_date[-1]
-print "most recent humidity - " + str(log_humid[-1])[0:4] + " - " + str(secago) + " seconds ago"
-print "----------------------------------"
+print ("most recent humidity - " + str(log_humid[-1])[0:4] + " - " + str(secago) + " seconds ago")
+print ("----------------------------------")
 make_graph(log_date, log_humid)
 
 print("Graph of last " + str(hours_to_show) + " hours of humidity data created and saved to " + graph_path)
