@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # encoding: utf-8
 import sys
 reload(sys)
@@ -501,10 +501,10 @@ def render_box_plot(date_list, temp_list, graph_path, ymin, ymax, toocold, dange
 
 
 if __name__ == '__main__':
-    print "----------------------------------"
-    print "-------Preparing To Graph---------"
-    print "--------------Temp----------------"
-    print "----------------------------------"
+    print ("----------------------------------")
+    print ("-------Preparing To Graph---------")
+    print ("--------------Temp----------------")
+    print ("----------------------------------")
     # find the log location and graph ourput path from the dirlocs file or use defaults
     graph_path, log_location, settings_location = find_paths_from_dirlocs()
     # try to load temp settings from pigrows config file where they're also used fo other things
@@ -515,9 +515,9 @@ if __name__ == '__main__':
     oldest_allowed_date = set_date_values(hours_to_show, show_from)
     # add the log file, by default uses DHT22 log
     log_date, log_temp = add_log(log_location, temp_unit, oldest_allowed_date, log_temp_pos, log_date_pos)
-    print "----------------------------------"
-    print "most recent temp - " + str(log_temp[-1])[0:4] + " " + temp_unit
-    print "----------------------------------"
+    print ("----------------------------------")
+    print ("most recent temp - " + str(log_temp[-1])[0:4] + " " + temp_unit)
+    print ("----------------------------------")
     # the competition winning graph, each hour's temp ranges shown.
     if box_plot_graph == 'true':
         graph_hours_path = graph_path[:-4] + "_hours.png"
@@ -528,7 +528,7 @@ if __name__ == '__main__':
     # Orignal Graph, simple temp to date line plot with optional colors
     if line_graph == 'true':
         if colour_graph == "true":
-            print "Colouring graph using temp range; " + str(dangercold) + ", " + str(toocold) + " -- " + str(toohot) + ", " + str(dangerhot) + " "
+            print ("Colouring graph using temp range; " + str(dangercold) + ", " + str(toocold) + " -- " + str(toohot) + ", " + str(dangerhot) + " ")
             render_line_graph(log_date, log_temp, graph_path, ymin, ymax, toocold, dangercold, toohot, dangerhot)
         else:
             render_line_graph(log_date, log_temp, graph_path, ymin, ymax, None, None, None, None)
