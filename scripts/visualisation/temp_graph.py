@@ -1,8 +1,6 @@
 #!/usr/bin/python3
 # encoding: utf-8
 import sys
-#reload(sys)
-#sys.setdefaultencoding('Cp1252')
 import matplotlib as mpl
 mpl.use('Agg')
 import matplotlib.pyplot as plt
