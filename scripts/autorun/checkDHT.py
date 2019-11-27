@@ -135,6 +135,7 @@ def read_and_log(loc_dic):
 
 def heater_control(temp):
     global heater_state
+    message = "  no change"
     #checks to see if current temp should result in heater on or off
     templow  = float(set_dic['heater_templow'])
     temphigh = float(set_dic['heater_templow'])  ## using templow here is not a mistake, plan is to add buffer zones or some something
@@ -169,6 +170,7 @@ def heater_control(temp):
 
 def humid_contol(humid,use_fans=False):
     global humid_state
+    msg = "  no change"
     print(" ~ ~ ~ humidifier controll function started ~ ~ ~")
     humid_low  = float(set_dic['humid_low'])
     if humid < humid_low and humid_state != 'up_on':
@@ -189,6 +191,7 @@ def humid_contol(humid,use_fans=False):
 
 def dehumid_control(humid,use_fans=False):
     global dehumid_state
+    msg = "  no change"
     print(" ~ ~ ~ dehumidifier controll function started ~ ~ ~")
     humid_high = float(set_dic['humid_high'])
     if humid > humid_high and dehumid_state != 'down_on':
