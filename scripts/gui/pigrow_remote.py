@@ -1611,7 +1611,8 @@ class install_dialog(wx.Dialog):
         # Visualisation
         label_visualisation = wx.StaticText(self,  label='Visualisation;')
         label_visualisation.SetFont(shared_data.sub_title_font)
-        self.matplotlib_check = wx.CheckBox(self,  label='Matplotlib')
+        self.matplotlib_check = wx.CheckBox(self,  label='Matplotlib py2')
+        self.matplotlib3_check = wx.CheckBox(self,  label='Matplotlib py3')
         self.mpv_check = wx.CheckBox(self,  label='mpv')
         # Networking
         label_networking = wx.StaticText(self,  label='Networking;')
@@ -1650,6 +1651,7 @@ class install_dialog(wx.Dialog):
         visualisation_sizer = wx.BoxSizer(wx.VERTICAL)
         visualisation_sizer.Add(label_visualisation, 0, wx.EXPAND|wx.ALL, 3)
         visualisation_sizer.Add(self.matplotlib_check, 0, wx.EXPAND|wx.LEFT, 30)
+        visualisation_sizer.Add(self.matplotlib3_check, 0, wx.EXPAND|wx.LEFT, 30)
         visualisation_sizer.Add(self.mpv_check, 0, wx.EXPAND|wx.LEFT, 30)
         networking_sizer = wx.BoxSizer(wx.VERTICAL)
         networking_sizer.Add(label_networking, 0, wx.EXPAND|wx.ALL, 3)
@@ -1785,8 +1787,6 @@ class install_dialog(wx.Dialog):
         dbox.Destroy()
         if (answer == wx.ID_OK):
             print("wants to config relays but that feature isn't written yet")
-
-
 
     def set_control_sensor_to_dht22(self):
         # gpio pin
@@ -1959,8 +1959,6 @@ class install_dialog(wx.Dialog):
         MainApp.config_ctrl_pannel.config_dict["humid_high"] = highhum
         MainApp.config_ctrl_pannel.update_setting_file_on_pi_click("e")
 
-            #
-
     def check_for_control_script(self):
         last_index = cron_list_pnl.startup_cron.GetItemCount()
         has_cron_got_check_dht_already = False
@@ -2017,7 +2015,6 @@ class install_dialog(wx.Dialog):
                     selflog_index = index
                     has_cron_got_selflog_already = True
         return has_cron_got_selflog_already, selflog_enabled, selflog_index
-
 
     def install_pigrow(self):
         print(" Cloning git repo onto pi")
@@ -2076,6 +2073,14 @@ class install_dialog(wx.Dialog):
         self.progress.SetLabel("###########~~~~~~~~~~~~~~~~~~")
         wx.GetApp().Yield()
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo pip3 install praw")
+        print (out)
+
+    def install_matplotlib3(self):
+        # Matplotlib makes the graphs for us
+        self.currently_doing.SetLabel("Using pip3 to install matplotlib")
+        self.progress.SetLabel("###############~~~~~~~~~~~~~~")
+        wx.GetApp().Yield()
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo pip3 install matplotlib")
         print (out)
 
     def install_pexpect(self):
@@ -2216,6 +2221,12 @@ class install_dialog(wx.Dialog):
         else:
             self.praw_check.SetForegroundColour((255,75,75))
             self.praw_check.SetValue(True)
+        # matplotlib
+        if "True" in self.test_py3_module("matplotlib"):
+            self.matplotlib3_check.SetForegroundColour((75,200,75))
+        else:
+            self.matplotlib3_check.SetForegroundColour((255,75,75))
+            self.matplotlib3_check.SetValue(True)
 
     def check_python_dependencies(self):
         python_dependencies = ["matplotlib", "Adafruit_DHT", "pexpect", "crontab"]
@@ -2281,6 +2292,8 @@ class install_dialog(wx.Dialog):
             self.install_adafruit_ads1115()
         if self.praw_check.GetValue() == True:
             self.install_praw()
+        if self.matplotlib3_check.GetValue() == True:
+            self.install_matplotlib3()
         # Dependencies installed using apt
         if self.uvccapture_check.GetValue() == True or self.mpv_check.GetValue() == True or self.sshpass_check.GetValue() == True or self.matplotlib_check.GetValue() == True or self.cron_check.GetValue() == True:
             self.update_apt()
@@ -6969,9 +6982,6 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
         #shared_data.first_date_set = date_list
         #shared_data.first_keys_set = key_list
         return date_list, value_list, key_list
-
-
-
 
     def show_local_graph(self, graph_path):
         MainApp.graphing_info_pannel.graph_sizer.Add(wx.StaticBitmap(MainApp.graphing_info_pannel, -1, wx.Image(graph_path, wx.BITMAP_TYPE_ANY).ConvertToBitmap()), 0, wx.ALL, 2)
