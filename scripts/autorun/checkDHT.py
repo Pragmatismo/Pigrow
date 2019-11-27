@@ -78,6 +78,8 @@ for argu in sys.argv[1:]:
                 heat_use_fan = False
                 hum_use_fan  = False
                 dehum_use_fan  = False
+        elif thearg == 'output_level':
+            cli_output_level = thevalue        
     elif argu == '-h' or 'help' in argu:
         print("")
         print("  Pigrow DHT log and control loop")
@@ -99,6 +101,9 @@ for argu in sys.argv[1:]:
         print("       =humid               -humid controls fan")
         print("       =dehumid             -dehumid controls fan")
         print("       =none                -fan is ignored by all")
+        print("")
+        print(" output_level=min,max      -Set to min to quiet the script output")
+        print("")
         sys.exit()
     elif argu == '-flags':
         print("log_time=60")
@@ -107,6 +112,7 @@ for argu in sys.argv[1:]:
         print("use_humid=[true,false]")
         print("use_dehumid=[true,false]")
         print("usefan=[heat,humid,dehumid,none]")
+        print("output_level=[min,max]")
         sys.exit()
 
 def read_and_log(loc_dic):
