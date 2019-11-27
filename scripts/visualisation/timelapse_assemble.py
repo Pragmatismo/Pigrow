@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 import os
 import sys
 import datetime
@@ -175,9 +175,9 @@ def grab_folder(capsdir='./', inpoint=0, outpoint=0, file_type='jpg', datecheck=
             elif datecheck == False:
                 filelist.append(filefound)
 
-    print " ##  Counted total; " + str(fcounter)
+    print (" ##  Counted total; " + str(fcounter))
     filelist.sort()
-    print " ##  Active timezone contains : " + str(len(filelist[inpoint:outpoint]))
+    print (" ##  Active timezone contains : " + str(len(filelist[inpoint:outpoint])))
     if len(filelist) >= 1:
         try:
             print(" ##     -Starting  " + str(datetime.datetime.utcfromtimestamp(float(filelist[0].split(".")[0].split("_")[-1]))))
@@ -242,7 +242,7 @@ def create_credits_images(image_list, capsdir):
         return image_list
     last_pic = capsdir + image_list[-1]
     image_for_size = Image.open(last_pic)
-    print image_for_size.size
+    # print (image_for_size.size)
     if persist_last_frame == True:
         base = image_for_size
     else:
@@ -285,7 +285,7 @@ def next_filename(outfile):
         outfile_possible = str(outfile.split(".")[0]) + "_"+str(num)+"_." + end
 
         #outfile_possible = str(outfile_possible)
-        print num, outfile, outfile_possible
+        print (num, outfile, outfile_possible)
     outfile = outfile.split(".")
     outfile[0] = str(outfile[0]) + "_"+str(num)+"_"
     outfile = outfile[0] + "." + end
@@ -332,7 +332,7 @@ else:
     exit()
 
 #runs the video encouder
-print " ##  making you a timelapse video..."
+print (" ##  making you a timelapse video...")
 cmd = "mpv mf://@"+listfile+" -mf-fps="+str(infps)
 if not audio_file == '':
     cmd += " --audiofile="+audio_file+" --frames=" + str(len(faster)+video_credits)
@@ -347,6 +347,6 @@ except:
     print(" !!     -filelist not removed")
 
 if os.path.isfile(outfile) == True:
-    print " ## there you go; "+outfile+" ready to roll.."
+    print (" ## there you go; "+outfile+" ready to roll..")
 else:
-    print " !! for some reason the file wasn't created, sorry..."
+    print (" !! for some reason the file wasn't created, sorry...")
