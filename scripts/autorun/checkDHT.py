@@ -16,6 +16,8 @@ heat_use_fan   = True
 hum_use_fan  = False
 dehum_use_fan  = False
 
+cli_output_level = "max"
+
 script = 'checkDHT.py'
 import os
 import sys
@@ -111,7 +113,7 @@ def read_and_log(loc_dic):
     try:
         humidity, temperature = Adafruit_DHT.read_retry(Adafruit_DHT.DHT22, set_dic['gpio_dht22sensor'])
         if humidity == None or temperature == None or humidity > 101:
-            print("--problem reading sensor on GPIO:"+set_dic['gpio_dht22sensor']+"--")
+            print(" -- problem reading sensor on GPIO:"+set_dic['gpio_dht22sensor']+"--")
             return '-1','-1','-1'
         else:
             humidity = round(humidity,2)
@@ -126,7 +128,7 @@ def read_and_log(loc_dic):
                 pigrow_defs.write_log('checkDHT.py', 'writing dht log failed', loc_dic['err_log'])
             return humidity, temperature, timno
     except:
-        print("--problem reading sensor on GPIO:"+set_dic['gpio_dht22sensor']+"--")
+        print(" -- problem reading sensor on GPIO:"+set_dic['gpio_dht22sensor']+"--")
         return '-1','-1','-1'
 
 #
@@ -139,12 +141,13 @@ def heater_control(temp):
     #checks to see if current temp should result in heater on or off
     templow  = float(set_dic['heater_templow'])
     temphigh = float(set_dic['heater_templow'])  ## using templow here is not a mistake, plan is to add buffer zones or some something
-    print(" ~ ~ ~ heater controll function started ~ ~ ~")
-    print("   temp    = " + str(temp))
-    print("   templow = " + str(templow))
-#    print(" temphigh = " + str(temphigh))
-#    print("Use Fans = " + str(use_fans))
-#    print("heater state = " + str(heater_state))
+    if cli_output_level = "max":
+        print(" ~ ~ ~ heater controll function started ~ ~ ~")
+        print("        temp    = " + str(temp))
+        print("        templow = " + str(templow))
+    #   print(" temphigh = " + str(temphigh))
+    #   print("Use Fans = " + str(use_fans))
+    #   print("heater state = " + str(heater_state))
     # if too cool
     if temp < templow and heater_state != 'on':
         message = "It's cold,  temp is" + str(temp) + " degrees! the low limit is " + str(templow) + " so turning heater on."
@@ -165,13 +168,15 @@ def heater_control(temp):
     else:
         message = "doing nothing, it's " + str(temp) + " degrees and the heater is " + heater_state
         #print(" --not worth logging but, " + message)
-    print(message)
+    if cli_output_level = "max":
+        print(message)
     #print(" ~ ~ ~ heater controll function finished ~ ~ ~")
 
 def humid_contol(humid,use_fans=False):
     global humid_state
     msg = "  no change"
-    print(" ~ ~ ~ humidifier controll function started ~ ~ ~")
+    if cli_output_level = "max":
+        print(" ~ ~ ~ humidifier controll function started ~ ~ ~")
     humid_low  = float(set_dic['humid_low'])
     if humid < humid_low and humid_state != 'up_on':
         msg = "should turn the humidifer on, it's " + str(humid) + " and the low limit is " + str(humid_low)
@@ -187,12 +192,14 @@ def humid_contol(humid,use_fans=False):
         humid_state = 'up_off'
         pigrow_defs.write_log(script, msg,loc_dic['loc_switchlog'])
         humid_off.humid_off(set_dic, loc_dic['loc_switchlog'])
-    print(msg)
+    if cli_output_level = "max":
+        print(msg)
 
 def dehumid_control(humid,use_fans=False):
     global dehumid_state
     msg = "  no change"
-    print(" ~ ~ ~ dehumidifier controll function started ~ ~ ~")
+    if cli_output_level = "max":
+        print(" ~ ~ ~ dehumidifier controll function started ~ ~ ~")
     humid_high = float(set_dic['humid_high'])
     if humid > humid_high and dehumid_state != 'down_on':
         msg = "should turn dehumidifer on, it's " + str(humid) + " and the high limit is " + str(humid_high)
@@ -208,12 +215,14 @@ def dehumid_control(humid,use_fans=False):
         dehumid_state = 'down_off'
         pigrow_defs.write_log(script, msg,loc_dic['loc_switchlog'])
         dehumid_off.dehumid_off(set_dic, loc_dic['loc_switchlog'])
-    print(msg)
+    if cli_output_level = "max":
+        print(msg)
 
 def fan_control(temp, humid, heat_use_fan=True, hum_use_fan=False, dehum_use_fan=False):
     global fans_state
     message = " - No change"
-    print(" -- Fan controll")
+    if cli_output_level = "max":
+        print(" -- Fan controll")
     if heat_use_fan == True:
         temphigh = float(set_dic['heater_temphigh'])
         if temp > temphigh and fans_state != 'on':
@@ -252,7 +261,8 @@ def fan_control(temp, humid, heat_use_fan=True, hum_use_fan=False, dehum_use_fan
             fans_off.fans_off(set_dic, loc_dic['loc_switchlog'])
             fans_state = 'off'
             pigrow_defs.write_log(script, message, loc_dic['loc_switchlog'])
-    print (message)
+    if cli_output_level = "max":
+        print (message)
 
 #
 #   Set the initial states of everything on script start
@@ -287,7 +297,7 @@ def check_lamp(on_time, off_time):
                 return 'the lamp off', True
 
         elif current_time == on_time:
-            return 'crazy coincidence, exact time match! cron will switch it for us', False
+            return ' - Actually it was a crazy coincidence, exact time match! cron will switch it for us', False
         return 'error', False
 
 print(" -- Initializing checkDHT.py conditions monitoring script ")
@@ -299,10 +309,7 @@ off_time = datetime.time(int(time_off[0]), int(time_off[1]))
 
 state, change = check_lamp(on_time, off_time)
 
-if change:
-    print(" Determenined the lamp should be -" + state)
-else:
-    print("Not matching, problem with time thingy! it was " + str(state) + " having a rest then trying again...")
+print(" Determenined the lamp should be - " + state)
 
 #
 #      THE ETERNAL LOOP
@@ -316,7 +323,7 @@ while True:
     # try reading the temp and humid then run all the device control modules
     try:
         humid, temp, timno = read_and_log(loc_dic)
-        print(" -- " + str(timno) + ' temp: ' + str(temp) + ' humid: ' + str(humid))
+        print(" - Data Read from Sensor -- " + str(timno) + ' temp: ' + str(temp) + ' humid: ' + str(humid))
         if not humid > 101: #skips on erratic values
             # heat up and down
             if 'gpio_heater' in set_dic:
