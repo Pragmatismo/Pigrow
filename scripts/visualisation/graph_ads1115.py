@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 import datetime, sys, os
 import numpy as np
 import matplotlib as mpl
@@ -100,10 +100,10 @@ log_a3 = []
 log_date = []
 thetime = datetime.datetime.now()
 
-print "----------------------------------"
-print "-------Preparing To Graph---------"
-print "-------------ADS1115--------------"
-print "----------------------------------"
+print ("----------------------------------")
+print ("-------Preparing To Graph---------")
+print ("-------------ADS1115--------------")
+print ("----------------------------------")
 
 def add_log(linktolog):
     with open(linktolog, "r") as f:
@@ -168,9 +168,9 @@ def make_graph(date,ta, colour, name):
 
 add_log(log_location)
 
-print "----------------------------------"
+print ("----------------------------------")
 secago = thetime - log_date[-1]
-print "most recent log entry from " + str(secago) + " seconds ago"
+print ("most recent log entry from " + str(secago) + " seconds ago")
 if not make_a0 == 'no':
     make_graph(log_date, log_a0, "darkblue", a0_title)
 if not make_a1 == 'no':
