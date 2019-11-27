@@ -18,7 +18,7 @@ def fans_on(set_dic, switch_log):
     script = 'fans_on.py'
     msg = ("")
     msg +=("      #############################################\n")
-    msg +=("      ##         Turning the Fans - ON         ##\n")
+    msg +=("      ##         Turning the Fans - ON           ##\n")
     if 'gpio_fans' in set_dic and not str(set_dic['gpio_fans']).strip() == '':
         gpio_pin = int(set_dic['gpio_fans'])
         gpio_pin_on = set_dic['gpio_fans_on']

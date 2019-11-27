@@ -51,7 +51,7 @@ def generic_low(gpio_pin, switch_log):
     msg = ("")
     msg +=("      #################################################\n")
     msg +=("      ##         gpio pin " + gpio_pin)
-    msg +=(                                      " is now Low   ##\n")
+    msg +=(                                      " is now Low              ##\n")
     msg +=("      #################################################\n")
     GPIO.output(int(gpio_pin), GPIO.LOW)
     if not switch_log == "none":
