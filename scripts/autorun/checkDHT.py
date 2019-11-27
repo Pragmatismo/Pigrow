@@ -356,6 +356,6 @@ while True:
     except Exception as e:
         print("#######SOME FORM OF PIGROW ERROR Pigrow error pigrow error in checkDHT.py, probably sensor being shonk")
         print("         or some file thing??       user intervention?          i'm spooked, whatever.")
-        print e
+        print (e)
         #raise
         time.sleep(1)
