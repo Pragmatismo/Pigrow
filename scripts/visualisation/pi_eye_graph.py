@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 import datetime
 import matplotlib as mpl
 mpl.use('Agg')

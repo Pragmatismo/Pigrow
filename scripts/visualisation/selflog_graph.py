@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 import os, sys
 import datetime
 import matplotlib as mpl
@@ -205,8 +205,8 @@ def make_cputemp_graph(dates, cpu_temp):
     print("CPU Temp graph created and saved to " + graph_path + "Selflog_cpu_temp_graph.png")
 
 if __name__ == '__main__':
-    print "Last log was " + str(datetime.datetime.now() - date).split('.')[0] + " ago"
-    print "there are " + str(len(cpu_a1)) + " data points for graphhs"
+    print ("Last log was " + str(datetime.datetime.now() - date).split('.')[0] + " ago")
+    print ("there are " + str(len(cpu_a1)) + " data points for graphs")
     if make_cpu == True:
         make_cpu_graph(dates, cpu_a1, cpu_a5, cpu_a15)
     if make_mem == True:
