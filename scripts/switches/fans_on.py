@@ -44,7 +44,7 @@ def fans_on(set_dic, switch_log):
         pigrow_defs.write_log(script, 'Failed - due to none set in config', switch_log)
         return msg
 
-    msg +=("      ##            by switching GPIO "+str(gpio_pin)+" to "+gpio_pin_on+"  ##")
+    msg +=("      ##            by switching GPIO "+str(gpio_pin)+" to "+gpio_pin_on+"  ##\n")
     msg +=("      #############################################\n")
     pigrow_defs.write_log(script, 'fans turned on', switch_log)
     return msg
