@@ -18,7 +18,7 @@ def humid_on(set_dic, switch_log):
     script = 'humid_on.py'
     msg = ("")
     msg +=("      #############################################\n")
-    msg +=("      ##         Turning the humidifier - ON         ##\n")
+    msg +=("      ##         Turning the humidifier - ON     ##\n")
     if 'gpio_humid' in set_dic and not str(set_dic['gpio_humid']).strip() == '':
         gpio_pin = int(set_dic['gpio_humid'])
         gpio_pin_on = set_dic['gpio_humid_on']

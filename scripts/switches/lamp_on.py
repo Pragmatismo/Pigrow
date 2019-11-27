@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 import datetime, sys, os
 homedir = os.getenv("HOME")
 sys.path.append(homedir + '/Pigrow/scripts/')
@@ -58,6 +58,6 @@ if __name__ == '__main__':
         loc_dic = pigrow_defs.load_locs(dirlocs_path)
         set_dic = pigrow_defs.load_settings(loc_dic['loc_settings'], err_log=loc_dic['err_log'],)
         msg = lamp_on(set_dic, loc_dic['loc_switchlog'])
-        print msg
+        print (msg)
     else:
         print("!!!! Locations file does not exist at " + dirlocs_path)
