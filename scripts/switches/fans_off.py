@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 import datetime, sys, os
 homedir = os.getenv("HOME")
 sys.path.append(homedir + '/Pigrow/scripts/')
@@ -18,7 +18,7 @@ def fans_off(set_dic, switch_log):
     script = 'fans_off.py'
     msg =("\n")
     msg +=("      #############################################\n")
-    msg +=("      ##         Turning the fans - OFF        ##\n")
+    msg +=("      ##         Turning the fans - OFF          ##\n")
     if 'gpio_fans' in set_dic and not str(set_dic['gpio_fans']).strip() == '':
         gpio_pin = int(set_dic['gpio_fans'])
         gpio_pin_on = set_dic['gpio_fans_on']
@@ -56,4 +56,4 @@ if __name__ == '__main__':
     loc_dic = pigrow_defs.load_locs(homedir + "/Pigrow/config/dirlocs.txt")
     set_dic = pigrow_defs.load_settings(loc_dic['loc_settings'], err_log=loc_dic['err_log'],)
     msg = fans_off(set_dic, loc_dic['loc_switchlog'])
-    print msg
+    print (msg)

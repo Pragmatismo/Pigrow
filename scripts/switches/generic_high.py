@@ -69,4 +69,4 @@ if __name__ == '__main__':
         msg = generic_high(gpio_pin, loc_dic['loc_switchlog'])
     else:
         msg = generic_high(gpio_pin, log)
-    print msg
+    print (msg)

@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 import os
 import sys
 import RPi.GPIO as GPIO
@@ -69,4 +69,4 @@ if __name__ == '__main__':
         msg = generic_low(gpio_pin, loc_dic['loc_switchlog'])
     else:
         msg = generic_low(gpio_pin, log)
-    print msg
+    print (msg)
