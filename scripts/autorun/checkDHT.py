@@ -209,6 +209,7 @@ def dehumid_control(humid,use_fans=False):
 
 def fan_control(temp, humid, heat_use_fan=True, hum_use_fan=False, dehum_use_fan=False):
     global fans_state
+    message = " - No change"
     print(" -- Fan controll")
     if heat_use_fan == True:
         temphigh = float(set_dic['heater_temphigh'])
