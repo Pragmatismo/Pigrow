@@ -43,11 +43,11 @@ for argu in sys.argv[1:]:
         elif thearg == 'too_low':
             toolow = int(theval)
             dangerlow = float(toolow) / 100 * 85
-            print toolow, dangerlow
+            print (toolow, dangerlow)
         elif thearg == 'too_high':
             toohigh = int(theval)
             dangerhigh = float(toohigh) / 100 * 115
-            print toohigh, dangerhigh
+            print (toohigh, dangerhigh)
     elif argu == 'h' or argu == '-h' or argu == 'help' or argu == '--help':
         print("")
         print("  log=DIR/LOG_FILE  - point to a different log file than mentioned in dirlocs")
