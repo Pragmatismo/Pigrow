@@ -87,9 +87,9 @@ def count_folder(capsdir="./", cap_type="jpg"):
         except:
             raise
             print("File name didn't parse, ignoring it")
-    print "found; " + str(facounter)
-    print "with ; " + str(len(fsize_log)) + " file sizes's"
-    print "and  ; " + str(len(datelist)) + " dates taken from the filename's"
+    print ("found; " + str(facounter))
+    print ("with ; " + str(len(fsize_log)) + " file sizes's")
+    print ("and  ; " + str(len(datelist)) + " dates taken from the filename's")
     return fsize_log, datelist
 
 #optional file size of captured image graph
@@ -143,10 +143,10 @@ def update_ubuntu_background():
     #import subprocess
     print("Updating background image with most recent file...")
     newstbk = capsdir + filelist[-1]
-    print newstbk
+    print (newstbk)
 
     cmd = "sudo -u "+user_name+" DISPLAY=:0 GSETTINGS_BACKEND=dconf gsettings set org.gnome.desktop.background picture-uri file://" + newstbk
-    print cmd
+    print (cmd)
     os.system(cmd)
 
 #but a hash [#] before the following to stop them happening;
