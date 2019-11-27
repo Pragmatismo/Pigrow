@@ -18,7 +18,7 @@ def dehumid_on(set_dic, switch_log):
     script = 'dehumid_on.py'
     msg = ("")
     msg +=("      #############################################\n")
-    msg +=("      ##         Turning the dehumid - ON         ##\n")
+    msg +=("      ##         Turning the dehumid - ON       ##\n")
     if 'gpio_dehumid' in set_dic and not str(set_dic['gpio_dehumid']).strip() == '':
         gpio_pin = int(set_dic['gpio_dehumid'])
         gpio_pin_on = set_dic['gpio_dehumid_on']
@@ -38,7 +38,7 @@ def dehumid_on(set_dic, switch_log):
             return msg
 
     else:
-        msg +=("      !!               NO dehumid SET             !!\n")
+        msg +=("      !!               NO dehumid SET            !!\n")
         msg +=("      !!  run config program or edit config.txt  !!\n")
         msg +=("      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n")
         pigrow_defs.write_log(script, 'Failed - due to none set in config', switch_log)

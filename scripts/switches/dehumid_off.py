@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 import datetime, sys, os
 homedir = os.getenv("HOME")
 sys.path.append(homedir + '/Pigrow/scripts/')
@@ -18,7 +18,7 @@ def dehumid_off(set_dic, switch_log):
     script = 'dehumid_off.py'
     msg =("\n")
     msg +=("      #############################################\n")
-    msg +=("      ##         Turning the dehumid - OFF        ##\n")
+    msg +=("      ##         Turning the dehumid - OFF       ##\n")
     if 'gpio_dehumid' in set_dic and not str(set_dic['gpio_dehumid']).strip() == '':
         gpio_pin = int(set_dic['gpio_dehumid'])
         gpio_pin_on = set_dic['gpio_dehumid_on']
