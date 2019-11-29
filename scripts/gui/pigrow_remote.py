@@ -244,7 +244,7 @@ class shared_data:
         #
         # graphing logs
         shared_data.log_to_load = None
-        shared_data.list_of_datasets = []
+        shared_data.list_of_datasets = [] # [[date, value, key], [set2_date, set2_value, set2_key], etc]
         #      [shared_data.first_date_set, shared_data.first_value_set, shared_data.first_keys_set]
         shared_data.first_value_set = []
         shared_data.first_date_set = []
@@ -6126,8 +6126,8 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
         self.end_date_l = wx.StaticText(self,  label='Finish at -')
         self.end_time_picer = wx.adv.TimePickerCtrl( self, wx.ID_ANY, wx.DefaultDateTime)
         self.end_date_picer = wx.adv.DatePickerCtrl( self, wx.ID_ANY, wx.DefaultDateTime)
-        self.limit_date_to_last_l = wx.StaticText(self,  label='Limit to ')
-        limit_choices = ["none", "day", "week", "month", "year", "1st log"]
+        self.limit_date_to_last_l = wx.StaticText(self,  label='Limit date to ')
+        limit_choices = ["none", "day", "week", "month", "year", "1st log", "custom"]
         self.limit_date_to_last_cb = wx.ComboBox(self, size=(90, 25),choices = limit_choices)
         self.limit_date_to_last_cb.Bind(wx.EVT_TEXT, self.limit_date_to_last_go)
 
@@ -6307,18 +6307,23 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
         self.key_pos_split_tc.Show()
         self.key_pos_split_cb.Show()
         self.key_pos_ex.Show()
-        self.key_matches_l.Show()
-        self.key_matches_tc.Show()
+        val_pos = self.value_pos_cb.GetValue()
+        if not val_pos == "match text":
+            self.key_matches_l.Show()
+            self.key_matches_tc.Show()
         self.rem_from_val_l.Show()
         self.rem_from_val_tc.Show()
-        self.start_date_l.Show()
-        self.start_time_picer.Show()
-        self.start_date_picer.Show()
-        self.end_date_l.Show()
-        self.end_time_picer.Show()
-        self.end_date_picer.Show()
+        # date line special tools
         self.limit_date_to_last_l.Show()
         self.limit_date_to_last_cb.Show()
+        if not self.limit_date_to_last_cb.GetValue() == 'none':
+            self.start_date_l.Show()
+            self.start_time_picer.Show()
+            self.start_date_picer.Show()
+            self.end_date_l.Show()
+            self.end_time_picer.Show()
+            self.end_date_picer.Show()
+        self.Layout()
 
     def show_graph_settings(self):
         # setting
@@ -6531,6 +6536,8 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
             self.value_pos_split_tc.Enable()
             self.key_pos_split_cb.Show()
             self.key_pos_split_tc.Show()
+            self.key_matches_l.Show()
+            self.key_matches_tc.Show()
             self.make_btn_enable()
             MainApp.window_self.Layout()
         # special case for matching text
@@ -6539,6 +6546,8 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
             self.value_pos_split_tc.Enable()
             self.key_pos_split_cb.Hide()
             self.key_pos_split_tc.Hide()
+            self.key_matches_l.Hide()
+            self.key_matches_tc.Hide()
             self.make_btn_enable()
             MainApp.window_self.Layout()
             self.key_pos_cb.Clear()
@@ -6596,8 +6605,6 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
         self.key_pos_cb.Append(list_of_keys)
         self.key_pos_cb.SetValue(list_of_keys[0])
 
-
-
     def value_pos_split_go(self, e):
         '''
         displays the text as an example if value has been split again
@@ -6623,7 +6630,6 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
                     test_date = datetime.datetime.strptime(ex_date, '%Y-%m-%d %H:%M:%S.%f')
                     self.date_pos_ex.SetForegroundColour((75,200,75))
                     self.date_good = True
-                    MainApp.graphing_ctrl_pannel.set_dates_to_log()
                 except:
                     self.date_pos_ex.SetForegroundColour((220,75,75))
                     self.date_pos_split_tc.Enable()
@@ -6668,7 +6674,6 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
             test_date = datetime.datetime.strptime(date_pos, '%Y-%m-%d %H:%M:%S.%f')
             self.date_pos_ex.SetForegroundColour((75,200,75))
             self.date_good = True
-            MainApp.graphing_ctrl_pannel.set_dates_to_log()
         except:
             self.date_pos_ex.SetForegroundColour((220,75,75))
             self.date_good = False
@@ -6698,17 +6703,49 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
             #print("local graphing - not got valid data")
             MainApp.graphing_ctrl_pannel.disable_value_graphs()
 
+    def hide_date_extract_boxes(self):
+        self.start_date_l.Hide()
+        self.end_date_l.Hide()
+        self.start_time_picer.Hide()
+        self.start_date_picer.Hide()
+        self.end_time_picer.Hide()
+        self.end_date_picer.Hide()
+
+    def show_date_extract_boxes(self):
+        self.start_date_l.Show()
+        self.end_date_l.Show()
+        self.start_time_picer.Show()
+        self.start_date_picer.Show()
+        self.end_time_picer.Show()
+        self.end_date_picer.Show()
+
     def limit_date_to_last_go(self, e):
-        current_datetime = datetime.datetime.now()
         limit_setting = self.limit_date_to_last_cb.GetValue()
-        is_set, range_start, range_end = MainApp.graphing_info_pannel.end_date_picer.GetRange()
-        MainApp.graphing_info_pannel.end_date_picer.SetRange(range_start, current_datetime)
-        MainApp.graphing_info_pannel.start_date_picer.SetRange(range_start, current_datetime)
-        print("Limiting date to ", limit_setting)
         if limit_setting == "none":
-            if not self.date_pos_cb.GetValue() == "":
-                MainApp.graphing_ctrl_pannel.set_dates_to_log()
+            self.hide_date_extract_boxes()
             return None
+        self.show_date_extract_boxes()
+        if limit_setting == "custom":
+            MainApp.graphing_ctrl_pannel.set_dates_to_log()
+            return None
+        # widen range of datebox so it accepts the values
+        current_datetime = datetime.datetime.now()
+        is_set, range_start, range_end = MainApp.graphing_info_pannel.end_date_picer.GetRange()
+        self.end_date_picer.SetRange(range_start, current_datetime)
+        self.start_date_picer.SetRange(range_start, current_datetime)
+        # set
+        print("Limiting date to ", limit_setting)
+        if limit_setting == "1st log":
+            if len(shared_data.list_of_datasets) > 0:
+                if len(shared_data.list_of_datasets[0][0]) > 0:
+                    new_start_date = shared_data.list_of_datasets[0][0][0]
+                    new_end_date = shared_data.list_of_datasets[0][0][-1]
+                    self.start_time_picer.SetValue(new_start_date)
+                    self.start_date_picer.SetValue(new_start_date)
+                    self.end_time_picer.SetValue(new_end_date)
+                    self.end_date_picer.SetValue(new_end_date)
+            return None
+        # set related to current time
         elif limit_setting == "day":
             limit = datetime.timedelta(days=1)
         elif limit_setting == "week":
@@ -6733,6 +6770,12 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
                 return []
         # read date limits
         if limit_by_date == True:
+            # This checks the date limit selection and resets limit_by_date to false if required
+            date_limit_to = MainApp.graphing_info_pannel.limit_date_to_last_cb.GetValue()
+            if date_limit_to == 'none':
+                limit_by_date = False
+        if limit_by_date == True:
+            # if the date is being used check the boxes for information
             first_time = MainApp.graphing_info_pannel.start_time_picer.GetValue()
             first_date = MainApp.graphing_info_pannel.start_date_picer.GetValue()
             first_datetime = datetime.datetime(year = first_date.year, month = first_date.month + 1, day = first_date.day, hour = first_time.hour, minute = first_time.minute, second = first_time.second)
@@ -6879,6 +6922,11 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
             if date_only == False:
                 return [], [], []
         # read date limits
+        if limit_by_date == True:
+            # This checks the date limit selection and resets limit_by_date to false if required
+            date_limit_to = MainApp.graphing_info_pannel.limit_date_to_last_cb.GetValue()
+            if date_limit_to == 'none':
+                limit_by_date = False
         if limit_by_date == True:
             first_time = MainApp.graphing_info_pannel.start_time_picer.GetValue()
             first_date = MainApp.graphing_info_pannel.start_date_picer.GetValue()
@@ -7387,6 +7435,9 @@ class graphing_ctrl_pnl(wx.Panel):
         self.read_example_line_from_file()
 
     def set_dates_to_log(self):
+        '''
+        This is used when selecting 'custom' from the limit date by dropdown box.
+        '''
         date_list = MainApp.graphing_info_pannel.read_log_date_and_value(limit_by_date = False,  date_only = True)
         first_date = date_list[0]
         last_date = date_list[-1]
