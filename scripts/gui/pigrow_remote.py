@@ -7017,11 +7017,11 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
                             except:
                                 print(" - Value not a valid number; " + str(value))
                                 value = ""
-                    # add to lists
-                    if not date == "" and not value == "" and not key == False:
-                        date_list.append(date)
-                        value_list.append(value)
-                        key_list.append(key)
+            # add to lists
+            if not date == "" and not value == "" and not key == False:
+                date_list.append(date)
+                value_list.append(value)
+                key_list.append(key)
         # end of loop - return appropriate lists
         if len(date_list) == 0:
             dmsg = "No valid log entries were found, check settings and try again"
@@ -7130,6 +7130,13 @@ class graphing_ctrl_pnl(wx.Panel):
         self.animate_show_time_period_tc = wx.TextCtrl(self, value="24")
         self.animate_roll_speed_l = wx.StaticText(self,  label='Roll Speed Min')
         self.animate_roll_speed_tc = wx.TextCtrl(self, value="15")
+        # imported module options
+        self.graph_module_settings = wx.CheckBox(self, label='settings')
+        self.graph_module_settings.Bind(wx.EVT_CHECKBOX, self.graph_module_settings_click)
+        self.module_options_list_ctrl = wx.ListCtrl(self, size=(-1,100), style=wx.LC_REPORT|wx.BORDER_SUNKEN)
+        self.module_options_list_ctrl.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.onDoubleClick_gm_opt)
+        self.module_options_list_ctrl.InsertColumn(0, 'Option')
+        self.module_options_list_ctrl.InsertColumn(1, 'Value')
 
         # graphs
         self.local_simple_line = wx.Button(self, label='Simple Line Graph')
@@ -7207,6 +7214,8 @@ class graphing_ctrl_pnl(wx.Panel):
         local_opts_sizer.Add(self.graph_title_text, 0, wx.ALL|wx.EXPAND, 3)
         local_opts_sizer.Add(module_graph_sizer, 0, wx.ALL, 3)
         local_opts_sizer.Add(module_animate_main_sizer, 0, wx.ALL|wx.ALIGN_RIGHT, 3)
+        local_opts_sizer.Add(self.graph_module_settings, 0, wx.ALL, 3)
+        local_opts_sizer.Add(self.module_options_list_ctrl, 0, wx.ALL|wx.EXPAND, 3)
         local_opts_sizer.Add(self.local_simple_line, 0, wx.ALL, 3)
         local_opts_sizer.Add(self.local_color_line, 0, wx.ALL, 3)
         local_opts_sizer.Add(self.local_simple_bar, 0, wx.ALL, 3)
@@ -7672,6 +7681,34 @@ class graphing_ctrl_pnl(wx.Panel):
         self.module_sucker_cb.Clear()
         module_list = self.get_module_options("sucker_")
         self.module_sucker_cb.Append(module_list)
+
+    def graph_module_settings_click(self, e):
+        self.module_options_list_ctrl.DeleteAllItems()
+        if self.graph_module_settings.GetValue() == True:
+            print("Reading options from module...")
+            gm_options_dict = {}
+            gm_options_dict["test"]="testing"
+            gm_options_dict["still testing"]="yep a test"
+            index = 0
+            for key, value in gm_options_dict.items():
+                self.module_options_list_ctrl.InsertItem(index, key)
+                self.module_options_list_ctrl.SetItem(index, 1, value)
+                index = index + 1
+
+    def onDoubleClick_gm_opt(self, e):
+        index =  e.GetIndex()
+        #get info for dialogue box
+        key = self.module_options_list_ctrl.GetItem(index, 0).GetText()
+        val = self.module_options_list_ctrl.GetItem(index, 1).GetText()
+        msg_text = " Select the new value for " + key
+        setval_dbox = wx.TextEntryDialog(self, msg_text, 'Set Graph Module Option', val)
+        if setval_dbox.ShowModal() == wx.ID_OK:
+            newval = setval_dbox.GetValue()
+            self.module_options_list_ctrl.SetItem(index, 1, newval)
+        setval_dbox.Destroy()
+
+
+
 
     def make_graph_from_imported_module(self, e):
         print("Want's to create a graph using a external module...  ")
