@@ -10,11 +10,36 @@
 #
 #
 
-def make_graph(data_sets, graph_path, ymax="", ymin="", size_h="", size_v="", dh="", th="", tc="", dc="", extra=[]):
+def read_graph_options():
+    graph_module_settings_dict = {
+             "average_size":"500",
+             "show_raw":"True",
+             "show_rolling":"True",
+             "show_daily":"True",
+             "show_average":"True"
+             }
+    return graph_module_settings_dict
+
+def make_graph(data_sets, graph_path, ymax="", ymin="", size_h="", size_v="", dh="", th="", tc="", dc="", extra={}):
     #
     # Settings
     #
-    average_size = 500
+
+#    average_size = 500
+#    show_raw = "True"
+#    show_rolling = "True"
+#    show_daily = "True"
+#    show_average = "True"
+    # Load setting from extra
+    if extra == {}:
+        extra = read_graph_options()
+    average_size  = int(extra['average_size'])
+    show_raw      = extra['show_raw'].lower()
+    show_rolling  = extra['show_rolling'].lower()
+    show_daily    = extra['show_daily'].lower()
+    show_average  = extra['show_average'].lower()
+    print("doopdoop", extra)
+    # derived values from settings
     has = int(average_size / 2)
     #
     #
@@ -85,15 +110,17 @@ def make_graph(data_sets, graph_path, ymax="", ymin="", size_h="", size_v="", dh
         plt.ylabel(key_list[0])
         plt.grid(axis='y')
         # create plot
-        ax.plot(date_list, value_list, color='black', lw=1, label="Raw Data - " + key_list[0])
-        ax.plot(rolling_ave_dates, rolling_ave_values, color='blue', lw=1, label="Rolling Average - " + key_list[0])
-        ax.plot(daily_ave_dates, daily_ave_values, color='green', lw=1, label="Daily Average - " + key_list[0])
-        ax.axhline(y=average_value, label="Average - " + key_list[0])
+        if show_raw == "true":
+            ax.plot(date_list, value_list, color='black', lw=1, label="Raw Data - " + key_list[0])
+        if show_rolling == "true":
+            ax.plot(rolling_ave_dates, rolling_ave_values, color='blue', lw=1, label="Rolling Average - " + key_list[0])
+        if show_daily == "true":
+            ax.plot(daily_ave_dates, daily_ave_values, color='green', lw=1, label="Daily Average - " + key_list[0])
+        if show_average == "true":
+            ax.axhline(y=average_value, label="Average - " + key_list[0])
         ax.legend()
 
     # Set y axis min and max range
-    plt.xlim(xmin=int(10))
-    plt.xlim(xmax=int(30))
     if not ymax == "":
         plt.ylim(ymax=int(ymax))
     if not ymin == "":

@@ -7686,9 +7686,12 @@ class graphing_ctrl_pnl(wx.Panel):
         self.module_options_list_ctrl.DeleteAllItems()
         if self.graph_module_settings.GetValue() == True:
             print("Reading options from module...")
-            gm_options_dict = {}
-            gm_options_dict["test"]="testing"
-            gm_options_dict["still testing"]="yep a test"
+            module_name = self.module_graph_choice.GetValue()
+            module_name = "graph_" + module_name
+            if module_name in sys.modules:
+                del sys.modules[module_name]
+            exec("from " + module_name + " import read_graph_options", globals())
+            gm_options_dict = read_graph_options()
             index = 0
             for key, value in gm_options_dict.items():
                 self.module_options_list_ctrl.InsertItem(index, key)
@@ -7707,8 +7710,20 @@ class graphing_ctrl_pnl(wx.Panel):
             self.module_options_list_ctrl.SetItem(index, 1, newval)
         setval_dbox.Destroy()
 
-
-
+    def make_gm_extra_settings_dict(self):
+        '''
+        Reads the graph module settings table and returns a list of settings
+        '''
+        #
+        if not self.graph_module_settings.GetValue() == True:
+            return {}
+        gm_options_dict = {}
+        for index in range(0, self.module_options_list_ctrl.GetItemCount()):
+            key = self.module_options_list_ctrl.GetItem(index, 0).GetText()
+            val = self.module_options_list_ctrl.GetItem(index, 1).GetText()
+            gm_options_dict[key]=val
+        return gm_options_dict
+        #
 
     def make_graph_from_imported_module(self, e):
         print("Want's to create a graph using a external module...  ")
@@ -7740,7 +7755,7 @@ class graphing_ctrl_pnl(wx.Panel):
         # import the make_graph function as a module
         exec("from " + module_name + " import make_graph", globals())
         # creaty the graph using the imported module
-        extra = ""  #this is temporary testing
+        extra = self.make_gm_extra_settings_dict()  #this is temporary testing
         make_graph(shared_data.list_of_datasets, graph_path, ymax, ymin, size_h, size_v, dangerhot, toohot, toocold, dangercold, extra)
         # Tell the user and show the graph
         print("module_graph created and saved to " + graph_path)
