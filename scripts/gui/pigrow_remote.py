@@ -7122,6 +7122,8 @@ class graphing_ctrl_pnl(wx.Panel):
         self.refresh_module_graph_btn = wx.Button(self, label='R', size=(40,30))
         self.refresh_module_graph_btn.Bind(wx.EVT_BUTTON, self.refresh_module_graph_go)
         self.module_graph_choice = wx.ComboBox(self,  size=(150, 30), choices = self.get_module_options("graph_"))
+        self.module_graph_choice.Bind(wx.EVT_COMBOBOX, self.module_graph_choice_go)
+
         self.module_graph_btn = wx.Button(self, label='Make', size=(60,25))
         self.module_graph_btn.Bind(wx.EVT_BUTTON, self.make_graph_from_imported_module)
         self.animate_module = wx.Button(self, label='Animate')
@@ -7315,6 +7317,8 @@ class graphing_ctrl_pnl(wx.Panel):
         self.animate_show_time_period_tc.Hide()
         self.animate_roll_speed_l.Hide()
         self.animate_roll_speed_tc.Hide()
+        self.graph_module_settings.Hide()
+        self.module_options_list_ctrl.Hide()
         self.refresh_module_graph_btn.Hide()
         self.data_title_text.Hide()
         self.graph_title_text.Hide()
@@ -7356,6 +7360,8 @@ class graphing_ctrl_pnl(wx.Panel):
         self.animate_show_time_period_tc.Show()
         self.animate_roll_speed_l.Show()
         self.animate_roll_speed_tc.Show()
+        self.graph_module_settings.Show()
+        self.module_options_list_ctrl.Show()
         self.refresh_module_graph_btn.Show()
         self.data_title_text.Show()
         self.graph_title_text.Show()
@@ -7672,6 +7678,9 @@ class graphing_ctrl_pnl(wx.Panel):
                     list_of_modules.append(file)
         return list_of_modules
 
+    def module_graph_choice_go(self, e):
+        self.graph_module_settings_click("e")
+
     def refresh_module_graph_go(self, e):
         #
         self.module_graph_choice.Clear()
@@ -7865,8 +7874,8 @@ class graphing_ctrl_pnl(wx.Panel):
                     else:
                         current_log_position = current_log_position + 1
                     if current_log_position > len(date_list):
-                        found_next = True
                         current_log_position = len(date_list)
+                        found_next = True
                 trimmed_date_list  = [date_list[current_log_position]]
                 trimmed_value_list = [value_list[current_log_position]]
                 trimmed_key_list   = [key_list[current_log_position]]
@@ -7878,7 +7887,7 @@ class graphing_ctrl_pnl(wx.Panel):
             current_graph_name = graph_base_name + "_" + str(rolling_last_datetime) + ".png"
             current_graph_filepath = os.path.join(graph_folder_path, current_graph_name)
             #
-            extra = []
+            extra = self.make_gm_extra_settings_dict()
             print(" - Creating " + current_graph_filepath)
             make_graph(list_of_trimmed_data_sets, current_graph_filepath, ymax, ymin, size_h, size_v, dangerhot, toohot, toocold, dangercold, extra)
 
