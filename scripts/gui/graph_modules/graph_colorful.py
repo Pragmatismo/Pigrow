@@ -1,6 +1,21 @@
 
 
 
+def read_graph_options():
+    '''
+    Returns a dictionary of settings and their default values for use by the remote gui
+    '''
+    graph_module_settings_dict = {
+             "title_text":"",
+             "show_time_period":"true",
+             "color_cycle":"false",
+             "line_style":"-",
+             "marker":"",
+             "show_grid":"true",
+             "major_ticks":"",
+             "minor_ticks":"1"
+             }
+    return graph_module_settings_dict
 
 def make_graph(list_of_datasets, graph_path, ymax="", ymin="", size_h="", size_v="", dh="", th="", tc="", dc="", extra=[]):
     print("Making a colourful graph graph...")
@@ -9,6 +24,23 @@ def make_graph(list_of_datasets, graph_path, ymax="", ymin="", size_h="", size_v
     matplotlib.use('agg')
     import matplotlib.pyplot as plt
     import matplotlib.dates as mdates
+    import matplotlib.ticker as plticker
+    #
+    if extra == {}:
+        extra = read_graph_options()
+    # set variables to settings from dictionary converting to the appropriate type
+    title_text   = extra['title_text']
+    color_cycle  = extra['color_cycle'].lower()
+    if ',' in color_cycle:
+        color_cycle.split(",")
+    line_style   = extra['line_style']
+    marker       = extra['marker']
+    line_flags   = marker + line_style
+    show_grid    = extra['show_grid'].lower()
+    major_ticks  = extra['major_ticks']
+    minor_ticks  = extra['minor_ticks']
+    show_time_period = extra["show_time_period"]
+
     # make a dictionary containing every day's list of dates and values'
     def make_dict_of_sets(date_list, value_list, key_list):
         dictionary_of_sets = {}
@@ -33,6 +65,9 @@ def make_graph(list_of_datasets, graph_path, ymax="", ymin="", size_h="", size_v
 
     # define a graph space
     fig, ax = plt.subplots(figsize=(size_h, size_v))
+    if not color_cycle == 'false' and not color_cycle.strip() == '':
+        ax.set_prop_cycle(color=color_cycle)
+    # cycle through making sets of plots for each dataset
     for x in list_of_datasets:
         date_list = x[0]
         value_list = x[1]
@@ -43,18 +78,28 @@ def make_graph(list_of_datasets, graph_path, ymax="", ymin="", size_h="", size_v
         for key, value in dictionary_of_sets.items():
             days_date_list = value[1]
             days_value_list = value[0]
-            ax.plot(days_date_list, days_value_list, lw=1, label=key)
-    # add legend, title and axis information
-    #ax.legend() #no need for this it just takes up space
-    plt.title("Daily Values\nTime Perod; " + str(date_list[0].strftime("%b-%d %H:%M")) + " to " + str(date_list[-1].strftime("%b-%d %H:%M")) + " ")
+            ax.plot(days_date_list, days_value_list, line_flags, lw=1, label=key)
+
+    # organise the graphing area
+    if not major_ticks == "":
+        loc = plticker.MultipleLocator(base=float(major_ticks)) # this locator puts ticks at regular intervals
+        ax.yaxis.set_major_locator(loc)
+    if not minor_ticks == "":
+        loc = plticker.MultipleLocator(base=float(minor_ticks)) # this locator puts ticks at regular intervals
+        ax.yaxis.set_minor_locator(loc)
+    if show_grid == "true":
+        plt.grid(axis='y')
+    if show_time_period == "true":
+        title_text = title_text + "\nTime Perod; " + str(date_list[0].strftime("%b-%d %H:%M")) + " to " + str(date_list[-1].strftime("%b-%d %H:%M"))
+    plt.title(title_text)
     ax.xaxis_date()
-    #ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
     fig.autofmt_xdate()
-    plt.ylabel(key_list[0]) # + " in " + key_unit)
+    plt.ylabel(key_list[0])
     if not ymax == "":
         plt.ylim(ymax=int(ymax))
     if not ymin == "":
         plt.ylim(ymin=int(ymin))
+
     # save the graph and tidy up our workspace
     plt.savefig(graph_path)
     print("divided days created and saved to " + graph_path)
