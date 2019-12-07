@@ -11,6 +11,9 @@
 #
 
 def read_graph_options():
+    '''
+    Returns a dictionary of settings and their default values for use by the remote gui
+    '''
     graph_module_settings_dict = {
              "average_size":"500",
              "show_raw":"True",
@@ -21,15 +24,13 @@ def read_graph_options():
     return graph_module_settings_dict
 
 def make_graph(data_sets, graph_path, ymax="", ymin="", size_h="", size_v="", dh="", th="", tc="", dc="", extra={}):
+    import matplotlib
+    matplotlib.use('agg')
+    import matplotlib.pyplot as plt
+    print("Want's to create an averages graph using the graph_aves.py module...  ")
     #
     # Settings
     #
-
-#    average_size = 500
-#    show_raw = "True"
-#    show_rolling = "True"
-#    show_daily = "True"
-#    show_average = "True"
     # Load setting from extra
     if extra == {}:
         extra = read_graph_options()
@@ -38,15 +39,10 @@ def make_graph(data_sets, graph_path, ymax="", ymin="", size_h="", size_v="", dh
     show_rolling  = extra['show_rolling'].lower()
     show_daily    = extra['show_daily'].lower()
     show_average  = extra['show_average'].lower()
-    print("doopdoop", extra)
     # derived values from settings
     has = int(average_size / 2)
     #
     #
-    import matplotlib
-    matplotlib.use('agg')
-    import matplotlib.pyplot as plt
-    print("Want's to create an averages graph using the graph_aves.py module...  ")
 
     def create_graphable_lists(date_list, value_list, key_list):
         # create aveages
@@ -95,7 +91,7 @@ def make_graph(data_sets, graph_path, ymax="", ymin="", size_h="", size_v="", dh
             daily_ave_dates.append(days_date_list[-1])
             daily_ave_values.append(day_average)
         return average_value, rolling_ave_dates, rolling_ave_values, values_to_graph, dates_to_graph, daily_ave_dates, daily_ave_values, daily_ave_dates, daily_ave_values
-    #
+
 
     # create graph space
     fig, ax = plt.subplots(figsize=(size_h, size_v))
@@ -131,6 +127,6 @@ def make_graph(data_sets, graph_path, ymax="", ymin="", size_h="", size_v="", dh
     # save the graph
     plt.savefig(graph_path)
     # tidying up after ourselves
-    fig.clf()
+    plt.close(fig)
 
     print("Averages graph created and saved to " + graph_path)
