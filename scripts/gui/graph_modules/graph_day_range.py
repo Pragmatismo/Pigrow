@@ -1,6 +1,17 @@
 
 
-
+def read_graph_options():
+    '''
+    Returns a dictionary of settings and their default values for use by the remote gui
+    '''
+    graph_module_settings_dict = {
+             "title_text":"Min - Max Values",
+             "show_time_period":"true",
+             "show_grid":"false",
+             "major_ticks":"",
+             "minor_ticks":"1"
+             }
+    return graph_module_settings_dict
 
 def make_graph(list_of_datasets, graph_path, ymax="", ymin="", size_h="", size_v="", dh="", th="", tc="", dc="", extra=[]):
     print("Making a day range graph graph...")
@@ -10,8 +21,19 @@ def make_graph(list_of_datasets, graph_path, ymax="", ymin="", size_h="", size_v
     matplotlib.use('agg')
     import matplotlib.pyplot as plt
     import matplotlib.dates as mdates
-    # make a dictionary containing every day's list of dates and values'
+    import matplotlib.ticker as plticker
 
+    if extra == {}:
+        extra = read_graph_options()
+    # set variables to settings from dictionary converting to the appropriate type
+    title_text   = extra['title_text']
+    show_grid    = extra['show_grid'].lower()
+    major_ticks  = extra['major_ticks']
+    minor_ticks  = extra['minor_ticks']
+    show_time_period = extra["show_time_period"].lower()
+
+
+    # make a dictionary containing every day's list of dates and values'
     def make_dict_of_sets(date_list, value_list, key_list):
         dictionary_of_sets = {}
         for log_item_pos in range(0, len(date_list)):
@@ -75,6 +97,18 @@ def make_graph(list_of_datasets, graph_path, ymax="", ymin="", size_h="", size_v
         fig.autofmt_xdate()
         plt.ylabel(key_list[0]) # + " in " + key_unit)
 
+    #
+    if not major_ticks == "":
+        loc = plticker.MultipleLocator(base=float(major_ticks)) # this locator puts ticks at regular intervals
+        ax.yaxis.set_major_locator(loc)
+    if not minor_ticks == "":
+        loc = plticker.MultipleLocator(base=float(minor_ticks)) # this locator puts ticks at regular intervals
+        ax.yaxis.set_minor_locator(loc)
+    if show_grid == "true":
+        plt.grid(axis='y')
+    if show_time_period == "true":
+        title_text = title_text + "\nTime Perod; " + str(date_list[0].strftime("%b-%d %H:%M")) + " to " + str(date_list[-1].strftime("%b-%d %H:%M"))
+    plt.title(title_text)
     if not ymax == "":
         plt.ylim(ymax=int(ymax))
     if not ymin == "":
@@ -82,4 +116,4 @@ def make_graph(list_of_datasets, graph_path, ymax="", ymin="", size_h="", size_v
     # save the graph and tidy up our workspace
     plt.savefig(graph_path)
     print("day range days created and saved to " + graph_path)
-    fig.clf()
+    plt.close(fig)
