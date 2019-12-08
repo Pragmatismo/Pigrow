@@ -9,18 +9,31 @@
 #
 #
 #
+def read_graph_options():
+    '''
+    Returns a dictionary of settings and their default values for use by the remote gui
+    '''
+    graph_module_settings_dict = {
+             "title_text":"",
+             "show_time_period":"true",
+             "log_window_size":"251",  # set the size of the window when scanning through the log to determine up-down trends
+                                      # larger numbers result in less groups, smaller numbers make it more likely to split groups
+                                      # when there's a small blip.
+             "show_value_in_per":"hour",   # 'hour' 'min' 'second'
+                                         # Show the rate of change per second, min, or hour
+             "show_grey_bestfit":"true",  # True or False
+                                         # shows the simplified logs gray line over the basic line graph
+                                         # this can make it more obvious if you want to increase of decrease window size
+            "show_grid":"true",
+            "bar_width":"0.1"
+
+             }
+    return graph_module_settings_dict
 
 def make_graph(list_of_datasets, graph_path, ymax="", ymin="", size_h="", size_v="", dh="", th="", tc="", dc="", extra=[]):
     #
     # User changable options
-    log_window_size=251      # set the size of the window when scanning through the log to determine up-down trends
-                             # larger numbers result in less groups, smaller numbers make it more likely to split groups
-                             # when there's a small blip.
-    show_value_in_per="hour" # 'hour' 'min' 'second'
-                             # Show the rate of change per second, min, or hour
-    show_grey_bestfit=True   # True or False
-                             # shows the simplified logs gray line over the basic line graph
-                             # this can make it more obvious if you want to increase of decrease window size
+
     #
 
     #
@@ -31,8 +44,19 @@ def make_graph(list_of_datasets, graph_path, ymax="", ymin="", size_h="", size_v
     import matplotlib.dates as mdates
     import numpy             as np
     from numpy.polynomial.polynomial import polyfit
+    #
+    if extra == {}:
+        extra = read_graph_options()
+    # set variables to settings from dictionary converting to the appropriate type
+    title_text        = extra['title_text']
+    show_time_period  = extra["show_time_period"]
+    log_window_size   = int(extra["log_window_size"])
+    show_value_in_per = extra["show_value_in_per"]
+    show_grey_bestfit = extra["show_grey_bestfit"]
+    show_grid         = extra['show_grid'].lower()
+    bar_width         = float(extra['bar_width'])
 
-    # this ignores other datasets and only uses the first one because otherwise it would just look too messy and stupid 
+    # this ignores other datasets and only uses the first one because otherwise it would just look too messy and stupid
     date_list   = list_of_datasets[0][0]
     value_list  = list_of_datasets[0][1]
     key_list    = list_of_datasets[0][2]
@@ -158,9 +182,7 @@ def make_graph(list_of_datasets, graph_path, ymax="", ymin="", size_h="", size_v
                 vcpm.append(per_timeunit)
                 #v_range_dates.append(last_date)
             else:
-                print("*************ERROR*********************")
-                print(value_range, date_range, per_timeunit, len(up_value_list))
-                print("********************with a log entry***")
+                print(" ignoring due to negative value - ", value_range, date_range, per_timeunit, len(up_value_list))
     # cycle through all the items in the blue dictionary ( for falling values )
     for key, value in blue_group_dic.items():
         if len(value[0]) > 1:
@@ -202,21 +224,26 @@ def make_graph(list_of_datasets, graph_path, ymax="", ymin="", size_h="", size_v
                 b_vcpm.append(per_timeunit)
                 #b_v_range_dates.append(last_date)
             else:
-                print("*************ERROR*********************")
-                print(value_range, date_range, per_timeunit, len(up_value_list))
-                print("********************with a log entry***")
+                print(" ignoring due to negative value - ", value_range, date_range, per_timeunit, len(up_value_list))
+
     # Create the Graphs
     fig, ax = plt.subplots(figsize=(size_h, size_v*2))
     ax1 = plt.subplot(411)
     # Top Graph - Change Per Time Unit (hour, min, sec)
-    plt.title("Up's and Down's\nTime Perod; " + str(date_list[0].strftime("%b-%d %H:%M")) + " to " + str(date_list[-1].strftime("%b-%d %H:%M")) + " ")
-    ax1.bar(v_range_dates, vcpm, width=0.1, color="red")
-    ax1.bar(b_v_range_dates, b_vcpm, width=0.1, color="blue")
+    if show_time_period == "true":
+        title_text = title_text + "\nTime Perod; " + str(date_list[0].strftime("%b-%d %H:%M")) + " to " + str(date_list[-1].strftime("%b-%d %H:%M"))
+    plt.title(title_text)
+    ax1.bar(v_range_dates, vcpm, width=bar_width, color="red")
+    ax1.bar(b_v_range_dates, b_vcpm, width=bar_width, color="blue")
+    if show_grid == "true":
+        plt.grid(axis='y')
     ax1.xaxis_date()
     plt.ylabel("Change of " + key_list[0] + " per "+ show_value_in_per + ".")
     # Second Graph - Basic line graph with markers for change of temp direction
     ax2 = plt.subplot(412, sharex=ax1)
     ax2.plot(date_list, value_list, lw=1, color="black")
+    if show_grid == "true":
+        plt.grid(axis='y')
     if show_grey_bestfit == True:
         ax2.plot(simple_dates, simple_values, lw=1, color="grey")        # turn these on if you want to show the simplified graph
         ax2.plot(b_simple_dates, b_simple_values, lw=1, color="grey")    # which displays the lines of best fit and can help determine window size
@@ -227,14 +254,18 @@ def make_graph(list_of_datasets, graph_path, ymax="", ymin="", size_h="", size_v
         plt.axvline(x, color='red')
     # Thrid Graph - Total value ranges per group
     ax3 = plt.subplot(413, sharex=ax1)
-    ax3.bar(v_range_dates, value_ranges, width=0.1, color="red")
-    ax3.bar(b_v_range_dates, b_value_ranges, width=0.1, color="blue")
+    ax3.bar(v_range_dates, value_ranges, width=bar_width, color="red")
+    ax3.bar(b_v_range_dates, b_value_ranges, width=bar_width, color="blue")
+    if show_grid == "true":
+        plt.grid(axis='y')
     plt.title("Total " + key_list[0] + " Change")
     plt.ylabel(key_list[0])
     # Duration of each group in selected time unit (hours, min, sec)
     ax4 = plt.subplot(414, sharex=ax1)
-    ax4.bar(v_range_dates, date_ranges, width=0.1, color="red")
-    ax4.bar(b_v_range_dates, b_date_ranges, width=0.1, color="blue")
+    ax4.bar(v_range_dates, date_ranges, width=bar_width, color="red")
+    ax4.bar(b_v_range_dates, b_date_ranges, width=bar_width, color="blue")
+    if show_grid == "true":
+        plt.grid(axis='y')
     plt.ylabel("Duration in " + show_value_in_per)
     plt.title("Duration of each " + key_list[0] + " change")
     # Final graphing config
