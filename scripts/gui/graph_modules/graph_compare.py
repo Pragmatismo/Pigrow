@@ -9,6 +9,15 @@
 #
 #
 #
+def read_graph_options():
+    '''
+    Returns a dictionary of settings and their default values for use by the remote gui
+    '''
+    graph_module_settings_dict = {
+             "title_text":"",
+             "show_legend":"true"
+             }
+    return graph_module_settings_dict
 
 def make_graph(list_of_datasets, graph_path, ymax="", ymin="", size_h="", size_v="", dh="", th="", tc="", dc="", extra=[]):
 
@@ -17,6 +26,11 @@ def make_graph(list_of_datasets, graph_path, ymax="", ymin="", size_h="", size_v
     matplotlib.use('agg')
     import matplotlib.pyplot as plt
 
+    if extra == {}:
+        extra = read_graph_options()
+    # set variables to settings from dictionary converting to the appropriate type
+    title_text        = extra['title_text']
+    show_legend       = extra['show_legend']
 
     def directionless_timedelta(time1, time2):
         if time1 > time2:
@@ -101,12 +115,13 @@ def make_graph(list_of_datasets, graph_path, ymax="", ymin="", size_h="", size_v
     ax1.plot(log_2_date_list, log_2_value_list, color='green', label=key_list_2[0], lw=1)
     #ax1.plot(matched_list_a_d, matched_list_a_v, color='blue', lw=1)
     #ax1.plot(matched_list_b_d, matched_list_b_v, color='black', lw=1)
-    plt.title("Both Logs Overlaid")
+    plt.title(title_text + "\nBoth Logs Overlaid")
     plt.grid(True)
     if key_list_1[0] == key_list_2[0]:
         plt.ylabel(key_list_1[0])
     else:
-        ax1.legend()
+        if show_legend == "true":
+            ax1.legend()
     ax1.xaxis_date()
     # Second graph, the value difference
     ax2 = plt.subplot(312, sharex=ax1)
@@ -121,11 +136,6 @@ def make_graph(list_of_datasets, graph_path, ymax="", ymin="", size_h="", size_v
     plt.ylabel("Time Difference in Seconds")
     plt.grid(True)
 
-
-
-
-
-    # create plot
     # Set y axis min and max range
     if not ymax == "":
         plt.ylim(ymax=int(ymax))
@@ -136,6 +146,5 @@ def make_graph(list_of_datasets, graph_path, ymax="", ymin="", size_h="", size_v
     # save the graph
     plt.savefig(graph_path)
     # tidying up after ourselves
-    fig.clf()
-
+    plt.close(fig)
     print("compare graph created and saved to " + graph_path)

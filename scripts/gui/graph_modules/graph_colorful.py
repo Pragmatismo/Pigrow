@@ -103,4 +103,4 @@ def make_graph(list_of_datasets, graph_path, ymax="", ymin="", size_h="", size_v
     # save the graph and tidy up our workspace
     plt.savefig(graph_path)
     print("divided days created and saved to " + graph_path)
-    fig.clf()
+    plt.close(fig)
