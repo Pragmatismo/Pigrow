@@ -239,6 +239,7 @@ class shared_data:
         shared_data.graph_modules_path = os.path.join(shared_data.cwd, "graph_modules")
         sys.path.append(shared_data.graph_modules_path)
         shared_data.graph_presets_path = os.path.join(shared_data.cwd, "graph_presets")
+        shared_data.datawall_presets_path = os.path.join(shared_data.cwd, "datawall_presets")
         #
         ## Temporarily Stored data
         #
@@ -7139,6 +7140,17 @@ class graphing_ctrl_pnl(wx.Panel):
         self.module_options_list_ctrl.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.onDoubleClick_gm_opt)
         self.module_options_list_ctrl.InsertColumn(0, 'Option')
         self.module_options_list_ctrl.InsertColumn(1, 'Value')
+        # datawall module
+        self.datawall_title_text = wx.StaticText(self,  label='Datawall', size=(80,30))
+        self.datawall_title_text.SetFont(shared_data.sub_title_font)
+        self.datawall_preset_l = wx.StaticText(self,  label='preset')
+        self.dw_preset_list_cb = wx.ComboBox(self,  size=(150, 30), choices = [])
+        self.datawall_module_l = wx.StaticText(self,  label='module')
+        self.dw_module_list_cb = wx.ComboBox(self,  size=(150, 30), choices = self.get_module_options("datawall_"))
+        self.module_dw_btn = wx.Button(self, label='Make', size=(60,25))
+        self.module_dw_btn.Bind(wx.EVT_BUTTON, self.make_datawall_from_module)
+
+
 
         # graphs
         self.local_simple_line = wx.Button(self, label='Simple Line Graph')
@@ -7203,6 +7215,18 @@ class graphing_ctrl_pnl(wx.Panel):
         module_animate_main_sizer = wx.BoxSizer(wx.VERTICAL)
         module_animate_main_sizer.Add(self.animate_module, 0, wx.ALL|wx.EXPAND, 3)
         module_animate_main_sizer.Add(module_animate_settings_sizer, 0, wx.ALL|wx.EXPAND|wx.ALIGN_RIGHT, 3)
+        # datawall
+        datawall_preset_list_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        datawall_preset_list_sizer.Add(self.datawall_preset_l, 0, wx.ALL, 3)
+        datawall_preset_list_sizer.Add(self.dw_preset_list_cb, 0, wx.ALL|wx.EXPAND, 3)
+        datawall_module_list_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        datawall_module_list_sizer.Add(self.datawall_module_l, 0, wx.ALL, 3)
+        datawall_module_list_sizer.Add(self.dw_module_list_cb, 0, wx.ALL|wx.EXPAND, 3)
+        datawall_sizer = wx.BoxSizer(wx.VERTICAL)
+        datawall_sizer.Add(self.datawall_title_text, 0, wx.ALL, 3)
+        datawall_sizer.Add(datawall_preset_list_sizer, 0, wx.ALL, 3)
+        datawall_sizer.Add(datawall_module_list_sizer, 0, wx.ALL, 3)
+        datawall_sizer.Add(self.module_dw_btn, 0, wx.ALL|wx.ALIGN_RIGHT, 3)
         # local opts size
         local_opts_sizer = wx.BoxSizer(wx.VERTICAL)
         local_opts_sizer.Add(valset_1_sizer, 0, wx.ALL|wx.EXPAND, 3)
@@ -7218,6 +7242,7 @@ class graphing_ctrl_pnl(wx.Panel):
         local_opts_sizer.Add(module_animate_main_sizer, 0, wx.ALL|wx.ALIGN_RIGHT, 3)
         local_opts_sizer.Add(self.graph_module_settings, 0, wx.ALL, 3)
         local_opts_sizer.Add(self.module_options_list_ctrl, 0, wx.ALL|wx.EXPAND, 3)
+        local_opts_sizer.Add(datawall_sizer, 0, wx.ALL, 3)
         local_opts_sizer.Add(self.local_simple_line, 0, wx.ALL, 3)
         local_opts_sizer.Add(self.local_color_line, 0, wx.ALL, 3)
         local_opts_sizer.Add(self.local_simple_bar, 0, wx.ALL, 3)
@@ -7300,6 +7325,7 @@ class graphing_ctrl_pnl(wx.Panel):
         self.preset_text.Hide()
         self.graph_presets_cb.Hide()
         self.graph_preset_all.Hide()
+        # graphs
         self.local_simple_line.Hide()
         self.local_color_line.Hide()
         self.local_simple_bar.Hide()
@@ -7310,6 +7336,7 @@ class graphing_ctrl_pnl(wx.Panel):
         self.log_time_diff_graph.Hide()
         self.value_diff_graph.Hide()
         self.switch_log_graph.Hide()
+        #
         self.module_graph_choice.Hide()
         self.module_graph_btn.Hide()
         self.animate_module.Hide()
@@ -7320,10 +7347,19 @@ class graphing_ctrl_pnl(wx.Panel):
         self.graph_module_settings.Hide()
         self.module_options_list_ctrl.Hide()
         self.refresh_module_graph_btn.Hide()
+        # datawall
+        self.datawall_title_text.Hide()
+        self.datawall_preset_l.Hide()
+        self.dw_preset_list_cb.Hide()
+        self.datawall_module_l.Hide()
+        self.dw_module_list_cb.Hide()
+        self.module_dw_btn.Hide()
+        #
         self.data_title_text.Hide()
         self.graph_title_text.Hide()
         self.valset_1_loaded.Hide()
         self.num_of_logs_loaded.Hide()
+        self.valset_1_name.Hide()
         self.valset_1_len_l.Hide()
         self.valset_1_len.Hide()
         self.module_sucker_text.Hide()
@@ -7363,10 +7399,19 @@ class graphing_ctrl_pnl(wx.Panel):
         self.graph_module_settings.Show()
         self.module_options_list_ctrl.Show()
         self.refresh_module_graph_btn.Show()
+        # datawall
+        self.datawall_title_text.Show()
+        self.datawall_preset_l.Show()
+        self.dw_preset_list_cb.Show()
+        self.datawall_module_l.Show()
+        self.dw_module_list_cb.Show()
+        self.module_dw_btn.Show()
+        #
         self.data_title_text.Show()
         self.graph_title_text.Show()
         self.valset_1_loaded.Show()
         self.num_of_logs_loaded.Show()
+        self.valset_1_name.Show()
         self.valset_1_len_l.Show()
         self.valset_1_len.Show()
         self.module_sucker_text.Show()
@@ -7411,6 +7456,7 @@ class graphing_ctrl_pnl(wx.Panel):
             self.hide_make_on_pi_ui_elements()
             self.show_make_local_ui_elements()
             self.discover_graph_presets()
+            self.discover_datawall_preset_list()
         MainApp.graphing_ctrl_pannel.Layout()
         MainApp.window_self.Layout()
 
@@ -7565,13 +7611,21 @@ class graphing_ctrl_pnl(wx.Panel):
         with open(graph_preset_path) as f:
             graph_presets = f.read()
         graph_presets = graph_presets.splitlines()
+        #
+        #
+        ###  The dictionary below should be removed as it's now obsolete
+        #
+        #
         preset_settings = {}
+        log_preset_setting_list = []
         for line in graph_presets:
             if "=" in line:
                 equals_pos = line.find("=")
                 key = line[:equals_pos]
                 value = line[equals_pos + 1:]
                 preset_settings[key]=value
+                text_string = key + ":" + value
+                log_preset_setting_list.append(text_string)
         #
         # set and load log
         if "log_path" in preset_settings:
@@ -7582,71 +7636,17 @@ class graphing_ctrl_pnl(wx.Panel):
             self.read_example_line_from_file(dont_set_ui=True)
         else:
             print("Log path not found in presets file")
-        # set boxes
-        # data extract
-        if "split_chr" in preset_settings:
-            MainApp.graphing_info_pannel.split_character_tc.SetValue(preset_settings["split_chr"])
-        # date
-        if "date_pos" in preset_settings:
-            MainApp.graphing_info_pannel.date_pos_cb.SetValue(preset_settings["date_pos"])
-        if "date_split" in preset_settings:
-            if not preset_settings["date_split_pos"] == "":
-                MainApp.graphing_info_pannel.date_pos_split_tc.SetValue(preset_settings["date_split"])
-        if "date_split_pos" in preset_settings:
-            if not preset_settings["date_split_pos"] == "":
-                MainApp.graphing_info_pannel.date_pos_split_cb.SetSelection(int(preset_settings["date_split_pos"]))
-        # value
-        if "value_rem" in preset_settings:
-            MainApp.graphing_info_pannel.rem_from_val_tc.SetValue(preset_settings["value_rem"])
-        if "value_pos" in preset_settings:
-            MainApp.graphing_info_pannel.value_pos_cb.SetValue(preset_settings["value_pos"])
-        if "value_split" in preset_settings:
-            if not preset_settings["value_split"] == "":
-                MainApp.graphing_info_pannel.value_pos_split_tc.SetValue(preset_settings["value_split"])
-        if "value_split_pos" in preset_settings:
-            if not preset_settings["value_split_pos"] == "":
-                MainApp.graphing_info_pannel.value_pos_split_cb.SetSelection(int(preset_settings["value_split_pos"]))
-                MainApp.graphing_info_pannel.value_pos_split_go("e")
-        # key
-        if "key_pos" in preset_settings:
-            MainApp.graphing_info_pannel.key_pos_cb.SetValue(preset_settings["key_pos"])
-        if "key_split" in preset_settings:
-            if not preset_settings["key_split"] == "":
-                MainApp.graphing_info_pannel.key_pos_split_tc.SetValue(preset_settings["key_split"])
-        if "key_split_pos" in preset_settings:
-            if not preset_settings["key_split_pos"] == "":
-                MainApp.graphing_info_pannel.key_pos_split_cb.SetSelection(int(preset_settings["key_split_pos"]))
-                MainApp.graphing_info_pannel.key_pos_split_go("e")
-        if "key_match" in preset_settings:
-            MainApp.graphing_info_pannel.key_matches_tc.SetValue(preset_settings["key_match"])
-        if "key_manual" in preset_settings:
-            if not preset_settings["key_manual"] == "":
-                MainApp.graphing_info_pannel.key_manual_tc.SetValue(preset_settings["key_manual"])
-        # setting
-        if "value_range_source" in preset_settings:
-            value_range_source = preset_settings["value_range_source"]
-        if value_range_source == "config":
-            if "low" in preset_settings:
-                low_loc = preset_settings["low"]
-                if not low_loc == "":
-                    if low_loc in MainApp.config_ctrl_pannel.config_dict:
-                        low_value = MainApp.config_ctrl_pannel.config_dict[low_loc]
-                        MainApp.graphing_info_pannel.low_tc.SetValue(low_value)
-                        danger_low = ((float(low_value) / 100) * 80)
-                        MainApp.graphing_info_pannel.danger_low_tc.SetValue(str(danger_low))
-            if "high" in preset_settings:
-                high_loc = preset_settings["high"]
-                if not high_loc == "":
-                    if high_loc in MainApp.config_ctrl_pannel.config_dict:
-                        high_value = MainApp.config_ctrl_pannel.config_dict[high_loc]
-                        MainApp.graphing_info_pannel.high_tc.SetValue(high_value)
-                        danger_high = ((float(high_value) / 100) * 120)
-                        MainApp.graphing_info_pannel.danger_high_tc.SetValue(str(danger_high))
-        else:
-            MainApp.graphing_info_pannel.low_tc.SetValue(preset_settings["low"])
-            MainApp.graphing_info_pannel.danger_low_tc.SetValue(preset_settings["danger_low"])
-            MainApp.graphing_info_pannel.high_tc.SetValue(preset_settings["high"])
-            MainApp.graphing_info_pannel.danger_high_tc.SetValue(preset_settings["danger_high"])
+        # set the UI boxes based on settings from preset file
+        self.set_data_extraction_settings_from_text(log_preset_setting_list)
+
+    # datawall
+
+    def discover_datawall_preset_list(self, e=""):
+        dw_presets = os.listdir(shared_data.datawall_presets_path)
+        self.dw_preset_list_cb.Clear()
+        dw_presets.sort()
+        self.dw_preset_list_cb.Append(dw_presets)
+
 
     def get_graph_size_from_ui(self):
         try:
@@ -7666,9 +7666,9 @@ class graphing_ctrl_pnl(wx.Panel):
             MainApp.graphing_info_pannel.size_h_cb.SetValue("655")
         return size_h, size_v
 
-    def get_module_options(self, module_prefix):
+    def get_module_options(self, module_prefix, graph_folder="graph_modules"):
         list_of_modules = []
-        graph_modules_folder = os.path.join(os.getcwd(), "graph_modules")
+        graph_modules_folder = os.path.join(os.getcwd(), graph_folder)
         module_options = os.listdir(graph_modules_folder)
         for file in module_options:
             if module_prefix in file:
@@ -7734,7 +7734,7 @@ class graphing_ctrl_pnl(wx.Panel):
         return gm_options_dict
         #
 
-    def make_graph_from_imported_module(self, e):
+    def make_graph_from_imported_module(self, e, file_name=""):
         print("Want's to create a graph using a external module...  ")
         # read data from log
         count_list = ""
@@ -7754,7 +7754,8 @@ class graphing_ctrl_pnl(wx.Panel):
         size_h, size_v = self.get_graph_size_from_ui()
         module_name = self.module_graph_choice.GetValue()
         # create name for graph based on the module name
-        file_name = module_name + "_graph.png"
+        if file_name == "":
+            file_name = module_name + "_graph.png"
         graph_path = os.path.join(localfiles_info_pnl.local_path, file_name)
         # set module_name to have it's full value
         module_name = "graph_" + module_name
@@ -8595,7 +8596,235 @@ class graphing_ctrl_pnl(wx.Panel):
         MainApp.status.write_bar("ready...")
         return dictionary_of_sets, power_on_markers
 
+
+
+
+    def set_data_extraction_settings_from_text(self, settings_list):
+        for setting in settings_list:
+            if ":" in setting:
+                split_pos = setting.find(":")
+                set_key = setting[:split_pos].strip()
+                set_val = setting[split_pos + 1:].strip()
+                ##
+
+                if set_key == "split_chr":
+                    MainApp.graphing_info_pannel.split_character_tc.SetValue(set_val)
+                # date
+                elif set_key == "date_pos":
+                    MainApp.graphing_info_pannel.date_pos_cb.SetValue(set_val)
+                elif set_key == "date_split":
+                    MainApp.graphing_info_pannel.date_pos_split_tc.SetValue(set_val)
+                elif set_key == "date_split_pos":
+                    MainApp.graphing_info_pannel.date_pos_split_cb.SetSelection(int(set_val))
+                # value
+                elif set_key == "value_rem":
+                    MainApp.graphing_info_pannel.rem_from_val_tc.SetValue(set_val)
+                elif set_key == "value_pos":
+                    MainApp.graphing_info_pannel.value_pos_cb.SetValue(set_val)
+                elif set_key == "value_split":
+                    MainApp.graphing_info_pannel.value_pos_split_tc.SetValue(set_val)
+                elif set_key == "value_split_pos":
+                    MainApp.graphing_info_pannel.value_pos_split_cb.SetSelection(int(set_val))
+                    MainApp.graphing_info_pannel.value_pos_split_go("e")
+                # key
+                elif set_key == "key_pos":
+                    MainApp.graphing_info_pannel.key_pos_cb.SetValue(set_val)
+                elif set_key == "key_split":
+                    MainApp.graphing_info_pannel.key_pos_split_tc.SetValue(set_val)
+                elif set_key == "key_split_pos":
+                    MainApp.graphing_info_pannel.key_pos_split_cb.SetSelection(int(set_val))
+                    MainApp.graphing_info_pannel.key_pos_split_go("e")
+                elif set_key == "key_match":
+                    MainApp.graphing_info_pannel.key_matches_tc.SetValue(set_val)
+                elif set_key == "key_manual":
+                    MainApp.graphing_info_pannel.key_manual_tc.SetValue(set_val)
+                # Date settings
+                elif set_key == "limit_date":
+                    MainApp.graphing_info_pannel.limit_date_to_last_cb.SetValue(set_val)
+                elif set_key == "start_time":
+                    start_time = datetime.datetime.strptime(set_val, '%Y-%m-%d %H:%M:%S')
+                    if not MainApp.graphing_info_pannel.limit_date_to_last_cb.GetValue() == "custom":
+                        MainApp.graphing_info_pannel.limit_date_to_last_cb.SetValue("custom")
+                    MainApp.graphing_info_pannel.start_time_picer.SetValue(start_time)
+                    MainApp.graphing_info_pannel.start_date_picer.SetValue(start_time)
+                elif set_key == "end_time":
+                    end_time = datetime.datetime.strptime(set_val, '%Y-%m-%d %H:%M:%S')
+                    if not MainApp.graphing_info_pannel.limit_date_to_last_cb.GetValue() == "custom":
+                        MainApp.graphing_info_pannel.limit_date_to_last_cb.SetValue("custom")
+                    MainApp.graphing_info_pannel.end_time_picer.SetValue(end_time)
+                    MainApp.graphing_info_pannel.end_date_picer.SetValue(end_time)
+
+
+    def set_graph_settings_from_text(self, settings_list):
+        '''
+        Set the graph settings from a list of text strings
+           key:value
+        '''
+        self.graph_module_settings.SetValue(True)
+        self.graph_module_settings_click("e")
+        setting_control_dict = self.make_gm_extra_settings_dict()
+        for setting in settings_list:
+            if ":" in setting:
+                split_pos = setting.find(":")
+                set_key = setting[:split_pos].strip()
+                set_val = setting[split_pos + 1:].strip()
+                # Axis limits and Size
+                if set_key == "y_min":
+                    MainApp.graphing_info_pannel.axis_y_min_cb.SetValue(set_val)
+                elif set_key == "y_max":
+                    MainApp.graphing_info_pannel.axis_y_max_cb.SetValue(set_val)
+                elif set_key == "size_h":
+                    MainApp.graphing_info_pannel.size_h_cb.SetValue(set_val)
+                elif set_key == "size_v":
+                    MainApp.graphing_info_pannel.size_v_cb.SetValue(set_val)
+                elif set_key in setting_control_dict:
+                    setting_control_dict[set_key]=set_val
+        # write settings list back to ui
+        self.module_options_list_ctrl.DeleteAllItems()
+        index = 0
+        for key, value in setting_control_dict.items():
+            self.module_options_list_ctrl.InsertItem(index, key)
+            self.module_options_list_ctrl.SetItem(index, 1, value)
+            index = index + 1
+
+
+                            #    print(" --- Want's to set graph setting " + set_key + " to " + set_val + " but not doing that yet... Sorry")
+
+
+                                # setting
+                                # if "value_range_source" in preset_settings:
+                                #     value_range_source = preset_settings["value_range_source"]
+                                # if value_range_source == "config":
+                                #     if "low" in preset_settings:
+                                #         low_loc = preset_settings["low"]
+                                #         if not low_loc == "":
+                                #             if low_loc in MainApp.config_ctrl_pannel.config_dict:
+                                #                 low_value = MainApp.config_ctrl_pannel.config_dict[low_loc]
+                                #                 MainApp.graphing_info_pannel.low_tc.SetValue(low_value)
+                                #                 danger_low = ((float(low_value) / 100) * 80)
+                                #                 MainApp.graphing_info_pannel.danger_low_tc.SetValue(str(danger_low))
+                                #     if "high" in preset_settings:
+                                #         high_loc = preset_settings["high"]
+                                #         if not high_loc == "":
+                                #             if high_loc in MainApp.config_ctrl_pannel.config_dict:
+                                #                 high_value = MainApp.config_ctrl_pannel.config_dict[high_loc]
+                                #                 MainApp.graphing_info_pannel.high_tc.SetValue(high_value)
+                                #                 danger_high = ((float(high_value) / 100) * 120)
+                                #                 MainApp.graphing_info_pannel.danger_high_tc.SetValue(str(danger_high))
+                                # else:
+                                #     MainApp.graphing_info_pannel.low_tc.SetValue(preset_settings["low"])
+                                #     MainApp.graphing_info_pannel.danger_low_tc.SetValue(preset_settings["danger_low"])
+                                #     MainApp.graphing_info_pannel.high_tc.SetValue(preset_settings["high"])
+                                #     MainApp.graphing_info_pannel.danger_high_tc.SetValue(preset_settings["danger_high"])
+
+
+                                ##
+
+    def load_current_dw_log(self, dw_log_settings, dw_log_presets):
+        print(" -- loading log")
+        # open preset
+        for preset in dw_log_presets:
+            self.graph_presets_cb.SetValue(preset.strip())
+            self.graph_preset_cb_go("e")
+            # do settings
+            self.set_data_extraction_settings_from_text(dw_log_settings)
+            # load log
+            self.set_log_click("e")
+
+    def make_current_dw_graph(self, dw_current_graphs, dw_graphs_settings, made_graph_list):
+        for x in dw_current_graphs:
+            self.module_graph_choice.SetValue(x)
+            # do settings
+            self.set_graph_settings_from_text(dw_graphs_settings)
+            #make graph
+            graph_num = str(len(made_graph_list) + 1)
+            graph_name = "datawall_graph_" + graph_num + ".png"
+            graph_path = os.path.join(localfiles_info_pnl.local_path, graph_name)
+            self.make_graph_from_imported_module("e", file_name=graph_name)
+            made_graph_list.append(graph_path)
+
+    def make_datawall_from_module(self, e=""):
+        # test
+        dw_preset_choice = self.dw_preset_list_cb.GetValue()
+        datawall_preset_path = os.path.join(shared_data.datawall_presets_path, dw_preset_choice)
+        with open(datawall_preset_path) as f:
+            datawall_presets = f.read()
+        print (" - - - - -")
+        print (datawall_presets)
+        print (" - - - - -")
+        datawall_presets = datawall_presets.splitlines()
+        graph_count = 0
+        current_graph = ""
+        dw_log_settings = []
+        dw_log_presets  = []
+        dw_current_graphs   = []
+        dw_graphs_settings  = []
+        made_graph_list  = []
+        for line in datawall_presets:
+            line = line.strip()
+            if line == "load_log":
+                print( " Datawall - Loading " + str(dw_log_presets))
+                self.load_current_dw_log(dw_log_settings, dw_log_presets)
+                dw_log_settings = []
+                dw_log_presets  = []
+            if line == "make_graph":
+                print( " Datawall - Making Graph " + current_graph)
+                self.make_current_dw_graph(dw_current_graphs, dw_graphs_settings, made_graph_list)
+                dw_current_graphs   = []
+                dw_graphs_settings  = []
+            # options settings
+            if "=" in line:
+                equals_pos = line.find("=")
+                key = line[:equals_pos].strip()
+                value = line[equals_pos + 1:].strip()
+                if key == "graph_name":
+                    print( " Datawall - Starting graph - " + value)
+                    current_graph = value
+                    dw_log_settings = []
+                    dw_log_presets  = []
+                    dw_current_graphs   = []
+                    dw_graphs_settings  = []
+                    # blank prior settings and logs
+                    self.clear_log_click("e")
+                elif "_" in key:
+                    equals_pos = key.find("_")
+                    key_type = key[:equals_pos].strip()
+                    key_job  = key[equals_pos + 1:].strip()
+                    # handling loading of logs
+                    if key_type == "log":
+                        if key_job == "preset":
+                            preset_name = value.split(",")
+                            for x in preset_name:
+                                dw_log_presets.append(x)
+                        if key_job == "setting":
+                            dw_log_settings.append(value)
+                    # handling making of graphs
+                    if key_type == "graph":
+                        if key_job == "module":
+                            module_name = value.split(",")
+                            for x in module_name:
+                                dw_current_graphs.append(x)
+                        if key_job == "setting":
+                            dw_graphs_settings.append(value)
+        #
+        print(" Created Graphs - ", made_graph_list)
+        #
+        module_name = self.dw_module_list_cb.GetValue()
+        if module_name == "" or module_name == "none":
+            print(" - No datawall selected, finishing.")
+            return "done without making datawall"
+        module_name = "datawall_" + module_name
+        # unload the old module to bring in any changes to the script since it was loaded
+        if module_name in sys.modules:
+            del sys.modules[module_name]
+        # import the make_graph function as a module
+        exec("from " + module_name + " import make_datawall", globals())
+        datawall_path = module_name+".png"
+        make_datawall(made_graph_list, datawall_path, shared_data.list_of_datasets)
+
+
     def switch_log_graph_go(self, e):
+
         # date limits
         print("User wants to graph the switch log, i'm still working on that though....")
         # example switch log lines
