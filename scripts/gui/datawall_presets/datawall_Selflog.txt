@@ -1,0 +1,101 @@
+graph_name = Temperature
+log_preset = selflog - key select.txt
+log_setting = key_pos:cpu_temp
+log_setting = limit_date:week
+log_setting = value_rem:'C
+load_log
+graph_module = line
+graph_setting = size_h:12
+graph_setting = size_v:7
+graph_setting = title_text:CPU Temp
+make_graph
+
+graph_name = uptime
+log_preset = selflog - key select.txt
+log_setting = key_pos:uptime_sec
+log_setting = limit_date:week
+load_log
+graph_module = line
+graph_setting = size_h:12
+graph_setting = size_v:7
+graph_setting = title_text:Up Time
+graph_setting = minor_ticks: 
+graph_setting = major_ticks:
+make_graph
+
+graph_name = Disk
+log_preset = selflog - key select.txt
+log_setting = key_pos:disk_total
+log_setting = limit_date:week
+log_setting = value_rem:kB
+load_log
+log_preset = selflog - key select.txt
+log_setting = key_pos:disk_used
+log_setting = limit_date:week
+log_setting = value_rem:kB
+load_log
+graph_module = line
+graph_setting = size_h:12
+graph_setting = size_v:7
+graph_setting = title_text:Disk Usage
+graph_setting = minor_ticks: 
+graph_setting = major_ticks: 
+make_graph
+
+graph_name = Mem
+log_preset = selflog - key select.txt
+log_setting = key_pos:memtotal
+log_setting = limit_date:week
+log_setting = value_rem:kB
+load_log
+log_preset = selflog - key select.txt
+log_setting = key_pos:memavail
+log_setting = limit_date:week
+log_setting = value_rem:kB
+load_log
+log_preset = selflog - key select.txt
+log_setting = key_pos:memfree
+log_setting = limit_date:week
+log_setting = value_rem:kB
+load_log
+graph_module = line
+graph_setting = size_h:12
+graph_setting = size_v:7
+graph_setting = title_text:Memory Available 
+graph_setting = minor_ticks: 
+graph_setting = major_ticks: 
+make_graph
+
+
+graph_name = Load Aves 
+log_preset = selflog - key select.txt
+log_setting = key_pos:load_ave1
+log_setting = limit_date:week
+load_log
+log_preset = selflog - key select.txt
+log_setting = key_pos:load_ave5
+log_setting = limit_date:week
+load_log
+log_preset = selflog - key select.txt
+log_setting = key_pos:load_ave15
+log_setting = limit_date:week
+load_log
+graph_module = line
+graph_setting = size_h:12
+graph_setting = size_v:7
+graph_setting = title_text:Load Averages 
+graph_setting = minor_ticks: 
+graph_setting = major_ticks: 
+make_graph
+
+graph_name = Check DHT running 
+log_preset = selflog - key select.txt
+log_setting = key_pos:checkDHT.py_num_running
+log_setting = limit_date:week
+load_log
+graph_module = line
+graph_setting = size_h:12
+graph_setting = size_v:7
+graph_setting = title_text:Number of Check DHT scripts running 
+graph_setting = major_ticks:1
+make_graph
