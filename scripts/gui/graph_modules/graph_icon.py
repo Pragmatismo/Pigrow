@@ -1,6 +1,19 @@
 
 
-
+def read_graph_options():
+    '''
+    Returns a dictionary of settings and their default values for use by the remote gui
+    '''
+    graph_module_settings_dict = {
+             "pic_to_use":"thermometer.png",
+             "bar_bottom_x":"62",
+             "bar_bottom_y":"350",
+             "bar_height":"334",
+             "bar_width":"87",
+             "font_size":"18",
+             "bar_color":"red"
+             }
+    return graph_module_settings_dict
 
 def make_graph(list_of_datasets, graph_path, ymax="", ymin="", size_h=9, size_v=12, dh="", th="", tc="", dc="", extra=[]):
     print("Making a pretty picture graph...")
@@ -12,18 +25,37 @@ def make_graph(list_of_datasets, graph_path, ymax="", ymin="", size_h=9, size_v=
     matplotlib.use('agg')
     import matplotlib.pyplot as plt
     import matplotlib.patches as patches
+    from matplotlib.image import BboxImage
+    from matplotlib.transforms import Bbox
+    from matplotlib.image import AxesImage
     #
+    # settings
+    if extra == {}:
+        extra = read_graph_options()
+    pic_to_use   = extra['pic_to_use']
+    bar_bottom_x = int(extra['bar_bottom_x'])
+    bar_bottom_y = int(extra['bar_bottom_y'])
+    bar_height   = int(extra['bar_height'])
+    bar_width    = int(extra['bar_width'])
+    bar_color    = extra['bar_color']
+    font_size    = int(extra['font_size'])
+    # hydro flask
+    # x 82
+    # y 343
+    # h 325
+    # w 53
+
     #
-    pic_to_use = "thermometer.png"
+#    pic_to_use = "thermometer.png"
     # bar_bottom_x = 193
     # bar_bottom_y = 350
     # bar_height = 334
     # bar_width = 87
-    bar_bottom_x = 62
-    bar_bottom_y = 350
-    bar_height = 334
-    bar_width = 87
-    font_size = 18
+#    bar_bottom_x = 62
+#    bar_bottom_y = 350
+#    bar_height = 334
+#    bar_width = 87
+#    font_size = 18
 
     #
     # #
@@ -72,7 +104,12 @@ def make_graph(list_of_datasets, graph_path, ymax="", ymin="", size_h=9, size_v=
     bar_value_height = bar_unit_size * value_percent
     bar_value_height = bar_value_height - bar_value_height - bar_value_height # flipping it to a negative
     # draw the bar on the image
-    ax.add_patch(patches.Rectangle((bar_bottom_x, bar_bottom_y), bar_width, bar_value_height, fill=True, color="red"))
+    ax.add_patch(patches.Rectangle((bar_bottom_x, bar_bottom_y), bar_width, bar_value_height, fill=True, color=bar_color))
+    # Overlay on top
+#    bbox = Bbox.from_extents(0, 0, img.shape[1], img.shape[0])
+#    bbox_image = BboxImage(bbox)
+#    bbox_image.set_data(img)
+#    ax.add_artist(bbox_image)
 
     # Label the values on image
     bar_middle = bar_bottom_y-(bar_height/2)
@@ -93,6 +130,7 @@ def make_graph(list_of_datasets, graph_path, ymax="", ymin="", size_h=9, size_v=
     key_x = img.shape[1] / 2
     key_y = img.shape[0] - 1
     ax.annotate(key, (key_x, key_y), va="top", ha="center")
+
 
     # remove axis labels which describe image not the data
     plt.xticks([])

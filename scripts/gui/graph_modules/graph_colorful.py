@@ -13,7 +13,7 @@ def read_graph_options():
              "marker":"",
              "show_grid":"true",
              "major_ticks":"",
-             "minor_ticks":"1"
+             "minor_ticks":""
              }
     return graph_module_settings_dict
 

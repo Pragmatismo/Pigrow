@@ -21,7 +21,7 @@ def read_graph_options():
              "bar_alpha":"0.5",
              "show_grid":"false",
              "major_ticks":"",
-             "minor_ticks":"1"
+             "minor_ticks":""
              }
     return graph_module_settings_dict
 
