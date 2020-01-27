@@ -10,6 +10,7 @@ except:
 homedir = os.getenv("HOME")
 settings_file = homedir + "/Pigrow/config/picam_settings.txt" # default changed with argu settings
 caps_path = None
+user_filename = None
 
 for argu in sys.argv[1:]:
     if argu == '-h' or argu == '--help':
@@ -21,6 +22,8 @@ for argu in sys.argv[1:]:
         print("     choosing which settings file to use")
         print(" caps=<folder path>")
         print("     choose where to save the captured image")
+        print(" filename=<file path>")
+        print("     to set a spesific title, for testing without messing the caps folder")
         print(" ")
         print(" -- this script is in the process of an update, don't expect perfection --")
         sys.exit(0)
@@ -36,6 +39,8 @@ for argu in sys.argv[1:]:
                 settings_file = theval
             elif thearg == 'caps_path' or thearg == 'caps':
                 caps_path = theval
+            elif thearg == 'filename':
+                user_filename = theval
             #elif thearg == "attempts" or thearg == "tries":
             #    try:
             #        attempts = int(theval)
@@ -90,9 +95,14 @@ def take_picam_py(picam_dic, caps_path):
         print ("image_effect = " + str(camera.image_effect))
         print ("image_effect_params = " + str(camera.image_effect_params))
         print ("awb_mode = " + str(camera.awb_mode))
-        camera.capture(caps_path+filename)
+        if user_filename == None:
+            camera.capture(caps_path+filename)
+            saved_filename = caps_path+filename
+        else:
+            camera.capture(user_filename)
+            saved_filename = user_filename
         camera.close()
-        return filename
+        return saved_filename
     except:
         print("Sorry, picture not taken :(")
         raise
@@ -105,8 +115,13 @@ def take_picam_raspistill(picam_dic, caps_path):
         extra_commands = picam_dic['extra_commands']
     except:
         extra_commands = ''
-    os.system("raspistill -o "+caps_path+filename+" "+extra_commands)
-    return filename
+    if user_filename == None:
+        os.system("raspistill -o "+caps_path+filename+" "+extra_commands)
+        saved_filename = caps_path+filename
+    else:
+        os.system("raspistill -o "user_filename+" "+extra_commands)
+        saved_filename = user_filename
+    return saved_filename
 
 def set_caps_path(loc_dic, caps_path):
     # Select location to save images
@@ -153,4 +168,4 @@ if __name__ == '__main__':
     picam_dic = load_picam_set(setloc=settings_file)
     filename = take_picam_py(picam_dic, caps_path)
     #filename = take_picam_raspistill(picam_dic, caps_path)
-    print("Saving image to:"+caps_path+filename)
+    print("Saving image to:"filename)
