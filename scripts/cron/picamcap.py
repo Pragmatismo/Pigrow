@@ -119,7 +119,7 @@ def take_picam_raspistill(picam_dic, caps_path):
         os.system("raspistill -o "+caps_path+filename+" "+extra_commands)
         saved_filename = caps_path+filename
     else:
-        os.system("raspistill -o "user_filename+" "+extra_commands)
+        os.system("raspistill -o " + user_filename + " " + extra_commands)
         saved_filename = user_filename
     return saved_filename
 
