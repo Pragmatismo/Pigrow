@@ -9319,7 +9319,6 @@ class camconf_ctrl_pnl(wx.Panel):
         self.list_cams_btn.Bind(wx.EVT_BUTTON, self.list_cams_click)
         cam_opts = [""]
         self.cam_cb = wx.ComboBox(self, choices = cam_opts, size=(225, 30))
-        self.cam_cb.Bind(wx.EVT_COMBOBOX, self.cam_combo_go)
         #
         # UI for WEBCAM
         #
@@ -9471,7 +9470,7 @@ class camconf_ctrl_pnl(wx.Panel):
         config_text += "cam_opt=" + str(self.webcam_cb.GetValue()) + "\n"
         config_text += "additonal_commands=" + str(MainApp.camconf_info_pannel.cmds_string_tb.GetValue()) + "\n"
         config_text += "fsw_extra=" + str(MainApp.camconf_info_pannel.extra_cmds_string_fs_tb.GetValue()) + "\n"
-    #    config_text += "uvc_extra=" + str("")
+        # config_text += "uvc_extra=" + str("")
         # Ask if user really wants to update
         camera_settings_path = MainApp.camconf_info_pannel.camconf_path_tc.GetValue()
         remote_path = os.path.dirname(camera_settings_path)
@@ -9526,11 +9525,40 @@ class camconf_ctrl_pnl(wx.Panel):
             item = child.GetWindow()
             item.Destroy()
 
+    def get_camopt_spesific_additional_cmds(self):
+        cam_opt = self.webcam_cb.GetValue()
+        if cam_opt == "fswebcam":
+            cam_additional = MainApp.camconf_info_pannel.extra_cmds_string_fs_tb.GetValue()
+        elif cam_opt == "uvccapture":
+            cam_additional = "link to text control for uvc opts here please" # .GetValue()
+        else:
+            print("!!!! YOU FORGOT TO SET UP OPTIONS HANDLING FOR THIS CAMERA CAPTURE TOOL")
+            cam_additional = ""
+        return cam_additional
+
+    def install_fswebcam(self):
+        print("user asked to install fswebcam on the pi")
+        dbox = wx.MessageDialog(self, "fswebcam isn't installed on the pigrow, would you like to install it?", "install fswebcam?", wx.OK | wx.CANCEL | wx.ICON_QUESTION)
+        answer = dbox.ShowModal()
+        dbox.Destroy()
+        if (answer == wx.ID_OK):
+            print("installing fswebcam on pigrow")
+            out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo apt install fswebcam --force-yes -y")
+            print(out, error)
+
     def take_saved_set_click(self, e):
-        print("Taking photo using camcap.py")
         settings_file = MainApp.camconf_info_pannel.camconf_path_tc.GetValue()
         outpath = '/home/' + pi_link_pnl.target_user + '/Pigrow/temp/'
-        cmd = '/home/' + pi_link_pnl.target_user + '/Pigrow/scripts/cron/camcap.py caps=' + outpath + ' set=' + settings_file
+        # check if picam or webcam and take with appropriate script
+        camera = self.cam_cb.GetValue()
+        if 'picam' in camera:
+            print("Taking photo using picamcap.py")
+            cmd = '/home/' + pi_link_pnl.target_user + '/Pigrow/scripts/cron/picamcap.py caps=' + outpath + ' set=' + settings_file
+        else:
+            print("Taking photo using camcap.py")
+            cmd = '/home/' + pi_link_pnl.target_user + '/Pigrow/scripts/cron/camcap.py caps=' + outpath + ' set=' + settings_file
+
+
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi(cmd)
         output = out + error
         print (out, error)
@@ -9544,17 +9572,6 @@ class camconf_ctrl_pnl(wx.Panel):
         MainApp.camconf_info_pannel.picture_sizer.Add(wx.StaticBitmap(MainApp.camconf_info_pannel, -1, wx.Image(img_path, wx.BITMAP_TYPE_ANY).ConvertToBitmap()), 0, wx.ALL, 2)
         MainApp.camconf_info_pannel.SetSizer(MainApp.camconf_info_pannel.main_sizer)
         MainApp.camconf_info_pannel.SetupScrolling()
-
-    def get_camopt_spesific_additional_cmds(self):
-        cam_opt = self.webcam_cb.GetValue()
-        if cam_opt == "fswebcam":
-            cam_additional = MainApp.camconf_info_pannel.extra_cmds_string_fs_tb.GetValue()
-        elif cam_opt == "uvccapture":
-            cam_additional = "link to text control for uvc opts here please" # .GetValue()
-        else:
-            print("!!!! YOU FORGOT TO SET UP OPTIONS HANDLING FOR THIS CAMERA CAPTURE TOOL")
-            cam_additional = ""
-        return cam_additional
 
     def take_set_click(self, e):
         # take using the settings currently displayed on the screen
@@ -9584,16 +9601,6 @@ class camconf_ctrl_pnl(wx.Panel):
             MainApp.camconf_info_pannel.picture_sizer.Add(wx.StaticBitmap(MainApp.camconf_info_pannel, -1, wx.Image(img_path, wx.BITMAP_TYPE_ANY).ConvertToBitmap()), 0, wx.ALL, 2)
             MainApp.camconf_info_pannel.SetSizer(MainApp.camconf_info_pannel.main_sizer)
             MainApp.camconf_info_pannel.SetupScrolling()
-
-    def install_fswebcam(self):
-        print("user asked to install fswebcam on the pi")
-        dbox = wx.MessageDialog(self, "fswebcam isn't installed on the pigrow, would you like to install it?", "install fswebcam?", wx.OK | wx.CANCEL | wx.ICON_QUESTION)
-        answer = dbox.ShowModal()
-        dbox.Destroy()
-        if (answer == wx.ID_OK):
-            print("installing fswebcam on pigrow")
-            out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo apt install fswebcam --force-yes -y")
-            print(out, error)
 
     def range_btn_click(self, e):
         print("Taking a range of images is not yet supported, working on it right this second")
@@ -9647,6 +9654,24 @@ class camconf_ctrl_pnl(wx.Panel):
         MainApp.camconf_info_pannel.SetSizer(MainApp.camconf_info_pannel.main_sizer)
         MainApp.camconf_info_pannel.SetupScrolling()
 
+    def create_temp_picamcap_settings(self, temp_picamcap_settings_path, s_val, c_val, g_val, b_val, x_dim, y_dim, cam_opt, cam_num):
+        print(" Creating temporary settings file for picamcap.py config")
+        temp_conf = "s_val=" + str(s_val)
+        temp_conf += "\nc_val=" + str(c_val)
+        temp_conf += "\ng_val=" + str(g_val)
+        temp_conf += "\nb_val=" + str(b_val)
+        temp_conf += "\nx_dim=" + str(x_dim)
+        temp_conf += "\ny_dim=" + str(y_dim)
+        temp_conf += "\ncam_opt=" + str(cam_opt)
+        temp_conf += "\ncam_num=" + str(cam_num)
+        local_temp_path = os.path.join(localfiles_info_pnl.local_path, "temp")
+        local_temp_piccamset_path =  os.path.join(local_temp_path, "temp_picam_sets.txt")
+        if not os.path.isdir(local_temp_path):
+            os.makedirs(local_temp_path)
+        with open(local_temp_piccamset_path, "w") as temp_local:
+            temp_local.write(temp_conf)
+        MainApp.localfiles_ctrl_pannel.upload_file_to_folder(local_temp_piccamset_path, temp_picamcap_settings_path)
+
 
     def take_test_image(self, s_val, c_val, g_val, b_val, x_dim=800, y_dim=600,
                         cam_select='/dev/video0', cam_capture_choice='uvccapture', output_file='~/test_cam_settings.jpg',
@@ -9685,6 +9710,11 @@ class camconf_ctrl_pnl(wx.Panel):
             cam_cmd += " --jpeg 90" #jpeg quality
             # cam_cmd += ' --info "HELLO INFO TEXT"'
             cam_cmd += " " + output_file  #output filename'
+        elif cam_capture_choice == "picamcap":
+            temp_picamcap_settings_path = "/home/" + pi_link_pnl.target_user + "/Pigrow/temp/temp_picamcap_sets.txt"
+            self.create_temp_picamcap_settings(temp_picamcap_settings_path, s_val, c_val, g_val, b_val, x_dim, y_dim, cam_capture_choice, cam_select)
+            picamcap_path = "/home/" + pi_link_pnl.target_user + "/Pigrow/scripts/cron/picamcap.py"
+            cam_cmd = picamcap_path + " set=" + temp_picamcap_settings_path + " filename=" + output_file
         else:
             print("NOT IMPLIMENTED - SELECT CAM CHOICE OF UVC OR FSWEBCAM PLZ")
         print("~~~~~~~~~~~~~~~~~~~~")
@@ -9706,9 +9736,7 @@ class camconf_ctrl_pnl(wx.Panel):
         MainApp.camconf_info_pannel.SetSizer(MainApp.camconf_info_pannel.main_sizer)
         MainApp.camconf_info_pannel.SetupScrolling()
 
-    def take_unset_test_image(self, x_dim=10000, y_dim=10000, additonal_commands='',
-                              cam_capture_choice='uvccapture',
-                              output_file=None):
+    def take_unset_test_image(self, x_dim=10000, y_dim=10000, additonal_commands='', cam_capture_choice='uvccapture', output_file=None):
         MainApp.status.write_bar("Using camera deafults to take image...")
         if output_file == None:
             output_file = '/home/' + pi_link_pnl.target_user + '/Pigrow/temp/test_defaults.jpg'
@@ -9723,6 +9751,8 @@ class camconf_ctrl_pnl(wx.Panel):
             cam_cmd += " -S 5"      #number of frames to skip before taking image
             cam_cmd += " --jpeg 90" #jpeg quality
             cam_cmd += " " + output_file  #output filename'
+        elif cam_capture_choice == "picamcap":
+            cam_cmd = "raspistill -o " + output_file
         else:
             print("not yet implimented please select uv or fs webcam as you option")
 
@@ -9730,14 +9760,6 @@ class camconf_ctrl_pnl(wx.Panel):
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi(cam_cmd)
         MainApp.status.write_bar("Camera output; " + out)
         return out, output_file
-
-    def cam_combo_go(self, e):
-        print(self.cam_cb.GetValue())
-        if self.cam_cb.GetValue() == "Picam":
-            self.webcam_cb.Hide()
-            print("Picam")
-        else:
-            self.webcam_cb.Show()
 
     def webcam_combo_go(self, e):
         MainApp.camconf_info_pannel.hide_uvc_control()
