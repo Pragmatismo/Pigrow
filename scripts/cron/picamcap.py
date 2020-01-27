@@ -153,4 +153,4 @@ if __name__ == '__main__':
     picam_dic = load_picam_set(setloc=settings_file)
     filename = take_picam_py(picam_dic, caps_path)
     #filename = take_picam_raspistill(picam_dic, caps_path)
-    print("Image taken and saved to "+caps_path+filename)
+    print("Saving image to:"+caps_path+filename)
