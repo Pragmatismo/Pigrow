@@ -8,6 +8,8 @@ except:
     exit()
 
 homedir = os.getenv("HOME")
+settings_file = homedir + "/Pigrow/config/picam_settings.txt" # default changed with argu settings
+caps_path = None
 
 for argu in sys.argv[1:]:
     if argu == '-h' or argu == '--help':
@@ -15,10 +17,33 @@ for argu in sys.argv[1:]:
         print(" ")
         print(" this will be rewritten soon - you might need to manually edit the python code to make it do what you want")
         print("")
-        print(" -- this script is due an update, don't expect perfection --")
+        print(" set=<filepath>")
+        print("     choosing which settings file to use")
+        print(" caps=<folder path>")
+        print("     choose where to save the captured image")
+        print(" ")
+        print(" -- this script is in the process of an update, don't expect perfection --")
         sys.exit(0)
     elif argu == "-flags":
+        print("settings_file=" + homedir + "/Pigrow/config/picamera_settings.txt")
+        print("caps_path=" + homedir + "/Pigrow/caps/")
         sys.exit(0)
+    elif "=" in argu:
+        try:
+            thearg = str(argu).split('=')[0]
+            theval = str(argu).split('=')[1]
+            if thearg == 'settings_file' or thearg == 'set':
+                settings_file = theval
+            elif thearg == 'caps_path' or thearg == 'caps':
+                caps_path = theval
+            #elif thearg == "attempts" or thearg == "tries":
+            #    try:
+            #        attempts = int(theval)
+            #        print("Will try " + str(attempts) + " addional times before giving up")
+            #    except:
+            #        print("Attempts must be a number value, using defailt")
+        except:
+            print("Didn't undertand " + str(argu))
 
 def load_picam_set(setloc= homedir + "/Pigrow/config/picam_settings.txt"):
     picam_dic = {}
@@ -83,6 +108,40 @@ def take_picam_raspistill(picam_dic, caps_path):
     os.system("raspistill -o "+caps_path+filename+" "+extra_commands)
     return filename
 
+def set_caps_path(loc_dic, caps_path):
+    # Select location to save images
+    if caps_path == None:
+        #check for caps path in the loctions dictionary (of dirlocs.txt)
+        try:
+            caps_path = loc_dic['caps_path']
+        #if not then see if the default exists
+        except:
+            caps_path = homedir + '/Pigrow/caps/'
+            if os.path.exists(caps_path):
+                print("Using default folder; " + str(caps_path))
+            else:
+                # if not then try to create it
+                try:
+                    os.mkdir(caps_path)
+                    print("created default folder at " + str(caps_path))
+                except Exception as e:
+                    # if nothing works try using the local folder instead
+                    print("Couldn't create default folder at " + str(caps_path) + " resorting to local folder instead.")
+                    caps_path = ""
+    else:
+        # i.e. if user has selected a caps path with a command line argument
+        # check it exists, if no try making it if not then tell them and
+        # resort to using local folder.
+        if os.path.exists(caps_path):
+            print("saving to; " + str(caps_path))
+        else:
+            try:
+                os.mkdir(caps_path)
+                print("created caps_path")
+            except Exception as e:
+                print("Couldn't create " + str(caps_path) + " using local folder instead.")
+                caps_path = ""
+    return caps_path
 
 if __name__ == '__main__':
     sys.path.append(homedir + '/Pigrow/scripts/')
@@ -90,8 +149,8 @@ if __name__ == '__main__':
     import pigrow_defs
     loc_locs = homedir + '/Pigrow/config/dirlocs.txt'
     loc_dic = pigrow_defs.load_locs(loc_locs)
-    caps_path = loc_dic["caps_path"]
-    picam_dic = load_picam_set(setloc=homedir + "/Pigrow/config/picam_settings.txt")
+    caps_path = set_caps_path(loc_dic, caps_path)
+    picam_dic = load_picam_set(setloc=settings_file)
     filename = take_picam_py(picam_dic, caps_path)
     #filename = take_picam_raspistill(picam_dic, caps_path)
     print("Image taken and saved to "+caps_path+filename)
