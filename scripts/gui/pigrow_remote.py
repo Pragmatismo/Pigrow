@@ -849,10 +849,26 @@ class system_ctrl_pnl(wx.Panel):
         return network_text
 
     def find_connected_webcams(self):
-        # camera info
+        # picam info
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("vcgencmd get_camera")
+        if "detected=" in out:
+            out = out.split('detected=')[1].strip()
+            if out == "0":
+                print(' - No Picam detected')
+                picam_text = 'No Picam'
+            elif out == "1":
+                print(' - Single Picam Detected')
+                picam_text = "Single Picam\n"
+            elif out == "2":
+                print(' - Dual Picams Detected')
+                picam_text = "Dual Picams\n"
+            else:
+                print(' - Multipul Picams detected : ' + out)
+                picam_text = 'Multipul Picams'
+        # web camera info
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("ls /dev/video*")
         if "No such file or directory" in error:
-            cam_text = "No camera detected"
+            cam_text = "No webcams"
         else:
             camera_list = out.strip().split(" ")
             try:
@@ -864,13 +880,14 @@ class system_ctrl_pnl(wx.Panel):
                     for cam in camera_list:
                         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("udevadm info --query=all " + cam + " |grep ID_MODEL=")
                         if not "=" in out:
-                            cam_name = "possibly picam?"
+                            cam_name = "unknown device"
                         else:
                             cam_name = out.split("=")[1].strip()
                             cam_text = cam_name + "\n       on " + cam + "\n"
             except:
-                print("probably a picam")
-                cam_text = "possibly a pi cam is connected?"
+                print("Failed to identify video source")
+                cam_text = "Error reading webcams"
+        cam_text = picam_text + cam_text
         return cam_text
 
     def get_pi_time_diff(self):
@@ -9439,7 +9456,6 @@ class camconf_ctrl_pnl(wx.Panel):
             MainApp.camconf_info_pannel.extra_cmds_string_fs_tb.SetValue(self.camera_settings_dict['cam_fsw_extra'])
         if "cam_uvc_extra" in self.camera_settings_dict:
             MainApp.camconf_info_pannel.extra_cmds_string_uvc_tb.SetValue(self.camera_settings_dict['cam_uvc_extra'])
-
 
     def save_cam_config_click(self, e):
         # Construct camera config file
