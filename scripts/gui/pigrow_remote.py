@@ -9096,6 +9096,8 @@ class camconf_info_pnl(scrolled.ScrolledPanel):
         self.extra_cmds_uvc_label = wx.StaticText(self,  label='extra commands for uvc;')
         self.extra_cmds_string_uvc_tb = wx.TextCtrl(self, style=wx.TE_MULTILINE)
         #####
+        ## picamcap only controls
+        self.picamcap_label = wx.StaticText(self,  label='Sorry Picamcap not yet intergrated into the gui')
 
 
         #####
@@ -9153,7 +9155,10 @@ class camconf_info_pnl(scrolled.ScrolledPanel):
         self.uvc_opts_sizer = wx.BoxSizer(wx.VERTICAL)
         self.uvc_opts_sizer.Add(self.extra_cmds_uvc_label, 0, wx.RIGHT, 5)
         self.uvc_opts_sizer.Add(self.extra_cmds_string_uvc_tb, 1, wx.RIGHT|wx.EXPAND, 5)
-        #self.uvc_opts_sizer.Hide()
+        # picamcap sizer - only shown when picamcap is selected
+        picamcap_opts_sizer = wx.BoxSizer(wx.VERTICAL)
+        picamcap_opts_sizer.Add(self.picamcap_label, 0, wx.ALL|wx.EXPAND, 1)
+
 
         # NEED TO BE ADDED - generic extra args for legacy + extra args for other camera opts
         #2nd row Pannels sizers
@@ -9163,6 +9168,7 @@ class camconf_info_pnl(scrolled.ScrolledPanel):
         panels_sizer.Add(fswebcam_opts_sizer, 0, wx.ALL, 5)
         panels_sizer.Add(fswebcam_args_sizer, 0, wx.ALL|wx.EXPAND, 5)
         panels_sizer.Add(self.uvc_opts_sizer, 0, wx.ALL|wx.EXPAND, 5)
+        panels_sizer.Add(picamcap_opts_sizer, 0, wx.ALL|wx.EXPAND, 5)
         # picture display AREA
         self.picture_sizer = wx.BoxSizer(wx.VERTICAL)
         # MAIN sizer
@@ -9170,12 +9176,10 @@ class camconf_info_pnl(scrolled.ScrolledPanel):
         self.main_sizer.Add(cam_conf_sizer, 0, wx.ALL, 0)
         self.main_sizer.Add(panels_sizer, 0, wx.ALL, 0)
         self.main_sizer.Add(self.picture_sizer, 0, wx.ALL, 0)
-
         # hide all unique controlls until option selected in combobox
         self.hide_fswebcam_control()
         self.hide_uvc_control()
-
-
+        self.hide_picamcap_control()
         # set sizers and scrolling
         self.SetSizer(self.main_sizer)
         self.SetupScrolling()
@@ -9187,10 +9191,10 @@ class camconf_info_pnl(scrolled.ScrolledPanel):
         self.SetupScrolling()
 
     def show_uvc_control(self):
-        print("SHOWING UVC CONTROL")
         self.extra_cmds_uvc_label.Show()
         self.extra_cmds_string_uvc_tb.Show()
         self.hide_fswebcam_control()
+        self.hide_picamcap_control()
         self.SetSizer(self.main_sizer)
         self.SetupScrolling()
 
@@ -9219,6 +9223,19 @@ class camconf_info_pnl(scrolled.ScrolledPanel):
         self.extra_cmds_string_fs_tb.Show()
         # hide other Controlls
         self.hide_uvc_control()
+        self.hide_picamcap_control()
+        self.SetSizer(self.main_sizer)
+        self.SetupScrolling()
+
+    def hide_picamcap_control(self):
+        self.picamcap_label.Hide()
+
+    def show_picamcap_control(self):
+        self.picamcap_label.Show()
+        print('Sorry picamcap control not yet intergrated into the GUI - working on the now')
+        # hide other Controlls
+        self.hide_uvc_control()
+        self.hide_fswebcam_control()
         self.SetSizer(self.main_sizer)
         self.SetupScrolling()
 
@@ -9290,7 +9307,7 @@ class camconf_ctrl_pnl(wx.Panel):
         # UI for WEBCAM
         #
         self.cap_tool_l = wx.StaticText(self,  label='Capture tool;')
-        webcam_opts = ['uvccapture', 'fswebcam']
+        webcam_opts = ['uvccapture', 'fswebcam', 'picamcap']
         self.webcam_cb = wx.ComboBox(self, choices = webcam_opts, size=(265, 30))
         self.webcam_cb.Bind(wx.EVT_COMBOBOX, self.webcam_combo_go)
 
@@ -9686,15 +9703,16 @@ class camconf_ctrl_pnl(wx.Panel):
             self.webcam_cb.Show()
 
     def webcam_combo_go(self, e):
+        MainApp.camconf_info_pannel.hide_uvc_control()
+        MainApp.camconf_info_pannel.hide_fswebcam_control()
+        MainApp.camconf_info_pannel.hide_picamcap_control()
         if self.webcam_cb.GetValue() == 'fswebcam':
-            MainApp.camconf_info_pannel.hide_uvc_control()
             MainApp.camconf_info_pannel.show_fswebcam_control()
         elif self.webcam_cb.GetValue() == 'uvccapture':
-            MainApp.camconf_info_pannel.hide_fswebcam_control()
             MainApp.camconf_info_pannel.show_uvc_control()
-        else:
-            MainApp.camconf_info_pannel.hide_fswebcam_control()
-            MainApp.camconf_info_pannel.hide_uvc_control()
+        elif self.webcam_cb.GetValue() == 'picamcap':
+            MainApp.camconf_info_pannel.show_picamcap_control()
+
 
 #
 #
