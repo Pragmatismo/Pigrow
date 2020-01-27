@@ -9399,7 +9399,7 @@ class camconf_ctrl_pnl(wx.Panel):
 
 
     def read_cam_config_click(self, e):
-        #
+        # if camera config file path blank set from dirlocs dictonary
         if MainApp.camconf_info_pannel.camconf_path_tc.GetValue() == "":
             try:
                 MainApp.camconf_info_pannel.camconf_path_tc.SetValue(MainApp.config_ctrl_pannel.dirlocs_dict['camera_settings'])
@@ -9407,11 +9407,11 @@ class camconf_ctrl_pnl(wx.Panel):
                 #raise
                 MainApp.camconf_info_pannel.camconf_path_tc.SetValue("/home/" + pi_link_pnl.target_user + "/Pigrow/config.camera_settings.txt")
                 print("Camera config location not set in dirlocs, using default location.")
-        #
-        pi_cam_settings_path = MainApp.camconf_info_pannel.camconf_path_tc.GetValue()
-        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("cat " + pi_cam_settings_path)
+        # read the settings files for camera config settings
+        the_cam_settings_path = MainApp.camconf_info_pannel.camconf_path_tc.GetValue()
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("cat " + the_cam_settings_path)
         if out == "":
-            print("Unable to read settings file -" + pi_cam_settings_path)
+            print("Unable to read settings file -" + the_cam_settings_path)
             return None
         cam_settings = out.splitlines()
         self.camera_settings_dict = {}
@@ -9432,6 +9432,8 @@ class camconf_ctrl_pnl(wx.Panel):
                 MainApp.camconf_info_pannel.show_fswebcam_control()
             elif self.camera_settings_dict['cam_opt'] == 'uvccapture':
                 MainApp.camconf_info_pannel.show_uvc_control()
+            elif self.camera_settings_dict['cam_opt'] == 'picamcap':
+                MainApp.camconf_info_pannel.show_picamcap_control()
             else:
                 print("!!! Unknown camera capture option - " + str(self.camera_settings_dict['cam_opt']))
         # basic values
@@ -9493,9 +9495,28 @@ class camconf_ctrl_pnl(wx.Panel):
 
 
     def list_cams_click(self, e):
+        # find picams
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("vcgencmd get_camera")
+        if "detected=" in out:
+            out = out.split('detected=')[1].strip()
+            if out == "0":
+                print(' - No Picam detected')
+                picam_list = []
+            elif out == "1":
+                print(' - Single Picam Detected')
+                picam_list = ['picam 0']
+            elif out == "2":
+                print(' - Dual Picams Detected')
+                picam_list = ['picam 0', 'picam 1']
+            else:
+                print(' - Multipul Picams detected - only using first two: ' + out)
+                picam_list = ['picam 0', 'picam 1']
+        # find webcams
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("ls /dev/video*")
         cam_list = out.strip().split("\n")
+        # add cams to list box
         self.cam_cb.Clear()
+        cam_list = picam_list + cam_list
         for cam in cam_list:
             self.cam_cb.Append(cam)
 
