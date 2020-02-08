@@ -58,6 +58,29 @@ def load_picam_set(setloc= homedir + "/Pigrow/config/picam_settings.txt"):
             picam_dic[s_item[0]]=s_item[1].rstrip('\n')
     return picam_dic
 
+def display_picam_settings(self):
+    print ("resolution = " + str(camera.resolution))
+    print ("analog_gain = " + str(camera.analog_gain))
+    print ("digital_gain = " + str(camera.digital_gain))
+    print ("iso =" + str(camera.iso))
+    print ("brightness = " + str(camera.brightness))
+    print ("contrast =  " + str(camera.contrast))
+    print ("saturation = " + str(camera.saturation))
+    print ("sharpness = " + str(camera.sharpness))
+    print ("zoom = " + str(camera.zoom))
+    print ("drc_strength = " + str(camera.drc_strength))
+    print ("exposure_compensation = " + str(camera.exposure_compensation))
+    print ("exposure_mode = " + str(camera.exposure_mode))
+    print ("exposure_speed = " + str(camera.exposure_speed))
+    print ("hflip = " + str(camera.hflip))
+    print ("vflip = " + str(camera.vflip))
+    print ("rotation = " + str(camera.rotation))
+    print ("meter_mode = " + str(camera.meter_mode))
+    print ("image_denoise = " + str(camera.image_denoise))
+    print ("image_effect = " + str(camera.image_effect))
+    print ("image_effect_params = " + str(camera.image_effect_params))
+    print ("awb_mode = " + str(camera.awb_mode))
+
 def take_picam_py(picam_dic, caps_path):
     #
     # take and save photo
@@ -73,28 +96,41 @@ def take_picam_py(picam_dic, caps_path):
         camera.contrast = int(picam_dic['c_val'])
         camera.saturation = int(picam_dic['s_val'])
         camera.iso =  int(picam_dic['g_val'])
-        time.sleep(2)
-        print ("resolution = " + str(camera.resolution))
+        # optional settings
         print ("analog_gain = " + str(camera.analog_gain))
-        print ("digital_gain = " + str(camera.digital_gain))
         print ("iso =" + str(camera.iso))
-        print ("brightness = " + str(camera.brightness))
-        print ("contrast =  " + str(camera.contrast))
-        print ("saturation = " + str(camera.saturation))
-        print ("sharpness = " + str(camera.sharpness))
-        print ("zoom = " + str(camera.zoom))
-        print ("drc_strength = " + str(camera.drc_strength))
-        print ("exposure_compensation = " + str(camera.exposure_compensation))
-        print ("exposure_mode = " + str(camera.exposure_mode))
-        print ("exposure_speed = " + str(camera.exposure_speed))
-        print ("hflip = " + str(camera.hflip))
-        print ("vflip = " + str(camera.vflip))
-        print ("rotation = " + str(camera.rotation))
-        print ("meter_mode = " + str(camera.meter_mode))
-        print ("image_denoise = " + str(camera.image_denoise))
-        print ("image_effect = " + str(camera.image_effect))
-        print ("image_effect_params = " + str(camera.image_effect_params))
-        print ("awb_mode = " + str(camera.awb_mode))
+        if "digital_gain" in picam_dic:
+            camera.digital_gain = int(picam_dic['digital_gain'])
+        if "sharpness" in picam_dic:
+            camera.sharpness = int(picam_dic['sharpness'])
+        if "zoom" in picam_dic:
+            camera.zoom = int(picam_dic['zoom'])
+        if "drc_strength" in picam_dic:
+            camera.drc_strength = int(picam_dic['drc_strength'])
+        if "exposure_compensation" in picam_dic:
+            camera.exposure_compensation = int(picam_dic['exposure_compensation'])
+        if "exposure_mode" in picam_dic:
+            camera.exposure_mode = int(picam_dic['exposure_mode'])
+        if "exposure_speed" in picam_dic:
+            camera.exposure_speed = int(picam_dic['exposure_speed'])
+        if "hflip" in picam_dic:
+            camera.hflip = int(picam_dic['hflip'])
+        if "vflip" in picam_dic:
+            camera.vflip = int(picam_dic['vflip'])
+        if "rotation" in picam_dic:
+            camera.rotation = int(picam_dic['rotation'])
+        if "meter_mode" in picam_dic:
+            camera.meter_mode = int(picam_dic['meter_mode'])
+        if "image_denoise" in picam_dic:
+            camera.image_denoise = int(picam_dic['image_denoise'])
+        if "image_effect" in picam_dic:
+            camera.image_effect = int(picam_dic['image_effect'])
+        if "image_effect_params" in picam_dic:
+            camera.image_effect_params = int(picam_dic['image_effect_params'])
+        if "awb_mode" in picam_dic:
+            camera.awb_mode = int(picam_dic['awb_mode'])
+        time.sleep(2)
+        self.display_picam_settings(self)
         if user_filename == None:
             camera.capture(caps_path+filename)
             saved_filename = caps_path+filename
