@@ -82,7 +82,7 @@ def display_picam_settings(camera):
     print ("awb_mode = " + str(camera.awb_mode))
     print ("awb_gains = " + str(camera.awb_gains))
     print ("flash_mode = " + str(camera.flash_mode))
-    print ("color_effect = " + str(camera.color_effect))
+    #print ("color_effect = " + str(camera.color_effect))
     print ("sensor_mode = " + str(camera.sensor_mode))
 
 def take_picam_py(picam_dic, caps_path):
