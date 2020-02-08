@@ -99,11 +99,11 @@ def take_picam_py(picam_dic, caps_path):
         camera.brightness = int(picam_dic['b_val'])
         camera.contrast = int(picam_dic['c_val'])
         camera.saturation = int(picam_dic['s_val'])
-        camera.analog_gain =  int(picam_dic['g_val'])
+        camera.iso =  int(picam_dic['g_val'])
         #print ("analog_gain = " + str(camera.analog_gain))
         # optional settings
-        if "iso" in picam_dic:
-            camera.iso = int(picam_dic['iso'])
+        #if "iso" in picam_dic:
+        #    camera.iso = int(picam_dic['iso'])
         if "digital_gain" in picam_dic:
             camera.digital_gain = int(picam_dic['digital_gain'])
         if "sharpness" in picam_dic:
