@@ -80,6 +80,10 @@ def display_picam_settings(camera):
     print ("image_effect = " + str(camera.image_effect))
     print ("image_effect_params = " + str(camera.image_effect_params))
     print ("awb_mode = " + str(camera.awb_mode))
+    print ("awb_gains = " + str(camera.awb_gains))
+    print ("flash_mode = " + str(camera.flash_mode))
+    print ("color_effect = " + str(camera.color_effect))
+    print ("sensor_mode = " + str(camera.sensor_mode))
 
 def take_picam_py(picam_dic, caps_path):
     #
@@ -95,10 +99,11 @@ def take_picam_py(picam_dic, caps_path):
         camera.brightness = int(picam_dic['b_val'])
         camera.contrast = int(picam_dic['c_val'])
         camera.saturation = int(picam_dic['s_val'])
-        camera.iso =  int(picam_dic['g_val'])
+        camera.analog_gain =  int(picam_dic['g_val'])
+        #print ("analog_gain = " + str(camera.analog_gain))
         # optional settings
-        print ("analog_gain = " + str(camera.analog_gain))
-        print ("iso =" + str(camera.iso))
+        if "iso" in picam_dic:
+            camera.iso = int(picam_dic['iso'])
         if "digital_gain" in picam_dic:
             camera.digital_gain = int(picam_dic['digital_gain'])
         if "sharpness" in picam_dic:
@@ -106,29 +111,29 @@ def take_picam_py(picam_dic, caps_path):
         if "zoom" in picam_dic:
             camera.zoom = int(picam_dic['zoom'])
         if "drc_strength" in picam_dic:
-            camera.drc_strength = int(picam_dic['drc_strength'])
+            camera.drc_strength = picam_dic['drc_strength']
         if "exposure_compensation" in picam_dic:
             camera.exposure_compensation = int(picam_dic['exposure_compensation'])
         if "exposure_mode" in picam_dic:
-            camera.exposure_mode = int(picam_dic['exposure_mode'])
+            camera.exposure_mode = picam_dic['exposure_mode']
         if "exposure_speed" in picam_dic:
             camera.exposure_speed = int(picam_dic['exposure_speed'])
         if "hflip" in picam_dic:
-            camera.hflip = int(picam_dic['hflip'])
+            camera.hflip = picam_dic['hflip']
         if "vflip" in picam_dic:
-            camera.vflip = int(picam_dic['vflip'])
+            camera.vflip = picam_dic['vflip']
         if "rotation" in picam_dic:
             camera.rotation = int(picam_dic['rotation'])
         if "meter_mode" in picam_dic:
-            camera.meter_mode = int(picam_dic['meter_mode'])
+            camera.meter_mode = picam_dic['meter_mode']
         if "image_denoise" in picam_dic:
-            camera.image_denoise = int(picam_dic['image_denoise'])
+            camera.image_denoise = picam_dic['image_denoise']
         if "image_effect" in picam_dic:
-            camera.image_effect = int(picam_dic['image_effect'])
+            camera.image_effect = picam_dic['image_effect']
         if "image_effect_params" in picam_dic:
-            camera.image_effect_params = int(picam_dic['image_effect_params'])
+            camera.image_effect_params = picam_dic['image_effect_params']
         if "awb_mode" in picam_dic:
-            camera.awb_mode = int(picam_dic['awb_mode'])
+            camera.awb_mode = picam_dic['awb_mode']
         time.sleep(2)
         display_picam_settings(camera)
         if user_filename == None:
