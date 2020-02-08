@@ -58,7 +58,7 @@ def load_picam_set(setloc= homedir + "/Pigrow/config/picam_settings.txt"):
             picam_dic[s_item[0]]=s_item[1].rstrip('\n')
     return picam_dic
 
-def display_picam_settings(self):
+def display_picam_settings():
     print ("resolution = " + str(camera.resolution))
     print ("analog_gain = " + str(camera.analog_gain))
     print ("digital_gain = " + str(camera.digital_gain))
@@ -130,7 +130,7 @@ def take_picam_py(picam_dic, caps_path):
         if "awb_mode" in picam_dic:
             camera.awb_mode = int(picam_dic['awb_mode'])
         time.sleep(2)
-        self.display_picam_settings(self)
+        display_picam_settings()
         if user_filename == None:
             camera.capture(caps_path+filename)
             saved_filename = caps_path+filename
