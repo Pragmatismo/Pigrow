@@ -9128,12 +9128,15 @@ class camconf_info_pnl(scrolled.ScrolledPanel):
         self.extra_cmds_string_uvc_tb = wx.TextCtrl(self, style=wx.TE_MULTILINE)
         #####
         ## picamcap only controls
-        self.picamcap_label = wx.StaticText(self,  label='Picam Options')
-        self.picam_options_list_ctrl = wx.ListCtrl(self, size=(575,100), style=wx.LC_REPORT|wx.BORDER_SUNKEN)
+        self.picam_options_list_ctrl = wx.ListCtrl(self, size=(575,150), style=wx.LC_REPORT|wx.BORDER_SUNKEN)
         self.picam_options_list_ctrl.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.onDoubleClick_picam_opt)
         self.picam_options_list_ctrl.InsertColumn(0, 'Option')
         self.picam_options_list_ctrl.InsertColumn(1, 'Value')
         self.picam_options_list_ctrl.InsertColumn(2, 'Choices')
+        self.picam_options_list_ctrl.SetColumnWidth(0, 175)
+        self.picam_options_list_ctrl.SetColumnWidth(1, 100)
+        self.picam_options_list_ctrl.SetColumnWidth(2, 300)
+        self.fill_picam_opts_with_defaults()
 
 
         #####
@@ -9193,7 +9196,6 @@ class camconf_info_pnl(scrolled.ScrolledPanel):
         self.uvc_opts_sizer.Add(self.extra_cmds_string_uvc_tb, 1, wx.RIGHT|wx.EXPAND, 5)
         # picamcap sizer - only shown when picamcap is selected
         picamcap_opts_sizer = wx.BoxSizer(wx.VERTICAL)
-        picamcap_opts_sizer.Add(self.picamcap_label, 0, wx.ALL|wx.EXPAND, 1)
         picamcap_opts_sizer.Add(self.picam_options_list_ctrl, 0, wx.ALL|wx.EXPAND, 1)
 
         # NEED TO BE ADDED - generic extra args for legacy + extra args for other camera opts
@@ -9220,6 +9222,31 @@ class camconf_info_pnl(scrolled.ScrolledPanel):
         self.SetSizer(self.main_sizer)
         self.SetupScrolling()
 
+    def put_picam_settings_in_listbox(self, settings_list):
+        self.picam_options_list_ctrl.DeleteAllItems()
+        for index in range(0, len(settings_list)):
+            self.picam_options_list_ctrl.InsertItem(index, settings_list[index][0])
+            self.picam_options_list_ctrl.SetItem(index, 1, settings_list[index][1])
+            self.picam_options_list_ctrl.SetItem(index, 2, settings_list[index][2])
+
+
+    def fill_picam_opts_with_defaults(self):
+        # ["digital_gain", "", ""]
+        settings_list = [["sharpness", "", "-100 to 100"],
+                         ["zoom", "", "0 to ?"],
+                         ["drc_strength", "", 'off, low, medium, high'],
+                         ["exposure_compensation", "", "-25 to 25" ],
+                         ["exposure_mode", "", "'off' 'auto' 'night' 'nightpreview' 'backlight' 'spotlight' 'sports' 'snow' 'beach' 'verylong' 'fixedfps' 'antishake' 'fireworks'"],
+                         ["exposure_speed", "", "0 (auto), shutter speed in microseconds"],
+                         ["hflip", "", "True"],
+                         ["vflip", "", "True"],
+                         ["rotation", "", "0, 90, 180, 270"],
+                         ["meter_mode", "", "average, spot, backlit, matrix"],
+                         ["image_denoise", "", "True"],
+                         ["image_effect", "", "see https://www.reddit.com/r/Pigrow/wiki/info_camera"],
+                         ["image_effect_params", "", ""],
+                         ["awb_mode", "", "'off' 'auto' 'sunlight' 'cloudy' 'shade' 'tungsten' 'fluorescent' 'incandescent' 'flash' 'horizon'"]]
+        self.put_picam_settings_in_listbox(settings_list)
 
 
     def onDoubleClick_picam_opt(self, e):
@@ -9269,11 +9296,9 @@ class camconf_info_pnl(scrolled.ScrolledPanel):
         self.SetupScrolling()
 
     def hide_picamcap_control(self):
-        self.picamcap_label.Hide()
         self.picam_options_list_ctrl.Hide()
 
     def show_picamcap_control(self):
-        self.picamcap_label.Show()
         self.picam_options_list_ctrl.Show()
         print('Sorry picamcap control not yet fully intergrated into the GUI - working on the now')
         # hide other Controlls
