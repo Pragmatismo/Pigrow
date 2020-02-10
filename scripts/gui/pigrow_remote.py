@@ -5328,6 +5328,7 @@ class localfiles_info_pnl(scrolled.ScrolledPanel):
 
     def set_caps_folder_click(self, e):
         msg = "Input the name of the directory to download images from,\n\nThe folder will be located in the root of the Pigrow folder and have the same name in the frompigrow folder locally"
+        msg += "\n\nThis will not affect where images are saved by the capture scripts."
         new_caps_path_dialog = wx.TextEntryDialog(self, msg, "Image Capture Folder", "caps")
         if new_caps_path_dialog.ShowModal() == wx.ID_OK:
             new_caps_folder = new_caps_path_dialog.GetValue()
@@ -9250,7 +9251,19 @@ class camconf_info_pnl(scrolled.ScrolledPanel):
 
 
     def onDoubleClick_picam_opt(self, e):
-        print(" Sorry - setting options isn't added yet!")
+        # fetch option info from table
+        index =  e.GetIndex()
+        setting = self.picam_options_list_ctrl.GetItem(index, 0).GetText()
+        current_value = self.picam_options_list_ctrl.GetItem(index, 1).GetText()
+        opts = self.picam_options_list_ctrl.GetItem(index, 2).GetText()
+        # ask user for setting with a dialog box
+        msg = "Select value for " + setting
+        msg += "\n\n" + opts
+        picam_setting_dialog = wx.TextEntryDialog(self, msg, "Picam Setting", current_value)
+        if picam_setting_dialog.ShowModal() == wx.ID_OK:
+            new_setting = picam_setting_dialog.GetValue()
+            self.picam_options_list_ctrl.SetItem(index, 1, new_setting)
+
 
     def hide_uvc_control(self):
         self.extra_cmds_uvc_label.Hide()
