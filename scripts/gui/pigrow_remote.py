@@ -5248,6 +5248,8 @@ class localfiles_info_pnl(scrolled.ScrolledPanel):
         caps_folder_l = wx.StaticText(self,  label='Caps Folder;')
         localfiles_info_pnl.caps_folder = 'caps'
         localfiles_info_pnl.folder_text = wx.StaticText(self,  label=localfiles_info_pnl.caps_folder)
+        localfiles_info_pnl.set_caps_folder_btn = wx.Button(self, label='...')
+        localfiles_info_pnl.set_caps_folder_btn.Bind(wx.EVT_BUTTON, self.set_caps_folder_click)
         localfiles_info_pnl.photo_text = wx.StaticText(self,  label='photo text')
         localfiles_info_pnl.first_photo_title = wx.StaticText(self,  label='first image')
         blank_img = wx.Bitmap(255, 255)
@@ -5285,7 +5287,8 @@ class localfiles_info_pnl(scrolled.ScrolledPanel):
         photos_sizer.Add(photo_l, 0, wx.ALL, 3)
         caps_folder_sizer = wx.BoxSizer(wx.HORIZONTAL)
         caps_folder_sizer.Add(caps_folder_l, 0, wx.ALL, 3)
-        caps_folder_sizer.Add(localfiles_info_pnl.folder_text , 0, wx.ALL|wx.EXPAND, 3)
+        caps_folder_sizer.Add(localfiles_info_pnl.folder_text, 0, wx.ALL|wx.EXPAND, 3)
+        caps_folder_sizer.Add(localfiles_info_pnl.set_caps_folder_btn, 0, wx.ALL|wx.EXPAND, 3)
         photos_sizer.Add(caps_folder_sizer, 0, wx.ALL, 3)
     #    photos_sizer.AddStretchSpacer(1)
         photos_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
@@ -5322,6 +5325,17 @@ class localfiles_info_pnl(scrolled.ScrolledPanel):
         # panel set up
         self.SetSizer(main_sizer)
         self.SetupScrolling()
+
+    def set_caps_folder_click(self, e):
+        msg = "Input the name of the directory to download images from,\n\nThe folder will be located in the root of the Pigrow folder and have the same name in the frompigrow folder locally"
+        new_caps_path_dialog = wx.TextEntryDialog(self, msg, "Image Capture Folder", "caps")
+        if new_caps_path_dialog.ShowModal() == wx.ID_OK:
+            new_caps_folder = new_caps_path_dialog.GetValue()
+
+        localfiles_info_pnl.folder_text.SetLabel(new_caps_folder)
+        localfiles_info_pnl.caps_folder = new_caps_folder
+
+
 
     def first_img_click(self, e):
         first = wx.Image(self.first_image_path, wx.BITMAP_TYPE_ANY)
@@ -9114,7 +9128,12 @@ class camconf_info_pnl(scrolled.ScrolledPanel):
         self.extra_cmds_string_uvc_tb = wx.TextCtrl(self, style=wx.TE_MULTILINE)
         #####
         ## picamcap only controls
-        self.picamcap_label = wx.StaticText(self,  label='Sorry Picamcap not yet intergrated into the gui')
+        self.picamcap_label = wx.StaticText(self,  label='Picam Options')
+        self.picam_options_list_ctrl = wx.ListCtrl(self, size=(575,100), style=wx.LC_REPORT|wx.BORDER_SUNKEN)
+        self.picam_options_list_ctrl.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.onDoubleClick_picam_opt)
+        self.picam_options_list_ctrl.InsertColumn(0, 'Option')
+        self.picam_options_list_ctrl.InsertColumn(1, 'Value')
+        self.picam_options_list_ctrl.InsertColumn(2, 'Choices')
 
 
         #####
@@ -9175,7 +9194,7 @@ class camconf_info_pnl(scrolled.ScrolledPanel):
         # picamcap sizer - only shown when picamcap is selected
         picamcap_opts_sizer = wx.BoxSizer(wx.VERTICAL)
         picamcap_opts_sizer.Add(self.picamcap_label, 0, wx.ALL|wx.EXPAND, 1)
-
+        picamcap_opts_sizer.Add(self.picam_options_list_ctrl, 0, wx.ALL|wx.EXPAND, 1)
 
         # NEED TO BE ADDED - generic extra args for legacy + extra args for other camera opts
         #2nd row Pannels sizers
@@ -9200,6 +9219,11 @@ class camconf_info_pnl(scrolled.ScrolledPanel):
         # set sizers and scrolling
         self.SetSizer(self.main_sizer)
         self.SetupScrolling()
+
+
+
+    def onDoubleClick_picam_opt(self, e):
+        print(" Sorry - setting options isn't added yet!")
 
     def hide_uvc_control(self):
         self.extra_cmds_uvc_label.Hide()
@@ -9246,10 +9270,12 @@ class camconf_info_pnl(scrolled.ScrolledPanel):
 
     def hide_picamcap_control(self):
         self.picamcap_label.Hide()
+        self.picam_options_list_ctrl.Hide()
 
     def show_picamcap_control(self):
         self.picamcap_label.Show()
-        print('Sorry picamcap control not yet intergrated into the GUI - working on the now')
+        self.picam_options_list_ctrl.Show()
+        print('Sorry picamcap control not yet fully intergrated into the GUI - working on the now')
         # hide other Controlls
         self.hide_uvc_control()
         self.hide_fswebcam_control()
