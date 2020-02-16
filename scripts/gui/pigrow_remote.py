@@ -237,6 +237,7 @@ class shared_data:
         shared_data.cwd = os.getcwd()
         shared_data.ui_img_path = os.path.join(shared_data.cwd, "ui_images")
         shared_data.graph_modules_path = os.path.join(shared_data.cwd, "graph_modules")
+        shared_data.sensor_modules_path = os.path.join(shared_data.cwd, "sensor_modules")
         sys.path.append(shared_data.graph_modules_path)
         shared_data.graph_presets_path = os.path.join(shared_data.cwd, "graph_presets")
         shared_data.datawall_presets_path = os.path.join(shared_data.cwd, "datawall_presets")
@@ -855,10 +856,10 @@ class system_ctrl_pnl(wx.Panel):
             out = out.split('detected=')[1].strip()
             if out == "0":
                 print(' - No Picam detected')
-                picam_text = 'No Picam'
+                picam_text = 'No Picam\n'
             elif out == "1":
-                print(' - Single Picam Detected')
-                picam_text = "Single Picam\n"
+                print(' - 1 Picam Detected')
+                picam_text = "1 Picam\n"
             elif out == "2":
                 print(' - Dual Picams Detected')
                 picam_text = "Dual Picams\n"
@@ -1600,7 +1601,7 @@ class install_dialog(wx.Dialog):
     def __init__(self, *args, **kw):
         super(install_dialog, self).__init__(*args, **kw)
         self.InitUI()
-        self.SetSize((700, 700))
+        self.SetSize((700, 750))
         self.SetTitle("Install Pigrow")
     def InitUI(self):
         pnl = wx.Panel(self)
@@ -1642,6 +1643,10 @@ class install_dialog(wx.Dialog):
         self.currently_doing_l = wx.StaticText(self,  label="Currently:")
         self.currently_doing = wx.StaticText(self,  label='...')
         self.progress = wx.StaticText(self,  label='...')
+        # right hand side - module list
+        self.module_list_l = wx.StaticText(self,  label="Install Modules:")
+        self.module_placeholder_text = wx.StaticText(self,  label="")
+        self.discover_folder_modules()
 
         #ok and cancel buttons
         self.start_btn = wx.Button(self, label='Start', size=(175, 30))
@@ -1653,6 +1658,7 @@ class install_dialog(wx.Dialog):
         header_sizer = wx.BoxSizer(wx.VERTICAL)
         header_sizer.Add(header_title, 0, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 3)
         header_sizer.Add(header_sub, 0, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 3)
+        # left hand side - hardcoded install tools
         base_sizer = wx.BoxSizer(wx.VERTICAL)
         base_sizer.Add(label_core, 0, wx.EXPAND|wx.ALL, 3)
         base_sizer.Add(self.pigrow_base_check, 0, wx.EXPAND|wx.LEFT, 30)
@@ -1676,6 +1682,10 @@ class install_dialog(wx.Dialog):
         networking_sizer.Add(self.praw_check, 0, wx.EXPAND|wx.LEFT, 30)
         networking_sizer.Add(self.sshpass_check, 0, wx.EXPAND|wx.LEFT, 30)
         networking_sizer.Add(self.pexpect_check, 0, wx.EXPAND|wx.LEFT, 30)
+        # right hand side - folder modules
+        folder_modules_sizer = wx.BoxSizer(wx.VERTICAL)
+        folder_modules_sizer.Add(self.module_list_l, 0, wx.EXPAND, 30)
+        folder_modules_sizer.Add(self.module_placeholder_text, 0, wx.EXPAND, 30)
 
         status_text_sizer = wx.BoxSizer(wx.VERTICAL)
         status_text_sizer.Add(self.currently_doing_l, 0, wx.EXPAND|wx.ALL, 3)
@@ -1686,15 +1696,25 @@ class install_dialog(wx.Dialog):
         buttons_sizer.Add(self.start_btn, 0,  wx.ALIGN_LEFT, 3)
         buttons_sizer.Add(self.cancel_btn, 0,  wx.ALIGN_RIGHT, 3)
 
+        left_bar_sizer = wx.BoxSizer(wx.VERTICAL)
+        left_bar_sizer.Add(base_sizer, 0, wx.ALL|wx.EXPAND, 2)
+        left_bar_sizer.Add(sensor_sizer, 0, wx.ALL|wx.EXPAND, 2)
+        left_bar_sizer.Add(camera_sizer, 0, wx.ALL|wx.EXPAND, 2)
+        left_bar_sizer.Add(visualisation_sizer, 0, wx.ALL|wx.EXPAND, 2)
+        left_bar_sizer.Add(networking_sizer, 0, wx.ALL|wx.EXPAND, 2)
+        right_bar_sizer = wx.BoxSizer(wx.VERTICAL)
+        right_bar_sizer.Add(folder_modules_sizer, 0, wx.ALL|wx.EXPAND, 2)
+        middle_options = wx.BoxSizer(wx.HORIZONTAL)
+        middle_options.AddStretchSpacer(1)
+        middle_options.Add(left_bar_sizer, 0, wx.ALL|wx.EXPAND, 2)
+        middle_options.AddStretchSpacer(1)
+        middle_options.Add(right_bar_sizer, 0, wx.ALL|wx.EXPAND, 2)
+        middle_options.AddStretchSpacer(1)
 
         main_sizer = wx.BoxSizer(wx.VERTICAL)
         main_sizer.Add(header_sizer, 0, wx.ALL|wx.EXPAND|wx.ALIGN_CENTER_VERTICAL, 2)
         main_sizer.AddStretchSpacer(1)
-        main_sizer.Add(base_sizer, 0, wx.ALL|wx.EXPAND, 2)
-        main_sizer.Add(sensor_sizer, 0, wx.ALL|wx.EXPAND, 2)
-        main_sizer.Add(camera_sizer, 0, wx.ALL|wx.EXPAND, 2)
-        main_sizer.Add(visualisation_sizer, 0, wx.ALL|wx.EXPAND, 2)
-        main_sizer.Add(networking_sizer, 0, wx.ALL|wx.EXPAND, 2)
+        main_sizer.Add(middle_options, 0, wx.ALL|wx.EXPAND|wx.ALIGN_CENTER_VERTICAL, 2)
         main_sizer.AddStretchSpacer(1)
         main_sizer.Add(status_text_sizer, 0, wx.ALL|wx.EXPAND|wx.ALIGN_CENTER_VERTICAL, 2)
         main_sizer.AddStretchSpacer(1)
@@ -1715,6 +1735,15 @@ class install_dialog(wx.Dialog):
         self.check_python3_dependencies()
         wx.GetApp().Yield() #update screen to show changes
         self.check_program_dependencies()
+
+    def discover_folder_modules(self):
+        # Read sensor modules folder and list install presets
+        install_modules_files = os.listdir(shared_data.sensor_modules_path)
+        label_text = ""
+        for file in install_modules_files:
+            if "_install.txt" in file:
+                label_text = label_text + "\n" + file.split("_install")[0]
+        self.module_placeholder_text = wx.StaticText(self,  label=label_text)
 
     def check_dirlocs(self):
         print(" Checking for existence and validity of dirlocs.txt")
@@ -1754,12 +1783,13 @@ class install_dialog(wx.Dialog):
             self.config_wiz_check.SetValue(True)
 
     def config_wizard(self):
-        print("Sorry, config wizard is not written yet -working on it right now....")
         # set box name
         msg = "Select a name for your pigrow."
         msg += "\n\n This will be used to identify your pigrow and to name the local folder in which\n "
         msg += "files from or associated with the pigrow will be stored. \n\n "
         msg += "Ideally choose a simple and descriptive name, like Veg, Flowering, Bedroom, or Greenhouse"
+        pi_link_pnl.boxname = "blank"
+        MainApp.config_ctrl_pannel.update_pigrow_setup_pannel_information_click("e")
         valid_name = False
         while valid_name == False:
             name_box_dbox = wx.TextEntryDialog(self, msg, "Name your Pigrow")
@@ -2036,18 +2066,19 @@ class install_dialog(wx.Dialog):
 
     def install_pigrow(self):
         print(" Cloning git repo onto pi")
+        # download pigrow scripts from git
         self.currently_doing.SetLabel("using git to clone (download) pigrow code")
-        self.progress.SetLabel("####~~~~~~~~~~~~~~~~~~~~~~~~~~~")
         wx.GetApp().Yield()
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("git clone https://github.com/Pragmatismo/Pigrow ~/Pigrow/")
         print(out, error)
+        self.progress_install_bar()
+
+        # create empty folders
         self.currently_doing.SetLabel("creating empty folders")
-        self.progress.SetLabel("#####~~~~~~~~~~~~~~~~~~~~~~~~~")
-        wx.GetApp().Yield()
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("mkdir ~/Pigrow/caps/")
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("mkdir ~/Pigrow/graphs/")
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("mkdir ~/Pigrow/logs/")
-        wx.GetApp().Yield()
+        self.progress_install_bar()
 
     def create_dirlocs_from_template(self):
         print("Creting dirlocs.txt from template")
@@ -2067,25 +2098,68 @@ class install_dialog(wx.Dialog):
         with open(local_temp_dirlocs_path, "w") as temp_local:
             temp_local.write(dirlocs_text)
         MainApp.localfiles_ctrl_pannel.upload_file_to_folder(local_temp_dirlocs_path, "/home/" + pi_link_pnl.target_user + "/Pigrow/config/dirlocs.txt")
+        self.progress_install_bar()
         print(" - uploaded new dirlocs to pigrow config folder")
 
     def update_pip(self):
         # update pip the python package manager
-        self.currently_doing.SetLabel("Updating PIP the python install manager")
+        print(" - updating pip2")
+        self.currently_doing.SetLabel("Updating PIP2 the python2 install manager")
         self.progress.SetLabel("#########~~~~~~~~~~~~~~~~~~~~")
         wx.GetApp().Yield()
-        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo pip install -U pip")
+        print(" - install running command; sudo pip2 install -U pip")
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo pip2 install -U pip")
         print (out)
+
+    def install_pip2_package(self, pip2_package):
+        pip2_command = "sudo pip2 install " + pip2_package
+        self.currently_doing.SetLabel("Using pip2 to install " + pip2_package)
+        wx.GetApp().Yield()
+        print(" - install running command; " + pip2_command)
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi(pip2_command)
+        print("   -- Finished " + pip2_package + " install attempt;")
+        print (out, error)
+
+    def update_pip2_package(self, pip2_package):
+        # this is not yet used
+        pip2_command = "sudo pip2 install -U"
+        self.currently_doing.SetLabel("Upgrading pip2 package " + pip2_package)
+        wx.GetApp().Yield()
+        print(" - install running command; " + pip2_command)
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi(pip2_command)
+        print("   -- Finished " + pip2_package + " upgrade attempt;")
+        print (out, error)
 
     def update_pip3(self):
         # update pip the python package manager
-        self.currently_doing.SetLabel("Updating PIP the python3 install manager")
+        print(" - updating pip3")
+        self.currently_doing.SetLabel("Updating PIP3 the python3 install manager")
         self.progress.SetLabel("#########~~~~~~~~~~~~~~~~~~~~")
         wx.GetApp().Yield()
+        print(" - install running command; " + pip3_command)
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo pip3 install -U pip")
         print (out)
 
-    def install_praw(self):
+    def install_pip3_package(self, pip3_package):
+        pip3_command = "sudo pip3 install " + pip3_package
+        self.currently_doing.SetLabel("Using pip3 to install " + pip3_package)
+        wx.GetApp().Yield()
+        print(" - install running command; " + pip3_command)
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi(pip3_command)
+        print("   -- Finished " + pip3_package + " install attempt;")
+        print (out, error)
+
+    def update_pip3_package(self, pip3_package):
+        # this is not yet used
+        pip3_command = "sudo pip3 install -U"
+        self.currently_doing.SetLabel("Upgrading pip3 package " + pip3_package)
+        wx.GetApp().Yield()
+        print(" - install running command; " + pip3_command)
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi(pip3_command)
+        print("   -- Finished " + pip3_package + " upgrade attempt;")
+        print (out, error)
+
+    #def install_praw(self):
         # praw is the module for connecting to reddit
         self.currently_doing.SetLabel("Using pip3 to install praw")
         self.progress.SetLabel("###########~~~~~~~~~~~~~~~~~~")
@@ -2093,7 +2167,7 @@ class install_dialog(wx.Dialog):
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo pip3 install praw")
         print (out)
 
-    def install_matplotlib3(self):
+    #def install_matplotlib3(self):
         # Matplotlib makes the graphs for us
         self.currently_doing.SetLabel("Using pip3 to install matplotlib")
         self.progress.SetLabel("###############~~~~~~~~~~~~~~")
@@ -2101,7 +2175,7 @@ class install_dialog(wx.Dialog):
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo pip3 install matplotlib")
         print (out)
 
-    def install_pexpect(self):
+    #def install_pexpect(self):
         # pexpect is the tool used to connect to other pigrows if using pigrow log
         self.currently_doing.SetLabel("using pip to install pexpect")
         self.progress.SetLabel("#############~~~~~~~~~~~~~~~~")
@@ -2109,7 +2183,7 @@ class install_dialog(wx.Dialog):
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo pip install pexpect")
         print (out)
 
-    def install_adafruit_DHT(self):
+    #def install_adafruit_DHT(self):
         print("starting adafruit install")
         self.progress.SetLabel("###############~~~~~~~~~~~~~~")
         self.currently_doing.SetLabel("Using pip to install adafruit_DHT module")
@@ -2117,7 +2191,7 @@ class install_dialog(wx.Dialog):
         adafruit_install, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo pip install Adafruit_DHT")
         print (adafruit_install)
 
-    def install_adafruit_ads1115(self):
+    #def install_adafruit_ads1115(self):
         print("starting adafruit install")
         self.progress.SetLabel("################~~~~~~~~~~~~~")
         self.currently_doing.SetLabel("Using pip3 to install adafruit's ADS1x15 driver")
@@ -2139,45 +2213,54 @@ class install_dialog(wx.Dialog):
         print(error)
 
     def update_apt(self):
+        print(" - updating apt")
         self.currently_doing.SetLabel("updating apt the system package manager on the raspberry pi")
-        self.progress.SetLabel("################~~~~~~~~~~~~~~~")
         wx.GetApp().Yield()
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo apt-get update --yes")
         print (out, error)
 
-    def install_uvccaptre(self):
+    #def install_uvccaptre(self):
         self.currently_doing.SetLabel("Using apt to install uvccaptre")
         self.progress.SetLabel("####################~~~~~~~~~~~")
         wx.GetApp().Yield()
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo apt-get --yes install uvccapture")
         print (out, error)
 
-    def install_mpv(self):
+    #def install_mpv(self):
         self.currently_doing.SetLabel("Using apt to install mpv")
         self.progress.SetLabel("#####################~~~~~~~~~~")
         wx.GetApp().Yield()
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo apt-get --yes install mpv")
         print (out, error)
 
-    def install_python_matplotlib(self):
+    #def install_python_matplotlib(self):
         self.currently_doing.SetLabel("Using apt to install python-matplotlib")
         self.progress.SetLabel("######################~~~~~~~~~")
         wx.GetApp().Yield()
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo apt-get --yes install python-matplotlib")
         print (out, error)
 
-    def install_sshpass(self):
+    #def install_sshpass(self):
         self.currently_doing.SetLabel("Using apt to install sshpass")
         self.progress.SetLabel("#######################~~~~~~~~~")
         wx.GetApp().Yield()
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo apt-get --yes install sshpass")
         print (out, error)
 
-    def install_python_crontab(self):
+    #def install_python_crontab(self):
         self.currently_doing.SetLabel("Using apt to install python-crontab")
         self.progress.SetLabel("########################~~~~~~~")
         wx.GetApp().Yield()
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo apt-get --yes install python-crontab")
+        print (out, error)
+
+    def install_apt_package(self, apt_package):
+        apt_command= "sudo apt-get --yes install " + apt_package
+        self.currently_doing.SetLabel("Using apt to install " + apt_package)
+        wx.GetApp().Yield()
+        print(" - install running command; " + apt_command)
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi(apt_command)
+        print("   -- Finished " + apt_package + " install attempt;")
         print (out, error)
 
     def check_program_dependencies(self):
@@ -2281,62 +2364,124 @@ class install_dialog(wx.Dialog):
             self.pexpect_check.SetForegroundColour((255,75,75))
             self.pexpect_check.SetValue(True)
 
-    def start_click(self, e):
-        print("Install process started;")
-        self.progress.SetLabel("##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+    def progress_install_bar(self):
+        current_label = self.progress.GetLabel()
+        extra_hashes = "#" * self.hash_per_item
+        pos = current_label.find("~")
+        hashes = current_label[:pos]
+        tilda = current_label[pos:]
+        if len(tilda) > self.hash_per_item:
+            tilda = tilda[:-self.hash_per_item]
+        else:
+            tilda = ""
+        hashes = hashes + extra_hashes
+        print (current_label, extra_hashes, pos, hashes, tilda)
+        self.progress.SetLabel(hashes + tilda)
+        #self.currently_doing.SetLabel("-")
         wx.GetApp().Yield()
+
+    def start_click(self, e):
+        print("(Upgraded) Install process started;")
+        self.progress.SetLabel("#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        wx.GetApp().Yield()
+
+
+        # hardcoded controlls -
+        #                     -  Remove this when these are added to generated list control
+        # installed using pip2
+        pip2_package_list = []
+        if self.pexpect_check.GetValue() == True:
+            pip2_package_list.append('pexpect')
+        if self.adaDHT_check.GetValue() == True:
+            pip2_package_list.append('Adafruit_DHT')
+
+        # installed using pip3
+        pip3_package_list = []
+        if self.ada1115_check.GetValue() == True:
+            #self.install_adafruit_ads1115()
+            #pip3_package_list.append('RPI.GPIO')
+            #pip3_package_list.append('adafruit-blinka')
+            pip3_package_list.append('adafruit-circuitpython-ads1x15')
+        if self.praw_check.GetValue() == True:
+            #self.install_praw()
+            pip3_package_list.append('praw')
+        if self.matplotlib3_check.GetValue() == True:
+            #self.install_matplotlib3()
+            pip3_package_list.append('matplotlib')
+
+        # Dependencies installed using apt
+        apt_package_list = []
+        if self.uvccapture_check.GetValue() == True:
+            #self.install_uvccaptre()
+            apt_package_list.append('uvccapture')
+        if self.mpv_check.GetValue() == True:
+            #self.install_mpv()
+            apt_package_list.append('mpv')
+        if self.sshpass_check.GetValue() == True:
+            #self.install_sshpass()
+            apt_package_list.append('sshpass')
+        if self.matplotlib_check.GetValue() == True:
+            #self.install_python_matplotlib()
+            apt_package_list.append('python-matplotlib')
+        if self.cron_check.GetValue() == True:
+            #self.install_python_crontab()
+            apt_package_list.append('python-crontab')
+        # counting items for progress bar
+        item_count = len(pip3_package_list) + len(pip3_package_list) + len(apt_package_list)
+        if self.pigrow_base_check.GetValue() == True:
+            item_count += 1
+        if self.pigrow_dirlocs_check.GetValue() == True:
+            item_count += 1
+        if self.config_wiz_check.GetValue() == True:
+            item_count += 1
+        total_spaces =  30
+        if item_count == 0:
+            item_count = 1
+        self.hash_per_item = int(total_spaces / item_count)
+
         # Base installed via Git Clone
         if self.pigrow_base_check.GetValue() == True:
             self.install_pigrow()
-            self.progress.SetLabel("#####~~~~~~~~~~~~~~~~~~~~~~~~~~")
-            wx.GetApp().Yield()
+            self.progress_install_bar()
         # make dirlocs with pi's username
         if self.pigrow_dirlocs_check.GetValue() == True:
             self.create_dirlocs_from_template()
-            self.currently_doing.SetLabel("-")
-            self.progress.SetLabel("########~~~~~~~~~~~~~~~~~~~~~~~")
-            wx.GetApp().Yield()
-        # Dependencies installed using pip
-        if self.pexpect_check.GetValue() == True or self.adaDHT_check.GetValue() == True:
+            self.progress_install_bar()
+        # Install packages
+        # Cycle through list install all pip2 packages
+        if len(pip2_package_list) > 0:
             self.update_pip()
-        if self.pexpect_check.GetValue() == True:
-            self.install_pexpect()
-        if self.adaDHT_check.GetValue() == True:
-            self.install_adafruit_DHT()
-        # installed using update_pip3
-        if self.ada1115_check.GetValue() == True or self.praw_check.GetValue() == True:
+            for pip2_package in pip2_package_list:
+                self.install_pip2_package(pip2_package)
+                self.progress_install_bar()
+        # cycle through and install all pip3 packages
+        if len(pip3_package_list) > 0:
             self.update_pip3()
-        if self.ada1115_check.GetValue() == True:
-            self.install_adafruit_ads1115()
-        if self.praw_check.GetValue() == True:
-            self.install_praw()
-        if self.matplotlib3_check.GetValue() == True:
-            self.install_matplotlib3()
-        # Dependencies installed using apt
-        if self.uvccapture_check.GetValue() == True or self.mpv_check.GetValue() == True or self.sshpass_check.GetValue() == True or self.matplotlib_check.GetValue() == True or self.cron_check.GetValue() == True:
+            for pip3_package in pip3_package_list:
+                self.install_pip3_package(pip3_package)
+                self.progress_install_bar()
+        # cycle through all and install all apt packages
+        if len(apt_package_list) > 0:
             self.update_apt()
-        if self.uvccapture_check.GetValue() == True:
-            self.install_uvccaptre()
-        if self.mpv_check.GetValue() == True:
-            self.install_mpv()
-        if self.sshpass_check.GetValue() == True:
-            self.install_sshpass()
-        if self.matplotlib_check.GetValue() == True:
-            self.install_python_matplotlib()
-        if self.cron_check.GetValue() == True:
-            self.install_python_crontab()
+            for apt_package in apt_package_list:
+                self.install_apt_package(apt_package)
+                self.progress_install_bar()
+
         # run the setup wizard
         if self.config_wiz_check.GetValue() == True:
-            self.config_wizard()
-            self.currently_doing.SetLabel("-")
+            self.currently_doing.SetLabel(" Config Wizard")
             self.progress.SetLabel("##############################~")
             wx.GetApp().Yield()
+            self.config_wizard()
 
-        # Final message
+        # Announce finished
+        print("(Upgraded) Install process finished;")
         self.progress.SetLabel("####### INSTALL COMPLETE ######")
-        wx.GetApp().Yield()
+        self.currently_doing.SetLabel(" -- ")
         self.start_btn.Disable()
         self.cancel_btn.SetLabel("OK")
+        wx.GetApp().Yield()
+
 
     def cancel_click(self, e):
         self.Destroy()
@@ -9264,7 +9409,6 @@ class camconf_info_pnl(scrolled.ScrolledPanel):
             new_setting = picam_setting_dialog.GetValue()
             self.picam_options_list_ctrl.SetItem(index, 1, new_setting)
 
-
     def hide_uvc_control(self):
         self.extra_cmds_uvc_label.Hide()
         self.extra_cmds_string_uvc_tb.Hide()
@@ -9313,7 +9457,6 @@ class camconf_info_pnl(scrolled.ScrolledPanel):
 
     def show_picamcap_control(self):
         self.picam_options_list_ctrl.Show()
-        print('Sorry picamcap control not yet fully intergrated into the GUI - working on the now')
         # hide other Controlls
         self.hide_uvc_control()
         self.hide_fswebcam_control()
@@ -9521,20 +9664,47 @@ class camconf_ctrl_pnl(wx.Panel):
             MainApp.camconf_info_pannel.extra_cmds_string_fs_tb.SetValue(self.camera_settings_dict['cam_fsw_extra'])
         if "cam_uvc_extra" in self.camera_settings_dict:
             MainApp.camconf_info_pannel.extra_cmds_string_uvc_tb.SetValue(self.camera_settings_dict['cam_uvc_extra'])
+        self.write_picam_sets_into_listbox(self.camera_settings_dict)
+
+    def write_picam_sets_into_listbox(self, camera_settings_dict):
+        # get list of settings
+        picam_settings = []
+        for x in range(0, MainApp.camconf_info_pannel.picam_options_list_ctrl.GetItemCount()):
+            picam_settings.append(MainApp.camconf_info_pannel.picam_options_list_ctrl.GetItem(x, 0).GetText())
+        # check to see if setting is in settings dict and change if it is
+        for x in range(0, len(picam_settings)):
+            if picam_settings[x] in camera_settings_dict:
+                MainApp.camconf_info_pannel.picam_options_list_ctrl.SetItem(x, 1, camera_settings_dict[picam_settings[x]])
+
+
+    def make_picam_conf_textblock(self):
+        text_block = ""
+        for x in range(0, MainApp.camconf_info_pannel.picam_options_list_ctrl.GetItemCount()):
+            option = MainApp.camconf_info_pannel.picam_options_list_ctrl.GetItem(x, 0).GetText()
+            value =  MainApp.camconf_info_pannel.picam_options_list_ctrl.GetItem(x, 1).GetText()
+            if not value == "":
+                text_block += option + "=" + value + "\n"
+        return text_block
 
     def save_cam_config_click(self, e):
         # Construct camera config file
-        config_text = "s_val=" + str(MainApp.camconf_info_pannel.tb_s.GetValue()) + "\n"
+        config_text = "cam_num=" + str(self.cam_cb.GetValue()) + "\n"
+        config_text += "cam_opt=" + str(self.webcam_cb.GetValue()) + "\n"
+        config_text += "b_val=" + str(MainApp.camconf_info_pannel.tb_b.GetValue()) + "\n"
+        config_text += "s_val=" + str(MainApp.camconf_info_pannel.tb_s.GetValue()) + "\n"
         config_text += "c_val=" + str(MainApp.camconf_info_pannel.tb_c.GetValue()) + "\n"
         config_text += "g_val=" + str(MainApp.camconf_info_pannel.tb_g.GetValue()) + "\n"
-        config_text += "b_val=" + str(MainApp.camconf_info_pannel.tb_b.GetValue()) + "\n"
         config_text += "x_dim=" + str(MainApp.camconf_info_pannel.tb_x.GetValue()) + "\n"
         config_text += "y_dim=" + str(MainApp.camconf_info_pannel.tb_y.GetValue()) + "\n"
-        config_text += "cam_num=" + str(self.cam_cb.GetValue()) + "\n"
-        config_text += "cam_opt=" + str(self.webcam_cb.GetValue()) + "\n"
-        config_text += "additonal_commands=" + str(MainApp.camconf_info_pannel.cmds_string_tb.GetValue()) + "\n"
-        config_text += "fsw_extra=" + str(MainApp.camconf_info_pannel.extra_cmds_string_fs_tb.GetValue()) + "\n"
+        if not str(MainApp.camconf_info_pannel.cmds_string_tb.GetValue()) == "":
+            config_text += "additonal_commands=" + str(MainApp.camconf_info_pannel.cmds_string_tb.GetValue()) + "\n"
+        if not str(MainApp.camconf_info_pannel.extra_cmds_string_fs_tb.GetValue()) == "":
+            config_text += "fsw_extra=" + str(MainApp.camconf_info_pannel.extra_cmds_string_fs_tb.GetValue()) + "\n"
         # config_text += "uvc_extra=" + str("")
+        picam_conf_text = self.make_picam_conf_textblock()
+        if not picam_conf_text == "":
+            config_text += picam_conf_text
+
         # Ask if user really wants to update
         camera_settings_path = MainApp.camconf_info_pannel.camconf_path_tc.GetValue()
         remote_path = os.path.dirname(camera_settings_path)
@@ -9566,7 +9736,7 @@ class camconf_ctrl_pnl(wx.Panel):
                 print(' - No Picam detected')
                 picam_list = []
             elif out == "1":
-                print(' - Single Picam Detected')
+                print(' - 1 Picam Detected')
                 picam_list = ['picam 0']
             elif out == "2":
                 print(' - Dual Picams Detected')
@@ -9728,6 +9898,9 @@ class camconf_ctrl_pnl(wx.Panel):
         temp_conf += "\ny_dim=" + str(y_dim)
         temp_conf += "\ncam_opt=" + str(cam_opt)
         temp_conf += "\ncam_num=" + str(cam_num)
+        picam_conf_text = self.make_picam_conf_textblock()
+        if not picam_conf_text == "":
+            temp_conf += "\n" + picam_conf_text
         local_temp_path = os.path.join(localfiles_info_pnl.local_path, "temp")
         local_temp_piccamset_path =  os.path.join(local_temp_path, "temp_picam_sets.txt")
         if not os.path.isdir(local_temp_path):
