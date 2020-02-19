@@ -224,7 +224,7 @@ def dehumid_control(humid,use_fans=False):
     if cli_output_level == "max":
         print(msg)
 
-def fan_control(temp, humid, heat_use_fan=True, hum_use_fan=False, dehum_use_fan=False):
+def fan_control(temp, humid, heat_use_fan, hum_use_fan, dehum_use_fan):
     global fans_state
     message = " - No change"
     if cli_output_level == "max":
