@@ -1645,7 +1645,10 @@ class install_dialog(wx.Dialog):
         self.progress = wx.StaticText(self,  label='...')
         # right hand side - module list
         self.module_list_l = wx.StaticText(self,  label="Install Modules:")
-        self.module_placeholder_text = wx.StaticText(self,  label="")
+        self.install_module_list = wx.ListCtrl(self, size=(-1,200), style=wx.LC_REPORT|wx.BORDER_SUNKEN)
+        self.install_module_list.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.onDoubleClick_install_module_opt)
+        self.install_module_list.InsertColumn(0, 'Install')
+        self.install_module_list.InsertColumn(1, 'Module')
         self.discover_folder_modules()
 
         #ok and cancel buttons
@@ -1685,7 +1688,7 @@ class install_dialog(wx.Dialog):
         # right hand side - folder modules
         folder_modules_sizer = wx.BoxSizer(wx.VERTICAL)
         folder_modules_sizer.Add(self.module_list_l, 0, wx.EXPAND, 30)
-        folder_modules_sizer.Add(self.module_placeholder_text, 0, wx.EXPAND, 30)
+        folder_modules_sizer.Add(self.install_module_list, 0, wx.EXPAND, 30)
 
         status_text_sizer = wx.BoxSizer(wx.VERTICAL)
         status_text_sizer.Add(self.currently_doing_l, 0, wx.EXPAND|wx.ALL, 3)
@@ -1735,15 +1738,29 @@ class install_dialog(wx.Dialog):
         self.check_python3_dependencies()
         wx.GetApp().Yield() #update screen to show changes
         self.check_program_dependencies()
+        self.check_module_dependencies()
 
     def discover_folder_modules(self):
         # Read sensor modules folder and list install presets
         install_modules_files = os.listdir(shared_data.sensor_modules_path)
         label_text = ""
+        self.install_module_list.DeleteAllItems()
+        index = 0
         for file in install_modules_files:
             if "_install.txt" in file:
-                label_text = label_text + "\n" + file.split("_install")[0]
-        self.module_placeholder_text = wx.StaticText(self,  label=label_text)
+                module = file.split("_install")[0]
+                self.install_module_list.InsertItem(index, "False")
+                self.install_module_list.SetItem(index, 1, module)
+                index = index + 1
+
+    def onDoubleClick_install_module_opt(self, e):
+        index =  e.GetIndex()
+        to_install = self.install_module_list.GetItem(index, 0).GetText()
+        module_name = self.install_module_list.GetItem(index, 1).GetText()
+        if to_install == "True":
+            self.install_module_list.SetItem(index, 0, "False")
+        else:
+            self.install_module_list.SetItem(index, 0, "True")
 
     def check_dirlocs(self):
         print(" Checking for existence and validity of dirlocs.txt")
@@ -2136,7 +2153,7 @@ class install_dialog(wx.Dialog):
         self.currently_doing.SetLabel("Updating PIP3 the python3 install manager")
         self.progress.SetLabel("#########~~~~~~~~~~~~~~~~~~~~")
         wx.GetApp().Yield()
-        print(" - install running command; " + pip3_command)
+        print(" - install running command; sudo pip3 install -U pip")
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo pip3 install -U pip")
         print (out)
 
@@ -2262,6 +2279,49 @@ class install_dialog(wx.Dialog):
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi(apt_command)
         print("   -- Finished " + apt_package + " install attempt;")
         print (out, error)
+
+    def check_module_dependencies(self):
+        print(" Testing dependencies from install module files")
+        for module_index in range(0, self.install_module_list.GetItemCount()):
+            module_name = self.install_module_list.GetItem(module_index, 1).GetText()
+            module_name = module_name + "_install.txt"
+            install_module_path = os.path.join(shared_data.sensor_modules_path, module_name)
+            with open(install_module_path, "r") as install_text:
+                install_module_file = install_text.read().splitlines()
+            install_method = ""
+            package_name = ""
+            for line in install_module_file:
+                if "install_method=" in line:
+                    install_method = line.split("=")[1]
+                if "package_name=" in line:
+                    package_name =  line.split("=")[1]
+            is_installed = False
+            if not install_method == "" and not package_name == "":
+                if install_method == "pip2":
+                    if "True" in test_py_module(package_name):
+                        is_installed = True
+                elif install_method == 'pip3':
+                    if "True" in self.test_py3_module(package_name):
+                        is_installed = True
+                elif install_method == "apt":
+                    is_installed = test_apt_package(package_name)
+            if is_installed == True:
+                self.install_module_list.SetItemTextColour(module_index, wx.GREEN)
+                print(" -- " + package_name + " is already installed")
+            else:
+                self.install_module_list.SetItemTextColour(module_index, wx.RED)
+                print(" -- " + package_name + " is not installed")
+
+
+    def test_apt_package(self, package_name):
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("apt-cache policy " + package_name + " |grep Installed")
+        if "Installed" in out:
+            if not "(none)" in out:
+                return True
+            else:
+                return False
+        else:
+            return False
 
     def check_program_dependencies(self):
         program_dependencies = ["sshpass", "uvccapture", "mpv"]
@@ -2426,6 +2486,28 @@ class install_dialog(wx.Dialog):
         if self.cron_check.GetValue() == True:
             #self.install_python_crontab()
             apt_package_list.append('python-crontab')
+        # Add modular sensors to list from table
+        for module_index in range(0, self.install_module_list.GetItemCount()):
+            if self.install_module_list.GetItem(module_index, 0).GetText() == "True":
+                module_name = self.install_module_list.GetItem(module_index, 1).GetText()
+                module_name = module_name + "_install.txt"
+                install_module_path = os.path.join(shared_data.sensor_modules_path, module_name)
+                with open(install_module_path, "r") as install_text:
+                    install_module_file = install_text.read().splitlines()
+                for line in install_module_file:
+                    if "install_method=" in line:
+                        install_method = line.split("=")[1]
+                    if "package_name=" in line:
+                        package_name =  line.split("=")[1]
+                if not install_method == "" and not package_name == "":
+                    if install_method == "pip2":
+                        pip2_package_list.append(package_name)
+                    elif install_method == 'pip3':
+                        pip3_package_list.append(package_name)
+                    elif install_method == "apt":
+                        apt_package_list.append(package_name)
+
+
         # counting items for progress bar
         item_count = len(pip3_package_list) + len(pip3_package_list) + len(apt_package_list)
         if self.pigrow_base_check.GetValue() == True:
