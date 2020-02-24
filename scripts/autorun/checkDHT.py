@@ -34,6 +34,11 @@ set_dic = pigrow_defs.load_settings(loc_dic['loc_settings'], err_log=loc_dic['er
 #print set_dic
 if 'log_frequency' in set_dic:
     log_time = set_dic['log_frequency']
+else:
+    err_msg = "Unable to load log_frequency from config file"
+    pigrow_defs.write_log('checkDHT.py', err_msg, loc_dic['err_log'])
+    err_msg += ", " + loc_dic['loc_settings']
+    print(err_msg)
 
 for argu in sys.argv[1:]:
     if '=' in argu:
@@ -114,6 +119,8 @@ for argu in sys.argv[1:]:
         print("usefan=[heat,humid,dehumid,none]")
         print("output_level=[min,max]")
         sys.exit()
+
+print(" Looping frequency set to " + str(log_time) + " seconds.")
 
 def read_and_log(loc_dic):
     try:
@@ -308,14 +315,24 @@ def check_lamp(on_time, off_time):
 
 print(" -- Initializing checkDHT.py conditions monitoring script ")
 
-time_on = set_dic['time_lamp_on'].split(":")
-time_off = set_dic['time_lamp_off'].split(":")
-on_time = datetime.time(int(time_on[0]),int(time_on[1]))
-off_time = datetime.time(int(time_off[0]), int(time_off[1]))
+if "time_lamp_on" in set_dic and "time_lamp_off" in set_dic:
+    time_on = set_dic['time_lamp_on'].split(":")
+    time_off = set_dic['time_lamp_off'].split(":")
+    on_time = datetime.time(int(time_on[0]),int(time_on[1]))
+    off_time = datetime.time(int(time_off[0]), int(time_off[1]))
 
-state, change = check_lamp(on_time, off_time)
+    state, change = check_lamp(on_time, off_time)
+    print(" Determenined the lamp should be - " + state)
+else:
+    print(" Lamp timings not found in config file,")
+    print("    time_lamp_on=10:00")
+    print("    time_lamp_off=22:00")
+    print(" Needs to be added to " + loc_dic['loc_settings'])
+    print("    This can be done automatically in the lamp config dialogue box")
+    print("    found in the 'Pigrow Setup' tab of the remote_gui.")
+    err_msg = "Unable to load lamp timing from config file, initial lamp state check not performed."
+    pigrow_defs.write_log('checkDHT.py', err_msg, loc_dic['err_log'])
 
-print(" Determenined the lamp should be - " + state)
 
 #
 #      THE ETERNAL LOOP
