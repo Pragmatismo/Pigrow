@@ -46,4 +46,4 @@ if __name__ == '__main__':
         print("!! Failed to read !!")
     else:
         for x in output:
-            print(output[0] + "=" + output[1])
+            print(str(output[0]) + "=" + str(output[1]))
