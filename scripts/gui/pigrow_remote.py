@@ -23,7 +23,7 @@
 #    localfiles_ctrl_pnl  - buttons for above
 #       + uoload & download dialog box
 #
-#    graphing_info_pnl
+#    graphing_info_pn
 #    graphing_ctrl_pannel
 #
 #
@@ -224,6 +224,18 @@ def is_a_valid_and_free_gpio(gpio_pin):
         return False
     #add check here to see if pin is already used in config file
     return True
+
+def get_module_options(module_prefix, m_folder="graph_modules"):
+    list_of_modules = []
+    modules_folder = os.path.join(os.getcwd(), m_folder)
+    module_options = os.listdir(modules_folder)
+    for file in module_options:
+        if module_prefix in file:
+            file = file.split(module_prefix)[1]
+            if ".py" in file:
+                file = file.split(".py")[0]
+                list_of_modules.append(file)
+    return list_of_modules
 #
 #
 ## Place for persistent stuff
@@ -239,6 +251,7 @@ class shared_data:
         shared_data.graph_modules_path = os.path.join(shared_data.cwd, "graph_modules")
         shared_data.sensor_modules_path = os.path.join(shared_data.cwd, "sensor_modules")
         sys.path.append(shared_data.graph_modules_path)
+        sys.path.append(shared_data.sensor_modules_path)
         shared_data.graph_presets_path = os.path.join(shared_data.cwd, "graph_presets")
         shared_data.datawall_presets_path = os.path.join(shared_data.cwd, "datawall_presets")
         #
@@ -7372,7 +7385,7 @@ class graphing_ctrl_pnl(wx.Panel):
         self.select_log_btn.Bind(wx.EVT_BUTTON, self.select_log_click)
         # load data using a sucker modules
         self.module_sucker_text = wx.StaticText(self,  label='Data Sucker Modules')
-        self.module_sucker_cb = wx.ComboBox(self, choices=self.get_module_options("sucker_"))
+        self.module_sucker_cb = wx.ComboBox(self, choices=get_module_options("sucker_", "graph_modules"))
         self.module_sucker_go_btn = wx.Button(self, label='Go')
         self.module_sucker_go_btn.Bind(wx.EVT_BUTTON, self.suck_from_imported_module)
         # graph section
@@ -7381,7 +7394,7 @@ class graphing_ctrl_pnl(wx.Panel):
         # make_graph_from_imported_module
         self.refresh_module_graph_btn = wx.Button(self, label='R', size=(40,30))
         self.refresh_module_graph_btn.Bind(wx.EVT_BUTTON, self.refresh_module_graph_go)
-        self.module_graph_choice = wx.ComboBox(self,  size=(150, 30), choices = self.get_module_options("graph_"))
+        self.module_graph_choice = wx.ComboBox(self,  size=(150, 30), choices = get_module_options("graph_","graph_modules"))
         self.module_graph_choice.Bind(wx.EVT_COMBOBOX, self.module_graph_choice_go)
 
         self.module_graph_btn = wx.Button(self, label='Make', size=(60,25))
@@ -7405,7 +7418,7 @@ class graphing_ctrl_pnl(wx.Panel):
         self.datawall_preset_l = wx.StaticText(self,  label='preset')
         self.dw_preset_list_cb = wx.ComboBox(self,  size=(150, 30), choices = [])
         self.datawall_module_l = wx.StaticText(self,  label='module')
-        self.dw_module_list_cb = wx.ComboBox(self,  size=(150, 30), choices = self.get_module_options("datawall_"))
+        self.dw_module_list_cb = wx.ComboBox(self,  size=(150, 30), choices = get_module_options("datawall_", "graph_modules"))
         self.module_dw_btn = wx.Button(self, label='Make', size=(60,25))
         self.module_dw_btn.Bind(wx.EVT_BUTTON, self.make_datawall_from_module)
 
@@ -7925,29 +7938,17 @@ class graphing_ctrl_pnl(wx.Panel):
             MainApp.graphing_info_pannel.size_h_cb.SetValue("655")
         return size_h, size_v
 
-    def get_module_options(self, module_prefix, graph_folder="graph_modules"):
-        list_of_modules = []
-        graph_modules_folder = os.path.join(os.getcwd(), graph_folder)
-        module_options = os.listdir(graph_modules_folder)
-        for file in module_options:
-            if module_prefix in file:
-                file = file.split(module_prefix)[1]
-                if ".py" in file:
-                    file = file.split(".py")[0]
-                    list_of_modules.append(file)
-        return list_of_modules
-
     def module_graph_choice_go(self, e):
         self.graph_module_settings_click("e")
 
     def refresh_module_graph_go(self, e):
         #
         self.module_graph_choice.Clear()
-        module_list = self.get_module_options("graph_")
+        module_list = get_module_options("graph_", "graph_modules")
         self.module_graph_choice.Append(module_list)
         #
         self.module_sucker_cb.Clear()
-        module_list = self.get_module_options("sucker_")
+        module_list = get_module_options("sucker_", "graph_modules")
         self.module_sucker_cb.Append(module_list)
 
     def graph_module_settings_click(self, e):
@@ -11989,6 +11990,12 @@ class sensors_ctrl_pnl(wx.Panel):
         self.ads1115_l = wx.StaticText(self,  label='ADS1115 ADC;')
         self.add_ads1115 = wx.Button(self, label='add new ADS1115')
         self.add_ads1115.Bind(wx.EVT_BUTTON, self.add_ads1115_click)
+        #  == Modular Sensor Controlls
+        self.modular_sensor_l = wx.StaticText(self,  label='Modular Sensors;')
+        self.sensor_module_list_cb = wx.ComboBox(self,  size=(150, 30), choices = get_module_options("sensor_", "sensor_modules"))
+        self.add_modular_sensor = wx.Button(self, label='Add')
+        self.add_modular_sensor.Bind(wx.EVT_BUTTON, self.add_modular_sensor_click)
+
         # Sizers
 
         main_sizer =  wx.BoxSizer(wx.VERTICAL)
@@ -12006,8 +12013,28 @@ class sensors_ctrl_pnl(wx.Panel):
         main_sizer.Add(self.ads1115_l, 0, wx.ALL|wx.EXPAND, 3)
         main_sizer.Add(self.add_ads1115, 0, wx.ALL|wx.EXPAND, 3)
         main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
+        main_sizer.Add(self.modular_sensor_l, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.Add(self.sensor_module_list_cb, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.Add(self.add_modular_sensor, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.AddStretchSpacer(1)
         self.SetSizer(main_sizer)
+
+    def add_modular_sensor_click(self, e):
+        # set blanks for dialog box
+        module_name = MainApp.sensors_ctrl_pannel.sensor_module_list_cb.GetValue()
+        MainApp.sensors_info_pannel.sensor_list.s_name = ""
+        log_path = ""
+        if 'log_path' in MainApp.config_ctrl_pannel.dirlocs_dict:
+            log_path = MainApp.config_ctrl_pannel.dirlocs_dict["log_path"] +  module_name + "_log.txt"
+        MainApp.sensors_info_pannel.sensor_list.s_log = log_path
+        MainApp.sensors_info_pannel.sensor_list.s_loc = ""
+        MainApp.sensors_info_pannel.sensor_list.s_extra = ""
+        MainApp.sensors_info_pannel.sensor_list.s_timing = ""
+        # call dialog box
+        add_module_sensor = add_sensor_from_module_dialog(None)
+        add_module_sensor.ShowModal()
+
 
     def add_ads1115_click(self, e):
         # set blanks for dialog box
@@ -12090,6 +12117,174 @@ class sensors_ctrl_pnl(wx.Panel):
         # show selected controls
         if self.sensor_cb.GetValue() == "Soil Moisture":
             self.soil_sensor_cb.Hide()
+
+class add_sensor_from_module_dialog(wx.Dialog):
+    def __init__(self, *args, **kw):
+        super(add_sensor_from_module_dialog, self).__init__(*args, **kw)
+        self.InitUI()
+        self.SetSize((800, 700))
+        self.SetTitle("Sesnor Setup from Module")
+        self.Bind(wx.EVT_CLOSE, self.OnClose)
+
+    def InitUI(self):
+        # read values - blank for adding a new sensor, used when editing existing entry
+        self.s_name  = MainApp.sensors_info_pannel.sensor_list.s_name
+        self.s_type  = MainApp.sensors_ctrl_pannel.sensor_module_list_cb.GetValue()
+        self.s_log   = MainApp.sensors_info_pannel.sensor_list.s_log
+        self.s_loc   = MainApp.sensors_info_pannel.sensor_list.s_loc
+        self.s_extra = MainApp.sensors_info_pannel.sensor_list.s_extra
+        self.timing_string = MainApp.sensors_info_pannel.sensor_list.s_timing
+        try:
+            s_rep     = MainApp.sensors_info_pannel.sensor_list.s_timing.split(" ")[0]
+            s_rep_txt = MainApp.sensors_info_pannel.sensor_list.s_timing.split(" ")[1]
+        except:
+            s_rep = ""
+            s_rep_txt = ""
+        self.import_sensor_module()
+        # panel
+        pnl = wx.Panel(self)
+        box_label = wx.StaticText(self,  label='Sensor module: ' + self.s_type)
+        box_label.SetFont(shared_data.title_font)
+        # buttons_
+        self.add_btn = wx.Button(self, label='OK', size=(175, 30))
+        self.add_btn.Bind(wx.EVT_BUTTON, self.add_click)
+        self.cancel_btn = wx.Button(self, label='Cancel', size=(175, 30))
+        self.cancel_btn.Bind(wx.EVT_BUTTON, self.OnClose)
+        # hardware information
+        name_l = wx.StaticText(self,  label='Unique Name')
+        self.name_tc = wx.TextCtrl(self, size=(400,30))
+        log_l = wx.StaticText(self,  label='Log Location')
+        self.log_tc = wx.TextCtrl(self, size=(400,30))
+        self.graph_btn = wx.Button(self, label='Graph', size=(175, 30))
+        # self.graph_btn.Bind(wx.EVT_BUTTON, self.graph_click)
+        sensor_l = wx.StaticText(self,  label='Sensor Location')
+
+        # auto list i2c sensors
+        found_sensor_list = sensor_module.sensor_config.connection_address_list # a list of all possible sensor locations for the interface type
+             #---- add function here to remove sensors already added
+        self.sensor_connection = wx.StaticText(self,  label=sensor_module.sensor_config.connection_type)
+        self.loc_cb = wx.ComboBox(self, choices = found_sensor_list, size=(170, 25))
+        if not sensor_module.sensor_config.default_connection_address == "":
+            self.loc_cb.SetValue(sensor_module.sensor_config.default_connection_address)
+
+        # Read sensor button
+        self.read_sensor_btn = wx.Button(self, label='Read Sensor')
+        self.read_sensor_btn.Bind(wx.EVT_BUTTON, self.read_sensor_click)
+        self.read_output_l = wx.StaticText(self,  label='')
+        # timing string
+        timeing_l = wx.StaticText(self,  label='Repeating every ')
+        self.rep_num_tc = wx.TextCtrl(self, size=(70,30))
+        cron_repeat_opts = ['min', 'hour', 'day', 'month', 'dow']
+        self.rep_opts_cb = wx.ComboBox(self, choices = cron_repeat_opts, size=(100, 30))
+
+
+        # Sizers
+        loc_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        loc_sizer.Add(self.sensor_connection, 0, wx.ALL|wx.EXPAND, 3)
+        loc_sizer.Add(self.loc_cb, 0, wx.ALL|wx.EXPAND, 3)
+        loc_sizer.Add(self.read_sensor_btn, 0, wx.ALL, 3)
+        loc_sizer.Add(self.read_output_l, 0, wx.ALL, 3)
+        timing_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        timing_sizer.Add(self.rep_num_tc, 0, wx.ALL, 3)
+        timing_sizer.Add(self.rep_opts_cb, 0, wx.ALL, 3)
+        log_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        log_sizer.Add(self.log_tc, 2, wx.ALL, 3)
+        log_sizer.Add(self.graph_btn, 0, wx.ALL, 3)
+        options_sizer = wx.FlexGridSizer(4, 2, 1, 4)
+        options_sizer.AddMany([ (name_l, 0, wx.EXPAND),
+            (self.name_tc, 0, wx.EXPAND),
+            (log_l, 0, wx.EXPAND),
+            (log_sizer, 0, wx.EXPAND),
+            (sensor_l, 0, wx.EXPAND),
+            (loc_sizer, 0, wx.EXPAND),
+            (timeing_l, 0, wx.EXPAND),
+            (timing_sizer, 0, wx.EXPAND) ])
+        buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        buttons_sizer.Add(self.add_btn, 0,  wx.ALIGN_LEFT, 3)
+        buttons_sizer.Add(self.cancel_btn, 0,  wx.ALIGN_RIGHT, 3)
+        main_sizer =  wx.BoxSizer(wx.VERTICAL)
+        main_sizer.Add(box_label, 0, wx.ALL|wx.EXPAND, 5)
+        main_sizer.Add(options_sizer, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(buttons_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
+        main_sizer.AddStretchSpacer(1)
+        self.SetSizer(main_sizer)
+
+
+
+        # set values for when reading from double click
+        self.name_tc.SetValue(self.s_name)
+        self.log_tc.SetValue(self.s_log)
+        if not self.s_loc == "":
+            self.loc_cb.SetValue(self.s_loc)
+        self.rep_num_tc.SetValue(s_rep)
+        self.rep_opts_cb.SetValue(s_rep_txt)
+
+
+    def import_sensor_module(self):
+        module_name = self.s_type
+        print(" Importing module; " + module_name)
+        module_name = "sensor_" + module_name
+        if module_name in sys.modules:
+            del sys.modules[module_name]
+        exec('import ' + module_name + ' as sensor_module', globals())
+
+    def read_sensor_click(self, e):
+        module_name = self.s_type
+        print(" - attenmpting to read sensor using module -" + module_name)
+        module_path = "/home/" + pi_link_pnl.target_user + "/Pigrow/scripts/gui/sensor_modules/sensor_" + module_name + ".py"
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi(module_path)
+        self.read_output_l.SetLabel(out)
+        print(out, error)
+
+
+    def add_click(self, e):
+        o_name = self.name_tc.GetValue()
+        o_log = self.log_tc.GetValue()
+        o_loc = self.loc_cb.GetValue()
+        new_cron_num = self.rep_num_tc.GetValue()
+        new_cron_txt = self.rep_opts_cb.GetValue()
+        new_timing_string = str(new_cron_num) + " " + new_cron_txt
+        o_extra = self.make_extra_settings_string()
+        # check to see if changes have been made
+        changed = "probably something"
+        if self.s_name == o_name:
+            #print("name not changed")
+            if self.s_log == o_log:
+                #print("log path not changed")
+                if self.s_loc == o_loc:
+                    #print("wiring location not changed")
+                    if self.s_extra == o_extra:
+                        #print("extra field not changed")
+                        changed = "nothing"
+                        #nothing has changed in the config file so no need to update.
+        # check to see if changes have been made to the cron timing
+        if self.timing_string == new_timing_string and changed == "nothing":
+            print(" -- Timing string didn't change, nor did any settings -- ")
+        else:
+            self.edit_cron_job(o_log, o_loc[0:3], new_cron_txt, new_cron_num)
+
+        # config file changes
+        if changed == "nothing":
+            print("------- config settings not changed -------")
+        else:
+            log_freq = str(new_cron_num) + " " + new_cron_txt
+            MainApp.sensors_info_pannel.sensor_list.add_to_sensor_list(o_name,self.s_type,o_log,o_loc,o_extra,log_freq)
+            MainApp.config_ctrl_pannel.config_dict["sensor_" + o_name + "_type"] = self.s_type
+            MainApp.config_ctrl_pannel.config_dict["sensor_" + o_name + "_log"] = o_log
+            MainApp.config_ctrl_pannel.config_dict["sensor_" + o_name + "_loc"] = o_loc
+            MainApp.config_ctrl_pannel.config_dict["sensor_" + o_name + "_extra"] = o_extra
+            MainApp.config_ctrl_pannel.update_setting_file_on_pi_click('e')
+        self.Destroy()
+
+    def OnClose(self, e):
+        MainApp.sensors_info_pannel.sensor_list.s_name = ""
+        MainApp.sensors_info_pannel.sensor_list.s_log = ""
+        MainApp.sensors_info_pannel.sensor_list.s_loc = ""
+        MainApp.sensors_info_pannel.sensor_list.s_extra = ""
+        MainApp.sensors_info_pannel.sensor_list.s_timing = ""
+        self.Destroy()
+
 
 class ads1115_dialog(wx.Dialog):
     """
@@ -13790,7 +13985,6 @@ class view_pnl(wx.Panel):
     def __init__( self, parent ):
         wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, style = wx.TAB_TRAVERSAL )
         self.SetBackgroundColour((230,200,170)) #TESTING ONLY REMOVE WHEN SIZING IS DONE AND ALL THAT BUSINESS
-        #view_opts = ['System Config', 'Pigrow Setup', 'Camera Config', 'Cron Timing', 'multi-script', 'Local Files', 'Timelapse', 'Graphs', 'Live View', 'pieye watcher']
         #Showing only completed tabs
         view_opts = ['System Config', 'Pigrow Setup', 'Camera Config', 'Cron Timing', 'Local Files', 'Timelapse', 'Graphs', 'Sensors', "User Logs"]
         self.view_cb = wx.ComboBox(self, choices = view_opts)
