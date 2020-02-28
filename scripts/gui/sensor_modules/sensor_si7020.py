@@ -1,6 +1,5 @@
 #!/usr/bin/python3
 class sensor_config():
-    print(" Sensor config module run ")
     connection_type="i2c"
     connection_address_list=["0x40"]
     default_connection_address="0x40"
