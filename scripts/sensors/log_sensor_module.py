@@ -75,7 +75,7 @@ except:
     sys.exit()
 
 # Import Sensor Module
-module_name = "sensor_" + sensor_type + ".py"
+module_name = "sensor_" + sensor_type
 try:
     exec('import ' + module_name + ' as sensor_module', globals())
 except:
