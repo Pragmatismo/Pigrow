@@ -39,9 +39,6 @@ except:
 loc_dic = pigrow_defs.load_locs(homedir + '/Pigrow/config/dirlocs.txt')
 pigrow_settings = pigrow_defs.load_settings(loc_dic['loc_settings'])
 
-### TESTING
-print (pigrow_settings)
-
 # Read the sensor info from the settigns file
 sensor_type = None
 sensor_log = None
@@ -65,17 +62,18 @@ if sensor_type == None or sensor_log == None or sensor_loc == None or sensor_ext
     sys.exit()
 
 ### TESTING
-print (sensor_type, sensor_log, sensor_loc)
+print (sensor_type, sensor_log, sensor_loc, sensor_extra)
 
 # Import Sensor Module
 try:
-    sys.path.append(homedir + '/Pigrow/scripts/gui/sensor_modules')
+    sys.path.append(homedir + '/Pigrow/scripts/gui/sensor_modules/')
     module_name = "sensor_" + sensor_type + ".py"
     exec('import ' + module_name + ' as sensor_module', globals())
 except:
     err_msg = "Failed to import sensor module for " + sensor_type
     print(err_msg)
     pigrow_defs.write_log('log_sensor_module.py', err_msg, loc_dic['err_log'])
+    sys.exit()
 
 # Read Sensor
 sensor_values = sensor_module.read_sensor()
