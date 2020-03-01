@@ -62,6 +62,7 @@ if sensor_type == None or sensor_log == None or sensor_loc == None or sensor_ext
     err_msg = "Sensor settings not found in " + loc_dic['loc_settings']
     print(err_msg)
     pigrow_defs.write_log('log_sensor_module.py', err_msg, loc_dic['err_log'])
+    sys.exit()
 
 ### TESTING
 print (sensor_type, sensor_log, sensor_loc)
