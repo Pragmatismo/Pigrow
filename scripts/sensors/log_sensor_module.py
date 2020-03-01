@@ -37,7 +37,7 @@ except:
     print("make sure pigrow software is installed correctly")
     sys.exit()
 loc_dic = pigrow_defs.load_locs(homedir + '/Pigrow/config/dirlocs.txt')
-pigrow_settings = pigrow_defs.load_settings(dir_locs['loc_settings'])
+pigrow_settings = pigrow_defs.load_settings(loc_dic['loc_settings'])
 
 ### TESTING
 print (pigrow_settings)
@@ -59,7 +59,7 @@ for key, value in list(MainApp.config_ctrl_pannel.config_dict.items()):
         elif "extra" in key:
             sensor_extra = value
 if sensor_type == None or sensor_log == None or sensor_loc == None or sensor_extra == None:
-    err_msg = "Sensor settings not found in " + dir_locs('loc_settings')
+    err_msg = "Sensor settings not found in " + loc_dic['loc_settings']
     print(err_msg)
     pigrow_defs.write_log('log_sensor_module.py', err_msg, loc_dic['err_log'])
 
