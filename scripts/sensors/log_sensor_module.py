@@ -90,8 +90,8 @@ sensor_values = sensor_module.read_sensor()
 # Create log line containing each returned value
 line = ""
 for x in sensor_values:
-    line = line + str(x[0]) + "=" + str(x[1])
-line = line + "\n"
+    line = line + str(x[0]) + "=" + str(x[1]) + ">"
+line = line[:-1] + "\n"
 
 # Write log line to log
 try:
