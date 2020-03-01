@@ -47,7 +47,7 @@ sensor_type = None
 sensor_log = None
 sensor_loc = None
 sensor_extra = None
-for key, value in list(MainApp.config_ctrl_pannel.config_dict.items()):
+for key, value in list(pigrow_settings.items()):
     sensor_key = "sensor_" + sensor_name
     if sensor_key in key:
         if "type" in key:
