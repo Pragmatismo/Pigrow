@@ -77,7 +77,7 @@ except:
     pigrow_defs.write_log('log_sensor_module.py', err_msg, loc_dic['err_log'])
 
 # Read Sensor
-sensor_values = read_sensor()
+sensor_values = sensor_module.read_sensor()
 
 # Create log line containing each returned value
 line = ""
