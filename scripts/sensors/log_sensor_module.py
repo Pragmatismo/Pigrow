@@ -64,10 +64,19 @@ if sensor_type == None or sensor_log == None or sensor_loc == None or sensor_ext
 ### TESTING
 print (sensor_type, sensor_log, sensor_loc, sensor_extra)
 
-# Import Sensor Module
+# Add sensor modules path to sys
+sensor_modules_path = homedir + '/Pigrow/scripts/gui/sensor_modules/'
 try:
-    sys.path.append(homedir + '/Pigrow/scripts/gui/sensor_modules/')
-    module_name = "sensor_" + sensor_type + ".py"
+    sys.path.append(sensor_modules_path)
+except:
+    err_msg = "Failed to add modules folder; " + sensor_modules_path
+    print(err_msg)
+    pigrow_defs.write_log('log_sensor_module.py', err_msg, loc_dic['err_log'])
+    sys.exit()
+
+# Import Sensor Module
+module_name = "sensor_" + sensor_type + ".py"
+try:
     exec('import ' + module_name + ' as sensor_module', globals())
 except:
     err_msg = "Failed to import sensor module for " + sensor_type
