@@ -5,7 +5,7 @@ class sensor_config():
     default_connection_address="0x40"
 
 
-def read_sensor():
+def read_sensor(*args):
     # Try importing the modules then give-up and report to user if it fails
     import datetime
     try:
