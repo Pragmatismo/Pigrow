@@ -20,6 +20,10 @@ for argu in sys.argv[1:]:
         print("name=")
         sys.exit(0)
 
+if button_name == None:
+    print("Button not identified, please include name= in the commandline arguments.")
+    sys.exit()
+
 # Read the settings file
 homedir = os.getenv("HOME")
 sys.path.append(homedir + '/Pigrow/scripts/')
