@@ -11910,7 +11910,7 @@ class sensors_info_pnl(wx.Panel):
         def make_sensor_table(self, e):
             sensor_name_list = []
             button_name_list = []
-            print("Using config_dict to fill sensor table")
+            print("  - Using config_dict to fill sensor table")
             self.DeleteAllItems()
             # Create a list of items
             for key, value in list(MainApp.config_ctrl_pannel.config_dict.items()):
@@ -11948,6 +11948,12 @@ class sensors_info_pnl(wx.Panel):
                                 log_freq = str(freq_num) + " " + freq_text
                         if "log_ads1115.py" in job_name:
                             if loc[0:3] in job_extra:
+                                log_freq = cron_list_pnl.repeat_cron.GetItem(index, 2).GetText()
+                                freq_num, freq_text = cron_list_pnl.repeating_cron_list.parse_cron_string(self, log_freq)
+                                log_freq = str(freq_num) + " " + freq_text
+                        # modular sensors
+                        if "log_sensor_module.py" in job_name:
+                            if "name=" + sensor_name in job_extra:
                                 log_freq = cron_list_pnl.repeat_cron.GetItem(index, 2).GetText()
                                 freq_num, freq_text = cron_list_pnl.repeating_cron_list.parse_cron_string(self, log_freq)
                                 log_freq = str(freq_num) + " " + freq_text
@@ -11997,6 +12003,7 @@ class sensors_info_pnl(wx.Panel):
                 elif type == "ADS1115":
                     ads1115_dialog_box = ads1115_dialog(None)
                     ads1115_dialog_box.ShowModal()
+                # modular sensors
                 else:
                     modular_sensor_dialog_box = add_sensor_from_module_dialog(None)
                     modular_sensor_dialog_box.ShowModal()
@@ -12299,7 +12306,7 @@ class add_sensor_from_module_dialog(wx.Dialog):
             cron_args    = "name=" + new_name
             cron_comment = cron_list_pnl.repeat_cron.GetItem(line_number_repeting_cron, 5).GetText()
             timing_string = cron_info_pnl.make_repeating_cron_timestring(self, new_cron_txt, new_cron_num)
-            print("    - Cron job; " + line_number_repeting_cron + " modified " + cron_enabled + " " + timing_string + " " + cron_task + " " + cron_args + " " + cron_comment)
+            print("    - Cron job; " + str(line_number_repeting_cron) + " modified " + cron_enabled + " " + timing_string + " " + cron_task + " " + cron_args + " " + cron_comment)
             cron_list_pnl.repeat_cron.DeleteItem(line_number_repeting_cron)
             cron_info_pnl.add_to_repeat_list(MainApp.cron_info_pannel, 'modified', cron_enabled, timing_string, cron_task, cron_args, cron_comment)
             MainApp.cron_info_pannel.update_cron_click("e")
