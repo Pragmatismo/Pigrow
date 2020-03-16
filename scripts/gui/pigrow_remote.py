@@ -11882,28 +11882,50 @@ class sensors_info_pnl(wx.Panel):
             self.SetColumnWidth(4, 175)
             self.SetColumnWidth(5, 100)
 
+        def read_sensor_conf(self, item_name, config_dict, prefix):
+            # Extract sensor config info from config dictionary
+            # Type
+            if prefix + item_name + "_type" in config_dict:
+                type  = config_dict[prefix + item_name + "_type"]
+            else:
+                type = ""
+            # log location
+            if prefix + item_name + "_log" in config_dict:
+                log   = config_dict[prefix + item_name + "_log"]
+            else:
+                log = ""
+            # sensor location (connection type and pin / address)
+            if prefix + item_name + "_loc" in config_dict:
+                loc   = config_dict[prefix + item_name + "_loc"]
+            else:
+                loc = ""
+            # extra settings string (possibly obsolete)
+            if prefix + item_name + "_extra" in config_dict:
+                extra = config_dict[prefix + item_name + "_extra"]
+            else:
+                extra = ""
+            return type, log, loc, extra
+
+
         def make_sensor_table(self, e):
             sensor_name_list = []
+            button_name_list = []
             print("Using config_dict to fill sensor table")
             self.DeleteAllItems()
+            # Create a list of items
             for key, value in list(MainApp.config_ctrl_pannel.config_dict.items()):
-                if "sensor_" in key:
-                    if "_type" in key:
+                if "_type" in key:
+                    if "sensor_" in key:
                         sensor_name_list.append(key.split("_")[1])
-            for sensor in sensor_name_list:
-                type  = MainApp.config_ctrl_pannel.config_dict['sensor_' + sensor + "_type"]
-                if 'sensor_' + sensor + "_log" in MainApp.config_ctrl_pannel.config_dict:
-                    log   = MainApp.config_ctrl_pannel.config_dict['sensor_' + sensor + "_log"]
-                else:
-                    log = ""
-                if 'sensor_' + sensor + "_loc" in MainApp.config_ctrl_pannel.config_dict:
-                    loc   = MainApp.config_ctrl_pannel.config_dict['sensor_' + sensor + "_loc"]
-                else:
-                    loc = ""
-                if 'sensor_' + sensor + "_extra" in MainApp.config_ctrl_pannel.config_dict:
-                    extra = MainApp.config_ctrl_pannel.config_dict['sensor_' + sensor + "_extra"]
-                else:
-                    extra = ""
+                    if "button_" in key:
+                        button_name_list.append(key.split("_")[1])
+            # add buttons to table
+            for button_name in button_name_list:
+                type, log, loc, extra = self.read_sensor_conf(button_name, MainApp.config_ctrl_pannel.config_dict, "button_")
+                self.add_to_sensor_list(button_name, type, log, loc, extra, "button")
+            # add sensors to table
+            for sensor_name in sensor_name_list:
+                type, log, loc, extra = self.read_sensor_conf(sensor_name, MainApp.config_ctrl_pannel.config_dict, "sensor_")
                 #
                 # check cron to see if sensor is being logged and how often
                 #
@@ -11913,7 +11935,7 @@ class sensors_info_pnl(wx.Panel):
                     for index in range(0, last_index):
                         job_name  = cron_list_pnl.repeat_cron.GetItem(index, 3).GetText()
                         job_extra = cron_list_pnl.repeat_cron.GetItem(index, 4).GetText()
-                        extra_name  = "name=" + str(sensor)
+                        extra_name  = "name=" + str(sensor_name)
                         if "log_chirp.py" in job_name:
                             if loc[4:] in job_extra:
                                 log_freq = cron_list_pnl.repeat_cron.GetItem(index, 2).GetText()
@@ -11929,8 +11951,13 @@ class sensors_info_pnl(wx.Panel):
                                 log_freq = cron_list_pnl.repeat_cron.GetItem(index, 2).GetText()
                                 freq_num, freq_text = cron_list_pnl.repeating_cron_list.parse_cron_string(self, log_freq)
                                 log_freq = str(freq_num) + " " + freq_text
+
+                # get settings for buttons
                 #
-                self.add_to_sensor_list(sensor, type, log, loc, extra, log_freq)
+                self.add_to_sensor_list(sensor_name, type, log, loc, extra, log_freq)
+
+
+
 
         def add_to_sensor_list(self, sensor, type, log, loc, extra='', log_freq=''):
             #MainApp.sensors_info_pannel.sensor_list.add_to_sensor_list(sensor,type,log,loc,extra)
@@ -11952,19 +11979,28 @@ class sensors_info_pnl(wx.Panel):
             timing_string = MainApp.sensors_info_pannel.sensor_list.GetItem(index, 5).GetText()
             #print(" Selected item - " + name + " - " + type + " - " + loc + " - " + extra + " - " + timing_string)
             MainApp.sensors_info_pannel.sensor_list.s_name = name
+            MainApp.sensors_info_pannel.sensor_list.s_type = type
             MainApp.sensors_info_pannel.sensor_list.s_log = log
             MainApp.sensors_info_pannel.sensor_list.s_loc = loc
             MainApp.sensors_info_pannel.sensor_list.s_extra = extra
             MainApp.sensors_info_pannel.sensor_list.s_timing = timing_string
-            if type == 'chirp':
-                edit_chirp_dbox = chirp_dialog(None)
-                edit_chirp_dbox.ShowModal()
-            elif type == "DS18B20":
-                ds18b20_dialog_box = ds18b20_dialog(None)
-                ds18b20_dialog_box.ShowModal()
-            elif type == "ADS1115":
-                ads1115_dialog_box = ads1115_dialog(None)
-                ads1115_dialog_box.ShowModal()
+            if timing_string == "button":
+                print(" Editing buttons coming soon!")
+            else:
+                # old style sensors
+                if type == 'chirp':
+                    edit_chirp_dbox = chirp_dialog(None)
+                    edit_chirp_dbox.ShowModal()
+                elif type == "DS18B20":
+                    ds18b20_dialog_box = ds18b20_dialog(None)
+                    ds18b20_dialog_box.ShowModal()
+                elif type == "ADS1115":
+                    ads1115_dialog_box = ads1115_dialog(None)
+                    ads1115_dialog_box.ShowModal()
+                else:
+                    modular_sensor_dialog_box = add_sensor_from_module_dialog(None)
+                    modular_sensor_dialog_box.ShowModal()
+
 
 class sensors_ctrl_pnl(wx.Panel):
     def __init__(self, parent):
@@ -12023,6 +12059,7 @@ class sensors_ctrl_pnl(wx.Panel):
     def add_modular_sensor_click(self, e):
         # set blanks for dialog box
         module_name = MainApp.sensors_ctrl_pannel.sensor_module_list_cb.GetValue()
+        MainApp.sensors_info_pannel.sensor_list.s_type = module_name
         MainApp.sensors_info_pannel.sensor_list.s_name = ""
         log_path = ""
         if 'log_path' in MainApp.config_ctrl_pannel.dirlocs_dict:
@@ -12129,7 +12166,7 @@ class add_sensor_from_module_dialog(wx.Dialog):
     def InitUI(self):
         # read values - blank for adding a new sensor, used when editing existing entry
         self.s_name  = MainApp.sensors_info_pannel.sensor_list.s_name
-        self.s_type  = MainApp.sensors_ctrl_pannel.sensor_module_list_cb.GetValue()
+        self.s_type  = MainApp.sensors_info_pannel.sensor_list.s_type
         self.s_log   = MainApp.sensors_info_pannel.sensor_list.s_log
         self.s_loc   = MainApp.sensors_info_pannel.sensor_list.s_loc
         self.s_extra = MainApp.sensors_info_pannel.sensor_list.s_extra
@@ -12237,6 +12274,45 @@ class add_sensor_from_module_dialog(wx.Dialog):
         self.read_output_l.SetLabel(out)
         print(out, error)
 
+    def make_extra_settings_string(self):
+        print(" -Extra settings string not yet implemented, coming sooon")
+        return ""
+
+    def edit_cron_job(self, start_name, new_name, new_cron_txt, new_cron_num):
+    # check to find cron job handling this sensor
+        print(" - Checking cron for existing jobs")
+        line_number_repeting_cron = -1
+        for index in range(0, cron_list_pnl.repeat_cron.GetItemCount()):
+            cmd_path = cron_list_pnl.repeat_cron.GetItem(index, 3).GetText()
+            if "log_sensor_module.py" in cmd_path:
+                print("    -Found  ;- " + cmd_path)
+                cmd_args = cron_list_pnl.repeat_cron.GetItem(index, 4).GetText()
+                if  "name=" + start_name in cmd_args.lower():
+                    print("    -Located; " + start_name)
+                    line_number_repeting_cron = index
+
+        # check to see if this is a new job or not
+        if not line_number_repeting_cron == -1:
+            cron_enabled = cron_list_pnl.repeat_cron.GetItem(line_number_repeting_cron, 1).GetText()
+            cron_task    = cron_list_pnl.repeat_cron.GetItem(line_number_repeting_cron, 3).GetText()
+            # cron_args_original = cron_list_pnl.repeat_cron.GetItem(line_number_repeting_cron, 4).GetText()
+            cron_args    = "name=" + new_name
+            cron_comment = cron_list_pnl.repeat_cron.GetItem(line_number_repeting_cron, 5).GetText()
+            timing_string = cron_info_pnl.make_repeating_cron_timestring(self, new_cron_txt, new_cron_num)
+            print("    - Cron job; " + line_number_repeting_cron + " modified " + cron_enabled + " " + timing_string + " " + cron_task + " " + cron_args + " " + cron_comment)
+            cron_list_pnl.repeat_cron.DeleteItem(line_number_repeting_cron)
+            cron_info_pnl.add_to_repeat_list(MainApp.cron_info_pannel, 'modified', cron_enabled, timing_string, cron_task, cron_args, cron_comment)
+            MainApp.cron_info_pannel.update_cron_click("e")
+        else:
+            print("    - Job not currently in cron, adding it...")
+            cron_enabled = "True"
+            cron_task = "/home/" + pi_link_pnl.target_user + "/Pigrow/scripts/sensors/log_sensor_module.py"
+            cron_args = "name=" + new_name
+            timing_string = cron_info_pnl.make_repeating_cron_timestring(self, new_cron_txt, new_cron_num)
+            cron_comment = ""
+            cron_info_pnl.add_to_repeat_list(MainApp.cron_info_pannel, 'new', cron_enabled, timing_string, cron_task, cron_args, cron_comment)
+            print("    - New Cron job; " + cron_enabled + " " + timing_string + " " + cron_task + " " + cron_args + " " + cron_comment)
+            MainApp.cron_info_pannel.update_cron_click("e")
 
     def add_click(self, e):
         o_name = self.name_tc.GetValue()
@@ -12262,7 +12338,7 @@ class add_sensor_from_module_dialog(wx.Dialog):
         if self.timing_string == new_timing_string and changed == "nothing":
             print(" -- Timing string didn't change, nor did any settings -- ")
         else:
-            self.edit_cron_job(o_log, o_loc[0:3], new_cron_txt, new_cron_num)
+            self.edit_cron_job(self.s_name, o_name, new_cron_txt, new_cron_num)
 
         # config file changes
         if changed == "nothing":
