@@ -200,6 +200,25 @@ def set_caps_path(loc_dic, caps_path):
                 caps_path = ""
     return caps_path
 
+
+#
+# System checks
+#
+
+def check_disk_percentage(caps_path):
+    st = os.statvfs(caps_path)
+    #free = (st.f_bavail * st.f_frsize)
+    total = (st.f_blocks * st.f_frsize)
+    used = (st.f_blocks - st.f_bfree) * st.f_frsize
+    try:
+        percent = (float(used) / total) * 100
+    except ZeroDivisionError:
+        percent = 0
+    print("   Used " + str(percent) + "%, max limit " + str(max_disk_percent) + "%")
+    if percent > max_disk_percent:
+        print(" - You do not have enough space on the drive to store more images, cancelling attempt.")
+        sys.exit()
+
 if __name__ == '__main__':
     sys.path.append(homedir + '/Pigrow/scripts/')
     script = 'picamcap.py'
@@ -207,6 +226,7 @@ if __name__ == '__main__':
     loc_locs = homedir + '/Pigrow/config/dirlocs.txt'
     loc_dic = pigrow_defs.load_locs(loc_locs)
     caps_path = set_caps_path(loc_dic, caps_path)
+    check_disk_percentage(caps_path)
     picam_dic = load_picam_set(setloc=settings_file)
     filename = take_picam_py(picam_dic, caps_path)
     #filename = take_picam_raspistill(picam_dic, caps_path)

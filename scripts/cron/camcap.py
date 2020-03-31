@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 import time
 import os
 import sys
@@ -16,6 +16,7 @@ loc_dic = {}         # the blank location dictionary which contains settings fil
 attempts = 3         # number of extra attempts if image fails 0-999
 retry_delay = 2      #time in seconds to wait before trying to take another image when failed
 log_error = True     # set to False if you don't want to note failure in the error log.
+max_disk_percent = 95 # only fill 90% of the disk
 
 #
 # Handle command line arguments
@@ -143,7 +144,7 @@ def load_camera_settings(settings_file):
                     elif key == "uvc_extra":
                         uvc_extra = val
         except Exception as e:
-            print e
+            print (e)
             print("looked at " + settings_file)
             print("but couldn't load config data for camera, resorting to default values")
             print("  - Use the remote gui to create a new config file")
@@ -241,6 +242,24 @@ def take_with_fswebcam(s_val="", c_val="", g_val="", b_val="", x_dim=100000, y_d
     return filename
 
 #
+# System checks
+#
+
+def check_disk_percentage(caps_path):
+    st = os.statvfs(caps_path)
+    #free = (st.f_bavail * st.f_frsize)
+    total = (st.f_blocks * st.f_frsize)
+    used = (st.f_blocks - st.f_bfree) * st.f_frsize
+    try:
+        percent = (float(used) / total) * 100
+    except ZeroDivisionError:
+        percent = 0
+    print("   Used " + str(percent) + "%, max limit " + str(max_disk_percent) + "%")
+    if percent > max_disk_percent:
+        print(" - You do not have enough space on the drive to store more images, cancelling attempt.")
+        sys.exit()
+
+#
 #
 # main program which runs unless we've imported this as a module via another script
 if __name__ == '__main__':
@@ -271,6 +290,7 @@ if __name__ == '__main__':
 
     # set the destination path for photos
     caps_path = set_caps_path(loc_dic, caps_path)
+    check_disk_percentage(caps_path)
     #Taking the photo with the selected camera program
     #first attempt
     if cam_opt == "uvccapture":
