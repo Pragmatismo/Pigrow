@@ -7,6 +7,8 @@ except:
     print("Picamera is not installed, is this even a raspberry pi?!")
     exit()
 
+# default settings
+max_disk_percent = 95 # only fill 90% of the disk
 homedir = os.getenv("HOME")
 settings_file = homedir + "/Pigrow/config/picam_settings.txt" # default changed with argu settings
 caps_path = None
