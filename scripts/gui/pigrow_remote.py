@@ -4692,6 +4692,7 @@ class cron_info_pnl(wx.Panel):
         print("cron information read and updated into tables.")
 
     def test_if_script_running(self, script):
+        print(" --- Note: cron tab start-up scripts table currently only tests if a script is active and ignores name= arguments ")
         #cron_info_pnl.test_if_script_running(MainApp.cron_info_pannel, script)
         script_text, error = MainApp.localfiles_ctrl_pannel.run_on_pi("pidof -x " + str(script))
         if script_text == '':
@@ -5575,6 +5576,7 @@ class localfiles_info_pnl(scrolled.ScrolledPanel):
 
         localfiles_info_pnl.folder_text.SetLabel(new_caps_folder)
         localfiles_info_pnl.caps_folder = new_caps_folder
+        MainApp.localfiles_ctrl_pannel.update_local_filelist_click("e")
 
 
 
@@ -5780,7 +5782,6 @@ class localfiles_ctrl_pnl(wx.Panel):
                     #add local config files to list and generate info
                     if item == "config":
                         config_list = []
-
                         config_files = os.listdir(item_path)
                         for thing in config_files:
                             if thing.endswith("txt"):
@@ -11991,7 +11992,8 @@ class sensors_info_pnl(wx.Panel):
             MainApp.sensors_info_pannel.sensor_list.s_extra = extra
             MainApp.sensors_info_pannel.sensor_list.s_timing = timing_string
             if timing_string == "button":
-                print(" Editing buttons coming soon!")
+                add_button = add_button_dialog(None)
+                add_button.ShowModal()
             else:
                 # old style sensors
                 if type == 'chirp':
@@ -12038,6 +12040,10 @@ class sensors_ctrl_pnl(wx.Panel):
         self.sensor_module_list_cb = wx.ComboBox(self,  size=(150, 30), choices = get_module_options("sensor_", "sensor_modules"))
         self.add_modular_sensor = wx.Button(self, label='Add')
         self.add_modular_sensor.Bind(wx.EVT_BUTTON, self.add_modular_sensor_click)
+        #  == Button Controlls
+        self.buttons_l = wx.StaticText(self,  label='Buttons;')
+        self.add_button = wx.Button(self, label='Add')
+        self.add_button.Bind(wx.EVT_BUTTON, self.add_button_click)
 
         # Sizers
 
@@ -12060,6 +12066,8 @@ class sensors_ctrl_pnl(wx.Panel):
         main_sizer.Add(self.sensor_module_list_cb, 0, wx.ALL|wx.EXPAND, 3)
         main_sizer.Add(self.add_modular_sensor, 0, wx.ALL|wx.EXPAND, 3)
         main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
+        main_sizer.Add(self.buttons_l, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.Add(self.add_button, 0, wx.ALL|wx.EXPAND, 3)
         main_sizer.AddStretchSpacer(1)
         self.SetSizer(main_sizer)
 
@@ -12078,6 +12086,22 @@ class sensors_ctrl_pnl(wx.Panel):
         # call dialog box
         add_module_sensor = add_sensor_from_module_dialog(None)
         add_module_sensor.ShowModal()
+
+    def add_button_click(self, e):
+        # set blanks for dialog box
+        module_name = MainApp.sensors_ctrl_pannel.sensor_module_list_cb.GetValue()
+        MainApp.sensors_info_pannel.sensor_list.s_type = ""
+        MainApp.sensors_info_pannel.sensor_list.s_name = ""
+        log_path = ""
+        if 'log_path' in MainApp.config_ctrl_pannel.dirlocs_dict:
+            log_path = MainApp.config_ctrl_pannel.dirlocs_dict["log_path"] + "button_log.txt"
+        MainApp.sensors_info_pannel.sensor_list.s_log = log_path
+        MainApp.sensors_info_pannel.sensor_list.s_loc = ""
+        MainApp.sensors_info_pannel.sensor_list.s_extra = ""
+        MainApp.sensors_info_pannel.sensor_list.s_timing = ""
+        # call dialog box
+        add_button = add_button_dialog(None)
+        add_button.ShowModal()
 
 
     def add_ads1115_click(self, e):
@@ -12167,7 +12191,7 @@ class add_sensor_from_module_dialog(wx.Dialog):
         super(add_sensor_from_module_dialog, self).__init__(*args, **kw)
         self.InitUI()
         self.SetSize((800, 700))
-        self.SetTitle("Sesnor Setup from Module")
+        self.SetTitle("Sensor Setup from Module")
         self.Bind(wx.EVT_CLOSE, self.OnClose)
 
     def InitUI(self):
@@ -12367,6 +12391,206 @@ class add_sensor_from_module_dialog(wx.Dialog):
         MainApp.sensors_info_pannel.sensor_list.s_extra = ""
         MainApp.sensors_info_pannel.sensor_list.s_timing = ""
         self.Destroy()
+
+class add_button_dialog(wx.Dialog):
+    def __init__(self, *args, **kw):
+        super(add_button_dialog, self).__init__(*args, **kw)
+        self.InitUI()
+        self.SetSize((800, 700))
+        self.SetTitle("Button Setup")
+        self.Bind(wx.EVT_CLOSE, self.OnClose)
+
+    def InitUI(self):
+        # read values - blank for adding a new sensor, used when editing existing entry
+        self.s_name  = MainApp.sensors_info_pannel.sensor_list.s_name
+        self.s_type  = MainApp.sensors_info_pannel.sensor_list.s_type
+        self.s_log   = MainApp.sensors_info_pannel.sensor_list.s_log
+        self.s_loc   = MainApp.sensors_info_pannel.sensor_list.s_loc
+        self.s_extra = MainApp.sensors_info_pannel.sensor_list.s_extra
+        self.timing_string = MainApp.sensors_info_pannel.sensor_list.s_timing
+        # panel
+        pnl = wx.Panel(self)
+        box_label = wx.StaticText(self,  label='Button type: ' + self.s_type)
+        box_label.SetFont(shared_data.title_font)
+        # buttons_
+        self.add_btn = wx.Button(self, label='OK', size=(175, 30))
+        self.add_btn.Bind(wx.EVT_BUTTON, self.add_click)
+        self.cancel_btn = wx.Button(self, label='Cancel', size=(175, 30))
+        self.cancel_btn.Bind(wx.EVT_BUTTON, self.OnClose)
+        # hardware information
+        name_l = wx.StaticText(self,  label='Unique Name')
+        self.name_tc = wx.TextCtrl(self, size=(400,30))
+        log_l = wx.StaticText(self,  label='Log Location')
+        self.log_tc = wx.TextCtrl(self, size=(400,30))
+        self.graph_btn = wx.Button(self, label='Graph', size=(175, 30))
+        # self.graph_btn.Bind(wx.EVT_BUTTON, self.graph_click)
+        gpio_l = wx.StaticText(self,  label='GPIO pin')
+
+             #---- add function here to remove sensors already added
+        self.sensor_connection = wx.StaticText(self,  label="")
+        self.loc_cb = wx.ComboBox(self, choices = ["-"], size=(170, 25))
+
+        # timing string
+        self.jobexist_l = wx.StaticText(self,  label='Start on Reboot')
+        self.running_l = wx.StaticText(self,  label='Running Now')
+
+
+        # Sizers
+        loc_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        loc_sizer.Add(self.sensor_connection, 0, wx.ALL|wx.EXPAND, 3)
+        loc_sizer.Add(self.loc_cb, 0, wx.ALL|wx.EXPAND, 3)
+        log_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        log_sizer.Add(self.log_tc, 2, wx.ALL, 3)
+        log_sizer.Add(self.graph_btn, 0, wx.ALL, 3)
+        options_sizer = wx.FlexGridSizer(3, 2, 1, 4)
+        options_sizer.AddMany([ (name_l, 0, wx.EXPAND),
+            (self.name_tc, 0, wx.EXPAND),
+            (log_l, 0, wx.EXPAND),
+            (log_sizer, 0, wx.EXPAND),
+            (gpio_l, 0, wx.EXPAND),
+            (loc_sizer, 0, wx.EXPAND) ])
+        buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        buttons_sizer.Add(self.add_btn, 0,  wx.ALIGN_LEFT, 3)
+        buttons_sizer.Add(self.cancel_btn, 0,  wx.ALIGN_RIGHT, 3)
+        main_sizer =  wx.BoxSizer(wx.VERTICAL)
+        main_sizer.Add(box_label, 0, wx.ALL|wx.EXPAND, 5)
+        main_sizer.Add(options_sizer, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.Add(self.jobexist_l, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.Add(self.running_l, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(buttons_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
+        main_sizer.AddStretchSpacer(1)
+        self.SetSizer(main_sizer)
+
+        # set values for when reading from double click
+        self.name_tc.SetValue(self.s_name)
+        self.colour_job_exists(self.s_name)
+        self.colour_if_script_running(self.s_name)
+        self.log_tc.SetValue(self.s_log)
+        if not self.s_loc == "":
+            self.loc_cb.SetValue(self.s_loc)
+
+
+    def make_extra_settings_string(self):
+        print(" -Extra settings string not yet implemented, coming sooon")
+        return ""
+
+    def find_cron_job(self, cmd, name):
+        print(" - Checking cron for existing jobs")
+        line_number_start_cron = -1
+        for index in range(0, cron_list_pnl.startup_cron.GetItemCount()):
+            cmd_path = cron_list_pnl.startup_cron.GetItem(index, 3).GetText()
+            if cmd in cmd_path:
+                print("    -Found  ;- " + cmd_path)
+                cmd_args = cron_list_pnl.startup_cron.GetItem(index, 4).GetText()
+                if  "name=" + name in cmd_args.lower():
+                    print("    -Located; " + name)
+                    line_number_start_cron = index
+        return line_number_start_cron
+
+    def colour_job_exists(self, name):
+        line_number_start_cron = self.find_cron_job("watcher_button.py", name)
+        # check to see if this is a new job or not
+        if not line_number_start_cron == -1:
+            cron_enabled = cron_list_pnl.startup_cron.GetItem(line_number_start_cron, 1).GetText()
+            if "True" in cron_enabled:
+                self.jobexist_l.SetForegroundColour((75,200,75))
+            else:
+                self.jobexist_l.SetForegroundColour((175,175,75))
+        else:
+            self.jobexist_l.SetForegroundColour((200,75,75))
+        #return line_number_start_cron
+
+    def colour_if_script_running(self, name):
+        script = "watcher_button.py"
+        pgrep_text, error = MainApp.localfiles_ctrl_pannel.run_on_pi("pgrep -af  " + str(script))
+        pgrep_split = pgrep_text.strip().splitlines()
+        found_running = 0
+        for line in pgrep_split:
+            if "name=" + name in line:
+                found_running = found_running + 1
+        #
+        if found_running == 0:
+            print(" - didn't find a running verson of " + script + "name=" + name)
+            self.running_l.SetForegroundColour((200,75,75))
+        elif found_running == 1:
+            print(" - " + script + " name=" + name + " running" )
+            self.running_l.SetForegroundColour((75,200,75))
+        elif found_running > 1:
+            print(" - Too many versions of " + script + " running, should kill all and restart")
+            self.running_l.SetForegroundColour((75,75,200))
+
+
+
+
+    def edit_cron_job(self, start_name, new_name):
+        print(" - This does not yet check or write the cron job, comin soon - make sure it starts on boot by looking in the cron tab of the gui")
+        # check to find cron job handling this sensor
+        line_number_start_cron = self.find_cron_job("watcher_button.py", start_name)
+
+        # check to see if this is a new job or not
+        if not line_number_start_cron == -1:
+            cron_enabled = cron_list_pnl.startup_cron.GetItem(line_number_start_cron, 1).GetText()
+            cron_task    = cron_list_pnl.startup_cron.GetItem(line_number_start_cron, 3).GetText()
+            # cron_args_original = cron_list_pnl.repeat_cron.GetItem(line_number_start_cron, 4).GetText()
+            cron_args    = "name=" + new_name
+            cron_comment = cron_list_pnl.startup_cron.GetItem(line_number_start_cron, 5).GetText()
+            print("    - Cron job; " + str(line_number_start_cron) + " modified " + cron_enabled + " " + cron_task + " " + cron_args + " " + cron_comment)
+            cron_list_pnl.startup_cron.DeleteItem(line_number_start_cron)
+            cron_info_pnl.add_to_startup_list(MainApp.cron_info_pannel, 'modified', "True", cron_task, cron_args, "")
+            MainApp.cron_info_pannel.update_cron_click("e")
+        else:
+            print("    - Job not currently in cron, adding it...")
+            cron_enabled = "True"
+            cron_task = "/home/" + pi_link_pnl.target_user + "/Pigrow/scripts/autorun/watcher_button.py"
+            cron_args = "name=" + new_name
+            cron_comment = ""
+            cron_info_pnl.add_to_startup_list(MainApp.cron_info_pannel, 'new', "True", cron_task, cron_args, "")
+            print("    - New Cron job; " + cron_enabled + " "  + cron_task + " " + cron_args + " " + cron_comment)
+            MainApp.cron_info_pannel.update_cron_click("e")
+
+    def add_click(self, e):
+        o_name = self.name_tc.GetValue()
+        o_log = self.log_tc.GetValue()
+        o_loc = self.loc_cb.GetValue()
+        o_extra = self.make_extra_settings_string()
+        # check to see if changes have been made
+        changed = "probably something"
+        if self.s_name == o_name:
+            #print("name not changed")
+            if self.s_log == o_log:
+                #print("log path not changed")
+                if self.s_loc == o_loc:
+                    #print("wiring location not changed")
+                    if self.s_extra == o_extra:
+                        #print("extra field not changed")
+                        changed = "nothing"
+                        #nothing has changed in the config file so no need to update.
+
+        # check to see if changes have been made to the cron timing
+        self.edit_cron_job(self.s_name, o_name)
+
+        # config file changes
+        if changed == "nothing":
+            print("------- config settings not changed -------")
+        else:
+            log_freq = "button"
+            MainApp.sensors_info_pannel.sensor_list.add_to_sensor_list(o_name,self.s_type,o_log,o_loc,o_extra,log_freq)
+            MainApp.config_ctrl_pannel.config_dict["sensor_" + o_name + "_type"] = self.s_type
+            MainApp.config_ctrl_pannel.config_dict["sensor_" + o_name + "_log"] = o_log
+            MainApp.config_ctrl_pannel.config_dict["sensor_" + o_name + "_loc"] = o_loc
+            MainApp.config_ctrl_pannel.config_dict["sensor_" + o_name + "_extra"] = o_extra
+            MainApp.config_ctrl_pannel.update_setting_file_on_pi_click('e')
+        self.Destroy()
+
+    def OnClose(self, e):
+        MainApp.sensors_info_pannel.sensor_list.s_name = ""
+        MainApp.sensors_info_pannel.sensor_list.s_log = ""
+        MainApp.sensors_info_pannel.sensor_list.s_loc = ""
+        MainApp.sensors_info_pannel.sensor_list.s_extra = ""
+        MainApp.sensors_info_pannel.sensor_list.s_timing = ""
+        self.Destroy()
+
 
 
 class ads1115_dialog(wx.Dialog):
