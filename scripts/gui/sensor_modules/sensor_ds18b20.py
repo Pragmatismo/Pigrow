@@ -7,6 +7,7 @@ class sensor_config():
 
 def read_sensor(location="", *args):
     import datetime
+    print(location)
     # set up and read the sensor
     sensor_path = "/sys/bus/w1/devices/" + location + "/w1_slave"
     try:
