@@ -46,7 +46,7 @@ if __name__ == '__main__':
     '''
       The ds18b20
       '''
-    if not sensor_location="":
+    if not sensor_location == "":
         output = read_sensor(location=sensor_location)
     else:
         print(" No sensor address supplied, this requries a sensor address.")
