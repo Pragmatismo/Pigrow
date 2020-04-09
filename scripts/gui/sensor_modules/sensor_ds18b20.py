@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-or argu in sys.argv[1:]:
+for argu in sys.argv[1:]:
     if "=" in argu:
         thearg = str(argu).split('=')[0]
         thevalue = str(argu).split('=')[1]
