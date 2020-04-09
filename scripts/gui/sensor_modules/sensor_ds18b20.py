@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+import sys
 
 for argu in sys.argv[1:]:
     if "=" in argu:
