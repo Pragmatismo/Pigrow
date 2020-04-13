@@ -47,6 +47,7 @@ def fans_off(set_dic, switch_log):
 
     msg +=("      ##            by switching GPIO "+str(gpio_pin)+" to "+gpio_pin_dir+"  ##\n")
     msg +=("      #############################################\n")
+    pigrow_defs.set_condition(condition_name="fans", trig_direction="off", cooldown="none")
     pigrow_defs.write_log(script, 'fans turned off', switch_log)
     return msg
 

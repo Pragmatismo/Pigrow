@@ -47,6 +47,7 @@ def humid_off(set_dic, switch_log):
 
     msg +=("      ##            by switching GPIO "+str(gpio_pin)+" to "+gpio_pin_dir+"  ##\n")
     msg +=("      #############################################\n")
+    pigrow_defs.set_condition(condition_name="humid", trig_direction="off", cooldown="none")
     pigrow_defs.write_log(script, 'humidifer turned off', switch_log)
     return msg
 
