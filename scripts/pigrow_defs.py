@@ -138,6 +138,39 @@ def archive_grow(loc_dic, name, compress=False):
         response += "  \n  \n I won't delete all your files tho either, so don't worry... (do a normal archive)"
     return responce
 
+def set_condition(condition_name, trig_direction, cooldown="none"):
+    trigger_conditions_path = homedir + "/Pigrow/logs/trigger_conditions.txt"    # trigger conditions file location
+
+    # detrimne cooldown
+    if cooldown.isdigit():
+        cooldown_time = datetime.datetime.now() + datetime.timedelta(minutes=int(cooldown))
+        print("!pgd! - Setting cooldown to " + str(cooldown_time))
+        cooldown = datetime.datetime.timestamp(cooldown_time)
+    # read conditiosn file
+    print("!pgd! - writing conditions file")
+    with open(trigger_conditions_path, 'r') as f:
+        trigger_conditions = f.readlines()
+    # check for and change if condition exists
+    trig__con_tosave = ""
+    trig_con_found = False
+    for line in trigger_conditions:
+        line_split = line.split(",")
+        if len(line_split) == 3:
+            if line_split[0] == condition_name:
+                trig_con_found = True
+                line = line_split[0] + "," +  str(trig_direction) + "," + str(cooldown) + "\n"
+                print("!pgd! - Recording - " + line)
+        trig__con_tosave += line
+    # if the condition doesn't exist add it
+    if trig_con_found == False:
+        trig__con_tosave += condition_name + "," + str(trig_direction) + "," + cooldown + "\n"
+    # save file
+    with open(trigger_conditions_path, 'w') as f:
+        f.write(trig__con_tosave)
+    print("!pgd! - written; ")
+    print(trig__con_tosave)
+    print("!pgd!------------")    
+
 if __name__ == '__main__':
     global loc_locs
     # test1.py executed as script
