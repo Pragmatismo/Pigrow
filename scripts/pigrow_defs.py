@@ -140,14 +140,13 @@ def archive_grow(loc_dic, name, compress=False):
 
 def set_condition(condition_name, trig_direction, cooldown="none"):
     trigger_conditions_path = homedir + "/Pigrow/logs/trigger_conditions.txt"    # trigger conditions file location
-
     # detrimne cooldown
     if cooldown.isdigit():
         cooldown_time = datetime.datetime.now() + datetime.timedelta(minutes=int(cooldown))
-        print("!pgd! - Setting cooldown to " + str(cooldown_time))
+        #print("!pgd! - Setting cooldown to " + str(cooldown_time))
         cooldown = datetime.datetime.timestamp(cooldown_time)
     # read conditiosn file
-    print("!pgd! - writing conditions file")
+    #print("!pgd! - writing conditions file")
     trig_con_found = False
     trig__con_tosave = ""
     if os.path.isfile(trigger_conditions_path):
@@ -160,7 +159,7 @@ def set_condition(condition_name, trig_direction, cooldown="none"):
                 if line_split[0] == condition_name:
                     trig_con_found = True
                     line = line_split[0] + "," +  str(trig_direction) + "," + str(cooldown) + "\n"
-                    print("!pgd! - Recording - " + line)
+                    #print("!pgd! - Recording - " + line)
             trig__con_tosave += line
     # if the condition doesn't exist add it
     if trig_con_found == False:
@@ -168,9 +167,9 @@ def set_condition(condition_name, trig_direction, cooldown="none"):
     # save file
     with open(trigger_conditions_path, 'w') as f:
         f.write(trig__con_tosave)
-    print("!pgd! - written; ")
-    print(trig__con_tosave)
-    print("!pgd!------------")
+    #print("!pgd! - written; ")
+    #print(trig__con_tosave)
+    #print("!pgd!------------")
 
 
 
