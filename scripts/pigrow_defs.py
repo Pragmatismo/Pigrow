@@ -150,7 +150,7 @@ def set_condition(condition_name, trig_direction, cooldown="none"):
     print("!pgd! - writing conditions file")
     trig_con_found = False
     trig__con_tosave = ""
-    if os.path.isfile(trigger_file):
+    if os.path.isfile(trigger_conditions_path):
         with open(trigger_conditions_path, 'r') as f:
             trigger_conditions = f.readlines()
         # check for and change if condition exists
