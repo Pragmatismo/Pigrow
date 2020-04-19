@@ -12821,6 +12821,13 @@ class set_trigger_dialog(wx.Dialog):
 
     def read_trigger_conditions_click(self, e):
         print(" This button should read the current trigger conditions")
+        conditions_path = "/home/" + pi_link_pnl.target_user + "/Pigrow/logs/trigger_conditions.txt"
+        cmd = "cat " + conditions_path
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi(cmd)
+        condition_list = out.splitlines()
+        for condition in condition_list:
+            if self.cond_name_tc.GetValue().strip() in condition:
+                self.read_output_l.SetLabel(condition)
 
 
     def add_click(self, e):
