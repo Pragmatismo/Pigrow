@@ -11339,7 +11339,10 @@ class make_log_overlay_dialog(wx.Dialog):
                 ex_date = self.split_line[date_pos]
                 self.date_pos_ex.SetLabel(ex_date)
                 try:
-                    test_date = datetime.datetime.strptime(ex_date, '%Y-%m-%d %H:%M:%S.%f')
+                    if "." in ex_date:
+                        test_date = datetime.datetime.strptime(ex_date, '%Y-%m-%d %H:%M:%S.%f')
+                    else:
+                        test_date = datetime.datetime.strptime(ex_date, '%Y-%m-%d %H:%M:%S')
                     self.date_pos_ex.SetForegroundColour((75,200,75))
                     self.date_good = True
                 except:
@@ -11362,11 +11365,17 @@ class make_log_overlay_dialog(wx.Dialog):
                     self.date_pos_split_cb.Append(x)
                 if len(date_split) == 2:
                     try:
-                        test_date = datetime.datetime.strptime(date_split[0], '%Y-%m-%d %H:%M:%S.%f')
+                        if "." in ex_date:
+                            test_date = datetime.datetime.strptime(ex_date, '%Y-%m-%d %H:%M:%S.%f')
+                        else:
+                            test_date = datetime.datetime.strptime(ex_date, '%Y-%m-%d %H:%M:%S')
                         self.date_pos_split_cb.SetValue(date_split[0])
                     except:
                         try:
-                            test_date = datetime.datetime.strptime(date_split[1], '%Y-%m-%d %H:%M:%S.%f')
+                            if "." in ex_date:
+                                test_date = datetime.datetime.strptime(ex_date, '%Y-%m-%d %H:%M:%S.%f')
+                            else:
+                                test_date = datetime.datetime.strptime(ex_date, '%Y-%m-%d %H:%M:%S')
                             self.date_pos_split_cb.SetValue(date_split[1])
                         except:
                             print(" - timelapse logs overlay can't auto determine date - " + str(date_split))
@@ -11383,7 +11392,10 @@ class make_log_overlay_dialog(wx.Dialog):
         date_pos = self.date_pos_split_cb.GetValue()
         self.date_pos_ex.SetLabel(date_pos)
         try:
-            test_date = datetime.datetime.strptime(date_pos, '%Y-%m-%d %H:%M:%S.%f')
+            if "." in ex_date:
+                test_date = datetime.datetime.strptime(ex_date, '%Y-%m-%d %H:%M:%S.%f')
+            else:
+                test_date = datetime.datetime.strptime(ex_date, '%Y-%m-%d %H:%M:%S')
             self.date_pos_ex.SetForegroundColour((75,200,75))
             self.date_good = True
         except:
@@ -11479,7 +11491,7 @@ class make_log_overlay_dialog(wx.Dialog):
                         else:
                             log_data_list.append([line_key, line_date, line_value])
                 #
-        print(" Found " + str(len(log_data_list)) + " items in the log" )
+        print(" Found " + str(len(log_data_list)) + " items in the log and " + str(len(MainApp.timelapse_ctrl_pannel.trimmed_frame_list)) + " Images" )
         # WE NOW HAVE A LIST OF THE LOG ITEMS
 
         # find a place to put the new caps, change this up so the user can choose when it works
@@ -11491,6 +11503,7 @@ class make_log_overlay_dialog(wx.Dialog):
         print("---------------Creating new image set---------------------------")
         counter = 0
         for file in MainApp.timelapse_ctrl_pannel.trimmed_frame_list:
+            print(" - Working on;" + str(file))
             file_date = MainApp.timelapse_ctrl_pannel.date_from_fn(file)
             closest_log_info = []
             # log data list contains a sequential list of log entries, the most recent is last (assuming that's how the file is written, it should be)
@@ -11529,6 +11542,7 @@ class make_log_overlay_dialog(wx.Dialog):
             text_to_write = closest_log_info[0] + " " + closest_log_info[2]
             if self.show_time_diff.GetValue() == True:
                 text_to_write += "\n time diff -- " + str(time_diff_log_to_cap).split(".")[0]
+            print("       - " + text_to_write)
             #text_to_write += "\n   -- " + str(file_date) + " - " + str(closest_log_info[1])
             # set colour, size, pos
             font_size = self.display_size_tc.GetValue()
@@ -11556,6 +11570,7 @@ class make_log_overlay_dialog(wx.Dialog):
                 self.WriteTextOnBitmap(text_to_write, file, pos=(pos_x, pos_y), font=font, color=font_col)
             else:
                 self.WriteTextOnBitmap("", file, pos=(pos_x, pos_y), font=font, color=font_col)
+        print(" - Overlay set complete....")
         # when it's written the whole set
         folder_name_for_output = "edited_caps"
         local_path = localfiles_info_pnl.local_path
@@ -11858,13 +11873,22 @@ class sensors_info_pnl(wx.Panel):
         page_sub_title =  wx.StaticText(self,  label='Link aditional sensors to the pigrow', size=(550,30))
         page_sub_title.SetFont(shared_data.sub_title_font)
         # placing the information boxes
+        # sensor table
         self.sensor_list = self.sensor_table(self, 1)
         self.sensor_list.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.sensor_table.double_click)
+        # trigger table
+        trigger_sub_title =  wx.StaticText(self,  label='Log Triggers', size=(550,30))
+        self.trigger_list = self.trigger_table(self, 1)
+        self.trigger_list.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.trigger_table.double_click)
         # sizers
         main_sizer = wx.BoxSizer(wx.VERTICAL)
         main_sizer.Add(title_l, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
         main_sizer.Add(page_sub_title, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
         main_sizer.Add(self.sensor_list, 1, wx.ALL|wx.EXPAND, 3)
+        #main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
+        main_sizer.Add(trigger_sub_title, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
+        main_sizer.Add(self.trigger_list, 1, wx.ALL|wx.EXPAND, 3)
         self.SetSizer(main_sizer)
 
     class sensor_table(wx.ListCtrl):
@@ -11907,8 +11931,7 @@ class sensors_info_pnl(wx.Panel):
                 extra = ""
             return type, log, loc, extra
 
-
-        def make_sensor_table(self, e):
+        def make_sensor_table(self, e=""):
             sensor_name_list = []
             button_name_list = []
             print("  - Using config_dict to fill sensor table")
@@ -11963,9 +11986,6 @@ class sensors_info_pnl(wx.Panel):
                 #
                 self.add_to_sensor_list(sensor_name, type, log, loc, extra, log_freq)
 
-
-
-
         def add_to_sensor_list(self, sensor, type, log, loc, extra='', log_freq=''):
             #MainApp.sensors_info_pannel.sensor_list.add_to_sensor_list(sensor,type,log,loc,extra)
             self.InsertItem(0, str(sensor))
@@ -12010,6 +12030,58 @@ class sensors_info_pnl(wx.Panel):
                     modular_sensor_dialog_box = add_sensor_from_module_dialog(None)
                     modular_sensor_dialog_box.ShowModal()
 
+    class trigger_table(wx.ListCtrl):
+        def __init__(self, parent, id):
+            wx.ListCtrl.__init__(self, parent, id, style=wx.LC_REPORT|wx.LC_VRULES)
+            self.InsertColumn(0, 'Log')
+            self.InsertColumn(1, 'Value Label')
+            self.InsertColumn(2, 'Type')
+            self.InsertColumn(3, 'Value')
+            self.InsertColumn(4, 'Condition Name')
+            self.InsertColumn(5, 'Set')
+            self.InsertColumn(6, 'lock (min)')
+            self.InsertColumn(7, 'Shell Command')
+            self.SetColumnWidth(0, 125)
+            self.SetColumnWidth(1, 125)
+            self.SetColumnWidth(2, 85)
+            self.SetColumnWidth(3, 90)
+            self.SetColumnWidth(4, 140)
+            self.SetColumnWidth(5, 100)
+            self.SetColumnWidth(6, 120)
+            self.SetColumnWidth(7, 350)
+
+        def make_trigger_table(self):
+            self.DeleteAllItems()
+            print("  - Filling Trigger Table - ")
+            out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("cat /home/" + pi_link_pnl.target_user + "/Pigrow/config/trigger_events.txt")
+            for trigger in out.splitlines():
+                trigger_details = trigger.split(",")
+                self.add_to_trigger_list(trigger_details[0], trigger_details[1], trigger_details[2], trigger_details[3], trigger_details[4], trigger_details[5], trigger_details[6], trigger_details[7])
+
+        def add_to_trigger_list(self, log, label, type, value, name, set, cooldown, cmd):
+            #MainApp.sensors_info_pannel.sensor_list.add_to_sensor_list(sensor,type,log,loc,extra)
+            self.InsertItem(0, str(log))
+            self.SetItem(0, 1, str(label))
+            self.SetItem(0, 2, str(type))
+            self.SetItem(0, 3, str(value))
+            self.SetItem(0, 4, str(name))
+            self.SetItem(0, 5, str(set))
+            self.SetItem(0, 6, str(cooldown))
+            self.SetItem(0, 7, str(cmd))
+
+        def double_click(e):
+            index =  e.GetIndex()
+            MainApp.sensors_info_pannel.trigger_list.initial_log = MainApp.sensors_info_pannel.trigger_list.GetItem(index, 0).GetText()
+            MainApp.sensors_info_pannel.trigger_list.initial_val_label = MainApp.sensors_info_pannel.trigger_list.GetItem(index, 1).GetText()
+            MainApp.sensors_info_pannel.trigger_list.initial_type = MainApp.sensors_info_pannel.trigger_list.GetItem(index, 2).GetText()
+            MainApp.sensors_info_pannel.trigger_list.initial_value = MainApp.sensors_info_pannel.trigger_list.GetItem(index, 3).GetText()
+            MainApp.sensors_info_pannel.trigger_list.initial_cond_name = MainApp.sensors_info_pannel.trigger_list.GetItem(index, 4).GetText()
+            MainApp.sensors_info_pannel.trigger_list.initial_set = MainApp.sensors_info_pannel.trigger_list.GetItem(index, 5).GetText()
+            MainApp.sensors_info_pannel.trigger_list.initial_lock = MainApp.sensors_info_pannel.trigger_list.GetItem(index, 6).GetText()
+            MainApp.sensors_info_pannel.trigger_list.initial_cmd = MainApp.sensors_info_pannel.trigger_list.GetItem(index, 7).GetText()
+            trigger_edit_box = set_trigger_dialog(None)
+            trigger_edit_box.ShowModal()
+
 
 class sensors_ctrl_pnl(wx.Panel):
     def __init__(self, parent):
@@ -12020,7 +12092,7 @@ class sensors_ctrl_pnl(wx.Panel):
         # Soil Moisture Controlls
         # Refresh page button
         self.make_table_btn = wx.Button(self, label='make table')
-        self.make_table_btn.Bind(wx.EVT_BUTTON, MainApp.sensors_info_pannel.sensor_list.make_sensor_table)
+        self.make_table_btn.Bind(wx.EVT_BUTTON, self.make_tables_click)
         #    --  Chirp options
         self.chirp_l = wx.StaticText(self,  label='Chirp Soil Moisture Sensor;')
         self.config_chirp_btn = wx.Button(self, label='add new chirp')
@@ -12070,6 +12142,10 @@ class sensors_ctrl_pnl(wx.Panel):
         main_sizer.Add(self.add_button, 0, wx.ALL|wx.EXPAND, 3)
         main_sizer.AddStretchSpacer(1)
         self.SetSizer(main_sizer)
+
+    def make_tables_click(self, e):
+        MainApp.sensors_info_pannel.sensor_list.make_sensor_table()
+        MainApp.sensors_info_pannel.trigger_list.make_trigger_table()
 
     def add_modular_sensor_click(self, e):
         # set blanks for dialog box
@@ -12300,7 +12376,7 @@ class add_sensor_from_module_dialog(wx.Dialog):
     def read_sensor_click(self, e):
         module_name = self.s_type
         print(" - attenmpting to read sensor using module -" + module_name)
-        module_path = "/home/" + pi_link_pnl.target_user + "/Pigrow/scripts/gui/sensor_modules/sensor_" + module_name + ".py"
+        module_path = "/home/" + pi_link_pnl.target_user + "/Pigrow/scripts/gui/sensor_modules/sensor_" + module_name + ".py location=" + self.loc_cb.GetValue()
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi(module_path)
         self.read_output_l.SetLabel(out)
         print(out, error)
@@ -12591,6 +12667,129 @@ class add_button_dialog(wx.Dialog):
         MainApp.sensors_info_pannel.sensor_list.s_timing = ""
         self.Destroy()
 
+class set_trigger_dialog(wx.Dialog):
+    def __init__(self, *args, **kw):
+        super(set_trigger_dialog, self).__init__(*args, **kw)
+        self.InitUI()
+        self.SetSize((800, 700))
+        self.SetTitle("Sensor Setup from Module")
+        self.Bind(wx.EVT_CLOSE, self.OnClose)
+
+    def InitUI(self):
+        '''
+        Before this is called these values must be set;
+        MainApp.sensors_info_pannel.trigger_list.initial_log
+        MainApp.sensors_info_pannel.trigger_list.initial_val_label
+        MainApp.sensors_info_pannel.trigger_list.initial_type
+        MainApp.sensors_info_pannel.trigger_list.initial_value
+        MainApp.sensors_info_pannel.trigger_list.initial_cond_name
+        MainApp.sensors_info_pannel.trigger_list.initial_set
+        MainApp.sensors_info_pannel.trigger_list.initial_lock
+        MainApp.sensors_info_pannel.trigger_list.initial_cmd
+        '''
+        pnl = wx.Panel(self)
+        box_label = wx.StaticText(self,  label='Log Triggers')
+        box_label.SetFont(shared_data.title_font)
+        box_sub_title =  wx.StaticText(self,  label='Trigger conditions are checked every time a log entry is written', size=(550,30))
+        box_sub_title.SetFont(shared_data.sub_title_font)
+        # buttons_
+        self.ok_btn = wx.Button(self, label='OK', size=(175, 30))
+        self.ok_btn.Bind(wx.EVT_BUTTON, self.add_click)
+        self.cancel_btn = wx.Button(self, label='Cancel', size=(175, 30))
+        self.cancel_btn.Bind(wx.EVT_BUTTON, self.OnClose)
+        # trigger information
+        log_l = wx.StaticText(self,  label='Log')
+        self.log_tc = wx.TextCtrl(self, value=MainApp.sensors_info_pannel.trigger_list.initial_log, size=(400,30))
+
+        val_label_l = wx.StaticText(self,  label='Value Label')
+        val_label_opts = ['']
+        self.val_label_cb = wx.ComboBox(self, choices = val_label_opts, value=MainApp.sensors_info_pannel.trigger_list.initial_val_label)
+
+        type_l = wx.StaticText(self,  label='Type')
+        type_opts = ['above', 'below', 'window', 'frame', 'all']
+        self.type_cb = wx.ComboBox(self, choices = type_opts, value=MainApp.sensors_info_pannel.trigger_list.initial_type)
+        self.type_cb.Bind(wx.EVT_COMBOBOX, self.type_cb_select)
+
+        value_l = wx.StaticText(self,  label='value')
+        self.value_tc = wx.TextCtrl(self, value=MainApp.sensors_info_pannel.trigger_list.initial_value, size=(400,30))
+
+        cond_name_l = wx.StaticText(self,  label='Condition Name')
+        self.cond_name_tc = wx.TextCtrl(self, value=MainApp.sensors_info_pannel.trigger_list.initial_cond_name, size=(400,30))
+
+        set_l = wx.StaticText(self,  label='Set to')
+        set_opts = ['on', 'off', 'pause']
+        self.set_cb = wx.ComboBox(self, choices = set_opts, value=MainApp.sensors_info_pannel.trigger_list.initial_set)
+
+        lock_l = wx.StaticText(self,  label='Cooldown Lock')
+        self.lock_tc = wx.TextCtrl(self, value=MainApp.sensors_info_pannel.trigger_list.initial_lock, size=(400,30))
+
+        cmd_l = wx.StaticText(self,  label='Shell Command')
+        self.cmd_tc = wx.TextCtrl(self, value=MainApp.sensors_info_pannel.trigger_list.initial_cmd, size=(500,30))
+
+
+        # Read trigger conditions
+        triggger_cond_l = wx.StaticText(self,  label='Current Trigger Condition;', size=(550,30))
+        self.read_trig_cond_btn = wx.Button(self, label='Read Current Trigger Conditions')
+        self.read_trig_cond_btn.Bind(wx.EVT_BUTTON, self.read_trigger_conditions_click)
+        self.read_output_l = wx.StaticText(self,  label='')
+
+
+        # Sizers
+        trig_options_sizer = wx.FlexGridSizer(8, 2, 1, 4)
+        trig_options_sizer.AddMany([ (log_l, 0, wx.EXPAND),
+            (self.log_tc, 0, wx.EXPAND),
+            (val_label_l, 0, wx.EXPAND),
+            (self.val_label_cb, 0, wx.EXPAND),
+            (type_l, 0, wx.EXPAND),
+            (self.type_cb, 0, wx.EXPAND),
+            (value_l, 0, wx.EXPAND),
+            (self.value_tc, 0, wx.EXPAND),
+            (cond_name_l, 0, wx.EXPAND),
+            (self.cond_name_tc, 0, wx.EXPAND),
+            (set_l, 0, wx.EXPAND),
+            (self.set_cb, 0, wx.EXPAND),
+            (lock_l, 0, wx.EXPAND),
+            (self.lock_tc, 0, wx.EXPAND),
+            (cmd_l, 0, wx.EXPAND),
+            (self.cmd_tc, 0, wx.EXPAND) ])
+        trigger_conditions_sizer = wx.BoxSizer(wx.VERTICAL)
+        trigger_conditions_sizer.Add(triggger_cond_l, 0, wx.EXPAND, 3)
+        trigger_conditions_sizer.Add(self.read_trig_cond_btn, 0, wx.ALIGN_CENTER_HORIZONTAL, 3)
+        trigger_conditions_sizer.Add(self.read_output_l, 0, wx.EXPAND, 3)
+        buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        buttons_sizer.Add(self.ok_btn, 0,  wx.ALIGN_LEFT, 3)
+        buttons_sizer.Add(self.cancel_btn, 0,  wx.ALIGN_RIGHT, 3)
+        main_sizer =  wx.BoxSizer(wx.VERTICAL)
+        main_sizer.Add(box_label, 0, wx.ALL|wx.EXPAND, 5)
+        main_sizer.Add(box_sub_title, 0, wx.ALL|wx.EXPAND, 5)
+        main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(trig_options_sizer, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(trigger_conditions_sizer, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(buttons_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
+        main_sizer.AddStretchSpacer(1)
+        self.SetSizer(main_sizer)
+
+
+    def type_cb_select(self, e):
+        type = self.type_cb.GetValue()
+        if type == "all":
+            self.value_tc.Disable()
+        else:
+            self.value_tc.Enable()
+
+    def read_trigger_conditions_click(self, e):
+        print(" This button should read the current trigger conditions")
+
+
+    def add_click(self, e):
+        print(" - Not doing anything, saved no setting nor updated any tables -")
+        #self.Destroy()
+
+    def OnClose(self, e):
+
+        self.Destroy()
 
 
 class ads1115_dialog(wx.Dialog):
