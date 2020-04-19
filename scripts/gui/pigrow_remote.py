@@ -12699,10 +12699,12 @@ class set_trigger_dialog(wx.Dialog):
         self.cancel_btn.Bind(wx.EVT_BUTTON, self.OnClose)
         # trigger information
         log_l = wx.StaticText(self,  label='Log')
-        self.log_tc = wx.TextCtrl(self, value=MainApp.sensors_info_pannel.trigger_list.initial_log, size=(400,30))
+        log_opts = self.get_log_options()
+        self.log_cb = wx.ComboBox(self, choices = log_opts, value=MainApp.sensors_info_pannel.trigger_list.initial_log)
+        self.log_cb.Bind(wx.EVT_COMBOBOX, self.set_label_opts)
 
         val_label_l = wx.StaticText(self,  label='Value Label')
-        val_label_opts = ['']
+        val_label_opts = self.get_value_label_ops()
         self.val_label_cb = wx.ComboBox(self, choices = val_label_opts, value=MainApp.sensors_info_pannel.trigger_list.initial_val_label)
 
         type_l = wx.StaticText(self,  label='Type')
@@ -12737,7 +12739,7 @@ class set_trigger_dialog(wx.Dialog):
         # Sizers
         trig_options_sizer = wx.FlexGridSizer(8, 2, 1, 4)
         trig_options_sizer.AddMany([ (log_l, 0, wx.EXPAND),
-            (self.log_tc, 0, wx.EXPAND),
+            (self.log_cb, 0, wx.EXPAND),
             (val_label_l, 0, wx.EXPAND),
             (self.val_label_cb, 0, wx.EXPAND),
             (type_l, 0, wx.EXPAND),
@@ -12771,6 +12773,44 @@ class set_trigger_dialog(wx.Dialog):
         main_sizer.AddStretchSpacer(1)
         self.SetSizer(main_sizer)
 
+    def get_log_options(self):
+        log_list = []
+        # logs listen in sensor table
+        for index in range(0, MainApp.sensors_info_pannel.sensor_list.GetItemCount()):
+            log = MainApp.sensors_info_pannel.sensor_list.GetItem(index, 2).GetText()
+            if "/logs/" in log:
+                log = log.split('/logs/')[1]
+            if not log in log_list:
+                log_list.append(log)
+        # logs on the pigrow
+        log_path = "/home/" + pi_link_pnl.target_user + "/Pigrow/logs/"
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("ls -1 " + log_path)
+        logs = out.splitlines()
+        for log in logs:
+            if not log in log_list:
+                log_list.append(log)
+        # return list of all logs
+        return log_list
+
+    def set_label_opts(self, e=""):
+        opts=self.get_value_label_ops()
+        self.val_label_cb.Clear()
+        self.val_label_cb.Append(opts)
+
+    def get_value_label_ops(self):
+        log_name = self.log_cb.GetValue().strip()
+        label_opts = []
+        if log_name == "":
+            return []
+        log_path = "/home/" + pi_link_pnl.target_user + "/Pigrow/logs/" + log_name
+        cmd = "tail -1 " + log_path
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi(cmd)
+        if ">" in out:
+            items = out.split(">")
+            for item in items:
+                if "=" in item:
+                    label_opts.append(item.split("=")[0])
+        return label_opts
 
     def type_cb_select(self, e):
         type = self.type_cb.GetValue()
