@@ -12925,7 +12925,7 @@ class set_trigger_dialog(wx.Dialog):
             else:
                 MainApp.sensors_info_pannel.trigger_list.update_table_line(tt_index, log, label, type, value, name, set, cooldown, cmd)
             MainApp.sensors_info_pannel.trigger_list.save_table_to_pi()
-        #self.Destroy()
+        self.Destroy()
 
     def OnClose(self, e):
 
