@@ -12069,6 +12069,19 @@ class sensors_info_pnl(wx.Panel):
             self.SetItem(0, 6, str(cooldown))
             self.SetItem(0, 7, str(cmd))
 
+        def update_table_line(self, index, log, label, type, value, name, set, cooldown, cmd):
+            self.SetItem(index, 0, str(log))
+            self.SetItem(index, 1, str(label))
+            self.SetItem(index, 2, str(type))
+            self.SetItem(index, 3, str(value))
+            self.SetItem(index, 4, str(name))
+            self.SetItem(index, 5, str(set))
+            self.SetItem(index, 6, str(cooldown))
+            self.SetItem(index, 7, str(cmd))
+
+        def save_table_to_pi(self):
+            print(" This should save the trigger table to the raspberry pi")
+
         def double_click(e):
             index =  e.GetIndex()
             MainApp.sensors_info_pannel.trigger_list.initial_log = MainApp.sensors_info_pannel.trigger_list.GetItem(index, 0).GetText()
@@ -12079,6 +12092,7 @@ class sensors_info_pnl(wx.Panel):
             MainApp.sensors_info_pannel.trigger_list.initial_set = MainApp.sensors_info_pannel.trigger_list.GetItem(index, 5).GetText()
             MainApp.sensors_info_pannel.trigger_list.initial_lock = MainApp.sensors_info_pannel.trigger_list.GetItem(index, 6).GetText()
             MainApp.sensors_info_pannel.trigger_list.initial_cmd = MainApp.sensors_info_pannel.trigger_list.GetItem(index, 7).GetText()
+            MainApp.sensors_info_pannel.trigger_list.initial_index = index
             trigger_edit_box = set_trigger_dialog(None)
             trigger_edit_box.ShowModal()
 
@@ -12261,7 +12275,6 @@ class sensors_ctrl_pnl(wx.Panel):
         dbox.ShowModal()
         dbox.Destroy()
 
-
     def sensor_combo_go(self, e):
         # hide all controls
         self.soil_sensor_cb.Hide()
@@ -12278,6 +12291,7 @@ class sensors_ctrl_pnl(wx.Panel):
         MainApp.sensors_info_pannel.trigger_list.initial_set = ""
         MainApp.sensors_info_pannel.trigger_list.initial_lock = ""
         MainApp.sensors_info_pannel.trigger_list.initial_cmd = ""
+        MainApp.sensors_info_pannel.trigger_list.initial_index = -1
         trigger_edit_box = set_trigger_dialog(None)
         trigger_edit_box.ShowModal()
 
@@ -12705,6 +12719,7 @@ class set_trigger_dialog(wx.Dialog):
         MainApp.sensors_info_pannel.trigger_list.initial_set
         MainApp.sensors_info_pannel.trigger_list.initial_lock
         MainApp.sensors_info_pannel.trigger_list.initial_cmd
+        MainApp.sensors_info_pannel.trigger_list.initial_index = -1 for new, index number of trigger table otherwise
         '''
         pnl = wx.Panel(self)
         box_label = wx.StaticText(self,  label='Log Triggers')
@@ -12848,9 +12863,44 @@ class set_trigger_dialog(wx.Dialog):
             if self.cond_name_tc.GetValue().strip() in condition:
                 self.read_output_l.SetLabel(condition)
 
+    def check_if_change(self):
+        if not MainApp.sensors_info_pannel.trigger_list.initial_log == self.log_cb.GetValue():
+            return True
+        if not MainApp.sensors_info_pannel.trigger_list.initial_val_label == self.val_label_cb.GetValue():
+            return True
+        if not MainApp.sensors_info_pannel.trigger_list.initial_type == self.type_cb.GetValue():
+            return True
+        if not MainApp.sensors_info_pannel.trigger_list.initial_value == self.value_tc.GetValue():
+            return True
+        if not MainApp.sensors_info_pannel.trigger_list.initial_cond_name == self.cond_name_tc.GetValue():
+            return True
+        if not MainApp.sensors_info_pannel.trigger_list.initial_set == self.set_cb.GetValue():
+            return True
+        if not MainApp.sensors_info_pannel.trigger_list.initial_lock == self.lock_tc.GetValue():
+            return True
+        if not MainApp.sensors_info_pannel.trigger_list.initial_cmd == self.cmd_tc.GetValue():
+            return True
+        return False
 
     def add_click(self, e):
         print(" - Not doing anything, saved no setting nor updated any tables -")
+        if self.check_if_change():
+            print(" - Saving Changes to Trigger Events File -")
+            log = self.log_cb.GetValue()
+            label = self.val_label_cb.GetValue()
+            type = self.type_cb.GetValue()
+            value = self.value_tc.GetValue()
+            name = self.cond_name_tc.GetValue()
+            set = self.set_cb.GetValue()
+            cooldown = self.lock_tc.GetValue()
+            cmd = self.cmd_tc.GetValue()
+            tt_index = MainApp.sensors_info_pannel.trigger_list.initial_index
+            # if new create a new item in the table
+            if tt_index == -1:
+                MainApp.sensors_info_pannel.trigger_list.add_to_trigger_list(log, label, type, value, name, set, cooldown, cmd)
+            else:
+                MainApp.sensors_info_pannel.trigger_list.update_table_line(tt_index, log, label, type, value, name, set, cooldown, cmd)
+            MainApp.sensors_info_pannel.trigger_list.save_table_to_pi()
         #self.Destroy()
 
     def OnClose(self, e):
