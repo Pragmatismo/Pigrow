@@ -12080,7 +12080,32 @@ class sensors_info_pnl(wx.Panel):
             self.SetItem(index, 7, str(cmd))
 
         def save_table_to_pi(self):
-            print(" This should save the trigger table to the raspberry pi")
+            trigger_file_text = ""
+            for index in range(0, MainApp.sensors_info_pannel.trigger_list.GetItemCount()):
+                log      = self.GetItem(index,0).GetText()
+                label    = self.GetItem(index,1).GetText()
+                type     = self.GetItem(index,2).GetText()
+                value    = self.GetItem(index,3).GetText()
+                name     = self.GetItem(index,4).GetText()
+                set      = self.GetItem(index,5).GetText()
+                cooldown = self.GetItem(index,6).GetText()
+                cmd      = self.GetItem(index,7).GetText()
+                trigger_file_text += log + "," + label + "," + type + "," + value + "," + name + "," + set + "," + cooldown + "," + cmd + "\n"
+            if len(trigger_file_text) > 1:
+                if trigger_file_text[0:-2] == "\n":
+                    trigger_file_text = trigger_file_text[0:-2]
+                # Write Temporary file
+                temp_trigger_file_location = temp_local = os.path.join(localfiles_info_pnl.local_path, "temp/")
+                if not os.path.isdir(temp_trigger_file_location):
+                    os.makedirs(temp_trigger_file_location)
+                temp_trigger_file_location = temp_local = os.path.join(temp_trigger_file_location, "trigger_events.txt")
+                with open(temp_trigger_file_location, "w") as f:
+                    f.write(trigger_file_text)
+                # copy tempory file onto pigrow over existing trigger file
+                pi_trigger_events_file = "/home/" + pi_link_pnl.target_user + "/Pigrow/config/trigger_events.txt"
+                MainApp.localfiles_ctrl_pannel.upload_file_to_folder(temp_trigger_file_location, pi_trigger_events_file)
+
+
 
         def double_click(e):
             index =  e.GetIndex()
@@ -12883,7 +12908,6 @@ class set_trigger_dialog(wx.Dialog):
         return False
 
     def add_click(self, e):
-        print(" - Not doing anything, saved no setting nor updated any tables -")
         if self.check_if_change():
             print(" - Saving Changes to Trigger Events File -")
             log = self.log_cb.GetValue()
