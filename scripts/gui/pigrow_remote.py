@@ -12054,9 +12054,25 @@ class sensors_info_pnl(wx.Panel):
             self.DeleteAllItems()
             print("  - Filling Trigger Table - ")
             out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("cat /home/" + pi_link_pnl.target_user + "/Pigrow/config/trigger_events.txt")
-            for trigger in out.splitlines():
-                trigger_details = trigger.split(",")
-                self.add_to_trigger_list(trigger_details[0], trigger_details[1], trigger_details[2], trigger_details[3], trigger_details[4], trigger_details[5], trigger_details[6], trigger_details[7])
+            for line in out.splitlines():
+                first_comma = line.find(",")
+                second_comma  = first_comma + 1 + line[first_comma+1:].find(",")
+                third_comma   = second_comma + 1 + line[second_comma+1:].find(",")
+                fourth_comma  = third_comma + 1 + line[third_comma+1:].find(",")
+                fifth_comma   = fourth_comma + 1 + line[fourth_comma+1:].find(",")
+                sixth_comma   = fifth_comma + 1 + line[fifth_comma+1:].find(",")
+                seventh_comma = sixth_comma + 1 + line[sixth_comma+1:].find(",")
+                eighth_comma = seventh_comma + 1 + line[seventh_comma+1:].find(",")
+                # find values between commas
+                log_name        = line[:first_comma].strip()
+                value_label     = line[first_comma  +1 :second_comma].strip()
+                trigger_type    = line[second_comma +1 :third_comma].strip()
+                trigger_value   = line[third_comma  +1 :fourth_comma].strip()
+                condition_name  = line[fourth_comma +1 :fifth_comma].strip()
+                trig_direction  = line[fifth_comma  +1 :sixth_comma].strip()
+                trig_cooldown   = line[sixth_comma  +1 :seventh_comma].strip()
+                cmd            = line[seventh_comma+1:].strip()
+                self.add_to_trigger_list(log_name, value_label, trigger_type, trigger_value, condition_name, trig_direction, trig_cooldown, cmd)
 
         def add_to_trigger_list(self, log, label, type, value, name, set, cooldown, cmd):
             #MainApp.sensors_info_pannel.sensor_list.add_to_sensor_list(sensor,type,log,loc,extra)
