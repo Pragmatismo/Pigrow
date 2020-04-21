@@ -12116,6 +12116,10 @@ class sensors_ctrl_pnl(wx.Panel):
         self.buttons_l = wx.StaticText(self,  label='Buttons;')
         self.add_button = wx.Button(self, label='Add')
         self.add_button.Bind(wx.EVT_BUTTON, self.add_button_click)
+        #  == Add Trigger
+        self.triggers_l = wx.StaticText(self,  label='Triggers;')
+        self.add_trigger = wx.Button(self, label='Add')
+        self.add_trigger.Bind(wx.EVT_BUTTON, self.add_trigger_click)
 
         # Sizers
 
@@ -12140,6 +12144,9 @@ class sensors_ctrl_pnl(wx.Panel):
         main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.Add(self.buttons_l, 0, wx.ALL|wx.EXPAND, 3)
         main_sizer.Add(self.add_button, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
+        main_sizer.Add(self.triggers_l, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.Add(self.add_trigger, 0, wx.ALL|wx.EXPAND, 3)
         main_sizer.AddStretchSpacer(1)
         self.SetSizer(main_sizer)
 
@@ -12261,6 +12268,18 @@ class sensors_ctrl_pnl(wx.Panel):
         # show selected controls
         if self.sensor_cb.GetValue() == "Soil Moisture":
             self.soil_sensor_cb.Hide()
+
+    def add_trigger_click(self, e):
+        MainApp.sensors_info_pannel.trigger_list.initial_log = ""
+        MainApp.sensors_info_pannel.trigger_list.initial_val_label = ""
+        MainApp.sensors_info_pannel.trigger_list.initial_type = ""
+        MainApp.sensors_info_pannel.trigger_list.initial_value = ""
+        MainApp.sensors_info_pannel.trigger_list.initial_cond_name = ""
+        MainApp.sensors_info_pannel.trigger_list.initial_set = ""
+        MainApp.sensors_info_pannel.trigger_list.initial_lock = ""
+        MainApp.sensors_info_pannel.trigger_list.initial_cmd = ""
+        trigger_edit_box = set_trigger_dialog(None)
+        trigger_edit_box.ShowModal()
 
 class add_sensor_from_module_dialog(wx.Dialog):
     def __init__(self, *args, **kw):
@@ -12820,7 +12839,7 @@ class set_trigger_dialog(wx.Dialog):
             self.value_tc.Enable()
 
     def read_trigger_conditions_click(self, e):
-        print(" This button should read the current trigger conditions")
+        self.read_output_l.SetLabel("")
         conditions_path = "/home/" + pi_link_pnl.target_user + "/Pigrow/logs/trigger_conditions.txt"
         cmd = "cat " + conditions_path
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi(cmd)
