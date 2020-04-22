@@ -1925,7 +1925,7 @@ class install_dialog(wx.Dialog):
         msg = "Control sensor set to dht22 on GPIO pin " + DHT22_GPIO + " reading every " + DHT22_freq + " seconds.\n\n"
         msg += " Sensor readings\n            Temp: " + temp + "\n            Humid: " + humid + "\n\n"
         msg += "You can change these settings and configure switching behaviour in the config dht dialog box found in the Pigrow Setup tab.\n\n"
-        cron_dht_exists, cron_dht_enabled, cron_dht_index = self.check_for_control_script()
+        cron_dht_exists, cron_dht_enabled, cron_dht_index = self.check_for_control_script(scriptname="checkDHT.py")
         if cron_dht_exists == False:
             msg += "To enable the sensor's logging and device switching the script checkDHT.py must be running on the pigrow, this is called at "
             msg += "start-up by Cron the pi's task scheduling tool."
@@ -1944,7 +1944,7 @@ class install_dialog(wx.Dialog):
             while cron_dht_exists:
                 print("Removing " + str(cron_dht_index))
                 cron_list_pnl.startup_cron.DeleteItem(cron_dht_index)
-                cron_dht_exists, cron_dht_enabled, cron_dht_index = self.check_for_control_script()
+                cron_dht_exists, cron_dht_enabled, cron_dht_index = self.check_for_control_script(scriptname="checkDHT.py")
             print("Adding a new checkDHT.py script to cron")
             checkDHT_path = "/home/" + str(pi_link_pnl.target_user) +  "/Pigrow/scripts/autorun/checkDHT.py"
             cron_info_pnl.add_to_startup_list(MainApp.cron_info_pannel, 'new', "True", checkDHT_path, "", "")
@@ -2037,19 +2037,19 @@ class install_dialog(wx.Dialog):
         MainApp.config_ctrl_pannel.config_dict["humid_high"] = highhum
         MainApp.config_ctrl_pannel.update_setting_file_on_pi_click("e")
 
-    def check_for_control_script(self):
+    def check_for_control_script(self, scriptname):
         last_index = cron_list_pnl.startup_cron.GetItemCount()
-        has_cron_got_check_dht_already = False
-        checkdht_enabled = False
-        checkdht_index = None
+        script_has_cronjob_already = False
+        script_enabled = False
+        script_startupcron_index = None
         if not last_index == 0:
             for index in range(0, last_index):
                 name = cron_list_pnl.startup_cron.GetItem(index, 3).GetText()
-                if "checkDHT.py" in name:
-                    checkdht_enabled = cron_list_pnl.startup_cron.GetItem(index, 1).GetText()
-                    checkdht_index = index
-                    has_cron_got_check_dht_already = True
-        return has_cron_got_check_dht_already, checkdht_enabled, checkdht_index
+                if scriptname in name:
+                    script_enabled = cron_list_pnl.startup_cron.GetItem(index, 1).GetText()
+                    script_startupcron_index = index
+                    script_has_cronjob_already = True
+        return script_has_cronjob_already, script_enabled, script_startupcron_index
 
     def add_selflog(self):
         msg = "Enable Selflog\n\n"
@@ -4861,7 +4861,7 @@ class cron_list_pnl(wx.Panel):
             self.InsertColumn(3, 'Task')
             self.InsertColumn(4, 'extra args')
             self.InsertColumn(5, 'comment')
-            self.SetColumnWidth(0, 100)
+            self.SetColumnWidth(0, 55)
             self.SetColumnWidth(1, 75)
             self.SetColumnWidth(2, 75)
             self.SetColumnWidth(3, 400)
@@ -4877,7 +4877,7 @@ class cron_list_pnl(wx.Panel):
             self.InsertColumn(3, 'Task')
             self.InsertColumn(4, 'extra args')
             self.InsertColumn(5, 'comment')
-            self.SetColumnWidth(0, 75)
+            self.SetColumnWidth(0, 55)
             self.SetColumnWidth(1, 75)
             self.SetColumnWidth(2, 100)
             self.SetColumnWidth(3, 400)
@@ -4918,7 +4918,7 @@ class cron_list_pnl(wx.Panel):
             self.InsertColumn(3, 'Task')
             self.InsertColumn(4, 'extra args')
             self.InsertColumn(5, 'comment')
-            self.SetColumnWidth(0, 75)
+            self.SetColumnWidth(0, 55)
             self.SetColumnWidth(1, 75)
             self.SetColumnWidth(2, 100)
             self.SetColumnWidth(3, 400)
@@ -11877,19 +11877,40 @@ class sensors_info_pnl(wx.Panel):
         self.sensor_list = self.sensor_table(self, 1)
         self.sensor_list.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.sensor_table.double_click)
         # trigger table
-        trigger_sub_title =  wx.StaticText(self,  label='Log Triggers', size=(550,30))
+        trigger_sub_title =  wx.StaticText(self,  label='Log Triggers - ')
+        self.trigger_script_activity_cron =  wx.StaticText(self,  label="")
+        self.trigger_script_activity_live =  wx.StaticText(self,  label="")
         self.trigger_list = self.trigger_table(self, 1)
         self.trigger_list.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.trigger_table.double_click)
         # sizers
+        trigger_label_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        trigger_label_sizer.Add(trigger_sub_title, 1, wx.ALL, 3)
+        trigger_label_sizer.Add(self.trigger_script_activity_cron, 1, wx.ALL, 3)
+        trigger_label_sizer.Add(self.trigger_script_activity_live, 1, wx.ALL, 3)
         main_sizer = wx.BoxSizer(wx.VERTICAL)
         main_sizer.Add(title_l, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
         main_sizer.Add(page_sub_title, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
         main_sizer.Add(self.sensor_list, 1, wx.ALL|wx.EXPAND, 3)
         #main_sizer.AddStretchSpacer(1)
         main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
-        main_sizer.Add(trigger_sub_title, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
+        main_sizer.Add(trigger_label_sizer, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
         main_sizer.Add(self.trigger_list, 1, wx.ALL|wx.EXPAND, 3)
         self.SetSizer(main_sizer)
+
+    def check_trigger_script_activity(self):
+        script_has_cronjob, script_enabled, script_startupcron_index = install_dialog.check_for_control_script("", scriptname='trigger_watcher.py')
+        #
+        if script_has_cronjob and script_enabled:
+            self.trigger_script_activity_cron.SetForegroundColour((80,150,80))
+            self.trigger_script_activity_cron.SetLabel("trigger_watcher.py starting on boot")
+        elif script_has_cronjob and not script_enabled:
+            self.trigger_script_activity_cron.SetForegroundColour((200,110,110))
+            self.trigger_script_activity_cron.SetLabel("trigger_watcher.py cronjob disabled, won't start on boot")
+        elif not script_has_cronjob:
+            self.trigger_script_activity_cron.SetForegroundColour((200,75,75))
+            self.trigger_script_activity_cron.SetLabel("No trigger_watcher.py in startup cron, this is required.")
+        #
+        self.trigger_script_activity_live.SetLabel(" -- ")
 
     class sensor_table(wx.ListCtrl):
         def __init__(self, parent, id):
@@ -12208,6 +12229,7 @@ class sensors_ctrl_pnl(wx.Panel):
     def make_tables_click(self, e):
         MainApp.sensors_info_pannel.sensor_list.make_sensor_table()
         MainApp.sensors_info_pannel.trigger_list.make_trigger_table()
+        MainApp.sensors_info_pannel.check_trigger_script_activity()
 
     def add_modular_sensor_click(self, e):
         # set blanks for dialog box
