@@ -11877,7 +11877,8 @@ class sensors_info_pnl(wx.Panel):
         self.sensor_list = self.sensor_table(self, 1)
         self.sensor_list.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.sensor_table.double_click)
         # trigger table
-        trigger_sub_title =  wx.StaticText(self,  label='Log Triggers - ')
+        trigger_sub_title =  wx.StaticText(self,  label='Log Triggers ')
+        trigger_sub_title.SetFont(shared_data.sub_title_font)
         self.trigger_script_activity_cron =  wx.StaticText(self,  label="")
         self.trigger_script_activity_live =  wx.StaticText(self,  label="")
         self.trigger_list = self.trigger_table(self, 1)
@@ -11898,8 +11899,8 @@ class sensors_info_pnl(wx.Panel):
         self.SetSizer(main_sizer)
 
     def check_trigger_script_activity(self):
+        # Check Cron
         script_has_cronjob, script_enabled, script_startupcron_index = install_dialog.check_for_control_script("", scriptname='trigger_watcher.py')
-        #
         if script_has_cronjob and script_enabled:
             self.trigger_script_activity_cron.SetForegroundColour((80,150,80))
             self.trigger_script_activity_cron.SetLabel("trigger_watcher.py starting on boot")
@@ -11909,8 +11910,16 @@ class sensors_info_pnl(wx.Panel):
         elif not script_has_cronjob:
             self.trigger_script_activity_cron.SetForegroundColour((200,75,75))
             self.trigger_script_activity_cron.SetLabel("No trigger_watcher.py in startup cron, this is required.")
-        #
-        self.trigger_script_activity_live.SetLabel(" -- ")
+        # Check running
+        cmd = "pidof /home/" + pi_link_pnl.target_user + "/Pigrow/scripts/autorun/trigger_watcher.py -x"
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi(cmd)
+        if len(out) > 0:
+            self.trigger_script_activity_live.SetLabel(" trigger_watcher.py currently running ")
+            self.trigger_script_activity_live.SetForegroundColour((80,150,80))
+        else:
+            self.trigger_script_activity_live.SetLabel(" trigger_watcher.py NOT currently running ")
+            self.trigger_script_activity_live.SetForegroundColour((200,75,75))
+        MainApp.window_self.Layout()    
 
     class sensor_table(wx.ListCtrl):
         def __init__(self, parent, id):
