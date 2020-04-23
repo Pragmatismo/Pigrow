@@ -88,11 +88,14 @@ def check_condition(condition_name, trig_direction):
         # check if condition is met
         if not trigger_state == "none":
             # convert timestamp to datetime
-            if not trigger_cooldown == "none":
-                trigger_datetime = datetime.datetime.fromtimestamp(float(trigger_cooldown))
-                if trigger_datetime > datetime.datetime.now():
-                    print_limit("Trigger still cooling down, wont fire again for " + str(trigger_datetime - datetime.datetime.now()), 1)
-                    return False
+            if not trigger_cooldown == "none" and not trigger_cooldown == "":
+                try:
+                    trigger_datetime = datetime.datetime.fromtimestamp(float(trigger_cooldown))
+                    if trigger_datetime > datetime.datetime.now():
+                        print_limit("Trigger still cooling down, wont fire again for " + str(trigger_datetime - datetime.datetime.now()), 1)
+                        return False
+                except:
+                    print_limit(" !! Failed to convert cooldown to date, it should be a timestamp")        
             # check if trigger state is already set
             if trigger_state == trig_direction:
                 print_limit("  - Not triggering because condition is already set...", 2)
