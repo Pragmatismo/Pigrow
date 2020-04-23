@@ -11919,7 +11919,7 @@ class sensors_info_pnl(wx.Panel):
         else:
             self.trigger_script_activity_live.SetLabel(" trigger_watcher.py NOT currently running ")
             self.trigger_script_activity_live.SetForegroundColour((200,75,75))
-        MainApp.window_self.Layout()    
+        MainApp.window_self.Layout()
 
     class sensor_table(wx.ListCtrl):
         def __init__(self, parent, id):
@@ -12841,6 +12841,12 @@ class set_trigger_dialog(wx.Dialog):
         self.read_trig_cond_btn.Bind(wx.EVT_BUTTON, self.read_trigger_conditions_click)
         self.read_output_l = wx.StaticText(self,  label='')
 
+        # Mirror
+        if MainApp.sensors_info_pannel.trigger_list.initial_index == -1:
+            mirror_label = "Create Mirror"
+        else:
+            mirror_label = "Change Mirror"
+        self.mirror_l = wx.CheckBox(self,  label=mirror_label)
 
         # Sizers
         trig_options_sizer = wx.FlexGridSizer(8, 2, 1, 4)
@@ -12875,9 +12881,13 @@ class set_trigger_dialog(wx.Dialog):
         main_sizer.AddStretchSpacer(1)
         main_sizer.Add(trigger_conditions_sizer, 0, wx.ALL|wx.EXPAND, 3)
         main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(self.mirror_l, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
         main_sizer.Add(buttons_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
         main_sizer.AddStretchSpacer(1)
         self.SetSizer(main_sizer)
+
+        if not MainApp.sensors_info_pannel.trigger_list.initial_type == "above" and not MainApp.sensors_info_pannel.trigger_list.initial_type == "below":
+            self.mirror_l.Hide()
 
     def get_log_options(self):
         log_list = []
@@ -12924,6 +12934,11 @@ class set_trigger_dialog(wx.Dialog):
             self.value_tc.Disable()
         else:
             self.value_tc.Enable()
+        if type == "above" or type == "below":
+            self.mirror_l.Show()
+        else:
+            self.mirror_l.Hide()
+        self.Layout()
 
     def read_trigger_conditions_click(self, e):
         self.read_output_l.SetLabel("")
@@ -12954,6 +12969,7 @@ class set_trigger_dialog(wx.Dialog):
             return True
         return False
 
+
     def add_click(self, e):
         if self.check_if_change():
             print(" - Saving Changes to Trigger Events File -")
@@ -12969,8 +12985,24 @@ class set_trigger_dialog(wx.Dialog):
             # if new create a new item in the table
             if tt_index == -1:
                 MainApp.sensors_info_pannel.trigger_list.add_to_trigger_list(log, label, type, value, name, set, cooldown, cmd)
+                if self.mirror_l.GetValue() == True:
+                    if set == "on":
+                        set = "off"
+                    elif set == "off":
+                        set = "on"
+                    if "_on.py" in cmd:
+                        cmd = cmd.replace("_on.py", "_off.py")
+                    elif "_off.py" in cmd:
+                        cmd = cmd.replace("_off.py", "_on.py")
+                    if type == "above":
+                        MainApp.sensors_info_pannel.trigger_list.add_to_trigger_list(log, label, "below", value, name, set, cooldown, cmd)
+                    elif type == "below":
+                        MainApp.sensors_info_pannel.trigger_list.add_to_trigger_list(log, label, "above", value, name, set, cooldown, cmd)
             else:
                 MainApp.sensors_info_pannel.trigger_list.update_table_line(tt_index, log, label, type, value, name, set, cooldown, cmd)
+                if self.mirror_l.GetValue() == True:
+                    if type == "above" or type == "below":
+                        print(" -- should be editing the mirror but not -- ")
             MainApp.sensors_info_pannel.trigger_list.save_table_to_pi()
         self.Destroy()
 
