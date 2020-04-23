@@ -52,7 +52,7 @@ class config_data:
         # make a list of logs we've got confitions for
         logs_to_check = []
         for item in config_data.trigger_conditions:
-            if not item in logs_to_check:
+            if not item[0] in logs_to_check:
                 logs_to_check.append(item[0])
         config_data.logs_to_check = logs_to_check
         print_limit(" - Checking logs;" + str(logs_to_check), 2)
