@@ -12888,6 +12888,39 @@ class set_trigger_dialog(wx.Dialog):
 
         if not MainApp.sensors_info_pannel.trigger_list.initial_type == "above" and not MainApp.sensors_info_pannel.trigger_list.initial_type == "below":
             self.mirror_l.Hide()
+        if not self.find_mirror() > -1:
+            self.mirror_l.SetLabel("Create Mirror")
+        else:
+            self.mirror_l.SetForegroundColour((75,190,75))
+            self.mirror_l.SetValue(True)
+
+
+    def find_mirror(self):
+        print(" looking for mirror")
+        mirror_trigger_index = -1
+        for index in range(0, MainApp.sensors_info_pannel.trigger_list.GetItemCount()):
+            if not index == MainApp.sensors_info_pannel.trigger_list.initial_index:
+                log      = MainApp.sensors_info_pannel.trigger_list.GetItem(index,0).GetText()
+                label    = MainApp.sensors_info_pannel.trigger_list.GetItem(index,1).GetText()
+                value    = MainApp.sensors_info_pannel.trigger_list.GetItem(index,3).GetText()
+                name     = MainApp.sensors_info_pannel.trigger_list.GetItem(index,4).GetText()
+                if self.log_cb.GetValue() == log:
+                    if self.val_label_cb.GetValue() == label:
+                        if self.value_tc.GetValue() == value:
+                            if self.cond_name_tc.GetValue() == name:
+                                mirror_trigger_index = index
+        return mirror_trigger_index
+
+        # notes - unused
+        #self.type_cb.GetValue()
+        #self.set_cb.GetValue()
+        #self.cmd_tc.GetValue()
+        #set      = self.GetItem(index,5).GetText()
+        #cooldown = self.GetItem(index,6).GetText() #
+        #cmd      = self.GetItem(index,7).GetText()
+        #type     = self.GetItem(index,2).GetText()
+
+
 
     def get_log_options(self):
         log_list = []
@@ -12968,7 +13001,6 @@ class set_trigger_dialog(wx.Dialog):
         if not MainApp.sensors_info_pannel.trigger_list.initial_cmd == self.cmd_tc.GetValue():
             return True
         return False
-
 
     def add_click(self, e):
         if self.check_if_change():
