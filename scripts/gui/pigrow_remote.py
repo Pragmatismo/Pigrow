@@ -12904,23 +12904,35 @@ class set_trigger_dialog(wx.Dialog):
                 label    = MainApp.sensors_info_pannel.trigger_list.GetItem(index,1).GetText()
                 value    = MainApp.sensors_info_pannel.trigger_list.GetItem(index,3).GetText()
                 name     = MainApp.sensors_info_pannel.trigger_list.GetItem(index,4).GetText()
-                if self.log_cb.GetValue() == log:
-                    if self.val_label_cb.GetValue() == label:
-                        if self.value_tc.GetValue() == value:
-                            if self.cond_name_tc.GetValue() == name:
+                if MainApp.sensors_info_pannel.trigger_list.initial_log == log:
+                    if MainApp.sensors_info_pannel.trigger_list.initial_val_label == label:
+                        if MainApp.sensors_info_pannel.trigger_list.initial_value == value:
+                            if MainApp.sensors_info_pannel.trigger_list.initial_cond_name == name:
                                 mirror_trigger_index = index
         return mirror_trigger_index
 
-        # notes - unused
-        #self.type_cb.GetValue()
-        #self.set_cb.GetValue()
-        #self.cmd_tc.GetValue()
-        #set      = self.GetItem(index,5).GetText()
-        #cooldown = self.GetItem(index,6).GetText() #
-        #cmd      = self.GetItem(index,7).GetText()
-        #type     = self.GetItem(index,2).GetText()
+    def create_mirror(self, log, label, type, value, name, set, cooldown, cmd):
+        # flip set direction
+        if set == "on":
+            set = "off"
+        elif set == "off":
+            set = "on"
+        # flip relay command if it's a relay command or similar
+        if "_on.py" in cmd:
+            cmd = cmd.replace("_on.py", "_off.py")
+        elif "_off.py" in cmd:
+            cmd = cmd.replace("_off.py", "_on.py")
+        # flip type direction
+        if type == "above":
+            MainApp.sensors_info_pannel.trigger_list.add_to_trigger_list(log, label, "below", value, name, set, cooldown, cmd)
+        elif type == "below":
+            MainApp.sensors_info_pannel.trigger_list.add_to_trigger_list(log, label, "above", value, name, set, cooldown, cmd)
 
-
+    def change_mirror(self, mirror_index, log, label, value, name):
+        MainApp.sensors_info_pannel.trigger_list.SetItem(mirror_index,0, log)
+        MainApp.sensors_info_pannel.trigger_list.SetItem(mirror_index,1, label)
+        MainApp.sensors_info_pannel.trigger_list.SetItem(mirror_index,3, value)
+        MainApp.sensors_info_pannel.trigger_list.SetItem(mirror_index,4, name)
 
     def get_log_options(self):
         log_list = []
@@ -13000,6 +13012,9 @@ class set_trigger_dialog(wx.Dialog):
             return True
         if not MainApp.sensors_info_pannel.trigger_list.initial_cmd == self.cmd_tc.GetValue():
             return True
+        if self.mirror_l.GetValue() == True and self.mirror_l.GetLabel() == 'Create Mirror':
+            return True
+        # If nothing has changed and the users not asking to create a new mirror trigger 
         return False
 
     def add_click(self, e):
@@ -13016,25 +13031,21 @@ class set_trigger_dialog(wx.Dialog):
             tt_index = MainApp.sensors_info_pannel.trigger_list.initial_index
             # if new create a new item in the table
             if tt_index == -1:
+                # If not already in the table
                 MainApp.sensors_info_pannel.trigger_list.add_to_trigger_list(log, label, type, value, name, set, cooldown, cmd)
                 if self.mirror_l.GetValue() == True:
-                    if set == "on":
-                        set = "off"
-                    elif set == "off":
-                        set = "on"
-                    if "_on.py" in cmd:
-                        cmd = cmd.replace("_on.py", "_off.py")
-                    elif "_off.py" in cmd:
-                        cmd = cmd.replace("_off.py", "_on.py")
-                    if type == "above":
-                        MainApp.sensors_info_pannel.trigger_list.add_to_trigger_list(log, label, "below", value, name, set, cooldown, cmd)
-                    elif type == "below":
-                        MainApp.sensors_info_pannel.trigger_list.add_to_trigger_list(log, label, "above", value, name, set, cooldown, cmd)
+                    self.create_mirror(log, label, type, value, name, set, cooldown, cmd)
             else:
+                # Fot existing triggers
                 MainApp.sensors_info_pannel.trigger_list.update_table_line(tt_index, log, label, type, value, name, set, cooldown, cmd)
                 if self.mirror_l.GetValue() == True:
+                    mirror_index = self.find_mirror()
                     if type == "above" or type == "below":
-                        print(" -- should be editing the mirror but not -- ")
+                        if mirror_index > -1:
+                            print(" -- might be be editing the mirror -- ")
+                            self.change_mirror(mirror_index, log, label, value, name)
+                        else:
+                            self.create_mirror(log, label, type, value, name, set, cooldown, cmd)
             MainApp.sensors_info_pannel.trigger_list.save_table_to_pi()
         self.Destroy()
 
