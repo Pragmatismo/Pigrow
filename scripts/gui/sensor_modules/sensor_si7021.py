@@ -1,8 +1,12 @@
 #!/usr/bin/python3
+
 class sensor_config():
-    connection_type="i2c"
-    connection_address_list=["0x40"]
-    default_connection_address="0x40"
+    # find connected sensors
+    def find_settings():
+        print("connection_type=i2c")
+        print("connection_address_list=0x40")
+        print("default_connection_address=0x40")
+
 
 
 def read_sensor(*args):
@@ -40,6 +44,28 @@ if __name__ == '__main__':
     '''
       The si7021 requires no configuration because it has no settings and can't change address
       '''
+     # check for command line arguments
+    sensor_location = ""
+    for argu in sys.argv[1:]:
+        if "=" in argu:
+            thearg = str(argu).split('=')[0]
+            thevalue = str(argu).split('=')[1]
+            if thearg == 'location':
+                sensor_location = thevalue
+        elif 'help' in argu or argu == '-h':
+            print(" Modular control for si7021 temp sensors")
+            print(" ")
+            print("")
+            print(" -config  ")
+            print("        display the config information")
+            print("")
+            sys.exit(0)
+        elif argu == "-flags":
+            sys.exit(0)
+        elif argu == "-config":
+            sensor_config.find_settings()
+            sys.exit()
+    # read sensor
     output = read_sensor()
     if output == None:
         print("!! Failed to read !!")
