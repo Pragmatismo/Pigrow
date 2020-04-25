@@ -73,6 +73,7 @@ if __name__ == '__main__':
         output = read_sensor(location=sensor_location)
     else:
         print(" No sensor address supplied, this requries a sensor address.")
+        sys.exit()
     # Display the output
     if output == None:
         print("!! Failed to read !!")
