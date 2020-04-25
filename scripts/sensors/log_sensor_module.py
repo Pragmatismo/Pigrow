@@ -43,7 +43,7 @@ pigrow_settings = pigrow_defs.load_settings(loc_dic['loc_settings'])
 sensor_type = None
 sensor_log = None
 sensor_loc = None
-sensor_extra = None
+sensor_extra = ""
 for key, value in list(pigrow_settings.items()):
     sensor_key = "sensor_" + sensor_name
     if sensor_key in key:
@@ -55,7 +55,7 @@ for key, value in list(pigrow_settings.items()):
             sensor_loc = value
         elif "extra" in key:
             sensor_extra = value
-if sensor_type == None or sensor_log == None or sensor_loc == None or sensor_extra == None:
+if sensor_type == None or sensor_log == None or sensor_loc == None:
     err_msg = "Sensor settings not found in " + loc_dic['loc_settings']
     print(err_msg)
     pigrow_defs.write_log('log_sensor_module.py', err_msg, loc_dic['err_log'])
