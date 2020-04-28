@@ -11876,6 +11876,7 @@ class sensors_info_pnl(wx.Panel):
         # sensor table
         self.sensor_list = self.sensor_table(self, 1)
         self.sensor_list.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.sensor_table.double_click)
+        self.sensor_list.Bind(wx.EVT_LIST_KEY_DOWN, self.del_item)
         # trigger table
         trigger_sub_title =  wx.StaticText(self,  label='Log Triggers ')
         trigger_sub_title.SetFont(shared_data.sub_title_font)
@@ -11883,6 +11884,7 @@ class sensors_info_pnl(wx.Panel):
         self.trigger_script_activity_live =  wx.StaticText(self,  label="")
         self.trigger_list = self.trigger_table(self, 1)
         self.trigger_list.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.trigger_table.double_click)
+        self.trigger_list.Bind(wx.EVT_LIST_KEY_DOWN, self.del_item)
         # sizers
         trigger_label_sizer = wx.BoxSizer(wx.HORIZONTAL)
         trigger_label_sizer.Add(trigger_sub_title, 1, wx.ALL, 3)
@@ -11897,6 +11899,30 @@ class sensors_info_pnl(wx.Panel):
         main_sizer.Add(trigger_label_sizer, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
         main_sizer.Add(self.trigger_list, 1, wx.ALL|wx.EXPAND, 3)
         self.SetSizer(main_sizer)
+
+    def del_item(self, e):
+        keycode = e.GetKeyCode()
+        if keycode == wx.WXK_DELETE:
+                mbox = wx.MessageDialog(None, "Delete selected item?", "Are you sure?", wx.YES_NO|wx.ICON_QUESTION)
+                sure = mbox.ShowModal()
+                if sure == wx.ID_YES:
+                    if self.sensor_list.GetSelectedItemCount() == 1:
+                        name = MainApp.sensors_info_pannel.sensor_list.GetItem(self.sensor_list.GetFocusedItem(), 0).GetText()
+                        print(self.sensor_list.DeleteItem(self.sensor_list.GetFocusedItem()))
+                        if "sensor_" + name + "_type" in MainApp.config_ctrl_pannel.config_dict:
+                            del MainApp.config_ctrl_pannel.config_dict["sensor_" + name + "_type"]
+                        if "sensor_" + name + "_log" in MainApp.config_ctrl_pannel.config_dict:
+                            del MainApp.config_ctrl_pannel.config_dict["sensor_" + name + "_log"]
+                        if "sensor_" + name + "_loc" in MainApp.config_ctrl_pannel.config_dict:
+                            del MainApp.config_ctrl_pannel.config_dict["sensor_" + name + "_loc"]
+                        if "sensor_" + name + "_extra" in MainApp.config_ctrl_pannel.config_dict:
+                            del MainApp.config_ctrl_pannel.config_dict["sensor_" + name + "_extra"]
+                        MainApp.config_ctrl_pannel.update_setting_file_on_pi_click('e')
+                    if self.trigger_list.GetSelectedItemCount() == 1:
+                        print(self.trigger_list.DeleteItem(self.trigger_list.GetFocusedItem()))
+                        MainApp.sensors_info_pannel.trigger_list.save_table_to_pi()
+                    # remove from config dict
+
 
     def check_trigger_script_activity(self):
         # Check Cron
@@ -12140,16 +12166,16 @@ class sensors_info_pnl(wx.Panel):
             if len(trigger_file_text) > 1:
                 if trigger_file_text[0:-2] == "\n":
                     trigger_file_text = trigger_file_text[0:-2]
-                # Write Temporary file
-                temp_trigger_file_location = temp_local = os.path.join(localfiles_info_pnl.local_path, "temp/")
-                if not os.path.isdir(temp_trigger_file_location):
-                    os.makedirs(temp_trigger_file_location)
-                temp_trigger_file_location = temp_local = os.path.join(temp_trigger_file_location, "trigger_events.txt")
-                with open(temp_trigger_file_location, "w") as f:
-                    f.write(trigger_file_text)
-                # copy tempory file onto pigrow over existing trigger file
-                pi_trigger_events_file = "/home/" + pi_link_pnl.target_user + "/Pigrow/config/trigger_events.txt"
-                MainApp.localfiles_ctrl_pannel.upload_file_to_folder(temp_trigger_file_location, pi_trigger_events_file)
+            # Write Temporary file
+            temp_trigger_file_location = temp_local = os.path.join(localfiles_info_pnl.local_path, "temp/")
+            if not os.path.isdir(temp_trigger_file_location):
+                os.makedirs(temp_trigger_file_location)
+            temp_trigger_file_location = temp_local = os.path.join(temp_trigger_file_location, "trigger_events.txt")
+            with open(temp_trigger_file_location, "w") as f:
+                f.write(trigger_file_text)
+            # copy tempory file onto pigrow over existing trigger file
+            pi_trigger_events_file = "/home/" + pi_link_pnl.target_user + "/Pigrow/config/trigger_events.txt"
+            MainApp.localfiles_ctrl_pannel.upload_file_to_folder(temp_trigger_file_location, pi_trigger_events_file)
 
 
 
@@ -12408,13 +12434,11 @@ class add_sensor_from_module_dialog(wx.Dialog):
         # self.graph_btn.Bind(wx.EVT_BUTTON, self.graph_click)
         sensor_l = wx.StaticText(self,  label='Sensor Location')
 
-        # auto list i2c sensors
-        found_sensor_list = sensor_module.sensor_config.connection_address_list # a list of all possible sensor locations for the interface type
-             #---- add function here to remove sensors already added
-        self.sensor_connection = wx.StaticText(self,  label=sensor_module.sensor_config.connection_type)
-        self.loc_cb = wx.ComboBox(self, choices = found_sensor_list, size=(170, 25))
-        if not sensor_module.sensor_config.default_connection_address == "":
-            self.loc_cb.SetValue(sensor_module.sensor_config.default_connection_address)
+        # loaded settungs
+        self.sensor_connection = wx.StaticText(self,  label="")
+        self.loc_cb = wx.ComboBox(self, choices = [], size=(170, 25))
+        self.read_mod_settings()
+
 
         # Read sensor button
         self.read_sensor_btn = wx.Button(self, label='Read Sensor')
@@ -12468,6 +12492,37 @@ class add_sensor_from_module_dialog(wx.Dialog):
             self.loc_cb.SetValue(self.s_loc)
         self.rep_num_tc.SetValue(s_rep)
         self.rep_opts_cb.SetValue(s_rep_txt)
+
+    def read_mod_settings(self):
+        print(" -- READING MODULE SETTINGS -- ")
+        module_name = self.s_type
+        sensor_module_path = "/home/" + pi_link_pnl.target_user + "/Pigrow/scripts/gui/sensor_modules/sensor_" + module_name + ".py"
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi(sensor_module_path + " -config")
+        print(out, error)
+        print(" -------------------------------------- ")
+        def_address = ""
+        only_option = False
+        for line in out.strip().splitlines():
+            if "=" in line:
+                setting = line.split("=")[0]
+                value = line.split("=")[1]
+                if setting == "connection_type":
+                    print(" currently no box for connection type ")
+                    # write to connection type box which doesn't yet exist
+                elif setting == "connection_address_list":
+                    self.loc_cb.Clear()
+                    if "," in value:
+                        for item in value.split(","):
+                            #---- add function here to remove sensors already added
+                            self.loc_cb.Append(item)
+                    else:
+                        self.loc_cb.Append(value)
+                        self.loc_cb.SetValue(value)
+                        only_option = True
+                elif setting == "default_connection_address":
+                    def_address = value
+        if not only_option == True:
+            self.loc_cb.SetValue(def_address)
 
 
     def import_sensor_module(self):
@@ -13014,7 +13069,7 @@ class set_trigger_dialog(wx.Dialog):
             return True
         if self.mirror_l.GetValue() == True and self.mirror_l.GetLabel() == 'Create Mirror':
             return True
-        # If nothing has changed and the users not asking to create a new mirror trigger 
+        # If nothing has changed and the users not asking to create a new mirror trigger
         return False
 
     def add_click(self, e):
@@ -13692,7 +13747,7 @@ class ds18b20_dialog(wx.Dialog):
             s_rep_txt = ""
         # panel
         pnl = wx.Panel(self)
-        box_label = wx.StaticText(self,  label='DS18B20 Temp Sensor')
+        box_label = wx.StaticText(self,  label='DS18B20 Temp Sensor\n DO NOT USE THIS IS DEPRECIATED NOW')
         box_label.SetFont(shared_data.title_font)
         # table information
         name_l = wx.StaticText(self,  label='Unique Name')
