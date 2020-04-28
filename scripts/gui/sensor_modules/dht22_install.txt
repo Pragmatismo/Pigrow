@@ -1,0 +1,2 @@
+install_method=pip3
+package_name=adafruit-circuitpython-dht
