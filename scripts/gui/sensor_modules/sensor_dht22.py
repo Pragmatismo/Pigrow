@@ -68,7 +68,11 @@ if __name__ == '__main__':
             sys.exit()
     # read sensor
     if not sensor_location == "":
-        output = read_sensor(location=sensor_location)
+        read_attempt = 0
+        output = None
+        while read_attempt < 5 and output == None:
+            output = read_sensor(location=sensor_location)
+            read_attempt = read_attempt + 1
     else:
         print(" No sensor address supplied, this requries a sensor address.")
         sys.exit()
