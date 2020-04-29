@@ -11877,6 +11877,7 @@ class sensors_info_pnl(wx.Panel):
         self.sensor_list = self.sensor_table(self, 1)
         self.sensor_list.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.sensor_table.double_click)
         self.sensor_list.Bind(wx.EVT_LIST_KEY_DOWN, self.del_item)
+        self.sensor_list.Bind(wx.EVT_LIST_ITEM_FOCUSED, self.sensor_got_focus)
         # trigger table
         trigger_sub_title =  wx.StaticText(self,  label='Log Triggers ')
         trigger_sub_title.SetFont(shared_data.sub_title_font)
@@ -11884,6 +11885,7 @@ class sensors_info_pnl(wx.Panel):
         self.trigger_script_activity_live =  wx.StaticText(self,  label="")
         self.trigger_list = self.trigger_table(self, 1)
         self.trigger_list.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.trigger_table.double_click)
+        self.trigger_list.Bind(wx.EVT_LIST_ITEM_FOCUSED, self.trigger_got_focus)
         self.trigger_list.Bind(wx.EVT_LIST_KEY_DOWN, self.del_item)
         # sizers
         trigger_label_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -11899,6 +11901,14 @@ class sensors_info_pnl(wx.Panel):
         main_sizer.Add(trigger_label_sizer, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
         main_sizer.Add(self.trigger_list, 1, wx.ALL|wx.EXPAND, 3)
         self.SetSizer(main_sizer)
+
+    def sensor_got_focus(self, e):
+        trigger_focus = self.trigger_list.GetFocusedItem()
+        self.trigger_list.Select(trigger_focus, on=0)
+
+    def trigger_got_focus(self, e):
+        sensor_focus = self.sensor_list.GetFocusedItem()
+        self.sensor_list.Select(sensor_focus, on=0)        
 
     def del_item(self, e):
         keycode = e.GetKeyCode()
@@ -12153,6 +12163,7 @@ class sensors_info_pnl(wx.Panel):
 
         def save_table_to_pi(self):
             trigger_file_text = ""
+
             for index in range(0, MainApp.sensors_info_pannel.trigger_list.GetItemCount()):
                 log      = self.GetItem(index,0).GetText()
                 label    = self.GetItem(index,1).GetText()
