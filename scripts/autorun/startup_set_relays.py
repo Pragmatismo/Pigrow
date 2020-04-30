@@ -14,20 +14,11 @@ for argu in sys.argv[1:]:
         print(" then set's the device to the appropriate state depending on the time.")
         print("")
         print("")
-        print(" It also deletes the Pigrow/logs/trigger_conditions.txt file")
-        print(" to ensure that relays are set to their correct state the")
-        print(" next time the sensor is read to the associated log.")
-        print("")
-        print(" If you want to set the relays right away after a reboot then call")
-        print("the sensors logging script directly after this one on boot. ")
-        print("  - an .sh file listing the commands makes this process simpler")
         sys.exit(0)
     elif argu == '-flags':
         sys.exit()
 
-def clear_conditions():
-    cmd = "rm " + homedir + "/Pigrow/logs/trigger_conditions.txt"
-    os.system(cmd)
+
 
 def check_device(device, on_time, off_time):
     current_time = datetime.datetime.now().time()
@@ -86,9 +77,8 @@ def read_cron():
                                 timing_dict[device + "| off"] = off_time
     return timing_dict
 
-# empty the conditions file
-clear_conditions()
-# check cron for timed jobs and flip them
+
+# check cron for timed jobs
 job_dict = read_cron()
 for key, value in job_dict.items():
     if "| on" in key:
