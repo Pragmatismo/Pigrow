@@ -13,6 +13,10 @@ import pigrow_defs
 trigger_events_path     = homedir + "/Pigrow/config/trigger_events.txt"
 trigger_conditions_path = homedir + "/Pigrow/logs/trigger_conditions.txt"
 
+def clear_conditions():
+    cmd = "rm " + homedir + "/Pigrow/logs/trigger_conditions.txt"
+    os.system(cmd)
+
 class config_data:
     def __init__():
         config_data.trigger_conditions = []
@@ -95,7 +99,7 @@ def check_condition(condition_name, trig_direction):
                         print_limit("Trigger still cooling down, wont fire again for " + str(trigger_datetime - datetime.datetime.now()), 1)
                         return False
                 except:
-                    print_limit(" !! Failed to convert cooldown to date, it should be a timestamp")        
+                    print_limit(" !! Failed to convert cooldown to date, it should be a timestamp")
             # check if trigger state is already set
             if trigger_state == trig_direction:
                 print_limit("  - Not triggering because condition is already set...", 2)
@@ -236,6 +240,11 @@ def observe_trig_file():
 
 
 if __name__ == "__main__":
+    # Set timed relays
+    cmd = homedir + "/Pigrow/scripts/autorun/startup_set_relays.py"
+    os.system(cmd) 
+    # empty the conditions file
+    clear_conditions()
     # set path from locs file
     config_data.load_trigger_events(trigger_events_path)
     print_limit(" - Loaded trigger events;", 1)
