@@ -2303,19 +2303,26 @@ class install_dialog(wx.Dialog):
                 install_module_file = install_text.read().splitlines()
             install_method = ""
             package_name = ""
+            import_name = ""
             for line in install_module_file:
                 if "install_method=" in line:
                     install_method = line.split("=")[1]
-                if "package_name=" in line:
+                elif "package_name=" in line:
                     package_name =  line.split("=")[1]
+                elif "import=" in line:
+                    import_name =  line.split("=")[1]
             is_installed = False
             if not install_method == "" and not package_name == "":
                 if install_method == "pip2":
                     if "True" in test_py_module(package_name):
                         is_installed = True
                 elif install_method == 'pip3':
-                    if "True" in self.test_py3_module(package_name):
-                        is_installed = True
+                    if not import_name == "":
+                        if "True" in self.test_py3_module(import_name):
+                            is_installed = True
+                    else:
+                        if "True" in self.test_py3_module(package_name):
+                            is_installed = True
                 elif install_method == "apt":
                     is_installed = test_apt_package(package_name)
             if is_installed == True:
@@ -11908,7 +11915,7 @@ class sensors_info_pnl(wx.Panel):
 
     def trigger_got_focus(self, e):
         sensor_focus = self.sensor_list.GetFocusedItem()
-        self.sensor_list.Select(sensor_focus, on=0)        
+        self.sensor_list.Select(sensor_focus, on=0)
 
     def del_item(self, e):
         keycode = e.GetKeyCode()
@@ -11969,7 +11976,7 @@ class sensors_info_pnl(wx.Panel):
             self.SetColumnWidth(0, 125)
             self.SetColumnWidth(1, 75)
             self.SetColumnWidth(2, 300)
-            self.SetColumnWidth(3, 75)
+            self.SetColumnWidth(3, 100)
             self.SetColumnWidth(4, 175)
             self.SetColumnWidth(5, 100)
 
@@ -12114,7 +12121,7 @@ class sensors_info_pnl(wx.Panel):
             self.SetColumnWidth(4, 140)
             self.SetColumnWidth(5, 100)
             self.SetColumnWidth(6, 120)
-            self.SetColumnWidth(7, 350)
+            self.SetColumnWidth(7, 500)
 
         def make_trigger_table(self):
             self.DeleteAllItems()
@@ -12278,6 +12285,7 @@ class sensors_ctrl_pnl(wx.Panel):
         MainApp.sensors_info_pannel.check_trigger_script_activity()
 
     def add_modular_sensor_click(self, e):
+        MainApp.sensors_ctrl_pannel.make_tables_click("e")
         # set blanks for dialog box
         module_name = MainApp.sensors_ctrl_pannel.sensor_module_list_cb.GetValue()
         MainApp.sensors_info_pannel.sensor_list.s_type = module_name
@@ -12294,6 +12302,7 @@ class sensors_ctrl_pnl(wx.Panel):
         add_module_sensor.ShowModal()
 
     def add_button_click(self, e):
+        MainApp.sensors_ctrl_pannel.make_tables_click("e")
         # set blanks for dialog box
         module_name = MainApp.sensors_ctrl_pannel.sensor_module_list_cb.GetValue()
         MainApp.sensors_info_pannel.sensor_list.s_type = ""
@@ -12311,6 +12320,7 @@ class sensors_ctrl_pnl(wx.Panel):
 
 
     def add_ads1115_click(self, e):
+        MainApp.sensors_ctrl_pannel.make_tables_click("e")
         # set blanks for dialog box
         MainApp.sensors_info_pannel.sensor_list.s_name = ""
         log_path = ""
@@ -12325,6 +12335,7 @@ class sensors_ctrl_pnl(wx.Panel):
         add_ads1115.ShowModal()
 
     def add_ds18b20_click(self, e):
+        MainApp.sensors_ctrl_pannel.make_tables_click("e")
         # set blanks for dialog box
         MainApp.sensors_info_pannel.sensor_list.s_name = ""
         log_path = ""
@@ -12339,6 +12350,7 @@ class sensors_ctrl_pnl(wx.Panel):
         add_ds18b20.ShowModal()
 
     def add_new_chirp_click(self, e):
+        MainApp.sensors_ctrl_pannel.make_tables_click("e")
         print("adding a new chirp sensor")
         # set black variables
         MainApp.sensors_info_pannel.sensor_list.s_name = ""
@@ -12392,6 +12404,7 @@ class sensors_ctrl_pnl(wx.Panel):
             self.soil_sensor_cb.Hide()
 
     def add_trigger_click(self, e):
+        MainApp.sensors_ctrl_pannel.make_tables_click("e")
         MainApp.sensors_info_pannel.trigger_list.initial_log = ""
         MainApp.sensors_info_pannel.trigger_list.initial_val_label = ""
         MainApp.sensors_info_pannel.trigger_list.initial_type = ""
@@ -12657,7 +12670,7 @@ class add_button_dialog(wx.Dialog):
         self.timing_string = MainApp.sensors_info_pannel.sensor_list.s_timing
         # panel
         pnl = wx.Panel(self)
-        box_label = wx.StaticText(self,  label='Button type: ' + self.s_type)
+        box_label = wx.StaticText(self,  label='THIS IS A TEST FEATURE - FULL VERSION COMING SOON\nButton type: ' + self.s_type)
         box_label.SetFont(shared_data.title_font)
         # buttons_
         self.add_btn = wx.Button(self, label='OK', size=(175, 30))
@@ -14884,6 +14897,7 @@ class view_pnl(wx.Panel):
         elif display == 'Sensors':
             MainApp.sensors_info_pannel.Show()
             MainApp.sensors_ctrl_pannel.Show()
+            MainApp.sensors_ctrl_pannel.make_tables_click("e")
         elif display == "User Logs":
             MainApp.user_log_ctrl_pannel.Show()
             MainApp.user_log_info_pannel.Show()
