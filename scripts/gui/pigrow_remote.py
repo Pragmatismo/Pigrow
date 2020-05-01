@@ -1634,7 +1634,7 @@ class install_dialog(wx.Dialog):
         # sensors
         label_sensors = wx.StaticText(self,  label='Sensors;')
         label_sensors.SetFont(shared_data.sub_title_font)
-        self.adaDHT_check = wx.CheckBox(self,  label='Adafruit_DHT')
+        self.adaDHT_check = wx.CheckBox(self,  label='Adafruit_DHT (old py2)')
         self.ada1115_check = wx.CheckBox(self,  label='Adafruit ADS1115')
         # Camera
         label_camera = wx.StaticText(self,  label='Camera;')
@@ -1841,32 +1841,23 @@ class install_dialog(wx.Dialog):
                 valid_name = True
         ## Selflog
         self.add_selflog()
-        ## set control sensor
-        msg = "Temp and Humid Control Sensor\n\n"
-        msg += "The control sensor is used to determine the temperature and humidity values used to "
-        msg += "control the heater, humidifer, dehumidifer and temperature linked fans."
-        msg += "\n\nAt the moment the only option is DHT22 but that will change soon... "
-        msg += "\n\n Config control sensor now?"
-        dbox = wx.MessageDialog(self, msg, "Control Sensor", wx.OK | wx.CANCEL | wx.ICON_QUESTION)
-        answer = dbox.ShowModal()
-        dbox.Destroy()
-        if (answer == wx.ID_OK):
-            print("using dht22 as control sensor")
-            self.set_control_sensor_to_dht22()
-            self.set_temp_and_humid_ranges()
-        else:
-            print ("User decided not to configue the control sensor at this time.")
-        ## Relay devices
-        msg = "Configure Relay Devices\n\n"
-        msg += "The relays are used to control the power to your devices, they turn on the lights, heater and etc."
-        msg += "\n\n options to configure relays during install will be added here soon, for now add and configure them in the pigrow config tab."
+        ## Sensors, Relay devices and triggers
+        msg = "Configure Sensors, Relay Devices and Triggers\n\n"
+        msg += "To control devices you need to add relay devices and sensors, "
+        #msg += "The relays are used to control the power to your devices, they turn on the lights, heater and etc."
+        msg += "\n\n options to configure relays and sensors during install will be added here soon, for now add and configure them in the pigrow config tab and sensor tab."
         dbox = wx.MessageDialog(self, msg, "Relay Devices", wx.OK | wx.CANCEL | wx.ICON_QUESTION)
         answer = dbox.ShowModal()
         dbox.Destroy()
         if (answer == wx.ID_OK):
-            print("wants to config relays but that feature isn't written yet")
+            print("wants to config relays and sensors but that feature isn't written yet")
 
     def set_control_sensor_to_dht22(self):
+        #
+        #
+        # THIS IS NO LONGER USED - remove when modular sensor system adoption is complete.
+        #
+        #
         # gpio pin
         msg = "Set DHT22 GPIO pin\n\n"
         msg += "Input the GPIO number of which you connected the DHT22 data pin to."
@@ -4335,6 +4326,10 @@ class edit_dht_dialog(wx.Dialog):
         # draw the pannel and text
         pnl = wx.Panel(self)
         ## top text
+        warning = "This is only used for the \ncheckDHT.py method\n which is now replaced by\n the modular sensor system.\n"
+        warning += "Use that instead"
+        warning_l = wx.StaticText(self,  label=warning, pos=(350, 100))
+        warning_l.SetForegroundColour((180,80,70))
         wx.StaticText(self,  label='Sensor Config;', pos=(20, 10))
         # editable info text
         self.sensor_combo = wx.ComboBox(self, pos=(10,35), choices=['dht22', 'dht11', 'am2302'])
@@ -6711,12 +6706,13 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
                 print("local graphing tab - Could not auto detect date")
             else:
                 if len(self.split_line) == 2:
-                    if found == "0":
-                        self.value_pos_cb.SetValue("1")
-                        self.value_pos_ex.SetLabel(self.split_line[1])
-                    elif found == "1":
-                        self.value_pos_cb.SetValue("0")
-                        self.value_pos_ex.SetLabel(self.split_line[0])
+                    if not self.value_pos_cb.GetValue() == "match text":
+                        if found == "0":
+                            self.value_pos_cb.SetValue("1")
+                            self.value_pos_ex.SetLabel(self.split_line[1])
+                        elif found == "1":
+                            self.value_pos_cb.SetValue("0")
+                            self.value_pos_ex.SetLabel(self.split_line[0])
 
     def key_pos_go(self, e):
         val_pos = self.value_pos_cb.GetValue()
@@ -6860,8 +6856,10 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
 
         if val_pos == "match text":
             # set box to 'first' and 'last' to determine which side of the split-text to use as the key
-            self.value_pos_split_cb.Append('0 left')
-            self.value_pos_split_cb.Append('1 right')
+            self.value_pos_split_cb.Append('left')
+            self.value_pos_split_cb.Append('right')
+            MainApp.graphing_info_pannel.value_pos_split_cb.SetSelection(0)
+            MainApp.graphing_info_pannel.value_pos_split_go("e")
             self.value_pos_split_cb.Enable()
         if split_symbol == "":
             self.value_pos_split_cb.Disable()
@@ -6884,7 +6882,10 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
                     list_of_keys.append(item)
         self.key_pos_cb.Enable()
         self.key_pos_cb.Append(list_of_keys)
-        self.key_pos_cb.SetValue(list_of_keys[0])
+        if len(list_of_keys) > 1:
+            self.key_pos_cb.SetValue(list_of_keys[1])
+        else:
+            self.key_pos_cb.SetValue(list_of_keys[0])
 
     def value_pos_split_go(self, e):
         '''
@@ -6933,10 +6934,16 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
                     try:
                         test_date = datetime.datetime.strptime(date_split[0], '%Y-%m-%d %H:%M:%S.%f')
                         self.date_pos_split_cb.SetValue(date_split[0])
+                        if self.value_pos_split_tc.GetValue() == "":
+                            self.value_pos_cb.SetValue("match text")
+                            self.value_pos_split_tc.SetValue(split_symbol)
                     except:
                         try:
                             test_date = datetime.datetime.strptime(date_split[1], '%Y-%m-%d %H:%M:%S.%f')
                             self.date_pos_split_cb.SetValue(date_split[1])
+                            if self.value_pos_split_tc.GetValue() == "":
+                                self.value_pos_cb.SetValue("match text")
+                                self.value_pos_split_tc.SetValue(split_symbol)
                         except:
                             print(" - local graphing pnl can't auto determine date - " + str(date_split))
             else:
@@ -7749,18 +7756,19 @@ class graphing_ctrl_pnl(wx.Panel):
             print(" --- Log file is empty")
         MainApp.graphing_info_pannel.example_line.SetLabel(log_to_graph[0])
         if not dont_set_ui == True:
+            MainApp.graphing_info_pannel.clear_and_reset_fields()
             split_chr_choices = self.get_split_chr(log_to_graph[0])
             if len(split_chr_choices) == 1:
                 MainApp.graphing_info_pannel.split_character_tc.SetValue(split_chr_choices[0])
             else:
-                MainApp.graphing_info_pannel.split_character_tc.SetValue("")
-                MainApp.graphing_info_pannel.clear_and_reset_fields()
+                MainApp.graphing_info_pannel.split_character_tc.SetValue(">")
 
     # Make locally controlls
     def select_log_click(self, e):
         wildcard = "TXT and LOG files (*.txt;*.log)|*.txt;*.log"
         openFileDialog = wx.FileDialog(self, "Select log file", "", "", wildcard, wx.FD_OPEN | wx.FD_FILE_MUST_EXIST)
-        openFileDialog.SetDirectory(localfiles_info_pnl.local_path)
+        log_path = os.path.join(localfiles_info_pnl.local_path, "logs")
+        openFileDialog.SetDirectory(log_path)
         openFileDialog.SetMessage("Select log file to import")
         if openFileDialog.ShowModal() == wx.ID_CANCEL:
             print("Cancelled")
@@ -7769,6 +7777,7 @@ class graphing_ctrl_pnl(wx.Panel):
         print(" - Using ", log_path, " to make a graph locally" )
         MainApp.graphing_info_pannel.show_data_extract()
         MainApp.graphing_info_pannel.show_graph_settings()
+        MainApp.graphing_info_pannel.limit_date_to_last_cb.SetValue('none')
         # write path to shared data
         shared_data.log_to_load = log_path
         shared_data.first_valueset_name = os.path.split(log_path)[1]
@@ -8864,9 +8873,7 @@ class graphing_ctrl_pnl(wx.Panel):
         MainApp.status.write_bar("ready...")
         return dictionary_of_sets, power_on_markers
 
-
-
-
+    #
     def set_data_extraction_settings_from_text(self, settings_list):
         for setting in settings_list:
             if ":" in setting:
@@ -8921,7 +8928,6 @@ class graphing_ctrl_pnl(wx.Panel):
                         MainApp.graphing_info_pannel.limit_date_to_last_cb.SetValue("custom")
                     MainApp.graphing_info_pannel.end_time_picer.SetValue(end_time)
                     MainApp.graphing_info_pannel.end_date_picer.SetValue(end_time)
-
 
     def set_graph_settings_from_text(self, settings_list):
         '''
@@ -11181,6 +11187,8 @@ class make_log_overlay_dialog(wx.Dialog):
         self.date_pos_split_tc.SetValue("")
         self.value_pos_split_tc.SetValue("")
         self.key_pos_split_tc.SetValue("")
+
+
 
     def split_line_text(self, e):
         self.clear_and_reset_fields()
