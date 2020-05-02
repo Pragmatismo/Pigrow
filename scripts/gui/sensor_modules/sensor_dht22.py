@@ -13,6 +13,7 @@ class sensor_config():
 def read_sensor(location="", *args):
     # Try importing the modules then give-up and report to user if it fails
     import datetime
+    import time
     try:
         import board
         import adafruit_dht
@@ -23,22 +24,27 @@ def read_sensor(location="", *args):
 
 
     # set up and read the sensor
-    try:
-        dht = adafruit_dht.DHT22(int(location))
-        temperature = dht.temperature
-        humidity = dht.humidity
-        #
-        if humidity == None or temperature == None or humidity > 101:
-            print("--problem reading DHT22")
-            return None
-        else:
-            humidity = round(humidity,2)
-            temperature = round(temperature, 2)
-            logtime = datetime.datetime.now()
-            return [['time',logtime], ['humid', humidity], ['temperature', temperature]]
-    except:
-        print("--problem reading DHT22")
-        return None
+    read_attempt = 1
+    while read_attempt < 5:
+        try:
+            dht = adafruit_dht.DHT22(int(location))
+            temperature = dht.temperature
+            humidity = dht.humidity
+            #
+            if humidity == None or temperature == None or humidity > 101:
+                print("--problem reading DHT22, try " + str(read_attempt))
+                time.sleep(2)
+                read_attempt = read_attempt + 1
+            else:
+                humidity = round(humidity,2)
+                temperature = round(temperature, 2)
+                logtime = datetime.datetime.now()
+                return [['time',logtime], ['humid', humidity], ['temperature', temperature]]
+        except:
+            print("--exception while reading DHT22, try " + str(read_attempt))
+            time.sleep(2)
+            read_attempt = read_attempt + 1
+    return None
 
 
 if __name__ == '__main__':
@@ -68,11 +74,7 @@ if __name__ == '__main__':
             sys.exit()
     # read sensor
     if not sensor_location == "":
-        read_attempt = 0
-        output = None
-        while read_attempt < 5 and output == None:
-            output = read_sensor(location=sensor_location)
-            read_attempt = read_attempt + 1
+        output = read_sensor(location=sensor_location)
     else:
         print(" No sensor address supplied, this requries a sensor address.")
         sys.exit()
