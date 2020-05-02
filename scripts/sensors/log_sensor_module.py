@@ -85,7 +85,7 @@ except:
     sys.exit()
 
 # Read Sensor
-sensor_values = sensor_module.read_sensor(location=sensor_loc)
+sensor_values = sensor_module.read_sensor(location=sensor_loc, extra=sensor_extra)
 
 # Create log line containing each returned value
 line = ""
