@@ -1,6 +1,6 @@
 install_method=pip3
 package_name=adafruit-circuitpython-si7021
-import adafruit_si7021
+import=adafruit_si7021
 
 
 # sudo pip3 install adafruit-circuitpython-si7021
