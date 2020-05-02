@@ -3146,7 +3146,7 @@ class config_info_pnl(scrolled.ScrolledPanel):
         self.lamp_l = wx.StaticText(self,  label='Lamp;', size=(100,25))
         self.lamp_l.SetFont(font)
         config_info_pnl.lamp_text = wx.StaticText(self,  label='lamp')
-        self.dht_l = wx.StaticText(self,  label='DHT Sensor;', size=(100,25))
+        self.dht_l = wx.StaticText(self,  label='DHT Sensor;      (Obsolete - Only used with checkDHT)', size=(100,25))
         self.dht_l.SetFont(font)
         config_info_pnl.dht_text = wx.StaticText(self,  label='dht')
         self.relay_l = wx.StaticText(self,  label='Relay GPIO link;', size=(100,25))
