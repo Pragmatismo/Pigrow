@@ -40,8 +40,9 @@ def read_sensor(location="", *args):
                 temperature = round(temperature, 2)
                 logtime = datetime.datetime.now()
                 return [['time',logtime], ['humid', humidity], ['temperature', temperature]]
-        except:
+        except Exception as e:
             print("--exception while reading DHT22, try " + str(read_attempt))
+            print(" -- " + str(e))
             time.sleep(2)
             read_attempt = read_attempt + 1
     return None
