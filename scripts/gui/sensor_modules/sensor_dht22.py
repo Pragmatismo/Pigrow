@@ -25,9 +25,9 @@ def read_sensor(location="", *args):
 
     # set up and read the sensor
     read_attempt = 1
+    dht = adafruit_dht.DHT22(int(location))
     while read_attempt < 5:
         try:
-            dht = adafruit_dht.DHT22(int(location))
             temperature = dht.temperature
             humidity = dht.humidity
             #
