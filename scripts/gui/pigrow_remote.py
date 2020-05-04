@@ -12581,14 +12581,15 @@ class add_sensor_from_module_dialog(wx.Dialog):
     # check to find cron job handling this sensor
         print(" - Checking cron for existing jobs")
         line_number_repeting_cron = -1
-        for index in range(0, cron_list_pnl.repeat_cron.GetItemCount()):
-            cmd_path = cron_list_pnl.repeat_cron.GetItem(index, 3).GetText()
-            if "log_sensor_module.py" in cmd_path:
-                print("    -Found  ;- " + cmd_path)
-                cmd_args = cron_list_pnl.repeat_cron.GetItem(index, 4).GetText()
-                if  "name=" + start_name in cmd_args.lower():
-                    print("    -Located; " + start_name)
-                    line_number_repeting_cron = index
+        if not start_name == "":
+            for index in range(0, cron_list_pnl.repeat_cron.GetItemCount()):
+                cmd_path = cron_list_pnl.repeat_cron.GetItem(index, 3).GetText()
+                if "log_sensor_module.py" in cmd_path:
+                    print("    -Found  ;- " + cmd_path)
+                    cmd_args = cron_list_pnl.repeat_cron.GetItem(index, 4).GetText()
+                    if  "name=" + start_name in cmd_args.lower():
+                        print("    -Located; " + start_name)
+                        line_number_repeting_cron = index
 
         # check to see if this is a new job or not
         if not line_number_repeting_cron == -1:
