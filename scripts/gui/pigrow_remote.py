@@ -11933,6 +11933,18 @@ class sensors_info_pnl(wx.Panel):
                 if sure == wx.ID_YES:
                     if self.sensor_list.GetSelectedItemCount() == 1:
                         name = MainApp.sensors_info_pannel.sensor_list.GetItem(self.sensor_list.GetFocusedItem(), 0).GetText()
+                        #
+                        # Delete cron job
+                        last_index = cron_list_pnl.repeat_cron.GetItemCount()
+                        if not last_index == 0:
+                            for index in range(0, last_index):
+                                job_name  = cron_list_pnl.repeat_cron.GetItem(index, 3).GetText()
+                                job_extra = cron_list_pnl.repeat_cron.GetItem(index, 4).GetText()
+                                if "log_sensor_module.py" in job_name:
+                                    if "name=" + name in job_extra:
+                                        cron_list_pnl.repeat_cron.DeleteItem(index)
+                                        MainApp.cron_info_pannel.update_cron_click("e")
+                        #
                         print(self.sensor_list.DeleteItem(self.sensor_list.GetFocusedItem()))
                         if "sensor_" + name + "_type" in MainApp.config_ctrl_pannel.config_dict:
                             del MainApp.config_ctrl_pannel.config_dict["sensor_" + name + "_type"]
