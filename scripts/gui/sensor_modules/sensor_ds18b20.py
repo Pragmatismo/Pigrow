@@ -18,7 +18,7 @@ class sensor_config():
         print("default_connection_address=")
 
 
-def read_sensor(location="", *args):
+def read_sensor(location="", extra="", *args):
     import datetime
     print(location)
     # read the sensor
