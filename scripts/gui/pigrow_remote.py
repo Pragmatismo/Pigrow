@@ -98,7 +98,7 @@ from stat import S_ISDIR
 try:
     import wx
     import wx.adv
-    import  wx.lib.scrolledpanel as scrolled
+    import wx.lib.scrolledpanel as scrolled
     from wx.lib.masked import NumCtrl
     #print (wx.__version__)
     #import wx.lib.scrolledpanel
@@ -14625,7 +14625,7 @@ class pi_link_pnl(wx.Panel):
         link_buttons_sizer.Add(self.link_with_pi_btn, 1, wx.EXPAND)
         link_buttons_sizer.Add(self.seek_for_pigrows_btn, 0, wx.EXPAND)
         link_text_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        link_text_sizer.Add(self.link_status_text, 1, wx.EXPAND|wx.ALIGN_CENTER)
+        link_text_sizer.Add(self.link_status_text, 1, wx.EXPAND)
         main_sizer = wx.BoxSizer(wx.VERTICAL)
         main_sizer.Add(login_sizer, 0, wx.EXPAND)
         main_sizer.Add(link_buttons_sizer, 0, wx.EXPAND)
