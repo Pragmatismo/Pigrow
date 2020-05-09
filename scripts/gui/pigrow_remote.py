@@ -178,7 +178,7 @@ class scroll_text_dialog(wx.Dialog):
             cancel_btn = wx.Button(self, wx.ID_CANCEL)
             btnsizer.Add(cancel_btn, 0, wx.ALL, 5)
         sizer.Add(self.text, 0, wx.EXPAND|wx.ALL, 5)
-        sizer.Add(btnsizer, 0, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
+        sizer.Add(btnsizer, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
         self.SetSizerAndFit(sizer)
     def ok_click(self, e):
         scroll_text_dialog.text = self.text.GetValue()
@@ -1013,10 +1013,10 @@ class edit_boot_config_dialog(wx.Dialog):
         btnsizer.Add(cancel_btn, 0, wx.ALL, 5)
         btnsizer.AddStretchSpacer(1)
         main_sizer = wx.BoxSizer(wx.VERTICAL)
-        main_sizer.Add(header, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL|wx.ALL, 3)
+        main_sizer.Add(header, 0, wx.ALIGN_CENTER_HORIZONTAL|wx.ALL, 3)
         main_sizer.Add(self.config_text, 0, wx.EXPAND|wx.ALL, 3)
-        main_sizer.Add(post, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL|wx.ALL, 3)
-        main_sizer.Add(btnsizer, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL|wx.ALL, 5)
+        main_sizer.Add(post, 0, wx.ALIGN_CENTER_HORIZONTAL|wx.ALL, 3)
+        main_sizer.Add(btnsizer, 0, wx.ALIGN_CENTER_HORIZONTAL|wx.ALL, 5)
         self.SetSizerAndFit(main_sizer)
 
     def ok_click(self, e):
@@ -1461,10 +1461,10 @@ class upgrade_pigrow_dialog(wx.Dialog):
         upgrade_type_sizer.Add(upgrade_type_tb, 0, wx.ALL, 4)
         local_sizer = wx.BoxSizer(wx.HORIZONTAL)
         local_sizer.Add(local_l, 0, wx.ALIGN_LEFT|wx.ALL, 4)
-        local_sizer.Add(local_changes_tb, 0, wx.ALIGN_LEFT|wx.EXPAND|wx.ALL, 4)
+        local_sizer.Add(local_changes_tb, 0, wx.ALIGN_LEFT|wx.ALL, 4)
         remote_sizer = wx.BoxSizer(wx.HORIZONTAL)
         remote_sizer.Add(repo_l, 0, wx.ALIGN_LEFT|wx.ALL, 4)
-        remote_sizer.Add(remote_changes_tb, 0, wx.ALIGN_LEFT|wx.EXPAND|wx.ALL, 4)
+        remote_sizer.Add(remote_changes_tb, 0, wx.ALIGN_LEFT|wx.ALL, 4)
         buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
         buttons_sizer.Add(self.upgrade_btn, 0, wx.ALIGN_LEFT, 2)
         buttons_sizer.AddStretchSpacer(1)
@@ -1672,8 +1672,8 @@ class install_dialog(wx.Dialog):
 
         # sizers
         header_sizer = wx.BoxSizer(wx.VERTICAL)
-        header_sizer.Add(header_title, 0, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 3)
-        header_sizer.Add(header_sub, 0, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 3)
+        header_sizer.Add(header_title, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 3)
+        header_sizer.Add(header_sub, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 3)
         # left hand side - hardcoded install tools
         base_sizer = wx.BoxSizer(wx.VERTICAL)
         base_sizer.Add(label_core, 0, wx.EXPAND|wx.ALL, 3)
@@ -1728,13 +1728,13 @@ class install_dialog(wx.Dialog):
         middle_options.AddStretchSpacer(1)
 
         main_sizer = wx.BoxSizer(wx.VERTICAL)
-        main_sizer.Add(header_sizer, 0, wx.ALL|wx.EXPAND|wx.ALIGN_CENTER_VERTICAL, 2)
+        main_sizer.Add(header_sizer, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 2)
         main_sizer.AddStretchSpacer(1)
-        main_sizer.Add(middle_options, 0, wx.ALL|wx.EXPAND|wx.ALIGN_CENTER_VERTICAL, 2)
+        main_sizer.Add(middle_options, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 2)
         main_sizer.AddStretchSpacer(1)
-        main_sizer.Add(status_text_sizer, 0, wx.ALL|wx.EXPAND|wx.ALIGN_CENTER_VERTICAL, 2)
+        main_sizer.Add(status_text_sizer, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 2)
         main_sizer.AddStretchSpacer(1)
-        main_sizer.Add(buttons_sizer, 0, wx.ALL|wx.EXPAND|wx.ALIGN_CENTER_VERTICAL, 2)
+        main_sizer.Add(buttons_sizer, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 2)
         self.SetSizer(main_sizer)
 
 
@@ -5457,7 +5457,7 @@ class show_script_cat(wx.Dialog):
         btn = wx.Button(self, wx.ID_CANCEL)
         btnsizer.Add(btn, 0, wx.ALL, 5)
         sizer.Add(text, 0, wx.EXPAND|wx.ALL, 5)
-        sizer.Add(btnsizer, 0, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
+        sizer.Add(btnsizer, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
         self.SetSizerAndFit(sizer)
 
 #
@@ -7501,7 +7501,7 @@ class graphing_ctrl_pnl(wx.Panel):
             (self.animate_roll_speed_tc, 0)])
         module_animate_main_sizer = wx.BoxSizer(wx.VERTICAL)
         module_animate_main_sizer.Add(self.animate_module, 0, wx.ALL|wx.EXPAND, 3)
-        module_animate_main_sizer.Add(module_animate_settings_sizer, 0, wx.ALL|wx.EXPAND|wx.ALIGN_RIGHT, 3)
+        module_animate_main_sizer.Add(module_animate_settings_sizer, 0, wx.ALL|wx.ALIGN_RIGHT, 3)
         # datawall
         datawall_preset_list_sizer = wx.BoxSizer(wx.HORIZONTAL)
         datawall_preset_list_sizer.Add(self.datawall_preset_l, 0, wx.ALL, 3)
@@ -10221,7 +10221,7 @@ class timelapse_info_pnl(wx.Panel):
         main_sizer.Add(title_l, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
         main_sizer.Add(page_sub_title, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
         main_sizer.Add(img_panels_sizer, 0, wx.ALL, 3)
-        main_sizer.Add(lower_half_sizer, 0,  wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL, 3)
+        main_sizer.Add(lower_half_sizer, 0, wx.ALIGN_CENTER_HORIZONTAL, 3)
         main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
         self.SetSizer(main_sizer)
 
@@ -13276,25 +13276,25 @@ class ads1115_dialog(wx.Dialog):
         # min-max sizer
         trigger_sizer = wx.GridSizer(4, 5, 1, 4)
         trigger_sizer.AddMany([ (max_l, 0, wx.EXPAND),
-            (self.val0_max_val, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL),
-            (self.val1_max_val, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL),
-            (self.val2_max_val, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL),
-            (self.val3_max_val, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL),
+            (self.val0_max_val, 0, wx.ALIGN_CENTER_HORIZONTAL),
+            (self.val1_max_val, 0, wx.ALIGN_CENTER_HORIZONTAL),
+            (self.val2_max_val, 0, wx.ALIGN_CENTER_HORIZONTAL),
+            (self.val3_max_val, 0, wx.ALIGN_CENTER_HORIZONTAL),
             (max_s_l, 0, wx.EXPAND),
-            (self.val0_max_script, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL),
-            (self.val1_max_script, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL),
-            (self.val2_max_script, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL),
-            (self.val3_max_script, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL),
+            (self.val0_max_script, 0, wx.ALIGN_CENTER_HORIZONTAL),
+            (self.val1_max_script, 0, wx.ALIGN_CENTER_HORIZONTAL),
+            (self.val2_max_script, 0, wx.ALIGN_CENTER_HORIZONTAL),
+            (self.val3_max_script, 0, wx.ALIGN_CENTER_HORIZONTAL),
             (min_l, 0, wx.EXPAND),
-            (self.val0_min_val, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL),
-            (self.val1_min_val, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL),
-            (self.val2_min_val, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL),
-            (self.val3_min_val, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL),
+            (self.val0_min_val, 0, wx.ALIGN_CENTER_HORIZONTAL),
+            (self.val1_min_val, 0, wx.ALIGN_CENTER_HORIZONTAL),
+            (self.val2_min_val, 0, wx.ALIGN_CENTER_HORIZONTAL),
+            (self.val3_min_val, 0, wx.ALIGN_CENTER_HORIZONTAL),
             (min_s_l, 0, wx.EXPAND),
-            (self.val0_min_script, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL),
-            (self.val1_min_script, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL),
-            (self.val2_min_script, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL),
-            (self.val3_min_script, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL)])
+            (self.val0_min_script, 0, wx.ALIGN_CENTER_HORIZONTAL),
+            (self.val1_min_script, 0, wx.ALIGN_CENTER_HORIZONTAL),
+            (self.val2_min_script, 0, wx.ALIGN_CENTER_HORIZONTAL),
+            (self.val3_min_script, 0, wx.ALIGN_CENTER_HORIZONTAL)])
 
         # need four lines one for each channel, set value type, ranges, +- correction, and tools to perform tuning and calibration.
 
@@ -13319,35 +13319,35 @@ class ads1115_dialog(wx.Dialog):
             (timing_sizer, 0, wx.EXPAND) ])
         channels_sizer = wx.GridSizer(6, 5, 1, 4)
         channels_sizer.AddMany([ (chan_l, 0, wx.EXPAND),
-            (chan_0_l, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL),
-            (chan_1_l, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL),
-            (chan_2_l, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL),
-            (chan_3_l, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL),
+            (chan_0_l, 0, wx.ALIGN_CENTER_HORIZONTAL),
+            (chan_1_l, 0, wx.ALIGN_CENTER_HORIZONTAL),
+            (chan_2_l, 0, wx.ALIGN_CENTER_HORIZONTAL),
+            (chan_3_l, 0, wx.ALIGN_CENTER_HORIZONTAL),
             (values_l, 0, wx.EXPAND),
-            (self.value_0_l, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL),
-            (self.value_1_l, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL),
-            (self.value_2_l, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL),
-            (self.value_3_l, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL),
+            (self.value_0_l, 0, wx.ALIGN_CENTER_HORIZONTAL),
+            (self.value_1_l, 0, wx.ALIGN_CENTER_HORIZONTAL),
+            (self.value_2_l, 0, wx.ALIGN_CENTER_HORIZONTAL),
+            (self.value_3_l, 0, wx.ALIGN_CENTER_HORIZONTAL),
             (gain_l, 0, wx.EXPAND),
-            (self.gain0_cb, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL),
-            (self.gain1_cb, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL),
-            (self.gain2_cb, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL),
-            (self.gain3_cb, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL),
+            (self.gain0_cb, 0, wx.ALIGN_CENTER_HORIZONTAL),
+            (self.gain1_cb, 0, wx.ALIGN_CENTER_HORIZONTAL),
+            (self.gain2_cb, 0, wx.ALIGN_CENTER_HORIZONTAL),
+            (self.gain3_cb, 0, wx.ALIGN_CENTER_HORIZONTAL),
             (sps_l, 0, wx.EXPAND),
-            (self.sps_0_cb, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL),
-            (self.sps_1_cb, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL),
-            (self.sps_2_cb, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL),
-            (self.sps_3_cb, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL),
+            (self.sps_0_cb, 0, wx.ALIGN_CENTER_HORIZONTAL),
+            (self.sps_1_cb, 0, wx.ALIGN_CENTER_HORIZONTAL),
+            (self.sps_2_cb, 0, wx.ALIGN_CENTER_HORIZONTAL),
+            (self.sps_3_cb, 0, wx.ALIGN_CENTER_HORIZONTAL),
             (show_as_l, 0, wx.EXPAND),
-            (self.show_as_0_cb, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL),
-            (self.show_as_1_cb, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL),
-            (self.show_as_2_cb, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL),
-            (self.show_as_3_cb, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL),
+            (self.show_as_0_cb, 0, wx.ALIGN_CENTER_HORIZONTAL),
+            (self.show_as_1_cb, 0, wx.ALIGN_CENTER_HORIZONTAL),
+            (self.show_as_2_cb, 0, wx.ALIGN_CENTER_HORIZONTAL),
+            (self.show_as_3_cb, 0, wx.ALIGN_CENTER_HORIZONTAL),
             (centralise_l, 0, wx.EXPAND),
-            (self.centralise_0, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL),
-            (self.centralise_1, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL),
-            (self.centralise_2, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL),
-            (self.centralise_3, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL) ])
+            (self.centralise_0, 0, wx.ALIGN_CENTER_HORIZONTAL),
+            (self.centralise_1, 0, wx.ALIGN_CENTER_HORIZONTAL),
+            (self.centralise_2, 0, wx.ALIGN_CENTER_HORIZONTAL),
+            (self.centralise_3, 0, wx.ALIGN_CENTER_HORIZONTAL) ])
         max_volt_sizer = wx.BoxSizer(wx.HORIZONTAL)
         max_volt_sizer.Add(max_volt_l, 0,  wx.ALL, 3)
         max_volt_sizer.Add(self.max_volt_tc, 0,  wx.ALL, 3)
@@ -13363,7 +13363,7 @@ class ads1115_dialog(wx.Dialog):
         main_sizer.AddStretchSpacer(1)
         main_sizer.Add(channels_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
         main_sizer.Add(self.use_script_triggers, 0, wx.ALL, 3)
-        main_sizer.Add(trigger_sizer, 0, wx.ALL|wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL, 3)
+        main_sizer.Add(trigger_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
         main_sizer.Add(max_volt_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
         main_sizer.Add(round_to_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
         main_sizer.AddStretchSpacer(1)
