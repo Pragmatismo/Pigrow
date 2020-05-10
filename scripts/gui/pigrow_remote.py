@@ -178,7 +178,7 @@ class scroll_text_dialog(wx.Dialog):
             cancel_btn = wx.Button(self, wx.ID_CANCEL)
             btnsizer.Add(cancel_btn, 0, wx.ALL, 5)
         sizer.Add(self.text, 0, wx.EXPAND|wx.ALL, 5)
-        sizer.Add(btnsizer, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
+        sizer.Add(btnsizer, 0, wx.ALL, 5)
         self.SetSizerAndFit(sizer)
     def ok_click(self, e):
         scroll_text_dialog.text = self.text.GetValue()
@@ -1728,13 +1728,13 @@ class install_dialog(wx.Dialog):
         middle_options.AddStretchSpacer(1)
 
         main_sizer = wx.BoxSizer(wx.VERTICAL)
-        main_sizer.Add(header_sizer, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 2)
+        main_sizer.Add(header_sizer, 0, wx.ALL, 2)
         main_sizer.AddStretchSpacer(1)
-        main_sizer.Add(middle_options, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 2)
+        main_sizer.Add(middle_options, 0, wx.ALL, 2)
         main_sizer.AddStretchSpacer(1)
-        main_sizer.Add(status_text_sizer, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 2)
+        main_sizer.Add(status_text_sizer, 0, wx.ALL, 2)
         main_sizer.AddStretchSpacer(1)
-        main_sizer.Add(buttons_sizer, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 2)
+        main_sizer.Add(buttons_sizer, 0, wx.ALL, 2)
         self.SetSizer(main_sizer)
 
 
@@ -5457,7 +5457,7 @@ class show_script_cat(wx.Dialog):
         btn = wx.Button(self, wx.ID_CANCEL)
         btnsizer.Add(btn, 0, wx.ALL, 5)
         sizer.Add(text, 0, wx.EXPAND|wx.ALL, 5)
-        sizer.Add(btnsizer, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
+        sizer.Add(btnsizer, 0, wx.ALL, 5)
         self.SetSizerAndFit(sizer)
 
 #
@@ -9668,8 +9668,8 @@ class camconf_ctrl_pnl(wx.Panel):
         find_select_cam_sizer.Add(self.list_cams_btn, 0, wx.ALL, 0)
         find_select_cam_sizer.Add(self.cam_cb, 0, wx.ALL|wx.EXPAND, 0)
         take_single_photo_btns_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        take_single_photo_btns_sizer.Add(self.take_unset_btn, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 0)
-        take_single_photo_btns_sizer.Add(self.take_s_set_btn, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 0)
+        take_single_photo_btns_sizer.Add(self.take_unset_btn, 0, wx.ALL, 0)
+        take_single_photo_btns_sizer.Add(self.take_s_set_btn, 0, wx.ALL, 0)
         range_options_btn_sizer = wx.GridSizer(3, 2, 0, 0)
         range_options_btn_sizer.AddMany( [(self.range_start_l, 0, wx.EXPAND),
             (self.range_start_tc, 0, wx.EXPAND),
