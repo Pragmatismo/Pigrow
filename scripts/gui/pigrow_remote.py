@@ -1672,8 +1672,8 @@ class install_dialog(wx.Dialog):
 
         # sizers
         header_sizer = wx.BoxSizer(wx.VERTICAL)
-        header_sizer.Add(header_title, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 3)
-        header_sizer.Add(header_sub, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 3)
+        header_sizer.Add(header_title, 0, wx.ALL, 3)
+        header_sizer.Add(header_sub, 0, wx.ALL, 3)
         # left hand side - hardcoded install tools
         base_sizer = wx.BoxSizer(wx.VERTICAL)
         base_sizer.Add(label_core, 0, wx.EXPAND|wx.ALL, 3)
@@ -1709,8 +1709,11 @@ class install_dialog(wx.Dialog):
         status_text_sizer.Add(self.progress, 0, wx.EXPAND|wx.ALL, 3)
 
         buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        buttons_sizer.Add(self.start_btn, 0,  wx.ALIGN_LEFT, 3)
-        buttons_sizer.Add(self.cancel_btn, 0,  wx.ALIGN_RIGHT, 3)
+        buttons_sizer.AddStretchSpacer(1)
+        buttons_sizer.Add(self.start_btn, 0,  wx.ALL, 3)
+        buttons_sizer.AddStretchSpacer(1)
+        buttons_sizer.Add(self.cancel_btn, 0,  wx.ALL, 3)
+        buttons_sizer.AddStretchSpacer(1)
 
         left_bar_sizer = wx.BoxSizer(wx.VERTICAL)
         left_bar_sizer.Add(base_sizer, 0, wx.ALL|wx.EXPAND, 2)
@@ -1730,11 +1733,11 @@ class install_dialog(wx.Dialog):
         main_sizer = wx.BoxSizer(wx.VERTICAL)
         main_sizer.Add(header_sizer, 0, wx.ALL, 2)
         main_sizer.AddStretchSpacer(1)
-        main_sizer.Add(middle_options, 0, wx.ALL, 2)
+        main_sizer.Add(middle_options, 0, wx.ALL|wx.EXPAND, 2)
         main_sizer.AddStretchSpacer(1)
         main_sizer.Add(status_text_sizer, 0, wx.ALL, 2)
         main_sizer.AddStretchSpacer(1)
-        main_sizer.Add(buttons_sizer, 0, wx.ALL, 2)
+        main_sizer.Add(buttons_sizer, 0, wx.ALL|wx.EXPAND, 2)
         self.SetSizer(main_sizer)
 
 
@@ -2317,7 +2320,7 @@ class install_dialog(wx.Dialog):
                 elif install_method == "apt":
                     is_installed = test_apt_package(package_name)
             if is_installed == True:
-                self.install_module_list.SetItemTextColour(module_index, wx.GREEN)
+                self.install_module_list.SetItemTextColour(module_index, wx.Colour(90,180,90))
                 print(" -- " + package_name + " is already installed")
             else:
                 self.install_module_list.SetItemTextColour(module_index, wx.RED)
