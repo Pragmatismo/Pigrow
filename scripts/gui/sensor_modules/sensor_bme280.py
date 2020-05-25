@@ -46,6 +46,7 @@ def read_sensor(location="", extra="", *args):
             else:
                 humidity = round(humidity,2)
                 temperature = round(temperature, 2)
+                pressure = round(pressure, 2)
                 logtime = datetime.datetime.now()
                 return [['time',logtime], ['humid', humidity], ['temperature', temperature], ['pressure', pressure]]
         except Exception as e:
