@@ -1,0 +1,3 @@
+install_method=pip3
+package_name=adafruit-circuitpython-bme280
+import=adafruit_bme280
