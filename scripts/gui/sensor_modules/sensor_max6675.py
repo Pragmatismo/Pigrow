@@ -54,7 +54,7 @@ def read_sensor(location="", extra="", *args):
                 GPIO.output(sck, GPIO.LOW)
             GPIO.output(cs, GPIO.HIGH)
             #
-            GIPO.cleanup()
+            GPIO.cleanup()
             #
             temperature = round(temperature, 2)
             logtime = datetime.datetime.now()
