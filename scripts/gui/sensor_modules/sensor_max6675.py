@@ -20,7 +20,7 @@ def read_sensor(location="", extra="", *args):
     cs = int(location)
     sck = 11
     so = 9
-    GPIO.setup(cd, GPIO.OUT, initial = GPIO.HIGH)
+    GPIO.setup(cs, GPIO.OUT, initial = GPIO.HIGH)
     GPIO.setup(sck, GPIO.OUT, initial = GPIO.LOW)
     GPIO.setup(so, GPIO.IN)
 
