@@ -28,6 +28,8 @@ def read_sensor(location="", extra="", *args):
     read_attempt = 1
     i2c = busio.I2C(board.SCL, board.SDA)
     sensor = adafruit_tcs34725.TCS34725(i2c)
+    #sensor.gain =  # 1, 4, 16, 60
+    #sensor.integration_time = 2.4  # The integration time of the sensor in milliseconds.  Must be a value between 2.4 and 614.4.
     while read_attempt < 5:
         try:
             color_temp = sensor.color_temperature
@@ -62,7 +64,7 @@ if __name__ == '__main__':
             if thearg == 'location':
                 sensor_location = thevalue
         elif 'help' in argu or argu == '-h':
-            print(" Modular control for tcs34725 temp sensors")
+            print(" Modular control for tcs34725 RGB color sensors")
             print(" ")
             print("")
             print(" -config  ")
