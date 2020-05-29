@@ -28,6 +28,7 @@ def read_sensor(location="", extra="", *args):
     read_attempt = 1
     i2c = busio.I2C(board.SCL, board.SDA)
     sensor = adafruit_tcs34725.TCS34725(i2c)
+    gain = 16
     #sensor.gain =  # 1, 4, 16, 60
     #sensor.integration_time = 2.4  # The integration time of the sensor in milliseconds.  Must be a value between 2.4 and 614.4.
     while read_attempt < 5:
@@ -42,7 +43,7 @@ def read_sensor(location="", extra="", *args):
                 read_attempt = read_attempt + 1
             else:
                 logtime = datetime.datetime.now()
-                return [['time',logtime], ['lux', lux], ['color_temp', color_temp], ['r', rgb[0]], ['g', rgb[1]], ['b', rgb[2]]]
+                return [['time',logtime], ['lux', str(lux / gain)], ['color_temp', color_temp], ['r', rgb[0]], ['g', rgb[1]], ['b', rgb[2]]]
         except Exception as e:
             print("--exception while reading tcs34725, try " + str(read_attempt))
             print(" -- " + str(e))
