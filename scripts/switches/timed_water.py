@@ -33,6 +33,9 @@ for argu in sys.argv[1:]:
         print("     This is only for testing purposes, if you want open control")
         print("     select 'any' as the water_control option.")
         sys.exit()
+    elif "flags" in argu:
+        print("duration=time in seconds")
+        print("safety=off")
     elif "=" in argu:
         thearg = str(argu).split('=')[0].lower()
         thevalue = str(argu).split('=')[1]

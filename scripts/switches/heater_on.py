@@ -11,7 +11,7 @@ for argu in sys.argv[1:]:
         print("This turns the Heater ON")
         print("To use this program you must have the devices GPIO and wiring direction")
         print("set in the pigrow configuration file /config/pigrow_config.txt")
-        print("use the setup tool /scripts/config/setup.py or the remote gui")
+        print("use the setup tool in the remote gui")
         sys.exit()
 
 def heater_on(set_dic, switch_log):
