@@ -87,7 +87,7 @@ def check_condition(condition_name, trig_direction):
             line_split = line.split(",")
             if len(line_split) == 3:
                 if line_split[0] == condition_name:
-                    trigger_state = line_split[1].strip()
+                    trigger_state = line_split[1].strip().lower()
                     trigger_cooldown = line_split[2].strip()
         # check if condition is met
         if not trigger_state == "none":
@@ -105,8 +105,12 @@ def check_condition(condition_name, trig_direction):
                 print_limit("  - Not triggering because condition is already set...", 2)
                 return False
             else:
-                print_limit(" - Trigger state doesn't match trigger direction, triggering!", 2)
-                return True
+                if not trigger_state == "pause":
+                    print_limit(" - Trigger state doesn't match trigger direction, trigger enabled.", 2)
+                    return True
+                else:
+                    print_limit(" - Trigger paused, not triggering.", 2)
+                    return False
         else:
             return True
 
@@ -242,7 +246,7 @@ def observe_trig_file():
 if __name__ == "__main__":
     # Set timed relays
     cmd = homedir + "/Pigrow/scripts/autorun/startup_set_relays.py"
-    os.system(cmd) 
+    os.system(cmd)
     # empty the conditions file
     clear_conditions()
     # set path from locs file
