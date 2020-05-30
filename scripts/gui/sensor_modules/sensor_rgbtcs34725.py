@@ -28,7 +28,7 @@ def read_sensor(location="", extra="", *args):
     read_attempt = 1
     i2c = busio.I2C(board.SCL, board.SDA)
     sensor = adafruit_tcs34725.TCS34725(i2c)
-    gain = 16
+    gain = 1
     #sensor.gain =  # 1, 4, 16, 60
     #sensor.integration_time = 2.4  # The integration time of the sensor in milliseconds.  Must be a value between 2.4 and 614.4.
     while read_attempt < 5:
