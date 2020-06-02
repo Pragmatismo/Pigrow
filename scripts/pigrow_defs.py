@@ -163,7 +163,7 @@ def set_condition(condition_name, trig_direction, cooldown="none"):
             trig__con_tosave += line
     # if the condition doesn't exist add it
     if trig_con_found == False:
-        trig__con_tosave += condition_name + "," + str(trig_direction) + "," + cooldown + "\n"
+        trig__con_tosave += condition_name + "," + str(trig_direction) + "," + str(cooldown) + "\n"
     # save file
     with open(trigger_conditions_path, 'w') as f:
         f.write(trig__con_tosave)
