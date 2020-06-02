@@ -879,6 +879,10 @@ class system_ctrl_pnl(wx.Panel):
             else:
                 print(' - Multipul Picams detected : ' + out)
                 picam_text = 'Multipul Picams'
+        else:
+            picam_text = " Command line output did not match expected format, possibly because vcgencmd is not installed"
+            picam_text += " or possibly because your language is set to something other than english, if so please let me know"
+            print(picam_text)
         # web camera info
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("ls /dev/video*")
         if "No such file or directory" in error:
