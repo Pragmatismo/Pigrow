@@ -30,7 +30,7 @@ def read_sensor(location="", extra="", *args):
     sensor = adafruit_tcs34725.TCS34725(i2c)
     gain = 1
     sensor.gain = gain  # 1, 4, 16, 60
-    #sensor.integration_time = 2.4  # The integration time of the sensor in milliseconds.  Must be a value between 2.4 and 614.4.
+    sensor.integration_time = 50  # The integration time of the sensor in milliseconds.  Must be a value between 2.4 and 614.4.
     while read_attempt < 5:
         try:
             color_temp = sensor.color_temperature
