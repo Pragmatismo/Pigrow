@@ -97,10 +97,10 @@ def get_vcgencmd_info():
     vcgencmd_info['clock_hdmi']  = os.popen("vcgencmd measure_clock hdmi").read().strip().split("=")[1]
     vcgencmd_info['clock_dpi']   = os.popen("vcgencmd measure_clock dpi").read().strip().split("=")[1]
     # chip voltages
-    vcgencmd_info['volts_core']    = os.popen("vcgencmd measure_volts core").read().strip()
-    vcgencmd_info['volts_sdram_c'] = os.popen("vcgencmd measure_volts sdram_c").read().strip()
-    vcgencmd_info['volts_sdram_i'] = os.popen("vcgencmd measure_volts sdram_i").read().strip()
-    vcgencmd_info['volts_sdram_p'] = os.popen("vcgencmd measure_volts sdram_p").read().strip()
+    vcgencmd_info['volts_core']    = os.popen("vcgencmd measure_volts core").read().strip().split("=")[1]
+    vcgencmd_info['volts_sdram_c'] = os.popen("vcgencmd measure_volts sdram_c").read().strip().split("=")[1]
+    vcgencmd_info['volts_sdram_i'] = os.popen("vcgencmd measure_volts sdram_i").read().strip().split("=")[1]
+    vcgencmd_info['volts_sdram_p'] = os.popen("vcgencmd measure_volts sdram_p").read().strip().split("=")[1]
     #out of memory events occuring in VC4 memory space
     output = os.popen("vcgencmd mem_oom").read().splitlines()
     vcgencmd_info['oom_events']    = output[0].split(": ")[1].strip()
@@ -113,11 +113,11 @@ def get_vcgencmd_info():
     vcgencmd_info['vc4_compactions'] = output[1].split(": ")[1].strip()
     vcgencmd_info['lb_fails']        = output[2].split(": ")[1].strip()
     # screen
-    vcgencmd_info['display_power'] = os.popen("vcgencmd display_power").read().strip()
+    vcgencmd_info['display_power'] = os.popen("vcgencmd display_power").read().strip().split("=")[1]
     vcgencmd_info['lcd_info'] = os.popen("vcgencmd get_lcd_info").read().strip() # resolution and colour depth of attached display
 
-    for key, value in sorted(vcgencmd_info.items()):
-        print("  " + key + " = " + value)
+    #for key, value in sorted(vcgencmd_info.items()):
+    #    print("  " + key + " = " + value)
     return vcgencmd_info
 
 
