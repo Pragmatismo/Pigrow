@@ -31,7 +31,9 @@ for argu in sys.argv:
 
 def psutil_info():
     ps_util_info = {}
-    ps_util_info['cpu_temp'] = psutil.sensors_temperatures(fahrenheit=False)['bcm2835_thermal'][0][1]
+    for x in psutil.sensors_temperatures(fahrenheit=False):
+        ps_util_info['cpu_temp_' + x] = psutil.sensors_temperatures(fahrenheit=False)[x][0][1]
+    #ps_util_info['cpu_temp'] = psutil.sensors_temperatures(fahrenheit=False)['bcm2835_thermal'][0][1]
     ps_util_info['cpu_ctx_switches']    = psutil.cpu_stats()[0]
     ps_util_info['cpu_interrupts']     = psutil.cpu_stats()[1]
     ps_util_info['cpu_soft_interrupts'] = psutil.cpu_stats()[2]
@@ -73,6 +75,51 @@ def psutil_info():
     ps_util_info['net_dropin']       = psutil.net_io_counters(pernic=False, nowrap=True)[6]
     ps_util_info['net_dropout']      = psutil.net_io_counters(pernic=False, nowrap=True)[7]
     return ps_util_info
+
+def get_vcgencmd_info():
+    vcgencmd_info = {}
+    picam_supported, picam_detected = os.popen("vcgencmd get_camera").read().split(" ")
+    vcgencmd_info['picam_supported'] = picam_supported.strip().split("=")[1]
+    vcgencmd_info['picam_detected'] = picam_detected.strip().split("=")[1]
+    # get throttled has an awkward output
+    vcgencmd_info['get_throttled'] = os.popen("vcgencmd get_throttled").read().strip().strip("throttled=")
+    # clock speeds
+    vcgencmd_info['clock_arm ']  = os.popen("vcgencmd measure_clock arm").read().strip().split("=")[1]
+    vcgencmd_info['clock_core']  = os.popen("vcgencmd measure_clock core").read().strip().split("=")[1]
+    vcgencmd_info['clock_H264']  = os.popen("vcgencmd measure_clock H264").read().strip().split("=")[1]
+    vcgencmd_info['clock_isp']   = os.popen("vcgencmd measure_clock isp").read().strip().split("=")[1]
+    vcgencmd_info['clock_v3d']   = os.popen("vcgencmd measure_clock v3d").read().strip().split("=")[1]
+    vcgencmd_info['clock_uart']  = os.popen("vcgencmd measure_clock uart").read().strip().split("=")[1]
+    vcgencmd_info['clock_audio'] = os.popen("vcgencmd measure_clock pwm").read().strip().split("=")[1]
+    vcgencmd_info['clock_emmc']  = os.popen("vcgencmd measure_clock emmc").read().strip().split("=")[1]
+    vcgencmd_info['clock_pixel'] = os.popen("vcgencmd measure_clock pixel").read().strip().split("=")[1]
+    vcgencmd_info['clock_vec']   = os.popen("vcgencmd measure_clock vec").read().strip().split("=")[1]
+    vcgencmd_info['clock_hdmi']  = os.popen("vcgencmd measure_clock hdmi").read().strip().split("=")[1]
+    vcgencmd_info['clock_dpi']   = os.popen("vcgencmd measure_clock dpi").read().strip().split("=")[1]
+    # chip voltages
+    vcgencmd_info['volts_core']    = os.popen("vcgencmd measure_volts core").read().strip()
+    vcgencmd_info['volts_sdram_c'] = os.popen("vcgencmd measure_volts sdram_c").read().strip()
+    vcgencmd_info['volts_sdram_i'] = os.popen("vcgencmd measure_volts sdram_i").read().strip()
+    vcgencmd_info['volts_sdram_p'] = os.popen("vcgencmd measure_volts sdram_p").read().strip()
+    #out of memory events occuring in VC4 memory space
+    output = os.popen("vcgencmd mem_oom").read().splitlines()
+    vcgencmd_info['oom_events']    = output[0].split(": ")[1].strip()
+    vcgencmd_info['oom_lifesize']  = output[1].split(": ")[1].strip()
+    vcgencmd_info['oom_totaltime'] = output[2].split(": ")[1].strip()
+    vcgencmd_info['oom_maxtime']   = output[3].split(": ")[1].strip()
+    # vcgencmd mem_reloc_stats - statistics from the relocatable memory allocator on the VC4.
+    output = os.popen("vcgencmd mem_reloc_stats").read().splitlines()
+    vcgencmd_info['vc4_alloc_fail']  = output[0].split(": ")[1].strip()
+    vcgencmd_info['vc4_compactions'] = output[1].split(": ")[1].strip()
+    vcgencmd_info['lb_fails']        = output[2].split(": ")[1].strip()
+    # screen
+    vcgencmd_info['display_power'] = os.popen("vcgencmd display_power").read().strip()
+    vcgencmd_info['lcd_info'] = os.popen("vcgencmd get_lcd_info").read().strip() # resolution and colour depth of attached display
+
+    for key, value in sorted(vcgencmd_info.items()):
+        print("  " + key + " = " + value)
+    return vcgencmd_info
+
 
 def check_scripts(script):
     # Check stats of running process
@@ -205,7 +252,13 @@ if __name__ == '__main__':
     for key, value in sorted(psutil_info.items()):
         line += str(key) + "=" + str(value) + ">"
     #print('Found ' + str(len(psutil_info)) + ' graphable metrics in psutil_info')
-    scripts_to_check = ['reddit_settings_ear.py','checkDHT.py']
+    #    vcgencmd info
+    vcgecmd_info = get_vcgencmd_info()
+    for key, value in sorted(vcgecmd_info.items()):
+        line += str(key) + "=" + str(value) + ">"
+    #print('Found ' + str(len(vcgecmd_info)) + ' graphable metrics in vcgecmd_info')
+    #    runnig script counter
+    scripts_to_check = ['reddit_settings_ear.py','checkDHT.py', 'trigger_watcher.py', 'watcher_button.py']
     for script in scripts_to_check:
         script_info = check_scripts(script)
         for key, value in sorted(script_info.items()):
