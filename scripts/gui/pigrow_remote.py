@@ -6730,8 +6730,8 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
                 self.key_pos_split_tc.Enable()
                 self.key_pos_split_tc.Show()
                 self.key_pos_split_cb.Show()
-                self.key_manual_l.Hide()
-                self.key_manual_tc.Hide()
+                self.key_manual_l.Show()
+                self.key_manual_tc.Show()
                 self.key_matches_l.Show()
                 self.key_matches_tc.Show()
                 #self.SetSizer(main_sizer)
@@ -6750,9 +6750,9 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
                 self.key_pos_split_tc.Hide()
                 self.key_pos_split_cb.SetValue("")
                 self.key_pos_split_cb.Hide()
-                self.key_manual_l.Hide()
-                self.key_manual_tc.Hide()
-                self.key_matches_l.Hide()
+                self.key_manual_l.Show()
+                self.key_manual_tc.Show()
+                self.key_matches_l.Show()
                 self.key_matches_tc.Hide()
                 self.key_pos_ex.SetLabel("")
         else:
@@ -6762,6 +6762,11 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
             value_split = self.value_pos_split_tc.GetValue()
             value_split_pos = self.value_pos_split_cb.GetSelection()
             key_text = self.key_pos_cb.GetValue()
+            if ".txt" in shared_data.first_valueset_name:
+                self.key_manual_tc.SetValue(key_text + " " + shared_data.first_valueset_name.split('.txt')[0])
+            else:
+                self.key_manual_tc.SetValue(key_text + " " + shared_data.first_valueset_name)
+            #THIS TEXT HER
             if value_split_pos == 0:
                 t_value_pos = 1
                 t_key_pos = 0
@@ -7103,15 +7108,12 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
             key_split = self.key_pos_split_tc.GetValue()
             key_pos_split = int(self.key_pos_split_cb.GetSelection())
 
-            if key_pos == 'Manual':
-                key_manual = self.key_manual_tc.GetValue()
-                key_pos = ""
-            else:
-                key_manual = ""
-                if not key_pos == 'None':
+            #if key_pos == 'Manual':
+            key_manual = self.key_manual_tc.GetValue()
+            key_pos = ""
+                #
+            if key_pos.isdigit():
                     key_pos = int(key_pos)
-                else:
-                    key_pos = ""
             if self.key_matches_tc.IsEnabled() == True:
                 key_matches = self.key_matches_tc.GetValue()
             else:
@@ -7312,6 +7314,9 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
                             except:
                                 print(" - Value not a valid number; " + str(value))
                                 value = ""
+            # set key to manual
+            if not self.key_manual_tc.GetValue() == "":
+                key = self.key_manual_tc.GetValue()
             # add to lists
             if not date == "" and not value == "" and not key == False:
                 date_list.append(date)
@@ -11251,13 +11256,15 @@ class make_log_overlay_dialog(wx.Dialog):
 
     def key_pos_go(self, e):
         key_pos = self.key_pos_cb.GetValue()
+        value_pos = self.key_pos_cb.GetValue()
+
         if not key_pos == "" and not key_pos == "None" and not key_pos == "Manual" and not key_pos == None:
             self.key_pos_ex.SetLabel(self.split_line[int(key_pos)])
             self.key_pos_split_tc.Enable()
             self.key_pos_split_tc.Show()
             self.key_pos_split_cb.Show()
-            self.key_manual_l.Hide()
-            self.key_manual_tc.Hide()
+            self.key_manual_l.Show()
+            self.key_manual_tc.Show()
             self.key_matches_l.Show()
             self.key_matches_tc.Show()
             #self.SetSizer(main_sizer)
