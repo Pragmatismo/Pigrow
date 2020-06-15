@@ -10,9 +10,9 @@ class sensor_config():
 
 
 def read_sensor(location="", extra="", *args):
-    zero_offset = 63776
-    known_grams = 500
-    known_g_value = 494443
+    zero_offset = 62076    # raw value when there is no added weight on the sensor
+    known_grams = 497      # weight of known value measurement in grams
+    known_g_value = 494493 - zero_offset # raw value when the known value weight is applied to the sensor 
 
     # find weight from value
     def find_weight(zero_offset, known_grams, value):
@@ -55,7 +55,6 @@ def read_sensor(location="", extra="", *args):
         #    print(m)
 
 
-
     # Try importing the modules then give-up and report to user if it fails
     import datetime
     import time
@@ -83,7 +82,6 @@ def read_sensor(location="", extra="", *args):
             hx711.reset()
             measures = hx711.get_raw_data()
             valid_result = check_measures(measures)
-            weight = find_weight(zero_offset, known_grams, valid_result)
             #
             if valid_result == "None":
                 print("--problem reading HX711, try " + str(read_attempt))
@@ -91,6 +89,7 @@ def read_sensor(location="", extra="", *args):
                 read_attempt = read_attempt + 1
             else:
                 logtime = datetime.datetime.now()
+                weight = find_weight(zero_offset, known_grams, valid_result)
                 GPIO.cleanup()
                 data = [['time',logtime], ['weight', weight], ['average',valid_result]]
                 for pos in range(0, len(measures)):
