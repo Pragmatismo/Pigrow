@@ -10,9 +10,21 @@ class sensor_config():
 
 
 def read_sensor(location="", extra="", *args):
+    zero_offset = 63776
+    known_grams = 500
+    known_g_value = 494443
+
+    # find weight from value
+    def find_weight(zero_offset, known_grams, value):
+        zeroed = value - zero_offset
+        raw_per_gram = known_g_value / known_grams
+        weight = zeroed / raw_per_gram
+        #print("Weight : ", weight, " grams")
+        return round(weight, 2)
+
     # sanity check on values
     def check_measures(measures):
-        print("Testing Measures")
+        #print("Testing Measures")
         range_buff = 100
         range_min = measures[0] - range_buff
         range_max = measures[0] + range_buff
@@ -21,7 +33,6 @@ def read_sensor(location="", extra="", *args):
             if x < range_max and x > range_min:
                 limited_list.append(x)
         if not len(limited_list) > 1:
-            print("list length of one")
             limited_list = []
             range_min = measures[1] - range_buff
             range_max = measures[1] + range_buff
@@ -29,7 +40,7 @@ def read_sensor(location="", extra="", *args):
                 if x < range_max and x > range_min:
                     limited_list.append(x)
             if len(limited_list) == 1:
-                print(" Readings are bad" )
+                #print(" Readings are bad" )
                 return "None"
         # got list minus crazy values
         if not len(limited_list) > 3:
@@ -72,6 +83,7 @@ def read_sensor(location="", extra="", *args):
             hx711.reset()
             measures = hx711.get_raw_data()
             valid_result = check_measures(measures)
+            weight = find_weight(zero_offset, known_grams, valid_result)
             #
             if valid_result == "None":
                 print("--problem reading HX711, try " + str(read_attempt))
@@ -80,7 +92,7 @@ def read_sensor(location="", extra="", *args):
             else:
                 logtime = datetime.datetime.now()
                 GPIO.cleanup()
-                data = [['time',logtime], ['average',valid_result]]
+                data = [['time',logtime], ['weight', weight], ['average',valid_result]]
                 for pos in range(0, len(measures)):
                     data.append(["reading" + str(pos), measures[pos]])
                 return data
