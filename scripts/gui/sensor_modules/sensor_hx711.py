@@ -10,6 +10,41 @@ class sensor_config():
 
 
 def read_sensor(location="", extra="", *args):
+    # sanity check on values
+    def check_measures(measures):
+        print("Testing Measures")
+        range_buff = 100
+        range_min = measures[0] - range_buff
+        range_max = measures[0] + range_buff
+        limited_list = []
+        for x in measures:
+            if x < range_max and x > range_min:
+                limited_list.append(x)
+        if not len(limited_list) > 1:
+            print("list length of one")
+            limited_list = []
+            range_min = measures[1] - range_buff
+            range_max = measures[1] + range_buff
+            for x in measures:
+                if x < range_max and x > range_min:
+                    limited_list.append(x)
+            if len(limited_list) == 1:
+                print(" Readings are bad" )
+                return "None"
+        # got list minus crazy values
+        if not len(limited_list) > 3:
+            return "None"
+        total = 0
+        for m in limited_list:
+            total = total + m
+        average = total / len(limited_list)
+        return average
+        #print("Average ", average)
+        #for m in limited_list:
+        #    print(m)
+
+
+
     # Try importing the modules then give-up and report to user if it fails
     import datetime
     import time
@@ -31,20 +66,21 @@ def read_sensor(location="", extra="", *args):
     dt_pin = int(location.split(":")[0])
     sck_pin = int(location.split(":")[1])
     hx711 = HX711(dout_pin=dt_pin, pd_sck_pin=sck_pin, channel='A', gain=64)
-    measures = None
+    measures = "None"
     while read_attempt < 5:
         try:
             hx711.reset()
             measures = hx711.get_raw_data()
+            valid_result = check_measures(measures)
             #
-            if measures == None:
+            if valid_result == "None":
                 print("--problem reading HX711, try " + str(read_attempt))
                 time.sleep(2)
                 read_attempt = read_attempt + 1
             else:
                 logtime = datetime.datetime.now()
                 GPIO.cleanup()
-                data = [['time',logtime]]
+                data = [['time',logtime], ['average',valid_result]]
                 for pos in range(0, len(measures)):
                     data.append(["reading" + str(pos), measures[pos]])
                 return data
@@ -55,6 +91,8 @@ def read_sensor(location="", extra="", *args):
             read_attempt = read_attempt + 1
     GPIO.cleanup()
     return None
+
+
 
 
 if __name__ == '__main__':
