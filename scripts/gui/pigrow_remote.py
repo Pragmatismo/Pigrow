@@ -1422,7 +1422,7 @@ class upgrade_pigrow_dialog(wx.Dialog):
     def __init__(self, *args, **kw):
         super(upgrade_pigrow_dialog, self).__init__(*args, **kw)
         self.InitUI()
-        self.SetSize((600, 600))
+        self.SetSize((600, 675))
         self.SetTitle("Upgrade Pigrow")
     def InitUI(self):
         # draw the pannel and text
@@ -1434,15 +1434,15 @@ class upgrade_pigrow_dialog(wx.Dialog):
         # see which files are changed locally
         local_l = wx.StaticText(self,  label='Local;')
         local_l.SetFont(shared_data.sub_title_font)
-        local_changes_tb = wx.StaticText(self,  label='--')
+        local_changes_tc = wx.TextCtrl(self, -1, "--", size=(500,200), style=wx.TE_MULTILINE)
         changes = self.read_git_dif()
-        local_changes_tb.SetLabel(str(changes))
+        local_changes_tc.SetLabel(str(changes))
         # see which files are changed remotely
         repo_l = wx.StaticText(self,  label='Repo;')
         repo_l.SetFont(shared_data.sub_title_font)
-        remote_changes_tb = wx.StaticText(self,  label='--')
+        remote_changes_tc = wx.TextCtrl(self, -1, "--", size=(500,200), style=wx.TE_MULTILINE)
         repo_changes, num_repo_changed_files = self.read_repo_changes()
-        remote_changes_tb.SetLabel(repo_changes)
+        remote_changes_tc.SetValue(repo_changes)
         # upgrade type
         pigrow_status = wx.StaticText(self,  label='Pigrow Status;')
         pigrow_status.SetFont(shared_data.sub_title_font)
@@ -1465,10 +1465,10 @@ class upgrade_pigrow_dialog(wx.Dialog):
         upgrade_type_sizer.Add(upgrade_type_tb, 0, wx.ALL, 4)
         local_sizer = wx.BoxSizer(wx.HORIZONTAL)
         local_sizer.Add(local_l, 0, wx.ALIGN_LEFT|wx.ALL, 4)
-        local_sizer.Add(local_changes_tb, 0, wx.ALIGN_LEFT|wx.ALL, 4)
+        local_sizer.Add(local_changes_tc, 0, wx.ALIGN_LEFT|wx.ALL, 4)
         remote_sizer = wx.BoxSizer(wx.HORIZONTAL)
         remote_sizer.Add(repo_l, 0, wx.ALIGN_LEFT|wx.ALL, 4)
-        remote_sizer.Add(remote_changes_tb, 0, wx.ALIGN_LEFT|wx.ALL, 4)
+        remote_sizer.Add(remote_changes_tc, 0, wx.ALIGN_LEFT|wx.ALL, 4)
         buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
         buttons_sizer.Add(self.upgrade_btn, 0, wx.ALL, 2)
         buttons_sizer.AddStretchSpacer(1)
@@ -1518,9 +1518,9 @@ class upgrade_pigrow_dialog(wx.Dialog):
         print((out, error))
         # parse into usable data
         changed_files, num_files_changed, num_insertions, num_deletions = self.parse_git_diff_info(out)
-        display_text = str(num_files_changed) + " Files changed;"
+        display_text = str(num_files_changed) + " Files changed"
         for item in changed_files:
-            display_text += "\n     " + str(item)
+            display_text += "\n   " + str(item)
         return display_text, changed_files
 
 
