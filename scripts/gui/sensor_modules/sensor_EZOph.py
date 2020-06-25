@@ -31,6 +31,8 @@ def read_sensor(location="", extra="", *args):
             if "Success" in ph:
                 valid_result = "True"
                 ph = ph.split(":")[1].strip()
+                if "\00" in ph:
+                    ph = ph.split("\00")[0]
             #
             if valid_result == "None":
                 print("--problem reading Atlas Scientific EZO ph, try " + str(read_attempt))
