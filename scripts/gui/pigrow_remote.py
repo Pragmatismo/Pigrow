@@ -799,16 +799,46 @@ class system_ctrl_pnl(wx.Panel):
         # this only works on certain versions of the pi
         # it checks the power led value
         # it's normally turned off as a LOW POWER warning
+        display_message = "LED1: "
         if not "pi 3" in MainApp.system_info_pannel.sys_pi_revision.GetLabel().lower():
             out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("cat /sys/class/leds/led1/brightness")
+            out = out.strip()
             if out == "255":
-                MainApp.system_info_pannel.sys_power_status.SetLabel("no warning")
+                display_message = display_message + "No Warning"
             elif out == "" or out == None:
-                MainApp.system_info_pannel.sys_power_status.SetLabel("error, not supported")
+                display_message = display_message + "Not Supported"
             else:
-                MainApp.system_info_pannel.sys_power_status.SetLabel("reads " + str(out) + " low power warning!")
+                display_message = display_message + "Low power warning! (" + str(out).strip() + ")"
         else:
-            MainApp.system_info_pannel.sys_power_status.SetLabel("feature disabled on pi 3")
+            display_message = display_message + "feature disabled on pi 3"
+        #
+        # New improved low power warning
+        #
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("vcgencmd get_throttled")
+        out = out.strip().strip("throttled=")
+        display_message = display_message + "\nvcgencmd: " # + out
+        if out == "0x0":
+            display_message = display_message + " No Warning"
+        #
+        out_int = int(out, 16)
+        #display_message += "\nint-" + str(out_int)
+        bit_nums = [[0, "Under_Voltage detected"],
+                    [1, "Arm frequency capped"],
+                    [2, "Currently throttled"],
+                    [3, "Soft temperature limit active"],
+                    [16, "Under-voltage has occurred"],
+                    [17, "Arm frequency capping has occurred"],
+                    [18, "Throttling has occurred"],
+                    [19, "Soft temperature limit has occurred"]]
+        for x in range(0, len(bit_nums)):
+            bit_num  = bit_nums[x][0]
+            bit_text = bit_nums[x][1]
+            if (out_int & ( 1 << bit_num )):
+                display_message += "\n  - " + bit_text
+                #display_message += "\n(bit-" + str(bit_num) + ") " + bit_text
+
+        #
+        MainApp.system_info_pannel.sys_power_status.SetLabel(display_message)
 
     def check_pi_version(self):
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("cat /proc/device-tree/model")
@@ -1483,8 +1513,8 @@ class upgrade_pigrow_dialog(wx.Dialog):
         main_sizer.Add(buttons_sizer, 0, wx.ALL, 3)
         self.SetSizer(main_sizer)
 
-
-    # git diff --name-only HEAD@{0} HEAD@{1}      #shows the most recent changes
+    # git diff --name-only HEAD@{0} HEAD@{1}               # shows the most recent changes, filenames
+    # git log --pretty=oneline --name-status HEAD^..HEAD   # shows update log changes since last update
 
     def determine_upgrade_type(self, num_repo_changed_files):
         # looks at available info and offers best upgrade options
@@ -1505,7 +1535,6 @@ class upgrade_pigrow_dialog(wx.Dialog):
                     update_needed = 'up-to-date'
         return update_needed
 
-
     def read_repo_changes(self):
         # lists changes made to the remote (githubed) version since our last update.
         repo_changes = "getting to it soon..."
@@ -1522,7 +1551,6 @@ class upgrade_pigrow_dialog(wx.Dialog):
         for item in changed_files:
             display_text += "\n   " + str(item)
         return display_text, changed_files
-
 
     def read_git_dif(self):
         # could use "diff --name-only" instead of --stat
