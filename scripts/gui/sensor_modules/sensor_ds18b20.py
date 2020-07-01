@@ -10,8 +10,8 @@ class sensor_config():
         for folder in w1_bus_folders:
             if folder[0:3] == "28-":
                 temp_sensor_list += folder + ","
-            if temp_sensor_list [-1:] == ",":
-                temp_sensor_list = temp_sensor_list[:-1]
+        if temp_sensor_list [-1:] == ",":
+            temp_sensor_list = temp_sensor_list[:-1]
         # ouput
         print("connection_type=1wire")
         print("connection_address_list=" + temp_sensor_list)
