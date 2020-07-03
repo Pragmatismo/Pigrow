@@ -7,7 +7,7 @@ class sensor_config():
         print("connection_type=i2c")
         print("connection_address_list=")
         print("default_connection_address=99")
-        print("available_info=calibrated,slope,info,temp_compensation,status,extended scale")
+        print("available_info=calibrated,slope,info,temp_compensation,status,extended_scale")
 
     def run_request(request_name, sensor_location):
         request_name = request_name.lower()
@@ -21,7 +21,7 @@ class sensor_config():
             sensor_config.read_temp_comp(sensor_location)
         elif request_name == "status":
             sensor_config.read_status(sensor_location)
-        elif request_name == "extended scale":
+        elif request_name == "extended_scale":
             sensor_config.read_extended_scale(sensor_location)
         else:
             print(" Request not recognised")
