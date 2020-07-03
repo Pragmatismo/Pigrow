@@ -66,15 +66,15 @@ class sensor_config():
             text_status = text_status.split("?Status,")[1].strip().strip('\x00')
             reset_reason = text_status.split(",")[0]
             voltage = text_status.split(",")[1]
-            if reset_reason = "P":
+            if reset_reason == "P":
                 reset_reason += " - Powered Off"
-            elif reset_reason = "S":
+            elif reset_reason == "S":
                 reset_reason += " - Software Reset"
-            elif reset_reason = "B":
+            elif reset_reason == "B":
                 reset_reason += " - Brown out"
-            elif reset_reason = "W":
+            elif reset_reason == "W":
                 reset_reason += " - Watchdog"
-            elif reset_reason = "U":
+            elif reset_reason == "U":
                 reset_reason += " - unknown"
             text_status = "Reset reason: " + reset_reason + " Voltage at Vcc: " + voltage
         print(text_status)
