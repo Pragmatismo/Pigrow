@@ -34,8 +34,8 @@ class sensor_config():
         device.set_i2c_address(int(sensor_location))
         cal_q_output = device.query("Cal,?")
         if "Success" in cal_q_output:
-            text_cal_q = cal_q_output.split("?CAL,")[1].strip()
-            text_cal_q = "There are" + text_cal_q + " Calibration points set"
+            text_cal_q = str(cal_q_output).split("?CAL,")[1].strip()
+            text_cal_q += " Calibration points set"
         else:
             text_cal_q = "Error - success not reported\n" + cal_q_output
         print(text_cal_q)
