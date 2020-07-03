@@ -7,7 +7,7 @@ class sensor_config():
         print("connection_type=i2c")
         print("connection_address_list=")
         print("default_connection_address=99")
-        print("available_info=calibrated,slope,info,temp_compensation, status")
+        print("available_info=calibrated,slope,info,temp_compensation,status")
 
     def run_request(request_name, sensor_location):
         request_name = request_name.lower()
@@ -63,7 +63,7 @@ class sensor_config():
         status_output = device.query("Status")
         text_status = status_output.strip().strip('\x00')
         if "Success" in text_status:
-            text_status = text_status.split("?Status,")[1].strip().strip('\x00')
+            text_status = text_status.split("?STATUS,")[1]
             reset_reason = text_status.split(",")[0]
             voltage = text_status.split(",")[1]
             if reset_reason == "P":
