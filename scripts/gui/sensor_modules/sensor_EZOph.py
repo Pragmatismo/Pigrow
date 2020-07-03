@@ -7,7 +7,7 @@ class sensor_config():
         print("connection_type=i2c")
         print("connection_address_list=")
         print("default_connection_address=99")
-        print("available_info=calibrated,slope,info,temp_compensation,status,extended_scale")
+        print("available_info=calibrated,slope,info,temp_compensation,status,extended_scale,protocol_lock")
 
     def run_request(request_name, sensor_location):
         request_name = request_name.lower()
@@ -23,6 +23,8 @@ class sensor_config():
             sensor_config.read_status(sensor_location)
         elif request_name == "extended_scale":
             sensor_config.read_extended_scale(sensor_location)
+        elif request_name == "protocol_lock":
+            sensor_config.read_plock(sensor_location)
         else:
             print(" Request not recognised")
 
@@ -50,6 +52,19 @@ class sensor_config():
         return text_slope
 
     def read_temp_comp(sensor_location):
+        from AtlasI2C import AtlasI2C
+        device = AtlasI2C()
+        device.set_i2c_address(int(sensor_location))
+        plock_output = device.query("Plock,?")
+        plock_text = plock_output.strip().strip('\x00')
+        if "?PLOCK,0" in text_ex:
+            plock_text = "Protocol lock Disabled"
+        elif "?PLOCK,1" in text_ex:
+            plock_text = "Protocol lock Enabled"
+        print(plock_text)
+        return plock_text
+
+    def read_plock(sensor_location):
         from AtlasI2C import AtlasI2C
         device = AtlasI2C()
         device.set_i2c_address(int(sensor_location))
