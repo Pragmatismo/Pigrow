@@ -7,7 +7,7 @@ class sensor_config():
         print("connection_type=i2c")
         print("connection_address_list=")
         print("default_connection_address=99")
-        print("available_info=calibrated,slope,info")
+        print("available_info=calibrated,slope,info,temp_compensation, status]")
 
     def run_request(request_name, sensor_location):
         request_name = request_name.lower()
@@ -17,6 +17,10 @@ class sensor_config():
             sensor_config.read_if_calibrated(sensor_location)
         elif request_name == "info":
             sensor_config.read_info(sensor_location)
+        elif request_name == "temp_compensation":
+            sensor_config.read_temp_comp(sensor_location)
+        elif request_name == "status":
+            sensor_config.read_status(sensor_location)
         else:
             print(" Request not recognised")
 
@@ -42,6 +46,39 @@ class sensor_config():
         text_slope = slope_output.strip().strip('\x00')
         print(text_slope)
         return text_slope
+
+    def read_temp_comp(sensor_location):
+        from AtlasI2C import AtlasI2C
+        device = AtlasI2C()
+        device.set_i2c_address(int(sensor_location))
+        temp_output = device.query("T,?")
+        text_temp = temp_output.strip().strip('\x00')
+        print(text_temp)
+        return text_temp
+
+    def read_status(sensor_location):
+        from AtlasI2C import AtlasI2C
+        device = AtlasI2C()
+        device.set_i2c_address(int(sensor_location))
+        status_output = device.query("Status")
+        text_status = status_output.strip().strip('\x00')
+        if "Success" in cal_q_output:
+            text_status = text_status.split("?Status,")[1].strip().strip('\x00')
+            reset_reason = text_status.split(",")[0]
+            voltage = text_status.split(",")[1]
+            if reset_reason = "P":
+                reset_reason += " - Powered Off"
+            elif reset_reason = "S":
+                reset_reason += " - Software Reset"
+            elif reset_reason = "B":
+                reset_reason += " - Brown out"
+            elif reset_reason = "W":
+                reset_reason += " - Watchdog"
+            elif reset_reason = "U":
+                reset_reason += " - unknown"
+            text_status = "Reset reason: " + reset_reason + " Voltage at Vcc: " + voltage
+        print(text_status)
+        return text_status
 
     def read_if_calibrated(sensor_location):
         from AtlasI2C import AtlasI2C
