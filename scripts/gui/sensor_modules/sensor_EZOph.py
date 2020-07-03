@@ -7,6 +7,39 @@ class sensor_config():
         print("connection_type=i2c")
         print("connection_address_list=")
         print("default_connection_address=99")
+        print("available_info=slope,calibrated")
+
+    def run_request(request_name, sensor_location):
+        request_name = request_name.lower()
+        if request_name == "slope":
+            sensor_config.read_slope(sensor_location)
+        elif request_name in ["calibrated", "cal", "cal?"]:
+            sensor_config.read_if_calibrated(sensor_location)
+        else:
+            print(" Request not recognised")
+
+
+    def read_slope(sensor_location):
+        from AtlasI2C import AtlasI2C
+        device = AtlasI2C()
+        device.set_i2c_address(int(sensor_location))
+        slope_output = device.query("Slope")
+        text_slope = slope_output
+        print(text_slope)
+        return text_slope
+
+    def read_if_calibrated(sensor_location):
+        from AtlasI2C import AtlasI2C
+        device = AtlasI2C()
+        device.set_i2c_address(int(sensor_location))
+        cal_q_output = device.query("Cal,?")
+        if "Success" in cal_q_output:
+            text_cal_q = cal_q_output.split("?CAL,")[1].strip()
+            text_cal_q += " Calibration points set"
+        else:
+            text_cal_q = "Error - success not reported\n" + cal_q_output
+        print(text_cal_q)
+        return text_cal_q
 
 
 def read_sensor(location="", extra="", *args):
@@ -63,20 +96,31 @@ if __name__ == '__main__':
             thevalue = str(argu).split('=')[1]
             if thearg == 'location':
                 sensor_location = thevalue
+            if thearg == 'request':
+                request = thevalue
         elif 'help' in argu or argu == '-h':
             print(" Modular control for EZO ph module")
             print(" ")
             print("")
             print(" -config  ")
             print("        display the config information")
+            print(" request=")
+            print("       requests config information from the sensor then exits")
             print("")
             sys.exit(0)
         elif argu == "-flags":
             print("location=")
+            print("request=slope,calibrated")
             sys.exit(0)
         elif argu == "-config":
             sensor_config.find_settings()
             sys.exit()
+
+    if not request == "":
+        sensor_config.run_request(request, sensor_location)
+        sys.exit()
+
+
     # read sensor
     #if not sensor_location == "":
     output = read_sensor(location=sensor_location)
