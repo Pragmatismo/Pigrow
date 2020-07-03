@@ -26,6 +26,11 @@ class sensor_config():
         device.set_i2c_address(int(sensor_location))
         info_output = device.query("I")
         text_info = info_output.strip().strip('\x00')
+        if "Success" in text_info:
+            text_info = info_output.split("?I,")[1]
+            type = text_info.split(",")[0]
+            version = text_info.split(",")[1]
+            text_info = "Sensor Type: " + type + " Firmware Version: " + version
         print(text_info)
         return text_info
 
