@@ -62,7 +62,7 @@ class sensor_config():
         device.set_i2c_address(int(sensor_location))
         status_output = device.query("Status")
         text_status = status_output.strip().strip('\x00')
-        if "Success" in cal_q_output:
+        if "Success" in text_status:
             text_status = text_status.split("?Status,")[1].strip().strip('\x00')
             reset_reason = text_status.split(",")[0]
             voltage = text_status.split(",")[1]
