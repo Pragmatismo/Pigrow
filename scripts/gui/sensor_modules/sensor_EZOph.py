@@ -48,7 +48,7 @@ class sensor_config():
         device.set_i2c_address(int(sensor_location))
         slope_output = device.query("Slope")
         text_slope = slope_output.strip().strip('\x00')
-        if "Success" in text_status:
+        if "Success" in text_slope:
             text_slope = text_stope.split("?Slope,")[1]
             acid_dif = text_slope.split(",")[0]
             base_dif = text_slope.split(",")[1]
