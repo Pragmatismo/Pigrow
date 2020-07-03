@@ -99,7 +99,8 @@ if __name__ == '__main__':
       and temperature compensation options
       '''
      # check for command line arguments
-    sensor_location = "99"
+    sensor_location = ""
+    request = ""
     for argu in sys.argv[1:]:
         if "=" in argu:
             thearg = str(argu).split('=')[0]
