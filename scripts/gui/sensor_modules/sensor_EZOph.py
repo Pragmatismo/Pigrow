@@ -48,23 +48,31 @@ class sensor_config():
         device.set_i2c_address(int(sensor_location))
         slope_output = device.query("Slope")
         text_slope = slope_output.strip().strip('\x00')
+        if "Success" in text_status:
+            text_slope = text_stope.split("?Slope,")[1]
+            acid_dif = text_slope.split(",")[0]
+            base_dif = text_slope.split(",")[1]
+            voltage_offset = text_slope.split(",")[2]
+            text_slope = acid_dif + " acid calibration match to 'ideal' probe.\n"
+            text_slope += base_dif + " base calibration match to 'ideal' probe.\n"
+            text_slope += voltage_offset + "  millivolts the zero point is off from true 0"
         print(text_slope)
         return text_slope
 
-    def read_temp_comp(sensor_location):
+    def read_plock(sensor_location):
         from AtlasI2C import AtlasI2C
         device = AtlasI2C()
         device.set_i2c_address(int(sensor_location))
         plock_output = device.query("Plock,?")
         plock_text = plock_output.strip().strip('\x00')
-        if "?PLOCK,0" in text_ex:
+        if "?PLOCK,0" in plock_text:
             plock_text = "Protocol lock Disabled"
         elif "?PLOCK,1" in text_ex:
             plock_text = "Protocol lock Enabled"
         print(plock_text)
         return plock_text
 
-    def read_plock(sensor_location):
+    def read_temp_comp(sensor_location):
         from AtlasI2C import AtlasI2C
         device = AtlasI2C()
         device.set_i2c_address(int(sensor_location))
