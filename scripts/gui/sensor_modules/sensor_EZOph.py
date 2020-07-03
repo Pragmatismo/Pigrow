@@ -7,17 +7,27 @@ class sensor_config():
         print("connection_type=i2c")
         print("connection_address_list=")
         print("default_connection_address=99")
-        print("available_info=slope,calibrated")
+        print("available_info=calibrated,slope,info")
 
     def run_request(request_name, sensor_location):
         request_name = request_name.lower()
         if request_name == "slope":
             sensor_config.read_slope(sensor_location)
-        elif request_name in ["calibrated", "cal", "cal?"]:
+        elif request_name in ["calibrated", "cal?"]:
             sensor_config.read_if_calibrated(sensor_location)
+        elif request_name == "info":
+            sensor_config.read_info(sensor_location)
         else:
             print(" Request not recognised")
 
+    def read_info(sensor_location):
+        from AtlasI2C import AtlasI2C
+        device = AtlasI2C()
+        device.set_i2c_address(int(sensor_location))
+        info_output = device.query("I")
+        text_info = info_output.strip().strip('\x00')
+        print(text_info)
+        return text_info
 
     def read_slope(sensor_location):
         from AtlasI2C import AtlasI2C
