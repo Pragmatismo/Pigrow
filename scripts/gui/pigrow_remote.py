@@ -12526,9 +12526,6 @@ class add_sensor_from_module_dialog(wx.Dialog):
         # loaded settungs
         self.sensor_connection = wx.StaticText(self,  label="")
         self.loc_cb = wx.ComboBox(self, choices = [], size=(170, 25))
-        self.read_mod_settings()
-
-
         # Read sensor button
         self.read_sensor_btn = wx.Button(self, label='Read Sensor')
         self.read_sensor_btn.Bind(wx.EVT_BUTTON, self.read_sensor_click)
@@ -12539,7 +12536,17 @@ class add_sensor_from_module_dialog(wx.Dialog):
         cron_repeat_opts = ['min', 'hour', 'day', 'month', 'dow']
         self.rep_opts_cb = wx.ComboBox(self, choices = cron_repeat_opts, size=(100, 30))
 
+        #information request
+        self.request_info_l = wx.StaticText(self,  label='Request Information')
+        request_info_opts = ['']
+        self.request_info_cb = wx.ComboBox(self, choices = request_info_opts, size=(200, 30))
+        self.request_info_btn = wx.Button(self, label='Send')
+        self.request_info_btn.Bind(wx.EVT_BUTTON, self.request_info_click)
+        self.request_output_l = wx.StaticText(self,  label='-')
 
+
+
+        self.read_mod_settings()
         # Sizers
         loc_sizer = wx.BoxSizer(wx.HORIZONTAL)
         loc_sizer.Add(self.sensor_connection, 0, wx.ALL|wx.EXPAND, 3)
@@ -12561,6 +12568,10 @@ class add_sensor_from_module_dialog(wx.Dialog):
             (loc_sizer, 0, wx.EXPAND),
             (timeing_l, 0, wx.EXPAND),
             (timing_sizer, 0, wx.EXPAND) ])
+        request_info_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        request_info_sizer.Add(self.request_info_l, 0,  wx.ALL, 3)
+        request_info_sizer.Add(self.request_info_cb, 0,  wx.ALL, 3)
+        request_info_sizer.Add(self.request_info_btn, 0,  wx.ALL, 3)
         buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
         buttons_sizer.Add(self.add_btn, 0,  wx.ALL, 3)
         buttons_sizer.AddStretchSpacer(1)
@@ -12568,6 +12579,9 @@ class add_sensor_from_module_dialog(wx.Dialog):
         main_sizer =  wx.BoxSizer(wx.VERTICAL)
         main_sizer.Add(box_label, 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.Add(options_sizer, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(request_info_sizer, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.Add(self.request_output_l, 0, wx.ALL|wx.EXPAND, 3)
         main_sizer.AddStretchSpacer(1)
         main_sizer.Add(buttons_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
         main_sizer.AddStretchSpacer(1)
@@ -12582,6 +12596,18 @@ class add_sensor_from_module_dialog(wx.Dialog):
             self.loc_cb.SetValue(self.s_loc)
         self.rep_num_tc.SetValue(s_rep)
         self.rep_opts_cb.SetValue(s_rep_txt)
+
+    def request_info_click(self, e):
+        item_to_request = self.request_info_cb.GetValue()
+        sensor_location = self.loc_cb.GetValue()
+        if not item_to_request == "":
+            module_name = self.s_type
+            sensor_module_path = "/home/" + pi_link_pnl.target_user + "/Pigrow/scripts/gui/sensor_modules/sensor_" + module_name + ".py"
+            out, error = MainApp.localfiles_ctrl_pannel.run_on_pi(sensor_module_path + " location=" + sensor_location + " request=" + item_to_request)
+            out = out.strip()
+            self.request_output_l.SetLabel(item_to_request + ": " + out + error)
+            print(item_to_request + ": " + out + error)
+            self.Layout()
 
     def read_mod_settings(self):
         print(" -- READING MODULE SETTINGS -- ")
@@ -12611,6 +12637,15 @@ class add_sensor_from_module_dialog(wx.Dialog):
                         only_option = True
                 elif setting == "default_connection_address":
                     def_address = value
+                elif setting == "available_info":
+                    self.request_info_cb.Clear()
+                    if "," in value:
+                        for item in value.split(","):
+                            self.request_info_cb.Append(item)
+                    else:
+                        self.request_info_cb.Append(value)
+                        self.request_info_cb.SetValue(value)
+
         if not only_option == True:
             self.loc_cb.SetValue(def_address)
 
