@@ -8,6 +8,7 @@ class sensor_config():
         print("connection_address_list=")
         print("default_connection_address=99")
         print("available_info=calibrated,slope,info,temp_compensation,status,extended_scale,protocol_lock")
+        print("available_settings=")
 
     def run_request(request_name, sensor_location):
         request_name = request_name.lower()
@@ -25,29 +26,114 @@ class sensor_config():
             sensor_config.read_extended_scale(sensor_location)
         elif request_name == "protocol_lock":
             sensor_config.read_plock(sensor_location)
+        elif request_name == "find":
+            print(" YOU HAVEN'T CODED THIS IN YET")
         else:
             print(" Request not recognised")
 
-    def read_info(sensor_location):
+    def run_setting(setting_string, location):
+        #settings = temp, led, cal_mid, cal_low, cal_high, i2c_address
+        #witrhout equals = cal_clear, sleep, factory_reset
+        if "=" in setting_string:
+            equals_pos = setting_string.find("=")
+            setting_name = setting_string[:equals_pos]
+            setting_value = setting_string[equals_pos + 1:]
+        # settings without value
+        elif setting_string == "cal_clear":
+            sensor_config.cal_clear(location)
+        elif setting_string == "sleep":
+            sensor_config.set_sleep(location)
+        elif setting_string == "factory_reset":
+            sensor_config.factory_reset(location)
+        # settings with a value after an equals
+        if setting_name == "temp":
+            sensor_config.set_temp(location, setting_value)
+        elif setting_name == "led":
+            sensor_config.set_led(location, setting_value.lower())
+        elif setting_name == "cal_mid":
+            sensor_config.cal_mid(location, setting_value)
+        elif setting_name == "cal_low":
+            sensor_config.cal_low(location, setting_value)
+        elif setting_name == "cal_high":
+            sensor_config.cal_high(location, setting_value)
+        elif setting_name == "i2c_address":
+            sensor_config.change_i2c_address(location, setting_value)
+
+
+    # run command
+    def send_command(location, cmd):
         from AtlasI2C import AtlasI2C
         device = AtlasI2C()
-        device.set_i2c_address(int(sensor_location))
-        info_output = device.query("I")
-        text_info = info_output.strip().strip('\x00')
+        device.set_i2c_address(int(location))
+        setting_output = device.query(cmd)
+        text_out = setting_output.strip().strip('\x00')
+        print(text_out)
+        return text_out
+
+    # Controlls for changing settings
+    def change_i2c_address(location, setting):
+        cmd = "I2C," + setting
+        text_out = sensor_config.send_command(location, cmd)
+        return text_out
+
+    def factory_reset(location):
+        cmd = "Factory"
+        ext_out = sensor_config.send_command(location, cmd)
+        return text_out
+
+    def set_sleep(location):
+        cmd = "Sleep"
+        ext_out = sensor_config.send_command(location, cmd)
+        return text_out
+
+    def cal_clear(location):
+        cmd = "Cal,clear"
+        text_out = sensor_config.send_command(location, cmd)
+        return text_out
+
+    def cal_high(location, setting):
+        cmd = "Cal,high," + setting
+        text_out = sensor_config.send_command(location, cmd)
+        return text_out
+
+    def cal_low(location, setting):
+        cmd = "Cal,low," + setting
+        text_out = sensor_config.send_command(location, cmd)
+        return text_out
+
+    def cal_mid(location, setting):
+        cmd = "Cal,mid," + setting
+        text_out = sensor_config.send_command(location, cmd)
+        return text_out
+
+    def set_led(location, setting):
+        if setting == "on":
+            cmd = "L,1"
+        elif setting == "off":
+            cmd = "L,0"
+        text_out = sensor_config.send_command(location, cmd)
+        return text_out
+
+    def set_temp(location, temp):
+        cmd = "T," + temp
+        text_out = sensor_config.send_command(location, cmd)
+        return text_out
+
+    # Information Requests - these do not change any settings.
+    def read_info(location):
+        cmd = "I"
+        text_info = sensor_config.send_command(location, cmd)
         if "Success" in text_info:
-            text_info = info_output.split("?I,")[1]
+            text_info = text_info.split("?I,")[1]
             type = text_info.split(",")[0]
             version = text_info.split(",")[1]
             text_info = "Sensor Type: " + type + " Firmware Version: " + version
         print(text_info)
         return text_info
 
-    def read_slope(sensor_location):
-        from AtlasI2C import AtlasI2C
-        device = AtlasI2C()
-        device.set_i2c_address(int(sensor_location))
-        slope_output = device.query("Slope")
-        text_slope = slope_output.strip().strip('\x00')
+    def read_slope(location):
+        cmd = "Slope"
+        text_slope = sensor_config.send_command(location, cmd)
         if "Success" in text_slope:
             text_slope = text_stope.split("?Slope,")[1]
             acid_dif = text_slope.split(",")[0]
@@ -59,12 +145,9 @@ class sensor_config():
         print(text_slope)
         return text_slope
 
-    def read_plock(sensor_location):
-        from AtlasI2C import AtlasI2C
-        device = AtlasI2C()
-        device.set_i2c_address(int(sensor_location))
-        plock_output = device.query("Plock,?")
-        plock_text = plock_output.strip().strip('\x00')
+    def read_plock(location):
+        cmd = "Plock,?"
+        plock_text = sensor_config.send_command(location, cmd)
         if "?PLOCK,0" in plock_text:
             plock_text = "Protocol lock Disabled"
         elif "?PLOCK,1" in text_ex:
@@ -72,21 +155,15 @@ class sensor_config():
         print(plock_text)
         return plock_text
 
-    def read_temp_comp(sensor_location):
-        from AtlasI2C import AtlasI2C
-        device = AtlasI2C()
-        device.set_i2c_address(int(sensor_location))
-        temp_output = device.query("T,?")
-        text_temp = temp_output.strip().strip('\x00')
+    def read_temp_comp(location):
+        cmd = "T,?"
+        text_temp = sensor_config.send_command(location, cmd)
         print(text_temp)
         return text_temp
 
-    def read_extended_scale(sensor_location):
-        from AtlasI2C import AtlasI2C
-        device = AtlasI2C()
-        device.set_i2c_address(int(sensor_location))
-        ex_output = device.query("pHext,?")
-        text_ex = ex_output.strip().strip('\x00')
+    def read_extended_scale(location):
+        cmd = "pHext,?"
+        text_ex = sensor_config.send_command(location, cmd)
         if "?pHext,1" in text_ex:
             text_ex = "Extended pH Scale Enabled"
         elif "?pHext,0" in text_ex:
@@ -96,12 +173,9 @@ class sensor_config():
         print(text_ex)
         return text_ex
 
-    def read_status(sensor_location):
-        from AtlasI2C import AtlasI2C
-        device = AtlasI2C()
-        device.set_i2c_address(int(sensor_location))
-        status_output = device.query("Status")
-        text_status = status_output.strip().strip('\x00')
+    def read_status(location):
+        cmd = "Status"
+        text_status = sensor_config.send_command(location, cmd)
         if "Success" in text_status:
             text_status = text_status.split("?STATUS,")[1]
             reset_reason = text_status.split(",")[0]
@@ -120,11 +194,9 @@ class sensor_config():
         print(text_status)
         return text_status
 
-    def read_if_calibrated(sensor_location):
-        from AtlasI2C import AtlasI2C
-        device = AtlasI2C()
-        device.set_i2c_address(int(sensor_location))
-        cal_q_output = device.query("Cal,?")
+    def read_if_calibrated(location):
+        cmd = "Cal,?"
+        cal_q_output = sensor_config.send_command(location, cmd)
         if "Success" in cal_q_output:
             text_cal_q = cal_q_output.split("?CAL,")[1].strip().strip('\x00')
             text_cal_q += " Calibration points set"
@@ -183,14 +255,18 @@ if __name__ == '__main__':
      # check for command line arguments
     sensor_location = ""
     request = ""
+    setting_string = ""
     for argu in sys.argv[1:]:
         if "=" in argu:
-            thearg = str(argu).split('=')[0]
-            thevalue = str(argu).split('=')[1]
+            equals_pos = argu.find("=")
+            thearg = argu[:equals_pos]
+            thevalue = argu[equals_pos + 1:]
             if thearg == 'location':
                 sensor_location = thevalue
             if thearg == 'request':
                 request = thevalue
+            if thearg == 'set':
+                setting_string = thevalue
         elif 'help' in argu or argu == '-h':
             print(" Modular control for EZO ph module")
             print(" ")
@@ -198,12 +274,19 @@ if __name__ == '__main__':
             print(" -config  ")
             print("        display the config information")
             print(" request=")
+            print("       calibrated, slope, info, temp_compensation, status, extended_scale, protocol_lock")
             print("       requests config information from the sensor then exits")
+            print("")
+            print(" set=[setting]=[value]")
+            print("    settings requiring values = temp, led, cal_mid, cal_low, cal_high, i2c_address")
+            print("              without values = cal_clear, sleep, factory_reset")
+            print("       ")
             print("")
             sys.exit(0)
         elif argu == "-flags":
             print("location=")
-            print("request=slope,calibrated")
+            print("request=calibrated,slope,info,temp_compensation,status,extended_scale,protocol_lock")
+            print("set=[setting]=[value]")
             sys.exit(0)
         elif argu == "-config":
             sensor_config.find_settings()
@@ -211,6 +294,9 @@ if __name__ == '__main__':
 
     if not request == "":
         sensor_config.run_request(request, sensor_location)
+        sys.exit()
+    if not setting_string == "":
+        sensor_config.run_setting(setting_string, sensor_location)
         sys.exit()
 
 
