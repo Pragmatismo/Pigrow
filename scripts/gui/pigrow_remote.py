@@ -6349,6 +6349,8 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
         self.data_extraction_l.SetFont(shared_data.sub_title_font)
         self.show_hide_date_extract_btn = wx.Button(self, label='hide')
         self.show_hide_date_extract_btn.Bind(wx.EVT_BUTTON, self.show_hide_date_extract_click)
+        self.save_data_extract_btn = wx.Button(self, label='Save')
+        self.save_data_extract_btn.Bind(wx.EVT_BUTTON, MainApp.graphing_ctrl_pannel.save_data_extract_click)
         self.example_line_l = wx.StaticText(self,  label='Example Line -')
         self.example_line = wx.StaticText(self,  label='')
         # this bit copied from timelapse make overlay dialogs
@@ -6490,6 +6492,7 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
         de_label_sizer = wx.BoxSizer(wx.HORIZONTAL)
         de_label_sizer.Add(self.data_extraction_l, 0, wx.ALL, 0)
         de_label_sizer.Add(self.show_hide_date_extract_btn, 0, wx.ALL, 0)
+        de_label_sizer.Add(self.save_data_extract_btn, 0, wx.ALL, 0)
         time_and_date_sizer = wx.BoxSizer(wx.HORIZONTAL)
         time_and_date_sizer.Add(self.limit_date_to_last_l, 0, wx.ALL, 2)
         time_and_date_sizer.Add(self.limit_date_to_last_cb, 0, wx.ALL, 2)
@@ -6537,6 +6540,7 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
     def hide_data_extract(self):
         self.data_extraction_l.Hide()
         self.show_hide_date_extract_btn.Hide()
+        self.save_data_extract_btn.Hide()
         self.example_line_l.Hide()
         self.example_line.Hide()
         self.split_character_l.Hide()
@@ -6597,6 +6601,7 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
     def show_data_extract(self):
         self.data_extraction_l.Show()
         self.show_hide_date_extract_btn.Show()
+        self.save_data_extract_btn.Show()
         self.example_line_l.Show()
         self.example_line.Show()
         self.split_character_l.Show()
@@ -7927,6 +7932,92 @@ class graphing_ctrl_pnl(wx.Panel):
 
     def preset_all_click(self, e):
         self.discover_graph_presets()
+
+    def save_data_extract_click(self, e=""):
+        # log location
+        log_path = shared_data.log_to_load
+        file_text = "log_path=" + log_path + "\n"
+        # grab settings from ui
+        split_chr = MainApp.graphing_info_pannel.split_character_tc.GetValue()
+        if not split_chr == "":
+            file_text += "split_chr=" + split_chr +"\n"
+        # date
+        date_pos = MainApp.graphing_info_pannel.date_pos_cb.GetValue()
+        if not date_pos == "":
+            file_text += "date_pos=" + date_pos + "\n"
+        date_split = MainApp.graphing_info_pannel.date_pos_split_tc.GetValue()
+        if not date_split == "":
+            file_text += "date_split=" + date_split + "\n"
+        date_split_pos = MainApp.graphing_info_pannel.date_pos_split_cb.GetSelection()
+        if not date_split_pos == "":
+            file_text += "date_split_pos=" + str(date_split_pos) + "\n"
+        # value
+        value_pos = MainApp.graphing_info_pannel.value_pos_cb.GetValue()
+        if not value_pos == "":
+            file_text += "value_pos=" + value_pos + "\n"
+        value_split = MainApp.graphing_info_pannel.value_pos_split_tc.GetValue()
+        if not value_split == "":
+            file_text += "value_split=" + value_split + "\n"
+        value_split_pos = MainApp.graphing_info_pannel.value_pos_split_cb.GetSelection()
+        if not value_split_pos == "":
+            file_text += "value_split_pos=" + str(value_split_pos) + "\n"
+        value_rem = MainApp.graphing_info_pannel.rem_from_val_tc.GetValue()
+        if not value_rem == "":
+            file_text += "value_rem=" + value_rem + "\n"
+        # key
+        key_pos = MainApp.graphing_info_pannel.key_pos_cb.GetValue()
+        if not key_pos == "":
+            file_text += "key_pos=" + key_pos + "\n"
+        key_split = MainApp.graphing_info_pannel.key_pos_split_tc.GetValue()
+        if not key_split == "":
+            file_text += "key_split=" + key_split + "\n"
+        key_split_pos = MainApp.graphing_info_pannel.key_pos_split_cb.GetValue()
+        if not key_split_pos == "":
+            file_text += "key_split_pos=" + key_split_pos + "\n"
+        key_match = MainApp.graphing_info_pannel.key_matches_tc.GetValue()
+        if not key_match == "":
+            file_text += "key_match=" + key_match + "\n"
+        key_manual = MainApp.graphing_info_pannel.key_manual_tc.GetValue()
+        if not key_manual == "":
+            file_text += "key_manual=" + key_manual + "\n"
+        # date
+        limit_date = MainApp.graphing_info_pannel.limit_date_to_last_cb.GetValue()
+        if not limit_date == "":
+            file_text += "limit_date=" + limit_date + "\n"
+        if limit_date == "custom":
+            first_time = MainApp.graphing_info_pannel.start_time_picer.GetValue()
+            first_date = MainApp.graphing_info_pannel.start_date_picer.GetValue()
+            first_datetime = str(datetime.datetime(year = first_date.year, month = first_date.month + 1, day = first_date.day, hour = first_time.hour, minute = first_time.minute, second = first_time.second))
+            if "." in first_datetime:
+                first_datetime = first_datetime.split(".")[0]
+            last_time = MainApp.graphing_info_pannel.end_time_picer.GetValue()
+            last_date = MainApp.graphing_info_pannel.end_date_picer.GetValue()
+            last_datetime = str(datetime.datetime(year = last_date.year, month = last_date.month + 1, day = last_date.day, hour = last_time.hour, minute = last_time.minute, second = last_time.second))
+            if "." in last_datetime:
+                last_datetime = last_datetime.split(".")[0]
+            file_text += "start_time=" + first_datetime + "\n"
+            file_text += "end_time=" + last_datetime + "\n"
+        print(file_text)
+        # ask name
+        msg = "Name of preset"
+        filename_dbox = wx.TextEntryDialog(self, msg, "Name Preset", "")
+        if filename_dbox.ShowModal() == wx.ID_OK:
+            new_preset_name = filename_dbox.GetValue()
+            new_preset_name = new_preset_name.strip().replace(" ", "_")
+            if not (".txt") in new_preset_name.lower():
+                new_preset_name += ".txt"
+            # check if it already exists and confirm overwrite
+            graph_preset_path = os.path.join(shared_data.graph_presets_path, new_preset_name)
+            if os.path.isfile(graph_preset_path):
+                dbox = wx.MessageDialog(self, "Preset of that name already exists, overwrite it?", "Overwrite?", wx.OK | wx.CANCEL | wx.ICON_QUESTION)
+                answer = dbox.ShowModal()
+                dbox.Destroy()
+                if not (answer == wx.ID_OK):
+                    return "cancelled"
+            # save to graph presets
+            with open(graph_preset_path, "w") as f:
+                f.write(file_text)
+
 
     def graph_preset_cb_go(self ,e):
         # blank settings from prior use
@@ -12536,13 +12627,19 @@ class add_sensor_from_module_dialog(wx.Dialog):
         cron_repeat_opts = ['min', 'hour', 'day', 'month', 'dow']
         self.rep_opts_cb = wx.ComboBox(self, choices = cron_repeat_opts, size=(100, 30))
 
-        #information request
+        # Information request
         self.request_info_l = wx.StaticText(self,  label='Request Information')
-        request_info_opts = ['']
-        self.request_info_cb = wx.ComboBox(self, choices = request_info_opts, size=(200, 30))
+        self.request_info_cb = wx.ComboBox(self, choices = [''], size=(200, 30))
         self.request_info_btn = wx.Button(self, label='Send')
         self.request_info_btn.Bind(wx.EVT_BUTTON, self.request_info_click)
         self.request_output_l = wx.StaticText(self,  label='-')
+        # Change Setting
+        self.change_setting_l = wx.StaticText(self,  label='Request Information')
+        self.change_setting_cb = wx.ComboBox(self, choices=[''], size=(200, 30))
+        self.change_setting_tc = wx.TextCtrl(self, size=(70,30))
+        self.change_setting_btn = wx.Button(self, label='Set')
+        self.change_setting_btn.Bind(wx.EVT_BUTTON, self.change_setting_click)
+        self.change_setting_out_l = wx.StaticText(self,  label='-')
 
 
 
@@ -12572,6 +12669,11 @@ class add_sensor_from_module_dialog(wx.Dialog):
         request_info_sizer.Add(self.request_info_l, 0,  wx.ALL, 3)
         request_info_sizer.Add(self.request_info_cb, 0,  wx.ALL, 3)
         request_info_sizer.Add(self.request_info_btn, 0,  wx.ALL, 3)
+        change_setting_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        change_setting_sizer.Add(self.change_setting_l, 0,  wx.ALL, 3)
+        change_setting_sizer.Add(self.change_setting_cb, 0,  wx.ALL, 3)
+        change_setting_sizer.Add(self.change_setting_tc, 0,  wx.ALL, 3)
+        change_setting_sizer.Add(self.change_setting_btn, 0,  wx.ALL, 3)
         buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
         buttons_sizer.Add(self.add_btn, 0,  wx.ALL, 3)
         buttons_sizer.AddStretchSpacer(1)
@@ -12583,11 +12685,12 @@ class add_sensor_from_module_dialog(wx.Dialog):
         main_sizer.Add(request_info_sizer, 0, wx.ALL|wx.EXPAND, 3)
         main_sizer.Add(self.request_output_l, 0, wx.ALL|wx.EXPAND, 3)
         main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(change_setting_sizer, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.Add(self.change_setting_out_l, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.AddStretchSpacer(1)
         main_sizer.Add(buttons_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
         main_sizer.AddStretchSpacer(1)
         self.SetSizer(main_sizer)
-
-
 
         # set values for when reading from double click
         self.name_tc.SetValue(self.s_name)
@@ -12596,6 +12699,24 @@ class add_sensor_from_module_dialog(wx.Dialog):
             self.loc_cb.SetValue(self.s_loc)
         self.rep_num_tc.SetValue(s_rep)
         self.rep_opts_cb.SetValue(s_rep_txt)
+
+    def change_setting_click(self, e):
+        setting_to_change = self.change_setting_cb.GetValue()
+        sensor_location = self.loc_cb.GetValue()
+        setting_value = self.change_setting_tc.GetValue()
+        if not setting_to_change == "":
+            module_name = self.s_type
+            sensor_module_path = "/home/" + pi_link_pnl.target_user + "/Pigrow/scripts/gui/sensor_modules/sensor_" + module_name + ".py"
+            check_message = "Are you sure you want to change " + setting_to_change + " to " + setting_value + "?"
+            dbox = wx.MessageDialog(self, check_message, "Change Setting?", wx.OK | wx.CANCEL | wx.ICON_QUESTION)
+            answer = dbox.ShowModal()
+            dbox.Destroy()
+            if (answer == wx.ID_OK):
+                out, error = MainApp.localfiles_ctrl_pannel.run_on_pi(sensor_module_path + " location=" + sensor_location + " set=" + setting_to_change + "=" + setting_value)
+                out = out.strip()
+                self.change_setting_out_l.SetLabel(setting_to_change + ": " + out + error)
+                print(setting_to_change + ": " + out + error)
+                self.Layout()
 
     def request_info_click(self, e):
         item_to_request = self.request_info_cb.GetValue()
@@ -12645,6 +12766,15 @@ class add_sensor_from_module_dialog(wx.Dialog):
                     else:
                         self.request_info_cb.Append(value)
                         self.request_info_cb.SetValue(value)
+                # settings options
+                elif setting == "available_settings":
+                    self.change_setting_cb.Clear()
+                    if "," in value:
+                        for item in value.split(","):
+                            self.change_setting_cb.Append(item)
+                    else:
+                        self.change_setting_cb.Append(value)
+                        self.change_setting_cb.SetValue(value)
 
         if not only_option == True:
             self.loc_cb.SetValue(def_address)
@@ -14193,7 +14323,6 @@ class chirp_dialog(wx.Dialog):
         answer = dbox.ShowModal()
         dbox.Destroy()
         if (answer == wx.ID_OK):
-            print("the absolute madman wants to do it!!!!")
             # running phase one - finding a max value
             instruction_text =  "Chirp Calibration phase 1; \n\n  Make sure the sensor is clean, "
             instruction_text += " place the probe in a glass of water.  This will give us a maximum value."
@@ -14202,7 +14331,6 @@ class chirp_dialog(wx.Dialog):
             answer = dbox.ShowModal()
             dbox.Destroy()
             if (answer == wx.ID_OK):
-                print("ready to run the calibration tool")
                 cmd = "/home/" + pi_link_pnl.target_user + "/Pigrow/scripts/sensors/chirp_calibrate.py max chirp_address=" + self.wire_loc_tc.GetValue()
                 print (cmd)
                 out, error = MainApp.localfiles_ctrl_pannel.run_on_pi(cmd)

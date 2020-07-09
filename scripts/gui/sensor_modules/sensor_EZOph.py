@@ -8,7 +8,7 @@ class sensor_config():
         print("connection_address_list=")
         print("default_connection_address=99")
         print("available_info=calibrated,slope,info,temp_compensation,status,extended_scale,protocol_lock")
-        print("available_settings=")
+        print("available_settings=cal_clear,cal_mid,cal_low,cal_high,led,temp,i2c_address,factory_reset,sleep")
 
     def run_request(request_name, sensor_location):
         request_name = request_name.lower()
