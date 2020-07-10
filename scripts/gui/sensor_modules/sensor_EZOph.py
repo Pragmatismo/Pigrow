@@ -78,12 +78,12 @@ class sensor_config():
 
     def factory_reset(location):
         cmd = "Factory"
-        ext_out = sensor_config.send_command(location, cmd)
+        text_out = sensor_config.send_command(location, cmd)
         return text_out
 
     def set_sleep(location):
         cmd = "Sleep"
-        ext_out = sensor_config.send_command(location, cmd)
+        text_out = sensor_config.send_command(location, cmd)
         return text_out
 
     def cal_clear(location):
