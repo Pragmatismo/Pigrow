@@ -1,0 +1,3 @@
+install_method=wget
+package_name=https://raw.githubusercontent.com/Atlas-Scientific/Raspberry-Pi-sample-code/master/AtlasI2C.py
+import=AtlasI2C
