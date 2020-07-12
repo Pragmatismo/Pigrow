@@ -54,6 +54,8 @@
 #           local_path and remote_path should be full and explicit paths
 ####     MainApp.localfiles_ctrl_pannel.upload_file_to_folder(localfiles_info_pnl.local_path + "temp/temp.txt", "/home/" + pi_link_pnl.target_user + "/Pigrow/temp/temp.txt")
 #
+###                 save text to a file on the pi
+##   MainApp.localfiles_ctrl_pannel.save_text_to_file_on_pi(file_location, text)
 #
 #
 ###      Useful Variables - Path info
@@ -242,6 +244,10 @@ def get_module_options(module_prefix, m_folder="graph_modules"):
 class shared_data:
     def __init__(self):
         #This is a temporary fudge soon to be cleaned and used more widely
+        #
+        ## settings
+        #
+        shared_data.always_show_config_changes = False  # if true always show the 'upload to pigrow?' dialog box
         #
         ## paths
         #
@@ -794,6 +800,23 @@ class system_ctrl_pnl(wx.Panel):
             update_type = "error"
         return update_type
 
+    def check_video_power(self):
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("vcgencmd display_power")
+        out = out.strip().strip("display_power=")
+        if out == "0":
+            message = "Video power off"
+        else:
+            tv_out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("tvservice -s")
+            message = "Video power on\n" + tv_out.strip()
+        return message
+
+    def check_video_items(self):
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("vcgencmd get_lcd_info")
+        msg = out.strip().strip("")
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("vcgencmd dispmanx_list")
+        msg += "\n  Dispmanx Items;\n" +  out.strip().strip("")
+        return msg
+
     def check_pi_power_warning(self):
         #check for low power WARNING
         # this only works on certain versions of the pi
@@ -970,6 +993,9 @@ class system_ctrl_pnl(wx.Panel):
         MainApp.system_info_pannel.sys_pi_revision.SetLabel(pi_version)
         # check for low power warning
         self.check_pi_power_warning()
+        # check video power
+        MainApp.system_info_pannel.sys_video_power_info.SetLabel(self.check_video_power())
+        MainApp.system_info_pannel.sys_video_info.SetLabel(self.check_video_items())
         # WIFI
         network_name = self.find_network_name()
         MainApp.system_info_pannel.sys_network_name.SetLabel(network_name)
@@ -1312,6 +1338,18 @@ class system_info_pnl(wx.Panel):
         onewire_l = wx.StaticText(self,  label='1 Wire -', size=(-1,25))
         self.sys_1wire_info = wx.StaticText(self,  label='- click to scan -', size=(300,-1))
         self.sys_1wire_info.SetFont(shared_data.info_font)
+        # Video info
+        video_l = wx.StaticText(self,  label='Video', size=(25,25))
+        video_l.SetFont(shared_data.item_title_font)
+        video_power_l = wx.StaticText(self,  label='Power -', size=(-1,25))
+        self.sys_video_power_info = wx.StaticText(self,  label='--', size=(300,-1))
+        self.sys_video_power_info.SetFont(shared_data.info_font)
+        video_res_l = wx.StaticText(self,  label='Resolution -', size=(-1,25))
+        self.sys_video_info = wx.StaticText(self,  label='--', size=(300,-1))
+        self.sys_video_info.SetFont(shared_data.info_font)
+        #dispmanx_l = wx.StaticText(self,  label='Dispmanx -', size=(-1,25))
+        #self.dispmanx_info = wx.StaticText(self,  label='--', size=(300,-1))
+        #self.dispmanx_info.SetFont(shared_data.info_font)
 
         # network pannel - lower half
         #wifi deatils
@@ -1390,16 +1428,25 @@ class system_info_pnl(wx.Panel):
             (self.sys_uart_info, 0),
             (onewire_l, 0, wx.ALIGN_RIGHT),
             (self.sys_1wire_info, 0)])
+        video_power_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        video_power_sizer.Add(video_power_l, 0, wx.ALL, 3)
+        video_power_sizer.Add(self.sys_video_power_info, 0, wx.ALL|wx.EXPAND, 3)
+        video_res_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        video_res_sizer.Add(video_res_l, 0, wx.ALL, 3)
+        video_res_sizer.Add(self.sys_video_info, 0, wx.ALL|wx.EXPAND, 3)
         peripheral_device_sizer = wx.BoxSizer(wx.VERTICAL)
         peripheral_device_sizer.Add(camera_title_l, 0, wx.ALL|wx.EXPAND, 3)
         peripheral_device_sizer.Add(cam_name_sizer, 0, wx.LEFT|wx.EXPAND, 30)
         peripheral_device_sizer.Add(gpio_overlay_l, 0, wx.ALL|wx.EXPAND, 3)
         peripheral_device_sizer.Add(overlays_sizer, 0, wx.ALL|wx.EXPAND, 3)
+        peripheral_device_sizer.Add(video_l, 0, wx.ALL|wx.EXPAND, 3)
+        peripheral_device_sizer.Add(video_power_sizer, 0, wx.LEFT|wx.EXPAND, 30)
+        peripheral_device_sizer.Add(video_res_sizer, 0, wx.LEFT|wx.EXPAND, 30)
         # Top panel area
         panel_area_sizer = wx.BoxSizer(wx.HORIZONTAL)
         panel_area_sizer.Add(base_system_info_sizer, 0, wx.ALL, 0)
         panel_area_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(5, -1), style=wx.LI_VERTICAL), 0, wx.ALL|wx.EXPAND, 5)
-        panel_area_sizer.Add(peripheral_device_sizer, 0, wx.ALL, 0)
+        panel_area_sizer.Add(peripheral_device_sizer, 0, wx.ALL|wx.EXPAND, 0)
         # wifi area sizers
         current_network_sizer = wx.BoxSizer(wx.HORIZONTAL)
         current_network_sizer.Add(current_network_l, 0, wx.LEFT, 3)
@@ -1423,7 +1470,6 @@ class system_info_pnl(wx.Panel):
         wifi_panels_sizer.AddStretchSpacer(1)
         wifi_area_sizer.Add(current_network_sizer, 0, wx.LEFT, 30)
         wifi_area_sizer.Add(wifi_panels_sizer, 0, wx.ALL, 0)
-
 
         main_sizer = wx.BoxSizer(wx.VERTICAL)
         main_sizer.Add(title_sizer, 0, wx.ALIGN_CENTER_HORIZONTAL, 0)
@@ -2319,6 +2365,18 @@ class install_dialog(wx.Dialog):
         print("   -- Finished " + apt_package + " install attempt;")
         print (out, error)
 
+    def install_wget_package(self, package_name):
+        sensor_module_folder = "/home/" + pi_link_pnl.target_user + "/Pigrow/scripts/gui/sensor_modules/"
+        install_file_name = os.path.split(package_name)[1]
+        install_p = sensor_module_folder + install_file_name
+        self.currently_doing.SetLabel("Using wget to download " + package_name)
+        command = "wget " + package_name + " -O " + install_p
+        print(" - install running command; " + command)
+        wx.GetApp().Yield()
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi(command)
+        print("   -- Finished " + package_name + " install attempt;")
+        print(out, error)
+
     def check_module_dependencies(self):
         print(" Testing dependencies from install module files")
         for module_index in range(0, self.install_module_list.GetItemCount()):
@@ -2340,7 +2398,7 @@ class install_dialog(wx.Dialog):
             is_installed = False
             if not install_method == "" and not package_name == "":
                 if install_method == "pip2":
-                    if "True" in test_py_module(package_name):
+                    if "True" in self.test_py_module(package_name):
                         is_installed = True
                 elif install_method == 'pip3':
                     if not import_name == "":
@@ -2350,7 +2408,10 @@ class install_dialog(wx.Dialog):
                         if "True" in self.test_py3_module(package_name):
                             is_installed = True
                 elif install_method == "apt":
-                    is_installed = test_apt_package(package_name)
+                    is_installed = self.test_apt_package(package_name)
+                elif install_method == "wget":
+                    is_installed = self.test_wget_file(package_name)
+
             if is_installed == True:
                 self.install_module_list.SetItemTextColour(module_index, wx.Colour(90,180,90))
                 print(" -- " + package_name + " is already installed")
@@ -2366,6 +2427,16 @@ class install_dialog(wx.Dialog):
                 return True
             else:
                 return False
+        else:
+            return False
+
+    def test_wget_file(self, package_name):
+        sensor_module_folder = "/home/" + pi_link_pnl.target_user + "/Pigrow/scripts/gui/sensor_modules/"
+        install_file_name = os.path.split(package_name)[1]
+        install_p = sensor_module_folder + install_file_name
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("ls " + install_p)
+        if install_p == out.strip():
+            return True
         else:
             return False
 
@@ -2533,6 +2604,7 @@ class install_dialog(wx.Dialog):
             #self.install_python_crontab()
             apt_package_list.append('python-crontab')
         # Add modular sensors to list from table
+        wget_package_list = []
         for module_index in range(0, self.install_module_list.GetItemCount()):
             if self.install_module_list.GetItem(module_index, 0).GetText() == "True":
                 module_name = self.install_module_list.GetItem(module_index, 1).GetText()
@@ -2552,10 +2624,12 @@ class install_dialog(wx.Dialog):
                         pip3_package_list.append(package_name)
                     elif install_method == "apt":
                         apt_package_list.append(package_name)
+                    elif install_method == "wget":
+                        wget_package_list.append(package_name)
 
 
         # counting items for progress bar
-        item_count = len(pip3_package_list) + len(pip3_package_list) + len(apt_package_list)
+        item_count = len(pip3_package_list) + len(pip3_package_list) + len(apt_package_list) + len(wget_package_list)
         if self.pigrow_base_check.GetValue() == True:
             item_count += 1
         if self.pigrow_dirlocs_check.GetValue() == True:
@@ -2594,7 +2668,10 @@ class install_dialog(wx.Dialog):
             for apt_package in apt_package_list:
                 self.install_apt_package(apt_package)
                 self.progress_install_bar()
-
+        # download all files using wget
+        for wget_package in wget_package_list:
+            self.install_wget_package(wget_package)
+            self.progress_install_bar()
         # run the setup wizard
         if self.config_wiz_check.GetValue() == True:
             self.currently_doing.SetLabel(" Config Wizard")
@@ -3116,7 +3193,7 @@ class config_ctrl_pnl(wx.Panel):
         config_info_pnl.gpio_table.SetItem(0, 3, str(currently))
         config_info_pnl.gpio_table.SetItem(0, 4, str(info))
 
-    def update_setting_file_on_pi_click(self, e):
+    def update_setting_file_on_pi_click(self, e, ask="yes"):
         #create updated settings file
         #
         #creating GPIO config block
@@ -3142,20 +3219,23 @@ class config_ctrl_pnl(wx.Panel):
         config_text = other_settings[1:]
         config_text += gpio_config_block
         # show user and ask user if they relly want to update
-        dbox = wx.MessageDialog(self, config_text, "upload to pigrow?", wx.OK | wx.CANCEL | wx.ICON_QUESTION)
-        answer = dbox.ShowModal()
-        dbox.Destroy()
-        #if user said ok then upload file to pi
-        if (answer == wx.ID_OK):
-            #
-            # REPLACE THE FOLLOWING WITH A FUNCTION THAT ANYONE CAN CALL TO UPLOAD A FILE
-            #
-            sftp = ssh.open_sftp()
-            folder = "/home/" + str(pi_link_pnl.target_user) +  "/Pigrow/config/"
-            f = sftp.open(folder + '/pigrow_config.txt', 'w')
-            f.write(config_text)
-            f.close()
+        if ask == "yes":
+            dbox = wx.MessageDialog(self, config_text, "upload to pigrow?", wx.OK | wx.CANCEL | wx.ICON_QUESTION)
+            answer = dbox.ShowModal()
+            dbox.Destroy()
+            #if user said ok then upload file to pi
+            if (answer == wx.ID_OK):
+                update = True
+            else:
+                update = False
+        else:
+            update = True
+        if update == True or shared_date.always_show_config_changes == True:
+            pigrow_config_file_location = "/home/" + str(pi_link_pnl.target_user) +  "/Pigrow/config/pigrow_config.txt"
+            MainApp.localfiles_ctrl_pannel.save_text_to_file_on_pi(pigrow_config_file_location, config_text)
             self.update_pigrow_setup_pannel_information_click("e")
+            MainApp.sensors_ctrl_pannel.make_tables_click("e")
+
 
 class config_info_pnl(scrolled.ScrolledPanel):
     #  This displays the config info
@@ -6025,6 +6105,12 @@ class localfiles_ctrl_pnl(wx.Panel):
         ssh_tran.close()
         print((" file copied to " + str(remote_path)))
 
+    def save_text_to_file_on_pi(self, file_location, text):
+        sftp = ssh.open_sftp()
+        f = sftp.open(file_location, 'w')
+        f.write(text)
+        f.close()
+
 class file_download_dialog(wx.Dialog):
     #Dialog box for downloding files from pi to local storage folder
     def __init__(self, *args, **kw):
@@ -6440,7 +6526,7 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
         self.end_time_picer = wx.adv.TimePickerCtrl( self, wx.ID_ANY, wx.DefaultDateTime)
         self.end_date_picer = wx.adv.DatePickerCtrl( self, wx.ID_ANY, wx.DefaultDateTime)
         self.limit_date_to_last_l = wx.StaticText(self,  label='Limit date to ')
-        limit_choices = ["none", "day", "week", "month", "year", "1st log", "custom"]
+        limit_choices = ["none", "hour", "day", "week", "month", "year", "1st log", "custom"]
         self.limit_date_to_last_cb = wx.ComboBox(self, size=(90, 25),choices = limit_choices)
         self.limit_date_to_last_cb.Bind(wx.EVT_TEXT, self.limit_date_to_last_go)
 
@@ -7079,6 +7165,8 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
                     self.end_date_picer.SetValue(new_end_date)
             return None
         # set related to current time
+        elif limit_setting == "hour":
+            limit = datetime.timedelta(hours=1)
         elif limit_setting == "day":
             limit = datetime.timedelta(days=1)
         elif limit_setting == "week":
@@ -7428,6 +7516,7 @@ class graphing_ctrl_pnl(wx.Panel):
         self.valset_1_len_l = wx.StaticText(self,  label=' Datapoints : ')
         self.valset_1_len = wx.StaticText(self,  label='0')
         self.valset_1_name = wx.StaticText(self,  label='-')
+        self.download_log_cb = wx.CheckBox(self,  label='download ')
         self.set_log_btn = wx.Button(self, label='Add', size=(90,-1))
         self.set_log_btn.Bind(wx.EVT_BUTTON, self.set_log_click)
         self.clear_log_btn = wx.Button(self, label='Clear', size=(50,-1))
@@ -7482,8 +7571,6 @@ class graphing_ctrl_pnl(wx.Panel):
         self.module_dw_btn = wx.Button(self, label='Make', size=(60,25))
         self.module_dw_btn.Bind(wx.EVT_BUTTON, self.make_datawall_from_module)
 
-
-
         # graphs
         self.local_simple_line = wx.Button(self, label='Simple Line Graph')
         self.local_simple_line.Bind(wx.EVT_BUTTON, self.local_simple_line_go)
@@ -7518,9 +7605,12 @@ class graphing_ctrl_pnl(wx.Panel):
         valset_1_len_sizer = wx.BoxSizer(wx.HORIZONTAL)
         valset_1_len_sizer.Add(self.valset_1_len_l, 0, wx.ALL|wx.EXPAND, 3)
         valset_1_len_sizer.Add(self.valset_1_len, 0, wx.ALL|wx.EXPAND, 3)
+
+        valset_name_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        valset_name_sizer.Add(self.valset_1_name, 0, wx.ALL|wx.EXPAND, 3)
         valset_1_text_sizer = wx.BoxSizer(wx.VERTICAL)
         valset_1_text_sizer.Add(valset_1_len_sizer, 0, wx.ALL|wx.EXPAND, 3)
-        valset_1_text_sizer.Add(self.valset_1_name, 0, wx.ALL|wx.EXPAND, 3)
+        valset_1_text_sizer.Add(valset_name_sizer, 0, wx.ALL|wx.EXPAND, 3)
         valset_1_sizer = wx.BoxSizer(wx.HORIZONTAL)
         valset_1_sizer.Add(self.num_of_logs_loaded, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 3)
         valset_1_sizer.Add(self.valset_1_loaded, 0, wx.ALL|wx.EXPAND, 3)
@@ -7562,6 +7652,7 @@ class graphing_ctrl_pnl(wx.Panel):
         # local opts size
         local_opts_sizer = wx.BoxSizer(wx.VERTICAL)
         local_opts_sizer.Add(valset_1_sizer, 0, wx.ALL|wx.EXPAND, 3)
+        local_opts_sizer.Add(self.download_log_cb, 0, wx.RIGHT|wx.ALIGN_RIGHT, 30)
         local_opts_sizer.Add(self.data_title_text, 0, wx.ALL|wx.EXPAND, 3)
         local_opts_sizer.Add(self.preset_text, 0, wx.ALL|wx.EXPAND, 3)
         local_opts_sizer.Add(graph_preset_sizer, 0, wx.ALL|wx.EXPAND, 3)
@@ -7692,6 +7783,7 @@ class graphing_ctrl_pnl(wx.Panel):
         self.valset_1_loaded.Hide()
         self.num_of_logs_loaded.Hide()
         self.valset_1_name.Hide()
+        self.download_log_cb.Hide()
         self.valset_1_len_l.Hide()
         self.valset_1_len.Hide()
         self.module_sucker_text.Hide()
@@ -7744,6 +7836,7 @@ class graphing_ctrl_pnl(wx.Panel):
         self.valset_1_loaded.Show()
         self.num_of_logs_loaded.Show()
         self.valset_1_name.Show()
+        self.download_log_cb.Show()
         self.valset_1_len_l.Show()
         self.valset_1_len.Show()
         self.module_sucker_text.Show()
@@ -7771,6 +7864,16 @@ class graphing_ctrl_pnl(wx.Panel):
         self.threasholds_pie.Disable()
         self.dividied_daily.Disable()
         self.value_diff_graph.Disable()
+
+    def redownload_log(self):
+        current_log = shared_data.log_to_load
+        pi_logs, error = MainApp.localfiles_ctrl_pannel.run_on_pi("ls /home/" + pi_link_pnl.target_user + "/Pigrow/logs/")
+        log_name = os.path.split(current_log)[1]
+        if log_name in pi_logs:
+            remote_file = "/home/" + pi_link_pnl.target_user + "/Pigrow/logs/" + log_name
+            MainApp.localfiles_ctrl_pannel.download_file_to_folder(remote_file, "logs/" + log_name)
+        else:
+            print(" - Log file not found on pigrow")
 
     def graph_engine_combo_go(self, e):
         # combo box selects if you want to make graphs on pi or locally
@@ -7863,6 +7966,9 @@ class graphing_ctrl_pnl(wx.Panel):
         self.valset_1_len.SetLabel("0")
 
     def set_log_click(self, e):
+        #
+        if self.download_log_cb.GetValue() == True:
+            self.redownload_log()
         #print("number of datasets", len(shared_data.list_of_datasets))
         val_method = MainApp.graphing_info_pannel.value_pos_cb.GetValue()
         if val_method == 'match text':
@@ -12600,6 +12706,9 @@ class add_sensor_from_module_dialog(wx.Dialog):
         pnl = wx.Panel(self)
         box_label = wx.StaticText(self,  label='Sensor module: ' + self.s_type)
         box_label.SetFont(shared_data.title_font)
+        # Show guide button
+        self.show_guide_btn = wx.Button(self, label='Guide', size=(175, 30))
+        self.show_guide_btn.Bind(wx.EVT_BUTTON, self.show_guide_click)
         # buttons_
         self.add_btn = wx.Button(self, label='OK', size=(175, 30))
         self.add_btn.Bind(wx.EVT_BUTTON, self.add_click)
@@ -12634,7 +12743,7 @@ class add_sensor_from_module_dialog(wx.Dialog):
         self.request_info_btn.Bind(wx.EVT_BUTTON, self.request_info_click)
         self.request_output_l = wx.StaticText(self,  label='-')
         # Change Setting
-        self.change_setting_l = wx.StaticText(self,  label='Request Information')
+        self.change_setting_l = wx.StaticText(self,  label='Change Settings')
         self.change_setting_cb = wx.ComboBox(self, choices=[''], size=(200, 30))
         self.change_setting_tc = wx.TextCtrl(self, size=(70,30))
         self.change_setting_btn = wx.Button(self, label='Set')
@@ -12645,6 +12754,10 @@ class add_sensor_from_module_dialog(wx.Dialog):
 
         self.read_mod_settings()
         # Sizers
+        top_line_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        top_line_sizer.Add(box_label, 0, wx.ALL|wx.EXPAND, 3)
+        top_line_sizer.AddStretchSpacer(1)
+        top_line_sizer.Add(self.show_guide_btn, 0, wx.ALL|wx.EXPAND, 3)
         loc_sizer = wx.BoxSizer(wx.HORIZONTAL)
         loc_sizer.Add(self.sensor_connection, 0, wx.ALL|wx.EXPAND, 3)
         loc_sizer.Add(self.loc_cb, 0, wx.ALL|wx.EXPAND, 3)
@@ -12679,7 +12792,7 @@ class add_sensor_from_module_dialog(wx.Dialog):
         buttons_sizer.AddStretchSpacer(1)
         buttons_sizer.Add(self.cancel_btn, 0,  wx.ALL, 3)
         main_sizer =  wx.BoxSizer(wx.VERTICAL)
-        main_sizer.Add(box_label, 0, wx.ALL|wx.EXPAND, 5)
+        main_sizer.Add(top_line_sizer, 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.Add(options_sizer, 0, wx.ALL|wx.EXPAND, 3)
         main_sizer.AddStretchSpacer(1)
         main_sizer.Add(request_info_sizer, 0, wx.ALL|wx.EXPAND, 3)
@@ -12699,6 +12812,19 @@ class add_sensor_from_module_dialog(wx.Dialog):
             self.loc_cb.SetValue(self.s_loc)
         self.rep_num_tc.SetValue(s_rep)
         self.rep_opts_cb.SetValue(s_rep_txt)
+
+    def show_guide_click(self, e):
+        guide_path = "guide_" + self.s_type + ".png"
+        guide_path = os.path.join(shared_data.sensor_modules_path, guide_path)
+        guide = wx.Image(guide_path, wx.BITMAP_TYPE_ANY)
+        guide = guide.ConvertToBitmap()
+        if os.path.isfile(guide_path):
+            dbox = show_image_dialog(None, guide, self.s_type)
+            dbox.ShowModal()
+            dbox.Destroy()
+        else:
+            print(" - Sensor does not have an associated guide")
+            print("     " + guide_path + " not found")
 
     def change_setting_click(self, e):
         setting_to_change = self.change_setting_cb.GetValue()
@@ -12779,7 +12905,6 @@ class add_sensor_from_module_dialog(wx.Dialog):
         if not only_option == True:
             self.loc_cb.SetValue(def_address)
 
-
     def import_sensor_module(self):
         module_name = self.s_type
         print(" Importing module; " + module_name)
@@ -12802,16 +12927,16 @@ class add_sensor_from_module_dialog(wx.Dialog):
 
     def edit_cron_job(self, start_name, new_name, new_cron_txt, new_cron_num):
     # check to find cron job handling this sensor
-        print(" - Checking cron for existing jobs")
+        #print(" - Checking cron for existing jobs")
         line_number_repeting_cron = -1
         if not start_name == "":
             for index in range(0, cron_list_pnl.repeat_cron.GetItemCount()):
                 cmd_path = cron_list_pnl.repeat_cron.GetItem(index, 3).GetText()
                 if "log_sensor_module.py" in cmd_path:
-                    print("    -Found  ;- " + cmd_path)
+                    #print("    -Found  ;- " + cmd_path)
                     cmd_args = cron_list_pnl.repeat_cron.GetItem(index, 4).GetText()
-                    if  "name=" + start_name in cmd_args.lower():
-                        print("    -Located; " + start_name)
+                    if  "name=" + start_name in cmd_args:
+                        #print("    -Located; " + start_name)
                         line_number_repeting_cron = index
 
         # check to see if this is a new job or not
@@ -12827,7 +12952,7 @@ class add_sensor_from_module_dialog(wx.Dialog):
             cron_info_pnl.add_to_repeat_list(MainApp.cron_info_pannel, 'modified', cron_enabled, timing_string, cron_task, cron_args, cron_comment)
             MainApp.cron_info_pannel.update_cron_click("e")
         else:
-            print("    - Job not currently in cron, adding it...")
+            #print("    - Job not currently in cron, adding it...")
             cron_enabled = "True"
             cron_task = "/home/" + pi_link_pnl.target_user + "/Pigrow/scripts/sensors/log_sensor_module.py"
             cron_args = "name=" + new_name
@@ -12858,8 +12983,8 @@ class add_sensor_from_module_dialog(wx.Dialog):
                         changed = "nothing"
                         #nothing has changed in the config file so no need to update.
         # check to see if changes have been made to the cron timing
-        if self.timing_string == new_timing_string and changed == "nothing":
-            print(" -- Timing string didn't change, nor did any settings -- ")
+        if self.timing_string == new_timing_string and self.s_name == o_name:
+            print(" -- Timing string didn't change, nor did the name so no need to chagne cron-- ")
         else:
             self.edit_cron_job(self.s_name, o_name, new_cron_txt, new_cron_num)
 
@@ -12873,7 +12998,7 @@ class add_sensor_from_module_dialog(wx.Dialog):
             MainApp.config_ctrl_pannel.config_dict["sensor_" + o_name + "_log"] = o_log
             MainApp.config_ctrl_pannel.config_dict["sensor_" + o_name + "_loc"] = o_loc
             MainApp.config_ctrl_pannel.config_dict["sensor_" + o_name + "_extra"] = o_extra
-            MainApp.config_ctrl_pannel.update_setting_file_on_pi_click('e')
+            MainApp.config_ctrl_pannel.update_setting_file_on_pi_click('e', ask="no")
         self.Destroy()
 
     def OnClose(self, e):
