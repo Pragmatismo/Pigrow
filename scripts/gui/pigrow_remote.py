@@ -189,8 +189,26 @@ class scroll_text_dialog(wx.Dialog):
 class show_image_dialog(wx.Dialog):
     def __init__(self, parent,  image_to_show, title):
         wx.Dialog.__init__(self, parent, title=(title))
+        # limit size to screen
+        width, height = wx.GetDisplaySize()
+        im_width, im_height = image_to_show.GetSize()
+        print(" W: ", width, im_width )
+        print(" H: ", height, im_height)
+        if im_height > height:
+            im_height = height
+        if im_width > width:
+            im_width = width
+        # create scroll panel
+        display_panel = scrolled.ScrolledPanel(self, size=(im_width, im_height), style = wx.HSCROLL|wx.VSCROLL)
+        display_panel.SetupScrolling()
+        pic = wx.StaticBitmap(display_panel, -1, image_to_show)
+        # panel sizer
+        panel_sizer = wx.BoxSizer(wx.VERTICAL)
+        panel_sizer.Add(pic) #, wx.ID_ANY, wx.EXPAND)
+        display_panel.SetSizer(panel_sizer)
+        # main sizer 
         sizer = wx.BoxSizer(wx.VERTICAL)
-        sizer.Add(wx.StaticBitmap(self, -1, image_to_show))
+        sizer.Add(display_panel)
         self.SetSizerAndFit(sizer)
 
 
