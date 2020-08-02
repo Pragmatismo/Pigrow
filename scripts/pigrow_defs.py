@@ -50,7 +50,7 @@ def save_settings(pi_set, loc_settings, err_log="./err.log"):
     print("Saving Settings...")
     try:
         with open(loc_settings, "w") as f:
-            for a,b in pi_set.iteritems():
+            for a,b in pi_set.items():
                 try:
                     s_line = str(a) +"="+ str(b) +"\n"
                     f.write(s_line)
@@ -67,10 +67,15 @@ def save_settings(pi_set, loc_settings, err_log="./err.log"):
 
 def change_setting(loc_settings, setting, value):
     settings = load_settings(loc_settings)
+    found = False
     for f_setting, f_value in settings.items():
         if setting == f_setting:
-            f_value = value
-    print(settings)
+            settings[setting] = value
+            found = True
+    if not found == True:
+        settings[setting] = value
+    print("Changed to - " + settings[setting])
+    save_settings(settings, loc_settings)
 
 
 def write_log(script, message, switch_log):
