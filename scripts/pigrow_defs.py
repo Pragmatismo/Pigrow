@@ -54,10 +54,10 @@ def save_settings(pi_set, loc_settings, err_log="./err.log"):
                 try:
                     s_line = str(a) +"="+ str(b) +"\n"
                     f.write(s_line)
-                    print(" - Settings saved to file - ")
                     #print s_line
                 except:
                     print("ERROR SETTINGS FILE ERROR SETTING NOT SAVED _ SERIOUS FAULT!")
+            print(" - Settings saved to file - ")
     except:
         print("Settings not saved!")
         with open(err_log, "a") as ef:
@@ -196,6 +196,4 @@ if __name__ == '__main__':
         thearg = str(argu).split('=')[0]
         if  thearg == 'locs':
             loc_locs = str(argu).split('=')[1]
-        elif  thearg == '-pragmo':
-            loc_locs = "/home/pragmo/pigitgrow/Pigrow/config/dirlocs.txt"
     load_locs(loc_locs)
