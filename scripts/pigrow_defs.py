@@ -46,7 +46,7 @@ def load_settings(loc_settings, err_log="./err.log"):
                 f.write(line)
             print("Log writen:" + line)
 
-def save_settings(pi_set,loc_settings, err_log="./err.log"):
+def save_settings(pi_set, loc_settings, err_log="./err.log"):
     print("Saving Settings...")
     try:
         with open(loc_settings, "w") as f:
@@ -64,6 +64,14 @@ def save_settings(pi_set,loc_settings, err_log="./err.log"):
             line = 'update_reddit.py @' + str(datetime.datetime.now()) + '@ settings file save error\n'
             ef.write(line)
         print("Log writen:" + line)
+
+def change_setting(loc_settings, setting, value):
+    settings = load_settings(loc_settings)
+    for f_setting, f_value in settings.iteritems():
+        if setting == f_setting:
+            f_value = value
+    print(settings)    
+
 
 def write_log(script, message, switch_log):
     line = script + "@" + str(datetime.datetime.now()) + "@" + message + '\n'
