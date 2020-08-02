@@ -67,10 +67,10 @@ def save_settings(pi_set, loc_settings, err_log="./err.log"):
 
 def change_setting(loc_settings, setting, value):
     settings = load_settings(loc_settings)
-    for f_setting, f_value in settings.iteritems():
+    for f_setting, f_value in settings.items():
         if setting == f_setting:
             f_value = value
-    print(settings)    
+    print(settings)
 
 
 def write_log(script, message, switch_log):
