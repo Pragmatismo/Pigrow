@@ -59,8 +59,7 @@ def save_settings(pi_set, loc_settings, err_log="./err.log"):
                     f.write(s_line)
                     #print s_line
                 except:
-                    print("ERROR SETTINGS FILE ERROR SETTING NOT SAVED _ SERIOUS FAULT!")
-            print(" - Settings saved to file - ")
+                    print("ERROR - " + loc_settings + " NOT SAVED - SERIOUS FAULT!")
     except:
         print("Settings not saved!")
         with open(err_log, "a") as ef:
