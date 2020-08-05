@@ -11,7 +11,7 @@ class sensor_config():
         print("connection_address_list=")
         print("default_connection_address=")
         print("available_info=cal_values")
-        print("available_settings=cal_zero")
+        print("available_settings=cal_zero, cal_known")
 
     def run_request(request_name, sensor_location, sensor_name=""):
         request_name = request_name.lower()
@@ -27,6 +27,8 @@ class sensor_config():
             setting_value = setting_string[equals_pos + 1:]
             if setting_name == "cal_zero":
                 sensor_config.cal_zero(location, sensor_name, setting_value)
+            if setting_name == "cal_known":
+                sensor_config.cal_zero(location, sensor_name, setting_value)    
         # settings without value
 
     # Change Settings
@@ -50,6 +52,32 @@ class sensor_config():
         # writing to config file
         text_out = " Zero offset value set to " + str(offset)
         sensor_config.set_extra("zero_offset", offset, sensor_name)
+        print(text_out)
+        return text_out
+
+    def cal_known(location, sensor_name, value):
+        text, extra_settings = sensor_config.read_cal(sensor_name, quiet=True)
+        zero_offset = extra_settings['zero_offset']
+        if zero_offset == "not set" or zero_offset == "":
+            print(" Zero offset must be calibrated first")
+            return("Zero offset must be calibrated first")
+        if sensor_name == "":
+            print(" No sensor name supplied, can not calibrate")
+            return("No sensor name supplied, can not calibrate")
+        # calibrating from sensor or supplied value
+        if not value == "":
+            reading0 = read_sensor(location, raw_only=True)
+            if not reading0 == "none":
+                known_value = float(reading0) - float(zero_offset)
+            else:
+                return "Sensor failed to read"
+        else:
+            print(" No value for known grams supplied")
+            return(" No value for known grams supplied")
+        # writing to config file
+        text_out = " calibration value for " + value + " grams set to " + str(known_value)
+        sensor_config.set_extra("known_g_value", known_value, sensor_name)
+        sensor_config.set_extra("known_grams", value, sensor_name)
         print(text_out)
         return text_out
 
