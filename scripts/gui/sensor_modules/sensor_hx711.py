@@ -102,16 +102,18 @@ class sensor_config():
 
 
 
-def read_sensor(location="", extra="", raw_only=False, *args):
-    text, extra_settings = sensor_config.read_cal("", quiet=True)
-    if extra_settings["zero_offset"] in extra_settings:
-        try:
-            zero_offset = float(extra_settings["zero_offset"])    # raw value when there is no added weight on the sensor
-        except:
-            print(" Cant convert zero_offset to float, defaulting to zero")
-            zero_offset = 0
-    known_grams = 497      # weight of known value measurement in grams
-    known_g_value = 494493 - zero_offset # raw value when the known value weight is applied to the sensor
+def read_sensor(location="", sensor_name="", raw_only=False, *args):
+    # read settings
+    if not raw_only == True and not sensor_name == "":
+        text, extra_settings = sensor_config.read_cal(sensor_name, quiet=True)
+        if extra_settings["zero_offset"] in extra_settings:
+            try:
+                zero_offset = float(extra_settings["zero_offset"])    # raw value when there is no added weight on the sensor
+            except:
+                print(" Cant convert zero_offset to float, defaulting to zero")
+                zero_offset = 0
+        known_grams = 497      # weight of known value measurement in grams
+        known_g_value = 494493 - zero_offset # raw value when the known value weight is applied to the sensor
 
     # find weight from value
     def find_weight(zero_offset, known_grams, value):
@@ -255,7 +257,7 @@ if __name__ == '__main__':
 
     # read sensor
     #if not sensor_location == "":
-    output = read_sensor(location=sensor_location)
+    output = read_sensor(location=sensor_location, name=sensor_name)
     #else:
     #    print(" No sensor address supplied, this requries a sensor address.")
     #    sys.exit()
