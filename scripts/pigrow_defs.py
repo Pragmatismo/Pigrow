@@ -65,6 +65,15 @@ def save_settings(pi_set, loc_settings, err_log="./err.log"):
             ef.write(line)
         print("Log writen:" + line)
 
+def read_setting(loc_settings, setting):
+    settings = load_settings(loc_settings)
+    for f_setting, f_value in settings.items():
+        if setting == f_setting:
+            print(" Found " + f_setting + " = " + f_value + " in " + loc_settings)
+            return f_value
+    print(f_setting + " not found in " + loc_settings)
+    return ""
+
 def change_setting(loc_settings, setting, value):
     settings = load_settings(loc_settings)
     found = False
