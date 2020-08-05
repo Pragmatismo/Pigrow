@@ -62,6 +62,7 @@ class sensor_config():
         zero_offset = " Not set "
         known_grams = " Not set "
         known_g_value = " Not set "
+        print("EXTRA - " + extra)
         if ":" in extra:
             settings = extra.split(":")
         else:
@@ -71,6 +72,7 @@ class sensor_config():
             if "=" in set:
                 key = set.split("=")[0]
                 val = set.split("=")[1]
+                print(key, val)
                 if key == "zero_offset":
                     zero_offset = val
                 if key == "known_grams":
