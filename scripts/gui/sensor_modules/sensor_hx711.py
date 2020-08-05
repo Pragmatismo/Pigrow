@@ -103,7 +103,13 @@ class sensor_config():
 
 
 def read_sensor(location="", extra="", raw_only=False, *args):
-    zero_offset = 62076    # raw value when there is no added weight on the sensor
+    text, extra_settings = sensor_config.read_cal(sensor_name, quiet=True)
+    if extra_settings[zero_offset] in extra_settings:
+        try:
+            zero_offset = float(extra_settings[zero_offset])    # raw value when there is no added weight on the sensor
+        except:
+            print(" Cant convert zero_offset to float, defaulting to zero")
+            zero_offset = 0    
     known_grams = 497      # weight of known value measurement in grams
     known_g_value = 494493 - zero_offset # raw value when the known value weight is applied to the sensor
 
