@@ -78,7 +78,7 @@ class sensor_config():
                 if key == "known_g_value":
                     known_g_value = val
 
-        text_info = "Zero point = " + str(zero_point)
+        text_info = "zero_offset = " + str(zero_offset)
         text_info += "\nKnown value " + str(known_grams) + " grams"
         text_info += "\n            " + str(known_g_value) + " raw sensor value"
         print(text_info)
