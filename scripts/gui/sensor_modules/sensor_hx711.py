@@ -112,8 +112,18 @@ def read_sensor(location="", extra="", sensor_name="", raw_only=False, *args):
             except:
                 print(" Cant convert zero_offset to float, defaulting to zero")
                 zero_offset = 0
-        known_grams = 497      # weight of known value measurement in grams
-        known_g_value = 494493 - zero_offset # raw value when the known value weight is applied to the sensor
+        if "known_grams" in extra_settings:
+            try:
+                known_grams = float(extra_settings["known_grams"])    # weight of known value measurement in grams
+            except:
+                print(" Cant convert known_grams to float, defaulting to zero")
+                known_grams = 0
+        if "known_g_value" in extra_settings:
+            try:
+                known_g_value = float(extra_settings["known_g_value"])    # raw value when the known value weight is applied to the sensor
+            except:
+                print(" Cant convert known_grams to float, defaulting to zero")
+                known_g_value = 0
 
     # find weight from value
     def find_weight(zero_offset, known_grams, value):
@@ -155,14 +165,12 @@ def read_sensor(location="", extra="", sensor_name="", raw_only=False, *args):
         #for m in limited_list:
         #    print(m)
 
-
     # Try importing the modules then give-up and report to user if it fails
     import datetime
     import time
     import RPi.GPIO as GPIO
     try:
         from hx711 import HX711
-
     except:
         print("HX711 module not installed, install using the command;")
         print("   sudo pip3 install HX711 ")
