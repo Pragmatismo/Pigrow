@@ -86,7 +86,7 @@ class sensor_config():
 
     def set_extra(key, value, sensor_name):
         print("Setting extras string being set")
-        text, extra_settings = read_cal(location, sensor_name)
+        text, extra_settings = sensor_config.read_cal(location, sensor_name)
         extra_settings[key]=value
         # make extra string
         extra_string = ""
