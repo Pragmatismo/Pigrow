@@ -60,7 +60,7 @@ class sensor_config():
             print(msg)
             return msg, {}
         zero_point = " Not set "
-        know_grams = " Not set "
+        known_grams = " Not set "
         known_g_value = " Not set "
         if ":" in extra:
             settings = extra.split(":")
