@@ -257,7 +257,7 @@ if __name__ == '__main__':
 
     # read sensor
     #if not sensor_location == "":
-    output = read_sensor(location=sensor_location, name=sensor_name)
+    output = read_sensor(location=sensor_location, sensor_name=sensor_name)
     #else:
     #    print(" No sensor address supplied, this requries a sensor address.")
     #    sys.exit()
