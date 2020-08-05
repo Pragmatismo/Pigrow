@@ -11,7 +11,7 @@ class sensor_config():
         print("connection_address_list=")
         print("default_connection_address=")
         print("available_info=cal_values")
-        print("available_settings=")
+        print("available_settings=cal_zero,")
 
     def run_request(request_name, sensor_location, sensor_name=""):
         request_name = request_name.lower()
@@ -65,18 +65,24 @@ class sensor_config():
         text_info += "\nKnown value " + str(known_grams) + " grams"
         text_info += "\n            " + str(known_g_value) + " raw sensor value"
         print(text_info)
-        return text_info
+        return text_info, {["zero_point"]zero_point, ["known_grams"]know_grams, ["known_g_value"]known_g_value}
 
     # Read and Write extra string to config
 
 
-    def set_extra(key, value):
+    def set_extra(key, value, sensor_name):
         print("Setting extras string being set")
+        text, extra_settings = read_cal(location, sensor_name)
+        extra_settings[key]=value
+        # make extra string
+        extra_string = ""
+        for setting, set_value in extra_settings.items():
+            extra_string += setting + "=" + set_value + ":"
+        extra_string = extra_string[:-1]
+        # write to config file
+        loc_settings = homedir + "/Pigrow/config/pigrow_config.txt"
+        pigrow_defs.change_setting(loc_settings, "sensor_" + sensor_name + "_extra", extra_string)
 
-        #setting_string =  "zero=" + zero_offset
-        #setting_string += ":known_grams=" + known_grams
-        #setting_string += ":known_g_value" + known_g_value
-        # need to know sensor name so can edit the config file
 
 
 
