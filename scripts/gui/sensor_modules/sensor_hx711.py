@@ -64,16 +64,19 @@ class sensor_config():
         known_g_value = " Not set "
         if ":" in extra:
             settings = extra.split(":")
-            for set in settings:
-                if "=" in set:
-                    key = set.split("=")[0]
-                    val = set.split("=")[1]
-                    if key == "zero_point":
-                        zero_point = val
-                    if key == "known_grams":
-                        known_grams = val
-                    if key == "known_g_value":
-                        known_g_value = val
+        else:
+            settings = [extra]
+        #
+        for set in settings:
+            if "=" in set:
+                key = set.split("=")[0]
+                val = set.split("=")[1]
+                if key == "zero_point":
+                    zero_point = val
+                if key == "known_grams":
+                    known_grams = val
+                if key == "known_g_value":
+                    known_g_value = val
 
         text_info = "Zero point = " + str(zero_point)
         text_info += "\nKnown value " + str(known_grams) + " grams"
