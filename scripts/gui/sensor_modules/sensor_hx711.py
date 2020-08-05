@@ -54,13 +54,16 @@ class sensor_config():
         return text_out
 
     # Information Requests - these do not change any settings.
-    def read_cal(sensor_name, quiet=False):
-        loc_settings = homedir + "/Pigrow/config/pigrow_config.txt"
-        extra = pigrow_defs.read_setting(loc_settings, "sensor_" + sensor_name + "_extra")
-        if extra == "":
-            msg = " - No extra string set for sensor " + sensor_name
-            print(msg)
-            return msg, {}
+    def read_cal(sensor_name, quiet=False, extra_string="none"):
+        if not extra_string == "none":
+            extra = extra_string
+        else:
+            loc_settings = homedir + "/Pigrow/config/pigrow_config.txt"
+            extra = pigrow_defs.read_setting(loc_settings, "sensor_" + sensor_name + "_extra")
+            if extra == "":
+                msg = " - No extra string set for sensor " + sensor_name
+                print(msg)
+                return msg, {}
         zero_offset =   "Not set"
         known_grams =   "Not set"
         known_g_value = "Not set"
@@ -103,13 +106,13 @@ class sensor_config():
 
 
 def read_sensor(location="", extra="", raw_only=False, *args):
-    text, extra_settings = sensor_config.read_cal(sensor_name, quiet=True)
-    if extra_settings[zero_offset] in extra_settings:
+    text, extra_settings = sensor_config.read_cal("", quiet=True, extra_string=extra)
+    if extra_settings["zero_offset"] in extra_settings:
         try:
-            zero_offset = float(extra_settings[zero_offset])    # raw value when there is no added weight on the sensor
+            zero_offset = float(extra_settings["zero_offset"])    # raw value when there is no added weight on the sensor
         except:
             print(" Cant convert zero_offset to float, defaulting to zero")
-            zero_offset = 0    
+            zero_offset = 0
     known_grams = 497      # weight of known value measurement in grams
     known_g_value = 494493 - zero_offset # raw value when the known value weight is applied to the sensor
 
