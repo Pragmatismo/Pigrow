@@ -2910,16 +2910,20 @@ class config_ctrl_pnl(wx.Panel):
         if len(pigrow_settings) > 1:
             for item in pigrow_settings:
                 try:
-                    item = item.split("=")
-                    line_split = item[0].split("_")
-                    if line_split[0] == 'gpio' and not item[1] == "":
+                    equals_pos = item.find("=")
+                    setting_value  = item[equals_pos + 1:]
+                    setting_name = item[:equals_pos]
+                    print(setting_name, setting_value)
+
+                    line_split = setting_name.split("_")
+                    if line_split[0] == 'gpio' and not setting_value == "":
                         if len(line_split) == 2:
-                            self.gpio_dict[line_split[1]] = item[1]
+                            self.gpio_dict[line_split[1]] = setting_value
                         elif len(line_split) == 3:
-                            self.gpio_on_dict[str(line_split[1])] = item[1]
+                            self.gpio_on_dict[str(line_split[1])] = setting_value
                     else:
-                        if not item[1] == "":
-                            self.config_dict[item[0]] = item[1]
+                        if not setting_value == "":
+                            self.config_dict[setting_name] = setting_value
                 except:
                     print(("!!error reading value from config file; " + str(item)))
         # we've now created self.config_dict with a list of all the items in the config file
@@ -13007,6 +13011,9 @@ class add_sensor_from_module_dialog(wx.Dialog):
             print("------- config settings not changed -------")
         else:
             log_freq = str(new_cron_num) + " " + new_cron_txt
+            extra_string = "cat /home/" + pi_link_pnl.target_user + "/Pigrow/config/pigrow_config.txt |grep sensor_" + self.s_name + "_extra"
+            out, error = MainApp.localfiles_ctrl_pannel.run_on_pi(extra_string)
+            o_extra = out.strip().strip("sensor_" + self.s_name + "_extra=")
             MainApp.sensors_info_pannel.sensor_list.add_to_sensor_list(o_name,self.s_type,o_log,o_loc,o_extra,log_freq)
             MainApp.config_ctrl_pannel.config_dict["sensor_" + o_name + "_type"] = self.s_type
             MainApp.config_ctrl_pannel.config_dict["sensor_" + o_name + "_log"] = o_log
