@@ -26,7 +26,9 @@ class sensor_config():
         #    setting_name = setting_string[:equals_pos]
         #    setting_value = setting_string[equals_pos + 1:]
         # settings without value
+        print("running " + setting_string)
         if setting_string == "cal_zero":
+            print(" starting cal_zero with " + location + " " + sensor_name)
             sensor_config.cal_zero(location, sensor_name)
 
     # Change Settings
@@ -232,6 +234,7 @@ if __name__ == '__main__':
         sensor_config.run_request(request, sensor_location, sensor_name)
         sys.exit()
     if not setting_string == "":
+        print(" running setting " + setting_string)
         sensor_config.run_setting(setting_string, sensor_location, sensor_name)
         sys.exit()
 
