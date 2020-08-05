@@ -34,11 +34,12 @@ def load_settings(loc_settings, err_log="./err.log"):
     pi_set = {}
     try:
         with open(loc_settings, "r") as f:
-            for line in f:
-                equals_pos = line.find("=")
-                s_item_k = line[equals_pos:]
-                s_item_v = line[:equals_pos+1]
-                pi_set[s_item_k]=s_item_v.rstrip() #adds each setting to dictionary
+            file = f.read()
+        for line in file.splitlines():
+            equals_pos = line.find("=")
+            s_item_k = line[equals_pos:]
+            s_item_v = line[:equals_pos+1]
+            pi_set[s_item_k]=s_item_v.rstrip() #adds each setting to dictionary
         return pi_set
     except:
         print("Settings not loaded, try running pi_setup")
