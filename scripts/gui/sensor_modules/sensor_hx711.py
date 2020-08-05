@@ -79,7 +79,7 @@ class sensor_config():
         text_info += "\nKnown value " + str(known_grams) + " grams"
         text_info += "\n            " + str(known_g_value) + " raw sensor value"
         print(text_info)
-        return text_info, {"zero_point":zero_point, "known_grams":know_grams, "known_g_value":known_g_value}
+        return text_info, {"zero_point":zero_point, "known_grams":known_grams, "known_g_value":known_g_value}
 
     # Read and Write extra string to config
 
