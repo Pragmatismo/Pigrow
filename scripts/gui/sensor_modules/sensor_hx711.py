@@ -21,24 +21,33 @@ class sensor_config():
             print(" Request not recognised")
 
     def run_setting(setting_string, location, sensor_name=""):
-        #if "=" in setting_string:
-        #    equals_pos = setting_string.find("=")
-        #    setting_name = setting_string[:equals_pos]
-        #    setting_value = setting_string[equals_pos + 1:]
+        if "=" in setting_string:
+            equals_pos = setting_string.find("=")
+            setting_name = setting_string[:equals_pos]
+            setting_value = setting_string[equals_pos + 1:]
+            if setting_name == "cal_zero":
+                print(" starting cal_zero with " + location + " " + sensor_name)
+                sensor_config.cal_zero(location, sensor_name, setting_value)
         # settings without value
-        print("running " + setting_string)
-        if setting_string == "cal_zero":
-            print(" starting cal_zero with " + location + " " + sensor_name)
-            sensor_config.cal_zero(location, sensor_name)
 
     # Change Settings
-    def cal_zero(location, sensor_name):
+    def cal_zero(location, sensor_name, value):
         if sensor_name == "":
             print(" No sensor name supplied, can not calibrate")
             return("No sensor name supplied, can not calibrate")
-        reading0 = read_sensor(location, raw_only=True)
-        text_out = " Zero offset value set to " + weight
-        sensor_config.set_extra("zero_offset", weight, sensor_name)
+        # calibrating from sensor or supplied value     
+        if value == "":
+            reading0 = read_sensor(location, raw_only=True)
+            offset = float(reading0)
+        else:
+            try:
+                offset = float(value)
+            except:
+                print(" Unable to understand supplied offset value")
+                return(" Unable to understand supplied offset value")
+        # writing to config file
+        text_out = " Zero offset value set to " + offset
+        sensor_config.set_extra("zero_offset", offset, sensor_name)
         print(text_out)
         return text_out
 
@@ -234,7 +243,6 @@ if __name__ == '__main__':
         sensor_config.run_request(request, sensor_location, sensor_name)
         sys.exit()
     if not setting_string == "":
-        print(" running setting " + setting_string)
         sensor_config.run_setting(setting_string, sensor_location, sensor_name)
         sys.exit()
 
