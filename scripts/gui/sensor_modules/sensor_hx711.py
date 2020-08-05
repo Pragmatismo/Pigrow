@@ -102,7 +102,7 @@ class sensor_config():
 
 
 
-def read_sensor(location="", sensor_extra="", sensor_name="", raw_only=False, *args):
+def read_sensor(location="", extra="", sensor_name="", raw_only=False, *args):
     # read settings
     if not raw_only == True and not sensor_name == "":
         text, extra_settings = sensor_config.read_cal(sensor_name, quiet=True)
