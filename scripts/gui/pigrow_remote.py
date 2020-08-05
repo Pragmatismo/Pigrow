@@ -206,7 +206,7 @@ class show_image_dialog(wx.Dialog):
         panel_sizer = wx.BoxSizer(wx.VERTICAL)
         panel_sizer.Add(pic) #, wx.ID_ANY, wx.EXPAND)
         display_panel.SetSizer(panel_sizer)
-        # main sizer 
+        # main sizer
         sizer = wx.BoxSizer(wx.VERTICAL)
         sizer.Add(display_panel)
         self.SetSizerAndFit(sizer)
@@ -12845,6 +12845,7 @@ class add_sensor_from_module_dialog(wx.Dialog):
             print("     " + guide_path + " not found")
 
     def change_setting_click(self, e):
+        sensor_name = self.name_tc.GetValue()
         setting_to_change = self.change_setting_cb.GetValue()
         sensor_location = self.loc_cb.GetValue()
         setting_value = self.change_setting_tc.GetValue()
@@ -12856,19 +12857,20 @@ class add_sensor_from_module_dialog(wx.Dialog):
             answer = dbox.ShowModal()
             dbox.Destroy()
             if (answer == wx.ID_OK):
-                out, error = MainApp.localfiles_ctrl_pannel.run_on_pi(sensor_module_path + " location=" + sensor_location + " set=" + setting_to_change + "=" + setting_value)
+                out, error = MainApp.localfiles_ctrl_pannel.run_on_pi(sensor_module_path + " location=" + sensor_location + " set=" + setting_to_change + "=" + setting_value + " name=" + sensor_name)
                 out = out.strip()
                 self.change_setting_out_l.SetLabel(setting_to_change + ": " + out + error)
                 print(setting_to_change + ": " + out + error)
                 self.Layout()
 
     def request_info_click(self, e):
+        sensor_name = self.name_tc.GetValue()
         item_to_request = self.request_info_cb.GetValue()
         sensor_location = self.loc_cb.GetValue()
         if not item_to_request == "":
             module_name = self.s_type
             sensor_module_path = "/home/" + pi_link_pnl.target_user + "/Pigrow/scripts/gui/sensor_modules/sensor_" + module_name + ".py"
-            out, error = MainApp.localfiles_ctrl_pannel.run_on_pi(sensor_module_path + " location=" + sensor_location + " request=" + item_to_request)
+            out, error = MainApp.localfiles_ctrl_pannel.run_on_pi(sensor_module_path + " location=" + sensor_location + " request=" + item_to_request + " name=" + sensor_name)
             out = out.strip()
             self.request_output_l.SetLabel(item_to_request + ": " + out + error)
             print(item_to_request + ": " + out + error)

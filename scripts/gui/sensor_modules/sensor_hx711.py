@@ -11,7 +11,7 @@ class sensor_config():
         print("connection_address_list=")
         print("default_connection_address=")
         print("available_info=cal_values")
-        print("available_settings=cal_zero,")
+        print("available_settings=cal_zero")
 
     def run_request(request_name, sensor_location, sensor_name=""):
         request_name = request_name.lower()
@@ -26,7 +26,6 @@ class sensor_config():
             setting_name = setting_string[:equals_pos]
             setting_value = setting_string[equals_pos + 1:]
             if setting_name == "cal_zero":
-                print(" starting cal_zero with " + location + " " + sensor_name)
                 sensor_config.cal_zero(location, sensor_name, setting_value)
         # settings without value
 
@@ -90,7 +89,6 @@ class sensor_config():
 
     # Read and Write extra string to config
     def set_extra(key, value, sensor_name):
-        print("Setting extras string being set")
         text, extra_settings = sensor_config.read_cal(sensor_name, quiet=True)
         extra_settings[key]=value
         # make extra string
