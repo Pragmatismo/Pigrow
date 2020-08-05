@@ -38,7 +38,10 @@ class sensor_config():
         # calibrating from sensor or supplied value
         if value == "":
             reading0 = read_sensor(location, raw_only=True)
-            offset = float(reading0)
+            if not reading0 == "none":
+                offset = float(reading0)
+            else:
+                return "Sensor failed to read"
         else:
             try:
                 offset = float(value)
@@ -52,16 +55,16 @@ class sensor_config():
         return text_out
 
     # Information Requests - these do not change any settings.
-    def read_cal(sensor_name):
+    def read_cal(sensor_name, quiet=False):
         loc_settings = homedir + "/Pigrow/config/pigrow_config.txt"
         extra = pigrow_defs.read_setting(loc_settings, "sensor_" + sensor_name + "_extra")
         if extra == "":
             msg = " - No extra string set for sensor " + sensor_name
             print(msg)
             return msg, {}
-        zero_offset = " Not set "
-        known_grams = " Not set "
-        known_g_value = " Not set "
+        zero_offset =   "Not set"
+        known_grams =   "Not set"
+        known_g_value = "Not set"
         if ":" in extra:
             settings = extra.split(":")
         else:
@@ -81,15 +84,14 @@ class sensor_config():
         text_info = "zero_offset = " + str(zero_offset)
         text_info += "\nKnown value " + str(known_grams) + " grams"
         text_info += "\n            " + str(known_g_value) + " raw sensor value"
-        print(text_info)
+        if not quiet == True:
+            print(text_info)
         return text_info, {"zero_offset":zero_offset, "known_grams":known_grams, "known_g_value":known_g_value}
 
     # Read and Write extra string to config
-
-
     def set_extra(key, value, sensor_name):
         print("Setting extras string being set")
-        text, extra_settings = sensor_config.read_cal(sensor_name)
+        text, extra_settings = sensor_config.read_cal(sensor_name, quiet=True)
         extra_settings[key]=value
         # make extra string
         extra_string = ""
@@ -99,9 +101,6 @@ class sensor_config():
         # write to config file
         loc_settings = homedir + "/Pigrow/config/pigrow_config.txt"
         pigrow_defs.change_setting(loc_settings, "sensor_" + sensor_name + "_extra", extra_string)
-
-
-
 
 
 
