@@ -11,7 +11,7 @@ class sensor_config():
         print("connection_address_list=")
         print("default_connection_address=")
         print("available_info=cal_values")
-        print("available_settings=cal_zero, cal_known")
+        print("available_settings=cal_zero,cal_known")
 
     def run_request(request_name, sensor_location, sensor_name=""):
         request_name = request_name.lower()
@@ -56,7 +56,6 @@ class sensor_config():
         return text_out
 
     def cal_known(location, sensor_name, value):
-        print("calibrating known value")
         text, extra_settings = sensor_config.read_cal(sensor_name, quiet=True)
         zero_offset = extra_settings['zero_offset']
         if zero_offset == "not set" or zero_offset == "":
