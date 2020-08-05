@@ -12935,15 +12935,12 @@ class add_sensor_from_module_dialog(wx.Dialog):
 
     def read_sensor_click(self, e):
         module_name = self.s_type
+        sensor_name = self.name_tc.GetValue()
         print(" - attenmpting to read sensor using module -" + module_name)
-        module_path = "/home/" + pi_link_pnl.target_user + "/Pigrow/scripts/gui/sensor_modules/sensor_" + module_name + ".py location=" + self.loc_cb.GetValue()
+        module_path = "/home/" + pi_link_pnl.target_user + "/Pigrow/scripts/gui/sensor_modules/sensor_" + module_name + ".py location=" + self.loc_cb.GetValue() + " name=" + sensor_name
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi(module_path)
         self.read_output_l.SetLabel(out)
         print(out, error)
-
-    def make_extra_settings_string(self):
-        print(" -Extra settings string not yet implemented, coming sooon")
-        return ""
 
     def edit_cron_job(self, start_name, new_name, new_cron_txt, new_cron_num):
     # check to find cron job handling this sensor
@@ -12989,7 +12986,6 @@ class add_sensor_from_module_dialog(wx.Dialog):
         new_cron_num = self.rep_num_tc.GetValue()
         new_cron_txt = self.rep_opts_cb.GetValue()
         new_timing_string = str(new_cron_num) + " " + new_cron_txt
-        o_extra = self.make_extra_settings_string()
         # check to see if changes have been made
         changed = "probably something"
         if self.s_name == o_name:
@@ -12998,8 +12994,6 @@ class add_sensor_from_module_dialog(wx.Dialog):
                 #print("log path not changed")
                 if self.s_loc == o_loc:
                     #print("wiring location not changed")
-                    if self.s_extra == o_extra:
-                        #print("extra field not changed")
                         changed = "nothing"
                         #nothing has changed in the config file so no need to update.
         # check to see if changes have been made to the cron timing
@@ -13017,7 +13011,7 @@ class add_sensor_from_module_dialog(wx.Dialog):
             MainApp.config_ctrl_pannel.config_dict["sensor_" + o_name + "_type"] = self.s_type
             MainApp.config_ctrl_pannel.config_dict["sensor_" + o_name + "_log"] = o_log
             MainApp.config_ctrl_pannel.config_dict["sensor_" + o_name + "_loc"] = o_loc
-            MainApp.config_ctrl_pannel.config_dict["sensor_" + o_name + "_extra"] = o_extra
+            #MainApp.config_ctrl_pannel.config_dict["sensor_" + o_name + "_extra"] = o_extra
             MainApp.config_ctrl_pannel.update_setting_file_on_pi_click('e', ask="no")
         self.Destroy()
 
