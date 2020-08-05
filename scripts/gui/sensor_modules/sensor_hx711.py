@@ -28,7 +28,7 @@ class sensor_config():
             if setting_name == "cal_zero":
                 sensor_config.cal_zero(location, sensor_name, setting_value)
             if setting_name == "cal_known":
-                sensor_config.cal_zero(location, sensor_name, setting_value)
+                sensor_config.cal_known(location, sensor_name, setting_value)
         # settings without value
 
     # Change Settings
