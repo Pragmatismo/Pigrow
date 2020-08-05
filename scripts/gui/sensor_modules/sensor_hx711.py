@@ -59,7 +59,7 @@ class sensor_config():
             msg = " - No extra string set for sensor " + sensor_name
             print(msg)
             return msg, {}
-        zero_point = " Not set "
+        zero_offset = " Not set "
         known_grams = " Not set "
         known_g_value = " Not set "
         if ":" in extra:
@@ -71,8 +71,8 @@ class sensor_config():
             if "=" in set:
                 key = set.split("=")[0]
                 val = set.split("=")[1]
-                if key == "zero_point":
-                    zero_point = val
+                if key == "zero_offset":
+                    zero_offset = val
                 if key == "known_grams":
                     known_grams = val
                 if key == "known_g_value":
@@ -82,7 +82,7 @@ class sensor_config():
         text_info += "\nKnown value " + str(known_grams) + " grams"
         text_info += "\n            " + str(known_g_value) + " raw sensor value"
         print(text_info)
-        return text_info, {"zero_point":zero_point, "known_grams":known_grams, "known_g_value":known_g_value}
+        return text_info, {"zero_offset":zero_offset, "known_grams":known_grams, "known_g_value":known_g_value}
 
     # Read and Write extra string to config
 
