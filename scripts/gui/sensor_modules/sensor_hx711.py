@@ -28,7 +28,7 @@ class sensor_config():
             if setting_name == "cal_zero":
                 sensor_config.cal_zero(location, sensor_name, setting_value)
             if setting_name == "cal_known":
-                sensor_config.cal_zero(location, sensor_name, setting_value)    
+                sensor_config.cal_zero(location, sensor_name, setting_value)
         # settings without value
 
     # Change Settings
@@ -56,6 +56,7 @@ class sensor_config():
         return text_out
 
     def cal_known(location, sensor_name, value):
+        print("calibrating known value")
         text, extra_settings = sensor_config.read_cal(sensor_name, quiet=True)
         zero_offset = extra_settings['zero_offset']
         if zero_offset == "not set" or zero_offset == "":
