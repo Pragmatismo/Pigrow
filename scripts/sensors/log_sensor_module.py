@@ -8,9 +8,9 @@ for argu in sys.argv[1:]:
     if "=" in argu:
         thearg = str(argu).split('=')[0]
         thevalue = str(argu).split('=')[1]
-        if thearg == 'log' or thearg == 'name':
+        if thearg == 'name':
             sensor_name = thevalue
-    elif 'help' in argu or argu == '-h':
+    elif argu == "--help" or argu == '-h':
         print(" Script for logging modular sensors")
         print(" ")
         print(" This requres the sensor to be configured in the remote gui.")
@@ -31,7 +31,6 @@ homedir = os.getenv("HOME")
 sys.path.append(homedir + '/Pigrow/scripts/')
 try:
     import pigrow_defs
-    script = 'selflog_graph.py'
 except:
     print("pigrow_defs.py not found, unable to continue.")
     print("make sure pigrow software is installed correctly")
@@ -85,7 +84,7 @@ except:
     sys.exit()
 
 # Read Sensor
-sensor_values = sensor_module.read_sensor(location=sensor_loc, extra=sensor_extra)
+sensor_values = sensor_module.read_sensor(location=sensor_loc, extra=sensor_extra, sensor_name=sensor_name)
 
 # Create log line containing each returned value
 line = ""
