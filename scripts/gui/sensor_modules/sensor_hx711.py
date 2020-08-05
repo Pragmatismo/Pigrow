@@ -31,6 +31,9 @@ class sensor_config():
 
     # Change Settings
     def cal_zero(location, sensor_name):
+        if sensor_name == "":
+            print(" No sensor name supplied, can not calibrate")
+            return("No sensor name supplied, can not calibrate")
         reading0 = read_sensor(location, raw_only=True)
         text_out = " Zero offset value set to " + weight
         sensor_config.set_extra("zero_offset", weight, sensor_name)
@@ -229,7 +232,7 @@ if __name__ == '__main__':
         sensor_config.run_request(request, sensor_location, sensor_name)
         sys.exit()
     if not setting_string == "":
-        sensor_config.run_setting(setting_string, sensor_location)
+        sensor_config.run_setting(setting_string, sensor_location, sensor_name)
         sys.exit()
 
 
