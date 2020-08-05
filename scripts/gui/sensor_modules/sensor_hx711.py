@@ -16,7 +16,7 @@ class sensor_config():
     def run_request(request_name, sensor_location, sensor_name=""):
         request_name = request_name.lower()
         if request_name == "cal_values":
-            sensor_config.read_cal(sensor_location, sensor_name)
+            sensor_config.read_cal(sensor_name)
         else:
             print(" Request not recognised")
 
