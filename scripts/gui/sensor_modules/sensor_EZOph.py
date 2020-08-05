@@ -206,7 +206,7 @@ class sensor_config():
         return text_cal_q
 
 
-def read_sensor(location="", extra="", *args):
+def read_sensor(location="", extra="", sensor_name="", *args):
     # Try importing the modules then give-up and report to user if it fails
     import datetime
     import time

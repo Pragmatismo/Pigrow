@@ -10,7 +10,7 @@ class sensor_config():
 
 
 
-def read_sensor(location="", extra="", *args):
+def read_sensor(location="", extra="", sensor_name="", *args):
     # Try importing the modules then give-up and report to user if it fails
     import datetime
     try:

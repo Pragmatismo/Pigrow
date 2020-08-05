@@ -9,7 +9,7 @@ class sensor_config():
         print("default_connection_address=0x5a")
 
 
-def read_sensor(location="", extra="", *args):
+def read_sensor(location="", extra="", sensor_name="", *args):
     # Try importing the modules then give-up and report to user if it fails
     import datetime
     import time
@@ -41,7 +41,7 @@ def read_sensor(location="", extra="", *args):
             test_val = 0
             y = 0
             for x in range(0, 50):
-                time.sleep(0.1)
+                time.sleep(0.25)
                 co2 = ccs811.eco2
                 if not co2 == 0:
                     y = y + 1
@@ -56,7 +56,7 @@ def read_sensor(location="", extra="", *args):
                 if not co2 == 0:
                     y = y + 1
                     test2_val = test2_val + co2
-                time.sleep(0.1)
+                time.sleep(0.25)
             test2_val = test2_val / y
             #print("test2 value ", test2_val)
             test_data.append(["co2_test_2", test2_val])
@@ -69,7 +69,7 @@ def read_sensor(location="", extra="", *args):
                 if not co2 == 0:
                     y = y + 1
                     test2_val = test2_val + co2
-                time.sleep(0.1)
+                time.sleep(0.25)
             test2_val = test2_val / y
             #print("after delay value ", test2_val)
             test_data.append(["co2_after_delay", test2_val])
