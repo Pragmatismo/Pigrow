@@ -37,8 +37,8 @@ def load_settings(loc_settings, err_log="./err.log"):
             file = f.read()
         for line in file.splitlines():
             equals_pos = line.find("=")
-            s_item_v = line[equals_pos:]
-            s_item_k = line[:equals_pos+1]
+            s_item_v = line[equals_pos+1:]
+            s_item_k = line[:equals_pos]
             pi_set[s_item_k]=s_item_v.rstrip() #adds each setting to dictionary
         return pi_set
     except:
