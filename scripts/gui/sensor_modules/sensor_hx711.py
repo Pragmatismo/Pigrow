@@ -126,7 +126,7 @@ def read_sensor(location="", extra="", sensor_name="", raw_only=False, *args):
                 known_g_value = 0
 
     # find weight from value
-    def find_weight(zero_offset, known_grams, value):
+    def find_weight(zero_offset, known_grams, known_g_value, value):
         zeroed = value - zero_offset
         raw_per_gram = known_g_value / known_grams
         weight = zeroed / raw_per_gram
@@ -200,7 +200,10 @@ def read_sensor(location="", extra="", sensor_name="", raw_only=False, *args):
                 if raw_only == True:
                     return valid_result
                 logtime = datetime.datetime.now()
-                weight = find_weight(zero_offset, known_grams, valid_result)
+                if not known_grams == 0 or known_g_value == 0:
+                    weight = find_weight(zero_offset, known_grams, known_g_value, valid_result)
+                else:
+                    weight = "uncalibrated"    
                 GPIO.cleanup()
                 data = [['time',logtime], ['weight', weight], ['average',valid_result]]
                 for pos in range(0, len(measures)):
