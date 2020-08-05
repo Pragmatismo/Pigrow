@@ -35,8 +35,10 @@ def load_settings(loc_settings, err_log="./err.log"):
     try:
         with open(loc_settings, "r") as f:
             for line in f:
-                s_item = line.split("=")
-                pi_set[s_item[0]]=s_item[1].rstrip() #adds each setting to dictionary
+                equals_pos = line.find("=")
+                s_item_k = line[equals_pos:]
+                s_item_v = line[:equals_pos+1]
+                pi_set[s_item_k]=s_item_v.rstrip() #adds each setting to dictionary
         return pi_set
     except:
         print("Settings not loaded, try running pi_setup")
@@ -77,12 +79,15 @@ def read_setting(loc_settings, setting):
 def change_setting(loc_settings, setting, value):
     settings = load_settings(loc_settings)
     found = False
-    for f_setting, f_value in settings.items():
-        if setting == f_setting:
-            settings[setting] = value
-            found = True
-    if not found == True:
-        settings[setting] = value
+    #
+    #for f_setting, f_value in settings.items():
+    #    if setting == f_setting:
+    #        settings[setting] = value
+    #        found = True
+    #if not found == True:
+    #    settings[setting] = value
+    #
+    settings[setting] = value
     print("Changed to - " + settings[setting])
     save_settings(settings, loc_settings)
 
