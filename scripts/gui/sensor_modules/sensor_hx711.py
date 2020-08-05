@@ -35,7 +35,7 @@ class sensor_config():
         if sensor_name == "":
             print(" No sensor name supplied, can not calibrate")
             return("No sensor name supplied, can not calibrate")
-        # calibrating from sensor or supplied value     
+        # calibrating from sensor or supplied value
         if value == "":
             reading0 = read_sensor(location, raw_only=True)
             offset = float(reading0)
@@ -46,7 +46,7 @@ class sensor_config():
                 print(" Unable to understand supplied offset value")
                 return(" Unable to understand supplied offset value")
         # writing to config file
-        text_out = " Zero offset value set to " + offset
+        text_out = " Zero offset value set to " + str(offset)
         sensor_config.set_extra("zero_offset", offset, sensor_name)
         print(text_out)
         return text_out
@@ -91,7 +91,7 @@ class sensor_config():
         # make extra string
         extra_string = ""
         for setting, set_value in extra_settings.items():
-            extra_string += setting + "=" + set_value + ":"
+            extra_string += setting + "=" + str(set_value) + ":"
         extra_string = extra_string[:-1]
         # write to config file
         loc_settings = homedir + "/Pigrow/config/pigrow_config.txt"
