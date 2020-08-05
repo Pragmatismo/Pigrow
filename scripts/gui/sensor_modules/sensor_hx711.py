@@ -1,5 +1,8 @@
 #!/usr/bin/python3
-import sys
+import sys, os
+homedir = os.getenv("HOME")
+sys.path.append(homedir + '/Pigrow/scripts/')
+import pigrow_defs
 
 class sensor_config():
     # find connected sensors
@@ -7,12 +10,82 @@ class sensor_config():
         print("connection_type=dt_pin:sck_pin")
         print("connection_address_list=")
         print("default_connection_address=")
+        print("available_info=cal_values")
+        print("available_settings=")
+
+    def run_request(request_name, sensor_location, sensor_name=""):
+        request_name = request_name.lower()
+        if request_name == "cal_values":
+            sensor_config.read_cal(sensor_location, sensor_name)
+        else:
+            print(" Request not recognised")
+
+    def run_setting(setting_string, location, sensor_name=""):
+        #if "=" in setting_string:
+        #    equals_pos = setting_string.find("=")
+        #    setting_name = setting_string[:equals_pos]
+        #    setting_value = setting_string[equals_pos + 1:]
+        # settings without value
+        if setting_string == "cal_zero":
+            sensor_config.cal_zero(location, sensor_name)
+
+    # Change Settings
+    def cal_zero(location, sensor_name):
+        reading0 = read_sensor(location, raw_only=True)
+        text_out = " Zero offset value set to " + weight
+        sensor_config.set_extra("zero_offset", weight, sensor_name)
+        print(text_out)
+        return text_out
+
+    # Information Requests - these do not change any settings.
+    def read_cal(location, sensor_name):
+        loc_settings = homedir + "/Pigrow/config/pigrow_config.txt"
+        extra = pigrow_defs.read_setting(loc_settings, "sensor_" + sensor_name + "_extra")
+        if extra == "":
+            msg = " - No extra string set for sensor " + sensor_name
+            print(msg)
+            return msg
+        zero_point = " Not set "
+        know_grams = " Not set "
+        known_g_value = " Not set "
+        if ":" in extra:
+            settings = extra.split(":")
+            for set in settings:
+                if "=" in set:
+                    key = set.split("=")[0]
+                    val = set.split("=")[1]
+                    if key == "zero_point":
+                        zero_point = val
+                    if key == "known_grams":
+                        known_grams = val
+                    if key == "known_g_value":
+                        known_g_value = val
+
+        text_info = "Zero point = " + str(zero_point)
+        text_info += "\nKnown value " + str(known_grams) + " grams"
+        text_info += "\n            " + str(known_g_value) + " raw sensor value"
+        print(text_info)
+        return text_info
+
+    # Read and Write extra string to config
 
 
-def read_sensor(location="", extra="", *args):
+    def set_extra(key, value):
+        print("Setting extras string being set")
+
+        #setting_string =  "zero=" + zero_offset
+        #setting_string += ":known_grams=" + known_grams
+        #setting_string += ":known_g_value" + known_g_value
+        # need to know sensor name so can edit the config file
+
+
+
+
+
+def read_sensor(location="", extra="", raw_only=False, *args):
     zero_offset = 62076    # raw value when there is no added weight on the sensor
     known_grams = 497      # weight of known value measurement in grams
-    known_g_value = 494493 - zero_offset # raw value when the known value weight is applied to the sensor 
+    known_g_value = 494493 - zero_offset # raw value when the known value weight is applied to the sensor
 
     # find weight from value
     def find_weight(zero_offset, known_grams, value):
@@ -88,6 +161,8 @@ def read_sensor(location="", extra="", *args):
                 time.sleep(2)
                 read_attempt = read_attempt + 1
             else:
+                if raw_only == True:
+                    return valid_result
                 logtime = datetime.datetime.now()
                 weight = find_weight(zero_offset, known_grams, valid_result)
                 GPIO.cleanup()
@@ -112,12 +187,22 @@ if __name__ == '__main__':
       '''
      # check for command line arguments
     sensor_location = ""
+    sensor_name = ""
+    request = ""
+    setting_string = ""
     for argu in sys.argv[1:]:
         if "=" in argu:
-            thearg = str(argu).split('=')[0]
-            thevalue = str(argu).split('=')[1]
+            equals_pos = argu.find("=")
+            thearg = argu[:equals_pos]
+            thevalue = argu[equals_pos + 1:]
             if thearg == 'location':
                 sensor_location = thevalue
+            if thearg == 'request':
+                request = thevalue
+            if thearg == 'set':
+                setting_string = thevalue
+            if thearg == "name":
+                sensor_name = thevalue
         elif 'help' in argu or argu == '-h':
             print(" Modular control for HX711 weight sensor interface")
             print(" ")
@@ -133,6 +218,15 @@ if __name__ == '__main__':
         elif argu == "-config":
             sensor_config.find_settings()
             sys.exit()
+
+    if not request == "":
+        sensor_config.run_request(request, sensor_location, sensor_name)
+        sys.exit()
+    if not setting_string == "":
+        sensor_config.run_setting(setting_string, sensor_location)
+        sys.exit()
+
+
     # read sensor
     #if not sensor_location == "":
     output = read_sensor(location=sensor_location)
