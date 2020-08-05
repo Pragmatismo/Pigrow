@@ -106,7 +106,7 @@ def read_sensor(location="", sensor_name="", raw_only=False, *args):
     # read settings
     if not raw_only == True and not sensor_name == "":
         text, extra_settings = sensor_config.read_cal(sensor_name, quiet=True)
-        if extra_settings["zero_offset"] in extra_settings:
+        if "zero_offset" in extra_settings:
             try:
                 zero_offset = float(extra_settings["zero_offset"])    # raw value when there is no added weight on the sensor
             except:
