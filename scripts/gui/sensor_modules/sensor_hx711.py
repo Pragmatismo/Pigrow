@@ -58,7 +58,7 @@ class sensor_config():
         if extra == "":
             msg = " - No extra string set for sensor " + sensor_name
             print(msg)
-            return msg
+            return msg, {}
         zero_point = " Not set "
         know_grams = " Not set "
         known_g_value = " Not set "
