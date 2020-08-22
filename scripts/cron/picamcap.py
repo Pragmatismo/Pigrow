@@ -98,11 +98,16 @@ def take_picam_py(picam_dic, caps_path):
     try:
         camera = PiCamera()
         #camera.resolution = (2592,1944)
-        camera.resolution = (int(picam_dic['x_dim']),int(picam_dic['y_dim']))
-        camera.brightness = int(picam_dic['b_val'])
-        camera.contrast = int(picam_dic['c_val'])
-        camera.saturation = int(picam_dic['s_val'])
-        camera.iso =  int(picam_dic['g_val'])
+        if "x_dim" in picam_dic and "y_dim" in picam_dic:
+            camera.resolution = (int(picam_dic['x_dim']),int(picam_dic['y_dim']))
+        if "b_val" in picam_dic:
+            camera.brightness = int(picam_dic['b_val'])
+        if "c_val" in picam_dic:
+            camera.contrast = int(picam_dic['c_val'])
+        if "s_val" in picam_dic:
+            camera.saturation = int(picam_dic['s_val'])
+        if "g_val" in picam_dic:
+            camera.iso =  int(picam_dic['g_val'])
         #print ("analog_gain = " + str(camera.analog_gain))
         # optional settings
         #if "iso" in picam_dic:
