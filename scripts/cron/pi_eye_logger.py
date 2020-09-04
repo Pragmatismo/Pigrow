@@ -58,13 +58,13 @@ except:
 
 def save_log(pi):
     print("")
-    print "pitime   = " + str(pitime)
-    print "comptime = " + str(datetime.datetime.now())[0:19]
-    print "time differnce = " + str(datetime.datetime.now() - pitime)
+    print ("pitime   = " + str(pitime))
+    print ("comptime = " + str(datetime.datetime.now())[0:19])
+    print ("time differnce = " + str(datetime.datetime.now() - pitime))
     print("")
-    print "pi's uptime = " + str(uptime)
-    print "duration = " + str(pitime - uptime)[0:17]
-    print "space_left = " + str(space_left)
+    print ("pi's uptime = " + str(uptime))
+    print ("duration = " + str(pitime - uptime)[0:17])
+    print ("space_left = " + str(space_left))
     print("")
 
     log = "host="+str(pi[0])
@@ -76,7 +76,7 @@ def save_log(pi):
     log = log + ">space_left="+str(space_left)
     log = log + "\n"
 
-    print log
+    #print (log)
     pi_log = log_loc + "pieye_log_"+str(pi[0].split(".")[-1])+".txt"
     with open(pi_log, "a") as f:
         f.write(log)
@@ -114,7 +114,7 @@ def get_pi_times():
         s.sendline('df -l --output=avail /')
         s.prompt()
         space_left = s.before
-        print space_left
+        #print space_left
         space_left = space_left.split("\n")[2]
     except:
         print("error reading pi disk fullness")
