@@ -1,7 +1,8 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 import os
 import sys
 import numpy
+import datetime
 from PIL import Image
 
 homedir = os.getenv("HOME")
@@ -57,7 +58,7 @@ def get_pixel_values(c_photo):
     return r_sum, g_sum, b_sum, tot_sum
 
 def log_pixel_values(logpath, r_sum, g_sum, b_sum, tot_sum, image_to_process):
-    line = "date=" + datetime.datetime.now() + ">"
+    line = "date=" + str(datetime.datetime.now()) + ">"
     line += "r=" + str(r_sum) + '>'
     line += "g=" + str(g_sum) + '>'
     line += "b=" + str(b_sum) + '>'
