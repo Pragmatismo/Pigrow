@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 import os
 import sys
 homedir = os.getenv("HOME") #discovers home directory location use in default path generation
