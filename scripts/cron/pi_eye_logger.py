@@ -104,7 +104,7 @@ def get_pi_times():
         s.prompt()
         pitime = s.before
         pitime = str(pitime)[25:45]
-        print pitime
+        print (pitime)
         pitime = datetime.datetime.strptime(pitime, '%d:%b_%Y_%H:%M:%S')
         #print "CURRENT PI DATE TIME READ AS:" + str(pitime)
     except:
