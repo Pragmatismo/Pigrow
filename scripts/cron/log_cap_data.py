@@ -57,11 +57,12 @@ def get_pixel_values(c_photo):
     return r_sum, g_sum, b_sum, tot_sum
 
 def log_pixel_values(logpath, r_sum, g_sum, b_sum, tot_sum, image_to_process):
-    line = str(r_sum) + '>'
-    line += str(g_sum) + '>'
-    line += str(b_sum) + '>'
-    line += str(tot_sum) + '>'
-    line += str(image_to_process) + '\n'
+    line = "date=" + datetime.datetime.now() + ">"
+    line += "r=" + str(r_sum) + '>'
+    line += "g=" + str(g_sum) + '>'
+    line += "b=" + str(b_sum) + '>'
+    line += "total=" + str(tot_sum) + '>'
+    line += "image=" + str(image_to_process) + '\n'
     with open(logpath, "a") as f:
         f.write(line)
     print("Log written; " + str(logpath))
