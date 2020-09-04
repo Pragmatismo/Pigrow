@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 from pexpect import pxssh
 import time
 import datetime
