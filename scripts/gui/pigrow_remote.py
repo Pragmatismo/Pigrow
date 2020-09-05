@@ -9587,7 +9587,7 @@ class camconf_info_pnl(scrolled.ScrolledPanel):
         # placing the information boxes
         # top row
         ccf_label = wx.StaticText(self,  label='Camera Config file', size=(150,30))
-        self.camconf_path_tc = wx.TextCtrl(self, value="", size=(350, 30))
+        self.camconf_path_tc = wx.TextCtrl(self, value="", size=(400, 30))
         # Top bar info
         # basic settings - left col
         b_label = wx.StaticText(self,  label='Brightness;')
@@ -9624,7 +9624,7 @@ class camconf_info_pnl(scrolled.ScrolledPanel):
         self.add_to_cmd_btn.Bind(wx.EVT_BUTTON, self.add_to_cmd_click)
         #
         self.extra_cmds_fs_label = wx.StaticText(self,  label='extra commands for fs;')
-        self.extra_cmds_string_fs_tb = wx.TextCtrl(self, size=(200,40), style=wx.TE_MULTILINE)
+        self.extra_cmds_string_fs_tb = wx.TextCtrl(self, size=(250,40), style=wx.TE_MULTILINE)
         ## uvccaptre only controlls
         self.extra_cmds_uvc_label = wx.StaticText(self,  label='extra commands for uvc;')
         self.extra_cmds_string_uvc_tb = wx.TextCtrl(self, style=wx.TE_MULTILINE)
@@ -9979,8 +9979,9 @@ class camconf_ctrl_pnl(wx.Panel):
         self.camera_settings_dict = {}
         for line in cam_settings:
             if "=" in line:
-                key = line.split('=')[0]
-                value = line.split('=')[1]
+                equals_pos = line.find("=")
+                key = line[:equals_pos]
+                value = line[equals_pos+1:]
                 self.camera_settings_dict[key] = value
 
         # putting dictionary info into ui display
@@ -10016,8 +10017,8 @@ class camconf_ctrl_pnl(wx.Panel):
         if "additonal_commands" in self.camera_settings_dict:
             MainApp.camconf_info_pannel.cmds_string_tb.SetValue(self.camera_settings_dict['additonal_commands'])
         #
-        if "cam_fsw_extra" in self.camera_settings_dict:
-            MainApp.camconf_info_pannel.extra_cmds_string_fs_tb.SetValue(self.camera_settings_dict['cam_fsw_extra'])
+        if "fsw_extra" in self.camera_settings_dict:
+            MainApp.camconf_info_pannel.extra_cmds_string_fs_tb.SetValue(self.camera_settings_dict['fsw_extra'])
         if "cam_uvc_extra" in self.camera_settings_dict:
             MainApp.camconf_info_pannel.extra_cmds_string_uvc_tb.SetValue(self.camera_settings_dict['cam_uvc_extra'])
         self.write_picam_sets_into_listbox(self.camera_settings_dict)
