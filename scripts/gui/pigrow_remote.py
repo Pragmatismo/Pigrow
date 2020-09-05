@@ -10716,25 +10716,34 @@ class timelapse_ctrl_pnl(wx.Panel):
         make_log_overlay_set_btn.Bind(wx.EVT_BUTTON, self.make_log_overlay_set)
         make_image_overlay_set_btn = wx.Button(self, label='Overlay Image Set')
         make_image_overlay_set_btn.Bind(wx.EVT_BUTTON, self.make_image_overlay_set)
-        # out file
-        outfile_l = wx.StaticText(self,  label='Outfile')
-        self.out_file_tc = wx.TextCtrl(self)
-        set_outfile_btn = wx.Button(self, label='...', size=(27,27))
-        set_outfile_btn.Bind(wx.EVT_BUTTON, self.set_outfile_click)
-        # render controlls
+        # audio
+        audio_l = wx.StaticText(self,  label='Audio',size=(100,25))
+        audio_l.SetFont(shared_data.sub_title_font)
+        self.audio_file_tc = wx.TextCtrl(self)
+        set_audio_btn = wx.Button(self, label='...', size=(27,27))
+        set_audio_btn.Bind(wx.EVT_BUTTON, self.set_audio_click)
+        # Render controlls
         render_l = wx.StaticText(self,  label='Render',size=(100,25))
         render_l.SetFont(shared_data.sub_title_font)
         fps_l = wx.StaticText(self,  label='FPS')
         self.fps_tc = wx.TextCtrl(self, value="25", size=(50,25))
+        # outfile
+        outfile_l = wx.StaticText(self,  label='Outfile')
+        self.out_file_tc = wx.TextCtrl(self)
+        set_outfile_btn = wx.Button(self, label='...', size=(27,27))
+        set_outfile_btn.Bind(wx.EVT_BUTTON, self.set_outfile_click)
+        # buttons
         make_timelapse_btn = wx.Button(self, label='Make Timelapse')
         make_timelapse_btn.Bind(wx.EVT_BUTTON, self.make_timelapse_click)
         play_timelapse_btn = wx.Button(self, label='Play')
         play_timelapse_btn.Bind(wx.EVT_BUTTON, self.play_timelapse_click)
-
         # Sizers
         #capture_bar_sizer =  wx.BoxSizer(wx.VERTICAL)
         #capture_bar_sizer.Add(quick_capture_l, 0, wx.ALL|wx.EXPAND, 3)
         #capture_bar_sizer.Add(capture_start_btn, 0, wx.ALL|wx.EXPAND, 3)
+        audio_name_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        audio_name_sizer.Add(self.audio_file_tc, 1, wx.ALL|wx.EXPAND, 1)
+        audio_name_sizer.Add(set_audio_btn, 0, wx.ALL, 0)
         file_bar_select_butt_sizer = wx.BoxSizer(wx.HORIZONTAL)
         file_bar_select_butt_sizer.Add(select_set_btn, 0, wx.ALL|wx.EXPAND, 3)
         file_bar_select_butt_sizer.Add(select_folder_btn, 0, wx.ALL|wx.EXPAND, 3)
@@ -10781,16 +10790,18 @@ class timelapse_ctrl_pnl(wx.Panel):
         main_sizer =  wx.BoxSizer(wx.VERTICAL)
         #main_sizer.AddStretchSpacer(1)
         #main_sizer.Add(capture_bar_sizer, 0, wx.ALL|wx.EXPAND, 3)
-        main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.Add(file_bar_sizer, 0, wx.ALL|wx.EXPAND, 3)
-        main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
+        #main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.Add(frame_select_sizer, 0, wx.ALL|wx.EXPAND, 3)
-        main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
+        #main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.Add(make_overlay_set_sizer, 0, wx.ALL|wx.EXPAND, 3)
-        main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
+        #main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
+        main_sizer.Add(audio_l, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.Add(audio_name_sizer, 0, wx.ALL|wx.EXPAND, 3)
+        #main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.Add(render_bar_sizer, 0, wx.ALL|wx.EXPAND, 3)
-        main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
-        main_sizer.AddStretchSpacer(1)
+        #main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
+        #main_sizer.AddStretchSpacer(1)
         self.SetSizer(main_sizer)
 
         #create blank lists
@@ -10821,6 +10832,9 @@ class timelapse_ctrl_pnl(wx.Panel):
         ofps  = self.fps_tc.GetValue()
         outfile= self.out_file_tc.GetValue()
         extra_commands = ""
+        if not self.audio_file_tc.GetValue() == "":
+            frame_count = len(self.trimmed_frame_list)
+            extra_commands += " --audiofile=\"" + str(self.audio_file_tc.GetValue()) + "\" --frames=" + str(frame_count)
         print (" ##  making you a timelapse video...")
         cmd = "mpv mf://@"+listfile+" --mf-fps="+str(ofps)
         cmd += " -o "+outfile+" " + extra_commands
@@ -10859,6 +10873,20 @@ class timelapse_ctrl_pnl(wx.Panel):
     def set_outfile_click(self, e):
         outfile = self.select_outfile()
         self.out_file_tc.SetValue(outfile)
+
+    def set_audio_click(self, e):
+        outfile = self.select_audiofile()
+        self.audio_file_tc.SetValue(outfile)
+
+    def select_audiofile(self):
+        wildcard = "MP3 files (*.mp3)|*.mp3|WAV files (*.wav)|*.wav"
+        default_path = os.path.join(localfiles_info_pnl.local_path, "")
+        openFileDialog = wx.FileDialog(self, "Select audio file", "", default_path, wildcard, wx.FD_OPEN | wx.FD_FILE_MUST_EXIST)
+        openFileDialog.SetMessage("Select an audio file to play over your video")
+        if openFileDialog.ShowModal() == wx.ID_CANCEL:
+            return 'none'
+        outfile = openFileDialog.GetPath()
+        return outfile
 
     def select_outfile(self):
         wildcard = "MP4 files (*.mp4)|*.mp4|AVI files (*.avi)|*.avi"
