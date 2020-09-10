@@ -24,7 +24,7 @@ def find_i2c_bus():
         try:
             i2c_bus_number = int(out.split("/dev/i2c-")[1])
             print (i2c_bus_number)
-            print(("trying using bus " + str(i2c_bus_number)))
+            print(("trying to use bus " + str(i2c_bus_number)))
             print("i2c not found on most likely busses, but maybe it's on")
         except:
             print("can't find i2c bus at all!")
@@ -161,12 +161,12 @@ if not len(listed_chirps) == 0:
     enable_all_chirp(listed_chirps)
     chirp_list = find_i2c_devices(i2c_bus_number)
     for chirp in chirp_list:
-        print("   Chirp sucsessfully located at at " + str(chirp))
+        print("   Chirp successfully located at " + str(chirp))
 else:
     print("    Make sure your sensors are correctly listed in the Pigrow config file")
-    print("    easiest way of doing this in with the remote gui's sensor tab")
+    print("    easiest way of doing this is with the remote gui's sensor tab")
     print("    or manually edit the /Pigow/config/pigrow_config.txt")
-    print("       the format it expects is;")
+    print("       the format it expects is:")
     print("          sensor_chirp01_type=chirp")
     print("          sensor_chirp01_log=/home/pi/Pigrow/logs/chirp01.txt")
     print("          sensor_chirp01_loc=i2c:0x20")
