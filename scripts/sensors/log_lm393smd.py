@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-### THis is probably ready to switch to python3 - need to test with a sensor first 
+### This is probably ready to switch to python3 - need to test with a sensor first 
 
 import os
 import sys
@@ -58,7 +58,7 @@ for argu in sys.argv[1:]:
         print("    which can be logged and graphed in a similar fashion.")
         print(" ")
         print("    This script will also log other binary sensors and controls")
-        print("    anything which is either a High or Low signal, threashold")
+        print("    anything which is either a High or Low signal, threshold")
         print("    sensors and buttons are most likely to work.")
         print("")
         print(" ")
@@ -93,7 +93,7 @@ def read_soil_moist_digital(gpio_pin):
             print("!!! couldn't read sensor, error " + str(e))
             time.sleep(1)
         if not soil_value == None:
-            print(" The sensor " +  str(gpio_pin) + " returned a value of; " + str(soil_value))
+            print(" The sensor " +  str(gpio_pin) + " returned a value of: " + str(soil_value))
             return soil_value
         count = count + 1
         if count >= 10:
