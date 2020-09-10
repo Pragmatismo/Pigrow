@@ -20,7 +20,7 @@ for argu in sys.argv[1:]:
         print(" Script for logging extra dht22 sensors ")
         print(" ")
         print(" gpio=[number]")
-        print("      - gpio din of the sensor")
+        print("      - gpio pin of the sensor")
         print(" ")
         print(" log=" + homedir + "/Pigrow/logs/auxdht22_log.txt")
         print("      - path to write the log")
@@ -56,7 +56,7 @@ def log_sensor(log_path, humidity, temperature, logtime):
     except:
         print["-LOG ERROR-"]
 
-    print("logged temp of " + str(temperature) + " and humid of " + str(humidity) + " at " + str(logtime))
+    print("logged temp of " + str(temperature) + " and humidity of " + str(humidity) + " at " + str(logtime))
 
 
 def temp_c_to_f(temp_c):
