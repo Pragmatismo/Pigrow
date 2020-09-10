@@ -6,7 +6,7 @@ try:
     import busio
     import adafruit_si7021
 except:
-    print("adafruit_si7021 module not installed, install using the command;")
+    print("adafruit_si7021 module not installed, install using the command:")
     print("     sudo pip3 install adafruit-circuitpython-si7021")
 
 homedir = os.getenv("HOME")
@@ -22,7 +22,7 @@ for argu in sys.argv[1:]:
     elif 'help' in argu or argu == '-h':
         print(" Script for logging Si7021 sensors ")
         print(" ")
-        print(" This requres i2c enabled at the adafruit_si7021 module installed.")
+        print(" This requres i2c enabled and the adafruit_si7021 module installed.")
         print(" ")
         print(" log=" + homedir + "/Pigrow/logs/auxdht22_log.txt")
         print("      - path to write the log")
@@ -41,7 +41,7 @@ def read_sensor(sensor):
         temperature = sensor.temperature
         humidity = sensor.relative_humidity
         if humidity == None or temperature == None or humidity > 101:
-            print("--problem reading sensor on GPIO:"+sensor_gpio+"--")
+            print("--problem reading sensor on GPIO: "+sensor_gpio+"--")
             return '-1','-1','-1'
         else:
             humidity = round(humidity,2)
@@ -61,7 +61,7 @@ def log_sensor(log_path, humidity, temperature, logtime):
         print["-LOG ERROR-"]
         raise
 
-    print("logged temp of " + str(temperature) + " and humid of " + str(humidity) + " at " + str(logtime))
+    print("logged temp of " + str(temperature) + " and humidity of " + str(humidity) + " at " + str(logtime))
 
 
 def temp_c_to_f(temp_c):
