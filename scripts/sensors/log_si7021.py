@@ -34,14 +34,14 @@ for argu in sys.argv[1:]:
         sys.exit(0)
 
 
-def read_sensor(sensor):
+def read_sensor():
     try:
         i2c = busio.I2C(board.SCL, board.SDA)
         sensor = adafruit_si7021.SI7021(i2c)
         temperature = sensor.temperature
         humidity = sensor.relative_humidity
         if humidity == None or temperature == None or humidity > 101:
-            print("--problem reading sensor on GPIO: "+sensor_gpio+"--")
+            print("--problem reading sensor")
             return '-1','-1','-1'
         else:
             humidity = round(humidity,2)
@@ -69,5 +69,5 @@ def temp_c_to_f(temp_c):
     return temp_f
 
 # run functions
-hum, temp, logt = read_sensor(sensor_gpio)
+hum, temp, logt = read_sensor()
 log_sensor(log_path, hum, temp, logt)
