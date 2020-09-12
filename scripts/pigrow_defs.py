@@ -73,12 +73,12 @@ def read_setting(loc_settings, setting):
         if setting == f_setting:
             #print(" Found " + f_setting + " = " + f_value + " in " + loc_settings)
             return f_value
-    print(f_setting + " not found in " + loc_settings)
+    print(setting + " not found in " + loc_settings)
     return ""
 
 def change_setting(loc_settings, setting, value):
     settings = load_settings(loc_settings)
-    found = False
+    #found = False
     #
     #for f_setting, f_value in settings.items():
     #    if setting == f_setting:
