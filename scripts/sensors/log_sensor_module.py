@@ -68,7 +68,7 @@ sensor_modules_path = homedir + '/Pigrow/scripts/gui/sensor_modules/'
 try:
     sys.path.append(sensor_modules_path)
 except:
-    err_msg = "Failed to add modules folder; " + sensor_modules_path
+    err_msg = "Failed to add modules folder: " + sensor_modules_path
     print(err_msg)
     pigrow_defs.write_log('log_sensor_module.py', err_msg, loc_dic['err_log'])
     sys.exit()
