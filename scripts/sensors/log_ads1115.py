@@ -72,7 +72,7 @@ for argu in sys.argv[1:]:
         print(" log=" + homedir + "/Pigrow/logs/ads1115_log.txt")
         print(" ")
         print(" gain=1")
-        print("      use gain to set input voltage range; ")
+        print("      use gain to set input voltage range: ")
         print("      2/3 = +/-6.144V/\n      1 = +/-4.096V\n      2 = +/-2.048V\n      4 = +/-1.024V\n      8 = +/-0.512V\n      16 = +/-0.256V")
         print("      if you're unsure then set to 1 and increase")
         print("      if all values are towards the bottom of the graph.")
@@ -92,7 +92,7 @@ for argu in sys.argv[1:]:
         print("       ads1115 - 8, 16, 32, 64, 128, 250, 475, 860")
         print("     at low values the average voltage is taken over")
         print("     a longer period which can be useful in some")
-        print("     situations, for faster readings use a higher value.")
+        print("     situations. For faster readings use a higher value.")
         print("   sps0, sps1, sps2, sps3 all apply to individual channels")
         print("")
         print(" show=volt / percent / raw")
@@ -304,6 +304,7 @@ for argu in sys.argv[1:]:
 
 #setting up the adafruit sensor drivers
 i2c = busio.I2C(board.SCL, board.SDA)
+invalid_pin_message = "invalid pin address, try gnd vdd sda or scl instead"
 
 if sensor_type == "ads1115":
     import adafruit_ads1x15.ads1115 as ADS
@@ -316,7 +317,7 @@ if sensor_type == "ads1115":
     elif pin_address == "scl":
         adc = ADS.ADS1115(i2c, address=0x4B)
     else:
-        print("invalid pin address, try gnd vdd sda or scl instead")
+        print(invalid_pin_message)
         sys.exit()
 elif sensor_type == "ads1015":
     import adafruit_ads1x15.ads1015 as ADS
@@ -329,11 +330,11 @@ elif sensor_type == "ads1015":
     elif pin_address == "scl":
         adc = ADS.ADS0115(i2c, address=0x4B)
     else:
-        print("invalid pin address, try gnd vdd sda or scl instead")
+        print(invalid_pin_message)
         sys.exit()
 
 
-print("using log path : " + str(log_path))
+print("using log path: " + str(log_path))
 
 def set_channels():
     chan0 = AnalogIn(adc, ADS.P0)
@@ -373,6 +374,7 @@ def read_adc(channels):
 
 def convert_to_percent(vals):
     max_value = max_volt
+    
     if show_as_0 == "percent":
         vals[0] = float(vals[0]) / float(max_volt) * 100
     if show_as_1 == "percent":
@@ -409,43 +411,43 @@ def log_ads1115(log_path, vals):
         if not log_path.lower() == "none":
             with open(log_path, "a") as f:
                 f.write(log_entry)
-        print("Written; " +  log_entry)
+        print("Written: " +  log_entry)
 
 
 def trigger_on_value(vals):
-    # check to see if high threasholds have been broken
+    # check to see if high thresholds have been broken
     if not val0_max_trigger == "" and not val0_max_script == "":
         if vals[0] > val0_max_trigger:
-            print("Channel 0 exceeded it's maximum threashold, running " + val0_max_script)
+            print("Channel 0 exceeded it's maximum threshold, running " + val0_max_script)
             os.system(val0_max_script)
     if not val1_max_trigger == "" and not val1_max_script == "":
         if vals[1] > val1_max_trigger:
-            print("Channel 1 exceeded it's maximum threashold, running " + val1_max_script)
+            print("Channel 1 exceeded it's maximum threshold, running " + val1_max_script)
             os.system(val1_max_script)
     if not val2_max_trigger == "" and not val2_max_script == "":
         if vals[2] > val2_max_trigger:
-            print("Channel 2 exceeded it's maximum threashold, running " + val2_max_script)
+            print("Channel 2 exceeded it's maximum threshold, running " + val2_max_script)
             os.system(val2_max_script)
     if not val3_max_trigger == "" and not val3_max_script == "":
         if vals[3] > val3_max_trigger:
-            print("Channel 3 exceeded it's maximum threashold, running " + val3_max_script)
+            print("Channel 3 exceeded it's maximum threshold, running " + val3_max_script)
             os.system(val3_max_script)
     # Check to see if low threashold has been broken
     if not val0_min_trigger == "" and not val0_min_script == "":
         if vals[0] < val0_min_trigger:
-            print("Channel 0 went under it's minimum threashold, running " + val0_min_script)
+            print("Channel 0 went under it's minimum threshold, running " + val0_min_script)
             os.system(val0_min_script)
     if not val1_min_trigger == "" and not val1_min_script == "":
         if vals[1] < val1_min_trigger:
-            print("Channel 1 went under it's minimum threashold, running " + val1_min_script)
+            print("Channel 1 went under it's minimum threshold, running " + val1_min_script)
             os.system(val1_min_script)
     if not val2_min_trigger == "" and not val2_min_script == "":
         if vals[2] < val2_min_trigger:
-            print("Channel 2 went under it's minimum threashold, running " + val2_min_script)
+            print("Channel 2 went under it's minimum threshold, running " + val2_min_script)
             os.system(val2_min_script)
     if not val3_min_trigger == "" and not val3_min_script == "":
         if vals[3] < val3_min_trigger:
-            print("Channel 3 went under it's minimum threashold, running " + val3_min_script)
+            print("Channel 3 went under it's minimum threshold, running " + val3_min_script)
             os.system(val3_min_script)
 
 
