@@ -9840,13 +9840,13 @@ class camconf_info_pnl(scrolled.ScrolledPanel):
 
 
     def add_to_cmd_click(self, e):
-        test_str = self.setting_string_tb.GetValue()
-        test_val = self.setting_value_tb.GetValue()
+        test_str = self.setting_string_tb.GetValue().strip()
+        test_val = self.setting_value_tb.GetValue().strip()
         cmd_str = self.extra_cmds_string_fs_tb.GetValue()
         if test_str in cmd_str:
             cmd_str = self.modify_cmd_str(cmd_str, test_str, test_val)
         else:
-            cmd_str += ' --set "' + str(test_str) + '"=' + str(test_val)
+            cmd_str += ' --set "' + str(test_str) + '"="' + str(test_val) + '"'
         self.extra_cmds_string_fs_tb.SetValue(cmd_str)
         self.setting_string_tb.SetValue('')
         self.setting_value_tb.SetValue('')
@@ -10717,9 +10717,14 @@ class timelapse_ctrl_pnl(wx.Panel):
         make_log_overlay_set_btn.Bind(wx.EVT_BUTTON, self.make_log_overlay_set)
         make_image_overlay_set_btn = wx.Button(self, label='Overlay Image Set')
         make_image_overlay_set_btn.Bind(wx.EVT_BUTTON, self.make_image_overlay_set)
+        # credits frames
+        credits_l = wx.StaticText(self,  label='Credits')
+        credits_opts = ['none', 'freeze_2']
+        self.credits_cb = wx.ComboBox(self, choices = credits_opts, size=(150, 30))
+
         # audio
         audio_l = wx.StaticText(self,  label='Audio',size=(100,25))
-        audio_l.SetFont(shared_data.sub_title_font)
+        #audio_l.SetFont(shared_data.sub_title_font)
         self.audio_file_tc = wx.TextCtrl(self)
         set_audio_btn = wx.Button(self, label='...', size=(27,27))
         set_audio_btn.Bind(wx.EVT_BUTTON, self.set_audio_click)
@@ -10742,7 +10747,11 @@ class timelapse_ctrl_pnl(wx.Panel):
         #capture_bar_sizer =  wx.BoxSizer(wx.VERTICAL)
         #capture_bar_sizer.Add(quick_capture_l, 0, wx.ALL|wx.EXPAND, 3)
         #capture_bar_sizer.Add(capture_start_btn, 0, wx.ALL|wx.EXPAND, 3)
+        credits_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        credits_sizer.Add(credits_l, 1, wx.ALL, 1)
+        credits_sizer.Add(self.credits_cb, 0, wx.ALL|wx.EXPAND, 0)
         audio_name_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        audio_name_sizer.Add(audio_l, 0, wx.ALL|wx.EXPAND, 3)
         audio_name_sizer.Add(self.audio_file_tc, 1, wx.ALL|wx.EXPAND, 1)
         audio_name_sizer.Add(set_audio_btn, 0, wx.ALL, 0)
         file_bar_select_butt_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -10796,8 +10805,8 @@ class timelapse_ctrl_pnl(wx.Panel):
         main_sizer.Add(frame_select_sizer, 0, wx.ALL|wx.EXPAND, 3)
         #main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.Add(make_overlay_set_sizer, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.Add(credits_sizer, 0, wx.ALL|wx.EXPAND, 3)
         #main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
-        main_sizer.Add(audio_l, 0, wx.ALL|wx.EXPAND, 3)
         main_sizer.Add(audio_name_sizer, 0, wx.ALL|wx.EXPAND, 3)
         #main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.Add(render_bar_sizer, 0, wx.ALL|wx.EXPAND, 3)
@@ -10821,6 +10830,13 @@ class timelapse_ctrl_pnl(wx.Panel):
         make_image_overlay_dbox.ShowModal()
 
     def make_timelapse_click(self, e):
+        ofps  = self.fps_tc.GetValue()
+        outfile= self.out_file_tc.GetValue()
+        #  credits style
+        freeze_num = 0
+        credit_style = self.credits_cb.GetValue()
+        if "_" in credit_style:
+            credit_style, setting_num = credit_style.split("_")
         # write text file of frame to use
         temp_folder = os.path.join(localfiles_info_pnl.local_path, "temp")
         if not os.path.isdir(temp_folder):
@@ -10829,12 +10845,14 @@ class timelapse_ctrl_pnl(wx.Panel):
         frame_list_text_file = open(listfile, "w")
         for file in self.trimmed_frame_list:
             frame_list_text_file.write(file + "\n")
+        if credit_style == "freeze":
+            freeze_num = int(ofps) * int(setting_num)
+            for x in range(0, int(freeze_num)):
+                frame_list_text_file.write(self.trimmed_frame_list[-1] + "\n")
         frame_list_text_file.close()
-        ofps  = self.fps_tc.GetValue()
-        outfile= self.out_file_tc.GetValue()
         extra_commands = ""
         if not self.audio_file_tc.GetValue() == "":
-            frame_count = len(self.trimmed_frame_list)
+            frame_count = len(self.trimmed_frame_list) + freeze_num
             extra_commands += " --audiofile=\"" + str(self.audio_file_tc.GetValue()) + "\" --frames=" + str(frame_count)
         print (" ##  making you a timelapse video...")
         cmd = "mpv mf://@"+listfile+" --mf-fps="+str(ofps)

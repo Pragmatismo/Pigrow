@@ -46,7 +46,7 @@ def gather_data(path="./"):
     total = (st.f_blocks * st.f_frsize)
     used = (st.f_blocks - st.f_bfree) * st.f_frsize
     try:
-        percent = ret = (float(used) / total) * 100
+        percent = (float(used) / total) * 100
     except ZeroDivisionError:
         percent = 0
     #check up time

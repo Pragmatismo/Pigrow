@@ -338,7 +338,7 @@ else:
 #      THE ETERNAL LOOP
 #
 #
-print(" ---  STarting temp and humid checking cycle --- ")
+print(" ---  Starting temp and humid checking cycle --- ")
 
 while True:
     # reload the settings dictionary every time in case changes have been made.

@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# should be ready for python3 - need to test with sensor first
 import subprocess
 import time
 import sys
@@ -27,7 +28,7 @@ def find_i2c_bus():
             print(("trying to use bus " + str(i2c_bus_number)))
             print("i2c not found on most likely busses, but maybe it's on")
         except:
-            print("can't find i2c bus at all!")
+            print ("can't find i2c bus at all!")
     else:
         print("!!! i2c bus not found !!!")
         return "not found"

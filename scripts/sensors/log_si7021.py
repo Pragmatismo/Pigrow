@@ -10,7 +10,6 @@ except:
     print("     sudo pip3 install adafruit-circuitpython-si7021")
 
 homedir = os.getenv("HOME")
-sensor_gpio = None
 log_path = homedir + "/Pigrow/logs/si7021_log.txt"
 
 for argu in sys.argv[1:]:

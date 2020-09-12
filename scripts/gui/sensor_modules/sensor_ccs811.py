@@ -4,7 +4,7 @@ import sys
 class sensor_config():
     # find connected sensors
     def find_settings():
-        print("connection_type=")
+        print("connection_type=i2c")
         print("connection_address_list=0x5a")
         print("default_connection_address=0x5a")
 
