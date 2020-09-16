@@ -10299,8 +10299,8 @@ class camconf_ctrl_pnl(wx.Panel):
                 cam_cmd += " --set gain=" + g_val
             ##For testing camera ctrl variables
             if not ctrl_text_string == None:
-                cam_cmd += " --set " + ctrl_text_string + "=" + str(ctrl_test_value)
-            cam_cmd += cmd_str
+                cam_cmd += " --set \"" + ctrl_text_string + "\"=" + str(ctrl_test_value)
+            cam_cmd += " " + cmd_str
             cam_cmd += " --jpeg 90" #jpeg quality
             # cam_cmd += ' --info "HELLO INFO TEXT"'
             cam_cmd += " " + output_file  #output filename'
@@ -10331,6 +10331,7 @@ class camconf_ctrl_pnl(wx.Panel):
         MainApp.camconf_info_pannel.SetupScrolling()
 
     def take_unset_test_image(self, x_dim=10000, y_dim=10000, additonal_commands='', cam_capture_choice='uvccapture', output_file=None):
+        cam_select = self.cam_cb.GetValue()
         MainApp.status.write_bar("Using camera deafults to take image...")
         if output_file == None:
             output_file = '/home/' + pi_link_pnl.target_user + '/Pigrow/temp/test_defaults.jpg'
@@ -10341,6 +10342,8 @@ class camconf_ctrl_pnl(wx.Panel):
             cam_cmd += "-v -t0 -o" + output_file                #verbose, no delay, output
         elif cam_capture_choice == "fswebcam":
             cam_cmd  = "fswebcam -r " + str(x_dim) + "x" + str(y_dim)
+            if not cam_select == "":
+                cam_cmd += " --device=" + cam_select
             cam_cmd += " -D 2"      #the delay in seconds before taking photo
             cam_cmd += " -S 5"      #number of frames to skip before taking image
             cam_cmd += " --jpeg 90" #jpeg quality
