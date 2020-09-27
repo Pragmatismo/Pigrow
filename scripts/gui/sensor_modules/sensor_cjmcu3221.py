@@ -235,7 +235,7 @@ def read_sensor(location="", extra="", sensor_name="", raw_only=False, *args):
                         ['loadvoltage3',busvoltage3],
                         ['busvoltage3',busvoltage3],
                         ['shuntvoltage3',busvoltage3],
-                        ['total mA', current_mA1 + current_mA2 + current_mA3]
+                        ['total mA', current_mA1 + current_mA2 + current_mA3]]
                 return data
         # Handle problems with sensor module
         except Exception as e:
