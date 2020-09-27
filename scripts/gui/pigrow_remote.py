@@ -3252,7 +3252,7 @@ class config_ctrl_pnl(wx.Panel):
                 update = False
         else:
             update = True
-        if update == True or shared_date.always_show_config_changes == True:
+        if update == True or shared_data.always_show_config_changes == True:
             pigrow_config_file_location = "/home/" + str(pi_link_pnl.target_user) +  "/Pigrow/config/pigrow_config.txt"
             MainApp.localfiles_ctrl_pannel.save_text_to_file_on_pi(pigrow_config_file_location, config_text)
             self.update_pigrow_setup_pannel_information_click("e")
@@ -3374,10 +3374,11 @@ class config_info_pnl(scrolled.ScrolledPanel):
         # if changes happened mark the ui
         #
         if not new_currently == "":
-            config_info_pnl.gpio_table.SetStringItem(index, 0, str(new_device))
-            config_info_pnl.gpio_table.SetStringItem(index, 1, str(new_gpio))
-            config_info_pnl.gpio_table.SetStringItem(index, 2, str(new_wiring))
-            config_info_pnl.gpio_table.SetStringItem(index, 3, str(new_currently))
+            config_info_pnl.gpio_table.SetItem(index, 0, str(new_device))
+            config_info_pnl.gpio_table.SetItem(index, 1, str(new_gpio))
+            config_info_pnl.gpio_table.SetItem(index, 2, str(new_wiring))
+            config_info_pnl.gpio_table.SetItem(index, 3, str(new_currently))
+        if not device == new_device or not gpio == new_gpio or not wiring == new_wiring:    
             MainApp.config_ctrl_pannel.update_setting_file_on_pi_click("e")
 
 class config_lamp_dialog(wx.Dialog):
