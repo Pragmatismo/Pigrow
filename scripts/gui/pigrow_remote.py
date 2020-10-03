@@ -9916,7 +9916,7 @@ class camconf_ctrl_pnl(wx.Panel):
         self.range_start_l = wx.StaticText(self,  label='start;')
         self.range_end_l = wx.StaticText(self,  label='end;')
         self.range_every_l = wx.StaticText(self,  label='every;')
-        self.range_start_tc.SetValue("1")
+        self.range_start_tc.SetValue("0")
         self.range_end_tc.SetValue("255")
         self.range_every_tc.SetValue("20")
         # take range button
@@ -9929,6 +9929,14 @@ class camconf_ctrl_pnl(wx.Panel):
         self.use_compare = wx.CheckBox(self, label='Enable')
         compare_opts = image_combine.config.styles
         self.compare_style_cb = wx.ComboBox(self, choices = compare_opts, value=compare_opts[0], size=(265, 30))
+        # show noise - image set analasis
+        self.anal_tools_l = wx.StaticText(self,  label='Analasis Tools;')
+        self.cap_stack_btn = wx.Button(self, label='Capture Stack')
+        self.cap_stack_btn.Bind(wx.EVT_BUTTON, self.cap_stack_click)
+        self.capture_stack_count = wx.TextCtrl(self, value="5")
+        self.use_range_combine = wx.CheckBox(self, label='Combine Range')
+        combine_opts = image_combine.config.combine_styles
+        self.set_style_cb = wx.ComboBox(self, choices = combine_opts, value=combine_opts[0], size=(265, 30))
 
 
         # Sizers
@@ -9959,6 +9967,13 @@ class camconf_ctrl_pnl(wx.Panel):
         compare_sizer.Add(self.set_as_compare_btn, 0, wx.ALL|wx.EXPAND, 0)
         compare_sizer.Add(self.use_compare, 0, wx.ALL|wx.EXPAND, 0)
         compare_sizer.Add(self.compare_style_cb, 0, wx.ALL|wx.EXPAND, 0)
+        stack_cap_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        stack_cap_sizer.Add(self.cap_stack_btn, 0, wx.ALL|wx.EXPAND, 0)
+        stack_cap_sizer.Add(self.capture_stack_count, 0, wx.ALL|wx.EXPAND, 0)
+        anal_sizer = wx.BoxSizer(wx.VERTICAL)
+        anal_sizer.Add(self.anal_tools_l, 0, wx.ALL|wx.EXPAND, 0)
+        anal_sizer.Add(stack_cap_sizer, 0, wx.ALL|wx.EXPAND, 0)
+        anal_sizer.Add(self.set_style_cb, 0, wx.ALL|wx.EXPAND, 0)
 
         # main sizer
         main_sizer = wx.BoxSizer(wx.VERTICAL)
@@ -9973,8 +9988,11 @@ class camconf_ctrl_pnl(wx.Panel):
         main_sizer.Add(take_single_photo_btns_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 0)
         main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.Add(range_sizer, 0, wx.ALL, 0)
+        main_sizer.Add(self.use_range_combine, 0, wx.ALL|wx.EXPAND, 0)
         main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.Add(compare_sizer, 0, wx.ALL, 0)
+        main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
+        main_sizer.Add(anal_sizer, 0, wx.ALL, 0)
         self.SetSizer(main_sizer)
 
 
@@ -10139,6 +10157,7 @@ class camconf_ctrl_pnl(wx.Panel):
         if cam_opt == "fswebcam":
             cam_additional = MainApp.camconf_info_pannel.extra_cmds_string_fs_tb.GetValue()
         elif cam_opt == "uvccapture":
+            print(" !!! uvcapture doesn't yet use additional commands fix ASAP")
             cam_additional = "link to text control for uvc opts here please" # .GetValue()
         else:
             print("!!!! YOU FORGOT TO SET UP OPTIONS HANDLING FOR THIS CAMERA CAPTURE TOOL")
@@ -10190,6 +10209,52 @@ class camconf_ctrl_pnl(wx.Panel):
         shutil.copy(file_to_set, compare_path)
         shared_data.camcomf_compare_image = compare_path
 
+    def cap_stack_click(self, e):
+        # THIS IS HERE FOR TESTING - REMOVE WHEN DONE
+        module_name = "image_combine"
+        if module_name in sys.modules:
+            del sys.modules[module_name]
+        import image_combine
+        #
+        pic_amount = int(self.capture_stack_count.GetValue())
+        # take photos and add path to a list
+        # read current settings
+        cam_set = self.cam_cb.GetValue()
+        cam_opt = self.webcam_cb.GetValue()
+        cam_b = MainApp.camconf_info_pannel.tb_b.GetValue()
+        cam_c = MainApp.camconf_info_pannel.tb_c.GetValue()
+        cam_s = MainApp.camconf_info_pannel.tb_s.GetValue()
+        cam_g = MainApp.camconf_info_pannel.tb_g.GetValue()
+        cam_x = MainApp.camconf_info_pannel.tb_x.GetValue()
+        cam_y = MainApp.camconf_info_pannel.tb_y.GetValue()
+        opts_test_str = MainApp.camconf_info_pannel.setting_string_tb.GetValue()
+        cam_additional = self.get_camopt_spesific_additional_cmds()
+        #
+        filename_list = []
+        for x in range(0, pic_amount):
+            filename = "test_noise_" + str(x) + ".jpg"
+            info, remote_img_path = self.take_test_image(cam_s, cam_c, cam_g, cam_b, cam_x, cam_y, cam_set, cam_opt, filename, None, None, cam_additional)
+            filename_list.append(remote_img_path)
+        # download photos to local temp folder
+        local_filenames = []
+        for photo_path in filename_list:
+            picture_name = photo_path.split("/")[-1]
+            local_temp_img_path = os.path.join("temp", picture_name)
+            print("  - Downloading " + picture_name)
+            img_path = localfiles_ctrl_pnl.download_file_to_folder(MainApp.localfiles_ctrl_pannel, photo_path, local_temp_img_path)
+            local_base_path = localfiles_info_pnl.local_path_txt.GetLabel()
+            local_path = os.path.join(local_base_path, local_temp_img_path)
+            local_filenames.append(local_path)
+
+        # combine image to show noise and movement
+        style = self.set_style_cb.GetValue()
+        output_path = os.path.join(local_base_path, "temp/combined.jpg")
+        img_to_show = image_combine.multi_combine(local_filenames, style, output_path)
+        # img_to_show = image_combine.combine_diff(local_filenames)
+        #img_to_show.save(output_path)
+        # display image on the screen
+        self.show_image_onscreen(img_to_show, "Combined difference of " + str(pic_amount) + " images.")
+
 
     def take_saved_set_click(self, e):
         settings_file = MainApp.camconf_info_pannel.camconf_path_tc.GetValue()
@@ -10215,7 +10280,7 @@ class camconf_ctrl_pnl(wx.Panel):
         self.show_image_onscreen(img_path, label)
 
 
-    def take_set_click(self, e):
+    def take_set_click(self, e, filename="test_settings.jpg"):
         # take using the settings currently displayed on the screen
         cam_set = self.cam_cb.GetValue()
         cam_opt = self.webcam_cb.GetValue()
@@ -10236,7 +10301,7 @@ class camconf_ctrl_pnl(wx.Panel):
             if cam_opt == "fswebcam":
                 self.install_fswebcam()
         else:
-            local_temp_img_path = os.path.join("temp", "test_settings.jpg")
+            local_temp_img_path = os.path.join("temp", filename)
             img_path = localfiles_ctrl_pnl.download_file_to_folder(MainApp.localfiles_ctrl_pannel, remote_img_path, local_temp_img_path)
             # display on screen
             label = "Image taken using local settings"
@@ -10261,10 +10326,14 @@ class camconf_ctrl_pnl(wx.Panel):
         range_start = self.range_start_tc.GetValue()
         range_end =self.range_end_tc.GetValue()
         range_every = self.range_every_tc.GetValue()
+        if range_opt == "" or range_start == "" or range_end == "" or range_every == "":
+            print(" - Need to select range options before creating a range.")
+            return None
         range_photo_set = []
         outfolder= '/home/' + pi_link_pnl.target_user + '/Pigrow/temp/'
+        local_base_path = localfiles_info_pnl.local_path_txt.GetLabel()
         #cycle through the selected range taking a photo at each point and adding the remote path to range_photo_set
-        for changing_range in range(int(range_start), int(range_end), int(range_every)):
+        for changing_range in range(int(range_start), int(range_end) + int(range_every), int(range_every)):
             outfile = outfolder + 'range_' + str(changing_range) + '.jpg'
             if range_opt == 'brightness':
                 info, remote_img_path = self.take_test_image(cam_s, cam_c, cam_g, str(changing_range), cam_x, cam_y, cam_set, cam_opt, outfile, None, None, cam_additional)
@@ -10279,12 +10348,21 @@ class camconf_ctrl_pnl(wx.Panel):
             range_photo_set.append(remote_img_path)
         # download all the images in the range_photo_set
         self.clear_picture_area()
+        local_images = []
         for photo_path in range_photo_set:
             picture_name = photo_path.split("/")[-1]
             local_temp_img_path = os.path.join("temp", picture_name)
             print("  - Downloading " + picture_name)
             img_path = localfiles_ctrl_pnl.download_file_to_folder(MainApp.localfiles_ctrl_pannel, photo_path, local_temp_img_path)
-            self.show_image_onscreen(img_path, picture_name, no_clear=True)
+            local_path = os.path.join(local_base_path, local_temp_img_path)
+            local_images.append(local_path)
+            if not self.use_range_combine.GetValue() == True:
+                self.show_image_onscreen(img_path, picture_name, no_clear=True)
+        if self.use_range_combine.GetValue() == True:
+            style = self.set_style_cb.GetValue()
+            output_path = os.path.join(local_base_path, "temp/combined.jpg")
+            img_to_show = image_combine.multi_combine(local_images, style, output_path)
+            self.show_image_onscreen(img_to_show, "Combined Image")
 
 
     def create_temp_picamcap_settings(self, temp_picamcap_settings_path, s_val, c_val, g_val, b_val, x_dim, y_dim, cam_opt, cam_num):
