@@ -267,7 +267,8 @@ def get_module_options(module_prefix, m_folder="graph_modules"):
 ## Place for persistent stuff
 class shared_data:
     def __init__(self):
-        #This is a temporary fudge soon to be cleaned and used more widely
+        # Connection settings
+        shared_data.ssh_port = 22
         #
         ## settings
         #
@@ -316,6 +317,40 @@ class shared_data:
         shared_data.item_title_font = wx.Font(16, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
         shared_data.info_font = wx.Font(14, wx.MODERN, wx.ITALIC, wx.NORMAL)
         shared_data.large_info_font = wx.Font(16, wx.MODERN, wx.ITALIC, wx.NORMAL)
+
+    class settings_dialog(wx.Dialog):
+        '''
+        Dialog box for changing the gui settings
+        #
+        dbox = shared_data.settings_dialog(None)
+        dbox.ShowModal()
+        dbox.Destroy()
+        #
+        '''
+        def __init__(self, parent):
+            wx.Dialog.__init__(self, parent, title="Remote Gui Settings")
+            # SSH Settings
+            self.sshport_l = wx.StaticText(self, label='SSH Port')
+            self.ssh_port_tc = wx.TextCtrl(self, -1, str(shared_data.ssh_port))
+            # Buttons
+            btn = wx.Button(self, wx.ID_OK)
+            cancel_btn = wx.Button(self, wx.ID_CANCEL)
+            btn.Bind(wx.EVT_BUTTON, self.ok_click)
+            # Sizers
+            sshport_sizer = wx.BoxSizer(wx.HORIZONTAL)
+            sshport_sizer.Add(self.sshport_l, 0, wx.ALL, 5)
+            sshport_sizer.Add(self.ssh_port_tc, 0, wx.ALL, 5)
+            btnsizer = wx.BoxSizer(wx.HORIZONTAL)
+            btnsizer.Add(btn, 0, wx.ALL, 5)
+            btnsizer.Add((5,-1), 0, wx.ALL, 5)
+            btnsizer.Add(cancel_btn, 0, wx.ALL, 5)
+            main_sizer = wx.BoxSizer(wx.VERTICAL)
+            main_sizer.Add(sshport_sizer, 0, wx.EXPAND|wx.ALL, 5)
+            main_sizer.Add(btnsizer, 0, wx.ALL, 5)
+            self.SetSizerAndFit(main_sizer)
+        def ok_click(self, e):
+            shared_data.ssh_port = int(self.ssh_port_tc.GetValue())
+            self.Destroy()
 
 #
 #
@@ -371,6 +406,9 @@ class system_ctrl_pnl(wx.Panel):
         self.run_cmd_on_pi_btn.Bind(wx.EVT_BUTTON, self.run_cmd_on_pi_click)
         self.edit_boot_config_btn = wx.Button(self, label='Edit /boot/config.txt')
         self.edit_boot_config_btn.Bind(wx.EVT_BUTTON, self.edit_boot_config_click)
+        # gui settings
+        self.gui_settings_btn = wx.Button(self, label='GUI Settings')
+        self.gui_settings_btn.Bind(wx.EVT_BUTTON, self.gui_settings_click)
 
         # Sizers
         power_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -406,7 +444,13 @@ class system_ctrl_pnl(wx.Panel):
         main_sizer.Add(self.remove_1wire_btn, 0, wx.ALL|wx.ALIGN_RIGHT, 3)
         main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(self.gui_settings_btn, 0, wx.ALL, 3)
         self.SetSizer(main_sizer)
+
+    def gui_settings_click(self, e):
+        dbox = shared_data.settings_dialog(None)
+        dbox.ShowModal()
+        dbox.Destroy()
 
     # 1Wire - ds18b20
     def find_ds18b20_devices(self):
@@ -6112,7 +6156,7 @@ class localfiles_ctrl_pnl(wx.Panel):
         if not os.path.isdir(without_filename):
             os.makedirs(without_filename)
             #print("made folder " + str(without_filename))
-        port = 22
+        port = shared_data.ssh_port
         print("  - connecting transport pipe... " + pi_link_pnl.target_ip + " port:" + str(port))
         print("    to  download " + remote_file + " to " + local_path)
         ssh_tran = paramiko.Transport((pi_link_pnl.target_ip, port))
@@ -6127,7 +6171,7 @@ class localfiles_ctrl_pnl(wx.Panel):
     def upload_file_to_folder(self, local_path, remote_path):
         # Copies a folder from the local machine onto the pigrow
         # local_path and remote_path should be full and explicit paths
-        port = 22
+        port = shared_data.ssh_port
         print(("  - connecting transport pipe... " + pi_link_pnl.target_ip + " port:" + str(port)))
         print(("    to  upload " + local_path + " to " + remote_path))
         ssh_tran = paramiko.Transport((pi_link_pnl.target_ip, port))
@@ -6191,7 +6235,7 @@ class file_download_dialog(wx.Dialog):
                 file_to_save.write(cron_text)
         ## Downloading files from the pi
         # connecting the sftp pipe
-        port = 22
+        port = shared_data.ssh_port
         if not len(pi_link_pnl.target_ip.split(".")) == 4:
             import socket
             sock = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
@@ -6357,7 +6401,7 @@ class upload_dialog(wx.Dialog):
     def start_upload_click(self, e):
         files_to_upload  = []
         ## connecting the sftp pipe
-        port = 22
+        port = shared_data.ssh_port
         ssh_tran = paramiko.Transport((pi_link_pnl.target_ip, port))
         print(("  - connecting transport pipe... " + pi_link_pnl.target_ip + " port:" + str(port)))
         ssh_tran.connect(username=pi_link_pnl.target_user, password=pi_link_pnl.target_pass)
@@ -15182,7 +15226,7 @@ class pi_link_pnl(wx.Panel):
             while True:
                 print(("Trying to connect to " + host))
                 try:
-                    ssh.connect(host, username=pi_link_pnl.target_user, password=pi_link_pnl.target_pass, timeout=3)
+                    ssh.connect(host, port=shared_data.ssh_port, username=pi_link_pnl.target_user, password=pi_link_pnl.target_pass, timeout=3)
                     MainApp.status.write_bar("Connected to " + host)
                     print(("#sb# Connected to " + host))
                     log_on_test = True
@@ -15225,7 +15269,7 @@ class pi_link_pnl(wx.Panel):
             pi_link_pnl.target_user = self.tb_user.GetValue()
             pi_link_pnl.target_pass = self.tb_pass.GetValue()
             try:
-                ssh.connect(pi_link_pnl.target_ip, username=pi_link_pnl.target_user, password=pi_link_pnl.target_pass, timeout=3)
+                ssh.connect(pi_link_pnl.target_ip, port=shared_data.ssh_port, username=pi_link_pnl.target_user, password=pi_link_pnl.target_pass, timeout=3)
                 MainApp.status.write_bar("Connected to " + pi_link_pnl.target_ip)
                 print("#sb# Connected to " + pi_link_pnl.target_ip)
                 log_on_test = True
