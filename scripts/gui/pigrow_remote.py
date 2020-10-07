@@ -365,11 +365,13 @@ class system_ctrl_pnl(wx.Panel):
         self.system_side_label = wx.StaticText(self,  label='System')
         self.i2c_side_label = wx.StaticText(self,  label='I2C')
         self.onewire_side_label = wx.StaticText(self,  label='1Wire')
+        self.picam_label = wx.StaticText(self,  label='Picam')
         self.tab_label.SetFont(shared_data.sub_title_font)
         self.pigrow_side_label.SetFont(shared_data.sub_title_font)
         self.system_side_label.SetFont(shared_data.sub_title_font)
         self.i2c_side_label.SetFont(shared_data.sub_title_font)
         self.onewire_side_label.SetFont(shared_data.sub_title_font)
+        self.picam_label.SetFont(shared_data.sub_title_font)
         # Start drawing the UI elements
         # tab info
         self.read_system_btn = wx.Button(self, label='Read System Info')
@@ -406,6 +408,11 @@ class system_ctrl_pnl(wx.Panel):
         self.run_cmd_on_pi_btn.Bind(wx.EVT_BUTTON, self.run_cmd_on_pi_click)
         self.edit_boot_config_btn = wx.Button(self, label='Edit /boot/config.txt')
         self.edit_boot_config_btn.Bind(wx.EVT_BUTTON, self.edit_boot_config_click)
+        # Enable / Disable Camera
+        self.enable_cam_btn = wx.Button(self, label='Enable')
+        self.enable_cam_btn.Bind(wx.EVT_BUTTON, self.enable_cam_click)
+        self.disable_cam_btn = wx.Button(self, label='Disable')
+        self.disable_cam_btn.Bind(wx.EVT_BUTTON, self.disable_cam_click)
         # gui settings
         self.gui_settings_btn = wx.Button(self, label='GUI Settings')
         self.gui_settings_btn.Bind(wx.EVT_BUTTON, self.gui_settings_click)
@@ -420,6 +427,13 @@ class system_ctrl_pnl(wx.Panel):
         onewire_sizer = wx.BoxSizer(wx.HORIZONTAL)
         onewire_sizer.Add(self.find_1wire_btn, 0, wx.ALL|wx.EXPAND, 3)
         onewire_sizer.Add(self.add_1wire_btn, 0, wx.ALL|wx.EXPAND, 3)
+        one_wire_con_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        one_wire_con_sizer.Add(self.edit_1wire_btn, 0, wx.ALL|wx.EXPAND, 3)
+        one_wire_con_sizer.Add(self.remove_1wire_btn, 0, wx.ALL|wx.EXPAND, 3)
+        picam_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        picam_sizer.Add(self.picam_label, 0, wx.ALL|wx.EXPAND, 3)
+        picam_sizer.Add(self.enable_cam_btn, 0, wx.ALL|wx.EXPAND, 3)
+        picam_sizer.Add(self.disable_cam_btn, 0, wx.ALL|wx.EXPAND, 3)
         main_sizer = wx.BoxSizer(wx.VERTICAL)
         main_sizer.Add(self.tab_label, 0, wx.ALL|wx.EXPAND, 3)
         main_sizer.Add(self.read_system_btn, 0, wx.ALL|wx.EXPAND, 3)
@@ -440,8 +454,9 @@ class system_ctrl_pnl(wx.Panel):
         main_sizer.Add(i2c_sizer, 0, wx.ALL|wx.EXPAND, 3)
         main_sizer.Add(self.onewire_side_label, 0, wx.ALL|wx.EXPAND, 2)
         main_sizer.Add(onewire_sizer, 0, wx.ALL|wx.EXPAND, 3)
-        main_sizer.Add(self.edit_1wire_btn, 0, wx.ALL|wx.ALIGN_RIGHT, 3)
-        main_sizer.Add(self.remove_1wire_btn, 0, wx.ALL|wx.ALIGN_RIGHT, 3)
+        main_sizer.Add(one_wire_con_sizer, 0, wx.ALL|wx.ALIGN_RIGHT, 3)
+        main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
+        main_sizer.Add(picam_sizer, 0, wx.ALL|wx.ALIGN_RIGHT, 3)
         main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.AddStretchSpacer(1)
         main_sizer.Add(self.gui_settings_btn, 0, wx.ALL, 3)
@@ -451,6 +466,20 @@ class system_ctrl_pnl(wx.Panel):
         dbox = shared_data.settings_dialog(None)
         dbox.ShowModal()
         dbox.Destroy()
+
+    def enable_cam_click(self, e):
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo raspi-config nonint do_camera 0")
+        msg = "Raspberry Pi needs to be restarted for changes to take effect, do that now?"
+        dbox = wx.MessageDialog(self, msg, "Reboot Pi?", wx.OK | wx.CANCEL | wx.ICON_QUESTION)
+        answer = dbox.ShowModal()
+        dbox.Destroy()
+        if (answer == wx.ID_OK):
+            out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo reboot now")
+            MainApp.pi_link_pnl.link_with_pi_btn_click("e")
+
+    def disable_cam_click(self, e):
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo raspi-config nonint do_camera 1")
+        print("Picam module disabled.")
 
     # 1Wire - ds18b20
     def find_ds18b20_devices(self):
@@ -993,21 +1022,25 @@ class system_ctrl_pnl(wx.Panel):
         if "detected=" in out:
             out = out.split('detected=')[1].strip()
             if out == "0":
-                print(' - No Picam detected')
-                picam_text = 'No Picam\n'
+                # If no cam detected check if camera module is enabled
+                get_cam, get_error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo raspi-config nonint get_camera")
+                if get_cam.strip() == "1":
+                    picam_text = "Picam Module Not Enabled\n"
+                elif get_cam.strip() == "0":
+                    picam_text = 'Picam Enabled, None detected\n'
+                else:
+                    print(out, error)
+                    picam_text = "Unable to determine if picam module is enabled"
             elif out == "1":
-                print(' - 1 Picam Detected')
                 picam_text = "1 Picam\n"
             elif out == "2":
-                print(' - Dual Picams Detected')
                 picam_text = "Dual Picams\n"
             else:
-                print(' - Multipul Picams detected : ' + out)
                 picam_text = 'Multipul Picams'
         else:
             picam_text = " Command line output did not match expected format, possibly because vcgencmd is not installed"
-            picam_text += " or possibly because your language is set to something other than english, if so please let me know"
-            print(picam_text)
+            picam_text += " or possibly because your language is set to something other than english, if so please let me know."
+        print(picam_text)
         # web camera info
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("ls /dev/video*")
         if "No such file or directory" in error:
@@ -1395,7 +1428,7 @@ class system_info_pnl(wx.Panel):
         #camera details
         camera_title_l = wx.StaticText(self,  label='Camera', size=(25,25))
         camera_title_l.SetFont(shared_data.item_title_font)
-        camera_l = wx.StaticText(self,  label='Detected -')
+        camera_l = wx.StaticText(self,  label=' - ')
         self.sys_camera_info = wx.StaticText(self,  label='--')
         self.sys_camera_info.SetFont(shared_data.info_font)
         # GPIO set up details
@@ -9635,14 +9668,15 @@ class graphing_ctrl_pnl(wx.Panel):
 #
 class camconf_info_pnl(scrolled.ScrolledPanel):
     #
-    #
     def __init__( self, parent ):
         scrolled.ScrolledPanel.__init__ ( self, parent, id = wx.ID_ANY, style = wx.HSCROLL|wx.VSCROLL )
         ## Draw UI elements
         # placing the information boxes
         # top row
         ccf_label = wx.StaticText(self,  label='Camera Config file', size=(150,30))
-        self.camconf_path_tc = wx.TextCtrl(self, value="", size=(400, 30))
+        #self.camconf_path_tc = wx.TextCtrl(self, value="", size=(400, 30))
+        self.camconf_path_tc = wx.ComboBox(self, choices = [], size=(400, 30))
+        self.camconf_path_tc.Bind(wx.EVT_COMBOBOX, MainApp.camconf_ctrl_pannel.read_cam_config_click)
         # Top bar info
         # basic settings - left col
         b_label = wx.StaticText(self,  label='Brightness;')
@@ -9778,6 +9812,20 @@ class camconf_info_pnl(scrolled.ScrolledPanel):
         # set sizers and scrolling
         self.SetSizer(self.main_sizer)
         self.SetupScrolling()
+
+    def seek_cam_configs(self):
+        conf_folder = "/home/" + pi_link_pnl.target_user + "/Pigrow/config/"
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("ls " + str(conf_folder))
+        config_list = out.splitlines()
+        cam_config_list = []
+        self.camconf_path_tc.Clear()
+        for file in config_list:
+            file_name = conf_folder + file.strip()
+            grep_cmd = "grep cam_num= " + file_name
+            out, error = MainApp.localfiles_ctrl_pannel.run_on_pi(grep_cmd)
+            if not out.strip() == "":
+                self.camconf_path_tc.Append(file_name)
+
 
     def put_picam_settings_in_listbox(self, settings_list):
         self.picam_options_list_ctrl.DeleteAllItems()
@@ -9927,7 +9975,7 @@ class camconf_ctrl_pnl(wx.Panel):
     def __init__( self, parent ):
         wx.Panel.__init__ (self, parent, id=wx.ID_ANY, size=(100,-1), style=wx.TAB_TRAVERSAL)
         # read / save cam config button
-        self.read_cam_config_btn = wx.Button(self, label='read cam config')
+        self.read_cam_config_btn = wx.Button(self, label='read config')
         self.read_cam_config_btn.Bind(wx.EVT_BUTTON, self.read_cam_config_click)
         self.save_cam_config_btn = wx.Button(self, label='save to pi')
         self.save_cam_config_btn.Bind(wx.EVT_BUTTON, self.save_cam_config_click)
@@ -10047,7 +10095,7 @@ class camconf_ctrl_pnl(wx.Panel):
                 MainApp.camconf_info_pannel.camconf_path_tc.SetValue(MainApp.config_ctrl_pannel.dirlocs_dict['camera_settings'])
             except:
                 #raise
-                MainApp.camconf_info_pannel.camconf_path_tc.SetValue("/home/" + pi_link_pnl.target_user + "/Pigrow/config.camera_settings.txt")
+                MainApp.camconf_info_pannel.camconf_path_tc.SetValue("/home/" + pi_link_pnl.target_user + "/Pigrow/config/camera_settings.txt")
                 print("Camera config location not set in dirlocs, using default location.")
         # read the settings files for camera config settings
         the_cam_settings_path = MainApp.camconf_info_pannel.camconf_path_tc.GetValue()
@@ -15262,7 +15310,9 @@ class pi_link_pnl(wx.Panel):
             self.link_status_text.SetLabel("-- Disconnected --")
             self.seek_for_pigrows_btn.Enable()
             self.blank_settings()
-            MainApp.welcome_pannel.Show()
+            #MainApp.welcome_pannel.Show()
+            MainApp.view_pnl.view_combo_go("e")
+            MainApp.window_self.Layout()
         else:
             #clear_temp_folder()
             pi_link_pnl.target_ip = self.tb_ip.GetValue()
@@ -15276,6 +15326,7 @@ class pi_link_pnl(wx.Panel):
             except Exception as e:
                 MainApp.status.write_bar("Failed to log on due to; " + str(e))
                 print(("#sb# Failed to log on due to; " + str(e)))
+            # IF connected
             if log_on_test == True:
                 box_name = self.get_box_name()
             else:
@@ -15384,6 +15435,8 @@ class pi_link_pnl(wx.Panel):
             # MainApp.system_ctrl_pannel.read_system_click("event")
             MainApp.config_ctrl_pannel.update_pigrow_setup_pannel_information_click("event")
             MainApp.localfiles_ctrl_pannel.update_local_filelist_click("event")
+            # camera config
+            MainApp.camconf_info_pannel.seek_cam_configs()
         elif log_on_test == False:
             self.link_status_text.SetLabel("unable to connect")
             ssh.close()
@@ -15492,7 +15545,8 @@ class view_pnl(wx.Panel):
         elif display == "User Logs":
             MainApp.user_log_ctrl_pannel.Show()
             MainApp.user_log_info_pannel.Show()
-            #MainApp.sensors_info_pannel.sensor_table.make_sensor_table(MainApp.sensors_info_pannel.sensor_table, 'e')
+        elif display == "":
+            MainApp.welcome_pannel.Show()
         else:
             print("!!! Option not recognised, this is a programming error! sorry")
             print("          message me and tell me about it and i'll be very thankful")
