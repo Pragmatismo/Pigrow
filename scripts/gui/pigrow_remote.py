@@ -15423,9 +15423,8 @@ class pi_link_pnl(wx.Panel):
         pi_link_pnl.boxname = box_name  #to maintain persistance if needed elsewhere later
         if not box_name == None:
             self.link_status_text.SetLabel("linked with - " + str(pi_link_pnl.boxname))
-            MainApp.welcome_pannel.Hide()
-            MainApp.config_ctrl_pannel.Show()
-            MainApp.config_info_pannel.Show()
+            MainApp.view_pnl.view_cb.SetValue("Pigrow Setup")
+            MainApp.view_pnl.view_combo_go("e")
             self.link_with_pi_btn.SetLabel('Disconnect')
             self.tb_ip.Disable()
             self.tb_user.Disable()
@@ -15443,10 +15442,8 @@ class pi_link_pnl(wx.Panel):
             ssh.close()
         if log_on_test == True and box_name == None:
             self.link_status_text.SetLabel("No Pigrow config file")
-            MainApp.welcome_pannel.Hide()
-            MainApp.system_ctrl_pannel.Show()
-            MainApp.system_info_pannel.Show()
-            MainApp.window_self.Layout()
+            MainApp.view_pnl.view_cb.SetValue("System Config")
+            MainApp.view_pnl.view_combo_go("e")
             MainApp.system_ctrl_pannel.read_system_click("event")
             self.link_with_pi_btn.SetLabel('Disconnect')
             self.tb_ip.Disable()
