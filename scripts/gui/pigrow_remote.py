@@ -15311,6 +15311,7 @@ class pi_link_pnl(wx.Panel):
             self.seek_for_pigrows_btn.Enable()
             self.blank_settings()
             #MainApp.welcome_pannel.Show()
+            MainApp.view_pnl.view_cb.SetValue("")
             MainApp.view_pnl.view_combo_go("e")
             MainApp.window_self.Layout()
         else:
