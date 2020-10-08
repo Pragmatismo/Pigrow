@@ -9440,8 +9440,10 @@ class graphing_ctrl_pnl(wx.Panel):
             del sys.modules[module_name]
         # import the make_graph function as a module
         exec("from " + module_name + " import make_datawall", globals())
-        datawall_path = module_name+".png"
+        base_filename = module_name+".png"
+        datawall_path = os.path.join(localfiles_info_pnl.local_path, base_filename)
         make_datawall(made_graph_list, datawall_path, shared_data.list_of_datasets)
+        MainApp.graphing_info_pannel.show_local_graph(datawall_path)
 
 
     def switch_log_graph_go(self, e):
