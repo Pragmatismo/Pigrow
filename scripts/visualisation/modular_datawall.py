@@ -1,0 +1,259 @@
+#!/usr/bin/python3
+# encoding: utf-8
+import sys
+import datetime
+import time
+import os
+homedir = os.getenv("HOME")
+graph_modules_path = os.path.join(homedir, "Pigrow/scripts/gui/graph_modules/")
+sys.path.append(graph_modules_path)
+
+def read_graph_preset(preset_name):
+    '''
+    Reads a graph preset file and returns a dictionary of settings.
+    '''
+    print(" - Loading Preset " + preset_name)
+    # read file
+    graph_presets_path = os.path.join(homedir, "Pigrow/scripts/gui/graph_presets/")
+    graph_preset_path = os.path.join(graph_presets_path, preset_name)
+    with open(graph_preset_path) as f:
+        graph_presets = f.read()
+    graph_presets = graph_presets.splitlines()
+    # extract settings
+    preset_settings = {}
+    for setting in graph_presets:
+        if "=" in setting:
+            split_pos = setting.find("=")
+            set_key = setting[:split_pos].strip()
+            set_val = setting[split_pos + 1:].strip()
+            preset_settings[set_key] = set_val
+    return preset_settings
+
+def load_log(preset_settings):
+    print(" - Reading log " + preset_settings['log_path'])
+    # Load data from the log
+    log_base_path = os.path.join(homedir, "Pigrow/logs/")
+    log_to_load = os.path.join(log_base_path, preset_settings['log_path'])
+    with open(log_to_load) as f:
+        log_to_parse = f.read()
+    log_to_parse = log_to_parse.splitlines()
+    if len(log_to_parse) == 0:
+        print(" --- Log file is empty")
+    return log_to_parse
+
+def parse_log(log_to_parse, preset_settings):
+    print(" - Extracting data from log " + preset_settings['log_path'])
+    # data positions
+    split_chr      = preset_settings["split_chr"]
+    date_pos       = int(preset_settings["date_pos"])
+    date_split     = preset_settings["date_split"]
+    date_split_pos = int(preset_settings["date_split_pos"])
+    # value and key positions
+    value_split    = preset_settings["value_split"]
+    value_split_pos = int(preset_settings["value_split_pos"])
+    if value_split_pos == 0:
+        t_value_pos = 1
+        t_key_pos = 0
+    else:
+        t_value_pos = 0
+        t_key_pos = 1
+    key_text       = preset_settings["key_pos"]
+    # optional settings
+    #   removing string from the value
+    if "value_rem" in preset_settings:
+        rem_from_val = preset_settings["value_rem"]
+    else:
+        rem_from_val = ""
+    #   time and date limiting
+    if "limit_date" in preset_settings:
+        limit_date = preset_settings["limit_date"] #day, week ,etc
+    if "end_time" in preset_settings:
+        last_datetime = preset_settings["end_time"]
+        last_datetime = datetime.datetime.strptime(last_datetime, '%Y-%m-%d %H:%M:%S')
+    if "start_time" in preset_settings:
+        first_datetime = preset_settings["start_time"]
+        first_datetime = datetime.datetime.strptime(first_datetime, '%Y-%m-%d %H:%M:%S')
+    if "key_manual" in preset_settings:
+        key_manual = preset_settings["key_manual"]
+    else:
+        key_manual = ""
+    # check if we should limit to a certain date range
+    limit_by_date = False # currently not written so setting to false
+
+    # cycle through each line and fill the lists
+    date_list = []
+    value_list = []
+    key_list = []
+    for line in log_to_parse:
+        date = ""
+        value = ""
+        key = ""
+        if split_chr in line:
+            line_items = line.split(split_chr)
+            for item in line_items:
+                # date - by positional argument only at the moment
+                date = line_items[date_pos]
+                if not date_split == "":
+                    date = date.split(date_split)[date_split_pos]
+                if "." in date:
+                    date = date.split(".")[0]
+                # Check date is valid and ignore if not
+                try:
+                    date = datetime.datetime.strptime(date, '%Y-%m-%d %H:%M:%S')
+                    if limit_by_date == True:
+                        if date > last_datetime or date < first_datetime:
+                            date = ""
+                except:
+                    #raise
+                    print("! Date not valid -" + str(date))
+                    date = ""
+                #value
+                if value_split in item:
+                    item_items = item.split(value_split)
+                    if item_items[t_key_pos] == key_text:
+                        value = item_items[t_value_pos]
+                        key = item_items[t_key_pos]
+                        # remove from value
+                        if not rem_from_val == "":
+                            value = value.replace(rem_from_val, "")
+                        # check it's a number and convert type to float
+                        try:
+                            value = float(value)
+                        except:
+                            print("! Value not a valid number; " + str(value))
+                            value = ""
+        # set key to manual
+        if not key_manual == "":
+            key = key_manual
+        # add to lists
+        if not date == "" and not value == "" and not key == False:
+            date_list.append(date)
+            value_list.append(value)
+            key_list.append(key)
+    print(" - Found " + str(len(date_list)) + " graphable values.")
+    return [[date_list, value_list, key_list]]
+
+def build_graph(graph_module, log_lists, save_path, graph_settings):
+    print(" - Making log using " + graph_module)
+    print(" ")
+    # import graph_module
+    if not "graph_" in graph_module:
+        graph_module = "graph_" + graph_module
+    exec("from " + graph_module + " import make_graph", globals())
+    #
+    ymax = ""
+    ymin = ""
+    size_h = 12
+    size_v = 9
+    toohot = ""
+    dangerhot = ""
+    toocold = ""
+    dangercold = ""
+    if "ymax" in graph_settings:
+        ymax = graph_settings['ymax']
+    if "ymin" in graph_settings:
+        ymin = graph_settings['ymin']
+    if "size_h" in graph_settings:
+        size_h = int(graph_settings['size_h'])
+    if "size_v" in graph_settings:
+        size_v = int(graph_settings['size_v'])
+    if "toohot" in graph_settings:
+        toohot = graph_settings['toohot']
+    if "dangerhot" in graph_settings:
+        dangerhot = graph_settings['dangerhot']
+    if "toocold" in graph_settings:
+        toocold = graph_settings['toocold']
+    if "dangercold" in graph_settings:
+        dangercold = graph_settings['dangercold']
+    make_graph(log_lists, save_path, ymax, ymin, size_h, size_v, dangerhot, toohot, toocold, dangercold, graph_settings)
+
+def read_datawall_preset(datawall_preset_name):
+    print(" - Reading datawall preset - " + datawall_preset_name)
+    # Load data from the log
+    datawall_base_path = os.path.join(homedir, "Pigrow/scripts/gui/datawall_presets/")
+    datawall_path = os.path.join(datawall_base_path, datawall_preset_name)
+    with open(datawall_path) as f:
+        datawall_file = f.read()
+    datawall_list = datawall_file.splitlines()
+    return datawall_list
+
+def process_datawall(datawall_list):
+    #
+    #preset_settings = {}
+    preset_name = ""
+    graph_module = ''
+    graphable_data = None # list of lists of lists of date,val,key
+    base_save_path = "/home/pragmo/frompigrow/bluebox/test_datawall_"
+    made_graph_list  = []
+
+    #
+    print(" - Creating datawall ")
+    graph_count = 0
+    for line in datawall_list:
+        if line == "load_log":
+            log_to_parse = load_log(preset_settings)
+            graphable_data = parse_log(log_to_parse, preset_settings)
+
+        if line == "make_graph":
+            save_path = base_save_path + str(len(made_graph_list)) + ".png"
+            build_graph(graph_module, graphable_data, save_path, graph_options)
+            made_graph_list.append(save_path)
+
+        # options settings
+        if "=" in line:
+            equals_pos = line.find("=")
+            key = line[:equals_pos].strip()
+            value = line[equals_pos + 1:].strip()
+            # Starting a new graph and clearing everything
+            if key == "graph_name":
+                print( " Datawall - Starting graph - " + value)
+                current_graph = value
+                log_to_parse = ""
+                preset_settings = {}
+                graph_module = ""
+                graphable_data = []
+            # changing settings
+            elif "_" in key:
+                equals_pos = key.find("_")
+                key_type = key[:equals_pos].strip()
+                key_job  = key[equals_pos + 1:].strip()
+                # handling loading of logs
+                if key_type == "log":
+                    if key_job == "preset":
+                        preset_name = value
+                        preset_settings = read_graph_preset(preset_name)
+                        # preset_name = value.split(",")
+                        # for x in preset_name:
+                        #     dw_log_presets.append(x)
+                    if key_job == "setting":
+                        logset_key, logset_value = value.split(":")
+                        preset_settings[logset_key] = logset_value
+                        print(" - Setting log " + logset_key + " to " + logset_value)
+
+                # handling making of graphs
+                if key_type == "graph":
+                    if key_job == "module":
+                        graph_module = value
+                        # read default options from graph module
+                        if not "graph_" in graph_module:
+                            graph_module = "graph_" + graph_module
+                        exec("from " + graph_module + " import read_graph_options", globals())
+                        graph_options = read_graph_options()
+
+                    if key_job == "setting":
+                        graph_key, graph_val = value.split(":")
+                        graph_options[graph_key] = graph_val
+                        print(" - Graph Settings " + value)
+                        #print("     - " + graph_key + " = " + graph_val)
+
+    return made_graph_list
+
+if __name__ == '__main__':
+    print ("-----------------------------------")
+    print ("-----Modular Datawall Maker--------")
+    print ("-----------------------------------")
+    # test graph making
+    datawall_preset_name = "datawall_Selflog.txt"
+    datawall_list = read_datawall_preset(datawall_preset_name)
+    list_of_graphs_made = process_datawall(datawall_list)
+    print(" - Created " + str(len(list_of_graphs_made)) + " graphs")
