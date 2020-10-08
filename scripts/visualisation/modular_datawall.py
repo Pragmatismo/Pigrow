@@ -6,6 +6,8 @@ import time
 import os
 homedir = os.getenv("HOME")
 graph_modules_path = os.path.join(homedir, "Pigrow/scripts/gui/graph_modules/")
+graph_presets_path = os.path.join(homedir, "Pigrow/scripts/gui/graph_presets/")
+datawall_presets_path = os.path.join(homedir, "Pigrow/scripts/gui/datawall_presets/")
 sys.path.append(graph_modules_path)
 
 
@@ -15,7 +17,6 @@ def read_graph_preset(preset_name):
     '''
     print(" - Loading Preset " + preset_name)
     # read file
-    graph_presets_path = os.path.join(homedir, "Pigrow/scripts/gui/graph_presets/")
     graph_preset_path = os.path.join(graph_presets_path, preset_name)
     with open(graph_preset_path) as f:
         graph_presets = f.read()
@@ -250,18 +251,70 @@ def process_datawall(datawall_list):
     return made_graph_list
 
 if __name__ == '__main__':
+    # Load settings from command line arguments
+    datawall_module_name = ""
+    datawall_preset_name = ""
+    datawall_save_path = os.path.join(homedir, "Pigrow/graphs/datawall.png")
+    for argu in sys.argv[1:]:
+        if "=" in argu:
+            thearg = str(argu).split('=')[0]
+            theval = str(argu).split('=')[1]
+            if  thearg == 'preset':
+                datawall_preset_name = theval
+            elif thearg == 'module':
+                datawall_module_name = theval
+            elif thearg == 'out':
+                datawall_save_path = theval
+        elif argu == 'h' or argu == '-h' or argu == 'help' or argu == '--help':
+            print("")
+            print("  preset=")
+            print("      the name of the preset e.g. datawall_Selflog.txt")
+            print("      found in ~/Pigrow/scripts/gui/datawall_presets/")
+            print("  module=")
+            print("      the name of the datwall modul e.g. selflog or datawall_selflog.py")
+            print("      found in ~/Pigrow/scripts/gui/graph_modules/")
+            print(" out=")
+            print("      the full path to the desired location of the created datawall")
+            print("      default is ~/Pigrow/graphs/datawall.png")
+            print("")
+            print(" example:")
+            print("     modular_datawall preset=datawall_selflog.txt module=selflog")
+            sys.exit()
+        elif argu == '-flags':
+            print("preset=")
+            print("module=")
+            print("out=~/Pigrow/graphs/datawall.png")
+            sys.exit()
+    # Preset graph list
+    if datawall_preset_name == "":
+        print("  !!! select a datawall preset using preset=")
+        datawall_preset_list = os.listdir(datawall_presets_path)
+        for item  in datawall_preset_list:
+            if "datawall_" in item:
+                print ("    - " + item.replace("datawall_", "").replace(".txt", ""))
+    elif not "datawall_" in datawall_preset_name:
+        datawall_preset_name = "datawall_" + datawall_preset_name
+    if not datawall_preset_name == "" and not ".txt" in datawall_preset_name:
+        datawall_preset_name = datawall_preset_name + ".txt"
+    # Module
+    if datawall_module_name == "":
+        print("  !!! select a datawall module using module= ")
+        module_list = os.listdir(graph_modules_path)
+        for item  in module_list:
+            if "datawall_" in item:
+                print ("    - " + item.replace("datawall_", "").replace(".py", ""))
+    elif not "datawall_" in datawall_module_name:
+        datawall_module_name = "datawall_" + datawall_module_name
+    datawall_module_name = datawall_module_name.replace(".py", "")
+
+    # Run everything
     print ("-----------------------------------")
     print ("-----Modular Datawall Maker--------")
     print ("-----------------------------------")
     # test graph making
-    datawall_preset_name = "datawall_Selflog.txt"
     datawall_list = read_datawall_preset(datawall_preset_name)
     list_of_graphs_made = process_datawall(datawall_list)
     print(" - Created " + str(len(list_of_graphs_made)) + " graphs")
     # create datawall
-    datawall_module_name = "selflog"
-    if not "datawall_" in datawall_module_name:
-        datawall_module_name = "datawall_" + datawall_module_name
     exec("from " + datawall_module_name + " import make_datawall", globals())
-    datawall_save_path = "/home/pragmo/frompigrow/bluebox/test_datawall_final.png"
     make_datawall(list_of_graphs_made, datawall_save_path, [])
