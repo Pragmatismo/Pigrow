@@ -306,6 +306,10 @@ if __name__ == '__main__':
     elif not "datawall_" in datawall_module_name:
         datawall_module_name = "datawall_" + datawall_module_name
     datawall_module_name = datawall_module_name.replace(".py", "")
+    # check save path folder exists
+    without_filename = os.path.split(datawall_save_path)[0]
+    if not os.path.isdir(without_filename):
+        os.makedirs(without_filename)
 
     # Run everything
     print ("-----------------------------------")
