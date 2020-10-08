@@ -8,6 +8,7 @@ homedir = os.getenv("HOME")
 graph_modules_path = os.path.join(homedir, "Pigrow/scripts/gui/graph_modules/")
 sys.path.append(graph_modules_path)
 
+
 def read_graph_preset(preset_name):
     '''
     Reads a graph preset file and returns a dictionary of settings.
@@ -257,3 +258,10 @@ if __name__ == '__main__':
     datawall_list = read_datawall_preset(datawall_preset_name)
     list_of_graphs_made = process_datawall(datawall_list)
     print(" - Created " + str(len(list_of_graphs_made)) + " graphs")
+    # create datawall
+    datawall_module_name = "selflog"
+    if not "datawall_" in datawall_module_name:
+        datawall_module_name = "datawall_" + datawall_module_name
+    exec("from " + datawall_module_name + " import make_datawall", globals())
+    datawall_save_path = "/home/pragmo/frompigrow/bluebox/test_datawall_final.png"
+    make_datawall(list_of_graphs_made, datawall_save_path, [])
