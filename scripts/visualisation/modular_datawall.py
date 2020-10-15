@@ -6,9 +6,11 @@ import time
 import os
 homedir = os.getenv("HOME")
 graph_modules_path = os.path.join(homedir, "Pigrow/scripts/gui/graph_modules/")
+info_modules_path = os.path.join(homedir, "Pigrow/scripts/gui/info_modules/")
 graph_presets_path = os.path.join(homedir, "Pigrow/scripts/gui/graph_presets/")
 datawall_presets_path = os.path.join(homedir, "Pigrow/scripts/gui/datawall_presets/")
 sys.path.append(graph_modules_path)
+sys.path.append(info_modules_path)
 
 
 def read_graph_preset(preset_name):
@@ -101,7 +103,7 @@ def parse_log(log_to_parse, preset_settings):
                     date = date.split(".")[0]
                 # Check date is valid and ignore if not
                 try:
-                    date = datetime.datetime.strptime(date, '%Y-%m-%d %H:%M:%S')
+                    date = datetime.datetime.strptime(date, '%Y-%m-%d %H:%M:%S.%f')
                     if limit_by_date == True:
                         if date > last_datetime or date < first_datetime:
                             date = ""
@@ -187,6 +189,7 @@ def process_datawall(datawall_list):
     graphable_data = None # list of lists of lists of date,val,key
     base_save_path = "/home/pragmo/frompigrow/bluebox/test_datawall_"
     made_graph_list  = []
+    info_text_list = []
 
     #
     print(" - Creating datawall ")
@@ -247,8 +250,23 @@ def process_datawall(datawall_list):
                         graph_options[graph_key] = graph_val
                         print(" - Graph Settings " + value)
                         #print("     - " + graph_key + " = " + graph_val)
+                if key_type == "info":
+                    if key_job == "read":
+                        print(" - Info module reading " + value)
+                        info_tu = read_info_module(value)
+                        info_text_list.append(info_tu)
 
-    return made_graph_list
+    return made_graph_list, info_text_list
+
+def read_info_module(info_module_name):
+    # check name is in module format
+    if not "info_" in info_module_name:
+        info_module_name = "info_" + info_module_name
+    info_module_name = info_module_name.replace(".txt", "")
+    # import and run module
+    exec("from " + info_module_name + " import show_info", globals())
+    info_text = show_info()
+    return [info_module_name, info_text]
 
 if __name__ == '__main__':
     # Load settings from command line arguments
@@ -317,8 +335,10 @@ if __name__ == '__main__':
     print ("-----------------------------------")
     # test graph making
     datawall_list = read_datawall_preset(datawall_preset_name)
-    list_of_graphs_made = process_datawall(datawall_list)
+    list_of_graphs_made, info_text_list = process_datawall(datawall_list)
     print(" - Created " + str(len(list_of_graphs_made)) + " graphs")
+    print(" - read " + str(len(info_text_list)) + " pieces of information")
     # create datawall
-    exec("from " + datawall_module_name + " import make_datawall", globals())
-    make_datawall(list_of_graphs_made, datawall_save_path, [])
+    if not datawall_module_name == "":
+        exec("from " + datawall_module_name + " import make_datawall", globals())
+        make_datawall(list_of_graphs_made, datawall_save_path, [], infolist=info_text_list)
