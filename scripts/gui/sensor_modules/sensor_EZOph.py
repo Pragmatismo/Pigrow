@@ -132,7 +132,7 @@ class sensor_config():
         return text_info
 
     def read_slope(location):
-        cmd = "Slope"
+        cmd = "Slope,?"
         text_slope = sensor_config.send_command(location, cmd)
         if "Success" in text_slope:
             text_slope = text_stope.split("?Slope,")[1]
