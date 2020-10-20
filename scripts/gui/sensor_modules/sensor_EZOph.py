@@ -139,7 +139,7 @@ class sensor_config():
             acid_dif = text_slope.split(",")[0]
             base_dif = text_slope.split(",")[1]
             voltage_offset = text_slope.split(",")[2]
-            text_slope += acid_dif + " \nacid calibration match to 'ideal' probe.\n"
+            text_slope = acid_dif + " \nacid calibration match to 'ideal' probe.\n"
             text_slope += base_dif + " base calibration match to 'ideal' probe.\n"
             text_slope += voltage_offset + "  millivolts the zero point is off from true 0"
         print(text_slope)
