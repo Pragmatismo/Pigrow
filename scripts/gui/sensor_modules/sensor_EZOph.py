@@ -135,11 +135,11 @@ class sensor_config():
         cmd = "Slope,?"
         text_slope = sensor_config.send_command(location, cmd)
         if "Success" in text_slope:
-            text_slope = text_stope.split("?SLOPE,")[1]
+            text_slope = text_slope.split("?SLOPE,")[1]
             acid_dif = text_slope.split(",")[0]
             base_dif = text_slope.split(",")[1]
             voltage_offset = text_slope.split(",")[2]
-            text_slope = acid_dif + " acid calibration match to 'ideal' probe.\n"
+            text_slope += acid_dif + " \nacid calibration match to 'ideal' probe.\n"
             text_slope += base_dif + " base calibration match to 'ideal' probe.\n"
             text_slope += voltage_offset + "  millivolts the zero point is off from true 0"
         print(text_slope)
