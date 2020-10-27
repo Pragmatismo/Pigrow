@@ -128,6 +128,9 @@ for argu in sys.argv[1:]:
         from picamera import PiCamera
         set_picam(x_dim, y_dim, b_val, c_val, s_val, g_val)
 
+    if thearg == "raspistill":
+        cam_to_use = "raspistill"    
+
 
 
 print(" Saving files to, " + str(cappath))
