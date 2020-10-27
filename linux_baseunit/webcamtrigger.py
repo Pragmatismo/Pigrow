@@ -110,7 +110,7 @@ for argu in sys.argv[1:]:
 
     if thearg == 'l' or thearg == 'looped':
         try:
-            num = int(str(argu).split('=')[1])
+            num = float(str(argu).split('=')[1])
         except:
             print("No speed supplied, taking every 10")
             num = 10
