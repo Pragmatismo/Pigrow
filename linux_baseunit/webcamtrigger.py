@@ -75,6 +75,9 @@ def photo():
         os.system("uvccapture "+additonal_commands+" -S"+s_val+" -C" + c_val + " -G"+ g_val +" -B"+ b_val +" -x"+str(x_dim)+" -y"+str(y_dim)+" -v -t0 -o"+filename)
     elif cam_to_use == "picam":
         photo.camera.capture(filename)
+    elif cam_to_use == "raspistill":
+        os.system("raspistill -o " + filename)
+
     print("Image taken and saved to "+filename)
     #os.system("gpicview " + cappath+filename)
     if pi_paper == True:
