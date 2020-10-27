@@ -9,9 +9,11 @@ print("")
 print(" USE l=3 to take a photo every 3 somethings")
 print("      t  to take triggered photos ")
 print("     cap=" + homedir + "/folder/ to set caps path other than current dir")
+print("      picam to use picam to take photos ")
 print("      np to stop it trying to change the wallpaper")
 print("   EXIT using ctrl-c or whatever")
 pi_paper = True  #updates pi wall paper, use -nopaper to turn it off.
+cam_to_use = "webcam"
 s_val = "20"
 c_val = "20"
 g_val = "20"
@@ -51,15 +53,32 @@ except:
     print("Run cam_config.py to create one")
 
 # take and save photo
+def set_picam(x_dim, y_dim, b_val, c_val, s_val, g_val):
+    try:
+        photo.camera = PiCamera()
+        photo.camera.resolution = (int(x_dim),int(y_dim))
+        photo.camera.brightness = int(b_val)
+        photo.camera.contrast   = int(c_val)
+        photo.camera.saturation = int(s_val)
+        photo.camera.iso        = int(g_val)
+        time.sleep(2)
+        #camera.close()
+        #return saved_filename
+    except:
+        print("!!!  Using Picam failed  !!!")
+        raise
 def photo():
     timenow = time.time()
     timenow = str(timenow)[0:10]
-    filename= "cap_"+str(timenow)+".jpg"
-    os.system("uvccapture "+additonal_commands+" -S"+s_val+" -C" + c_val + " -G"+ g_val +" -B"+ b_val +" -x"+str(x_dim)+" -y"+str(y_dim)+" -v -t0 -o"+cappath+filename)
-    print("Image taken and saved to "+cappath+filename)
+    filename = cappath + "cap_"+str(timenow)+".jpg"
+    if cam_to_use == "webcam":
+        os.system("uvccapture "+additonal_commands+" -S"+s_val+" -C" + c_val + " -G"+ g_val +" -B"+ b_val +" -x"+str(x_dim)+" -y"+str(y_dim)+" -v -t0 -o"+filename)
+    elif cam_to_use == "picam":
+        photo.camera.capture(filename)
+    print("Image taken and saved to "+filename)
     #os.system("gpicview " + cappath+filename)
     if pi_paper == True:
-        os.system("export DISPLAY=:0 && pcmanfm --set-wallpaper "+cappath+filename)
+        os.system("export DISPLAY=:0 && pcmanfm --set-wallpaper "+filename)
 
 def TRIGGERED():
     while True:
@@ -99,6 +118,14 @@ for argu in sys.argv[1:]:
 
     if thearg == 't' or thearg == 'TRIGGERED':
         trig = True
+
+    if thearg == "picam":
+        cam_to_use = "picam"
+        print(" Using Picam")
+        from picamera import PiCamera
+        set_picam(x_dim, y_dim, b_val, c_val, s_val, g_val)
+
+
 
 print(" Saving files to, " + str(cappath))
 
