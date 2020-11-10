@@ -796,6 +796,9 @@ class system_ctrl_pnl(wx.Panel):
             print((out, error))
     # system checks
     def check_pi_diskspace(self):
+        #
+        # #  This is now replicated in info_diskusage.py
+        #
         #check pi for hdd/sd card space
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("df -l /")
         if len(out) > 1:
@@ -812,6 +815,9 @@ class system_ctrl_pnl(wx.Panel):
             return "Error", "Error", "Error", "Error"
 
     def check_pi_os(self):
+        #
+        # #  This is now replicated in info_os_version.py
+        #
         # check what os the pi is running
         os_name = "undetermined"
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("cat /etc/os-release")
@@ -821,6 +827,9 @@ class system_ctrl_pnl(wx.Panel):
         return os_name
 
     def check_for_pigrow_folder(self, hdd_used="unknown"):
+        #
+        # #  This is now replicated in info_check_pigrow_folder.py
+        #
         #check if pigrow folder exits and read size
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("du -s ~/Pigrow/")
         if not "No such file or directory" in error:
@@ -2884,11 +2893,12 @@ class config_ctrl_pnl(wx.Panel):
 
     def update_pigrow_setup_pannel_information_click(self, e):
         print("reading pigrow and updating local config info")
-        # clear dictionaries and tables
+        # define dictionaries
         self.dirlocs_dict = {}
         self.config_dict = {}
         self.gpio_dict = {}
         self.gpio_on_dict = {}
+        # clear tables
         MainApp.config_info_pannel.gpio_table.DeleteAllItems()
         # define file locations
         pigrow_config_folder = "/home/" + pi_link_pnl.target_user + "/Pigrow/config/"
@@ -9347,8 +9357,8 @@ class graphing_ctrl_pnl(wx.Panel):
         for preset in dw_log_presets:
             self.graph_presets_cb.SetValue(preset.strip())
             self.graph_preset_cb_go("e")
-            # do settings
-            self.set_data_extraction_settings_from_text(dw_log_settings)
+            # do settings - done in graph presets cb go
+            #self.set_data_extraction_settings_from_text(dw_log_settings)
             # load log
             self.set_log_click("e")
 
@@ -9438,7 +9448,7 @@ class graphing_ctrl_pnl(wx.Panel):
         # unload the old module to bring in any changes to the script since it was loaded
         if module_name in sys.modules:
             del sys.modules[module_name]
-        # import the make_graph function as a module
+        # import and run the make_graph function as a module
         exec("from " + module_name + " import make_datawall", globals())
         base_filename = module_name+".png"
         datawall_path = os.path.join(localfiles_info_pnl.local_path, base_filename)
@@ -15197,6 +15207,136 @@ class user_log_ctrl_pnl(wx.Panel):
         MainApp.user_log_info_pannel.user_log_input_num.Hide()
         MainApp.user_log_info_pannel.user_log_input_text.Hide()
 
+#
+#
+## Connection Tools
+#
+#
+
+class communication_ctrl_pnl(wx.Panel):
+    def __init__(self, parent):
+        wx.Panel.__init__ (self, parent, id=wx.ID_ANY, style=wx.TAB_TRAVERSAL)
+        title_l = wx.StaticText(self,  label='Communication')
+        #
+        self.boop_btn = wx.Button(self, label='boop')
+        self.boop_btn.Bind(wx.EVT_BUTTON, self.boop_btn_click)
+
+        main_sizer = wx.BoxSizer(wx.VERTICAL)
+        main_sizer.Add(title_l, 0, wx.ALIGN_CENTER_HORIZONTAL, 3)
+        main_sizer.Add(self.boop_btn, 0, wx.ALL, 3)
+        self.SetSizer(main_sizer)
+
+    def boop_btn_click(self, e):
+        print("--- BOOP ---")
+        # reddit
+        #    log in
+        if "my_client_id" in MainApp.config_ctrl_pannel.dirlocs_dict:
+            MainApp.communication_info_pannel.reddit_client_tc.SetValue(MainApp.config_ctrl_pannel.dirlocs_dict["my_client_id"])
+        if "my_client_secret" in MainApp.config_ctrl_pannel.dirlocs_dict:
+            MainApp.communication_info_pannel.reddit_client_s_tc.SetValue(MainApp.config_ctrl_pannel.dirlocs_dict["my_client_secret"])
+        if "my_username" in MainApp.config_ctrl_pannel.dirlocs_dict:
+            MainApp.communication_info_pannel.reddit_username_tc.SetValue(MainApp.config_ctrl_pannel.dirlocs_dict["my_username"])
+        if "my_password" in MainApp.config_ctrl_pannel.dirlocs_dict:
+            MainApp.communication_info_pannel.reddit_password_tc.SetValue(MainApp.config_ctrl_pannel.dirlocs_dict["my_password"])
+        #     message app
+        if "watcher_name" in MainApp.config_ctrl_pannel.dirlocs_dict:
+            MainApp.communication_info_pannel.reddit_mess_tc.SetValue(MainApp.config_ctrl_pannel.dirlocs_dict["watcher_name"])
+        #     wiki updater
+        if "subreddit" in MainApp.config_ctrl_pannel.dirlocs_dict:
+            MainApp.communication_info_pannel.reddit_sub_tc.SetValue(MainApp.config_ctrl_pannel.dirlocs_dict["subreddit"])
+        if "live_wiki_title" in MainApp.config_ctrl_pannel.dirlocs_dict:
+            MainApp.communication_info_pannel.reddit_mess_tc.SetValue(MainApp.config_ctrl_pannel.dirlocs_dict["live_wiki_title"])
+
+        # push over
+        if "pushover_apikey" in MainApp.config_ctrl_pannel.dirlocs_dict:
+            MainApp.communication_info_pannel.push_api_tc.SetValue(MainApp.config_ctrl_pannel.dirlocs_dict["pushover_apikey"])
+        if "pushover_clientKey" in MainApp.config_ctrl_pannel.dirlocs_dict:
+            MainApp.communication_info_pannel.push_key_tc.SetValue(MainApp.config_ctrl_pannel.dirlocs_dict["pushover_clientKey"])
+        #pushover_apikey
+        #pushover_clientKey
+
+class communication_info_pnl(wx.Panel):
+    def __init__( self, parent ):
+        win_height = gui_set.height_of_window
+        win_width = gui_set.width_of_window
+        w_space_left = win_width - 285
+        wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, size = wx.Size(w_space_left , win_height-20), style = wx.TAB_TRAVERSAL )
+        # Tab Title
+        title_l = wx.StaticText(self,  label='Communication Apps', size=(500,40))
+        title_l.SetFont(shared_data.title_font)
+        page_sub_title =  wx.StaticText(self,  label='Tools to enable communication tools', size=(490,30))
+        page_sub_title.SetFont(shared_data.sub_title_font)
+        # reddit
+        reddit_title =  wx.StaticText(self,  label='Reddit Bots', size=(200, 40))
+        reddit_title.SetFont(shared_data.title_font)
+        reddit_client_l =  wx.StaticText(self,  label='Client ID')
+        self.reddit_client_tc = wx.TextCtrl(self, value="", size=(200,30))
+        reddit_client_s_l =  wx.StaticText(self,  label='Client Secret')
+        self.reddit_client_s_tc = wx.TextCtrl(self, value="")
+        reddit_username_l =  wx.StaticText(self,  label='Bot Username')
+        self.reddit_username_tc = wx.TextCtrl(self, value="")
+        reddit_password_l =  wx.StaticText(self,  label='Bot Password')
+        self.reddit_password_tc = wx.TextCtrl(self, value="")
+        # reddit messager
+        reddit_mess_title =  wx.StaticText(self,  label='Message ')
+        reddit_mess_l =  wx.StaticText(self,  label='Username to message')
+        self.reddit_mess_tc = wx.TextCtrl(self, value="", size=(200,30))
+        # reddit wiki updater
+        wiki_updater_title =  wx.StaticText(self,  label='Wiki updater')
+        reddit_sub_l =  wx.StaticText(self,  label='Subreddit')
+        self.reddit_sub_tc = wx.TextCtrl(self, value="", size=(200,30))
+        reddit_livewiki_l =  wx.StaticText(self,  label='live wiki title')
+        self.reddit_livewiki_tc = wx.TextCtrl(self, value="")
+        ##
+        # pushover notify
+        pushover_title =  wx.StaticText(self,  label='Pushover Notify', size=(200, 40))
+        pushover_title.SetFont(shared_data.title_font)
+        push_api_l =  wx.StaticText(self,  label='API Key')
+        self.push_api_tc = wx.TextCtrl(self, value="", size=(200,30))
+        push_key_l =  wx.StaticText(self,  label='Client Key')
+        self.push_key_tc = wx.TextCtrl(self, value="")
+
+
+
+        red_login_sizer = wx.GridSizer(4, 2, 0, 0)
+        red_login_sizer.AddMany( [(reddit_client_l, 0, wx.EXPAND),
+            (self.reddit_client_tc, 2, wx.EXPAND),
+            (reddit_client_s_l, 0, wx.EXPAND),
+            (self.reddit_client_s_tc, 2, wx.EXPAND),
+            (reddit_username_l, 0, wx.EXPAND),
+            (self.reddit_username_tc, 2, wx.EXPAND),
+            (reddit_password_l, 0, wx.EXPAND),
+            (self.reddit_password_tc, 2, wx.EXPAND)])
+        red_mess_sizer = wx.GridSizer(1, 2, 0, 0)
+        red_mess_sizer.AddMany( [(reddit_mess_l, 0, wx.EXPAND),
+            (self.reddit_mess_tc, 2, wx.EXPAND)])
+        red_wiki_sizer = wx.GridSizer(2, 2, 0, 0)
+        red_wiki_sizer.AddMany( [(reddit_sub_l, 0, wx.EXPAND),
+            (self.reddit_sub_tc, 2, wx.EXPAND),
+            (reddit_livewiki_l, 0, wx.EXPAND),
+            (self.reddit_livewiki_tc, 2, wx.EXPAND)])
+
+        pushover_sizer = wx.GridSizer(2, 2, 0, 0)
+        pushover_sizer.AddMany( [(push_api_l, 0, wx.EXPAND),
+            (self.push_api_tc, 2, wx.EXPAND),
+            (push_key_l, 0, wx.EXPAND),
+            (self.push_key_tc, 2, wx.EXPAND)])
+
+        reddit_sizer = wx.BoxSizer(wx.VERTICAL)
+        reddit_sizer.Add(reddit_title, 0, wx.ALL, 3)
+        reddit_sizer.Add(red_login_sizer, 0, wx.ALL, 3)
+        reddit_sizer.Add(reddit_mess_title, 0, wx.ALL, 3)
+        reddit_sizer.Add(red_mess_sizer, 0, wx.ALL, 3)
+        reddit_sizer.Add(wiki_updater_title, 0, wx.ALL, 3)
+        reddit_sizer.Add(red_wiki_sizer, 0, wx.ALL, 3)
+
+        main_sizer = wx.BoxSizer(wx.VERTICAL)
+        main_sizer.Add(title_l, 0, wx.ALIGN_CENTER_HORIZONTAL, 3)
+        main_sizer.Add(page_sub_title, 0, wx.ALIGN_CENTER_HORIZONTAL, 3)
+        main_sizer.Add(reddit_sizer, 0, wx.ALIGN_LEFT, 3)
+        main_sizer.Add(pushover_title, 0, wx.ALIGN_LEFT, 3)
+        main_sizer.Add(pushover_sizer, 0, wx.ALIGN_LEFT, 3)
+        self.SetSizer(main_sizer)
 
 #
 #
@@ -15477,7 +15617,7 @@ class view_pnl(wx.Panel):
         wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, style = wx.TAB_TRAVERSAL )
         self.SetBackgroundColour((230,200,170)) #TESTING ONLY REMOVE WHEN SIZING IS DONE AND ALL THAT BUSINESS
         #Showing only completed tabs
-        view_opts = ['System Config', 'Pigrow Setup', 'Camera Config', 'Cron Timing', 'Local Files', 'Timelapse', 'Graphs', 'Sensors', "User Logs"]
+        view_opts = ['System Config', 'Pigrow Setup', 'Camera Config', 'Cron Timing', 'Local Files', 'Timelapse', 'Graphs', 'Sensors', 'communication', "User Logs"]
         self.view_cb = wx.ComboBox(self, choices = view_opts)
         self.view_cb.Bind(wx.EVT_TEXT, self.view_combo_go)
         # sizer
@@ -15505,6 +15645,8 @@ class view_pnl(wx.Panel):
         MainApp.timelapse_ctrl_pannel.Hide()
         MainApp.sensors_info_pannel.Hide()
         MainApp.sensors_ctrl_pannel.Hide()
+        MainApp.communication_info_pannel.Hide()
+        MainApp.communication_ctrl_pannel.Hide()
         MainApp.user_log_ctrl_pannel.Hide()
         MainApp.user_log_info_pannel.Hide()
         #show whichever pannels correlate to the option selected
@@ -15542,6 +15684,9 @@ class view_pnl(wx.Panel):
             MainApp.sensors_info_pannel.Show()
             MainApp.sensors_ctrl_pannel.Show()
             MainApp.sensors_ctrl_pannel.make_tables_click("e")
+        elif display == "communication":
+            MainApp.communication_info_pannel.Show()
+            MainApp.communication_ctrl_pannel.Show()
         elif display == "User Logs":
             MainApp.user_log_ctrl_pannel.Show()
             MainApp.user_log_info_pannel.Show()
@@ -15582,8 +15727,6 @@ class status_bar(wx.Panel):
     # #    MainApp.status.write_warning("Status bar warning text")  # red back with black text
     #
     def __init__( self, parent ):
-        width_of_window = gui_set.width_of_window
-        height_of_window = gui_set.height_of_window
         wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, style = wx.TAB_TRAVERSAL )
         self.SetBackgroundColour((150,150,120)) #TESTING ONLY REMOVE WHEN SIZING IS DONE AND ALL THAT BUSINESS
         self.status_text = wx.StaticText(self,  label='-- starting -- ')
@@ -15672,6 +15815,8 @@ class MainFrame ( wx.Frame ):
         MainApp.timelapse_ctrl_pannel = timelapse_ctrl_pnl(self)
         MainApp.sensors_info_pannel = sensors_info_pnl(self)
         MainApp.sensors_ctrl_pannel = sensors_ctrl_pnl(self)
+        MainApp.communication_info_pannel = communication_info_pnl(self)
+        MainApp.communication_ctrl_pannel = communication_ctrl_pnl(self)
         MainApp.user_log_ctrl_pannel = user_log_ctrl_pnl(self)
         MainApp.user_log_info_pannel = user_log_info_pnl(self)
         #hide all except the welcome pannel
@@ -15691,6 +15836,8 @@ class MainFrame ( wx.Frame ):
         MainApp.timelapse_ctrl_pannel.Hide()
         MainApp.sensors_info_pannel.Hide()
         MainApp.sensors_ctrl_pannel.Hide()
+        MainApp.communication_info_pannel.Hide()
+        MainApp.communication_ctrl_pannel.Hide()
         MainApp.user_log_ctrl_pannel.Hide()
         MainApp.user_log_info_pannel.Hide()
         MainApp.status.write_bar("ready...")
@@ -15708,6 +15855,7 @@ class MainFrame ( wx.Frame ):
         MainApp.side_bar_sizer.Add(MainApp.camconf_ctrl_pannel, 0, wx.EXPAND)
         MainApp.side_bar_sizer.Add(MainApp.timelapse_ctrl_pannel, 0, wx.EXPAND)
         MainApp.side_bar_sizer.Add(MainApp.sensors_ctrl_pannel, 0, wx.EXPAND)
+        MainApp.side_bar_sizer.Add(MainApp.communication_ctrl_pannel, 0, wx.EXPAND)
         MainApp.side_bar_sizer.Add(MainApp.user_log_ctrl_pannel, 0, wx.EXPAND)
         # main AREA
         main_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -15721,6 +15869,7 @@ class MainFrame ( wx.Frame ):
         main_sizer.Add(MainApp.camconf_info_pannel, 0, wx.EXPAND)
         main_sizer.Add(MainApp.timelapse_info_pannel, 0, wx.EXPAND)
         main_sizer.Add(MainApp.sensors_info_pannel, 0, wx.EXPAND)
+        main_sizer.Add(MainApp.communication_info_pannel, 0, wx.EXPAND)
         main_sizer.Add(MainApp.user_log_info_pannel, 0, wx.EXPAND)
         MainApp.window_sizer = wx.BoxSizer(wx.VERTICAL)
         MainApp.window_sizer.Add(main_sizer, 0, wx.EXPAND)
