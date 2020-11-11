@@ -15385,18 +15385,40 @@ class communication_info_pnl(wx.Panel):
         main_sizer = wx.BoxSizer(wx.VERTICAL)
         main_sizer.Add(title_l, 0, wx.ALIGN_CENTER_HORIZONTAL, 3)
         main_sizer.Add(page_sub_title, 0, wx.ALIGN_CENTER_HORIZONTAL, 3)
+        main_sizer.Add(mobile_title, 0, wx.ALIGN_LEFT, 3)
+        main_sizer.Add(mobile_sizer, 0, wx.ALIGN_LEFT, 3)
         main_sizer.Add(reddit_sizer, 0, wx.ALIGN_LEFT, 3)
         main_sizer.Add(pushover_title, 0, wx.ALIGN_LEFT, 3)
         main_sizer.Add(pushover_sizer, 0, wx.ALIGN_LEFT, 3)
-        main_sizer.Add(mobile_title, 0, wx.ALIGN_LEFT, 3)
-        main_sizer.Add(mobile_sizer, 0, wx.ALIGN_LEFT, 3)
         self.SetSizer(main_sizer)
 
     def push_test_message_click(self, e):
         print(" po message button bopped")
+        name_box_dbox = wx.TextEntryDialog(self, "Message to send", "Send Test Notification", "Test Notification")
+        if name_box_dbox.ShowModal() == wx.ID_OK:
+            push_msg = name_box_dbox.GetValue()
+            if not push_msg == "":
+                path = "/home/" + pi_link_pnl.target_user + "/Pigrow/scripts/triggers/"
+                cmd = path + "po-notify.py messsage=\"" + push_msg + "\""
+                out, error = MainApp.localfiles_ctrl_pannel.run_on_pi(cmd)
+                print (out, error)
+                if "KeyError: 'pushover_apikey'" in error:
+                    print(" !!! NO pushover_apikey in dirlocs.txt")
+                if "KeyError: 'pushover_clientkey'" in out:
+                    print(" !!! NO pushover_clientkey in dirlocs.txt")
 
     def reddit_test_message_click(self, e):
         print(" reddit message button bopped")
+        name_box_dbox = wx.TextEntryDialog(self, "Message to send", "Send Test Messsage", "Test Messsage")
+        if name_box_dbox.ShowModal() == wx.ID_OK:
+            push_msg = name_box_dbox.GetValue()
+            if not push_msg == "":
+                path = "/home/" + pi_link_pnl.target_user + "/Pigrow/scripts/triggers/"
+                cmd = path + "reddit_message.py messsage=\"" + push_msg + "\""
+                out, error = MainApp.localfiles_ctrl_pannel.run_on_pi(cmd)
+                print (out, error)
+                if "KeyError" in error:
+                    print(" !!! Reddit login details not in dirlocs.txt")
 
 #
 #
