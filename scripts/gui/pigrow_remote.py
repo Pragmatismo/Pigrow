@@ -15218,15 +15218,18 @@ class communication_ctrl_pnl(wx.Panel):
         wx.Panel.__init__ (self, parent, id=wx.ID_ANY, style=wx.TAB_TRAVERSAL)
         title_l = wx.StaticText(self,  label='Communication')
         #
-        self.boop_btn = wx.Button(self, label='boop')
-        self.boop_btn.Bind(wx.EVT_BUTTON, self.boop_btn_click)
+        self.load_btn = wx.Button(self, label='Load')
+        self.load_btn.Bind(wx.EVT_BUTTON, self.load_btn_click)
+        self.save_btn = wx.Button(self, label='Save')
+        self.save_btn.Bind(wx.EVT_BUTTON, self.save_btn_click)
 
         main_sizer = wx.BoxSizer(wx.VERTICAL)
         main_sizer.Add(title_l, 0, wx.ALIGN_CENTER_HORIZONTAL, 3)
-        main_sizer.Add(self.boop_btn, 0, wx.ALL, 3)
+        main_sizer.Add(self.load_btn, 0, wx.ALL, 3)
+        main_sizer.Add(self.save_btn, 0, wx.ALL, 3)
         self.SetSizer(main_sizer)
 
-    def boop_btn_click(self, e):
+    def load_btn_click(self, e):
         print("--- BOOP ---")
         # reddit
         #    log in
@@ -15250,12 +15253,48 @@ class communication_ctrl_pnl(wx.Panel):
         # push over
         if "pushover_apikey" in MainApp.config_ctrl_pannel.dirlocs_dict:
             MainApp.communication_info_pannel.push_api_tc.SetValue(MainApp.config_ctrl_pannel.dirlocs_dict["pushover_apikey"])
-        if "pushover_clientKey" in MainApp.config_ctrl_pannel.dirlocs_dict:
-            MainApp.communication_info_pannel.push_key_tc.SetValue(MainApp.config_ctrl_pannel.dirlocs_dict["pushover_clientKey"])
+        if "pushover_clientkey" in MainApp.config_ctrl_pannel.dirlocs_dict:
+            MainApp.communication_info_pannel.push_key_tc.SetValue(MainApp.config_ctrl_pannel.dirlocs_dict["pushover_clientkey"])
         self.check_bot_server_mobile_app()
 
-    def test_message_ponotify(self, e):
-        print("sending a test message")
+    def save_btn_click(self, e):
+        MainApp.config_ctrl_pannel.dirlocs_dict["my_client_id"] = MainApp.communication_info_pannel.reddit_client_tc.GetValue()
+        MainApp.config_ctrl_pannel.dirlocs_dict["my_client_secret"] = MainApp.communication_info_pannel.reddit_client_s_tc.GetValue()
+        MainApp.config_ctrl_pannel.dirlocs_dict["my_username"] = MainApp.communication_info_pannel.reddit_username_tc.GetValue()
+        MainApp.config_ctrl_pannel.dirlocs_dict["my_password"] = MainApp.communication_info_pannel.reddit_password_tc.GetValue()
+        #     message app
+        if not MainApp.communication_info_pannel.reddit_mess_tc.GetValue() == "":
+            MainApp.config_ctrl_pannel.dirlocs_dict["watcher_name"] = MainApp.communication_info_pannel.reddit_mess_tc.GetValue()
+        #     wiki updater
+        if not MainApp.communication_info_pannel.reddit_sub_tc.GetValue() == "":
+            MainApp.config_ctrl_pannel.dirlocs_dict["subreddit"] = MainApp.communication_info_pannel.reddit_sub_tc.GetValue()
+        if not MainApp.communication_info_pannel.reddit_mess_tc.GetValue() == "":
+            MainApp.config_ctrl_pannel.dirlocs_dict["live_wiki_title"] = MainApp.communication_info_pannel.reddit_mess_tc.GetValue()
+
+        # push over
+        if not MainApp.communication_info_pannel.push_api_tc.GetValue() == "":
+            MainApp.config_ctrl_pannel.dirlocs_dict["pushover_apikey"] = MainApp.communication_info_pannel.push_api_tc.GetValue()
+        if not MainApp.communication_info_pannel.push_key_tc.GetValue() == "":
+            MainApp.config_ctrl_pannel.dirlocs_dict["pushover_clientkey"] = MainApp.communication_info_pannel.push_key_tc.GetValue()
+
+        # Write dirlocs file
+        dirlocs_text = ""
+        for key, value in list(MainApp.config_ctrl_pannel.dirlocs_dict.items()):
+            if not value == "":
+                dirlocs_text += key + "=" + value + "\n"
+        dirlocs_text = dirlocs_text[:-1]
+        print(dirlocs_text)
+        local_temp_path = os.path.join(localfiles_info_pnl.local_path, "temp")
+        if not os.path.isdir(local_temp_path):
+            os.makedirs(local_temp_path)
+        temp_dirlocs =  os.path.join(local_temp_path, "dirlocs.txt")
+        with open(temp_dirlocs, "w") as dirlocs_file:
+            dirlocs_file.write(dirlocs_text)
+        # upload_
+        pi_dirlocs_path = "/home/" + pi_link_pnl.target_user + "/Pigrow/config/dirlocs.txt"
+        MainApp.localfiles_ctrl_pannel.upload_file_to_folder(temp_dirlocs, pi_dirlocs_path)
+        # tell user
+        print(" New dirlocs uploaded to pigrow.")
 
     def check_bot_server_mobile_app(self):
         script_has_cronjob, script_enabled, script_startupcron_index = install_dialog.check_for_control_script("", scriptname='po-notify.py')
@@ -15399,7 +15438,7 @@ class communication_info_pnl(wx.Panel):
             push_msg = name_box_dbox.GetValue()
             if not push_msg == "":
                 path = "/home/" + pi_link_pnl.target_user + "/Pigrow/scripts/triggers/"
-                cmd = path + "po-notify.py messsage=\"" + push_msg + "\""
+                cmd = path + "po-notify.py message=\"" + push_msg + "\"" + " s=0"
                 out, error = MainApp.localfiles_ctrl_pannel.run_on_pi(cmd)
                 print (out, error)
                 if "KeyError: 'pushover_apikey'" in error:
@@ -15414,10 +15453,10 @@ class communication_info_pnl(wx.Panel):
             push_msg = name_box_dbox.GetValue()
             if not push_msg == "":
                 path = "/home/" + pi_link_pnl.target_user + "/Pigrow/scripts/triggers/"
-                cmd = path + "reddit_message.py messsage=\"" + push_msg + "\""
+                cmd = path + "reddit_message.py message=\"" + push_msg + "\""
                 out, error = MainApp.localfiles_ctrl_pannel.run_on_pi(cmd)
                 print (out, error)
-                if "KeyError" in error:
+                if "REDDIT SETTINGS NOT SET" in out:
                     print(" !!! Reddit login details not in dirlocs.txt")
 
 #
@@ -15769,6 +15808,7 @@ class view_pnl(wx.Panel):
         elif display == "communication":
             MainApp.communication_info_pannel.Show()
             MainApp.communication_ctrl_pannel.Show()
+            MainApp.communication_ctrl_pannel.load_btn_click("")
         elif display == "User Logs":
             MainApp.user_log_ctrl_pannel.Show()
             MainApp.user_log_info_pannel.Show()
