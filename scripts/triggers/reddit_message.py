@@ -89,6 +89,10 @@ def load_reddit_login(loc_dic):
         print("REDDIT SETTINGS NOT SET - Edit into the file " + str(loc_locs))
         print("                        - This is easiest done in the remote_gui")
         sys.exit(1)
+    if my_client_id == "" or my_client_secret == "" or my_username == "" or my_password == "" or watcher_name == "":
+        print("REDDIT SETTINGS NOT SET - Edit into the file " + str(loc_locs))
+        print("                        - This is easiest done in the remote_gui")
+        sys.exit(1)
     return my_user_agent, my_client_id, my_client_secret, my_username, my_password, watcher_name
 
 def log_in_reddit(my_user_agent, my_client_id, my_client_secret, my_username, my_password):
