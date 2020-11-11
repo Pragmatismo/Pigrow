@@ -15252,28 +15252,31 @@ class communication_ctrl_pnl(wx.Panel):
             MainApp.communication_info_pannel.push_api_tc.SetValue(MainApp.config_ctrl_pannel.dirlocs_dict["pushover_apikey"])
         if "pushover_clientKey" in MainApp.config_ctrl_pannel.dirlocs_dict:
             MainApp.communication_info_pannel.push_key_tc.SetValue(MainApp.config_ctrl_pannel.dirlocs_dict["pushover_clientKey"])
-        self.check_bot_server_ponotify()
+        self.check_bot_server_mobile_app()
 
-    def check_bot_server_ponotify(self):
+    def test_message_ponotify(self, e):
+        print("sending a test message")
+
+    def check_bot_server_mobile_app(self):
         script_has_cronjob, script_enabled, script_startupcron_index = install_dialog.check_for_control_script("", scriptname='po-notify.py')
         if script_has_cronjob and script_enabled:
-            MainApp.communication_info_pannel.push_server_t.SetForegroundColour((80,150,80))
-            MainApp.communication_info_pannel.push_server_t.SetLabel("Starting on boot")
+            MainApp.communication_info_pannel.mobile_server_t.SetForegroundColour((80,150,80))
+            MainApp.communication_info_pannel.mobile_server_t.SetLabel("Starting on boot")
         elif script_has_cronjob and not script_enabled:
-            MainApp.communication_info_pannel.push_server_t.SetForegroundColour((200,110,110))
-            MainApp.communication_info_pannel.push_server_t.SetLabel("cronjob disabled, won't start on boot")
+            MainApp.communication_info_pannel.mobile_server_t.SetForegroundColour((200,110,110))
+            MainApp.communication_info_pannel.mobile_server_t.SetLabel("cronjob disabled, won't start on boot")
         elif not script_has_cronjob:
-            MainApp.communication_info_pannel.push_server_t.SetForegroundColour((200,75,75))
-            MainApp.communication_info_pannel.push_server_t.SetLabel("No cronjob")
+            MainApp.communication_info_pannel.mobile_server_t.SetForegroundColour((200,75,75))
+            MainApp.communication_info_pannel.mobile_server_t.SetLabel("No cronjob")
         # Check running
-        cmd = "pidof /home/" + pi_link_pnl.target_user + "/Pigrow/scripts/triggers/po-notify.py -x"
+        cmd = "pidof /home/" + pi_link_pnl.target_user + "/Pigrow/scripts/triggers/mobileapp_server.py -x"
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi(cmd)
         if len(out) > 0:
-            MainApp.communication_info_pannel.sactivity_tc.SetLabel("currently running")
-            MainApp.communication_info_pannel.sactivity_tc.SetForegroundColour((80,150,80))
+            MainApp.communication_info_pannel.mobile_s_activity_tc.SetLabel("currently running")
+            MainApp.communication_info_pannel.mobile_s_activity_tc.SetForegroundColour((80,150,80))
         else:
-            MainApp.communication_info_pannel.sactivity_tc.SetLabel("NOT currently running")
-            MainApp.communication_info_pannel.sactivity_tc.SetForegroundColour((200,75,75))
+            MainApp.communication_info_pannel.mobile_s_activity_tc.SetLabel("NOT currently running")
+            MainApp.communication_info_pannel.mobile_s_activity_tc.SetForegroundColour((200,75,75))
         #
 
 class communication_info_pnl(wx.Panel):
@@ -15300,6 +15303,9 @@ class communication_info_pnl(wx.Panel):
         self.reddit_password_tc = wx.TextCtrl(self, value="")
         # reddit messager
         reddit_mess_title =  wx.StaticText(self,  label='Message ')
+        reddit_test_message_l =  wx.StaticText(self,  label=' ')
+        self.reddit_test_message_btn = wx.Button(self, label='Test')
+        self.reddit_test_message_btn.Bind(wx.EVT_BUTTON, self.reddit_test_message_click)
         reddit_mess_l =  wx.StaticText(self,  label='Username to message')
         self.reddit_mess_tc = wx.TextCtrl(self, value="", size=(200,30))
         # reddit wiki updater
@@ -15312,14 +15318,25 @@ class communication_info_pnl(wx.Panel):
         # pushover notify
         pushover_title =  wx.StaticText(self,  label='Pushover Notify', size=(200, 40))
         pushover_title.SetFont(shared_data.title_font)
-        push_server_l =  wx.StaticText(self,  label='Server Script Status')
-        self.push_server_t = wx.StaticText(self, label="", size=(200,30))
-        push_sactivity_l =  wx.StaticText(self,  label='')
-        self.sactivity_tc = wx.StaticText(self, label="")
-        push_api_l =  wx.StaticText(self,  label='API Key')
+        push_test_message_l =  wx.StaticText(self,  label=' ')
+        self.push_test_message_btn = wx.Button(self, label='Test')
+        self.push_test_message_btn.Bind(wx.EVT_BUTTON, self.push_test_message_click)
+        push_api_l =  wx.StaticText(self,  label='API Key', size=(200,30))
         self.push_api_tc = wx.TextCtrl(self, value="")
         push_key_l =  wx.StaticText(self,  label='Client Key')
         self.push_key_tc = wx.TextCtrl(self, value="")
+
+        # mobile app
+        mobile_title =  wx.StaticText(self,  label='Mobile App', size=(200, 40))
+        mobile_title.SetFont(shared_data.title_font)
+        mobile_server_l =  wx.StaticText(self,  label='Server Script Status')
+        self.mobile_server_t = wx.StaticText(self, label="", size=(200,30))
+        mobile_s_activity_l =  wx.StaticText(self,  label='')
+        self.mobile_s_activity_tc = wx.StaticText(self, label="")
+        #mobile_api_l =  wx.StaticText(self,  label='API Key')
+        #self.mobile_api_tc = wx.TextCtrl(self, value="")
+        #mobile_key_l =  wx.StaticText(self,  label='Client Key')
+        #self.moble_key_tc = wx.TextCtrl(self, value="")
 
 
 
@@ -15332,8 +15349,10 @@ class communication_info_pnl(wx.Panel):
             (self.reddit_username_tc, 2, wx.EXPAND),
             (reddit_password_l, 0, wx.EXPAND),
             (self.reddit_password_tc, 2, wx.EXPAND)])
-        red_mess_sizer = wx.GridSizer(1, 2, 0, 0)
-        red_mess_sizer.AddMany( [(reddit_mess_l, 0, wx.EXPAND),
+        red_mess_sizer = wx.GridSizer(3, 2, 0, 0)
+        red_mess_sizer.AddMany( [(reddit_test_message_l, 0, wx.EXPAND),
+            (self.reddit_test_message_btn, 2, wx.EXPAND),
+            (reddit_mess_l, 0, wx.EXPAND),
             (self.reddit_mess_tc, 2, wx.EXPAND)])
         red_wiki_sizer = wx.GridSizer(2, 2, 0, 0)
         red_wiki_sizer.AddMany( [(reddit_sub_l, 0, wx.EXPAND),
@@ -15341,15 +15360,19 @@ class communication_info_pnl(wx.Panel):
             (reddit_livewiki_l, 0, wx.EXPAND),
             (self.reddit_livewiki_tc, 2, wx.EXPAND)])
 
-        pushover_sizer = wx.GridSizer(4, 2, 0, 0)
-        pushover_sizer.AddMany( [(push_server_l, 0, wx.EXPAND),
-            (self.push_server_t, 2, wx.EXPAND),
-            (push_sactivity_l, 0, wx.EXPAND),
-            (self.sactivity_tc, 2, wx.EXPAND),
+        pushover_sizer = wx.GridSizer(3, 2, 0, 0)
+        pushover_sizer.AddMany( [(push_test_message_l, 0, wx.EXPAND),
+            (self.push_test_message_btn, 2, wx.EXPAND),
             (push_api_l, 0, wx.EXPAND),
             (self.push_api_tc, 2, wx.EXPAND),
             (push_key_l, 0, wx.EXPAND),
             (self.push_key_tc, 2, wx.EXPAND)])
+
+        mobile_sizer = wx.GridSizer(2, 2, 0, 0)
+        mobile_sizer.AddMany( [(mobile_server_l, 0, wx.EXPAND),
+            (self.mobile_server_t, 2, wx.EXPAND),
+            (mobile_s_activity_l, 0, wx.EXPAND),
+            (self.mobile_s_activity_tc, 2, wx.EXPAND)])
 
         reddit_sizer = wx.BoxSizer(wx.VERTICAL)
         reddit_sizer.Add(reddit_title, 0, wx.ALL, 3)
@@ -15365,7 +15388,15 @@ class communication_info_pnl(wx.Panel):
         main_sizer.Add(reddit_sizer, 0, wx.ALIGN_LEFT, 3)
         main_sizer.Add(pushover_title, 0, wx.ALIGN_LEFT, 3)
         main_sizer.Add(pushover_sizer, 0, wx.ALIGN_LEFT, 3)
+        main_sizer.Add(mobile_title, 0, wx.ALIGN_LEFT, 3)
+        main_sizer.Add(mobile_sizer, 0, wx.ALIGN_LEFT, 3)
         self.SetSizer(main_sizer)
+
+    def push_test_message_click(self, e):
+        print(" po message button bopped")
+
+    def reddit_test_message_click(self, e):
+        print(" reddit message button bopped")
 
 #
 #
