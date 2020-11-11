@@ -15252,8 +15252,29 @@ class communication_ctrl_pnl(wx.Panel):
             MainApp.communication_info_pannel.push_api_tc.SetValue(MainApp.config_ctrl_pannel.dirlocs_dict["pushover_apikey"])
         if "pushover_clientKey" in MainApp.config_ctrl_pannel.dirlocs_dict:
             MainApp.communication_info_pannel.push_key_tc.SetValue(MainApp.config_ctrl_pannel.dirlocs_dict["pushover_clientKey"])
-        #pushover_apikey
-        #pushover_clientKey
+        self.check_bot_server_ponotify()
+
+    def check_bot_server_ponotify(self):
+        script_has_cronjob, script_enabled, script_startupcron_index = install_dialog.check_for_control_script("", scriptname='po-notify.py')
+        if script_has_cronjob and script_enabled:
+            MainApp.communication_info_pannel.push_server_t.SetForegroundColour((80,150,80))
+            MainApp.communication_info_pannel.push_server_t.SetLabel("Starting on boot")
+        elif script_has_cronjob and not script_enabled:
+            MainApp.communication_info_pannel.push_server_t.SetForegroundColour((200,110,110))
+            MainApp.communication_info_pannel.push_server_t.SetLabel("cronjob disabled, won't start on boot")
+        elif not script_has_cronjob:
+            MainApp.communication_info_pannel.push_server_t.SetForegroundColour((200,75,75))
+            MainApp.communication_info_pannel.push_server_t.SetLabel("No cronjob")
+        # Check running
+        cmd = "pidof /home/" + pi_link_pnl.target_user + "/Pigrow/scripts/triggers/po-notify.py -x"
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi(cmd)
+        if len(out) > 0:
+            MainApp.communication_info_pannel.sactivity_tc.SetLabel("currently running")
+            MainApp.communication_info_pannel.sactivity_tc.SetForegroundColour((80,150,80))
+        else:
+            MainApp.communication_info_pannel.sactivity_tc.SetLabel("NOT currently running")
+            MainApp.communication_info_pannel.sactivity_tc.SetForegroundColour((200,75,75))
+        #
 
 class communication_info_pnl(wx.Panel):
     def __init__( self, parent ):
@@ -15291,8 +15312,12 @@ class communication_info_pnl(wx.Panel):
         # pushover notify
         pushover_title =  wx.StaticText(self,  label='Pushover Notify', size=(200, 40))
         pushover_title.SetFont(shared_data.title_font)
+        push_server_l =  wx.StaticText(self,  label='Server Script Status')
+        self.push_server_t = wx.StaticText(self, label="", size=(200,30))
+        push_sactivity_l =  wx.StaticText(self,  label='')
+        self.sactivity_tc = wx.StaticText(self, label="")
         push_api_l =  wx.StaticText(self,  label='API Key')
-        self.push_api_tc = wx.TextCtrl(self, value="", size=(200,30))
+        self.push_api_tc = wx.TextCtrl(self, value="")
         push_key_l =  wx.StaticText(self,  label='Client Key')
         self.push_key_tc = wx.TextCtrl(self, value="")
 
@@ -15316,8 +15341,12 @@ class communication_info_pnl(wx.Panel):
             (reddit_livewiki_l, 0, wx.EXPAND),
             (self.reddit_livewiki_tc, 2, wx.EXPAND)])
 
-        pushover_sizer = wx.GridSizer(2, 2, 0, 0)
-        pushover_sizer.AddMany( [(push_api_l, 0, wx.EXPAND),
+        pushover_sizer = wx.GridSizer(4, 2, 0, 0)
+        pushover_sizer.AddMany( [(push_server_l, 0, wx.EXPAND),
+            (self.push_server_t, 2, wx.EXPAND),
+            (push_sactivity_l, 0, wx.EXPAND),
+            (self.sactivity_tc, 2, wx.EXPAND),
+            (push_api_l, 0, wx.EXPAND),
             (self.push_api_tc, 2, wx.EXPAND),
             (push_key_l, 0, wx.EXPAND),
             (self.push_key_tc, 2, wx.EXPAND)])
