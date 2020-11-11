@@ -40,7 +40,7 @@ for argu in sys.argv:
         print("     watcher_name is who you send the message to")
         print("     ")
         print('  message="message here"')
-        ptint("             The message which is sent to the watcher")
+        print("             The message which is sent to the watcher")
         sys.exit(0)
     elif argu_l == "-flags":
         print("path_dirloc=" + str(loc_locs))
