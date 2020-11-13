@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 import flask
 from flask import request, jsonify
 from flask import current_app
