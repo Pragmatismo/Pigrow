@@ -13,6 +13,8 @@ from dateutil import parser
 from pathlib import Path
 import glob
 import re
+#import ciso8601
+from ciso8601 import parse_datetime
 
 app = flask.Flask(__name__)
 CORS(app)
@@ -41,7 +43,8 @@ def api_GetCurrentTriggers(local):
     with open(os.path.join(home_path, 'config/trigger_events.txt')) as csvfile:
         reader = csv.reader(csvfile)
         for row in reader: # each row is a list
-            results.append(row)
+            if ''.join(row).strip():
+                results.append(row)
 
     triggers = []
     for line in results:
@@ -69,7 +72,8 @@ def api_GetTrigger(conditionname):
     with open(os.path.join(home_path, 'config/trigger_events.txt')) as csvfile:
         reader = csv.reader(csvfile) # change contents to floats
         for row in reader: # each row is a list
-            results.append(row)
+            if ''.join(row).strip():
+                results.append(row)
 
     for line in results:
         if line[4].lower() == conditionname.lower():
@@ -87,7 +91,7 @@ def api_GetTrigger(conditionname):
 
     return jsonify(trigg)
 
-# Set trigger value, update exisiting or create new
+# Set trigger value, update existing or create new
 # resultsJson['createnew'] decide which
 @app.route('/api/v1/triggers/settrigger', methods=['POST'])
 def api_SetTrigger():
@@ -103,7 +107,7 @@ def api_SetTrigger():
     createNew = resultsJson['createnew']
     success = True
     results = []
-    if createNew:
+    if createNew == 'True':
         try:
             with open(os.path.join(home_path, 'config/trigger_events.txt'), 'a+') as file_object:
                 file_object.seek(0)
@@ -116,7 +120,8 @@ def api_SetTrigger():
         with open(os.path.join(home_path, 'config/trigger_events.txt')) as csvfile:
             reader = csv.reader(csvfile)
             for row in reader:
-                results.append(row)
+                if ''.join(row).strip():
+                    results.append(row)
         with open(os.path.join(home_path, 'config/trigger_events.txt'), 'w') as outf:
             try:
                 for line in results:
@@ -135,21 +140,56 @@ def api_SetTrigger():
 
     return jsonify(str(success))
 
+# Delete trigger
+@app.route('/api/v1/triggers/deletetrigger', methods=['POST'])
+def api_DeleteTrigger():
+    resultsJson = request.get_json()
+    conditionname = resultsJson['conditionname']
+    success = True
+    results = []
+
+    with open(os.path.join(home_path, 'config/trigger_events.txt')) as csvfile:
+        reader = csv.reader(csvfile)
+        for row in reader:
+            if ''.join(row).strip():
+                results.append(row)
+    with open(os.path.join(home_path, 'config/trigger_events.txt'), 'w') as outf:
+        try:
+            for line in results:
+                if len(line) > 0:
+                    if line[4] != conditionname:
+                        #outf.write(",".join(map(str, [log,valueLabel,typeVal,value,conditionname,setVal,lock,cmd]))+ '\n')
+                    #else:
+                        outf.write(",".join(map(str, line)) + '\n')
+            outf.close()
+        except (Exception) as e:
+            success = False
+            for line in results:
+                outf.write(",".join(map(str, line)) + '\n')
+            outf.close()
+            #raise InvalidUsage('Write failed', status_code=410)
+
+    return jsonify(str(success))
+
 
 # Get sensor details
 @app.route('/api/v1/config/getallsensors/<local>',  methods=['GET'])
 @app.route('/api/v1/config/getallsensors',defaults={'local': None}, methods=['GET'])
 def api_GetCurrentSensors(local):
     sensorsFull = {}
-    with open(os.path.join(home_path, 'config/pigrow_config.txt')) as f:
-        lines = f.read().splitlines()
-        for line in lines:
-            if line.startswith('sensor_'):
-                linetuple = line.split('_')
-                if linetuple[1] not in sensorsFull:
-                    sensorsFull[linetuple[1].lower()] = {linetuple[2].split('=')[0]:line.split('=')[1]}
-                else:
-                    sensorsFull[linetuple[1]][linetuple[2].split('=')[0]] =  line.split('=')[1]
+    try:
+        with open(os.path.join(home_path, 'config/pigrow_config.txt')) as f:
+            lines = f.read().splitlines()
+            for line in lines:
+                if line.startswith('sensor_'):
+                    linetuple = line.split('_')
+                    if linetuple[1] not in sensorsFull:
+                        sensorsFull[linetuple[1].lower()] = {linetuple[2].split('=')[0]:line.split('=')[1]}
+                    else:
+                        sensorsFull[linetuple[1]][linetuple[2].split('=')[0]] =  line.split('=')[1]
+    except:
+        sensorsFull = {}
+        return jsonify(sensorsFull)
 
     if local:
         return sensorsFull
@@ -290,7 +330,7 @@ def api_SetGpio():
             elif gpioPowerState == "high":
                 GPIO.output(pin, GPIO.LOW)
 
-    return success
+    return jsonify(success)
 
 # Check gpio state
 @app.route('/api/v1/config/checkgpio/', methods=['POST'])
@@ -367,10 +407,12 @@ def api_GetCustomLog():
     options['logType'] = logType
 
     if 'datestart' in logConfig:
-        startDate = logConfig['datestart']
+        startDate = datetime.datetime.strptime(logConfig['datestart'], "%a, %d %b %Y %H:%M:%S %Z")
+        #startDate = parse_datetime(logConfig['datestart'])
         options['datestart'] = startDate
     if 'dateend' in logConfig:
-        endDate = logConfig['dateend']
+        endDate = datetime.datetime.strptime(logConfig['dateend'], "%a, %d %b %Y %H:%M:%S %Z")
+        #endDate = parse_datetime(logConfig['dateend'])
         options['dateend'] = endDate
 
     logResults,error = ParseLog(logPath,logType,options)
@@ -402,9 +444,17 @@ def ParseReading(line, typeSensor, options=None, lineSplit = '>'):
         if options:
             dt = linePart[0]
             if 'datestart' in options:
-                start = datetime.datetime.strptime(options['datestart'], "%a, %d %b %Y %H:%M:%S %Z")
-                end = datetime.datetime.strptime(options['dateend'], "%a, %d %b %Y %H:%M:%S %Z")
-                lineDate = datetime.datetime.strptime(dt, '%Y-%m-%d %H:%M:%S.%f')
+                start = options['datestart']
+                end = options['dateend']
+                #start = parse_datetime(options['datestart'])
+                #end = parse_datetime(options['dateend'])
+                #lineDate = datetime.datetime.strptime(dt, '%Y-%m-%d %H:%M:%S.%f')
+                #lineDate = list(map(datetime.fromisoformat, dt))
+                if dt:
+                    try:
+                        lineDate = parse_datetime(dt.strip('\x00'))
+                    except (Exception) as e:
+                        s= dt
                 if lineDate < start or lineDate > end:
                     return obj,error
             try:
@@ -465,9 +515,10 @@ def ParseReading(line, typeSensor, options=None, lineSplit = '>'):
                 split = part.split('=')
                 if 'datestart' in options:
                     if split[0] == 'time':
-                        start = datetime.datetime.strptime(options['datestart'], "%a, %d %b %Y %H:%M:%S %Z")
-                        end = datetime.datetime.strptime(options['dateend'], "%a, %d %b %Y %H:%M:%S %Z")
-                        lineDate = datetime.datetime.strptime(split[1], '%Y-%m-%d %H:%M:%S.%f')
+                        start = options['datestart']
+                        end = options['dateend']
+                        #lineDate = datetime.datetime.strptime(split[1], '%Y-%m-%d %H:%M:%S.%f')
+                        lineDate = parse_datetime(split[1])
                         if lineDate < start or lineDate > end:
                             return obj,error
                         else:
@@ -479,7 +530,7 @@ def ParseReading(line, typeSensor, options=None, lineSplit = '>'):
                         obj[split[0]] = split[1]
 
 
-            except:
+            except (Exception) as e:
                 error = 'incorrect type maybe, default is modular'
 
     return obj,error
@@ -525,6 +576,24 @@ def api_GetInfo(relPath):
         return response
     except (Exception) as e:
         return jsonify(e)
+
+# Get pigrow name
+@app.route('/api/v1/config/getpigrowname',  methods=['GET'])
+def api_GetPigrowName():
+    boxName = {}
+    try:
+        with open(os.path.join(home_path, 'config/pigrow_config.txt')) as f:
+            lines = f.read().splitlines()
+            for line in lines:
+                if line.startswith('box_name'):
+                    linetuple = line.split('=')
+                    boxName['pigrowname'] = linetuple[1]
+
+    except:
+        boxName = {}
+        return jsonify(boxName)
+
+    return jsonify(boxName)
 
 
 class InvalidUsage(Exception):
