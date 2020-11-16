@@ -1,4 +1,3 @@
-#!/usr/bin/python3
 import flask
 from flask import request, jsonify
 from flask import current_app
@@ -21,16 +20,16 @@ CORS(app)
 app.config["DEBUG"] = False
 app.clients = {}
 
-app.config["HOME_PATH"] = r'/home/pi/Pigrow'
-home_path  = r'/home/pi/Pigrow'
-# default return
+app.config["HOME_PATH"] = r'/home/pi/Pigrow' 
+home_path  = r'/home/pi/Pigrow' 
+# default return 
 @app.route('/', methods=['GET'])
 def home():
     return "<h1>Pigrow Mobile API</h1><p>This site is a prototype API for Pigrow monitoring.</p>"
 
 def RunSubprocess(args):
-    process = subprocess.run(args,
-                         stdout=subprocess.PIPE,
+    process = subprocess.run(args, 
+                         stdout=subprocess.PIPE, 
                          universal_newlines=True)
     return process
 
@@ -74,7 +73,7 @@ def api_GetTrigger(conditionname):
         for row in reader: # each row is a list
             if ''.join(row).strip():
                 results.append(row)
-
+    
     for line in results:
         if line[4].lower() == conditionname.lower():
             trigg = {}
@@ -88,7 +87,7 @@ def api_GetTrigger(conditionname):
             trigg["cmd"] = line[7]
             break
 
-
+    
     return jsonify(trigg)
 
 # Set trigger value, update existing or create new
@@ -119,7 +118,7 @@ def api_SetTrigger():
     else:
         with open(os.path.join(home_path, 'config/trigger_events.txt')) as csvfile:
             reader = csv.reader(csvfile)
-            for row in reader:
+            for row in reader: 
                 if ''.join(row).strip():
                     results.append(row)
         with open(os.path.join(home_path, 'config/trigger_events.txt'), 'w') as outf:
@@ -147,10 +146,10 @@ def api_DeleteTrigger():
     conditionname = resultsJson['conditionname']
     success = True
     results = []
-
+    
     with open(os.path.join(home_path, 'config/trigger_events.txt')) as csvfile:
         reader = csv.reader(csvfile)
-        for row in reader:
+        for row in reader: 
             if ''.join(row).strip():
                 results.append(row)
     with open(os.path.join(home_path, 'config/trigger_events.txt'), 'w') as outf:
@@ -184,7 +183,7 @@ def api_GetCurrentSensors(local):
                 if line.startswith('sensor_'):
                     linetuple = line.split('_')
                     if linetuple[1] not in sensorsFull:
-                        sensorsFull[linetuple[1].lower()] = {linetuple[2].split('=')[0]:line.split('=')[1]}
+                        sensorsFull[linetuple[1]] = {linetuple[2].split('=')[0]:line.split('=')[1]}
                     else:
                         sensorsFull[linetuple[1]][linetuple[2].split('=')[0]] =  line.split('=')[1]
     except:
@@ -204,32 +203,36 @@ def api_ReadSensor(sensorname,typeSensor='modular'):
     sensors = api_GetCurrentSensors(True)
     sensorSplit = '\n'
     module_path = ''
-    if sensorname in sensors:
-        sensor = sensors[sensorname]
-        sensorScript = Path(home_path + "/scripts/gui/sensor_modules/sensor_" + sensor['type'] + ".py")
-        if sensor['type'] and sensorScript.is_file():
-            module_path = [home_path + "/scripts/gui/sensor_modules/sensor_" + sensor['type'] + ".py", "location=" + sensor['loc'] ,"name=" + sensorname]
-    if typeSensor.lower() == 'chirp':
-        sensorScript = Path(home_path + "/scripts/sensors/log_" + sensor['type'] + ".py")
-        if sensor['type'] and sensorScript.is_file():
-            module_path = [home_path + "/scripts/sensors/log_" + sensor['type'] + ".py", "address=" + sensor['loc'].split(":")[1]]
-        sensorSplit = '>'
-        if sensor["extra"]:
-            minmax = sensor['extra'].split(" ")
-            min = minmax[0].split(":")[1]
-            max = minmax[1].split(":")[1]
-            module_path.append("min=" + min)
-            module_path.append("max=" + max )
-    if module_path:
-        reading = RunSubprocess(module_path)
-        line = reading.stdout.strip()
-        line = line.replace('Written; ' ,'')
-        obj,error = ParseReading(line, typeSensor, None, sensorSplit)
-        obj["sensortype"] = sensorname
-    else:
+    try:
+        if sensorname in sensors:
+            sensor = sensors[sensorname]
+            sensorScript = Path(home_path + "/scripts/gui/sensor_modules/sensor_" + sensor['type'] + ".py")
+            if sensor['type'] and sensorScript.is_file():
+                module_path = [home_path + "/scripts/gui/sensor_modules/sensor_" + sensor['type'] + ".py", "location=" + sensor['loc'] ,"name=" + sensorname]
+        if typeSensor.lower() == 'chirp':
+            sensorScript = Path(home_path + "/scripts/sensors/log_" + sensor['type'] + ".py")
+            if sensor['type'] and sensorScript.is_file():
+                module_path = [home_path + "/scripts/sensors/log_" + sensor['type'] + ".py", "address=" + sensor['loc'].split(":")[1]]
+            sensorSplit = '>'
+            if sensor["extra"]:
+                minmax = sensor['extra'].split(" ")
+                min = minmax[0].split(":")[1]
+                max = minmax[1].split(":")[1]
+                module_path.append("min=" + min)
+                module_path.append("max=" + max )
+        if module_path:
+            reading = RunSubprocess(module_path)
+            line = reading.stdout.strip()
+            line = line.replace('Written; ' ,'')
+            obj,error = ParseReading(line, typeSensor, None, sensorSplit)
+            obj["sensortype"] = sensorname
+        else:
+            obj = {}
+            obj["sensortype"] = sensorname
+        #objNamed = {sensorname: obj}
+    except (Exception) as e:
         obj = {}
         obj["sensortype"] = sensorname
-    #objNamed = {sensorname: obj}
 
     return jsonify(obj)
 
@@ -266,7 +269,7 @@ def api_GetGpio():
     gpioFull = {}
     with open(os.path.join(home_path, 'config/pigrow_config.txt')) as f:
         lines = f.read().splitlines()
-
+    
         for line in lines:
             if line.startswith('gpio'):
                 linetuple = line.split('_',1)
@@ -318,7 +321,7 @@ def api_SetGpio():
     else:
         device_status = "read error -" + gpio_status + "-"
     if success:
-        GPIO.setup(pin, GPIO.OUT)
+        GPIO.setup(pin, GPIO.OUT)    
         if device_status == "OFF" or direction.upper() == "OFF":
             if gpioPowerState == "low":
                 GPIO.output(pin, GPIO.LOW)
@@ -329,7 +332,7 @@ def api_SetGpio():
                 GPIO.output(pin, GPIO.HIGH)
             elif gpioPowerState == "high":
                 GPIO.output(pin, GPIO.LOW)
-
+        
     return jsonify(success)
 
 # Check gpio state
@@ -371,18 +374,18 @@ def api_CheckGpio():
             else:
                 device_status = "read error -" + gpio_status + "-"
             gp['state'] = device_status
-
+            
     return jsonify(gpios)
 
 # get log by logname
 @app.route('/api/v1/data/getlog/<logname>', defaults={'logtype': None}, methods=['GET'])
 @app.route('/api/v1/data/getlog/<logname>/<logtype>', methods=['GET'])
 def api_GetLog(logname,logtype='modular'):
-
+    
     sensorsText = api_GetCurrentSensors(True)
 
-    if logname.lower() in sensors:
-        sensor = sensors[logname]
+    if logname in sensorsText:
+        sensor = sensorsText[logname]
         logPath = sensor['log']
 
     logResults,error = ParseLog(logPath,logtype)
@@ -405,7 +408,7 @@ def api_GetCustomLog():
     options['logName'] = logName
     options['logColumn'] = logColumn
     options['logType'] = logType
-
+    
     if 'datestart' in logConfig:
         startDate = datetime.datetime.strptime(logConfig['datestart'], "%a, %d %b %Y %H:%M:%S %Z")
         #startDate = parse_datetime(logConfig['datestart'])
@@ -423,7 +426,7 @@ def api_GetCustomLog():
 
 # Parse log
 def ParseLog(logPath, typeSensor, options=None):
-
+    
     logsResults = []
     with open(logPath) as f:
         lines = f.read().splitlines()
@@ -432,7 +435,7 @@ def ParseLog(logPath, typeSensor, options=None):
             obj,error = ParseReading(line, typeSensor, options)
             if obj != {}:
                 logsResults.append(obj)
-
+    
     return logsResults,error
 
 # parse log line (supports modular and chirp)
@@ -522,17 +525,17 @@ def ParseReading(line, typeSensor, options=None, lineSplit = '>'):
                         if lineDate < start or lineDate > end:
                             return obj,error
                         else:
-                            obj[split[0]] = split[1]
+                            obj[split[0]] = split[1]    
                     if split[0] in options['logColumn'] or not options['logColumn']:
                         obj[split[0]] = split[1]
                 else:
                     if split[0] in options['logColumn'] or options['logColumn'] == {} or split[0] == 'time':
                         obj[split[0]] = split[1]
-
-
+                
+                
             except (Exception) as e:
                 error = 'incorrect type maybe, default is modular'
-
+    
     return obj,error
 
 # Get all .py files in folder
@@ -588,11 +591,11 @@ def api_GetPigrowName():
                 if line.startswith('box_name'):
                     linetuple = line.split('=')
                     boxName['pigrowname'] = linetuple[1]
-
+                    
     except:
         boxName = {}
         return jsonify(boxName)
-
+    
     return jsonify(boxName)
 
 
