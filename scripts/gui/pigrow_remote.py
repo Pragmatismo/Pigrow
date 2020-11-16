@@ -309,6 +309,8 @@ class shared_data:
         shared_data.no_log_image = wx.Image(no_log_img_path, wx.BITMAP_TYPE_ANY).ConvertToBitmap()
         shared_data.yes_log_image = wx.Image(yes_log_img_path, wx.BITMAP_TYPE_ANY).ConvertToBitmap()
         shared_data.warn_log_image = wx.Image(warn_log_img_path, wx.BITMAP_TYPE_ANY).ConvertToBitmap()
+        infobtn_img_path = os.path.join(shared_data.ui_img_path, "Info_button.png")
+        shared_data.infobtn_image = wx.Image(infobtn_img_path, wx.BITMAP_TYPE_ANY).ConvertToBitmap()
         #
         ## Fonts
         #
@@ -13434,7 +13436,7 @@ class add_button_dialog(wx.Dialog):
 
 
     def edit_cron_job(self, start_name, new_name):
-        print(" - This does not yet check or write the cron job, comin soon - make sure it starts on boot by looking in the cron tab of the gui")
+        #print(" - This does not yet check or write the cron job, comin soon - make sure it starts on boot by looking in the cron tab of the gui")
         # check to find cron job handling this sensor
         line_number_start_cron = self.find_cron_job("watcher_button.py", start_name)
 
@@ -15230,7 +15232,6 @@ class communication_ctrl_pnl(wx.Panel):
         self.SetSizer(main_sizer)
 
     def load_btn_click(self, e):
-        print("--- BOOP ---")
         # reddit
         #    log in
         if "my_client_id" in MainApp.config_ctrl_pannel.dirlocs_dict:
@@ -15283,7 +15284,6 @@ class communication_ctrl_pnl(wx.Panel):
             if not value == "":
                 dirlocs_text += key + "=" + value + "\n"
         dirlocs_text = dirlocs_text[:-1]
-        print(dirlocs_text)
         local_temp_path = os.path.join(localfiles_info_pnl.local_path, "temp")
         if not os.path.isdir(local_temp_path):
             os.makedirs(local_temp_path)
@@ -15297,18 +15297,22 @@ class communication_ctrl_pnl(wx.Panel):
         print(" New dirlocs uploaded to pigrow.")
 
     def check_bot_server_mobile_app(self):
-        script_has_cronjob, script_enabled, script_startupcron_index = install_dialog.check_for_control_script("", scriptname='po-notify.py')
-        if script_has_cronjob and script_enabled:
-            MainApp.communication_info_pannel.mobile_server_t.SetForegroundColour((80,150,80))
-            MainApp.communication_info_pannel.mobile_server_t.SetLabel("Starting on boot")
-        elif script_has_cronjob and not script_enabled:
-            MainApp.communication_info_pannel.mobile_server_t.SetForegroundColour((200,110,110))
-            MainApp.communication_info_pannel.mobile_server_t.SetLabel("cronjob disabled, won't start on boot")
-        elif not script_has_cronjob:
+        script_has_cronjob, script_enabled, script_startupcron_index = install_dialog.check_for_control_script("", scriptname='phone_app.py')
+        if script_has_cronjob == True:
+            if script_enabled == "True":
+                MainApp.communication_info_pannel.mobile_server_t.SetForegroundColour((80,150,80))
+                MainApp.communication_info_pannel.mobile_server_t.SetLabel("Starting on boot")
+                MainApp.communication_info_pannel.mobile_add_cron_btn.Hide()
+            else:
+                MainApp.communication_info_pannel.mobile_server_t.SetForegroundColour((200,110,110))
+                MainApp.communication_info_pannel.mobile_server_t.SetLabel("cronjob disabled")
+                MainApp.communication_info_pannel.mobile_add_cron_btn.Show()
+        else:
             MainApp.communication_info_pannel.mobile_server_t.SetForegroundColour((200,75,75))
             MainApp.communication_info_pannel.mobile_server_t.SetLabel("No cronjob")
+            MainApp.communication_info_pannel.mobile_add_cron_btn.Show()
         # Check running
-        cmd = "pidof /home/" + pi_link_pnl.target_user + "/Pigrow/scripts/triggers/mobileapp_server.py -x"
+        cmd = "pidof /home/" + pi_link_pnl.target_user + "/Pigrow/scripts/autorun/phone_app.py -x"
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi(cmd)
         if len(out) > 0:
             MainApp.communication_info_pannel.mobile_s_activity_tc.SetLabel("currently running")
@@ -15332,6 +15336,9 @@ class communication_info_pnl(wx.Panel):
         # reddit
         reddit_title =  wx.StaticText(self,  label='Reddit Bots', size=(200, 40))
         reddit_title.SetFont(shared_data.title_font)
+        self.reddit_info = wx.BitmapButton(self, -1, shared_data.infobtn_image, size=(40, 40))
+        self.reddit_info.Bind(wx.EVT_BUTTON, self.show_reddit_guide)
+        #
         reddit_client_l =  wx.StaticText(self,  label='Client ID')
         self.reddit_client_tc = wx.TextCtrl(self, value="", size=(200,30))
         reddit_client_s_l =  wx.StaticText(self,  label='Client Secret')
@@ -15356,6 +15363,8 @@ class communication_info_pnl(wx.Panel):
         ##
         # pushover notify
         pushover_title =  wx.StaticText(self,  label='Pushover Notify', size=(200, 40))
+        self.ponotify_info = wx.BitmapButton(self, -1, shared_data.infobtn_image, size=(40, 40))
+        self.ponotify_info.Bind(wx.EVT_BUTTON, self.show_ponotify_guide)
         pushover_title.SetFont(shared_data.title_font)
         push_test_message_l =  wx.StaticText(self,  label=' ')
         self.push_test_message_btn = wx.Button(self, label='Test')
@@ -15367,17 +15376,28 @@ class communication_info_pnl(wx.Panel):
 
         # mobile app
         mobile_title =  wx.StaticText(self,  label='Mobile App', size=(200, 40))
+        self.mobileapp_info = wx.BitmapButton(self, -1, shared_data.infobtn_image, size=(40, 40))
+        self.mobileapp_info.Bind(wx.EVT_BUTTON, self.show_phoneapp_guide)
         mobile_title.SetFont(shared_data.title_font)
         mobile_server_l =  wx.StaticText(self,  label='Server Script Status')
         self.mobile_server_t = wx.StaticText(self, label="", size=(200,30))
         mobile_s_activity_l =  wx.StaticText(self,  label='')
         self.mobile_s_activity_tc = wx.StaticText(self, label="")
+        mobile_add_l =  wx.StaticText(self,  label='')
+        self.mobile_add_cron_btn = wx.Button(self, label='Add to startup')
+        self.mobile_add_cron_btn.Bind(wx.EVT_BUTTON, self.mobile_add_cron_click)
         #mobile_api_l =  wx.StaticText(self,  label='API Key')
         #self.mobile_api_tc = wx.TextCtrl(self, value="")
         #mobile_key_l =  wx.StaticText(self,  label='Client Key')
         #self.moble_key_tc = wx.TextCtrl(self, value="")
 
-
+        mobile_sizer = wx.GridSizer(3, 2, 0, 0)
+        mobile_sizer.AddMany( [(mobile_server_l, 0, wx.EXPAND),
+            (self.mobile_server_t, 2, wx.EXPAND),
+            (mobile_s_activity_l, 0, wx.EXPAND),
+            (self.mobile_s_activity_tc, 2, wx.EXPAND),
+            (mobile_add_l, 0, wx.EXPAND),
+            (self.mobile_add_cron_btn, 2, wx.EXPAND)])
 
         red_login_sizer = wx.GridSizer(4, 2, 0, 0)
         red_login_sizer.AddMany( [(reddit_client_l, 0, wx.EXPAND),
@@ -15407,32 +15427,99 @@ class communication_info_pnl(wx.Panel):
             (push_key_l, 0, wx.EXPAND),
             (self.push_key_tc, 2, wx.EXPAND)])
 
-        mobile_sizer = wx.GridSizer(2, 2, 0, 0)
-        mobile_sizer.AddMany( [(mobile_server_l, 0, wx.EXPAND),
-            (self.mobile_server_t, 2, wx.EXPAND),
-            (mobile_s_activity_l, 0, wx.EXPAND),
-            (self.mobile_s_activity_tc, 2, wx.EXPAND)])
+        reddit_t_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        reddit_t_sizer.Add(self.reddit_info, 0, wx.ALL, 3)
+        reddit_t_sizer.Add(reddit_title, 0, wx.LEFT, 30)
 
         reddit_sizer = wx.BoxSizer(wx.VERTICAL)
-        reddit_sizer.Add(reddit_title, 0, wx.ALL, 3)
+        reddit_sizer.Add(reddit_t_sizer, 0, wx.ALL, 3)
         reddit_sizer.Add(red_login_sizer, 0, wx.ALL, 3)
         reddit_sizer.Add(reddit_mess_title, 0, wx.ALL, 3)
         reddit_sizer.Add(red_mess_sizer, 0, wx.ALL, 3)
         reddit_sizer.Add(wiki_updater_title, 0, wx.ALL, 3)
         reddit_sizer.Add(red_wiki_sizer, 0, wx.ALL, 3)
 
+        mobile_t_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        mobile_t_sizer.Add(self.mobileapp_info, 0, wx.ALL, 3)
+        mobile_t_sizer.Add(mobile_title, 0, wx.LEFT, 30)
+
+        ponotify_t_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        ponotify_t_sizer.Add(self.ponotify_info, 0, wx.ALL, 3)
+        ponotify_t_sizer.Add(pushover_title, 0, wx.LEFT, 30)
+
         main_sizer = wx.BoxSizer(wx.VERTICAL)
         main_sizer.Add(title_l, 0, wx.ALIGN_CENTER_HORIZONTAL, 3)
         main_sizer.Add(page_sub_title, 0, wx.ALIGN_CENTER_HORIZONTAL, 3)
-        main_sizer.Add(mobile_title, 0, wx.ALIGN_LEFT, 3)
+        main_sizer.Add(mobile_t_sizer, 0, wx.ALIGN_LEFT, 3)
         main_sizer.Add(mobile_sizer, 0, wx.ALIGN_LEFT, 3)
         main_sizer.Add(reddit_sizer, 0, wx.ALIGN_LEFT, 3)
-        main_sizer.Add(pushover_title, 0, wx.ALIGN_LEFT, 3)
+        main_sizer.Add(ponotify_t_sizer, 0, wx.ALIGN_LEFT, 3)
         main_sizer.Add(pushover_sizer, 0, wx.ALIGN_LEFT, 3)
         self.SetSizer(main_sizer)
 
+    def show_reddit_guide(self, e):
+        guide_path = os.path.join(shared_data.ui_img_path, "redditbot_help.png")
+        if os.path.isfile(guide_path):
+            guide = wx.Image(guide_path, wx.BITMAP_TYPE_ANY)
+            guide = guide.ConvertToBitmap()
+            dbox = show_image_dialog(None, guide, "Reddit Bots")
+            dbox.ShowModal()
+            dbox.Destroy()
+        else:
+            print(" help file not found, check www.reddit.com/r/Pigrow/wiki for info.")
+            print("     " + guide_path + " not found")
+
+    def show_ponotify_guide(self, e):
+        guide_path = os.path.join(shared_data.ui_img_path, "ponotify_help.png")
+        if os.path.isfile(guide_path):
+            guide = wx.Image(guide_path, wx.BITMAP_TYPE_ANY)
+            guide = guide.ConvertToBitmap()
+            dbox = show_image_dialog(None, guide, "PushOver Notification")
+            dbox.ShowModal()
+            dbox.Destroy()
+        else:
+            print(" help file not found, check www.reddit.com/r/Pigrow/wiki for info.")
+            print("     " + guide_path + " not found")
+
+    def show_phoneapp_guide(self, e):
+        guide_path = os.path.join(shared_data.ui_img_path, "phoneapp_help.png")
+        if os.path.isfile(guide_path):
+            guide = wx.Image(guide_path, wx.BITMAP_TYPE_ANY)
+            guide = guide.ConvertToBitmap()
+            dbox = show_image_dialog(None, guide, "Mobile App")
+            dbox.ShowModal()
+            dbox.Destroy()
+        else:
+            print(" help file not found, check www.reddit.com/r/Pigrow/wiki for info.")
+            print("     " + guide_path + " not found")
+
+
+    def mobile_add_cron_click(self, e):
+        print(" user wants me to automatically add phone app to startup cron, do it yourself! lazy! ")
+        # check for existing
+        script_has_cronjob, script_enabled, script_startupcron_index = install_dialog.check_for_control_script("", scriptname='phone_app.py')
+
+        # check to see if this is a new job or not
+        if script_has_cronjob:
+            cron_task    = cron_list_pnl.startup_cron.GetItem(script_startupcron_index, 3).GetText()
+            cron_args = cron_list_pnl.repeat_cron.GetItem(script_startupcron_index, 4).GetText()
+            cron_comment = cron_list_pnl.startup_cron.GetItem(script_startupcron_index, 5).GetText()
+            cron_list_pnl.startup_cron.DeleteItem(script_startupcron_index)
+            cron_info_pnl.add_to_startup_list(MainApp.cron_info_pannel, 'modified', "True", cron_task, cron_args, cron_comment)
+            print("    - Cron job; " + str(script_startupcron_index) + " modified " + "true" + " " + cron_task + " " + cron_args + " " + cron_comment)
+        else:
+            print("    - Job not currently in cron, adding it...")
+            cron_enabled = "True"
+            cron_task = "/home/" + pi_link_pnl.target_user + "/Pigrow/scripts/autorun/phone_app.py"
+            cron_args = ""
+            cron_comment = ""
+            cron_info_pnl.add_to_startup_list(MainApp.cron_info_pannel, 'new', "True", cron_task, cron_args, "")
+            print("    - New Cron job; " + cron_enabled + " "  + cron_task + " " + cron_args + " " + cron_comment)
+        MainApp.cron_info_pannel.update_cron_click("e")
+        MainApp.communication_ctrl_pannel.check_bot_server_mobile_app()
+
+
     def push_test_message_click(self, e):
-        print(" po message button bopped")
         name_box_dbox = wx.TextEntryDialog(self, "Message to send", "Send Test Notification", "Test Notification")
         if name_box_dbox.ShowModal() == wx.ID_OK:
             push_msg = name_box_dbox.GetValue()
@@ -15447,7 +15534,6 @@ class communication_info_pnl(wx.Panel):
                     print(" !!! NO pushover_clientkey in dirlocs.txt")
 
     def reddit_test_message_click(self, e):
-        print(" reddit message button bopped")
         name_box_dbox = wx.TextEntryDialog(self, "Message to send", "Send Test Messsage", "Test Messsage")
         if name_box_dbox.ShowModal() == wx.ID_OK:
             push_msg = name_box_dbox.GetValue()
