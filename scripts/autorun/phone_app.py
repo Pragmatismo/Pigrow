@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 import flask
 from flask import request, jsonify
 from flask import current_app
@@ -8,7 +9,6 @@ import csv
 import subprocess
 import json
 import datetime
-from dateutil import parser
 from pathlib import Path
 import glob
 import re
