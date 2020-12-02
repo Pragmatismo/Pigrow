@@ -7694,26 +7694,11 @@ class graphing_ctrl_pnl(wx.Panel):
         self.module_dw_btn.Bind(wx.EVT_BUTTON, self.make_datawall_from_module)
 
         # graphs
-        self.local_simple_line = wx.Button(self, label='Simple Line Graph')
-        self.local_simple_line.Bind(wx.EVT_BUTTON, self.local_simple_line_go)
-        self.local_color_line = wx.Button(self, label='Color Line Graph')
-        self.local_color_line.Bind(wx.EVT_BUTTON, self.local_color_line_go)
-        self.local_simple_bar = wx.Button(self, label='Simple Bar Graph')
-        self.local_simple_bar.Bind(wx.EVT_BUTTON, self.local_simple_bar_go)
         self.local_box_plot = wx.Button(self, label='Hourly Box Plot Graph')
         self.local_box_plot.Bind(wx.EVT_BUTTON, self.local_box_plot_go)
-        self.over_threasholds_by_hour = wx.Button(self, label='Threashold by hour')
-        self.over_threasholds_by_hour.Bind(wx.EVT_BUTTON, self.over_threasholds_by_hour_go)
-        self.threasholds_pie = wx.Button(self, label='Threashold Pie')
-        self.threasholds_pie.Bind(wx.EVT_BUTTON, self.threasholds_pie_go)
         self.dividied_daily = wx.Button(self, label='Divided Daily')
         self.dividied_daily.Bind(wx.EVT_BUTTON, self.divided_daily_go)
-        self.local_simple_line.Disable()
-        self.local_color_line.Disable()
-        self.local_simple_bar.Disable()
         self.local_box_plot.Disable()
-        self.over_threasholds_by_hour.Disable()
-        self.threasholds_pie.Disable()
         self.dividied_daily.Disable()
         self.value_diff_graph = wx.Button(self, label='Value Diff Graph')
         self.value_diff_graph.Bind(wx.EVT_BUTTON, self.value_diff_graph_go)
@@ -7788,12 +7773,7 @@ class graphing_ctrl_pnl(wx.Panel):
         local_opts_sizer.Add(self.graph_module_settings, 0, wx.ALL, 3)
         local_opts_sizer.Add(self.module_options_list_ctrl, 0, wx.ALL|wx.EXPAND, 3)
         local_opts_sizer.Add(datawall_sizer, 0, wx.ALL, 3)
-        local_opts_sizer.Add(self.local_simple_line, 0, wx.ALL, 3)
-        local_opts_sizer.Add(self.local_color_line, 0, wx.ALL, 3)
-        local_opts_sizer.Add(self.local_simple_bar, 0, wx.ALL, 3)
         local_opts_sizer.Add(self.local_box_plot, 0, wx.ALL, 3)
-        local_opts_sizer.Add(self.over_threasholds_by_hour, 0, wx.ALL, 3)
-        local_opts_sizer.Add(self.threasholds_pie, 0, wx.ALL, 3)
         local_opts_sizer.Add(self.dividied_daily, 0, wx.ALL, 3)
         local_opts_sizer.Add(self.value_diff_graph, 0, wx.ALL, 3)
         local_opts_sizer.Add(self.log_time_diff_graph, 0, wx.ALL, 3)
@@ -7871,12 +7851,7 @@ class graphing_ctrl_pnl(wx.Panel):
         self.graph_presets_cb.Hide()
         self.graph_preset_all.Hide()
         # graphs
-        self.local_simple_line.Hide()
-        self.local_color_line.Hide()
-        self.local_simple_bar.Hide()
         self.local_box_plot.Hide()
-        self.over_threasholds_by_hour.Hide()
-        self.threasholds_pie.Hide()
         self.dividied_daily.Hide()
         self.log_time_diff_graph.Hide()
         self.value_diff_graph.Hide()
@@ -7925,12 +7900,7 @@ class graphing_ctrl_pnl(wx.Panel):
         self.preset_text.Show()
         self.graph_presets_cb.Show()
         self.graph_preset_all.Show()
-        self.local_simple_line.Show()
-        self.local_color_line.Show()
-        self.local_simple_bar.Show()
         self.local_box_plot.Show()
-        self.over_threasholds_by_hour.Show()
-        self.threasholds_pie.Show()
         self.dividied_daily.Show()
         self.log_time_diff_graph.Show()
         self.value_diff_graph.Show()
@@ -7968,22 +7938,12 @@ class graphing_ctrl_pnl(wx.Panel):
         self.clear_log_btn.Show()
 
     def enable_value_graphs(self):
-        self.local_simple_line.Enable()
-        self.local_color_line.Enable()
-        self.local_simple_bar.Enable()
         self.local_box_plot.Enable()
-        self.over_threasholds_by_hour.Enable()
-        self.threasholds_pie.Enable()
         self.dividied_daily.Enable()
         self.value_diff_graph.Enable()
 
     def disable_value_graphs(self):
-        self.local_simple_line.Disable()
-        self.local_color_line.Disable()
-        self.local_simple_bar.Disable()
         self.local_box_plot.Disable()
-        self.over_threasholds_by_hour.Disable()
-        self.threasholds_pie.Disable()
         self.dividied_daily.Disable()
         self.value_diff_graph.Disable()
 
@@ -8557,286 +8517,6 @@ class graphing_ctrl_pnl(wx.Panel):
             self.valset_1_loaded.SetBitmap(shared_data.warn_log_image)
 
     # make graphs
-    def local_simple_line_go(self, e):
-        print("Want's to create a simple line graph...  ")
-        # read data from log
-        date_list = shared_data.list_of_datasets[0][0]
-        if len(date_list) == 0:
-            print("No data to make a graph with...")
-            return None
-        MainApp.status.write_bar("-- Creating a simple line graph from " + str(len(date_list)) + " values")
-        # read graph settings from ui boxes
-        key_unit = ""
-        ymax = MainApp.graphing_info_pannel.axis_y_max_cb.GetValue()
-        ymin = MainApp.graphing_info_pannel.axis_y_min_cb.GetValue()
-        size_h, size_v = self.get_graph_size_from_ui()
-        # start making the graph
-        fig = plt.gcf()
-        fig.canvas.set_window_title('Simple Line Graph')
-        fig, ax = plt.subplots(figsize=(size_h, size_v))
-        plt.title("Time Perod; " + str(date_list[0].strftime("%b-%d %H:%M")) + " to " + str(date_list[-1].strftime("%b-%d %H:%M")) + " ")
-        if not ymax == "":
-            plt.ylim(ymax=int(ymax))
-        if not ymin == "":
-            plt.ylim(ymin=int(ymin))
-        ax.set_prop_cycle(color=['black', 'blue', 'red', 'green'])
-        for x in shared_data.list_of_datasets:
-            date_list = x[0]
-            value_list = x[1]
-            key_list = x[2]
-            ax.plot(date_list, value_list, label=key_list[0], lw=1)
-        ax.xaxis_date()
-
-        fig.autofmt_xdate()
-        graph_path = os.path.join(localfiles_info_pnl.local_path, "line_graph.png")
-        plt.savefig(graph_path)
-        print("line graph created and saved to " + graph_path)
-        MainApp.graphing_info_pannel.show_local_graph(graph_path)
-        fig.clf()
-        MainApp.status.write_bar("ready...")
-
-    def local_color_line_go(self, e):
-        # read graph settings from ui boxes
-        date_list   = shared_data.list_of_datasets[0][0]
-        value_list  = shared_data.list_of_datasets[0][1]
-        key_list    = shared_data.list_of_datasets[0][2]
-        key_unit = ""
-        ymax = MainApp.graphing_info_pannel.axis_y_max_cb.GetValue()
-        ymin = MainApp.graphing_info_pannel.axis_y_min_cb.GetValue()
-        dangercold = float(MainApp.graphing_info_pannel.danger_low_tc.GetValue())
-        toocold = float(MainApp.graphing_info_pannel.low_tc.GetValue())
-        toohot = float(MainApp.graphing_info_pannel.high_tc.GetValue())
-        dangerhot = float(MainApp.graphing_info_pannel.danger_high_tc.GetValue())
-        size_h, size_v = self.get_graph_size_from_ui()
-        # read data from the log
-        print("Want's to create a color line graph...")
-        value_list = shared_data.first_value_set
-        date_list = shared_data.first_date_set
-        key_list = shared_data.first_keys_set
-        if len(date_list) == 0:
-            print("No data to make a graph with...")
-            return None
-        MainApp.status.write_bar("-- Creating a colour line graph from " + str(len(date_list)) + " values")
-        # define graph space
-        fig, ax = plt.subplots(figsize=(size_h, size_v))
-        # make the graph
-        ax.plot(date_list, value_list, color='black', lw=2)
-        # colour hot and cold porions of the graph
-        value_list = np.array(value_list)
-        if not dangercold == None:
-            ax.fill_between(date_list, value_list, 0,where=value_list < dangercold, alpha=0.6, color='darkblue')
-        if not toocold == None:
-            ax.fill_between(date_list, value_list, 0,where=value_list < toocold, alpha=0.6, color='blue')
-        if not toohot == None:
-            ax.fill_between(date_list, value_list, 0,where=value_list > toohot, alpha=0.6, color='red')
-        if not dangerhot == None:
-            ax.fill_between(date_list, value_list, 0,where=value_list > dangerhot, alpha=0.6, color='darkred')
-        # add titles and axis labels
-        fig = plt.gcf()
-        fig.canvas.set_window_title('Simple Line Graph')
-        plt.title("Time Perod; " + str(date_list[0].strftime("%b-%d %H:%M")) + " to " + str(date_list[-1].strftime("%b-%d %H:%M")) + " ")
-        # Y temp axis
-        plt.ylabel(key_list[0])
-        if not ymax == "":
-            plt.ylim(ymax=int(ymax))
-        if not ymin == "":
-            plt.ylim(ymin=int(ymin))
-        # X date axis
-        ax.xaxis_date()
-        # i should write some code here to only show the parts of the date that are needed
-        #ax.xaxis.set_major_formatter(mpl.dates.DateFormatter('%d-%b %H:%M'))
-        fig.autofmt_xdate()
-        # show or save graph
-        #plt.show()
-        graph_path = os.path.join(localfiles_info_pnl.local_path, "line_graph.png")
-        plt.savefig(graph_path)
-        print("line graph created and saved to " + graph_path)
-        MainApp.graphing_info_pannel.show_local_graph(graph_path)
-        fig.clf()
-        MainApp.status.write_bar("ready...")
-
-    def local_simple_bar_go(self, e):
-        print("Want's to create a simple bar graph...  ")
-        # read log
-        date_list = shared_data.list_of_datasets[0][0]
-        if len(date_list) == 0:
-            print("No data to make a graph with...")
-            return None
-        MainApp.status.write_bar("-- Creating a simple bar graph from " + str(len(date_list)) + " values")
-        # read graph settings from ui boxes
-        key_unit = ""
-        ymax = MainApp.graphing_info_pannel.axis_y_max_cb.GetValue()
-        ymin = MainApp.graphing_info_pannel.axis_y_min_cb.GetValue()
-        size_h, size_v = self.get_graph_size_from_ui()
-        # define the graph space
-        fig, ax = plt.subplots(figsize=(size_h, size_v))
-        plt.title("Time Perod; " + str(date_list[0].strftime("%b-%d %H:%M")) + " to " + str(date_list[-1].strftime("%b-%d %H:%M")) + " ")
-        if not ymax == "":
-            plt.ylim(ymax=int(ymax))
-        if not ymin == "":
-            plt.ylim(ymin=int(ymin))
-        for x in shared_data.list_of_datasets:
-            date_list = x[0]
-            value_list = x[1]
-            key_list = x[2]
-            ax.bar(date_list, value_list,width=0.01, linewidth = 1, alpha=0.5, label=key_list[0])
-        if len(shared_data.list_of_datasets) > 1:
-            ax.legend()
-        else:
-            plt.ylabel(key_list[0])
-        ax.xaxis_date()
-        fig.autofmt_xdate()
-        graph_path = os.path.join(localfiles_info_pnl.local_path, "bar_graph.png")
-        plt.savefig(graph_path)
-        print("bar graph created and saved to " + graph_path)
-        MainApp.graphing_info_pannel.show_local_graph(graph_path)
-        fig.clf()
-        MainApp.status.write_bar("ready...")
-
-    def over_threasholds_by_hour_go(self, e):
-        # read log
-        date_list   = shared_data.list_of_datasets[0][0]
-        value_list  = shared_data.list_of_datasets[0][1]
-        key_list    = shared_data.list_of_datasets[0][2]
-        if len(date_list) == 0:
-            print("No data to make a graph with...")
-            return None
-        MainApp.status.write_bar("-- Creating a threasholds by hour graph from " + str(len(date_list)) + " values")
-        # read graph settings from ui boxes
-        dangercold = float(MainApp.graphing_info_pannel.danger_low_tc.GetValue())
-        toocold = float(MainApp.graphing_info_pannel.low_tc.GetValue())
-        toohot = float(MainApp.graphing_info_pannel.high_tc.GetValue())
-        dangerhot = float(MainApp.graphing_info_pannel.danger_high_tc.GetValue())
-        size_h, size_v = self.get_graph_size_from_ui()
-        # start making graph
-        print("Making EpiphanyHermit's warningd by hour graph...")
-        # Colors for the danger temps
-        dangercoldColor = 'xkcd:purplish blue'
-        toocoldColor = 'xkcd:light blue'
-        toohotColor = 'xkcd:orange'
-        dangerhotColor = 'xkcd:red'
-        # Group the data by hour
-        dangerhotArray = [0]*24
-        toohotArray = [0]*24
-        toocoldArray = [0]*24
-        dangercoldArray = [0]*24
-        for i in range(len(date_list)):
-            h = int(date_list[i].strftime('%H'))
-            if value_list[i] >= dangerhot:
-                dangerhotArray[h] += 1
-            elif value_list[i] >= toohot:
-                toohotArray[h] += 1
-            elif value_list[i] <= dangercold:
-                dangercoldArray[h] += 1
-            elif value_list[i] <= toocold:
-                toocoldArray[h] += 1
-        ind = np.arange(24)  # the x locations for the groups
-        width = 0.25  # the width of the bars
-        fig, ax = plt.subplots(figsize=(size_h, size_v))
-        rects1 = ax.bar(ind - width/2, dangercoldArray, width, yerr=None, color=dangercoldColor, label='DC')
-        rects2 = ax.bar(ind - width/4, toocoldArray, width, yerr=None, color=toocoldColor, label='TC')
-        rects3 = ax.bar(ind + width/4, toohotArray, width, yerr=None, color=toohotColor, label='TH')
-        rects4 = ax.bar(ind + width/2, dangerhotArray, width, yerr=None, color=dangerhotColor, label='DH')
-        # Add some text for labels, title and custom x-axis tick labels, etc.
-        fig.suptitle('Dangerous Values by Hour', fontsize=14, fontweight='bold')
-        ax.set_ylabel('Counts')
-        ax.set_title(min(date_list).strftime("%B %d, %Y") + ' - ' + max(date_list).strftime("%B %d, %Y"), fontsize=10)
-        ax.set_xticks(ind)
-        labels = ('00:00', '01:00', '02:00', '03:00', '04:00','05:00','06:00','07:00','08:00','09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00','19:00','20:00','21:00','22:00','23:00')
-        ax.set_xticklabels(labels,rotation=45)
-        ax.legend()
-        graph_path = os.path.join(localfiles_info_pnl.local_path, "minmax_hour_plot.png")
-        print("danger values graph created and saved to " + graph_path)
-        plt.savefig(graph_path)
-        MainApp.graphing_info_pannel.show_local_graph(graph_path)
-        fig.clf()
-        MainApp.status.write_bar("ready...")
-
-    def threasholds_pie_go(self, e):
-        # read the log
-        date_list   = shared_data.list_of_datasets[0][0]
-        value_list  = shared_data.list_of_datasets[0][1]
-        key_list    = shared_data.list_of_datasets[0][2]
-        if len(date_list) == 0:
-            print("No data to make a graph with...")
-            return None
-        MainApp.status.write_bar("-- Creating a threasholds pie from " + str(len(date_list)) + " values")
-        # read settings from ui
-        dangercold = float(MainApp.graphing_info_pannel.danger_low_tc.GetValue())
-        toocold = float(MainApp.graphing_info_pannel.low_tc.GetValue())
-        toohot = float(MainApp.graphing_info_pannel.high_tc.GetValue())
-        dangerhot = float(MainApp.graphing_info_pannel.danger_high_tc.GetValue())
-        # start making graph
-        print("Making EpiphanyHermit's pie...")
-        sliceColors = ['xkcd:red',
-                       'xkcd:orange',
-                       'xkcd:light green',
-                       'xkcd:light blue',
-                       'xkcd:purplish blue']
-
-        tempThresholds = [('%.2f°' % dangerhot).replace(".00°","°")
-            , ('%.2f°' % toohot).replace(".00°","°")
-            , ('{:.2f}° < > {:.2f}°'.format(toohot,toocold)).replace(".00°","°")
-            , ('%.2f°' % toocold).replace(".00°","°")
-            , ('%.2f°' % dangercold).replace(".00°","°")]
-
-        # Group the data by classification
-        tempCount = [0,0,0,0,0]
-        for i in range(len(date_list)):
-            if value_list[i] >= dangerhot:
-                tempCount[0] += 1
-            elif value_list[i] >= toohot:
-                tempCount[1] += 1
-            elif value_list[i] <= dangercold:
-                tempCount[4] += 1
-            elif value_list[i] <= toocold:
-                tempCount[3] += 1
-            else:
-                tempCount[2] += 1
-
-        # The slices will be ordered and plotted counter-clockwise.
-        temps = list()
-        colors = list()
-        for i in range(5):
-            if tempCount[i] == 0:
-                continue
-            temps.append(tempCount[i])
-            colors.append(sliceColors[i])
-
-        plt.pie(temps, colors=colors, autopct='%1.1f%%', pctdistance=1.16)
-
-        #draw a circle at the center of the pie
-        centre_circle = plt.Circle((0,0), 0.75, color='black', fc='white',linewidth=0)
-        fig = plt.gcf()
-        fig.gca().add_artist(centre_circle)
-        fig.suptitle('Value Groups', fontsize=14, fontweight='bold')
-        plt.title(min(date_list).strftime("%B %d, %Y") + ' - ' + max(date_list).strftime("%B %d, %Y"), fontsize=10, y=1.07)
-
-        # Set aspect ratio to be equal so that pie is drawn as a circle.
-        plt.axis('equal')
-
-        # legend
-        custom_lines = [Line2D([0], [0], color=sliceColors[0], lw=2),
-                        Line2D([0], [0], color=sliceColors[1], lw=2),
-                        Line2D([0], [0], color=sliceColors[2], lw=2),
-                        Line2D([0], [0], color=sliceColors[3], lw=2),
-                        Line2D([0], [0], color=sliceColors[4], lw=2)]
-
-        fig.legend(custom_lines, [tempThresholds[0]
-                , tempThresholds[1]
-                , tempThresholds[2]
-                , tempThresholds[3]
-                , tempThresholds[4]]
-                , bbox_to_anchor=(.97,.97)
-                , loc="upper right")
-
-        fig.subplots_adjust(right=0.85, top=0.83)
-        graph_path = os.path.join(localfiles_info_pnl.local_path, "threashold_pie.png")
-        print("pie created and saved to " + graph_path)
-        plt.savefig(graph_path)
-        MainApp.graphing_info_pannel.show_local_graph(graph_path)
-        fig.clf()
-        MainApp.status.write_bar("ready...")
 
     def local_box_plot_go(self, e):
         # reading the log
