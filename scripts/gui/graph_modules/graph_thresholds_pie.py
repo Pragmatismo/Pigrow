@@ -32,7 +32,6 @@ def make_graph(list_of_datasets, graph_path, ymax="", ymin="", size_h="", size_v
         plt.text(0.2, 0.8, msg)
         #plt.plot(x)
         plt.savefig(graph_path)
-        plt.close(fig)
         return None
 
     dangercold = float(dc)
