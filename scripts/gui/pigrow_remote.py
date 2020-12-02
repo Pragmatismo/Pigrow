@@ -132,9 +132,6 @@ try:
     matplotlib.use('agg')
     import matplotlib.pyplot as plt
     import matplotlib.dates as mdates
-    from matplotlib.lines import Line2D
-    from matplotlib.patches import Polygon
-    from matplotlib.ticker import StrMethodFormatter
 except:
     print(" -------")
     print("  You don't have matploylib installed, this is used to create graphs")
@@ -7694,11 +7691,8 @@ class graphing_ctrl_pnl(wx.Panel):
         self.module_dw_btn.Bind(wx.EVT_BUTTON, self.make_datawall_from_module)
 
         # graphs
-        self.local_box_plot = wx.Button(self, label='Hourly Box Plot Graph')
-        self.local_box_plot.Bind(wx.EVT_BUTTON, self.local_box_plot_go)
         self.dividied_daily = wx.Button(self, label='Divided Daily')
         self.dividied_daily.Bind(wx.EVT_BUTTON, self.divided_daily_go)
-        self.local_box_plot.Disable()
         self.dividied_daily.Disable()
         self.value_diff_graph = wx.Button(self, label='Value Diff Graph')
         self.value_diff_graph.Bind(wx.EVT_BUTTON, self.value_diff_graph_go)
@@ -7773,7 +7767,6 @@ class graphing_ctrl_pnl(wx.Panel):
         local_opts_sizer.Add(self.graph_module_settings, 0, wx.ALL, 3)
         local_opts_sizer.Add(self.module_options_list_ctrl, 0, wx.ALL|wx.EXPAND, 3)
         local_opts_sizer.Add(datawall_sizer, 0, wx.ALL, 3)
-        local_opts_sizer.Add(self.local_box_plot, 0, wx.ALL, 3)
         local_opts_sizer.Add(self.dividied_daily, 0, wx.ALL, 3)
         local_opts_sizer.Add(self.value_diff_graph, 0, wx.ALL, 3)
         local_opts_sizer.Add(self.log_time_diff_graph, 0, wx.ALL, 3)
@@ -7851,7 +7844,6 @@ class graphing_ctrl_pnl(wx.Panel):
         self.graph_presets_cb.Hide()
         self.graph_preset_all.Hide()
         # graphs
-        self.local_box_plot.Hide()
         self.dividied_daily.Hide()
         self.log_time_diff_graph.Hide()
         self.value_diff_graph.Hide()
@@ -7900,7 +7892,6 @@ class graphing_ctrl_pnl(wx.Panel):
         self.preset_text.Show()
         self.graph_presets_cb.Show()
         self.graph_preset_all.Show()
-        self.local_box_plot.Show()
         self.dividied_daily.Show()
         self.log_time_diff_graph.Show()
         self.value_diff_graph.Show()
@@ -7938,12 +7929,10 @@ class graphing_ctrl_pnl(wx.Panel):
         self.clear_log_btn.Show()
 
     def enable_value_graphs(self):
-        self.local_box_plot.Enable()
         self.dividied_daily.Enable()
         self.value_diff_graph.Enable()
 
     def disable_value_graphs(self):
-        self.local_box_plot.Disable()
         self.dividied_daily.Disable()
         self.value_diff_graph.Disable()
 
@@ -8517,145 +8506,6 @@ class graphing_ctrl_pnl(wx.Panel):
             self.valset_1_loaded.SetBitmap(shared_data.warn_log_image)
 
     # make graphs
-
-    def local_box_plot_go(self, e):
-        # reading the log
-        date_list   = shared_data.list_of_datasets[0][0]
-        value_list  = shared_data.list_of_datasets[0][1]
-        key_list    = shared_data.list_of_datasets[0][2]
-        if len(date_list) == 0:
-            print("No data to make a graph with...")
-            return None
-        MainApp.status.write_bar("-- Creating a local box plot from " + str(len(date_list)) + " values")
-        # reading settings from ui
-        dangercold = float(MainApp.graphing_info_pannel.danger_low_tc.GetValue())
-        toocold = float(MainApp.graphing_info_pannel.low_tc.GetValue())
-        toohot = float(MainApp.graphing_info_pannel.high_tc.GetValue())
-        dangerhot = float(MainApp.graphing_info_pannel.danger_high_tc.GetValue())
-        # start making graph
-        print("Making EpiphanyHermit's competition winning box plot...")
-        # Start and End colors for the gradient
-        startColor = (118,205,38)
-        endColor = (38,118,204)
-        dangercoldColor = 'xkcd:purplish blue'
-        toocoldColor = 'xkcd:light blue'
-        toohotColor = 'xkcd:orange'
-        dangerhotColor = 'xkcd:red'
-
-        # Group the data by hour
-        hours = [[] for i in range(24)]
-        for i in range(len(date_list)):
-            h = int(date_list[i].strftime('%H'))
-            hours[h].append(value_list[i])
-
-        # give the graph a rectangular formatr
-        fig, ax1 = plt.subplots(figsize=(10, 6))
-        fig.subplots_adjust(left=0.1, right=0.9, top=0.9, bottom=0.15)
-        fig.suptitle('Median Value by Hour', fontsize=14, fontweight='bold')
-
-        bp = ax1.boxplot(hours,whis=0,widths=1,showfliers=False,showcaps=False,medianprops=dict(linestyle=''),boxprops=dict(linestyle=''))
-        ax1.set_axisbelow(True)
-        ax1.set_title(min(date_list).strftime("%B %d, %Y") + ' - ' + max(date_list).strftime("%B %d, %Y"), fontsize=10)
-
-        # x-axis
-        labels = [item.get_text() for item in ax1.get_xticklabels()]
-        for i in range(24):
-            labels[i] = str(i).zfill(2) + ':00'
-        ax1.set_xticklabels(labels,rotation=45,fontsize=8)
-        ax1.set_xlim(0, 25)
-        ax1.set_xlabel('Hour of the Day')
-
-        # y-axis
-        fmt = StrMethodFormatter('{x:,g}°')
-        ax1.yaxis.set_major_formatter(fmt)
-        ax1.yaxis.grid(True, linestyle='-', which='major', color='lightgrey', alpha=0.5)
-        #ax1.set_ylabel('Value')
-
-        # legend
-        custom_lines = [Line2D([0], [0], color=dangerhotColor, lw=2),
-                        Line2D([0], [0], color=toohotColor, lw=2),
-                        Line2D([0], [0], color=toocoldColor, lw=2),
-                        Line2D([0], [0], color=dangercoldColor, lw=2)]
-
-        plt.legend(custom_lines, [('%.2f°' % dangerhot).replace(".00°","°")
-                , ('%.2f°' % toohot).replace(".00°","°")
-                , ('%.2f°' % toocold).replace(".00°","°")
-                , ('%.2f°' % dangercold).replace(".00°","°")]
-                , bbox_to_anchor=(1.02,1)
-                , loc="upper left")
-
-        plt.subplots_adjust(right=0.85)
-
-        # given a defined start and stop, calculate 24 shade gradient
-        boxColors = [[] for i in range(24)]
-        for i in range(24):
-            for j in range(3):
-                newColor = 0
-                step = abs(startColor[j] - endColor[j]) / 24
-                if startColor[j] > endColor[j]:
-                    newColor = (startColor[j] - (i * step)) / 255
-                else:
-                    newColor = (startColor[j] + (i * step)) / 255
-                boxColors[i].append(newColor)
-
-        # Apply box specific info: color, median, warning
-        minEdge = 100
-        maxEdge = 0
-        medians = list(range(24))
-        for i in range(24):
-            box = bp['boxes'][i]
-            boxX = []
-            boxY = []
-            for j in range(5):
-                boxX.append(box.get_xdata()[j])
-                boxY.append(box.get_ydata()[j])
-            boxCoords = np.column_stack([boxX, boxY])
-
-            # Find min & max box edges to set y-axis limits
-            if minEdge > min(boxY):
-                minEdge = min(boxY)
-            if maxEdge < max(boxY):
-                maxEdge = max(boxY)
-
-            # Alert user to dangerous temps
-            warning = 'none'
-            if min(hours[i]) <= toocold and min(hours[i]) > dangercold:
-                warning = toocoldColor
-            if min(hours[i]) <= dangercold:
-                warning = dangercoldColor
-            if max(hours[i]) >= toohot and max(hours[i]) < dangerhot:
-                warning = toohotColor
-            if max(hours[i]) >= dangerhot:
-                warning = dangerhotColor
-
-            # Color the box and set the edge color, if applicable
-            boxPolygon = Polygon(boxCoords, facecolor=boxColors[i],edgecolor=warning)
-            ax1.add_patch(boxPolygon)
-
-            # add median data
-            med = bp['medians'][i]
-            medians[i] = med.get_ydata()[0]
-
-        top = maxEdge + 1
-        bottom = minEdge - 1
-        ax1.set_ylim(bottom, top)
-
-        # Add the medians just above the hour marks
-        pos = np.arange(24) + 1
-        upperLabels = [str(np.round(s, 2)) for s in medians]
-        weights = ['bold', 'semibold']
-        k = -1
-        for tick, label in zip(range(24), ax1.get_xticklabels()):
-            w = tick % 2
-            k = k + 1
-            ax1.text(pos[tick],bottom + (bottom*0.02),upperLabels[tick],horizontalalignment='center',size='x-small',weight=weights[w],color=boxColors[k])
-        graph_path = os.path.join(localfiles_info_pnl.local_path, "box_plot.png")
-        print("Box plot created and saved to " + graph_path)
-        plt.savefig(graph_path)
-        MainApp.graphing_info_pannel.show_local_graph(graph_path)
-        fig.clf()
-        MainApp.status.write_bar("ready...")
-
     def log_time_diff_graph_go(self, e):
         print("Want's to create a simple line graph...  ")
         # read data from log
