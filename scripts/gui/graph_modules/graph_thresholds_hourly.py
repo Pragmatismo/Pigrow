@@ -25,6 +25,15 @@ def make_graph(list_of_datasets, graph_path, ymax="", ymin="", size_h="", size_v
     # set variables to settings from dictionary converting to the appropriate type
     title_text   = extra['title_text']
     include_daterange = extra['include_daterange_in_title'].lower()
+    if dh == "" or th == "" or tc=="" or dc=="":
+        msg = " Thresholds not set \n please set danger high, danger low, too high and too low"
+        print(msg)
+        plt.figure(figsize=(size_h, size_v))
+        plt.text(0.2, 0.8, msg)
+        #plt.plot(x)
+        plt.savefig(graph_path)
+
+        return None
     dangercold = float(dc)
     toocold = float(tc)
     toohot = float(th)
