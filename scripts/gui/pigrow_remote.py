@@ -7217,6 +7217,9 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
         self.make_btn_enable()
 
     def make_btn_enable(self):
+        '''
+        obsolete but could be used for graphing buttons?
+        '''
         val_ex = self.value_pos_ex.GetLabel()
         val_good = False
         rem_from_val = self.rem_from_val_tc.GetValue()
@@ -7233,12 +7236,12 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
             except:
                 val_good = False
         # if valid turn on graphing buttons
-        if self.date_good and val_good == True:
+    #    if self.date_good and val_good == True:
             #print("Local Graphing - valid data")
-            MainApp.graphing_ctrl_pannel.enable_value_graphs()
-        else:
+    #        MainApp.graphing_ctrl_pannel.enable_value_graphs()   # this has been removed
+    #    else:
             #print("local graphing - not got valid data")
-            MainApp.graphing_ctrl_pannel.disable_value_graphs()
+    #        MainApp.graphing_ctrl_pannel.disable_value_graphs()  # this has been removed
 
     def hide_date_extract_boxes(self):
         self.start_date_l.Hide()
@@ -7690,8 +7693,6 @@ class graphing_ctrl_pnl(wx.Panel):
         self.module_dw_btn.Bind(wx.EVT_BUTTON, self.make_datawall_from_module)
 
         # graphs
-        self.value_diff_graph = wx.Button(self, label='Value Diff Graph')
-        self.value_diff_graph.Bind(wx.EVT_BUTTON, self.value_diff_graph_go)
         self.log_time_diff_graph = wx.Button(self, label='Time Diff Graph')
         self.log_time_diff_graph.Bind(wx.EVT_BUTTON, self.log_time_diff_graph_go)
         self.switch_log_graph = wx.Button(self, label='Switch Log Graph')
@@ -7763,7 +7764,6 @@ class graphing_ctrl_pnl(wx.Panel):
         local_opts_sizer.Add(self.graph_module_settings, 0, wx.ALL, 3)
         local_opts_sizer.Add(self.module_options_list_ctrl, 0, wx.ALL|wx.EXPAND, 3)
         local_opts_sizer.Add(datawall_sizer, 0, wx.ALL, 3)
-        local_opts_sizer.Add(self.value_diff_graph, 0, wx.ALL, 3)
         local_opts_sizer.Add(self.log_time_diff_graph, 0, wx.ALL, 3)
         local_opts_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(5, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
         local_opts_sizer.Add(self.switch_log_graph, 0, wx.ALL, 3)
@@ -7840,7 +7840,6 @@ class graphing_ctrl_pnl(wx.Panel):
         self.graph_preset_all.Hide()
         # graphs
         self.log_time_diff_graph.Hide()
-        self.value_diff_graph.Hide()
         self.switch_log_graph.Hide()
         #
         self.module_graph_choice.Hide()
@@ -7887,7 +7886,6 @@ class graphing_ctrl_pnl(wx.Panel):
         self.graph_presets_cb.Show()
         self.graph_preset_all.Show()
         self.log_time_diff_graph.Show()
-        self.value_diff_graph.Show()
         self.switch_log_graph.Show()
         self.module_graph_choice.Show()
         self.module_graph_btn.Show()
@@ -7921,11 +7919,6 @@ class graphing_ctrl_pnl(wx.Panel):
         self.set_log_btn.Show()
         self.clear_log_btn.Show()
 
-    def enable_value_graphs(self):
-        self.value_diff_graph.Enable()
-
-    def disable_value_graphs(self):
-        self.value_diff_graph.Disable()
 
     def redownload_log(self):
         current_log = shared_data.log_to_load
@@ -8040,7 +8033,6 @@ class graphing_ctrl_pnl(wx.Panel):
             date_list, value_list, key_list = MainApp.graphing_info_pannel.read_log_date_and_value(numbers_only=True)
         #
         if len(date_list) == len(value_list) and len(date_list) == len(key_list) and len(date_list) > 0:
-            self.enable_value_graphs()
             shared_data.list_of_datasets.append([date_list, value_list, key_list])
             self.valset_1_loaded.SetBitmap(shared_data.yes_log_image)
             self.valset_1_len.SetLabel(str(len(date_list)))
@@ -8485,7 +8477,6 @@ class graphing_ctrl_pnl(wx.Panel):
         print(" - Sucker added ", len(values), len(dates), len(keys), " data points.")
         shared_data.first_valueset_name = module_name
         shared_data.list_of_datasets.append([dates, values, keys])
-        self.enable_value_graphs()
         if len(dates) == len(values) and len(dates) == len(keys) and len(dates) > 0:
             self.valset_1_loaded.SetBitmap(shared_data.yes_log_image)
             self.num_of_logs_loaded.SetLabel(str(len(shared_data.list_of_datasets)))
@@ -8538,51 +8529,6 @@ class graphing_ctrl_pnl(wx.Panel):
         graph_path = os.path.join(localfiles_info_pnl.local_path, "time_diff_graph.png")
         plt.savefig(graph_path)
         print("time diff graph created and saved to " + graph_path)
-        MainApp.graphing_info_pannel.show_local_graph(graph_path)
-        fig.clf()
-        MainApp.status.write_bar("ready...")
-
-    def value_diff_graph_go(self, e):
-        print("Want's to create a value differnce graph...  ")
-        # read data from log
-        date_list   = shared_data.list_of_datasets[0][0]
-        value_list  = shared_data.list_of_datasets[0][1]
-        key_list    = shared_data.list_of_datasets[0][2]
-        if len(date_list) < 2:
-            return None
-        MainApp.status.write_bar("-- Creating a value diff graph from " + str(len(date_list)) + " values")
-        # read graph settings from ui boxes
-        key_unit = ""
-        ymax = MainApp.graphing_info_pannel.axis_y_max_cb.GetValue()
-        ymin = MainApp.graphing_info_pannel.axis_y_min_cb.GetValue()
-        size_h, size_v = self.get_graph_size_from_ui()
-        # create list of Value diffs
-        #counter = 0
-        #counter_list = []
-        value_dif_list = []
-        prior_value = value_list[0]
-        for current_value in value_list[1:]:
-            value_diff = prior_value - current_value
-            #counter = counter + 1
-            #counter_list.append(counter)
-            value_dif_list.append(value_diff)
-            prior_value = current_value
-        # start making the graph
-        fig = plt.gcf()
-        fig.canvas.set_window_title('Value Diff Graph')
-        fig, ax = plt.subplots(figsize=(size_h, size_v))
-        plt.title("Value difference between log entries\nTime Perod; " + str(date_list[0].strftime("%b-%d %H:%M")) + " to " + str(date_list[-1].strftime("%b-%d %H:%M")) + " ")
-        plt.ylabel("Value difference")
-        if not ymax == "":
-            plt.ylim(ymax=int(ymax))
-        if not ymin == "":
-            plt.ylim(ymin=int(ymin))
-        ax.plot(date_list[1:], value_dif_list, color='black', lw=1)
-        ax.xaxis_date()
-        fig.autofmt_xdate()
-        graph_path = os.path.join(localfiles_info_pnl.local_path, "value_diff_graph.png")
-        plt.savefig(graph_path)
-        print("Value diff graph created and saved to " + graph_path)
         MainApp.graphing_info_pannel.show_local_graph(graph_path)
         fig.clf()
         MainApp.status.write_bar("ready...")
