@@ -7693,8 +7693,6 @@ class graphing_ctrl_pnl(wx.Panel):
         self.module_dw_btn.Bind(wx.EVT_BUTTON, self.make_datawall_from_module)
 
         # graphs
-        self.log_time_diff_graph = wx.Button(self, label='Time Diff Graph')
-        self.log_time_diff_graph.Bind(wx.EVT_BUTTON, self.log_time_diff_graph_go)
         self.switch_log_graph = wx.Button(self, label='Switch Log Graph')
         self.switch_log_graph.Bind(wx.EVT_BUTTON, self.switch_log_graph_go)
 
@@ -7764,7 +7762,6 @@ class graphing_ctrl_pnl(wx.Panel):
         local_opts_sizer.Add(self.graph_module_settings, 0, wx.ALL, 3)
         local_opts_sizer.Add(self.module_options_list_ctrl, 0, wx.ALL|wx.EXPAND, 3)
         local_opts_sizer.Add(datawall_sizer, 0, wx.ALL, 3)
-        local_opts_sizer.Add(self.log_time_diff_graph, 0, wx.ALL, 3)
         local_opts_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(5, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
         local_opts_sizer.Add(self.switch_log_graph, 0, wx.ALL, 3)
         # sizers used for graphing on pigrow
@@ -7839,7 +7836,6 @@ class graphing_ctrl_pnl(wx.Panel):
         self.graph_presets_cb.Hide()
         self.graph_preset_all.Hide()
         # graphs
-        self.log_time_diff_graph.Hide()
         self.switch_log_graph.Hide()
         #
         self.module_graph_choice.Hide()
@@ -7885,7 +7881,6 @@ class graphing_ctrl_pnl(wx.Panel):
         self.preset_text.Show()
         self.graph_presets_cb.Show()
         self.graph_preset_all.Show()
-        self.log_time_diff_graph.Show()
         self.switch_log_graph.Show()
         self.module_graph_choice.Show()
         self.module_graph_btn.Show()
@@ -8486,52 +8481,6 @@ class graphing_ctrl_pnl(wx.Panel):
         else:
             print(" - These lists either aren't the same length or are all empty, that could be a problem for the graph modules.... ")
             self.valset_1_loaded.SetBitmap(shared_data.warn_log_image)
-
-    # make graphs
-    def log_time_diff_graph_go(self, e):
-        print("Want's to create a simple line graph...  ")
-        # read data from log
-        date_list   = shared_data.list_of_datasets[0][0]
-        value_list  = shared_data.list_of_datasets[0][1]
-        key_list    = shared_data.list_of_datasets[0][2]
-        if len(date_list) < 2:
-            return None
-        MainApp.status.write_bar("-- Creating a time diff graph from " + str(len(date_list)) + " values")
-        # read graph settings from ui boxes
-        key_unit = ""
-        ymax = MainApp.graphing_info_pannel.axis_y_max_cb.GetValue()
-        ymin = MainApp.graphing_info_pannel.axis_y_min_cb.GetValue()
-        size_h, size_v = self.get_graph_size_from_ui()
-        # create list of time diffs
-        counter = 0
-        counter_list = []
-        timediff_list = []
-        time_of_prev_item = date_list[0]
-        for current_items_time in date_list[1:]:
-            time_diff = current_items_time - time_of_prev_item
-            counter = counter + 1
-            counter_list.append(counter)
-            timediff_list.append(time_diff.total_seconds())
-            time_of_prev_item = current_items_time
-        # start making the graph
-        fig = plt.gcf()
-        fig.canvas.set_window_title('Time Diff Graph')
-        fig, ax = plt.subplots(figsize=(size_h, size_v))
-        plt.title("Time difference between log entries\nTime Perod; " + str(date_list[0].strftime("%b-%d %H:%M")) + " to " + str(date_list[-1].strftime("%b-%d %H:%M")) + " ")
-        plt.ylabel("Time difference in seconds")
-        if not ymax == "":
-            plt.ylim(ymax=int(ymax))
-        if not ymin == "":
-            plt.ylim(ymin=int(ymin))
-        ax.plot(counter_list, timediff_list, color='black', lw=1)
-        #ax.xaxis_date()
-        #fig.autofmt_xdate()
-        graph_path = os.path.join(localfiles_info_pnl.local_path, "time_diff_graph.png")
-        plt.savefig(graph_path)
-        print("time diff graph created and saved to " + graph_path)
-        MainApp.graphing_info_pannel.show_local_graph(graph_path)
-        fig.clf()
-        MainApp.status.write_bar("ready...")
 
     # switch log
     def parse_switch_log_for_relays(self, add_data_to_square = True):
