@@ -14,7 +14,7 @@ def read_graph_options():
     Returns a dictionary of settings and their default values for use by the remote gui
     '''
     graph_module_settings_dict = {
-             "title_text":"Value difference between log entries",
+             "title_text":"Time difference between log entries",
              "include_daterange_in_title":"true",
              "color_cycle":"false",
              "line_style":"-",
@@ -50,7 +50,7 @@ def make_graph(list_of_datasets, graph_path, ymax="", ymin="", size_h="", size_v
     minor_ticks  = extra['minor_ticks']
 
 
-    print("creating a value differnce graph...  ")
+    print("creating a time differnce graph...  ")
     # start making the graph
     fig, ax = plt.subplots(figsize=(size_h, size_v))
     if not color_cycle == 'false' and not color_cycle.strip() == '':
@@ -63,19 +63,22 @@ def make_graph(list_of_datasets, graph_path, ymax="", ymin="", size_h="", size_v
         key_list = x[2]
 
         # make list of diffs
-        if len(date_list) < 2:
-            print(" Not enough datapoints to work with for difference graph" + key_list[0])
-            # create list of Value diffs
-        value_dif_list = []
-        prior_value = value_list[0]
-        for current_value in value_list[1:]:
-            value_diff = prior_value - current_value
-            value_dif_list.append(value_diff)
-            prior_value = current_value
-        # plot to graph
-        ax.plot(date_list[1:], value_dif_list, line_flags, lw=line_width, label=key_list[0])
+        # create list of time diffs
+        counter = 0
+        counter_list = []
+        timediff_list = []
+        time_of_prev_item = date_list[0]
+        for current_items_time in date_list[1:]:
+            time_diff = current_items_time - time_of_prev_item
+            counter = counter + 1
+            counter_list.append(counter)
+            timediff_list.append(time_diff.total_seconds())
+            time_of_prev_item = current_items_time
 
-    # organise the graphing area
+        ax.plot(counter_list, timediff_list, line_flags, lw=line_width, label=key_list[0])
+
+
+        # organise the graphing area
     if include_daterange == "true":
         title_text = title_text + "\n" + str(min(date_list).strftime("%B %d, %Y") + ' - ' + max(date_list).strftime("%B %d, %Y"))
         ax.set_title(title_text, fontsize=16)
@@ -85,6 +88,7 @@ def make_graph(list_of_datasets, graph_path, ymax="", ymin="", size_h="", size_v
     if not minor_ticks == "":
         loc = plticker.MultipleLocator(base=float(minor_ticks)) # this locator puts ticks at regular intervals
         ax.yaxis.set_minor_locator(loc)
+
     if not ymax == "":
         plt.ylim(ymax=int(ymax))
     if not ymin == "":
@@ -95,7 +99,7 @@ def make_graph(list_of_datasets, graph_path, ymax="", ymin="", size_h="", size_v
     if len(list_of_datasets) > 1:
         ax.legend()
     else:
-        plt.ylabel(key_list[0] + " Value difference")
+        plt.ylabel(key_list[0] + " Time difference")
 
     ax.xaxis_date()
     fig.autofmt_xdate()
