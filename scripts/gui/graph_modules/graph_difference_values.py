@@ -96,20 +96,9 @@ def make_graph(list_of_datasets, graph_path, ymax="", ymin="", size_h="", size_v
     if len(list_of_datasets) > 1:
         ax.legend()
     else:
-        plt.ylabel(key_list[0] + "Value difference")
+        plt.ylabel(key_list[0] + " Value difference")
 
     ax.xaxis_date()
     fig.autofmt_xdate()
     plt.savefig(graph_path)
     fig.clf()
-
-
-    # create plot for each dataset
-#    for x in list_of_datasets:
-#        date_list = x[0]
-#        value_list = x[1]
-#        key_list = x[2]
-#        ax.plot(date_list, value_list, line_flags, label=key_list[0], lw=1)
-
-
-    #
