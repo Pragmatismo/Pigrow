@@ -8,9 +8,8 @@ def show_info():
     #
     out =  os.popen("vcgencmd get_throttled").read()
     out = out.strip().strip("throttled=")
-    display_message = display_message + "\nvcgencmd: " # + out
     if out == "0x0":
-        display_message = display_message + " No Warning"
+        display_message = " No Temp or Volt Alerts"
     #
     out_int = int(out, 16)
     #display_message += "\nint-" + str(out_int)
