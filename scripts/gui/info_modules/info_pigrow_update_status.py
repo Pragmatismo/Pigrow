@@ -1,23 +1,32 @@
 #!/usr/bin/python3
-import os
+import subprocess
 
 def show_info():
 
-    update_needed = False
+    update_needed = None
     #
     # read git update info
     #
-    out =  os.popen("git -C ~/Pigrow/ remote -v update").read()
-    git_text = out.split("\n")
+    #out =  os.popen("git -C ~/Pigrow/ remote -v update").read()
+
+    #
+    # git_read = subprocess.run(["git -C ~/Pigrow/ remote -v update"],shell=True , capture_output=True)
+    git_text = subprocess.getstatusoutput("git -C ~/Pigrow/ remote -v update")[1].splitlines()
+
+    print (git_text)
+
+
     # check for masterbranch
     count = 0
     for line in git_text:
         if "origin/master" in line:
+            #print(" ---> adding to count ")
             master_branch = line
             count = count + 1
     # check to confirm master branch was detected and set flags
     if count > 1:
-        print("ERROR ERROR TWO MASTER BRANCHES WTF?")
+        #print("ERROR ERROR TWO MASTER BRANCHES WTF?")
+        update_needed = "error"
     elif count == 0:
         install_needed = True
     elif count == 1:
