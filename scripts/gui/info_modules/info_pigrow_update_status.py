@@ -34,6 +34,7 @@ def show_info():
             update_needed = False
         else:
             update_needed = True
+            print("   Needs update   ")
 
     # Read git status
     if update_needed == True:
