@@ -11,6 +11,8 @@ For more information visit;
 
 #Work in Progress
 
+This document is very out of date and needs to be rewritten.
+
 The Pigrow is currently undergoing development and a full and stable release is due soon, but when soon is who knows... In the meantime, the pigrow is fully working and in use on several boxes all giving great results. The timelapse feature, automatic control and logging of devices and etc have all been well tested however the configuration can be complex and confusing at times. The remote gui is the current priority as this will make the whole process very simple. 
 
 #How to Pigrow...
