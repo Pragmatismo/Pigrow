@@ -32,29 +32,30 @@ def show_info():
         install_needed = True
     elif count == 1:
         if "[up to date]" in master_branch:
-            #print (line)
+            print (" UP TO DATE IN THE LINE")
             update_needed = False
         else:
+            print (" NO UP TO DATE IN THE LINE")
             update_needed = True
             #print("   Needs update   ")
 
     # Read git status
-    if update_needed == True:
-        out = subprocess.getoutput("git -C ~/Pigrow/ status --untracked-files no")
+    out = subprocess.getoutput("git -C ~/Pigrow/ status --untracked-files no")
 
-        if "Your branch and 'origin/master' have diverged" in out:
-            update_needed = 'diverged'
-        elif "Your branch is" in out:
-            #print(" found branch info ")
-            git_line = out.split("\n")[2]
-            git_update = git_line.split(" ")[3]
-            if git_update == 'behind':
-                update_needed = True
-                git_num = git_line.split(" ")[6]
-            elif git_update == 'ahead':
-                update_needed = 'ahead'
-        else:
-            update_needed = 'error'
+    if "Your branch and 'origin/master' have diverged" in out:
+        update_needed = 'diverged'
+    elif "Your branch is" in out:
+        print(" found branch info " + out)
+        git_line = out.split("\n")[2]
+        git_update = git_line.split(" ")[3]
+        if git_update == 'behind':
+            update_needed = True
+            print(" WE ARE BEHIND")
+            git_num = git_line.split(" ")[6]
+        elif git_update == 'ahead':
+            update_needed = 'ahead'
+    else:
+        update_needed = 'error'
 
 
     # construct output message.
