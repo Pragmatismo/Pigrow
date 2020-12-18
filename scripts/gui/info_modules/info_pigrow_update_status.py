@@ -7,7 +7,6 @@ def show_info():
     #
     # read git update info
     #
-    #out =  os.popen("git -C ~/Pigrow/ remote -v update").read()
 
     # at some point the new line will start working and the one after it will stop
     #          switch when version 3.7+ is ubiquitous
