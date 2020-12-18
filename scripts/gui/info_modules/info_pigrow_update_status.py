@@ -19,6 +19,7 @@ def show_info():
     # check for masterbranch
     count = 0
     for line in git_text:
+        #print(line)
         if "origin/master" in line:
             #print(" ---> adding to count ")
             master_branch = line
@@ -31,19 +32,21 @@ def show_info():
         install_needed = True
     elif count == 1:
         if "[up to date]" in master_branch:
+            #print (line)
             update_needed = False
         else:
             update_needed = True
-            print("   Needs update   ")
+            #print("   Needs update   ")
 
     # Read git status
     if update_needed == True:
-        out = subprocess.getoutput("git -C ~/Pigrow/ status --untracked-files no").splitlines()
+        out = subprocess.getoutput("git -C ~/Pigrow/ status --untracked-files no")
 
         if "Your branch and 'origin/master' have diverged" in out:
             update_needed = 'diverged'
         elif "Your branch is" in out:
-            git_line = out.split("\n")[1]
+            #print(" found branch info ")
+            git_line = out.split("\n")[2]
             git_update = git_line.split(" ")[3]
             if git_update == 'behind':
                 update_needed = True
