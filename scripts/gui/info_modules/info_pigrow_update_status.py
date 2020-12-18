@@ -9,11 +9,12 @@ def show_info():
     #
     #out =  os.popen("git -C ~/Pigrow/ remote -v update").read()
 
-    #
+    # at some point the new line will start working and the one after it will stop
+    #          switch when version 3.7+ is ubiquitous
     # git_read = subprocess.run(["git -C ~/Pigrow/ remote -v update"],shell=True , capture_output=True)
-    git_text = subprocess.getstatusoutput("git -C ~/Pigrow/ remote -v update")[1].splitlines()
+    git_text = subprocess.getoutput("git -C ~/Pigrow/ remote -v update").splitlines()
 
-    print (git_text)
+    #print (git_text)
 
 
     # check for masterbranch
@@ -37,7 +38,7 @@ def show_info():
 
     # Read git status
     if update_needed == True:
-        out =  os.popen("git -C ~/Pigrow/ status --untracked-files no").read()
+        out = subprocess.getoutput("git -C ~/Pigrow/ status --untracked-files no").splitlines()
 
         if "Your branch and 'origin/master' have diverged" in out:
             update_needed = 'diverged'
