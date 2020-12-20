@@ -220,12 +220,12 @@ def scale_pic(pic, target_size):
     # scale the image, preserving the aspect ratio
     if pic_width > pic_height:
         sizeratio = (pic_width / target_size)
-        new_height = (pic_height / sizeratio)
+        new_height = int(pic_height / sizeratio)
         scale_pic = pic.Scale(target_size, new_height, wx.IMAGE_QUALITY_HIGH)
         #print(pic_width, pic_height, sizeratio, target_size, new_height, scale_pic.GetWidth(), scale_pic.GetHeight())
     else:
         sizeratio = (pic_height / target_size)
-        new_width = (pic_width / sizeratio)
+        new_width = int(pic_width / sizeratio)
         scale_pic = pic.Scale(new_width, target_size, wx.IMAGE_QUALITY_HIGH)
         #print(pic_width, pic_height, sizeratio, new_width, target_size, scale_pic.GetWidth(), scale_pic.GetHeight())
     return scale_pic
@@ -843,6 +843,9 @@ class system_ctrl_pnl(wx.Panel):
         return pigrow_size, folder_pcent
 
     def check_git(self):
+        '''
+        # # this is now replicated in info modules
+        '''
         update_needed = False
         #
         # read git update info
@@ -871,6 +874,7 @@ class system_ctrl_pnl(wx.Panel):
         # Read git status
         #
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("git -C ~/Pigrow/ status --untracked-files no")
+
         if "Your branch and 'origin/master' have diverged" in out:
             update_needed = 'diverged'
         elif "Your branch is" in out:
@@ -909,6 +913,9 @@ class system_ctrl_pnl(wx.Panel):
         return update_type
 
     def check_video_power(self):
+        '''
+        # # replicated into info modules
+        '''
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("vcgencmd display_power")
         out = out.strip().strip("display_power=")
         if out == "0":
@@ -919,6 +926,9 @@ class system_ctrl_pnl(wx.Panel):
         return message
 
     def check_video_items(self):
+        '''
+        # # replicated into info modules
+        '''
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("vcgencmd get_lcd_info")
         msg = out.strip().strip("")
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("vcgencmd dispmanx_list")
@@ -926,6 +936,9 @@ class system_ctrl_pnl(wx.Panel):
         return msg
 
     def check_pi_power_warning(self):
+        '''
+        # # this is now replicated in info_camera.py
+        '''
         #check for low power WARNING
         # this only works on certain versions of the pi
         # it checks the power led value
@@ -972,20 +985,29 @@ class system_ctrl_pnl(wx.Panel):
         MainApp.system_info_pannel.sys_power_status.SetLabel(display_message)
 
     def check_pi_version(self):
+        '''
+        # # this is replicated in the info modules
+        '''
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("cat /proc/device-tree/model")
         return out.strip()
 
     def find_network_name(self):
+        '''
+        # # this is replicated in the info modules
+        '''
         # Read the currently connected network name
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("/sbin/iwgetid")
         try:
             network_name = out.split('"')[1]
             return network_name
         except Exception as e:
-            print(("fiddle and fidgets! find network name didn't work - " + str(e)))
+            print(("! find network name didn't work - " + str(e)))
             return "unable to read"
 
     def find_added_wifi(self):
+        '''
+        # # this is now replicated in info_camera.py
+        '''
         # read /etc/wpa_supplicant/wpa_supplicant.conf for listed wifi networks
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo cat /etc/wpa_supplicant/wpa_supplicant.conf")
         out = out.splitlines()
@@ -1024,6 +1046,9 @@ class system_ctrl_pnl(wx.Panel):
         return network_text
 
     def find_connected_webcams(self):
+        '''
+        # # this is now replicated in info_camera.py
+        '''
         # picam info
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("vcgencmd get_camera")
         if "detected=" in out:
@@ -1081,6 +1106,7 @@ class system_ctrl_pnl(wx.Panel):
         local_time_text = local_time.strftime("%a %d %b %X") + " " + str(time.tzname[0]) + " " + local_time.strftime("%Y")
         pi_time = out.strip()
         return local_time_text, pi_time
+
     # buttons
     def read_system_click(self, e):
         ### pi system interrogation
@@ -2901,17 +2927,18 @@ class config_ctrl_pnl(wx.Panel):
         # define file locations
         pigrow_config_folder = "/home/" + pi_link_pnl.target_user + "/Pigrow/config/"
         pigrow_dirlocs = pigrow_config_folder + "dirlocs.txt"
+
         #read pigrow locations file
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("cat " + pigrow_dirlocs)
         dirlocs = out.splitlines()
         if len(dirlocs) > 1:
             for item in dirlocs:
-                try:
-                    item = item.split("=")
-                    #self.dirlocs_dict = {item[0]:item[1]}
-                    self.dirlocs_dict[item[0]] = item[1]
-                except:
-                    print(("!!error reading value from dirlocs; " + str(item)))
+                if "=" in item:
+                    try:
+                        item = item.split("=")
+                        self.dirlocs_dict[item[0]] = item[1]
+                    except:
+                        print(("!!error reading value from dirlocs; " + str(item)))
         else:
             print("Error; dirlocs contains no information")
             dbox = wx.MessageDialog(self, "The dirlocs file contains no information, do you want to create a new one?", "Create new dirlocs?", wx.OK | wx.CANCEL | wx.ICON_QUESTION)
@@ -2921,78 +2948,17 @@ class config_ctrl_pnl(wx.Panel):
                 print("creating new dirlocs")
                 install_dialog.create_dirlocs_from_template(self)
 
+        # read location check from pigrow
+        info_path = "/home/" + pi_link_pnl.target_user + "/Pigrow/scripts/gui/info_modules/info_dirlocs_check.py"
+        location_msg, error = MainApp.localfiles_ctrl_pannel.run_on_pi(info_path)
 
-        #We've now created self.dirlocs_dict with key:value for every setting:value in dirlocs
-        #now we grab some of the important ones from the dictionary
-        #folder location info (having this in a file on the pi makes it easier if doing things odd ways)
-        location_msg = ""
-        location_problems = []
-        try:
-            pigrow_path = self.dirlocs_dict['path']
-        #    location_msg += pigrow_path + "\n"
-        except:
-            location_msg += ("No path locaion info in pigrow dirlocs\n")
-            pigrow_path = ""
-            location_problems.append("path")
-        try:
-            pigrow_logs_path = self.dirlocs_dict['log_path']
-        #    location_msg += pigrow_logs_path + "\n"
-        except:
-            location_msg += ("No logs locaion info in pigrow dirlocs\n")
-            pigrow_logs_path = ""
-            location_problems.append("log_path")
-        try:
-            pigrow_graph_path = self.dirlocs_dict['graph_path']
-        #    location_msg += pigrow_graph_path + "\n"
-        except:
-            location_msg += ("No graph locaion info in pigrow dirlocs\n")
-            pigrow_graph_path = ""
-            location_problems.append("graph_path")
-        try:
-            pigrow_caps_path = self.dirlocs_dict['caps_path']
-        #    location_msg += pigrow_caps_path + "\n"
-        except:
-            location_msg += ("No caps locaion info in pigrow dirlocs\n")
-            pigrow_caps_path = ""
-            location_problems.append("caps_path")
-
-         #settings file locations
-        try:
-            pigrow_settings_path = self.dirlocs_dict['loc_settings']
-        except:
-            location_msg += ("No pigrow config file locaion info in pigrow dirlocs\n")
-            pigrow_settings_path = ""
-            location_problems.append("loc_settings")
-        try:
-            pigrow_cam_settings_path = self.dirlocs_dict['camera_settings']
-        except:
-            location_msg +=("no camera settings file locaion info in pigrow dirlocs (optional)\n")
-            pigrow_cam_settings_path = ""
-
-         # log file locations
-        try:
-            pigrow_err_log_path = self.dirlocs_dict['err_log']
-        except:
-            location_msg += ("No err log locaion info in pigrow dirlocs\n")
-            pigrow_err_log_path = ""
-            location_problems.append("err_log")
-        try:
-            pigrow_self_log_path = self.dirlocs_dict['self_log']
-        except:
-            location_msg += ("No self_log locaion info in pigrow dirlocs (optional)\n")
-            pigrow_self_log_path = ""
-        try:
-            pigrow_switchlog_path = self.dirlocs_dict['loc_switchlog']
-        except:
-            location_msg += "No switchlog locaion info in pigrow dirlocs (optional)\n"
-            pigrow_switchlog_path = ""
-        #check to see if there were problems and tell the user.
-        if len(location_problems) == 0:
-            location_msg += ("All vital locations present")
-        else:
-            location_msg += "Important location information missing! " + str(location_problems) + " not found"
-        #display on screen
         config_info_pnl.location_text.SetLabel(location_msg)
+
+
+        if 'loc_settings' in self.dirlocs_dict:
+            pigrow_settings_path = self.dirlocs_dict['loc_settings']
+        else:
+            pigrow_settings_path = ""
         #
         #read pigrow config file
         #
