@@ -70,9 +70,7 @@ def show_info():
         if not cron_stars[2] == "*" and not cron_stars[3] == "*" and not cron_stars[4] == "*":
             return "Cron contains lamp time not set as daily\n", "bad", ""
         else:
-            print(hour, int(cron_hour))
-            print(min, int(cron_min))
-            if hour == cron_hour and min == cron_min:
+            if hour == int(cron_hour) and min == int(cron_min):
                 return "", "good", "match"
             return "", "good", "no match"
 
@@ -90,9 +88,9 @@ def show_info():
 
     if on_cron == 1 and off_cron == 1:
         if on_match == "match" and off_match == "match":
-            lamp_msg += "Lamp timing config and cron synced."
+            lamp_msg += "Config and Cron lamp timing synced."
         else:
-            lamp_msg += "Lamp timing not synced between config and cron."
+            lamp_msg += "Warning! Config and Cron lamp timing not synced."
     # erors
     elif on_cron > 1 or off_cron > 1:
         lamp_msg += "Too many lamp switchings in cron to use all features."
