@@ -2951,17 +2951,18 @@ class config_ctrl_pnl(wx.Panel):
         # read location check from pigrow
         info_path = "/home/" + pi_link_pnl.target_user + "/Pigrow/scripts/gui/info_modules/info_dirlocs_check.py"
         location_msg, error = MainApp.localfiles_ctrl_pannel.run_on_pi(info_path)
-
         config_info_pnl.location_text.SetLabel(location_msg)
 
 
+        #
+        ##    check pigrow config file
+        #
+        # check for config location
         if 'loc_settings' in self.dirlocs_dict:
             pigrow_settings_path = self.dirlocs_dict['loc_settings']
         else:
             pigrow_settings_path = ""
-        #
-        #read pigrow config file
-        #
+        # read config file
         if not pigrow_settings_path == "":
             out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("cat " + pigrow_settings_path)
             pigrow_settings = out.splitlines()
@@ -2993,10 +2994,11 @@ class config_ctrl_pnl(wx.Panel):
 
         #unpack non-gpio information from config file
         config_problems = []
-        config_msg = ''
-        lamp_msg = ''
         dht_msg = ''
+        config_msg = ''
+        '''
         #lamp timeing
+        lamp_msg = ''
         if "lamp" in self.gpio_dict:
             if "time_lamp_on" in self.config_dict:
                 lamp_on_hour = int(self.config_dict["time_lamp_on"].split(":")[0])
@@ -3043,6 +3045,12 @@ class config_ctrl_pnl(wx.Panel):
                 #on_cron_converted = []
         else:
             lamp_msg += "no lamp linked to gpio, ignoring lamp timing settings"
+        '''
+        # read location check from pigrow
+        info_path = "/home/" + pi_link_pnl.target_user + "/Pigrow/scripts/gui/info_modules/info_check_lamp.py"
+        lamp_msg, error = MainApp.localfiles_ctrl_pannel.run_on_pi(info_path)
+
+
      #heater on and off temps
         if "heater" in self.gpio_dict:
             dht_msg += "heater enabled, "
