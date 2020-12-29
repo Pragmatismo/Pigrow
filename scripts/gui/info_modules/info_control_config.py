@@ -59,7 +59,7 @@ def show_info():
             heater_templow =  set_dic["heater_templow"]
             dht_msg += "Temp low; " + str(heater_templow) + " "
         else:
-            dht_msg += "\nheater low temp not set\n\n"
+            dht_msg += "\nheater low temp not set\n"
             heater_templow = None
         # high
         if "heater_temphigh" in set_dic:
@@ -85,7 +85,7 @@ def show_info():
         # high
         if "humid_high" in set_dic:
             humid_high = set_dic["humid_high"]
-            dht_msg += " humidity high: " + str(humid_high) + "\n\n"
+            dht_msg += " humidity high: " + str(humid_high) + "\n"
         else:
             dht_msg += "humid high not set\n\n"
             humid_high = None
