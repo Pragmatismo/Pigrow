@@ -2881,6 +2881,10 @@ class config_ctrl_pnl(wx.Panel):
         self.update_config_btn.Bind(wx.EVT_BUTTON, self.update_pigrow_setup_pannel_information_click)
         self.update_settings_btn = wx.Button(self, label='update pigrow settings')
         self.update_settings_btn.Bind(wx.EVT_BUTTON, self.update_setting_file_on_pi_click)
+        # power values
+        self.power_use = wx.StaticText(self,  label='Power')
+        self.kwh_cost_btn = wx.Button(self, label='Set KWh cost')
+        self.kwh_cost_btn.Bind(wx.EVT_BUTTON, self.kwh_cost_click)
         #sizers
         main_sizer =  wx.BoxSizer(wx.VERTICAL)
         main_sizer.AddStretchSpacer(1)
@@ -2899,6 +2903,9 @@ class config_ctrl_pnl(wx.Panel):
         main_sizer.Add(self.config_lamp_btn, 0, wx.ALL|wx.EXPAND, 3)
         main_sizer.Add(self.config_water_btn, 0, wx.ALL|wx.EXPAND, 3)
         main_sizer.Add(self.new_gpio_btn , 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
+        main_sizer.Add(self.power_use, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.Add(self.kwh_cost_btn, 0, wx.ALL|wx.EXPAND, 3)
         main_sizer.AddStretchSpacer(1)
         self.SetSizer(main_sizer)
 
@@ -2953,7 +2960,6 @@ class config_ctrl_pnl(wx.Panel):
         location_msg, error = MainApp.localfiles_ctrl_pannel.run_on_pi(info_path)
         config_info_pnl.location_text.SetLabel(location_msg)
 
-
         #
         ##    check pigrow config file
         #
@@ -2996,59 +3002,11 @@ class config_ctrl_pnl(wx.Panel):
         config_problems = []
         dht_msg = ''
         config_msg = ''
-        '''
+
         #lamp timeing
-        lamp_msg = ''
-        if "lamp" in self.gpio_dict:
-            if "time_lamp_on" in self.config_dict:
-                lamp_on_hour = int(self.config_dict["time_lamp_on"].split(":")[0])
-                lamp_on_min = int(self.config_dict["time_lamp_on"].split(":")[1])
-
-            else:
-                lamp_msg += "lamp on time not set "
-                config_problems.append('lamp')
-            if "time_lamp_off" in self.config_dict:
-                lamp_off_hour = int(self.config_dict["time_lamp_off"].split(":")[0])
-                lamp_off_min = int(self.config_dict["time_lamp_off"].split(":")[1])
-            else:
-                lamp_msg += "lamp off time not set\n"
-                config_problems.append('lamp')
-            #convert to datetime objects and add a day to the off time so that it's
-            #   working out the time on gap correctly (i.e. avoid reporting negative time)
-            if not 'lamp' in config_problems:
-                on_time = datetime.time(int(lamp_on_hour),int(lamp_on_min))
-                off_time = datetime.time(int(lamp_off_hour), int(lamp_off_min))
-                aday = datetime.timedelta(days=1)
-                if on_time > off_time:
-                    dateoff = ((datetime.datetime.combine(datetime.date.today(), off_time) + aday))
-                else:
-                    dateoff = ((datetime.datetime.combine(datetime.date.today(), off_time)))
-                length_lamp_on = (dateoff - datetime.datetime.combine(datetime.date.today(), on_time))
-                lamp_msg += "Lamp turning on at " + str(on_time)[:-3] + " and off at " + str(off_time)[:-3]
-                lamp_msg += " (" + str(length_lamp_on)[:-3] + " on, "  +str(aday - length_lamp_on)[:-3] + " off)\n"
-
-            # checking lamp timings in cron
-            on_cron = self.get_cron_time("lamp_on.py")
-            off_cron = self.get_cron_time("lamp_off.py")
-            if on_cron != "not found" and off_cron != "not found":
-                if on_cron != "runs more than once" and off_cron != "runs more than once":
-                    on_cron = datetime.time(int(on_cron.split(" ")[1]), int(on_cron.split(" ")[0]))
-                    off_cron = datetime.time(int(off_cron.split(" ")[1]), int(off_cron.split(" ")[0]))
-                    if on_cron == on_time and off_cron == off_time:
-                        lamp_msg += "Lamp synced with cron"
-                    else:
-                        lamp_msg += "Warning - lamp not synced with cron."
-                else:
-                    lamp_msg += "Warning - lamp switching more than once a day"
-            else:
-                lamp_msg += "Warning - cron switching not configured"
-                #on_cron_converted = []
-        else:
-            lamp_msg += "no lamp linked to gpio, ignoring lamp timing settings"
-        '''
-        # read location check from pigrow
         info_path = "/home/" + pi_link_pnl.target_user + "/Pigrow/scripts/gui/info_modules/info_check_lamp.py"
         lamp_msg, error = MainApp.localfiles_ctrl_pannel.run_on_pi(info_path)
+        config_info_pnl.lamp_text.SetLabel(lamp_msg)
 
 
      #heater on and off temps
@@ -3200,7 +3158,6 @@ class config_ctrl_pnl(wx.Panel):
         #putting the info on the screen
         config_info_pnl.boxname_text.SetValue(pi_link_pnl.boxname)
         config_info_pnl.config_text.SetLabel(config_msg)
-        config_info_pnl.lamp_text.SetLabel(lamp_msg)
         config_info_pnl.dht_text.SetLabel(dht_msg)
 
     def get_cron_time(self, script):
@@ -3326,6 +3283,16 @@ class config_ctrl_pnl(wx.Panel):
             MainApp.localfiles_ctrl_pannel.save_text_to_file_on_pi(pigrow_config_file_location, config_text)
             self.update_pigrow_setup_pannel_information_click("e")
             MainApp.sensors_ctrl_pannel.make_tables_click("e")
+
+    def kwh_cost_click(self, e):
+        msg = "Input the cost per KWh you pay for electricity in cents (or your local currency equivalent) "
+        msg += "\n\n This is used by the info module power_consumption"
+        kwh_dbox = wx.TextEntryDialog(self,msg, "Cost per Kwh", "")
+        if kwh_dbox.ShowModal() == wx.ID_OK:
+            price = kwh_dbox.GetValue()
+            self.config_dict['cost_kwh_cent'] = price
+            MainApp.config_ctrl_pannel.update_setting_file_on_pi_click('e')
+
 
 
 class config_info_pnl(scrolled.ScrolledPanel):
@@ -3512,8 +3479,8 @@ class config_lamp_dialog(wx.Dialog):
         #
         # set lamp period values
         on_period_hour, on_period_min = self.calc_light_period(on_hour, on_min, off_hour, off_min)
-        self.on_period_h_spin.SetValue(on_period_hour)
-        self.on_period_m_spin.SetValue(on_period_min)
+        self.on_period_h_spin.SetValue(int(on_period_hour))
+        self.on_period_m_spin.SetValue(int(on_period_min))
         #ok and cancel buttons
         self.ok_btn = wx.Button(self, label='Ok', size=(175, 30))
         self.ok_btn.Bind(wx.EVT_BUTTON, self.ok_click)
@@ -4173,7 +4140,7 @@ class config_water_dialog(wx.Dialog):
         self.Destroy()
 
 class calibrate_water_flow_rate_dialog(wx.Dialog):
-    #Dialog box for creating for adding or editing device gpio config data
+    #Dialog box for creating for adding or editing water flowrate config data
     def __init__(self, *args, **kw):
         super(calibrate_water_flow_rate_dialog, self).__init__(*args, **kw)
         self.InitUI()
@@ -4392,8 +4359,8 @@ class edit_gpio_dialog(wx.Dialog):
         #background image
         self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
         # devices combo box
-        switch_list = self.list_switch_scripts()
-        unlinked_devices = self.list_unused_devices(switch_list)
+        self.switch_list = self.list_switch_scripts()
+        unlinked_devices = self.list_unused_devices(self.switch_list)
         wx.StaticText(self,  label='Device;', pos=(20, 50))
         self.devices_combo = wx.ComboBox(self, choices = unlinked_devices, pos=(90,50), size=(175, 25))
         self.devices_combo.SetValue(device)
@@ -4500,6 +4467,16 @@ class edit_gpio_dialog(wx.Dialog):
             if not config_ctrl_pnl.wiring_new == "high":
                 wx.MessageBox("No wiring direction set, \nIf you don't know guess and change it if the device turns on when it should be off", 'Error', wx.OK | wx.ICON_INFORMATION)
                 should_close = False
+        # check if device exists
+        if not config_ctrl_pnl.device_new in self.switch_list:
+            msg = "Sorry, automatically creating new switch scripts is not yet implemented, "
+            msg += "please select an existing switch from the list."
+            msg += "\n\n This feature will be added soon, in the mean time to create a "
+            msg += "new switch clone an existing switch e.g. heater_on.py and heater_off.py "
+            msg += "rename it to the desired thing and replace the word heater with your desired"
+            msg += " device in both files."
+            wx.MessageBox(msg, 'Error', wx.OK | wx.ICON_INFORMATION)
+            should_close = False
         # if box should be closed then close it
         if should_close == True:
             #checks to see if changes have been made and updates ui if so
@@ -4523,7 +4500,7 @@ class edit_gpio_dialog(wx.Dialog):
         self.Destroy()
 
 class edit_dht_dialog(wx.Dialog):
-    #Dialog box for creating for adding or editing device gpio config data
+    #Dialog box for creating for adding or editing dht config data
     def __init__(self, *args, **kw):
         super(edit_dht_dialog, self).__init__(*args, **kw)
         self.InitUI()
@@ -7984,7 +7961,6 @@ class graphing_ctrl_pnl(wx.Panel):
         shared_data.list_of_datasets = []
         shared_data.first_valueset_name = ""
         self.valset_1_name.SetLabel("-")
-        self.disable_value_graphs()
         self.valset_1_loaded.SetBitmap(shared_data.no_log_image)
         self.num_of_logs_loaded.SetLabel("0")
         self.valset_1_len.SetLabel("0")
