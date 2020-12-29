@@ -112,7 +112,7 @@ def show_info():
         #extra args used to select options modes, if to ignore heater, etc.
         cmd_string = dht_cronline[8:]
         first_space = cmd_string.find(" ")
-        extra_args = cmd_string[first_space:]
+        extra_args = cmd_string[first_space:].strip()
 
         if not extra_args == "":
             dht_msg += "extra args = " + extra_args + "\n"
