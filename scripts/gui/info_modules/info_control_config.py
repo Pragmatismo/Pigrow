@@ -114,7 +114,7 @@ def show_info():
         first_space = cmd_string.find(" ")
         extra_args = cmd_string[first_space:]
 
-        if not extra_args == ""
+        if not extra_args == "":
             dht_msg += "extra args = " + extra_args + "\n"
 
          #heater
