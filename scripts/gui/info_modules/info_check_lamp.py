@@ -15,6 +15,7 @@ def show_info():
     lamp_config_set = False
     lamp_msg = ""
     if "gpio_lamp" in config_dict:
+        lamp_config_set = True
         # Lamp on
         if "time_lamp_on" in config_dict:
             time_lamp_on = config_dict["time_lamp_on"]
@@ -23,8 +24,10 @@ def show_info():
                 lamp_on_min  = int(time_lamp_on.split(":")[1])
             else:
                 lamp_msg += "Lamp on time not valid"
+                lamp_config_set = False
         else:
             lamp_msg += "Lamp on time not set in config dict"
+            lamp_config_set = False
 
         # Lamp off
         if "time_lamp_off" in config_dict:
@@ -32,13 +35,14 @@ def show_info():
             if ":" in time_lamp_off:
                 lamp_off_hour = int(time_lamp_off.split(":")[0])
                 lamp_off_min  = int(time_lamp_off.split(":")[1])
-                lamp_config_set = True
             else:
-                lamp_msg += "Lamp off time not valid"
+                lamp_msg += "Lamp off time not valid\n"
+                lamp_config_set = False
         else:
             lamp_msg += "Lamp off time not set\n"
+            lamp_config_set = False
     else:
-        lamp_msg += "No lamp set in pigrow_config.txt"
+        lamp_msg += "No lamp set in pigrow_config.txt\n"
 
     # Time gap
     if lamp_config_set == True:
@@ -74,17 +78,18 @@ def show_info():
                 return "", "good", "match"
             return "", "good", "no match"
 
-    for line in cronlines:
-        if "lamp_on.py" in line:
-            msg, valid, on_match = check_time_is_valid(line, lamp_on_hour, lamp_on_min)
-            if valid == "good":
+    if lamp_config_set == True:
+        for line in cronlines:
+            if "lamp_on.py" in line:
+                msg, valid, on_match = check_time_is_valid(line, lamp_on_hour, lamp_on_min)
+                if valid == "good":
 
-                on_cron += 1
-        elif "lamp_off.py" in line:
-            msg, valid, off_match = check_time_is_valid(line, lamp_off_hour, lamp_off_min)
-            if valid == "good":
-                off_cron += 1
-            lamp_msg += msg
+                    on_cron += 1
+            elif "lamp_off.py" in line:
+                msg, valid, off_match = check_time_is_valid(line, lamp_off_hour, lamp_off_min)
+                if valid == "good":
+                    off_cron += 1
+                lamp_msg += msg
 
     if on_cron == 1 and off_cron == 1:
         if on_match == "match" and off_match == "match":
@@ -95,7 +100,8 @@ def show_info():
     elif on_cron > 1 or off_cron > 1:
         lamp_msg += "Too many lamp switchings in cron to use all features."
     else:
-        lamp_msg += "Lamp on and off times not set in cron."
+        if lamp_config_set == True:
+            lamp_msg += "Lamp on and off times not set in cron."
 
 
     return lamp_msg
