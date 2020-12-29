@@ -64,7 +64,7 @@ def show_info():
         # high
         if "heater_temphigh" in set_dic:
             heater_temphigh = set_dic["heater_temphigh"]
-            dht_msg += "temp high: " + str(heater_temphigh) + " (Centigrade)\n\n"
+            dht_msg += "temp high: " + str(heater_temphigh) + " (Centigrade)\n"
         else:
             dht_msg += "\nheater high temp not set\n"
             heater_temphigh = None
@@ -114,8 +114,8 @@ def show_info():
         first_space = cmd_string.find(" ")
         extra_args = cmd_string[first_space:]
 
-        dht_msg += "extra args = " + extra_args + "\n"
-        dht_msg += ""
+        if not extra_args == ""
+            dht_msg += "extra args = " + extra_args + "\n"
 
          #heater
         if "use_heat=true" in extra_args:
