@@ -39,9 +39,9 @@ def show_info():
         text_out += "Using checkDHT.py - this is now obsolete, to use log based triggers switch to using trigger_watcher.py"
     elif trigger_watcher_start:
         text_out += "Using trigger_watcher.py"
-    text_out += "\n\n
+    text_out += "\n\n"
     # Add check to see if sctipt is running
-        
+
     #
     if checkdht_start:
         #
