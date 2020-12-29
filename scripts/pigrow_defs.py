@@ -5,7 +5,7 @@ import datetime
 homedir = os.getenv("HOME")
 def load_locs(loc_locs):
     loc_dic = {}
-    print("Loading location details")
+    #print("Loading location details")
     with open(loc_locs, "r") as f:
         for line in f:
             s_item = line.split("=")
@@ -14,15 +14,15 @@ def load_locs(loc_locs):
     if 'loc_switchlog' in loc_dic:
         loc_switchlog = loc_dic['loc_switchlog']
     else:
-        print("Switch log not set, run setup.py to configure your pigrow")
+        print("Switch log not set, confirm your pigrow is configured properly")
         loc_switchlog = homedir + '/Pigrow/logs/switch_log.txt'
         print('Trying default switch log,')
     if 'loc_settings' in loc_dic:
         loc_settings = loc_dic['loc_settings']
-        print("Settings file present")
+        #print("Settings file present")
     else:
         print("Settings File not loaded, can't continue...")
-        exit()
+        return None
     if 'err_log' in loc_dic:
         err_log = loc_dic['err_log']
     else:
