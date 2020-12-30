@@ -2866,7 +2866,7 @@ class config_ctrl_pnl(wx.Panel):
         # Start drawing the UI elements
         self.config_l = wx.StaticText(self,  label='Pigrow Config')
         self.relay_l = wx.StaticText(self,  label='Relay')
-        self.dht_l = wx.StaticText(self,  label='DHT Sensor')
+        self.dht_l = wx.StaticText(self,  label='checkDHT.py config')
         self.name_box_btn = wx.Button(self, label='change box name')
         self.name_box_btn.Bind(wx.EVT_BUTTON, self.name_box_click)
         self.config_lamp_btn = wx.Button(self, label='config lamp')
@@ -2923,7 +2923,7 @@ class config_ctrl_pnl(wx.Panel):
             print("no change")
 
     def update_pigrow_setup_pannel_information_click(self, e):
-        print("reading pigrow and updating local config info")
+        print("Reading pigrow and updating local config info")
         # define dictionaries
         self.dirlocs_dict = {}
         self.config_dict = {}
@@ -2955,10 +2955,6 @@ class config_ctrl_pnl(wx.Panel):
                 print("creating new dirlocs")
                 install_dialog.create_dirlocs_from_template(self)
 
-        # read location check from pigrow
-        info_path = "/home/" + pi_link_pnl.target_user + "/Pigrow/scripts/gui/info_modules/info_dirlocs_check.py"
-        location_msg, error = MainApp.localfiles_ctrl_pannel.run_on_pi(info_path)
-        config_info_pnl.location_text.SetLabel(location_msg)
 
         #
         ##    check pigrow config file
@@ -2981,7 +2977,7 @@ class config_ctrl_pnl(wx.Panel):
                     equals_pos = item.find("=")
                     setting_value  = item[equals_pos + 1:]
                     setting_name = item[:equals_pos]
-                    print(setting_name, setting_value)
+                    #print(setting_name, setting_value)
 
                     line_split = setting_name.split("_")
                     if line_split[0] == 'gpio' and not setting_value == "":
@@ -2993,85 +2989,55 @@ class config_ctrl_pnl(wx.Panel):
                         if not setting_value == "":
                             self.config_dict[setting_name] = setting_value
                 except:
-                    print(("!!error reading value from config file; " + str(item)))
+                    print(("!! error reading value from config file; " + str(item)))
         # we've now created self.config_dict with a list of all the items in the config file
         #   and self.gpio_dict and self.gpio_on_dict with gpio numbers and low/high pin direction info
 
 
+
         #unpack non-gpio information from config file
+        # config checks  --- move this now it's obsolete
+        #             these are used in the checkDHT dialogue box
+        # temp
         config_problems = []
-        dht_msg = ''
-        config_msg = ''
-
-        #lamp timeing
-        info_path = "/home/" + pi_link_pnl.target_user + "/Pigrow/scripts/gui/info_modules/info_check_lamp.py"
-        lamp_msg, error = MainApp.localfiles_ctrl_pannel.run_on_pi(info_path)
-        config_info_pnl.lamp_text.SetLabel(lamp_msg)
-
-
-     #heater on and off temps
-        if "heater" in self.gpio_dict:
-            dht_msg += "heater enabled, "
-        else:
-            dht_msg += "no heater gpio, "
         # low
         if "heater_templow" in self.config_dict:
             self.heater_templow =  self.config_dict["heater_templow"]
-            dht_msg += "Temp low; " + str(self.heater_templow) + " "
         else:
-            dht_msg += "\nheater low temp not set\n"
             config_problems.append('heater_templow')
             self.heater_templow = None
         # high
         if "heater_temphigh" in self.config_dict:
             self.heater_temphigh = self.config_dict["heater_temphigh"]
-            dht_msg += "temp high: " + str(self.heater_temphigh) + " (Centigrade)\n"
         else:
-            dht_msg += "\nheater high temp not set\n"
             config_problems.append('heater_temphigh')
             self.heater_temphigh = None
         #
         # read humid info
-        if "humid" in self.gpio_dict or "dehumid" in self.gpio_dict:
-            dht_msg += "de/humid linked, "
-        else:
-            dht_msg += "de/humid NOT linked, "
         # low
         if "humid_low" in self.config_dict:
             self.humid_low = self.config_dict["humid_low"]
-            dht_msg += "humidity low; " + str(self.humid_low)
         else:
-            dht_msg += "\nHumid low not set\n"
             config_problems.append('humid_low')
             self.humid_low = None
         # high
         if "humid_high" in self.config_dict:
             self.humid_high = self.config_dict["humid_high"]
-            dht_msg += " humidity high: " + str(self.humid_high) + "\n"
         else:
-            dht_msg += "humid high not set\n"
             config_problems.append('humid_high')
             self.humid_high = None
         #
         #add gpio message to the message text
-        config_msg += "We have " + str(len(self.gpio_dict)) + " devices linked to the GPIO\n"
         if "dht22sensor" in self.gpio_dict:
-            dht_msg += "DHT Sensor on pin " + str(self.gpio_dict['dht22sensor'] + "\n")
             if "log_frequency" in self.config_dict:
                 self.log_frequency = self.config_dict["log_frequency"]
-                dht_msg += "Logging dht every " + str(self.log_frequency) + " seconds. \n"
             else:
                 self.log_frequency = ""
-                dht_msg += "DHT Logging frequency not set\n"
                 config_problems.append('dht_log_frequency')
-            #check to see if log location is set in dirlocs.txt
-            try:
-                dht_msg += "logging to; " + self.dirlocs_dict['loc_dht_log'] + "\n"
-            except:
-                dht_msg += "No DHT log locaion in pigrow dirlocs\n"
+            # log location
+            if not "loc_dht_log" in self.dirlocs_dict:
                 config_problems.append('dht_log_location')
-        else:
-            dht_msg += "DHT Sensor not linked\n"
+
 
         #read cron info to see if dht script is running
         last_index = cron_list_pnl.startup_cron.GetItemCount()
@@ -3084,63 +3050,42 @@ class config_ctrl_pnl(wx.Panel):
                      self.check_dht_running = cron_list_pnl.startup_cron.GetItem(index, 1).GetText()
                      extra_args = cron_list_pnl.startup_cron.GetItem(index, 4).GetText().lower()
                      self.checkdht_cronindex = index
-        # write more to dht script messages
-        if self.check_dht_running == "True":
-            dht_msg += "script check_DHT.py is currently running\n"
-        elif self.check_dht_running == "not found":
-            dht_msg += "script check_DHT not set to run on startup, add to cron and restart pigrow\n"
-        elif self.check_dht_running == "False":
-            dht_msg += "script check_DHT.py should be running but isn't - check error logs\n"
-        else:
-            dht_msg += "error reading cron info\n"
+
         #extra args used to select options modes, if to ignore heater, etc.
-        dht_msg += "extra args = " + extra_args + "\n"
-        dht_msg += ""
          #heater
         if "use_heat=true" in extra_args:
-            dht_msg += "heater enabled, "
             self.use_heat = True
         elif "use_heat=false" in extra_args:
-            dht_msg += "heater disabled, "
             self.use_heat = False
         else:
-            dht_msg += "heater enabled, "
             self.use_heat = True
+
          #humid
         if "use_humid=true" in extra_args:
-            dht_msg += "humidifier enabled, "
             self.use_humid = True
         elif "use_humid=false" in extra_args:
-            dht_msg += "humidifier disabled, "
             self.use_humid = False
         else:
-            dht_msg += "humidifier enabled, "
             self.use_humid = True
+
          #dehumid
         if "use_dehumid=true" in extra_args:
-            dht_msg += "dehumidifier enabled, "
             self.use_dehumid = True
         elif "use_dehumid=false" in extra_args:
-            dht_msg += "dehumidifier disabled, "
             self.use_dehumid = False
         else:
-            dht_msg += "dehumidifier enabled, "
             self.use_dehumid = True
+
          #who controls fans
         if "use_fan=heat" in extra_args:
-            dht_msg += "fan switched by heater "
             self.fans_owner = "heater"
         elif "use_fan=hum" in extra_args:
-            dht_msg += "fan switched by humidifer "
             self.fans_owner = "humid"
         elif "use_fan=dehum" in extra_args:
-            dht_msg += "fan switched by dehumidifer "
             self.fans_owner = "dehumid"
         elif "use_fan=hum" in extra_args:
-            dht_msg += "dht control of fan disabled "
             self.fans_owner = "manual"
         else:
-            dht_msg += "fan swtiched by heater"
             self.fans_owner = "heater"
 
         #checks to see if gpio devices with on directions are also linked to a gpio pin and counts them
@@ -3151,14 +3096,34 @@ class config_ctrl_pnl(wx.Panel):
                 self.add_to_GPIO_list(str(key), self.gpio_dict[key], self.gpio_on_dict[key], info=info)
         #listing config problems at end of config messsage
         if len(config_problems) > 0:
-            config_msg += "found " + str(len(config_problems)) + " config problems; "
+            config_msg = "Found " + str(len(config_problems)) + " config problems; "
+        else:
+            config_msg = "No config errors found."
         for item in config_problems:
             config_msg += item + ", "
-
         #putting the info on the screen
+        config_info_pnl.config_text.SetLabel(config_msg.strip())
+
+
+
+        # read location check from pigrow
+        info_path = "/home/" + pi_link_pnl.target_user + "/Pigrow/scripts/gui/info_modules/info_dirlocs_check.py"
+        location_msg, error = MainApp.localfiles_ctrl_pannel.run_on_pi(info_path)
+        config_info_pnl.location_text.SetLabel(location_msg.strip())
+
+        # check boxname is set.
         config_info_pnl.boxname_text.SetValue(pi_link_pnl.boxname)
-        config_info_pnl.config_text.SetLabel(config_msg)
-        config_info_pnl.dht_text.SetLabel(dht_msg)
+
+        #lamp timeing
+        info_path = "/home/" + pi_link_pnl.target_user + "/Pigrow/scripts/gui/info_modules/"
+        lamp_msg, error = MainApp.localfiles_ctrl_pannel.run_on_pi(info_path + "info_check_lamp.py")
+        config_info_pnl.lamp_text.SetLabel(lamp_msg.strip())
+
+        # control sensor
+        dht_msg, error = MainApp.localfiles_ctrl_pannel.run_on_pi(info_path + "info_control_config.py")
+        config_info_pnl.dht_text.SetLabel(dht_msg.strip())
+
+        MainApp.window_self.Layout()
 
     def get_cron_time(self, script):
         last_index = cron_list_pnl.timed_cron.GetItemCount()
@@ -3319,7 +3284,7 @@ class config_info_pnl(scrolled.ScrolledPanel):
         self.lamp_l = wx.StaticText(self,  label='Lamp;', size=(100,25))
         self.lamp_l.SetFont(font)
         config_info_pnl.lamp_text = wx.StaticText(self,  label='lamp')
-        self.dht_l = wx.StaticText(self,  label='DHT Sensor;      (Obsolete - Only used with checkDHT)', size=(100,25))
+        self.dht_l = wx.StaticText(self,  label='Sensor Control; ', size=(100,25))
         self.dht_l.SetFont(font)
         config_info_pnl.dht_text = wx.StaticText(self,  label='dht')
         self.relay_l = wx.StaticText(self,  label='Relay GPIO link;', size=(100,25))
