@@ -43,13 +43,13 @@ def show_info():
         text_out += "will conflict and may cause problems, it's highly recomended you remove one. "
         text_out += "Keep trigger_watcher to use log based triggers."
     elif checkdht_start:
-        text_out += "Using checkDHT.py - this is now obsolete, to use log based triggers switch to using trigger_watcher.py"
+        text_out += "Using checkDHT.py - this is now obsolete, to use log based triggers switch to using trigger_watcher.py\n"
         if subprocess.getoutput("pidof -x checkDHT.py") == "":
             text_out += "- checkDHT.py " + not_runing_msg
         else:
             text_out += "- checkDHT.py is currently running."
     elif trigger_watcher_start:
-        text_out += "Using trigger_watcher.py"
+        text_out += "Using trigger_watcher.py\n"
         if subprocess.getoutput("pidof -x trigger_watcher.py") == "":
             text_out += "- trigger_watcher.py " + not_runing_msg
         else:
