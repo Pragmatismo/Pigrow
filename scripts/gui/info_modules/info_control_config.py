@@ -153,12 +153,15 @@ def show_info():
         else:
             dht_msg += "fan swtiched by heater"
 
+        # add text to output
+        text_out += dht_msg
+
     if trigger_watcher_start:
         text_out += ""
 
 
 
-    return text_out + dht_msg
+    return text_out
 
 
 if __name__ == '__main__':
