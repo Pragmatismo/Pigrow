@@ -28,6 +28,13 @@ def show_info():
                     tw_cronline = line
                 elif "watcher_button.py" in line:
                     watcher_button_start = True
+
+    # write text
+    #
+    not_runing_msg = "is not currently runnning, restart your pi and if you still get this error "
+    not_runing_msg += "then there could be a problem, check error logs or try running the script manually on your"
+    not_runing_msg += " pi to diagnose the issue."
+    #
     if not checkdht_start and not trigger_watcher_start:
         text_out += "No control script set, if you wish to control devices then enable"
         text_out += " trigger_watcher.py to start on reboot."
@@ -37,8 +44,16 @@ def show_info():
         text_out += "Keep trigger_watcher to use log based triggers."
     elif checkdht_start:
         text_out += "Using checkDHT.py - this is now obsolete, to use log based triggers switch to using trigger_watcher.py"
+        if subprocess.getoutput("pidof -x checkDHT.py") == "":
+            text_out += "- checkDHT.py " + not_runing_msg
+        else:
+            text_out += "- checkDHT.py is currently running."
     elif trigger_watcher_start:
         text_out += "Using trigger_watcher.py"
+        if subprocess.getoutput("pidof -x trigger_watcher.py") == "":
+            text_out += "- trigger_watcher.py " + not_runing_msg
+        else:
+            text_out += "- trigger_watcher.py is currently running."
     text_out += "\n\n"
     # Add check to see if sctipt is running
 
