@@ -264,7 +264,14 @@ def get_module_options(module_prefix, m_folder="graph_modules"):
 class shared_data:
     def __init__(self):
         # Connection settings
-        shared_data.ssh_port = 22
+        # defaults
+        shared_data.gui_set_dict = {}
+        shared_data.gui_set_dict['ssh_port'] = "22"
+        shared_data.gui_set_dict['default_address'] = "192.168.1."
+        shared_data.gui_set_dict['username'] = "pi"
+        shared_data.gui_set_dict['password'] = "raspberry"
+        # load from file
+        self.load_gui_settings()
         #
         ## settings
         #
@@ -316,6 +323,22 @@ class shared_data:
         shared_data.info_font = wx.Font(14, wx.MODERN, wx.ITALIC, wx.NORMAL)
         shared_data.large_info_font = wx.Font(16, wx.MODERN, wx.ITALIC, wx.NORMAL)
 
+    def load_gui_settings(self):
+        gui_settings_path = "gui_settings.txt"
+        if os.path.isfile(gui_settings_path):
+            with open(gui_settings_path, "r") as gui_set_text:
+                gui_settings_list = gui_set_text.read().splitlines()
+            for line in gui_settings_list:
+                if "=" in line:
+                    equals_pos = line.find("=")
+                    setting = line[:equals_pos]
+                    value = line[equals_pos+1:]
+                    shared_data.gui_set_dict[setting]=value
+        else:
+            print(" No gui settings file, using defaults")
+
+
+
     class settings_dialog(wx.Dialog):
         '''
         Dialog box for changing the gui settings
@@ -327,27 +350,51 @@ class shared_data:
         '''
         def __init__(self, parent):
             wx.Dialog.__init__(self, parent, title="Remote Gui Settings")
+            # Default connection address
+            self.default_address_l = wx.StaticText(self, label='Default Address')
+            self.default_address_tc = wx.TextCtrl(self, -1, shared_data.gui_set_dict['default_address'], size=(250,30))
+            # username and password
+            self.default_username_l = wx.StaticText(self, label='Username')
+            self.default_username_tc = wx.TextCtrl(self, -1, shared_data.gui_set_dict['username'], size=(250,30))
+            self.default_password_l = wx.StaticText(self, label='Password')
+            self.default_password_tc = wx.TextCtrl(self, -1, shared_data.gui_set_dict['password'], size=(250,30))
             # SSH Settings
             self.sshport_l = wx.StaticText(self, label='SSH Port')
-            self.ssh_port_tc = wx.TextCtrl(self, -1, str(shared_data.ssh_port))
+            self.ssh_port_tc = wx.TextCtrl(self, -1, str(shared_data.gui_set_dict['ssh_port']))
             # Buttons
             btn = wx.Button(self, wx.ID_OK)
             cancel_btn = wx.Button(self, wx.ID_CANCEL)
             btn.Bind(wx.EVT_BUTTON, self.ok_click)
             # Sizers
-            sshport_sizer = wx.BoxSizer(wx.HORIZONTAL)
-            sshport_sizer.Add(self.sshport_l, 0, wx.ALL, 5)
-            sshport_sizer.Add(self.ssh_port_tc, 0, wx.ALL, 5)
+            conection_sizer = wx.FlexGridSizer(4, 2, 0, 5)
+            conection_sizer.AddMany( [(self.default_address_l, 0, wx.ALIGN_RIGHT),
+                (self.default_address_tc, 0),
+                (self.default_username_l, 0),
+                (self.default_username_tc, 0, wx.ALIGN_RIGHT),
+                (self.default_password_l, 0),
+                (self.default_password_tc, 0, wx.ALIGN_RIGHT),
+                (self.sshport_l, 0, wx.ALIGN_RIGHT),
+                (self.ssh_port_tc, 0)])
             btnsizer = wx.BoxSizer(wx.HORIZONTAL)
             btnsizer.Add(btn, 0, wx.ALL, 5)
             btnsizer.Add((5,-1), 0, wx.ALL, 5)
             btnsizer.Add(cancel_btn, 0, wx.ALL, 5)
             main_sizer = wx.BoxSizer(wx.VERTICAL)
-            main_sizer.Add(sshport_sizer, 0, wx.EXPAND|wx.ALL, 5)
+            main_sizer.Add(conection_sizer, 0, wx.EXPAND|wx.ALL, 5)
             main_sizer.Add(btnsizer, 0, wx.ALL, 5)
             self.SetSizerAndFit(main_sizer)
         def ok_click(self, e):
-            shared_data.ssh_port = int(self.ssh_port_tc.GetValue())
+            shared_data.gui_set_dict['ssh_port'] = self.ssh_port_tc.GetValue()
+            shared_data.gui_set_dict['default_address'] = self.default_address_tc.GetValue()
+            shared_data.gui_set_dict['username'] = self.default_username_tc.GetValue()
+            shared_data.gui_set_dict['password'] = self.default_password_tc.GetValue()
+            # save settings
+            gui_settings_path = "gui_settings.txt"
+            settings_file_text = ""
+            for key, value in shared_data.gui_set_dict.items():
+                settings_file_text += str(key) + "=" + str(value) + "\n"
+            with open(gui_settings_path, "w") as gui_set_text:
+                gui_set_text.write(settings_file_text)
             self.Destroy()
 
 #
@@ -2915,12 +2962,19 @@ class config_ctrl_pnl(wx.Panel):
     def name_box_click(self, e):
         box_name = config_info_pnl.boxname_text.GetValue()
         if not box_name == MainApp.config_ctrl_pannel.config_dict["box_name"]:
-            MainApp.config_ctrl_pannel.config_dict["box_name"] = box_name
-            pi_link_pnl.boxname = box_name  #to maintain persistance if needed elsewhere later
-            MainApp.pi_link_pnl.link_status_text.SetLabel("linked with - " + box_name)
-            self.update_setting_file_on_pi_click("e")
+            question = "Are you sure you wish to rename your pigrow?\n\n"
+            question += " Renaming your pigrow will change it's local files location in the frompigrow folder, "
+            question += " it's recomended to disconnect and reconnect to your pigrow after changing it's name."
+            dbox = wx.MessageDialog(self, question, "Rename pigrow?", wx.OK | wx.CANCEL | wx.ICON_QUESTION)
+            answer = dbox.ShowModal()
+            dbox.Destroy()
+            if (answer == wx.ID_OK):
+                MainApp.config_ctrl_pannel.config_dict["box_name"] = box_name
+                pi_link_pnl.boxname = box_name  #to maintain persistance if needed elsewhere later
+                MainApp.pi_link_pnl.link_status_text.SetLabel("linked with - " + box_name)
+                self.update_setting_file_on_pi_click("e")
         else:
-            print("no change")
+            print(" - box name already set to " + box_name)
 
     def update_pigrow_setup_pannel_information_click(self, e):
         print("Reading pigrow and updating local config info")
@@ -6113,7 +6167,7 @@ class localfiles_ctrl_pnl(wx.Panel):
         if not os.path.isdir(without_filename):
             os.makedirs(without_filename)
             #print("made folder " + str(without_filename))
-        port = shared_data.ssh_port
+        port = int(shared_data.gui_set_dict['ssh_port'])
         print("  - connecting transport pipe... " + pi_link_pnl.target_ip + " port:" + str(port))
         print("    to  download " + remote_file + " to " + local_path)
         ssh_tran = paramiko.Transport((pi_link_pnl.target_ip, port))
@@ -6128,7 +6182,7 @@ class localfiles_ctrl_pnl(wx.Panel):
     def upload_file_to_folder(self, local_path, remote_path):
         # Copies a folder from the local machine onto the pigrow
         # local_path and remote_path should be full and explicit paths
-        port = shared_data.ssh_port
+        port = int(shared_data.gui_set_dict['ssh_port'])
         print(("  - connecting transport pipe... " + pi_link_pnl.target_ip + " port:" + str(port)))
         print(("    to  upload " + local_path + " to " + remote_path))
         ssh_tran = paramiko.Transport((pi_link_pnl.target_ip, port))
@@ -6192,7 +6246,7 @@ class file_download_dialog(wx.Dialog):
                 file_to_save.write(cron_text)
         ## Downloading files from the pi
         # connecting the sftp pipe
-        port = shared_data.ssh_port
+        port = int(shared_data.gui_set_dict['ssh_port'])
         if not len(pi_link_pnl.target_ip.split(".")) == 4:
             import socket
             sock = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
@@ -6358,7 +6412,7 @@ class upload_dialog(wx.Dialog):
     def start_upload_click(self, e):
         files_to_upload  = []
         ## connecting the sftp pipe
-        port = shared_data.ssh_port
+        port = int(shared_data.gui_set_dict['ssh_port'])
         ssh_tran = paramiko.Transport((pi_link_pnl.target_ip, port))
         print(("  - connecting transport pipe... " + pi_link_pnl.target_ip + " port:" + str(port)))
         ssh_tran.connect(username=pi_link_pnl.target_user, password=pi_link_pnl.target_pass)
@@ -14842,13 +14896,13 @@ class pi_link_pnl(wx.Panel):
         ## the three boxes for pi's connection details, IP, Username and Password
         self.l_ip = wx.StaticText(self,  label='address')
         self.tb_ip = wx.TextCtrl(self)
-        self.tb_ip.SetValue("192.168.1.")
+        self.tb_ip.SetValue(shared_data.gui_set_dict['default_address'])
         self.l_user = wx.StaticText(self,  label='Username')
         self.tb_user = wx.TextCtrl(self)
-        self.tb_user.SetValue("pi")
+        self.tb_user.SetValue(shared_data.gui_set_dict['username'])
         self.l_pass = wx.StaticText(self,  label='Password')
         self.tb_pass = wx.TextCtrl(self)
-        self.tb_pass.SetValue("raspberry")
+        self.tb_pass.SetValue(shared_data.gui_set_dict['password'])
         ## link with pi button
         self.link_with_pi_btn = wx.Button(self, label='Link to Pi')
         self.link_with_pi_btn.Bind(wx.EVT_BUTTON, self.link_with_pi_btn_click)
@@ -14899,7 +14953,8 @@ class pi_link_pnl(wx.Panel):
             while True:
                 print(("Trying to connect to " + host))
                 try:
-                    ssh.connect(host, port=shared_data.ssh_port, username=pi_link_pnl.target_user, password=pi_link_pnl.target_pass, timeout=3)
+                    port = int(shared_data.gui_set_dict['ssh_port'])
+                    ssh.connect(host, port=port, username=pi_link_pnl.target_user, password=pi_link_pnl.target_pass, timeout=3)
                     MainApp.status.write_bar("Connected to " + host)
                     print(("#sb# Connected to " + host))
                     log_on_test = True
@@ -14945,7 +15000,8 @@ class pi_link_pnl(wx.Panel):
             pi_link_pnl.target_user = self.tb_user.GetValue()
             pi_link_pnl.target_pass = self.tb_pass.GetValue()
             try:
-                ssh.connect(pi_link_pnl.target_ip, port=shared_data.ssh_port, username=pi_link_pnl.target_user, password=pi_link_pnl.target_pass, timeout=3)
+                port = int(shared_data.gui_set_dict['ssh_port'])
+                ssh.connect(pi_link_pnl.target_ip, port=port, username=pi_link_pnl.target_user, password=pi_link_pnl.target_pass, timeout=3)
                 MainApp.status.write_bar("Connected to " + pi_link_pnl.target_ip)
                 print("#sb# Connected to " + pi_link_pnl.target_ip)
                 log_on_test = True
