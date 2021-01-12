@@ -5,9 +5,9 @@ homedir = os.getenv("HOME")
 def show_info():
     # define relay pin status checker
     def check_gpio_status(gpio_pin, on_power_state):
-        #cmd = "echo " + str(gpio_pin) + " > /sys/class/gpio/export"
-        #out =  os.popen(cmd).read()
-        #print( "-------" + out)
+        if not os.path.isdir("/sys/class/gpio/gpio" + str(gpio_pin) + "/value")
+            cmd = "echo " + str(gpio_pin) + " > /sys/class/gpio/export"
+            out =  os.popen(cmd).read()
         cmd = "cat /sys/class/gpio/gpio" + str(gpio_pin) + "/value"
         out =  os.popen(cmd).read()
         gpio_status = out.strip()
