@@ -60,7 +60,7 @@ def show_info():
 
 
 
-    return text_out
+    return text_out.strip()
 
 if __name__ == '__main__':
     print(show_info())
