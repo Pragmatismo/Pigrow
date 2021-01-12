@@ -3,11 +3,11 @@ import os
 homedir = os.getenv("HOME")
 
 def show_info():
-
+    print("lol")
     def check_gpio_status(gpio_pin, on_power_state):
         cmd = "echo " + str(gpio_pin) + " > /sys/class/gpio/export"
         out =  os.popen(cmd).read()
-        print( "-------" + out)
+        #print( "-------" + out)
         cmd = "cat /sys/class/gpio/gpio" + str(gpio_pin) + "/value"
         out =  os.popen(cmd).read()
         gpio_status = out.strip()
@@ -52,11 +52,11 @@ def show_info():
                 else:
                     gpio_on_dict[device_name] = setting_value
 
-    text_out = str(gpio_dict) + "\n\n" + str(gpio_on_dict) + '\n\n'
+    text_out = ""
     for key in gpio_on_dict:
         if key in gpio_dict:
             status = check_gpio_status(gpio_dict[key], gpio_on_dict[key])
-            text_out += key + " is " + status + " using pin " + gpio_dict[key] + " wired " + gpio_on_dict[key] + "\n"
+            text_out += key + " is " + status #+ " using pin " + gpio_dict[key] + " wired " + gpio_on_dict[key] + "\n"
 
 
 
