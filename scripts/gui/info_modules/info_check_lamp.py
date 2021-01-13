@@ -57,7 +57,7 @@ def show_info():
         length_lamp_on = (dateoff - datetime.datetime.combine(datetime.date.today(), on_time))
         # message
         lamp_msg += "Lamp turning on at " + str(on_time)[:-3] + " and off at " + str(off_time)[:-3]
-        lamp_msg += " (" + str(length_lamp_on)[:-3] + " on, "  +str(aday - length_lamp_on)[:-3] + " off)\n"
+        lamp_msg += "\n     (duration " + str(length_lamp_on)[:-3] + " on, "  +str(aday - length_lamp_on)[:-3] + " off)\n"
 
 
     # check cron
