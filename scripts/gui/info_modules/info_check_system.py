@@ -26,10 +26,7 @@ def show_info():
                 args = out.split(script)[1].strip()
                 msg += " with args " + args + "\n"
         else:
-            cmd = 'ls -laru' + script + ' | cut -f6,7,8 -d" "'
-            print(cmd)
-            out =  os.popen(cmd).read()
-            msg += "\n   None currently running. Last accessed " + out + "\n"
+            msg += "\n   None currently running. \n"
 
 
 
