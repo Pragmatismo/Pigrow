@@ -1,50 +1,78 @@
 #!/usr/bin/python3
-import os
+import os, sys
+import datetime
 homedir = os.getenv("HOME")
 
-def show_info():
+def show_info(duration):
     #
-    error_log_path = homedir + "/Pigrow/logs/switch_log.txt"
-    if not os.path.isfile(error_log_path):
+    def check_data_range(time, cut_off):
+        if cut_off == "none":
+            return True
+        time = datetime.datetime.strptime(time, '%Y-%m-%d %H:%M:%S')
+        if time > cut_off:
+            return True
+        # if no conditions are true
+        return False
+    #
+    if duration == "all" or duration == "":
+        cut_off = "none"
+    else:
+        timenow = datetime.datetime.now()
+        if "hour" in duration:
+            duration = duration.replace("hour", "")
+            limit = datetime.timedelta(hours=int(duration))
+            cut_off = timenow - limit
+        elif "day" in duration:
+            duration = duration.replace("day", "")
+            limit = datetime.timedelta(days=int(duration))
+            cut_off = timenow - limit
+        else:
+            print(" duration arg not understood, defaulting to none")
+            cut_off == "none"
+
+    #
+    switch_log_path = homedir + "/Pigrow/logs/switch_log.txt"
+    if not os.path.isfile(switch_log_path):
         return "No switch log."
-    cmd = "tail -50 " + error_log_path
+    cmd = "cat " + switch_log_path
     out =  os.popen(cmd).read()
-    error_log = out.splitlines()
-    error_dict = {}
+    switch_log = out.splitlines()
+    switch_dict = {}
     # read the error log into a dictionary
-    for line in error_log:
+    for line in switch_log:
         line = line.split("@")
         script = line[0]
-        time   = line[1]
+        time   = line[1].split(".")[0]
         message = line[2]
-        if not script in error_dict:
-            #print( "   adding " + script)
-            error_dict[script]=[[message, 1, time]]
-        else:
-            count = 0
-            list = []
-            for script_error in error_dict[script]:
-                #print(" --- reading " + script_error)
-                dict_message = script_error[0]
-                if message == dict_message:
-                    #print(" - already exists ")
-                    count = script_error[1]
-                    count = count + 1
-                    script_error=[message, count, time]
-                # create list to replace this scripts error dict entry
-                list.append(script_error)
-            # after cycling through all items in this scripts error dict
-            if count == 0:
-                error_dict[script].append([message, 1, time])
+        if check_data_range(time, cut_off):
+            if not script in switch_dict:
+                #print( "   adding " + script)
+                switch_dict[script]=[[message, 1, time]]
             else:
-                error_dict[script] = list
+                count = 0
+                list = []
+                for switch_info in switch_dict[script]:
+                    #print(" --- reading " + switch_info)
+                    dict_message = switch_info[0]
+                    if message == dict_message:
+                        #print(" - already exists ")
+                        count = switch_info[1]
+                        count = count + 1
+                        switch_info=[message, count, time]
+                    # create list to replace this scripts error dict entry
+                    list.append(switch_info)
+                # after cycling through all items in this scripts error dict
+                if count == 0:
+                    switch_dict[script].append([message, 1, time])
+                else:
+                    switch_dict[script] = list
     # create text output
     text_out = "Recent actions; \n"
     text_out += " Count  -  Last Seen  -  Message\n"
-    for key, value in error_dict.items():
+    for key, value in switch_dict.items():
         text_out += " -- " + key + ": \n"
-        for problem in value:
-            text_out += "  " + str(problem[1]) + "  " + problem[2] + "   " + str(problem[0]) + "\n"
+        for switch_info in value:
+            text_out += "    " + str(switch_info[1]) + "  " + switch_info[2] + "   " + str(switch_info[0]) + "\n"
 
 
 # log_sensor_module.py@2020-07-03 19:40:01.631992@Failed to import sensor module for EZOph
@@ -53,4 +81,26 @@ def show_info():
     return text_out
 
 if __name__ == '__main__':
-    print(show_info())
+    duration = "all"
+    for argu in sys.argv:
+        argu_l = argu.lower()
+        if argu_l == '-h' or argu_l == '--help':
+            print("   Switch log viewer ")
+            print(" ")
+            print("     This is mostly used by the datawall and phone app")
+
+            print("     ")
+            print('  duration=all      -entire script log')
+            print('          =hourN    -last N hours of script log')
+            print('          =dayN     -last N days of script log')
+            sys.exit(0)
+        elif argu_l == "-flags":
+            print("duration=all,hourN,dayN")
+            sys.exit(0)
+        elif "=" in argu:
+            thearg = str(argu_l).split('=')[0]
+            theval = str(argu).split('=')[1]
+            if thearg == 'duration':
+                duration = theval
+
+    print(show_info(duration))
