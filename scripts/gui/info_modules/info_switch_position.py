@@ -38,8 +38,7 @@ def show_info():
     #out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("cat " + pigrow_settings_path)
     pigrow_settings = out.splitlines()
 
-
-    for item in pigrow_settings.sort():
+    for item in pigrow_settings:
             equals_pos = item.find("=")
             setting_value  = item[equals_pos + 1:]
             setting_name = item[:equals_pos]
@@ -53,7 +52,7 @@ def show_info():
                     gpio_on_dict[device_name] = setting_value
 
     text_out = ""
-    for key in gpio_on_dict:
+    for key in sorted(gpio_on_dict:
         if key in gpio_dict:
             status = check_gpio_status(gpio_dict[key], gpio_on_dict[key])
             text_out += key + " is " + status + "\n" #+ " using pin " + gpio_dict[key] + " wired " + gpio_on_dict[key] + "\n"
