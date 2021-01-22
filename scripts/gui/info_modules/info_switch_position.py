@@ -39,7 +39,7 @@ def show_info():
     pigrow_settings = out.splitlines()
 
 
-    for item in pigrow_settings:
+    for item in pigrow_settings.sorted():
             equals_pos = item.find("=")
             setting_value  = item[equals_pos + 1:]
             setting_name = item[:equals_pos]
