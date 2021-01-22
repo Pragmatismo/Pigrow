@@ -52,7 +52,7 @@ def show_info():
                     gpio_on_dict[device_name] = setting_value
 
     text_out = ""
-    for key in sorted(gpio_on_dict:
+    for key in sorted(gpio_on_dict):
         if key in gpio_dict:
             status = check_gpio_status(gpio_dict[key], gpio_on_dict[key])
             text_out += key + " is " + status + "\n" #+ " using pin " + gpio_dict[key] + " wired " + gpio_on_dict[key] + "\n"
