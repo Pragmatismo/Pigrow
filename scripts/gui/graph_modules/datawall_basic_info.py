@@ -12,8 +12,8 @@ def make_datawall(list_of_graphs, datawall_path="datawall_test.png", list_of_dat
     from PIL import ImageDraw, ImageFont
     homedir = os.getenv("HOME")
     bg_col = (240,255,240)
-    font_big = ImageFont.truetype("../../resources/Caslon.ttf", 28)
-    font = ImageFont.truetype("../../resources/Caslon.ttf", 22)
+    font_big = ImageFont.truetype(homedir + "/Pigrow/scripts/gui/ui_images/datawall/Caslon.ttf", 28)
+    font = ImageFont.truetype(homedir + "/Pigrow/scripts/gui/ui_images/datawall/Caslon.ttf", 22)
 
     def create_current_info_panel():
         print(" creating info panel")
@@ -47,7 +47,7 @@ def make_datawall(list_of_graphs, datawall_path="datawall_test.png", list_of_dat
         #
         bar_dials_base = Image.new('RGBA', (h_size, line_count * 80), color=bg_col)
         r_h_pos = pad / 2
-        res_path = homedir + "/Pigrow/resources/datawall/"
+        res_path = homedir + "/Pigrow/scripts/gui/ui_images/datawall/"
         bar_draw = ImageDraw.Draw(bar_dials_base)
         line_pos = 0
         col_count = 0
