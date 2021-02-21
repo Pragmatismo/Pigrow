@@ -3038,7 +3038,8 @@ class config_ctrl_pnl(wx.Panel):
                         if len(line_split) == 2:
                             self.gpio_dict[line_split[1]] = setting_value
                         elif len(line_split) == 3:
-                            self.gpio_on_dict[str(line_split[1])] = setting_value
+                            if line_split[2] == "on":
+                                self.gpio_on_dict[str(line_split[1])] = setting_value
                     else:
                         if not setting_value == "":
                             self.config_dict[setting_name] = setting_value
@@ -3663,7 +3664,7 @@ class config_lamp_dialog(wx.Dialog):
 class config_water_dialog(wx.Dialog):
     # list of timed watering jobs
     class timed_watering_list(wx.ListCtrl):
-        def __init__(self, parent, id, size=(600,200)):
+        def __init__(self, parent, id, size=(500,200)):
             wx.ListCtrl.__init__(self, parent, id, size=size, style=wx.LC_REPORT)
             self.InsertColumn(0, 'Line') #remove this if not needed
             self.InsertColumn(1, 'Enabled')
@@ -3739,7 +3740,7 @@ class config_water_dialog(wx.Dialog):
     def __init__(self, *args, **kw):
         super(config_water_dialog, self).__init__(*args, **kw)
         self.InitUI()
-        self.SetSize((650, 700))
+        self.SetSize((650, 750))
         self.SetTitle("Config Water")
     def InitUI(self):
 
@@ -8689,8 +8690,8 @@ class graphing_ctrl_pnl(wx.Panel):
         for preset in dw_log_presets:
             self.graph_presets_cb.SetValue(preset.strip())
             self.graph_preset_cb_go("e")
-            # do settings - done in graph presets cb go
-            #self.set_data_extraction_settings_from_text(dw_log_settings)
+            # the following is run by graph_preset_cb_go but also needs to be run for settings changes outside the module
+            self.set_data_extraction_settings_from_text(dw_log_settings)
             # load log
             self.set_log_click("e")
 
@@ -8712,9 +8713,9 @@ class graphing_ctrl_pnl(wx.Panel):
         datawall_preset_path = os.path.join(shared_data.datawall_presets_path, dw_preset_choice)
         with open(datawall_preset_path) as f:
             datawall_presets = f.read()
-        print (" - - - - -")
-        print (datawall_presets)
-        print (" - - - - -")
+        #print (" - - - - -")
+        #print (datawall_presets)
+        #print (" - - - - -")
         datawall_presets = datawall_presets.splitlines()
         graph_count = 0
         current_graph = ""
@@ -8723,6 +8724,7 @@ class graphing_ctrl_pnl(wx.Panel):
         dw_current_graphs   = []
         dw_graphs_settings  = []
         made_graph_list  = []
+        info_text_dict = {}
         for line in datawall_presets:
             line = line.strip()
             if line == "load_log":
@@ -8769,6 +8771,31 @@ class graphing_ctrl_pnl(wx.Panel):
                                 dw_current_graphs.append(x)
                         if key_job == "setting":
                             dw_graphs_settings.append(value)
+                    # handling info modules
+                    if key_type == "info":
+                        if key_job == "read":
+                            print(" - Info module reading " + value)
+                            info_tu = self.read_info_module(value)
+                            info_text_dict[info_tu[0]] = info_tu[1]
+                    # picture loading preset
+                    if key_type == "picture":
+                        if key_job == "path":
+                            # find the image path
+                            info_tu = self.read_info_module(value, "picture_")
+                            # copy locally
+                            remote_path = info_tu[1]
+                            img_filename = info_tu[1].split("/")[-1]
+                            caps_path = os.path.join(localfiles_info_pnl.local_path, info_tu[1].split("/")[-2])
+                            local_img_path = os.path.join(caps_path, img_filename)
+                            if os.path.isfile(local_img_path):
+                                print("Image already exists locally")
+                            else:
+                                print("image not yet downloaaded locally")
+                                print(remote_path)
+                                print(local_img_path)
+                                localfiles_ctrl_pnl.download_file_to_folder(MainApp.localfiles_ctrl_pannel, remote_path, info_tu[1].split("/")[-2] + "/" + img_filename)
+                            # add to image list with module name
+                            info_text_dict["picture_" + info_tu[0]] = local_img_path
         #
         print(" Created Graphs - ", made_graph_list)
         #
@@ -8784,8 +8811,27 @@ class graphing_ctrl_pnl(wx.Panel):
         exec("from " + module_name + " import make_datawall", globals())
         base_filename = module_name+".png"
         datawall_path = os.path.join(localfiles_info_pnl.local_path, base_filename)
-        make_datawall(made_graph_list, datawall_path, shared_data.list_of_datasets)
+        make_datawall(made_graph_list, datawall_path, shared_data.list_of_datasets, infolist=info_text_dict)
         MainApp.graphing_info_pannel.show_local_graph(datawall_path)
+
+    def read_info_module(self, info_module_name, prefix="info_"):
+        # get args
+        args = ""
+        if " " in info_module_name:
+            e_pos = info_module_name.find(" ")
+            args = info_module_name[e_pos:]
+            info_module_name = info_module_name[:e_pos]
+        # check name is in module format
+        info_modules_path = "/home/" + pi_link_pnl.target_user + "/Pigrow/scripts/gui/info_modules/"
+        if not prefix in info_module_name:
+            info_module_name = prefix + info_module_name
+        if not ".py" in info_module_name:
+            info_module_name += ".py"
+        # module
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi(info_modules_path + info_module_name + args)
+        print(info_module_name + args)
+        info_module_name = info_module_name.replace(prefix, "").replace(".py", "").strip()
+        return [info_module_name, out.strip()]
 
 
     def switch_log_graph_go(self, e):
