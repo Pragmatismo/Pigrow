@@ -1,6 +1,6 @@
 
 
-def make_datawall(list_of_graphs, datawall_path="datawall_test.png", list_of_datasets=[]):
+def make_datawall(list_of_graphs, datawall_path="datawall_test.png", list_of_datasets=[], infolist=[]):
     x = 1800
     y = 600
     print(" ---------------------------------------- ")
