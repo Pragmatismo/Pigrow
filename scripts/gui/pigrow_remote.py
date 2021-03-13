@@ -2446,99 +2446,11 @@ class install_dialog(wx.Dialog):
         print("   -- Finished " + pip3_package + " upgrade attempt;")
         print (out, error)
 
-    #def install_praw(self):
-        # praw is the module for connecting to reddit
-        self.currently_doing.SetLabel("Using pip3 to install praw")
-        self.progress.SetLabel("###########~~~~~~~~~~~~~~~~~~")
-        wx.GetApp().Yield()
-        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo pip3 install praw")
-        print (out)
-
-    #def install_matplotlib3(self):
-        # Matplotlib makes the graphs for us
-        self.currently_doing.SetLabel("Using pip3 to install matplotlib")
-        self.progress.SetLabel("###############~~~~~~~~~~~~~~")
-        wx.GetApp().Yield()
-        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo pip3 install matplotlib")
-        print (out)
-
-    #def install_pexpect(self):
-        # pexpect is the tool used to connect to other pigrows if using pigrow log
-        self.currently_doing.SetLabel("using pip to install pexpect")
-        self.progress.SetLabel("#############~~~~~~~~~~~~~~~~")
-        wx.GetApp().Yield()
-        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo pip install pexpect")
-        print (out)
-
-    #def install_adafruit_DHT(self):
-        print("starting adafruit install")
-        self.progress.SetLabel("###############~~~~~~~~~~~~~~")
-        self.currently_doing.SetLabel("Using pip to install adafruit_DHT module")
-        wx.GetApp().Yield()
-        adafruit_install, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo pip install Adafruit_DHT")
-        print (adafruit_install)
-
-    #def install_adafruit_ads1115(self):
-        print("starting adafruit install")
-        self.progress.SetLabel("################~~~~~~~~~~~~~")
-        self.currently_doing.SetLabel("Using pip3 to install adafruit's ADS1x15 driver")
-        wx.GetApp().Yield()
-        print(" - installing RPI-GPIO module")
-        GPIO_install, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo pip3 install RPI.GPIO")
-        print (GPIO_install)
-        print("-----")
-        print(error)
-        print(" - installing adafruit blinka module")
-        blinka_install, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo pip3 install adafruit-blinka")
-        print (blinka_install)
-        print("-----")
-        print(error)
-        print(" - installing adafruit ads1x15 module")
-        ads1115_install, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo pip3 install adafruit-circuitpython-ads1x15")
-        print (ads1115_install)
-        print("-----")
-        print(error)
-
     def update_apt(self):
         print(" - updating apt")
         self.currently_doing.SetLabel("updating apt the system package manager on the raspberry pi")
         wx.GetApp().Yield()
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo apt-get update --yes")
-        print (out, error)
-
-    #def install_uvccaptre(self):
-        self.currently_doing.SetLabel("Using apt to install uvccaptre")
-        self.progress.SetLabel("####################~~~~~~~~~~~")
-        wx.GetApp().Yield()
-        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo apt-get --yes install uvccapture")
-        print (out, error)
-
-    #def install_mpv(self):
-        self.currently_doing.SetLabel("Using apt to install mpv")
-        self.progress.SetLabel("#####################~~~~~~~~~~")
-        wx.GetApp().Yield()
-        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo apt-get --yes install mpv")
-        print (out, error)
-
-    #def install_python_matplotlib(self):
-        self.currently_doing.SetLabel("Using apt to install python-matplotlib")
-        self.progress.SetLabel("######################~~~~~~~~~")
-        wx.GetApp().Yield()
-        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo apt-get --yes install python-matplotlib")
-        print (out, error)
-
-    #def install_sshpass(self):
-        self.currently_doing.SetLabel("Using apt to install sshpass")
-        self.progress.SetLabel("#######################~~~~~~~~~")
-        wx.GetApp().Yield()
-        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo apt-get --yes install sshpass")
-        print (out, error)
-
-    #def install_python_crontab(self):
-        self.currently_doing.SetLabel("Using apt to install python-crontab")
-        self.progress.SetLabel("########################~~~~~~~")
-        wx.GetApp().Yield()
-        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo apt-get --yes install python-crontab")
         print (out, error)
 
     def install_apt_package(self, apt_package):
