@@ -7359,11 +7359,13 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
             date = line_items[date_pos]
             if not date_split == "":
                 date = date.split(date_split)[date_split_pos]
-            if "." in date:
-                date = date.split(".")[0]
+
             # Check date is valid and ignore if not
             try:
-                date = datetime.datetime.strptime(date, '%Y-%m-%d %H:%M:%S')
+                if "." in date:
+                    date = datetime.datetime.strptime(date, '%Y-%m-%d %H:%M:%S.%f')
+                else:
+                    date = datetime.datetime.strptime(date, '%Y-%m-%d %H:%M:%S')
                 if limit_by_date == True:
                     if date > last_datetime or date < first_datetime:
                         date = ""
@@ -7500,11 +7502,12 @@ class graphing_info_pnl(scrolled.ScrolledPanel):
                     date = line_items[date_pos]
                     if not date_split == "":
                         date = date.split(date_split)[date_split_pos]
-                    if "." in date:
-                        date = date.split(".")[0]
                     # Check date is valid and ignore if not
                     try:
-                        date = datetime.datetime.strptime(date, '%Y-%m-%d %H:%M:%S')
+                        if "." in date:
+                            date = datetime.datetime.strptime(date, '%Y-%m-%d %H:%M:%S.%f')
+                        else:
+                            date = datetime.datetime.strptime(date, '%Y-%m-%d %H:%M:%S')
                         if limit_by_date == True:
                             if date > last_datetime or date < first_datetime:
                                 date = ""
