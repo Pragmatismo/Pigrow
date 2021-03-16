@@ -2474,6 +2474,18 @@ class install_dialog(wx.Dialog):
         print("   -- Finished " + package_name + " install attempt;")
         print(out, error)
 
+    def install_git_package(self, package_name):
+        sensor_module_folder = "/home/" + pi_link_pnl.target_user + "/Pigrow/scripts/gui/sensor_modules/"
+        install_folder = os.path.split(package_name)[1].replace(".git", "")
+        install_p = sensor_module_folder + install_folder
+        self.currently_doing.SetLabel("Using git to download " + package_name)
+        command = "git clone " + package_name + " " + install_p
+        print(" - install running command; " + command)
+        wx.GetApp().Yield()
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi(command)
+        print("   -- Finished " + package_name + " install attempt;")
+        print(out, error)
+
     def check_module_dependencies(self):
         print(" Testing dependencies from install module files")
         for module_index in range(0, self.install_module_list.GetItemCount()):
@@ -2508,6 +2520,9 @@ class install_dialog(wx.Dialog):
                     is_installed = self.test_apt_package(package_name)
                 elif install_method == "wget":
                     is_installed = self.test_wget_file(package_name)
+                elif install_method == "git":
+                    # The same test procedure as wget
+                    is_installed = self.test_git_file(package_name, import_name)
 
             if is_installed == True:
                 self.install_module_list.SetItemTextColour(module_index, wx.Colour(90,180,90))
@@ -2536,6 +2551,16 @@ class install_dialog(wx.Dialog):
             return True
         else:
             return False
+
+    def test_git_file(self, package_name, import_name):
+        sensor_module_folder = "/home/" + pi_link_pnl.target_user + "/Pigrow/scripts/gui/sensor_modules/"
+        install_p = sensor_module_folder + import_name
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("ls " + install_p)
+        if install_p == out.strip():
+            return True
+        else:
+            return False
+
 
     def check_program_dependencies(self):
         program_dependencies = ["sshpass", "uvccapture", "mpv"]
@@ -2702,6 +2727,7 @@ class install_dialog(wx.Dialog):
             apt_package_list.append('python-crontab')
         # Add modular sensors to list from table
         wget_package_list = []
+        git_package_list = []
         for module_index in range(0, self.install_module_list.GetItemCount()):
             if self.install_module_list.GetItem(module_index, 0).GetText() == "True":
                 module_name = self.install_module_list.GetItem(module_index, 1).GetText()
@@ -2723,10 +2749,11 @@ class install_dialog(wx.Dialog):
                         apt_package_list.append(package_name)
                     elif install_method == "wget":
                         wget_package_list.append(package_name)
-
+                    elif install_method == "git":
+                        git_package_list.append(package_name)
 
         # counting items for progress bar
-        item_count = len(pip3_package_list) + len(pip3_package_list) + len(apt_package_list) + len(wget_package_list)
+        item_count = len(pip3_package_list) + len(pip3_package_list) + len(apt_package_list) + len(wget_package_list) + len(git_package_list)
         if self.pigrow_base_check.GetValue() == True:
             item_count += 1
         if self.pigrow_dirlocs_check.GetValue() == True:
@@ -2768,6 +2795,10 @@ class install_dialog(wx.Dialog):
         # download all files using wget
         for wget_package in wget_package_list:
             self.install_wget_package(wget_package)
+            self.progress_install_bar()
+        # download all files using git
+        for git_package in git_package_list:
+            self.install_git_package(git_package)
             self.progress_install_bar()
         # run the setup wizard
         if self.config_wiz_check.GetValue() == True:
