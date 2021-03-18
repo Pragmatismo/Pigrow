@@ -235,11 +235,11 @@ def trig_change(event):
 def observe_trig_file():
     print_limit(" - Enabling Trigger Events Config File Observation -", 2)
     path = homedir + "/Pigrow/config/"
-    trig_events_handler = PatternMatchingEventHandler("*.txt", None, True, False)
+    trig_events_handler = PatternMatchingEventHandler(["*.txt"], None, True, False)
     trig_events_handler.on_created = trig_change
     trig_events_handler.on_modified = trig_change
+    trig_e_handler.on_deleted = on_deleted
     trig_e_handler.on_modified = on_modified
-    trig_e_handler.on_moved = on_moved
     trig_events_ob = Observer()
     trig_events_ob.schedule(trig_events_handler, path, recursive=True)
     trig_events_ob.start()
@@ -257,8 +257,7 @@ if __name__ == "__main__":
     print_limit(config_data.trigger_conditions, 2)
     # Set up and run log file watcher
     path = homedir + "/Pigrow/logs/"
-    patterns = "*.txt"
-    ignore_patterns = ""
+    patterns = ["*.txt"]
     trig_e_handler = PatternMatchingEventHandler(patterns, None, True, False)
     trig_e_handler.on_created = on_created #,
     trig_e_handler.on_deleted = on_deleted
