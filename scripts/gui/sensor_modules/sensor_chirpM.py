@@ -249,6 +249,7 @@ def read_sensor(location="", extra="", sensor_name="", raw_only=False, *args):
         return None
 
     # set up and read the sensor
+    print(" Setting min moist:", min_moist, " max moist:", max_moist, " Temp offset:", temp_offset)
     chirp_sensor = chirp.Chirp(address=chirp_address,
                         read_moist=True,
                         read_temp=True,
