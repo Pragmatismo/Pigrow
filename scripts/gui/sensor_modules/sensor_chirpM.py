@@ -17,8 +17,8 @@ class sensor_config():
         print("connection_type=i2c")
         print("connection_address_list=any")
         print("default_connection_address=0x20")
-        print("available_info=calibration, temp_offset")
-        print("available_settings=set_min_cal, set_max_cal, set_temp_offset")
+        print("available_info=calibration,temp_offset")
+        print("available_settings=set_min_cal,set_max_cal,set_temp_offset")
 
     def run_request(request_name, sensor_location, sensor_name=""):
         '''
@@ -145,6 +145,11 @@ class sensor_config():
         #
         loc_settings = homedir + "/Pigrow/config/pigrow_config.txt"
         extra = pigrow_defs.read_setting(loc_settings, "sensor_" + sensor_name + "_extra")
+        #
+        if extra == "":
+            print(" No calibration information ")
+            return []
+        #
         if ":" in extra:
             extra_list = extra.split(":")
         else:
