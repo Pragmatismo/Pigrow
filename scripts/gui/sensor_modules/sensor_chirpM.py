@@ -249,22 +249,14 @@ def read_sensor(location="", extra="", sensor_name="", raw_only=False, *args):
         return None
 
     # set up and read the sensor
-    if True == False:
-        chirp_sensor = chirp.Chirp(address=chirp_address,
-                            read_moist=True,
-                            read_temp=True,
-                            read_light=True,
-                            min_moist=min_moist,
-                            max_moist=max_moist,
-                            temp_scale='celsius',
-                            temp_offset=0)
-    else:
-        chirp_sensor = chirp.Chirp(address=chirp_address,
-                            read_moist=True,
-                            read_temp=True,
-                            read_light=True,
-                            temp_scale='celsius',
-                            temp_offset=0)
+    chirp_sensor = chirp.Chirp(address=chirp_address,
+                        read_moist=True,
+                        read_temp=True,
+                        read_light=True,
+                        min_moist=min_moist,
+                        max_moist=max_moist,
+                        temp_scale='celsius',
+                        temp_offset=0)
 
     #
     measures = "None"
