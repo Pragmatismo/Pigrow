@@ -206,25 +206,25 @@ def read_sensor(location="", extra="", sensor_name="", raw_only=False, *args):
     '''
     #
     min_moist   = 0
-    max_moist   = 0
+    max_moist   = 10000
     temp_offset = 0
     chirp_address = int(location, 16)
     # read settings
     if not raw_only == True and not sensor_name == "":
         extra_settings = sensor_config.read_extra(sensor_name, quiet=True)
         # locate Chirp setting and test to see if it can be used as a number
-        if "min_moist" in extra_settings:
+        if "min_cal" in extra_settings:
             try:
-                min_moist = int(extra_settings["min_moist"])
+                min_moist = int(extra_settings["min_cal"])
             except:
                 print(" Cant convert min_moist to int, defaulting to zero")
                 print(" !!!! add error log call here !!!! ")
                 min_moist = 0
-        if "max_moist" in extra_settings:
+        if "max_cal" in extra_settings:
             try:
-                max_moist = int(extra_settings["max_moist"])
+                max_moist = int(extra_settings["max_cal"])
             except:
-                print(" Cant convert max_moist to int, defaulting to 10000")
+                print(" Can't convert max_cal to int, defaulting to 10000")
                 print(" !!!! add error log call here !!!! ")
                 max_moist = 10000
         if "temp_offset" in extra_settings:
