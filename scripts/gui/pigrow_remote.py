@@ -2200,7 +2200,8 @@ class install_dialog(wx.Dialog):
             print("Cleaning cron of old checkdht22.py calls...")
             while cron_dht_exists:
                 print("Removing " + str(cron_dht_index))
-                cron_list_pnl.startup_cron.DeleteItem(cron_dht_index)
+                #cron_list_pnl.startup_cron.DeleteItem(cron_dht_index)
+                cron_list_pnl.startup_cron.SetItem(cron_dht_index, 0, "deleted")
                 cron_dht_exists, cron_dht_enabled, cron_dht_index = self.check_for_control_script(scriptname="checkDHT.py")
             print("Adding a new checkDHT.py script to cron")
             checkDHT_path = "/home/" + str(pi_link_pnl.target_user) +  "/Pigrow/scripts/autorun/checkDHT.py"
@@ -2303,9 +2304,10 @@ class install_dialog(wx.Dialog):
             for index in range(0, last_index):
                 name = cron_list_pnl.startup_cron.GetItem(index, 3).GetText()
                 if scriptname in name:
-                    script_enabled = cron_list_pnl.startup_cron.GetItem(index, 1).GetText()
-                    script_startupcron_index = index
-                    script_has_cronjob_already = True
+                    if not cron_list_pnl.startup_cron.GetItem(index, 0).GetText() == "deleted":
+                        script_enabled = cron_list_pnl.startup_cron.GetItem(index, 1).GetText()
+                        script_startupcron_index = index
+                        script_has_cronjob_already = True
         return script_has_cronjob_already, script_enabled, script_startupcron_index
 
     def add_selflog(self):
@@ -4793,13 +4795,10 @@ class cron_info_pnl(wx.Panel):
                 if not "deleted" in key:
                     cron_text += value.strip() + "\n"
 
-
         # ask the user if they're sure
         msg_text = "Update cron to; \n\n" + cron_text
         mbox = wx.MessageDialog(None, msg_text, "Are you sure?", wx.YES_NO|wx.ICON_QUESTION)
         sure = mbox.ShowModal()
-        # TEST CRON IN ORDER
-        print( len(cron_line_dict), len(cron_list_pnl.cron_extra_lines))
         #
         if sure == wx.ID_YES:
             print ("Updating remote cron")
@@ -4896,7 +4895,6 @@ class cron_info_pnl(wx.Panel):
             else:
                 cron_list_pnl.cron_extra_lines[line_number]=cron_line
         print("cron information read and updated into tables.")
-        print (cron_list_pnl.cron_extra_lines)
 
     def test_if_script_running(self, script):
         print(" --- Note: cron tab start-up scripts table currently only tests if a script is active and ignores name= arguments ")
