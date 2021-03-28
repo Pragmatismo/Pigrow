@@ -4722,11 +4722,12 @@ class cron_info_pnl(wx.Panel):
 
     def update_cron_click(self, e):
         #
-        
+        cron_line_dict = {}
         #make a text file of all the cron jobs
-        cron_text = ''
+        num_new = 0
         startup_num = cron_list_pnl.startup_cron.GetItemCount()
         for num in range(0, startup_num):
+            line_num = cron_list_pnl.startup_cron.GetItemText(num, 0)
             cron_line = ''
             if cron_list_pnl.startup_cron.GetItemText(num, 1) == 'False':
                 cron_line += '#'
@@ -4734,7 +4735,10 @@ class cron_info_pnl(wx.Panel):
             script_cmd += ' ' + cron_list_pnl.startup_cron.GetItemText(num, 4) # cron_extra_args
             script_cmd += ' ' + cron_list_pnl.startup_cron.GetItemText(num, 5) # cron_comment
             cron_line += '@reboot ' + script_cmd
-            cron_text += cron_line + '\n'
+            if not line_num.isdigit():
+                line_num = line_num + str(num_new)
+                num_new += 1
+            cron_line_dict[line_num] = cron_line
             # ask if unrunning scripts should be started
             is_running = self.test_if_script_running(cron_list_pnl.startup_cron.GetItemText(num, 3))
             enabled = cron_list_pnl.startup_cron.GetItemText(num, 1)
@@ -4751,27 +4755,52 @@ class cron_info_pnl(wx.Panel):
         repeat_num = cron_list_pnl.repeat_cron.GetItemCount()
         for num in range(0, repeat_num):
             cron_line = ''
+            line_num = cron_list_pnl.repeat_cron.GetItemText(num, 0)
             if cron_list_pnl.repeat_cron.GetItemText(num, 1) == 'False':
                 cron_line += '#'
             cron_line += cron_list_pnl.repeat_cron.GetItemText(num, 2).strip(' ')
             cron_line += ' ' + cron_list_pnl.repeat_cron.GetItemText(num, 3) # cron_task
             cron_line += ' ' + cron_list_pnl.repeat_cron.GetItemText(num, 4) # cron_extra_args
             cron_line += ' ' + cron_list_pnl.repeat_cron.GetItemText(num, 5) # cron_comment
-            cron_text += cron_line + '\n'
+            if not line_num.isdigit():
+                line_num = line_num + str(num_new)
+                num_new += 1
+            cron_line_dict[line_num] = cron_line
         onetime_num = cron_list_pnl.timed_cron.GetItemCount()
         for num in range(0, onetime_num):
             cron_line = ''
+            line_num = cron_list_pnl.timed_cron.GetItemText(num, 0)
             if cron_list_pnl.timed_cron.GetItemText(num, 1) == 'False':
                 cron_line += '#'
             cron_line += cron_list_pnl.timed_cron.GetItemText(num, 2).strip(' ')
             cron_line += ' ' + cron_list_pnl.timed_cron.GetItemText(num, 3) # cron_task
             cron_line += ' ' + cron_list_pnl.timed_cron.GetItemText(num, 4) # cron_extra_args
             cron_line += ' ' + cron_list_pnl.timed_cron.GetItemText(num, 5) # cron_comment
-            cron_text += cron_line + '\n'
+            if not line_num.isdigit():
+                line_num = line_num + str(num_new)
+                num_new += 1
+            cron_line_dict[line_num] = cron_line
+        # write cron in the correct order
+        cron_text = ""
+        for line_number in range(1,  len(cron_line_dict) + len(cron_list_pnl.cron_extra_lines)):
+            if str(line_number) in cron_line_dict:
+                cron_text += cron_line_dict[str(line_number)].strip() + "\n"
+            elif line_number in cron_list_pnl.cron_extra_lines:
+                if not cron_list_pnl.cron_extra_lines[line_number].strip() == "":
+                    cron_text += cron_list_pnl.cron_extra_lines[line_number].strip() + "\n"
+        for key, value in cron_line_dict.items():
+            if not key.isdigit() and not value.strip() == "":
+                if not "deleted" in key:
+                    cron_text += value.strip() + "\n"
+
+
         # ask the user if they're sure
         msg_text = "Update cron to; \n\n" + cron_text
         mbox = wx.MessageDialog(None, msg_text, "Are you sure?", wx.YES_NO|wx.ICON_QUESTION)
         sure = mbox.ShowModal()
+        # TEST CRON IN ORDER
+        print( len(cron_line_dict), len(cron_list_pnl.cron_extra_lines))
+        #
         if sure == wx.ID_YES:
             print ("Updating remote cron")
             # save cron text onto pigrow as text file then import into cron
@@ -5185,11 +5214,17 @@ class cron_list_pnl(wx.Panel):
                 sure = mbox.ShowModal()
                 if sure == wx.ID_YES:
                     if cron_list_pnl.startup_cron.GetSelectedItemCount() == 1:
-                        print(cron_list_pnl.startup_cron.DeleteItem(cron_list_pnl.startup_cron.GetFocusedItem()))
+                        #print(cron_list_pnl.startup_cron.DeleteItem(cron_list_pnl.startup_cron.GetFocusedItem()))
+                        index = cron_list_pnl.startup_cron.GetFocusedItem()
+                        cron_list_pnl.startup_cron.SetItem(index, 0, "deleted")
                     if cron_list_pnl.repeat_cron.GetSelectedItemCount() == 1:
-                        print(cron_list_pnl.repeat_cron.DeleteItem(cron_list_pnl.repeat_cron.GetFocusedItem()))
+                        #print(cron_list_pnl.repeat_cron.DeleteItem(cron_list_pnl.repeat_cron.GetFocusedItem()))
+                        index = cron_list_pnl.repeat_cron.GetFocusedItem()
+                        cron_list_pnl.repeat_cron.SetItem(index, 0, "deleted")
                     if cron_list_pnl.timed_cron.GetSelectedItemCount() == 1:
-                        print(cron_list_pnl.timed_cron.DeleteItem(cron_list_pnl.timed_cron.GetFocusedItem()))
+                        #print(cron_list_pnl.timed_cron.DeleteItem(cron_list_pnl.timed_cron.GetFocusedItem()))
+                        index = cron_list_pnl.timed_cron.GetFocusedItem()
+                        cron_list_pnl.timed_cron.SetItem(index, 0, "deleted")
 
 
 
