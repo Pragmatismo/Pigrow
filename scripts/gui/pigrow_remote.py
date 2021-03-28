@@ -4687,22 +4687,42 @@ class cron_info_pnl(wx.Panel):
         wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, style = wx.TAB_TRAVERSAL )
 
         wx.StaticText(self,  label='Cron Config Menu', pos=(25, 10))
-        self.read_cron_btn = wx.Button(self, label='Read Crontab', pos=(10, 40), size=(175, 30))
+        self.read_cron_btn = wx.Button(self, label='Read Crontab', size=(175, 30))
         self.read_cron_btn.Bind(wx.EVT_BUTTON, self.read_cron_click)
-        self.new_cron_btn = wx.Button(self, label='New cron job', pos=(10, 80), size=(175, 30))
+        self.new_cron_btn = wx.Button(self, label='New cron job', size=(175, 30))
         self.new_cron_btn.Bind(wx.EVT_BUTTON, self.new_cron_click)
-        self.update_cron_btn = wx.Button(self, label='Update Cron', pos=(10, 120), size=(175, 30))
+        self.update_cron_btn = wx.Button(self, label='Update Cron', size=(175, 30))
         self.update_cron_btn.Bind(wx.EVT_BUTTON, self.update_cron_click)
+        self.help_cron_btn = wx.Button(self, label='Cron Help', size=(175, 30))
+        self.help_cron_btn.Bind(wx.EVT_BUTTON, self.help_cron_click)
 
         main_sizer = wx.BoxSizer(wx.VERTICAL)
         main_sizer.Add(self.read_cron_btn, 0, wx.ALL, 5)
         main_sizer.Add(self.new_cron_btn, 0, wx.ALL, 5)
         main_sizer.Add(self.update_cron_btn, 0, wx.ALL, 5)
+        main_sizer.Add(self.help_cron_btn, 0, wx.ALL, 5)
         self.SetSizer(main_sizer)
 
-
+    def help_cron_click(self, e):
+        ## This needs to be improvedi into a custom dialogue box,
+        ##          but really this whole help system using pictures is bad
+        ##          it needs to be repleaced with a dynamic dialogue box system soon
+        ##
+        ## this code is repeated in other areas - replace as improved function
+        guide_path = os.path.join(shared_data.ui_img_path, "cron_help.png")
+        if os.path.isfile(guide_path):
+            guide = wx.Image(guide_path, wx.BITMAP_TYPE_ANY)
+            guide = guide.ConvertToBitmap()
+            dbox = show_image_dialog(None, guide, "Cron Help")
+            dbox.ShowModal()
+            dbox.Destroy()
+        else:
+            print(" help file not found, check www.reddit.com/r/Pigrow/wiki for info.")
+            print("     " + guide_path + " not found")
 
     def update_cron_click(self, e):
+        #
+        
         #make a text file of all the cron jobs
         cron_text = ''
         startup_num = cron_list_pnl.startup_cron.GetItemCount()
@@ -4787,6 +4807,7 @@ class cron_info_pnl(wx.Panel):
         #sort cron info into lists
         line_number = 0
 
+        cron_list_pnl.cron_extra_lines = {}
         for cron_line in cron_text:
             line_number = line_number + 1
             real_job = True
@@ -4838,7 +4859,15 @@ class cron_info_pnl(wx.Panel):
                         self.add_to_onetime_list(line_number, job_enabled, timing_string, cron_task, cron_extra_args, cron_comment)
                     elif cron_jobtype == 'repeating':
                         self.add_to_repeat_list(line_number, job_enabled, timing_string, cron_task, cron_extra_args, cron_comment)
+                else:
+                    if job_enabled == False:
+                        cron_line = "#" + cron_line
+                    if not cron_line == "":
+                        cron_list_pnl.cron_extra_lines[line_number]=cron_line
+            else:
+                cron_list_pnl.cron_extra_lines[line_number]=cron_line
         print("cron information read and updated into tables.")
+        print (cron_list_pnl.cron_extra_lines)
 
     def test_if_script_running(self, script):
         print(" --- Note: cron tab start-up scripts table currently only tests if a script is active and ignores name= arguments ")
@@ -4878,6 +4907,7 @@ class cron_info_pnl(wx.Panel):
     def make_repeating_cron_timestring(self, repeat, repeat_num):
         #assembles timing sting for cron
         # min (0 - 59) | hour (0 - 23) | day of month (1-31) | month (1 - 12) | day of week (0 - 6) (Sunday=0)
+        # 1st postion - Minute 0-59
         if repeat == 'min':
             if int(repeat_num) in range(0,59):
                 cron_time_string = '*/' + str(repeat_num)
@@ -4885,7 +4915,8 @@ class cron_info_pnl(wx.Panel):
                 print("Cron string min wrong, fix it before updating")
                 return 'fail'
         else:
-            cron_time_string = '*'
+            cron_time_string = '0'
+        # 2nd Position - Hour 0-23
         if repeat == 'hour':
             if int(repeat_num) in range(0,23):
                 cron_time_string += ' */' + str(repeat_num)
@@ -4893,7 +4924,11 @@ class cron_info_pnl(wx.Panel):
                 print("Cron string hour wrong, fix it before updating")
                 return 'fail'
         else:
-            cron_time_string += ' *'
+            if not repeat == "min":
+                cron_time_string += ' 0'
+            else:
+                cron_time_string += ' *'
+        # 3rd Position - Day of Month 1-31
         if repeat == 'day':
             if int(repeat_num) in range(1,31):
                 cron_time_string += ' */' + str(repeat_num)
@@ -4901,7 +4936,11 @@ class cron_info_pnl(wx.Panel):
                 print("Cron string day wrong, fix it before updating")
                 return 'fail'
         else:
-            cron_time_string += ' *'
+            if not repeat in ['min', 'hour']:
+                cron_time_string += ' 1'
+            else:
+                cron_time_string += ' *'
+        # 4th Position - Month 1-12
         if repeat == 'month':
             if int(repeat_num) in range(1,12):
                 cron_time_string += ' */' + str(repeat_num)
@@ -4909,10 +4948,14 @@ class cron_info_pnl(wx.Panel):
                 print("Cron sting month wrong, fix it before updating")
                 return 'fail'
         else:
-            cron_time_string += ' *'
+            if not repeat in ['min', 'hour', 'day']:
+                cron_time_string += ' 1'
+            else:
+                cron_time_string += ' *'
+        # 5th Position - Day Of the Week 0-7 with 0&7 Sunday
         if repeat == 'dow':
-            if int(repeat_num) in range(1,12):
-                cron_time_string += ' */' + str(repeat_num)
+            if int(repeat_num) in range(1,7):
+                cron_time_string = '0 0 * * */' + str(repeat_num)
             else:
                 print("Cron string dow wrong, fix it before updating")
                 return 'fail'
@@ -4921,23 +4964,30 @@ class cron_info_pnl(wx.Panel):
         return cron_time_string
 
     def make_onetime_cron_timestring(self, job_min, job_hour, job_day, job_month, job_dow):
-        # timing_string = str(job_min) + ' ' + str(job_hour) + ' * * *'
+        # 1st postion - Minute 0-59
         if job_min.isdigit():
             timing_string = str(job_min)
         else:
-            timing_string = '*'
+            timing_string = '0'
+        # 2nd Position - Hour 0-23
         if job_hour.isdigit():
             timing_string += ' ' + str(job_hour)
         else:
-            timing_string += ' *'
+            timing_string += ' 0'
+        # 3rd Position - Day of Month 1-31
         if job_day.isdigit():
             timing_string += ' ' + str(job_day)
         else:
-            timing_string += ' *'
+            if job_month.isdigit(): #if month is selected use first day of month
+                timing_string += ' 1'
+            else:
+                timing_string += ' *'
+        # 4th Position - Month 1-12
         if job_month.isdigit():
             timing_string += ' ' + str(job_month)
         else:
             timing_string += ' *'
+        # 5th Position - Day Of the Week 0-7 with 0&7 Sunday
         if job_dow.isdigit():
             timing_string += ' ' + str(job_dow)
         else:
@@ -9599,7 +9649,7 @@ class camconf_ctrl_pnl(wx.Panel):
         dbox.Destroy()
         if (answer == wx.ID_OK):
             print("installing fswebcam on pigrow")
-            out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo apt install fswebcam --force-yes -y")
+            out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo apt-get install fswebcam --force-yes -y")
             print(out, error)
 
     def show_image_onscreen(self, img_path, text_label, no_clear=False):
