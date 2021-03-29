@@ -3,8 +3,9 @@ import sys, os
 import time
 import datetime
 homedir = os.getenv("HOME")
-sys.path.append(homedir + '/Pigrow/scripts/')
-import pigrow_defs
+if not homedir == None:
+    sys.path.append(homedir + '/Pigrow/scripts/')
+    import pigrow_defs
 
 
 class sensor_config():
