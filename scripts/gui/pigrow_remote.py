@@ -6274,7 +6274,7 @@ class file_download_dialog(wx.Dialog):
         ## Downloading files from the pi
         # connecting the sftp pipe
         port = int(shared_data.gui_set_dict['ssh_port'])
-        if not len(pi_link_pnl.target_ip.split(".")) == 4:
+        if ":" in pi_link_pnl.target_ip: #ipv6 should contain eight blocks of hexadecimal seperated with a colon
             import socket
             sock = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
             sock.connect((pi_link_pnl.target_ip, port))
