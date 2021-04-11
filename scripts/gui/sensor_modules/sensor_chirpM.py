@@ -149,7 +149,7 @@ class sensor_config():
         #
         if extra == "":
             print(" No calibration information ")
-            return []
+            return {}
         #
         if ":" in extra:
             extra_list = extra.split(":")
