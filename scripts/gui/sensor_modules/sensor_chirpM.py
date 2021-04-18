@@ -142,7 +142,7 @@ class sensor_config():
         #
         if sensor_name == "":
             print("Sensor Name must be supplied using name=")
-            return None
+            return "no name"
         #
         loc_settings = homedir + "/Pigrow/config/pigrow_config.txt"
         extra = pigrow_defs.read_setting(loc_settings, "sensor_" + sensor_name + "_extra")
@@ -173,6 +173,9 @@ class sensor_config():
             return None
         # Read current extra string
         extra_settings = sensor_config.read_extra(sensor_name)
+        if extra_setings == "no name":
+            print("Could not set value without a sensor name")
+            return None
 
         # change the required setting or add if not already present
         extra_settings[key]=value
@@ -189,14 +192,16 @@ class sensor_config():
 #
 # Sensor code
 #
-
 def check_if_valid(reading):
     '''
     checks validity of results, for example excluding bad readings
     returns the reading if vaid or "None" if not
     '''
-    if not reading == "":
-        return reading
+    if isinstance(reading, int) or (isinstance(reading, float)):
+        if not reading > 1000:
+            return reading
+        else:
+            return "None"
     else:
         return "None"
 
