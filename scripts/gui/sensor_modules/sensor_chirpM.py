@@ -198,7 +198,7 @@ def check_if_valid(reading):
     returns the reading if vaid or "None" if not
     '''
     if isinstance(reading, int) or (isinstance(reading, float)):
-        if not reading > 1000:
+        if not reading > 1000 or not reading < 2:
             return reading
         else:
             return "None"
