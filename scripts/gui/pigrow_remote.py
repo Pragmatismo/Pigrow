@@ -4688,7 +4688,7 @@ class cron_info_pnl(wx.Panel):
     def __init__( self, parent ):
         wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, style = wx.TAB_TRAVERSAL )
 
-        wx.StaticText(self,  label='Cron Config Menu', pos=(25, 10))
+        self.cron_label = wx.StaticText(self,  label='Cron Config Menu')
         self.read_cron_btn = wx.Button(self, label='Read Crontab', size=(175, 30))
         self.read_cron_btn.Bind(wx.EVT_BUTTON, self.read_cron_click)
         self.new_cron_btn = wx.Button(self, label='New cron job', size=(175, 30))
@@ -4699,6 +4699,7 @@ class cron_info_pnl(wx.Panel):
         self.help_cron_btn.Bind(wx.EVT_BUTTON, self.help_cron_click)
 
         main_sizer = wx.BoxSizer(wx.VERTICAL)
+        main_sizer.Add(self.cron_label, 0, wx.ALL, 5)
         main_sizer.Add(self.read_cron_btn, 0, wx.ALL, 5)
         main_sizer.Add(self.new_cron_btn, 0, wx.ALL, 5)
         main_sizer.Add(self.update_cron_btn, 0, wx.ALL, 5)
@@ -12244,12 +12245,10 @@ class sensors_ctrl_pnl(wx.Panel):
     def __init__(self, parent):
         wx.Panel.__init__ (self, parent, id=wx.ID_ANY, style=wx.TAB_TRAVERSAL)
         #self.SetBackgroundColour('sea green') #TESTING ONLY REMOVE WHEN SIZING IS DONE AND ALL THAT BUSINESS
-        wx.StaticText(self,  label='Chirp Soil Moisture Sensor;')
-        #
-        # Soil Moisture Controlls
         # Refresh page button
         self.make_table_btn = wx.Button(self, label='make table')
         self.make_table_btn.Bind(wx.EVT_BUTTON, self.make_tables_click)
+        # Soil Moisture Controlls
         #    --  Chirp options
         self.chirp_l = wx.StaticText(self,  label='Chirp Soil Moisture Sensor;')
         self.config_chirp_btn = wx.Button(self, label='add new chirp')
