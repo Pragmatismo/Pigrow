@@ -27,7 +27,7 @@ for argu in sys.argv:
         print("")
         sys.exit(0)
 def speed_test():
-    speed_info = os.popen('speedtest-cli --csv').read()
+    speed_info = os.popen('/usr/local/bin/speedtest-cli --csv').read()
     speed_info = speed_info.split(',')
     speed_data = {}
     speed_data['Server ID']    =speed_info[0].strip()
