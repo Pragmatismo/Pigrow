@@ -156,12 +156,12 @@ class sensor_config():
         else:
             extra_list = [extra]
         # add items into a dictionary called extra_settings
-        extra_setings = {}
+        extra_settings = {}
         for item in extra_list:
             if "=" in item:
                 set, val = item.split("=")
-                extra_setings[set] = val
-        return extra_setings
+                extra_settings[set] = val
+        return extra_settings
 
 
     def set_extra(key, value, sensor_name):
@@ -173,7 +173,7 @@ class sensor_config():
             return None
         # Read current extra string
         extra_settings = sensor_config.read_extra(sensor_name)
-        if extra_setings == "no name":
+        if extra_settings == "no name":
             print("Could not set value without a sensor name")
             return None
 
@@ -198,7 +198,7 @@ def check_if_valid(reading):
     returns the reading if vaid or "None" if not
     '''
     if isinstance(reading, int) or (isinstance(reading, float)):
-        if not reading > 1000:
+        if not reading > 1000 or not reading < 2:
             return reading
         else:
             return "None"

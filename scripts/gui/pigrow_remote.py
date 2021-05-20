@@ -4688,7 +4688,7 @@ class cron_info_pnl(wx.Panel):
     def __init__( self, parent ):
         wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, style = wx.TAB_TRAVERSAL )
 
-        wx.StaticText(self,  label='Cron Config Menu', pos=(25, 10))
+        self.cron_label = wx.StaticText(self,  label='Cron Config Menu')
         self.read_cron_btn = wx.Button(self, label='Read Crontab', size=(175, 30))
         self.read_cron_btn.Bind(wx.EVT_BUTTON, self.read_cron_click)
         self.new_cron_btn = wx.Button(self, label='New cron job', size=(175, 30))
@@ -4699,6 +4699,7 @@ class cron_info_pnl(wx.Panel):
         self.help_cron_btn.Bind(wx.EVT_BUTTON, self.help_cron_click)
 
         main_sizer = wx.BoxSizer(wx.VERTICAL)
+        main_sizer.Add(self.cron_label, 0, wx.ALL, 5)
         main_sizer.Add(self.read_cron_btn, 0, wx.ALL, 5)
         main_sizer.Add(self.new_cron_btn, 0, wx.ALL, 5)
         main_sizer.Add(self.update_cron_btn, 0, wx.ALL, 5)
@@ -9768,6 +9769,7 @@ class camconf_ctrl_pnl(wx.Panel):
 
 
     def take_saved_set_click(self, e):
+        photo_taken = False
         settings_file = MainApp.camconf_info_pannel.camconf_path_tc.GetValue()
         outpath = '/home/' + pi_link_pnl.target_user + '/Pigrow/temp/'
         # check if picam or webcam and take with appropriate script
@@ -9782,14 +9784,30 @@ class camconf_ctrl_pnl(wx.Panel):
         out, error = MainApp.localfiles_ctrl_pannel.run_on_pi(cmd)
         output = out + error
         print (out, error)
-        path = output.split("Saving image to:")[1].split("\n")[0].strip()
-        # download photo
-        local_temp_img_path = os.path.join("temp", "test_settings.jpg")
-        img_path = localfiles_ctrl_pnl.download_file_to_folder(MainApp.localfiles_ctrl_pannel, path, local_temp_img_path)
-        # display on screen
-        label = "Taken with settings stored on the Pigrow"
-        self.show_image_onscreen(img_path, label)
+        if "Saving image to:" in output:
+            path = output.split("Saving image to:")[1].split("\n")[0].strip()
+            # check picture exists
+            cmd = "ls " + path
+            out, error = MainApp.localfiles_ctrl_pannel.run_on_pi(cmd)
+            if out.strip() == path:
+                photo_taken = True
+            else:
+                print(" !!!! PHOTO NOT TAKEN !!!! ")
+        else:
+            print(" !!!! PHOTO NOT TAKEN !!!! ")
 
+        if photo_taken == True:
+            # download photo
+            local_temp_img_path = os.path.join("temp", "test_settings.jpg")
+            img_path = localfiles_ctrl_pnl.download_file_to_folder(MainApp.localfiles_ctrl_pannel, path, local_temp_img_path)
+            # display on screen
+            label = "Taken with settings stored on the Pigrow"
+            self.show_image_onscreen(img_path, label)
+        else:
+            msg_text = "Photo was not taken, \n\n" + output
+            dbox = wx.MessageDialog(self, msg_text, "Error", wx.OK | wx.ICON_ERROR)
+            dbox.ShowModal()
+            dbox.Destroy()
 
     def take_set_click(self, e, filename="test_settings.jpg"):
         # take using the settings currently displayed on the screen
@@ -9812,11 +9830,29 @@ class camconf_ctrl_pnl(wx.Panel):
             if cam_opt == "fswebcam":
                 self.install_fswebcam()
         else:
-            local_temp_img_path = os.path.join("temp", filename)
-            img_path = localfiles_ctrl_pnl.download_file_to_folder(MainApp.localfiles_ctrl_pannel, remote_img_path, local_temp_img_path)
-            # display on screen
-            label = "Image taken using local settings"
-            self.show_image_onscreen(img_path, label)
+            # check file exists
+            photo_taken = False
+            cmd = "ls " + outfile
+            out, error = MainApp.localfiles_ctrl_pannel.run_on_pi(cmd)
+            if out.strip() == remote_img_path:
+                photo_taken = True
+            else:
+                print(" !!!! PHOTO NOT TAKEN !!!! ")
+            #
+            if photo_taken == True:
+                local_temp_img_path = os.path.join("temp", filename)
+                img_path = localfiles_ctrl_pnl.download_file_to_folder(MainApp.localfiles_ctrl_pannel, remote_img_path, local_temp_img_path)
+                # remove temp photo from pi
+                cmd = "rm " + remote_img_path
+                out, error = MainApp.localfiles_ctrl_pannel.run_on_pi(cmd)
+                # display on screen
+                label = "Image taken using local settings"
+                self.show_image_onscreen(img_path, label)
+            else:
+                msg_text = "Photo was not taken, \n\n" + info
+                dbox = wx.MessageDialog(self, msg_text, "Error", wx.OK | wx.ICON_ERROR)
+                dbox.ShowModal()
+                dbox.Destroy()
 
     def range_btn_click(self, e):
         '''
@@ -9875,7 +9911,6 @@ class camconf_ctrl_pnl(wx.Panel):
             img_to_show = image_combine.multi_combine(local_images, style, output_path)
             self.show_image_onscreen(img_to_show, "Combined Image")
 
-
     def create_temp_picamcap_settings(self, temp_picamcap_settings_path, s_val, c_val, g_val, b_val, x_dim, y_dim, cam_opt, cam_num):
         print(" Creating temporary settings file for picamcap.py config")
         temp_conf = "s_val=" + str(s_val)
@@ -9896,7 +9931,6 @@ class camconf_ctrl_pnl(wx.Panel):
         with open(local_temp_piccamset_path, "w") as temp_local:
             temp_local.write(temp_conf)
         MainApp.localfiles_ctrl_pannel.upload_file_to_folder(local_temp_piccamset_path, temp_picamcap_settings_path)
-
 
     def take_test_image(self, s_val, c_val, g_val, b_val, x_dim=800, y_dim=600,
                         cam_select='/dev/video0', cam_capture_choice='uvccapture', output_file='~/test_cam_settings.jpg',
@@ -9949,14 +9983,32 @@ class camconf_ctrl_pnl(wx.Panel):
             cam_output = "command not found"
         print ("Camera output; " + cam_output + " " + error)
         print("~~~~~~~~~~~~~~~~~~~~")
-        return cam_output, output_file
+        return cam_output + "\n" + error, output_file
 
     def take_unset_click(self, e):
         info, remote_img_path = self.take_unset_test_image()
-        local_temp_img_path = os.path.join("temp", "test_defaults.jpg")
-        img_path = localfiles_ctrl_pnl.download_file_to_folder(MainApp.localfiles_ctrl_pannel, remote_img_path, local_temp_img_path)
-        label="Picture taken using camera default"
-        self.show_image_onscreen(img_path, label)
+        # check file exists
+        photo_taken = False
+        cmd = "ls " + remote_img_path
+        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi(cmd)
+        if out.strip() == remote_img_path:
+            photo_taken = True
+        else:
+            print(" !!!! PHOTO NOT TAKEN !!!! ")
+        #
+        if photo_taken == True:
+            local_temp_img_path = os.path.join("temp", "test_defaults.jpg")
+            img_path = localfiles_ctrl_pnl.download_file_to_folder(MainApp.localfiles_ctrl_pannel, remote_img_path, local_temp_img_path)
+            label="Picture taken using camera default"
+            self.show_image_onscreen(img_path, label)
+            # remove temp photo from pi
+            cmd = "rm " + remote_img_path
+            out, error = MainApp.localfiles_ctrl_pannel.run_on_pi(cmd)
+        else:
+            msg_text = "Photo was not taken, \n\n" + info
+            dbox = wx.MessageDialog(self, msg_text, "Error", wx.OK | wx.ICON_ERROR)
+            dbox.ShowModal()
+            dbox.Destroy()
 
     def take_unset_test_image(self, x_dim=10000, y_dim=10000, additonal_commands='', cam_capture_choice='uvccapture', output_file=None):
         cam_select = self.cam_cb.GetValue()
@@ -11985,41 +12037,42 @@ class sensors_info_pnl(wx.Panel):
             # add sensors to table
             for sensor_name in sensor_name_list:
                 type, log, loc, extra = self.read_sensor_conf(sensor_name, MainApp.config_ctrl_pannel.config_dict, "sensor_")
-                #
-                # check cron to see if sensor is being logged and how often
-                #
-                last_index = cron_list_pnl.repeat_cron.GetItemCount()
-                log_freq = "not found"
-                if not last_index == 0:
-                    for index in range(0, last_index):
-                        job_name  = cron_list_pnl.repeat_cron.GetItem(index, 3).GetText()
-                        job_extra = cron_list_pnl.repeat_cron.GetItem(index, 4).GetText()
-                        extra_name  = "name=" + str(sensor_name)
-                        if "log_chirp.py" in job_name:
-                            if loc[4:] in job_extra:
-                                log_freq = cron_list_pnl.repeat_cron.GetItem(index, 2).GetText()
-                                freq_num, freq_text = cron_list_pnl.repeating_cron_list.parse_cron_string(self, log_freq)
-                                log_freq = str(freq_num) + " " + freq_text
-                        if "log_dstemp.py" in job_name:
-                            if loc in job_extra:
-                                log_freq = cron_list_pnl.repeat_cron.GetItem(index, 2).GetText()
-                                freq_num, freq_text = cron_list_pnl.repeating_cron_list.parse_cron_string(self, log_freq)
-                                log_freq = str(freq_num) + " " + freq_text
-                        if "log_ads1115.py" in job_name:
-                            if loc[0:3] in job_extra:
-                                log_freq = cron_list_pnl.repeat_cron.GetItem(index, 2).GetText()
-                                freq_num, freq_text = cron_list_pnl.repeating_cron_list.parse_cron_string(self, log_freq)
-                                log_freq = str(freq_num) + " " + freq_text
-                        # modular sensors
-                        if "log_sensor_module.py" in job_name:
-                            if "name=" + sensor_name in job_extra:
-                                log_freq = cron_list_pnl.repeat_cron.GetItem(index, 2).GetText()
-                                freq_num, freq_text = cron_list_pnl.repeating_cron_list.parse_cron_string(self, log_freq)
-                                log_freq = str(freq_num) + " " + freq_text
-
+                log_freq = self.find_cron_freq(sensor_name, type, loc)
                 # get settings for buttons
-                #
                 self.add_to_sensor_list(sensor_name, type, log, loc, extra, log_freq)
+
+        def find_cron_freq(self, sensor_name, type, loc):
+            '''
+               check cron to see if sensor is being logged and how often
+            '''
+            last_index = cron_list_pnl.repeat_cron.GetItemCount()
+            extra_name  = "name=" + str(sensor_name) + " "
+            if not last_index == 0: # skip if blank table
+                for index in range(0, last_index):
+                    job_name  = cron_list_pnl.repeat_cron.GetItem(index, 3).GetText()
+                    job_extra = cron_list_pnl.repeat_cron.GetItem(index, 4).GetText()
+                    if "log_chirp.py" in job_name and type == "chirp":
+                        if loc[4:] in job_extra:
+                            log_freq = cron_list_pnl.repeat_cron.GetItem(index, 2).GetText()
+                            freq_num, freq_text = cron_list_pnl.repeating_cron_list.parse_cron_string(self, log_freq)
+                            log_freq = str(freq_num) + " " + freq_text
+                            return log_freq
+                    elif "log_ads1115.py" in job_name and type == "ads1115":
+                        if loc[0:3] in job_extra:
+                            log_freq = cron_list_pnl.repeat_cron.GetItem(index, 2).GetText()
+                            freq_num, freq_text = cron_list_pnl.repeating_cron_list.parse_cron_string(self, log_freq)
+                            log_freq = str(freq_num) + " " + freq_text
+                            return log_freq
+                    # modular sensors
+                    elif "log_sensor_module.py" in job_name:
+                        if extra_name in job_extra:
+                            log_freq = cron_list_pnl.repeat_cron.GetItem(index, 2).GetText()
+                            freq_num, freq_text = cron_list_pnl.repeating_cron_list.parse_cron_string(self, log_freq)
+                            log_freq = str(freq_num) + " " + freq_text
+                            return log_freq
+            return "not found"
+
+
 
         def add_to_sensor_list(self, sensor, type, log, loc, extra='', log_freq=''):
             #MainApp.sensors_info_pannel.sensor_list.add_to_sensor_list(sensor,type,log,loc,extra)
@@ -12054,9 +12107,6 @@ class sensors_info_pnl(wx.Panel):
                 if type == 'chirp':
                     edit_chirp_dbox = chirp_dialog(None)
                     edit_chirp_dbox.ShowModal()
-                elif type == "DS18B20":
-                    ds18b20_dialog_box = ds18b20_dialog(None)
-                    ds18b20_dialog_box.ShowModal()
                 elif type == "ADS1115":
                     ads1115_dialog_box = ads1115_dialog(None)
                     ads1115_dialog_box.ShowModal()
@@ -12153,9 +12203,27 @@ class sensors_info_pnl(wx.Panel):
             temp_trigger_file_location = temp_local = os.path.join(temp_trigger_file_location, "trigger_events.txt")
             with open(temp_trigger_file_location, "w") as f:
                 f.write(trigger_file_text)
-            # copy tempory file onto pigrow over existing trigger file
+            # back up current trigger events file
             pi_trigger_events_file = "/home/" + pi_link_pnl.target_user + "/Pigrow/config/trigger_events.txt"
+            backup_events_file = "/home/" + pi_link_pnl.target_user + "/Pigrow/config/trigger_events_prev.txt"
+            cmd = "mv " + pi_trigger_events_file + " " + backup_events_file
+            out, error = MainApp.localfiles_ctrl_pannel.run_on_pi(cmd)
+            # copy tempory file onto pigrow over existing trigger file
             MainApp.localfiles_ctrl_pannel.upload_file_to_folder(temp_trigger_file_location, pi_trigger_events_file)
+            # check file is valid
+            cmd = "cat " + pi_trigger_events_file
+            out, error = MainApp.localfiles_ctrl_pannel.run_on_pi(cmd)
+            out = "".join(l + "\n" for l in out.splitlines() if l)
+            if out.strip() == trigger_file_text.strip():
+                print(" - Copied trigger file matches expected text, ")
+            else:
+                print(" - ERROR - copied trigger file does not match expected text!")
+                cmd = "mv " + backup_events_file + " " + pi_trigger_events_file
+                out, error = MainApp.localfiles_ctrl_pannel.run_on_pi(cmd)
+                msg_text = "There was an error copying the file, the written file did not match the expected text changes not saved."
+                dbox = wx.MessageDialog(self, msg_text, "Error", wx.OK | wx.ICON_ERROR)
+                dbox.ShowModal()
+                dbox.Destroy()
 
 
 
@@ -12177,23 +12245,17 @@ class sensors_info_pnl(wx.Panel):
 class sensors_ctrl_pnl(wx.Panel):
     def __init__(self, parent):
         wx.Panel.__init__ (self, parent, id=wx.ID_ANY, style=wx.TAB_TRAVERSAL)
-        self.SetBackgroundColour('sea green') #TESTING ONLY REMOVE WHEN SIZING IS DONE AND ALL THAT BUSINESS
-        wx.StaticText(self,  label='Chirp Soil Moisture Sensor;')
-        #
-        # Soil Moisture Controlls
+        #self.SetBackgroundColour('sea green') #TESTING ONLY REMOVE WHEN SIZING IS DONE AND ALL THAT BUSINESS
         # Refresh page button
         self.make_table_btn = wx.Button(self, label='make table')
         self.make_table_btn.Bind(wx.EVT_BUTTON, self.make_tables_click)
+        # Soil Moisture Controls
         #    --  Chirp options
         self.chirp_l = wx.StaticText(self,  label='Chirp Soil Moisture Sensor;')
         self.config_chirp_btn = wx.Button(self, label='add new chirp')
         self.config_chirp_btn.Bind(wx.EVT_BUTTON, self.add_new_chirp_click)
         self.address_chirp_btn = wx.Button(self, label='change chirp address')
         self.address_chirp_btn.Bind(wx.EVT_BUTTON, self.address_chirp_click)
-        #   -- DS18B20 waterproof temp sensor
-        self.ds18b20_l = wx.StaticText(self,  label='DS18B20 Temp Sensor;')
-        self.add_ds18b20 = wx.Button(self, label='add new DS18B20')
-        self.add_ds18b20.Bind(wx.EVT_BUTTON, self.add_ds18b20_click)
         #   == ADS1115 Analog to Digital converter i2c_check
         self.ads1115_l = wx.StaticText(self,  label='ADS1115 ADC;')
         self.add_ads1115 = wx.Button(self, label='add new ADS1115')
@@ -12219,19 +12281,16 @@ class sensors_ctrl_pnl(wx.Panel):
         main_sizer.Add(self.make_table_btn, 0, wx.ALL|wx.EXPAND, 3)
         main_sizer.AddStretchSpacer(1)
         main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
+        main_sizer.Add(self.modular_sensor_l, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.Add(self.sensor_module_list_cb, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.Add(self.add_modular_sensor, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.Add(self.chirp_l, 0, wx.ALL|wx.EXPAND, 3)
         main_sizer.Add(self.config_chirp_btn, 0, wx.ALL|wx.EXPAND, 3)
         main_sizer.Add(self.address_chirp_btn, 0, wx.ALL|wx.EXPAND, 3)
         main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
-        main_sizer.Add(self.ds18b20_l, 0, wx.ALL|wx.EXPAND, 3)
-        main_sizer.Add(self.add_ds18b20, 0, wx.ALL|wx.EXPAND, 3)
-        main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.Add(self.ads1115_l, 0, wx.ALL|wx.EXPAND, 3)
         main_sizer.Add(self.add_ads1115, 0, wx.ALL|wx.EXPAND, 3)
-        main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
-        main_sizer.Add(self.modular_sensor_l, 0, wx.ALL|wx.EXPAND, 3)
-        main_sizer.Add(self.sensor_module_list_cb, 0, wx.ALL|wx.EXPAND, 3)
-        main_sizer.Add(self.add_modular_sensor, 0, wx.ALL|wx.EXPAND, 3)
         main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.Add(self.buttons_l, 0, wx.ALL|wx.EXPAND, 3)
         main_sizer.Add(self.add_button, 0, wx.ALL|wx.EXPAND, 3)
@@ -12295,21 +12354,6 @@ class sensors_ctrl_pnl(wx.Panel):
         # call dialog box
         add_ads1115 = ads1115_dialog(None)
         add_ads1115.ShowModal()
-
-    def add_ds18b20_click(self, e):
-        MainApp.sensors_ctrl_pannel.make_tables_click("e")
-        # set blanks for dialog box
-        MainApp.sensors_info_pannel.sensor_list.s_name = ""
-        log_path = ""
-        if 'log_path' in MainApp.config_ctrl_pannel.dirlocs_dict:
-            log_path = MainApp.config_ctrl_pannel.dirlocs_dict["log_path"] + "dstemp_log.txt"
-        MainApp.sensors_info_pannel.sensor_list.s_log = log_path
-        MainApp.sensors_info_pannel.sensor_list.s_loc = ""
-        MainApp.sensors_info_pannel.sensor_list.s_extra = ""
-        MainApp.sensors_info_pannel.sensor_list.s_timing = ""
-        # call dialog box
-        add_ds18b20 = ds18b20_dialog(None)
-        add_ds18b20.ShowModal()
 
     def add_new_chirp_click(self, e):
         MainApp.sensors_ctrl_pannel.make_tables_click("e")
@@ -12789,7 +12833,7 @@ class add_button_dialog(wx.Dialog):
 
 
     def make_extra_settings_string(self):
-        print(" -Extra settings string not yet implemented, coming sooon")
+        print(" -Extra settings string not yet implemented, coming soon")
         return ""
 
     def find_cron_job(self, cmd, name):
@@ -12828,7 +12872,7 @@ class add_button_dialog(wx.Dialog):
                 found_running = found_running + 1
         #
         if found_running == 0:
-            print(" - didn't find a running verson of " + script + "name=" + name)
+            print(" - didn't find a running verson of " + script + " name=" + name)
             self.running_l.SetForegroundColour((200,75,75))
         elif found_running == 1:
             print(" - " + script + " name=" + name + " running" )
@@ -13794,223 +13838,6 @@ class ads1115_dialog(wx.Dialog):
             #print("Cron job; " + "new" + " " + cron_enabled + " " + timing_string + " " + cron_task + " " + cron_args + " " + cron_comment)
             MainApp.cron_info_pannel.update_cron_click("e")
 
-
-    def OnClose(self, e):
-        MainApp.sensors_info_pannel.sensor_list.s_name = ""
-        MainApp.sensors_info_pannel.sensor_list.s_log = ""
-        MainApp.sensors_info_pannel.sensor_list.s_loc = ""
-        MainApp.sensors_info_pannel.sensor_list.s_extra = ""
-        MainApp.sensors_info_pannel.sensor_list.s_timing = ""
-        self.Destroy()
-
-class ds18b20_dialog(wx.Dialog):
-    """
-    For setting up a ds18b20 temp sensor
-        """
-    def __init__(self, *args, **kw):
-        super(ds18b20_dialog, self).__init__(*args, **kw)
-        self.InitUI()
-        self.SetSize((700, 300))
-        self.SetTitle("DS18B20 Temp Sensor Setup")
-        self.Bind(wx.EVT_CLOSE, self.OnClose)
-
-    def InitUI(self):
-        # read values for when editing existing entry
-        self.s_name  = MainApp.sensors_info_pannel.sensor_list.s_name
-        self.s_type  = "DS18B20"
-        self.s_log   = MainApp.sensors_info_pannel.sensor_list.s_log
-        self.s_loc   = MainApp.sensors_info_pannel.sensor_list.s_loc
-        self.s_extra = MainApp.sensors_info_pannel.sensor_list.s_extra
-        self.timing_string = MainApp.sensors_info_pannel.sensor_list.s_timing
-        try:
-            s_rep     = MainApp.sensors_info_pannel.sensor_list.s_timing.split(" ")[0]
-            s_rep_txt = MainApp.sensors_info_pannel.sensor_list.s_timing.split(" ")[1]
-        except:
-            s_rep = ""
-            s_rep_txt = ""
-        # panel
-        pnl = wx.Panel(self)
-        box_label = wx.StaticText(self,  label='DS18B20 Temp Sensor\n DO NOT USE THIS IS DEPRECIATED NOW')
-        box_label.SetFont(shared_data.title_font)
-        # table information
-        name_l = wx.StaticText(self,  label='Unique Name')
-        self.name_tc = wx.TextCtrl(self, size=(400,30))
-        log_l = wx.StaticText(self,  label='Log Location')
-        self.log_tc = wx.TextCtrl(self, size=(400,30))
-        sensor_l = wx.StaticText(self,  label='Sensor Location')
-        # auto list temp sensors
-        temp_sensor_list = MainApp.system_ctrl_pannel.find_ds18b20_devices()
-             #---- add line here to remove sensors already added
-        self.temp_sensor_cb = wx.ComboBox(self, choices = temp_sensor_list, size=(170, 25))
-        self.read_temp_btn = wx.Button(self, label='Read Temp')
-        self.read_temp_btn.Bind(wx.EVT_BUTTON, self.read_temp_click)
-        self.temp_value = wx.StaticText(self,  label='--')
-        # timing string
-        timeing_l = wx.StaticText(self,  label='Repeating every ')
-        self.rep_num_tc = wx.TextCtrl(self, size=(70,30))
-        cron_repeat_opts = ['min', 'hour', 'day', 'month', 'dow']
-        self.rep_opts_cb = wx.ComboBox(self, choices = cron_repeat_opts, size=(100, 30))
-        # ok and cancel Buttons
-        self.graph_btn = wx.Button(self, label='Graph', size=(175, 30))
-        self.graph_btn.Bind(wx.EVT_BUTTON, self.graph_click)
-        self.add_btn = wx.Button(self, label='OK', size=(175, 30))
-        self.add_btn.Bind(wx.EVT_BUTTON, self.add_click)
-        self.cancel_btn = wx.Button(self, label='Cancel', size=(175, 30))
-        self.cancel_btn.Bind(wx.EVT_BUTTON, self.OnClose)
-        # set values for when reading from double click
-        self.name_tc.SetValue(self.s_name)
-        self.log_tc.SetValue(self.s_log)
-        self.temp_sensor_cb.SetValue(self.s_loc)
-        self.rep_num_tc.SetValue(s_rep)
-        self.rep_opts_cb.SetValue(s_rep_txt)
-
-        #
-        temp_sensor_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        temp_sensor_sizer.Add(self.temp_sensor_cb, 0, wx.ALL|wx.EXPAND, 3)
-        temp_sensor_sizer.Add(self.read_temp_btn, 0, wx.ALL, 3)
-        temp_sensor_sizer.Add(self.temp_value, 0, wx.ALL|wx.EXPAND, 3)
-        timing_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        timing_sizer.Add(self.rep_num_tc, 0, wx.ALL, 3)
-        timing_sizer.Add(self.rep_opts_cb, 0, wx.ALL, 3)
-        log_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        log_sizer.Add(self.log_tc, 2, wx.ALL, 3)
-        log_sizer.Add(self.graph_btn, 0, wx.ALL, 3)
-        options_sizer = wx.GridSizer(4, 2, 1, 4)
-        options_sizer.AddMany([ (name_l, 0, wx.EXPAND),
-            (self.name_tc, 0, wx.EXPAND),
-            (log_l, 0, wx.EXPAND),
-            (log_sizer, 0, wx.EXPAND),
-            (sensor_l, 0, wx.EXPAND),
-            (temp_sensor_sizer, 0, wx.EXPAND),
-            (timeing_l, 0, wx.EXPAND),
-            (timing_sizer, 0, wx.EXPAND) ])
-        buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        buttons_sizer.Add(self.add_btn, 0,  wx.ALL, 3)
-        buttons_sizer.AddStretchSpacer(1)
-        buttons_sizer.Add(self.cancel_btn, 0,  wx.ALL, 3)
-        main_sizer =  wx.BoxSizer(wx.VERTICAL)
-        main_sizer.Add(box_label, 0, wx.ALL|wx.EXPAND, 5)
-        main_sizer.Add(options_sizer, 0, wx.ALL|wx.EXPAND, 3)
-        main_sizer.AddStretchSpacer(1)
-        main_sizer.Add(buttons_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
-
-        main_sizer.AddStretchSpacer(1)
-
-        self.SetSizer(main_sizer)
-
-    def graph_click(self, e):
-        log = self.log_tc.GetValue()
-        print("wants to graph ds18b20 log - " + log)
-        MainApp.graphing_ctrl_pannel.graph_cb.SetValue('Pigrow')
-        MainApp.graphing_ctrl_pannel.select_script_cb.SetValue('dstemp_graph.py')
-        #MainApp.graphing_ctrl_pannel.get_opts_tb.SetValue(True)
-        MainApp.graphing_ctrl_pannel.extra_args.SetValue("log="+log)
-        MainApp.view_pnl.view_cb.SetValue("Graphs")
-        MainApp.graphing_ctrl_pannel.make_graph_click("e")
-
-
-    def read_temp_click(self, e):
-        sensor = self.temp_sensor_cb.GetValue()
-        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("cat /sys/bus/w1/devices/" + sensor + "/w1_slave")
-        for line in out.splitlines():
-            if "t=" in line:
-                temp = str(int(line.split("t=")[1]) / 1000) + " C"
-                print("Temp = " + temp)
-                self.temp_value.SetLabel(temp)
-
-    def add_click(self, e):
-        o_name = self.name_tc.GetValue()
-        o_type = "DS18B20"
-        o_log = self.log_tc.GetValue()
-        o_loc = self.temp_sensor_cb.GetValue()
-        o_extra = ""
-        new_cron_num = self.rep_num_tc.GetValue()
-        new_cron_txt = self.rep_opts_cb.GetValue()
-        new_timing_string = str(new_cron_num) + " " + new_cron_txt
-
-        # print("adding; ")
-        # print(o_name)
-        # print(o_type)
-        # print(o_log)
-        # print(o_loc)
-        # print("______")
-        # check to see if changes have been made
-        changed = "probably something"
-        if self.s_name == o_name:
-            #print("name not changed")
-            if self.s_log == o_log:
-                #print("log path not changed")
-                if self.s_loc == o_loc:
-                    #print("wiring location not changed")
-                    if self.s_extra == o_extra:
-                        #print("extra field not changed")
-                        changed = "nothing"
-                        #nothing has changed in the config file so no need to update.
-        # check to see if changes have been made to the cron timing
-        if self.timing_string == new_timing_string and changed == "nothing":
-            print(" -- Timing string didn't change or any cron settings -- ")
-        else:
-            self.edit_cron_job(o_log, o_loc, new_cron_txt, new_cron_num)
-
-        # config file changes
-        if changed == "nothing":
-            print("------- config settings not changed -------")
-        else:
-            log_freq = str(new_cron_num) + " " + new_cron_txt
-            MainApp.sensors_info_pannel.sensor_list.add_to_sensor_list(o_name,o_type,o_log,o_loc,o_extra,log_freq)
-            MainApp.config_ctrl_pannel.config_dict["sensor_" + o_name + "_type"] = o_type
-            MainApp.config_ctrl_pannel.config_dict["sensor_" + o_name + "_log"] = o_log
-            MainApp.config_ctrl_pannel.config_dict["sensor_" + o_name + "_loc"] = o_loc
-            MainApp.config_ctrl_pannel.config_dict["sensor_" + o_name + "_extra"] = o_extra
-            MainApp.config_ctrl_pannel.update_setting_file_on_pi_click('e')
-        self.Destroy()
-
-    def edit_cron_job(self, o_log, o_loc, job_repeat, job_repnum):
-        print("changing cron...")
-        # check to find cron job handling this sensor
-        line_number_repeting_cron = -1
-        for index in range(0, cron_list_pnl.repeat_cron.GetItemCount()):
-            cmd_path = cron_list_pnl.repeat_cron.GetItem(index, 3).GetText()
-            if "log_dstemp.py" in cmd_path:
-                print(" found - " + cmd_path)
-                cmd_args = cron_list_pnl.repeat_cron.GetItem(index, 4).GetText()
-                if o_loc in cmd_args:
-                    print("Located " + o_loc)
-                    line_number_repeting_cron = index
-        if not line_number_repeting_cron == -1:
-            cron_enabled = cron_list_pnl.repeat_cron.GetItem(line_number_repeting_cron, 1).GetText()
-            cron_task    = cron_list_pnl.repeat_cron.GetItem(line_number_repeting_cron, 3).GetText()
-            sensor_location = self.temp_sensor_cb.GetValue()
-            cron_args_original = cron_list_pnl.repeat_cron.GetItem(line_number_repeting_cron, 4).GetText()
-            if "sensor=" in cron_args_original:
-                sensor_args = cron_args_original.split("sensor=")[1].split(" ")[0]
-                if "," in sensor_args:
-                    sensor_list = sensor_args.split(",")
-                else:
-                    sensor_list = [sensor_args]
-            else:
-                sensor_list = [self.temp_sensor_cb.GetValue()]
-            sensor_list_text = ""
-            for sensor in sensor_list:
-                sensor_list_text += sensor + ","
-            sensor_list_text = sensor_list_text[0:-1]
-            cron_args    = "log=" + self.log_tc.GetValue() + " sensor=" + sensor_list_text
-            cron_comment = cron_list_pnl.repeat_cron.GetItem(line_number_repeting_cron, 5).GetText()
-            timing_string = cron_info_pnl.make_repeating_cron_timestring(self, job_repeat, job_repnum)
-            #print("Cron job; " + "modified" + " " + cron_enabled + " " + timing_string + " " + cron_task + " " + cron_args + " " + cron_comment)
-            cron_list_pnl.repeat_cron.DeleteItem(line_number_repeting_cron)
-            cron_info_pnl.add_to_repeat_list(MainApp.cron_info_pannel, 'modified', cron_enabled, timing_string, cron_task, cron_args, cron_comment)
-            MainApp.cron_info_pannel.update_cron_click("e")
-        else:
-            print("Job not currently in cron, adding it...")
-            cron_enabled = "True"
-            cron_task = "/home/" + pi_link_pnl.target_user + "/Pigrow/scripts/sensors/log_dstemp.py"
-            cron_args = "log=" + self.log_tc.GetValue() + " sensor=" + self.temp_sensor_cb.GetValue()
-            timing_string = cron_info_pnl.make_repeating_cron_timestring(self, job_repeat, job_repnum)
-            cron_comment = ""
-            cron_info_pnl.add_to_repeat_list(MainApp.cron_info_pannel, 'new', cron_enabled, timing_string, cron_task, cron_args, cron_comment)
-            #print("Cron job; " + "new" + " " + cron_enabled + " " + timing_string + " " + cron_task + " " + cron_args + " " + cron_comment)
-            MainApp.cron_info_pannel.update_cron_click("e")
 
     def OnClose(self, e):
         MainApp.sensors_info_pannel.sensor_list.s_name = ""
