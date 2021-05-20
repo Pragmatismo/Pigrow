@@ -12213,6 +12213,7 @@ class sensors_info_pnl(wx.Panel):
             # check file is valid
             cmd = "cat " + pi_trigger_events_file
             out, error = MainApp.localfiles_ctrl_pannel.run_on_pi(cmd)
+            out = "".join(l + "\n" for l in out.splitlines() if l)
             if out.strip() == trigger_file_text.strip():
                 print(" - Copied trigger file matches expected text, ")
             else:
