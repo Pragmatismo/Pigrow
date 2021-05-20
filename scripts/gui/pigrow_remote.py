@@ -12213,7 +12213,7 @@ class sensors_info_pnl(wx.Panel):
             # check file is valid
             cmd = "cat " + pi_trigger_events_file
             out, error = MainApp.localfiles_ctrl_pannel.run_on_pi(cmd)
-            if out == trigger_file_text:
+            if out.strip() == trigger_file_text.strip():
                 print(" - Copied trigger file matches expected text, ")
             else:
                 print(" - ERROR - copied trigger file does not match expected text!")
@@ -12248,7 +12248,7 @@ class sensors_ctrl_pnl(wx.Panel):
         # Refresh page button
         self.make_table_btn = wx.Button(self, label='make table')
         self.make_table_btn.Bind(wx.EVT_BUTTON, self.make_tables_click)
-        # Soil Moisture Controlls
+        # Soil Moisture Controls
         #    --  Chirp options
         self.chirp_l = wx.StaticText(self,  label='Chirp Soil Moisture Sensor;')
         self.config_chirp_btn = wx.Button(self, label='add new chirp')
