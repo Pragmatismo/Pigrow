@@ -7,7 +7,6 @@ import pigrow_defs
 script = 'adv_selflog.py'
 loc_locs = homedir + '/Pigrow/config/dirlocs.txt'
 loc_dic = pigrow_defs.load_locs(loc_locs)
-path = loc_dic["path"]
 
 ##
 ## Raspberry Advanced Pi Self-Logger
@@ -40,7 +39,6 @@ def speed_test():
     return speed_data
 
 if __name__ == '__main__':
-    scripts_to_check = ['reddit_settings_ear.py','checkDHT.py']# 'chromium-browse'] #this doesn't work :( works for 'atom' and 'bash' needs fix
     print(" ######################################")
     print("######### Net Speed  LOGGER ############")
     line = "timenow=" + str(datetime.datetime.now()) + ">"
@@ -60,4 +58,4 @@ if __name__ == '__main__':
             print("----")
     except:
         print["-LOG ERROR-"]
-        pigrow_defs.write_log('selflog_netspeed.py', 'writing self log failed', loc_dic['err_log'])
+        pigrow_defs.write_log(script, 'writing self log failed', loc_dic['err_log'])
