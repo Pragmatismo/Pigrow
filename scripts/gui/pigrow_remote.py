@@ -270,6 +270,7 @@ class shared_data:
         shared_data.gui_set_dict['default_address'] = "192.168.1."
         shared_data.gui_set_dict['username'] = "pi"
         shared_data.gui_set_dict['password'] = "raspberry"
+        shared_data.gui_set_dict['font_scale'] = "1"
         # load from file
         self.load_gui_settings()
         #
@@ -317,11 +318,13 @@ class shared_data:
         #
         ## Fonts
         #
-        shared_data.title_font = wx.Font(28, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
-        shared_data.sub_title_font = wx.Font(15, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
-        shared_data.item_title_font = wx.Font(16, wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
-        shared_data.info_font = wx.Font(14, wx.MODERN, wx.ITALIC, wx.NORMAL)
-        shared_data.large_info_font = wx.Font(16, wx.MODERN, wx.ITALIC, wx.NORMAL)
+        font_scale = float(shared_data.gui_set_dict['font_scale'])
+        shared_data.title_font      = wx.Font(int(28 * font_scale), wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
+        shared_data.sub_title_font  = wx.Font(int(15 * font_scale), wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
+        shared_data.item_title_font = wx.Font(int(16 * font_scale), wx.DECORATIVE, wx.ITALIC, wx.NORMAL)
+        shared_data.info_font       = wx.Font(int(14 * font_scale), wx.MODERN, wx.ITALIC, wx.NORMAL)
+        shared_data.large_info_font = wx.Font(int(16 * font_scale), wx.MODERN, wx.ITALIC, wx.NORMAL)
+        shared_data.button_font       = wx.Font(int(14 * font_scale), wx.MODERN, wx.ITALIC, wx.NORMAL)
 
     def load_gui_settings(self):
         gui_settings_path = "gui_settings.txt"
@@ -361,12 +364,15 @@ class shared_data:
             # SSH Settings
             self.sshport_l = wx.StaticText(self, label='SSH Port')
             self.ssh_port_tc = wx.TextCtrl(self, -1, str(shared_data.gui_set_dict['ssh_port']))
+            # ui settings
+            self.font_scale_l = wx.StaticText(self, label='Font Scale')
+            self.font_scale = wx.TextCtrl(self, -1, str(shared_data.gui_set_dict['font_scale']))
             # Buttons
             btn = wx.Button(self, wx.ID_OK)
             cancel_btn = wx.Button(self, wx.ID_CANCEL)
             btn.Bind(wx.EVT_BUTTON, self.ok_click)
             # Sizers
-            conection_sizer = wx.FlexGridSizer(4, 2, 0, 5)
+            conection_sizer = wx.FlexGridSizer(2, 0, 4)
             conection_sizer.AddMany( [(self.default_address_l, 0, wx.ALIGN_RIGHT),
                 (self.default_address_tc, 0),
                 (self.default_username_l, 0),
@@ -374,7 +380,9 @@ class shared_data:
                 (self.default_password_l, 0),
                 (self.default_password_tc, 0, wx.ALIGN_RIGHT),
                 (self.sshport_l, 0, wx.ALIGN_RIGHT),
-                (self.ssh_port_tc, 0)])
+                (self.ssh_port_tc, 0),
+                (self.font_scale_l, 0),
+                (self.font_scale, 0)])
             btnsizer = wx.BoxSizer(wx.HORIZONTAL)
             btnsizer.Add(btn, 0, wx.ALL, 5)
             btnsizer.Add((5,-1), 0, wx.ALL, 5)
@@ -388,6 +396,7 @@ class shared_data:
             shared_data.gui_set_dict['default_address'] = self.default_address_tc.GetValue()
             shared_data.gui_set_dict['username'] = self.default_username_tc.GetValue()
             shared_data.gui_set_dict['password'] = self.default_password_tc.GetValue()
+            shared_data.gui_set_dict['font_scale'] = self.font_scale.GetValue()
             # save settings
             gui_settings_path = "gui_settings.txt"
             settings_file_text = ""
@@ -420,46 +429,62 @@ class system_ctrl_pnl(wx.Panel):
         # Start drawing the UI elements
         # tab info
         self.read_system_btn = wx.Button(self, label='Read System Info')
+        self.read_system_btn.SetFont(shared_data.button_font)
         self.read_system_btn.Bind(wx.EVT_BUTTON, self.read_system_click)
         # pigrow software install and upgrade buttons
         self.install_pigrow_btn = wx.Button(self, label='pigrow install')
+        self.install_pigrow_btn.SetFont(shared_data.button_font)
         self.install_pigrow_btn.Bind(wx.EVT_BUTTON, self.install_click)
         self.update_pigrow_btn = wx.Button(self, label='update pigrow')
+        self.update_pigrow_btn.SetFont(shared_data.button_font)
         self.update_pigrow_btn.Bind(wx.EVT_BUTTON, self.update_pigrow_click)
         # pi power control
         self.reboot_pigrow_btn = wx.Button(self, label='reboot pi')
+        self.reboot_pigrow_btn.SetFont(shared_data.button_font)
         self.reboot_pigrow_btn.Bind(wx.EVT_BUTTON, self.reboot_pigrow_click)
         self.shutdown_pi_btn = wx.Button(self, label='shutdown pi')
+        self.shutdown_pi_btn.SetFont(shared_data.button_font)
         self.shutdown_pi_btn.Bind(wx.EVT_BUTTON, self.shutdown_pi_click)
         # pi gpio overlay controlls
         self.find_i2c_btn = wx.Button(self, label='i2c check')
+        self.find_i2c_btn.SetFont(shared_data.button_font)
         self.find_i2c_btn.Bind(wx.EVT_BUTTON, self.find_i2c_devices)
         self.i2c_baudrate_btn = wx.Button(self, label='baudrate')
+        self.i2c_baudrate_btn.SetFont(shared_data.button_font)
         self.i2c_baudrate_btn.Bind(wx.EVT_BUTTON, self.set_baudrate)
         self.i2c_baudrate_btn.Disable()
         self.find_1wire_btn = wx.Button(self, label='1 wire check')
+        self.find_1wire_btn.SetFont(shared_data.button_font)
         self.find_1wire_btn.Bind(wx.EVT_BUTTON, self.find_1wire_devices)
         self.add_1wire_btn = wx.Button(self, label='Add 1w')
+        self.add_1wire_btn.SetFont(shared_data.button_font)
         self.add_1wire_btn.Bind(wx.EVT_BUTTON, self.add_1wire)
         self.edit_1wire_btn = wx.Button(self, label='change')
+        self.edit_1wire_btn.SetFont(shared_data.button_font)
         self.edit_1wire_btn.Bind(wx.EVT_BUTTON, self.edit_1wire)
         self.remove_1wire_btn = wx.Button(self, label='remove')
+        self.remove_1wire_btn.SetFont(shared_data.button_font)
         self.remove_1wire_btn.Bind(wx.EVT_BUTTON, self.remove_1wire)
         self.add_1wire_btn.Disable()
         self.edit_1wire_btn.Disable()
         self.remove_1wire_btn.Disable()
         # run command on pi button
         self.run_cmd_on_pi_btn = wx.Button(self, label='Run Command On Pi')
+        self.run_cmd_on_pi_btn.SetFont(shared_data.button_font)
         self.run_cmd_on_pi_btn.Bind(wx.EVT_BUTTON, self.run_cmd_on_pi_click)
         self.edit_boot_config_btn = wx.Button(self, label='Edit /boot/config.txt')
+        self.edit_boot_config_btn.SetFont(shared_data.button_font)
         self.edit_boot_config_btn.Bind(wx.EVT_BUTTON, self.edit_boot_config_click)
         # Enable / Disable Camera
         self.enable_cam_btn = wx.Button(self, label='Enable')
+        self.enable_cam_btn.SetFont(shared_data.button_font)
         self.enable_cam_btn.Bind(wx.EVT_BUTTON, self.enable_cam_click)
         self.disable_cam_btn = wx.Button(self, label='Disable')
+        self.disable_cam_btn.SetFont(shared_data.button_font)
         self.disable_cam_btn.Bind(wx.EVT_BUTTON, self.disable_cam_click)
         # gui settings
         self.gui_settings_btn = wx.Button(self, label='GUI Settings')
+        self.gui_settings_btn.SetFont(shared_data.button_font)
         self.gui_settings_btn.Bind(wx.EVT_BUTTON, self.gui_settings_click)
 
         # Sizers
@@ -1308,14 +1333,20 @@ class one_wire_change_pin_dbox(wx.Dialog):
             self.tochange_gpiopin_cb.SetValue(pin_list[0])
         #
         new_gpiopin_l = wx.StaticText(self, label='Change to GPIO pin -')
+        new_gpiopin_l.SetFont(shared_data.button_font)
         self.new_gpiopin_tc = wx.TextCtrl(self, size=(110, 25)) # new number
+        self.new_gpiopin_tc.SetFont(shared_data.button_font)
         self.new_gpiopin_tc.Bind(wx.EVT_TEXT, self.make_config_line)
         line_l = wx.StaticText(self, label="/boot/config/txt line")
+        line_l.SetFont(shared_data.button_font)
         self.line_t = wx.StaticText(self, label="")
+        self.line_t.SetFont(shared_data.button_font)
         # ok and cancel Buttons
         self.ok_btn = wx.Button(self, label='OK', size=(175, 30))
+        self.ok_btn.SetFont(shared_data.button_font)
         self.ok_btn.Bind(wx.EVT_BUTTON, self.ok_click)
         self.cancel_btn = wx.Button(self, label='Cancel', size=(175, 30))
+        self.cancel_btn.SetFont(shared_data.button_font)
         self.cancel_btn.Bind(wx.EVT_BUTTON, self.OnClose)
         # sizers
         old_gpio_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -14797,20 +14828,29 @@ class pi_link_pnl(wx.Panel):
         pi_link_pnl.config_location_on_pi = '/home/pi/Pigrow/config/pigrow_config.txt'
         ## the three boxes for pi's connection details, IP, Username and Password
         self.l_ip = wx.StaticText(self,  label='address')
+        self.l_ip.SetFont(shared_data.button_font)
         self.tb_ip = wx.TextCtrl(self)
         self.tb_ip.SetValue(shared_data.gui_set_dict['default_address'])
+        self.tb_ip.SetFont(shared_data.button_font)
         self.l_user = wx.StaticText(self,  label='Username')
+        self.l_user.SetFont(shared_data.button_font)
         self.tb_user = wx.TextCtrl(self)
         self.tb_user.SetValue(shared_data.gui_set_dict['username'])
+        self.tb_user.SetFont(shared_data.button_font)
         self.l_pass = wx.StaticText(self,  label='Password')
+        self.l_pass.SetFont(shared_data.button_font)
         self.tb_pass = wx.TextCtrl(self)
         self.tb_pass.SetValue(shared_data.gui_set_dict['password'])
+        self.tb_pass.SetFont(shared_data.button_font)
         ## link with pi button
         self.link_with_pi_btn = wx.Button(self, label='Link to Pi')
+        self.link_with_pi_btn.SetFont(shared_data.button_font)
         self.link_with_pi_btn.Bind(wx.EVT_BUTTON, self.link_with_pi_btn_click)
         self.link_status_text = wx.StaticText(self,  label='-- no link --')
+        self.link_status_text.SetFont(shared_data.button_font)
         ## seek next pi button
         self.seek_for_pigrows_btn = wx.Button(self, label='Seek next')
+        self.seek_for_pigrows_btn.SetFont(shared_data.button_font)
         self.seek_for_pigrows_btn.Bind(wx.EVT_BUTTON, self.seek_for_pigrows_click)
         ##  sizers
         login_sizer = wx.GridSizer(3, 2, 0, 0)
@@ -15060,6 +15100,7 @@ class view_pnl(wx.Panel):
         #Showing only completed tabs
         view_opts = ['System Config', 'Pigrow Setup', 'Camera Config', 'Cron Timing', 'Local Files', 'Timelapse', 'Graphs', 'Sensors', 'communication', "User Logs"]
         self.view_cb = wx.ComboBox(self, choices = view_opts)
+        self.view_cb.SetFont(shared_data.button_font)
         self.view_cb.Bind(wx.EVT_TEXT, self.view_combo_go)
         # sizer
         main_sizer =  wx.BoxSizer(wx.VERTICAL)
