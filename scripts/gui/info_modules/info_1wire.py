@@ -27,6 +27,9 @@ def show_info():
         # add note if not running
         if info_text == "":
             info_text = "1wire overlay not running.\n"
+        else:
+            if not "w1_therm" in w1_modules:
+                info_text += "No w1 temp sensors detected\n"        
         return info_text
 
     def find_dtoverlay_w1_pins():
