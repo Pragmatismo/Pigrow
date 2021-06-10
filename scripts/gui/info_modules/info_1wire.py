@@ -70,7 +70,7 @@ def show_info():
             msg = "1wire overlay enabled on pin"
             for pin in gpio_pin_list:
                 msg += " " + str(pin) + ","
-            msg = msg[:-2]
+            msg = msg[:-1]
             if len(gpio_pin_list) > 1: msg = msg.replace("pin", "pins")
         else:
             msg = "1wire not enabled in /boot/config.txt"
