@@ -29,7 +29,7 @@ def show_info():
             info_text = "1wire overlay not running.\n"
         else:
             if not "w1_therm" in w1_modules:
-                info_text += "No w1 temp sensors detected\n"        
+                info_text += "No w1 temp sensors detected\n"
         return info_text
 
     def find_dtoverlay_w1_pins():
@@ -62,7 +62,6 @@ def show_info():
                         gpio_pin = "error"
                     gpio_pin_list[-1] = gpio_pin
         return gpio_pin_list
-
 
     def check_config():
         '''
