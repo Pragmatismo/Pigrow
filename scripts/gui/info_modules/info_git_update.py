@@ -63,6 +63,7 @@ def show_info():
         for x in tracking.commit.iter_items(repo, f'{head.path}..{tracking.path}'):
             remote_text += " --  " + x.summary + "\n"
             for item in x.stats.files.keys():
+                remote_text +=  "  - " + item + "\n"
             remote_text += "      " + str(x.authored_datetime) + "\n\n"
         return remote_text
 
