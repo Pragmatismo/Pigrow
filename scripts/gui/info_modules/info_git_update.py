@@ -15,13 +15,10 @@ os.chdir(os.path.dirname(r_path))
 not_git = True
 while not_git:
     cwd = os.getcwd()
-    print (cwd)
     if not os.path.isdir( os.path.join( cwd, ".git"  )) :
-        print( os.path.join( cwd, ".git" ))
         os.chdir('..')
     else:
         not_git = False
-
 repo = Repo()
 
 def show_info():
@@ -31,9 +28,9 @@ def show_info():
         remote_repo.fetch()
         has_update = remote_repo.refs[repo_branch].object.hexsha != current_hash
         if has_update:
-            status_text = "Status: Update Available\n\n"
+            status_text = "Status; Update Available\n\n"
         else:
-            status_text = "Status: local version upto date\n\n"
+            status_text = "Status; local version upto date\n\n"
         return status_text, remote_text(remote_repo)
 
     def local_text():
