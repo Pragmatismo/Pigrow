@@ -10,7 +10,19 @@ except:
     sys.exit()
 
 repo_branch = 'master'
-repo = Repo(os.path.dirname(os.path.abspath(__file__)))
+r_path = os.path.dirname(os.path.abspath(__file__))
+os.chdir(os.path.dirname(r_path))
+not_git = True
+while not_git:
+    cwd = os.getcwd()
+    print (cwd)
+    if not os.path.isdir( os.path.join( cwd, ".git"  )) :
+        print( os.path.join( cwd, ".git" ))
+        os.chdir('..')
+    else:
+        not_git = False
+
+repo = Repo()
 
 def show_info():
     def update_status_text():
