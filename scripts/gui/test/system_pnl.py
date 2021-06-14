@@ -446,7 +446,7 @@ class info_pnl(wx.Panel):
             big_pnl_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(5, -1), style=wx.LI_VERTICAL), 0, wx.ALL|wx.EXPAND, 5)
 
         main_sizer = wx.BoxSizer(wx.VERTICAL)
-        main_sizer.Add(title_sizer, 0, wx.ALIGN_CENTER_HORIZONTAL|wx.EXPAND, 0)
+        main_sizer.Add(title_sizer, 0, wx.ALIGN_CENTER_HORIZONTAL, 0)
         main_sizer.Add(self.refresh_btn, 0, wx.ALL, 5)
         main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.Add(big_pnl_sizer, 0, wx.ALIGN_CENTER_HORIZONTAL|wx.ALL, 3)
