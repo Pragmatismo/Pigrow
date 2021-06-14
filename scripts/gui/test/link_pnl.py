@@ -103,7 +103,7 @@ class link_pnl(wx.Panel):
             while True:
                 print(("Trying to connect to " + host))
                 try:
-                    port = int(shared_data.gui_set_dict['ssh_port'])
+                    port = int(self.shared_data.gui_set_dict['ssh_port'])
                     self.ssh.connect(host, port=port, username=self.target_user, password=self.target_pass, timeout=3)
                     #MainApp.status.write_bar("Connected to " + host)
                     print(("#sb# Connected to " + host))
