@@ -3,9 +3,9 @@ import sys
 import wx
 
 import shared_data
-import link_pnl
+import link_pnl as link_pnl
 
-list_of_panels = ['start_pnl',  'system_pnl', 'blank_pnl'] #, 'test_pnl', 'blue_pnl']
+list_of_panels = ['start_pnl',  'system_pnl', 'cron_pnl', 'blank_pnl'] #, 'test_pnl', 'blue_pnl']
 for x in list_of_panels:
     import_cmd = "import " + x
     exec(import_cmd)
@@ -20,7 +20,6 @@ class view_pnl(wx.Panel):
         self.SetBackgroundColour((230,200,170)) #TESTING ONLY REMOVE WHEN SIZING IS DONE AND ALL THAT BUSINESS
         self.current_display = 'start_pnl'
         #Showing only completed tabs
-    #    view_opts = ['System Config', 'Pigrow Setup', 'Camera Config', 'Cron Timing', 'Local Files', 'Timelapse', 'Graphs', 'Sensors', 'communication', "User Logs"]
         self.view_cb = wx.ComboBox(self, choices = list_of_panels)
         self.view_cb.SetFont(MainApp.shared_data.button_font)
         self.view_cb.Bind(wx.EVT_TEXT, self.view_combo_go)
@@ -44,7 +43,6 @@ class MainFrame(wx.Frame):
         wx.Frame.__init__ ( self, parent, id = wx.ID_ANY, title = "Pigrow Remote Interface", pos = wx.DefaultPosition, style = wx.DEFAULT_FRAME_STYLE|wx.TAB_TRAVERSAL )
         #self.Bind(wx.EVT_SIZE, self.resize_window)
 
-
         # load link panel
         self.link_pnl = link_pnl.link_pnl(self, MainApp.shared_data)
         self.view_pnl = view_pnl(self)
@@ -59,9 +57,9 @@ class MainFrame(wx.Frame):
                 create_cmd = "MainFrame.dict_C_pnl['"+x+"']= " + x + ".ctrl_pnl" + pnl_args
                 exec(create_cmd)
             except:
-                raise
-                #create_cmd = "MainFrame.dict_C_pnl['"+x+"']= blank_pnl.ctrl_pnl " + pnl_args
-                #exec(create_cmd)
+                #raise
+                create_cmd = "MainFrame.dict_C_pnl['"+x+"']= blank_pnl.ctrl_pnl " + pnl_args
+                exec(create_cmd)
             # info panel dict
             try:
                 # if pannel has no info panel use blank (can be used for showing images, writing to directly, etc)

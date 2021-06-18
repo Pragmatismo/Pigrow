@@ -1,6 +1,7 @@
 import wx
 import os
 import sys
+import wx.lib.scrolledpanel as scrolled
 
 class shared_data:
     def __init__(self):
@@ -9,6 +10,7 @@ class shared_data:
         self.gui_set_dict = {}
         self.gui_set_dict['ssh_port'] = "22"
         self.gui_set_dict['default_address'] = "192.168.1."
+        self.gui_set_dict['address_list'] = ["192.168.1.5", "192.168.1.10"]
         self.gui_set_dict['username'] = "pi"
         self.gui_set_dict['password'] = "raspberry"
         self.gui_set_dict['font_scale'] = "1"
@@ -80,6 +82,21 @@ class shared_data:
                     self.gui_set_dict[setting]=value
         else:
             print(" No gui settings file, using defaults")
+
+    def show_help(self, img_path):
+        # load image
+        guide_path = os.path.join(self.ui_img_path, img_path)
+        if os.path.isfile(guide_path):
+            print( " Showing help file - ", guide_path )
+            guide = wx.Image(guide_path, wx.BITMAP_TYPE_ANY)
+            guide = guide.ConvertToBitmap()
+            dbox = self.show_image_dialog(None, guide, "Cron Help")
+            dbox.ShowModal()
+            dbox.Destroy()
+        else:
+            print(" help file not found, check www.reddit.com/r/Pigrow/wiki for info.")
+            print("     " + guide_path + " not found")
+
 
 
 
@@ -171,3 +188,28 @@ class shared_data:
         def ok_click(self, e):
             self.text = self.text.GetValue()
             self.Destroy()
+
+    class show_image_dialog(wx.Dialog):
+        def __init__(self, parent,  image_to_show, title):
+            wx.Dialog.__init__(self, parent, title=(title))
+            # limit size to screen
+            width, height = wx.GetDisplaySize()
+            im_width, im_height = image_to_show.GetSize()
+            print(" W: ", width, im_width )
+            print(" H: ", height, im_height)
+            if im_height > height:
+                im_height = height
+            if im_width > width:
+                im_width = width
+            # create scroll panel
+            display_panel = scrolled.ScrolledPanel(self, size=(im_width, im_height), style = wx.HSCROLL|wx.VSCROLL)
+            display_panel.SetupScrolling()
+            pic = wx.StaticBitmap(display_panel, -1, image_to_show)
+            # panel sizer
+            panel_sizer = wx.BoxSizer(wx.VERTICAL)
+            panel_sizer.Add(pic) #, wx.ID_ANY, wx.EXPAND)
+            display_panel.SetSizer(panel_sizer)
+            # main sizer
+            sizer = wx.BoxSizer(wx.VERTICAL)
+            sizer.Add(display_panel)
+            self.SetSizerAndFit(sizer)

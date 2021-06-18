@@ -1,4 +1,6 @@
 import wx
+import os
+from getmac import get_mac_address
 #import os
 #import sys
 
@@ -24,6 +26,7 @@ class link_pnl(wx.Panel):
     # or allows seeking
     #
     def __init__( self, parent, shared_data ):
+        self.parent = parent
         # intiation
         self.ssh = paramiko.SSHClient()
         self.ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -35,9 +38,9 @@ class link_pnl(wx.Panel):
         # IP address
         self.l_ip = wx.StaticText(self,  label='address')
         self.l_ip.SetFont(shared_data.button_font)
-        self.tb_ip = wx.TextCtrl(self)
-        self.tb_ip.SetValue(shared_data.gui_set_dict['default_address'])
-        self.tb_ip.SetFont(shared_data.button_font)
+        list_of_ips = ["000.000.00.000"] # self.discover_ip_list()
+        self.cb_ip = wx.ComboBox(self, choices = list_of_ips)
+        self.cb_ip.SetFont(shared_data.button_font)
         # Username
         self.l_user = wx.StaticText(self,  label='Username')
         self.l_user.SetFont(shared_data.button_font)
@@ -57,17 +60,18 @@ class link_pnl(wx.Panel):
         self.link_status_text = wx.StaticText(self,  label=' -- no link -- ')
         self.link_status_text.SetFont(shared_data.button_font)
         # seek next pi button
-        self.seek_for_pigrows_btn = wx.Button(self, label='Seek next')
+        self.seek_for_pigrows_btn = wx.Button(self, label='Seek IPs')
         self.seek_for_pigrows_btn.SetFont(shared_data.button_font)
         self.seek_for_pigrows_btn.Bind(wx.EVT_BUTTON, self.seek_for_pigrows_click)
         ##  sizers
-        login_sizer = wx.GridSizer(3, 2, 0, 0)
+        login_sizer = wx.FlexGridSizer(3, 2, 3, 5)
         login_sizer.AddMany( [(self.l_ip, 0, wx.EXPAND),
-            (self.tb_ip, 2, wx.EXPAND),
+            (self.cb_ip, 2, wx.EXPAND),
             (self.l_user, 0, wx.EXPAND),
             (self.tb_user, 2, wx.EXPAND),
             (self.l_pass, 0, wx.EXPAND),
             (self.tb_pass, 2, wx.EXPAND)])
+
         link_buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
         link_buttons_sizer.Add(self.link_with_pi_btn, 1, wx.EXPAND)
         link_buttons_sizer.Add(self.seek_for_pigrows_btn, 0, wx.EXPAND)
@@ -79,53 +83,50 @@ class link_pnl(wx.Panel):
         main_sizer.Add(link_text_sizer, 0, wx.EXPAND)
         self.SetSizer(main_sizer)
 
-    #def __del__(self):
-        print("psssst it did that thing, the _del_ one you like so much...")
-        pass
+        # This code to get around the fontsize being ignored, possibly unneeded on win
+        size = self.cb_ip.GetSize()
+        self.cb_ip.Clear()
+        size[0] = size[0]  * 1.2
+        self.cb_ip.SetMinSize(size)
+        self.cb_ip.SetValue(shared_data.gui_set_dict['default_address'])
+
+    def discover_ip_list(self):
+        default_ip = self.parent.shared_data.gui_set_dict['default_address']
+        ip_ranges = ["192.168.0.", "192.168.1."]
+        # read mac addresses of all devices on ip_range
+        raspi_ips = []
+        other_ips = []
+        for ip_range in ip_ranges:
+            for x in range(0,255):
+                ip_mac = get_mac_address(ip=ip_range + str(x))
+                if not ip_mac == None:
+                    if not "00:00:00" in ip_mac:
+                        if "b8:27:eb" in ip_mac:
+                            raspi_ips.append(ip_range + str(x))
+                        else:
+                            other_ips.append(ip_range + str(x))
+        # read ipv6 addresses
+        ip6_mac = get_mac_address(ip6="::1")
+        # combine lsts
+        final_ip_list = raspi_ips
+        if not other_ips == []:
+            final_ip_list += ["-----"] + other_ips
+        if not ip6_mac == None:
+            final_ip_list += ["-----"] + ip6_mac
+        if other_ips == [] and raspi_ips == []:
+            return ip6_mac
+        return final_ip_list
 
     def seek_for_pigrows_click(self, e):
-        print("seeking for pigrows...")
-        number_of_tries_per_host = 1
-        self.target_ip = self.tb_ip.GetValue()
-        self.target_user = self.tb_user.GetValue()
-        self.target_pass = self.tb_pass.GetValue()
-        if self.target_ip.split(".")[3] == '':
-            self.target_ip = self.target_ip + '0'
-        start_from = self.target_ip.split(".")[3]
-        lastdigits = len(str(start_from))
-        hostrange = self.target_ip[:-lastdigits]
-        #Iterate through the ip_to_test and stop when  pigrow is found
-        for ip_to_test in range(int(start_from)+1,255):
-            host = hostrange + str(ip_to_test)
-            self.target_ip = self.tb_ip.SetValue(host)
-            seek_attempt = 1
-            log_on_test = False
-            while True:
-                print(("Trying to connect to " + host))
-                try:
-                    port = int(self.shared_data.gui_set_dict['ssh_port'])
-                    self.ssh.connect(host, port=port, username=self.target_user, password=self.target_pass, timeout=3)
-                    #MainApp.status.write_bar("Connected to " + host)
-                    print(("#sb# Connected to " + host))
-                    log_on_test = True
-                    box_name = self.get_box_name()
-                    #MainApp.status.write_bar("Pigrow Found; " + str(box_name))
-                    print("#sb# Pigrow Found; " + str(box_name))
-                    self.set_link_pi_text(log_on_test, box_name)
-                    self.target_ip = self.tb_ip.GetValue()
-                    return box_name #this just exits the loop
-                except paramiko.AuthenticationException:
-                    #MainApp.status.write_bar("Authentication failed when connecting to " + str(host))
-                    print(("#sb# Authentication failed when connecting to " + str(host)))
-                except Exception as e:
-                    #MainApp.status.write_bar("Could not SSH to " + host + " because:" + str(e))
-                    print(("#sb# Could not SSH to " + host + " because:" + str(e)))
-                    seek_attempt += 1
-                # check if final attempt and if so stop trying
-                if seek_attempt == number_of_tries_per_host + 1:
-                    #MainApp.status.write_bar("Could not connect to " + host + " Giving up")
-                    print(("#sb# Could not connect to " + host + " Giving up"))
-                    break #end while loop and look at next host
+        self.cb_ip.Clear()
+        self.cb_ip.Append(self.discover_ip_list())
+
+
+
+
+    #def __del__(self):
+    #    print("psssst it did that thing, the _del_ one you like so much...")
+    #    pass
 
     def link_with_pi_btn_click(self, e):
         log_on_test = False
@@ -135,7 +136,7 @@ class link_pnl(wx.Panel):
             self.ssh.close()
             # reset ui to connect
             self.link_with_pi_btn.SetLabel('Link to Pi')
-            self.tb_ip.Enable()
+            self.cb_ip.Enable()
             self.tb_user.Enable()
             self.tb_pass.Enable()
             self.link_status_text.SetLabel("-- Disconnected --")
@@ -147,7 +148,7 @@ class link_pnl(wx.Panel):
             #MainApp.window_self.Layout()
         else:
             #clear_temp_folder()
-            self.target_ip = self.tb_ip.GetValue()
+            self.target_ip = self.cb_ip.GetValue()
             self.target_user = self.tb_user.GetValue()
             self.target_pass = self.tb_pass.GetValue()
             try:
@@ -256,7 +257,7 @@ class link_pnl(wx.Panel):
             #MainApp.view_cb.SetValue("Pigrow Setup")
             #self.view_combo_go("e")
             self.link_with_pi_btn.SetLabel('Disconnect')
-            self.tb_ip.Disable()
+            self.cb_ip.Disable()
             self.tb_user.Disable()
             self.tb_pass.Disable()
             self.seek_for_pigrows_btn.Disable()
@@ -276,7 +277,7 @@ class link_pnl(wx.Panel):
             #self.view_combo_go("e")
             #MainApp.system_ctrl_pannel.read_system_click("event")
             self.link_with_pi_btn.SetLabel('Disconnect')
-            self.tb_ip.Disable()
+            self.cb_ip.Disable()
             self.tb_user.Disable()
             self.tb_pass.Disable()
             self.seek_for_pigrows_btn.Disable()
@@ -302,6 +303,21 @@ class link_pnl(wx.Panel):
             #    MainApp.status.write_warning("FAILED: Check your connection")
             return "", error
         return out, error
+
+    def write_textfile_to_pi(self, text, location):
+        '''
+          text     - string containing file to be written
+          location - full path on the pi to write to
+        '''
+        sftp = self.ssh.open_sftp()
+        try:
+            folder = os.path.split(location)[0]
+            sftp.mkdir(folder)
+        except IOError:
+            pass
+        f = sftp.open(location, 'w')
+        f.write(text)
+        f.close()
 
     def update_config_file_on_pi(self, text, config_file):
         # create paths
