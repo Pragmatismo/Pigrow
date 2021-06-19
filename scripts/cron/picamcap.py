@@ -102,7 +102,7 @@ def take_picam_py(picam_dic, caps_path):
             camera.resolution = (int(picam_dic['x_dim']),int(picam_dic['y_dim']))
         if "resolution" in picam_dic:
             x,y = picam_dic['resolution'].split("x")
-            camera.resolution = (int(x),int(y)) 
+            camera.resolution = (int(x),int(y))
         if "b_val" in picam_dic:
             camera.brightness = int(picam_dic['b_val'])
         if "c_val" in picam_dic:
@@ -111,6 +111,16 @@ def take_picam_py(picam_dic, caps_path):
             camera.saturation = int(picam_dic['s_val'])
         if "g_val" in picam_dic:
             camera.iso =  int(picam_dic['g_val'])
+        # for proper named value_splitif "b_val" in picam_dic:
+        if "brightness" in picam_dic:
+            camera.brightness = int(picam_dic['brightness'])
+        if "contrast" in picam_dic:
+            camera.contrast = int(picam_dic['contrast'])
+        if "saturation" in picam_dic:
+            camera.saturation = int(picam_dic['saturation'])
+        if "iso" in picam_dic:
+            camera.iso =  int(picam_dic['iso'])
+        #
         #print ("analog_gain = " + str(camera.analog_gain))
         # optional settings
         #if "iso" in picam_dic:
