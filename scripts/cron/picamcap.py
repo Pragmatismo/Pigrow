@@ -100,6 +100,9 @@ def take_picam_py(picam_dic, caps_path):
         #camera.resolution = (2592,1944)
         if "x_dim" in picam_dic and "y_dim" in picam_dic:
             camera.resolution = (int(picam_dic['x_dim']),int(picam_dic['y_dim']))
+        if "resolution" in picam_dic:
+            x,y = picam_dic['resolution'].split("x")
+            camera.resolution = (int(x),int(y)) 
         if "b_val" in picam_dic:
             camera.brightness = int(picam_dic['b_val'])
         if "c_val" in picam_dic:
