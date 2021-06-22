@@ -131,7 +131,7 @@ def take_picam_py(picam_dic, caps_path):
         if "sharpness" in picam_dic:
             camera.sharpness = int(picam_dic['sharpness'])
         if "zoom" in picam_dic:
-            camera.zoom = int(picam_dic['zoom'])
+            camera.zoom = picam_dic['zoom']
         if "drc_strength" in picam_dic:
             camera.drc_strength = picam_dic['drc_strength']
         if "exposure_compensation" in picam_dic:
@@ -155,7 +155,10 @@ def take_picam_py(picam_dic, caps_path):
         if "meter_mode" in picam_dic:
             camera.meter_mode = picam_dic['meter_mode']
         if "image_denoise" in picam_dic:
-            camera.image_denoise = picam_dic['image_denoise']
+            if picam_dic['image_denoise'] == "True":
+                camera.image_denoise = True
+            else:
+                camera.image_denoise = False
         if "image_effect" in picam_dic:
             camera.image_effect = picam_dic['image_effect']
         if "image_effect_params" in picam_dic:
