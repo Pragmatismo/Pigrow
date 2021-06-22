@@ -103,6 +103,7 @@ def take_picam_py(picam_dic, caps_path):
         if "resolution" in picam_dic:
             x,y = picam_dic['resolution'].split("x")
             camera.resolution = (int(x),int(y))
+        # old basic vals settings
         if "b_val" in picam_dic:
             camera.brightness = int(picam_dic['b_val'])
         if "c_val" in picam_dic:
@@ -140,9 +141,15 @@ def take_picam_py(picam_dic, caps_path):
         if "exposure_speed" in picam_dic:
             camera.exposure_speed = int(picam_dic['exposure_speed'])
         if "hflip" in picam_dic:
-            camera.hflip = bool(picam_dic['hflip'])
+            if picam_dic['hflip'] == "True"
+                camera.hflip = True
+            else:
+                camera.hflip = False
         if "vflip" in picam_dic:
-            camera.vflip = bool(picam_dic['vflip'])
+            if picam_dic['vflip'] == "True"
+                camera.hflip = True
+            else:
+                camera.hflip = False
         if "rotation" in picam_dic:
             camera.rotation = int(picam_dic['rotation'])
         if "meter_mode" in picam_dic:
