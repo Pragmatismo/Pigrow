@@ -111,7 +111,7 @@ def take_picam_py(picam_dic, caps_path):
             camera.saturation = int(picam_dic['s_val'])
         if "g_val" in picam_dic:
             camera.iso =  int(picam_dic['g_val'])
-        # for proper named value_splitif "b_val" in picam_dic:
+        # for proper named values
         if "brightness" in picam_dic:
             camera.brightness = int(picam_dic['brightness'])
         if "contrast" in picam_dic:
@@ -140,9 +140,9 @@ def take_picam_py(picam_dic, caps_path):
         if "exposure_speed" in picam_dic:
             camera.exposure_speed = int(picam_dic['exposure_speed'])
         if "hflip" in picam_dic:
-            camera.hflip = picam_dic['hflip']
+            camera.hflip = bool(picam_dic['hflip'])
         if "vflip" in picam_dic:
-            camera.vflip = picam_dic['vflip']
+            camera.vflip = bool(picam_dic['vflip'])
         if "rotation" in picam_dic:
             camera.rotation = int(picam_dic['rotation'])
         if "meter_mode" in picam_dic:
