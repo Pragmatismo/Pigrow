@@ -131,7 +131,10 @@ def take_picam_py(picam_dic, caps_path):
         if "sharpness" in picam_dic:
             camera.sharpness = int(picam_dic['sharpness'])
         if "zoom" in picam_dic:
-            camera.zoom = picam_dic['zoom']
+            zoom = picam_dic['zoom'].replace("(","").replace(")","")
+            x,y,a,b = zoom.split(",")
+            zoom = (float(x), float(y), float(a), float(b))
+            camera.zoom = zoom
         if "drc_strength" in picam_dic:
             camera.drc_strength = picam_dic['drc_strength']
         if "exposure_compensation" in picam_dic:
