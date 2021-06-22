@@ -147,9 +147,9 @@ def take_picam_py(picam_dic, caps_path):
                 camera.hflip = False
         if "vflip" in picam_dic:
             if picam_dic['vflip'] == "True":
-                camera.hflip = True
+                camera.vflip = True
             else:
-                camera.hflip = False
+                camera.vflip = False
         if "rotation" in picam_dic:
             camera.rotation = int(picam_dic['rotation'])
         if "meter_mode" in picam_dic:
