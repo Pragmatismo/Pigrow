@@ -5,7 +5,7 @@ import wx
 import shared_data
 import link_pnl as link_pnl
 
-list_of_panels = ['start_pnl',  'system_pnl', 'cron_pnl', 'blank_pnl'] #, 'test_pnl', 'blue_pnl']
+list_of_panels = ['start_pnl',  'system_pnl', 'cron_pnl', 'camera_pnl', 'blank_pnl'] #, 'test_pnl', 'blue_pnl']
 for x in list_of_panels:
     import_cmd = "import " + x
     exec(import_cmd)
@@ -57,7 +57,7 @@ class MainFrame(wx.Frame):
                 create_cmd = "MainFrame.dict_C_pnl['"+x+"']= " + x + ".ctrl_pnl" + pnl_args
                 exec(create_cmd)
             except:
-                #raise
+                raise
                 create_cmd = "MainFrame.dict_C_pnl['"+x+"']= blank_pnl.ctrl_pnl " + pnl_args
                 exec(create_cmd)
             # info panel dict

@@ -1,6 +1,7 @@
 import wx
 import os
 import sys
+import platform
 import wx.lib.scrolledpanel as scrolled
 
 class shared_data:
@@ -18,6 +19,10 @@ class shared_data:
         self.load_gui_settings()
         #
         ## settings
+        # setiings related to current connection
+        self.frompi_base_path = self.set_local_path()
+        self.frompi_path = ""
+        self.remote_pigrow_path = ""
         #
         self.always_show_config_changes = False  # if true always show the 'upload to pigrow?' dialog box
         #
@@ -68,6 +73,23 @@ class shared_data:
         self.info_font       = wx.Font(int(14 * font_scale), wx.MODERN, wx.ITALIC, wx.NORMAL)
         self.large_info_font = wx.Font(int(16 * font_scale), wx.MODERN, wx.ITALIC, wx.NORMAL)
         self.button_font       = wx.Font(int(14 * font_scale), wx.MODERN, wx.ITALIC, wx.NORMAL)
+
+    def set_local_path(self):
+        try:
+            OStype =  platform.system()
+            if OStype == "Linux":
+                computer_username = os.getlogin()
+                localpath = os.path.join("/home", computer_username)
+                localpath = os.path.join(localpath, "frompigrow")
+                return localpath
+            else:
+                localpath = os.getcwd()
+                localpath = os.path.join(localpath, "frompigrow")
+                return localpath
+        except:
+            localpath = os.getcwd()
+            localpath = os.path.join(localpath, "frompigrow")
+            return localpath
 
     def load_gui_settings(self):
         gui_settings_path = "gui_settings.txt"
@@ -195,8 +217,8 @@ class shared_data:
             # limit size to screen
             width, height = wx.GetDisplaySize()
             im_width, im_height = image_to_show.GetSize()
-            print(" W: ", width, im_width )
-            print(" H: ", height, im_height)
+            #print(" W: ", width, im_width )
+            #print(" H: ", height, im_height)
             if im_height > height:
                 im_height = height
             if im_width > width:
@@ -207,7 +229,7 @@ class shared_data:
             pic = wx.StaticBitmap(display_panel, -1, image_to_show)
             # panel sizer
             panel_sizer = wx.BoxSizer(wx.VERTICAL)
-            panel_sizer.Add(pic) #, wx.ID_ANY, wx.EXPAND)
+            panel_sizer.Add(pic)
             display_panel.SetSizer(panel_sizer)
             # main sizer
             sizer = wx.BoxSizer(wx.VERTICAL)

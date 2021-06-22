@@ -121,8 +121,19 @@ class link_pnl(wx.Panel):
         self.cb_ip.Clear()
         self.cb_ip.Append(self.discover_ip_list())
 
-
-
+    def get_box_name(self=None):
+        boxname = None
+        out, error = self.run_on_pi("cat /home/" + self.target_user + "/Pigrow/config/pigrow_config.txt | grep box_name")
+        if "=" in out:
+            boxname = out.strip().split("=")[1]
+            #MainApp.status.write_bar("Pigrow Found; " + boxname)
+            print("#sb# Pigrow Found; " + boxname)
+        else:
+            #MainApp.status.write_bar("Can't read Pigrow name, probably not installed")
+            print("#sb# Can't read Pigrow's name ")
+        if boxname == '':
+            boxname = None
+        return boxname
 
     #def __del__(self):
     #    print("psssst it did that thing, the _del_ one you like so much...")
@@ -146,6 +157,7 @@ class link_pnl(wx.Panel):
             #Mainapp..view_cb.SetValue("")
             #MainApp.view_pnl.view_combo_go("e")
             #MainApp.window_self.Layout()
+            self.set_shared_info_on_connect("")
         else:
             #clear_temp_folder()
             self.target_ip = self.cb_ip.GetValue()
@@ -166,9 +178,11 @@ class link_pnl(wx.Panel):
             else:
                 box_name = None
             self.set_link_pi_text(log_on_test, box_name)
+            self.set_shared_info_on_connect(box_name)
             #MainApp.window_self.Layout()
-
-#    def blank_settings(self):
+######
+ ### obsolete
+    def blank_settings(self):
         return None
         print("clearing settings")
         # clear system pannel text
@@ -250,7 +264,7 @@ class link_pnl(wx.Panel):
         MainApp.user_log_info_pannel.user_log_variable_text.Clear()
         MainApp.user_log_info_pannel.add_to_user_log_btn.Disable()
         MainApp.window_self.Layout()
-
+########
     def set_link_pi_text(self, log_on_test, box_name):
         if not box_name == None:
             self.link_status_text.SetLabel("linked with - " + str(box_name))
@@ -281,7 +295,17 @@ class link_pnl(wx.Panel):
             self.tb_user.Disable()
             self.tb_pass.Disable()
             self.seek_for_pigrows_btn.Disable()
-        #MainApp.window_self.Layout()
+
+    def set_shared_info_on_connect(self, box_name):
+        shared_data = self.parent.shared_data
+        if not box_name == "" and not box_name == None:
+            shared_data.frompi_path = os.path.join(shared_data.frompi_base_path, box_name)
+            shared_data.remote_pigrow_path = "/home/" + self.tb_user.GetValue() + "/Pigrow/"
+        else:
+            shared_data.frompi_path = ""
+            shared_data.remote_pigrow_path = ""
+
+    # Commands for use by other sections of the gui
 
     def run_on_pi(self, command, write_status=True):
         #Runs a command on the pigrow and returns output and error
@@ -339,17 +363,34 @@ class link_pnl(wx.Panel):
     #    else:
     #        print("Error writing " + config_file + " ; " + error )
 
+    # download files
 
-    def get_box_name(self=None):
-        boxname = None
-        out, error = self.run_on_pi("cat /home/" + self.target_user + "/Pigrow/config/pigrow_config.txt | grep box_name")
-        if "=" in out:
-            boxname = out.strip().split("=")[1]
-            #MainApp.status.write_bar("Pigrow Found; " + boxname)
-            print("#sb# Pigrow Found; " + boxname)
-        else:
-            #MainApp.status.write_bar("Can't read Pigrow name, probably not installed")
-            print("#sb# Can't read Pigrow's name ")
-        if boxname == '':
-            boxname = None
-        return boxname
+    def download_file_to_folder(self, remote_file, local_name):
+        '''
+          Downloads a single file into the frompigrow local folder
+                 remote_file - full path to file on pi
+                  local_name - doesn't require .../frompigrow/boxname/
+          local_path = link_pnl.download_file_to_folder(remote_file, local_name)
+        '''
+        local_base_path = self.parent.shared_data.frompi_path
+        if local_name[0] == "/":
+            local_name = local_name[1:]
+        #print (" -- local base path -- " + local_base_path)
+        local_path = os.path.join(local_base_path, local_name)
+        #print (" -- local path -- " + local_path)
+        without_filename = os.path.split(local_path)[0]
+        #print (" -- without_filename -- " + str(without_filename))
+        if not os.path.isdir(without_filename):
+            os.makedirs(without_filename)
+            #print("made folder " + str(without_filename))
+        port = int(self.parent.shared_data.gui_set_dict['ssh_port'])
+        print("  - connecting transport pipe... " + self.target_ip + " port:" + str(port))
+        print("    to  download " + remote_file + " to " + local_path)
+        ssh_tran = paramiko.Transport((self.target_ip, port))
+        ssh_tran.connect(username=self.target_user, password=self.target_pass)
+        self.sftp = paramiko.SFTPClient.from_transport(ssh_tran)
+        self.sftp.get(remote_file, local_path)
+        self.sftp.close()
+        ssh_tran.close()
+        print(("    file copied to " + str(local_path)))
+        return local_path
