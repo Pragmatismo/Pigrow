@@ -141,12 +141,12 @@ def take_picam_py(picam_dic, caps_path):
         if "exposure_speed" in picam_dic:
             camera.exposure_speed = int(picam_dic['exposure_speed'])
         if "hflip" in picam_dic:
-            if picam_dic['hflip'] == "True"
+            if picam_dic['hflip'] == "True":
                 camera.hflip = True
             else:
                 camera.hflip = False
         if "vflip" in picam_dic:
-            if picam_dic['vflip'] == "True"
+            if picam_dic['vflip'] == "True":
                 camera.hflip = True
             else:
                 camera.hflip = False
