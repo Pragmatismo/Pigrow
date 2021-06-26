@@ -15,29 +15,34 @@ for argu in sys.argv[1:]:
         sys.exit()
 
 def relay_off(set_dic, switch_log):
-    script = 'fans_off.py'
+    script = 'BLANK_off.py'
     msg =("\n")
     msg +=("      #############################################\n")
-    msg +=("      ##         Turning the fans - OFF          ##\n")
-    if 'gpio_BLANK' in set_dic and not str(set_dic['gpio_BLANK']).strip() == '':
-        gpio_pin = int(set_dic['gpio_BLANK'])
-        gpio_pin_on = set_dic['gpio_BLANK_on']
-        import RPi.GPIO as GPIO
-        GPIO.setmode(GPIO.BCM)
-        GPIO.setwarnings(False)
-        GPIO.setup(gpio_pin, GPIO.OUT)
-        if gpio_pin_on == "low":
-            GPIO.output(gpio_pin, GPIO.HIGH)
-            gpio_pin_dir = 'high'
-        elif gpio_pin_on == "high":
-            gpio_pin_dir = 'low'
-            GPIO.output(gpio_pin, GPIO.LOW)
+    msg +=("      ##         Turning the BLANK - OFF          ##\n")
+    if 'gpio_BLANK' in set_dic:
+        if not str(set_dic['gpio_BLANK']).strip() == '':
+            gpio_pin = int(set_dic['gpio_BLANK'])
+            gpio_pin_on = set_dic['gpio_BLANK_on']
+            import RPi.GPIO as GPIO
+            GPIO.setmode(GPIO.BCM)
+            GPIO.setwarnings(False)
+            GPIO.setup(gpio_pin, GPIO.OUT)
+            if gpio_pin_on == "low":
+                GPIO.output(gpio_pin, GPIO.HIGH)
+                gpio_pin_dir = 'high'
+            elif gpio_pin_on == "high":
+                gpio_pin_dir = 'low'
+                GPIO.output(gpio_pin, GPIO.LOW)
+            else:
+                msg +=("      !!       CAN'T DETERMINE GPIO DIRECTION   !!\n")
+                msg +=("      !!  run config program or edit config.txt !!\n")
+                msg +=("      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n")
+                pigrow_defs.write_log(script, 'Failed - no direction set in config', switch_log)
+                return msg
         else:
-            msg +=("      !!       CAN'T DETERMINE GPIO DIRECTION   !!\n")
-            msg +=("      !!  run config program or edit config.txt !!\n")
-            msg +=("      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n")
-            pigrow_defs.write_log(script, 'Failed - no direction set in config', switch_log)
-            return msg
+            msg +=(" gpio_BLANK set as nothing")
+            pigrow_defs.write_log(script, 'Failed - due to none set in config', switch_log)
+            return msg  
     else:
         msg +=("      !!               NO BLANK SET            !!\n")
         msg +=("      !!  run config program or edit config.txt !!\n")
