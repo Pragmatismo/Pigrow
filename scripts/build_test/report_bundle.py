@@ -44,7 +44,7 @@ files_to_copy = ['logs/selflog.txt',
                  'logs/trigger_conditons.txt']
 
 def write_cron_text(bundle_folder):
-    out =  os.popen("contab -l").read()
+    out =  os.popen("crontab -l").read()
     cron_text_path = os.path.join(bundle_folder, "cron_text.txt")
     with open(cron_text_path, "w") as f:
         f.write(out)
