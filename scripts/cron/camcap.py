@@ -127,6 +127,9 @@ def load_camera_settings(settings_file):
                         x_dim = val
                     elif key == "y_dim":
                         y_dim = val
+                    elif key == "resolution":
+                        if "x" in val:
+                            x_dim, y_dim = val.split("x")
                     elif key == "cam_num":
                         cam_num = val
                     elif key == "cam_opt":
