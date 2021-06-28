@@ -43,6 +43,13 @@ files_to_copy = ['logs/selflog.txt',
                  'config/trigger_events.txt',
                  'logs/trigger_conditons.txt']
 
+def write_cron_text(bundle_folder):
+    out =  os.popen("contab -l").read()
+    cron_text_path = os.path.join(bundle_folder, "cron_text.txt")
+    with open(cron_text_path, "w") as f:
+        f.write(out)
+    print("\nCron text written to " + cron_text_path)
+
 def create_info_file(info_modules_to_read, bundle_folder):
     info_text = "Info modules read " + str(datetime.datetime.now()) + "\n\n"
     for info in info_modules_to_read:
@@ -70,6 +77,7 @@ def copy_files_to_bundle(files_to_copy, bundle_folder):
             print(" no ", file_path)
 
 if __name__ == '__main__':
+    write_cron_text(bundle_folder)
     create_info_file(info_modules_to_read, bundle_folder)
     copy_files_to_bundle(files_to_copy, bundle_folder)
     zip_path = os.path.join(pigrow_path, "graphs/diagnostic_bundle")
