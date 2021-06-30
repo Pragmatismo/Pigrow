@@ -315,10 +315,15 @@ class ctrl_pnl(wx.Panel):
         # create a temp settings file on the pi
         I_pnl = self.parent.dict_I_pnl['camera_pnl']
         sets_text = I_pnl.sets_pnl.make_conf_text(I_pnl.sets_pnl.setting_crtl_dict)
+        cam_opt = self.cam_cb.GetValue()
+        cap_opt = self.captool_cb.GetValue()
+        conf_text = "cam_num=" + cam_opt + "\n"
+        conf_text += "cam_opt=" + cap_opt + "\n"
+        conf_text += sets_text
         rpp = self.parent.shared_data.remote_pigrow_path
         temp_set_path = rpp + "temp/temp_camconf.txt"
         print(" - Writing temp settings file to " + temp_set_path)
-        self.parent.link_pnl.write_textfile_to_pi(sets_text, temp_set_path)
+        self.parent.link_pnl.write_textfile_to_pi(conf_text, temp_set_path)
         # call camera's take photo command
         outpath = rpp + 'temp/'
         path = I_pnl.sets_pnl.take_image(temp_set_path, outpath)
@@ -340,6 +345,11 @@ class ctrl_pnl(wx.Panel):
         key = self.range_combo.GetValue()
         basic_sets = I_pnl.sets_pnl.setting_crtl_dict
         basic_sets = I_pnl.sets_pnl.make_conf_text(basic_sets)
+        cam_opt = self.cam_cb.GetValue()
+        cap_opt = self.captool_cb.GetValue()
+        conf_text = "cam_num=" + cam_opt + "\n"
+        conf_text += "cam_opt=" + cap_opt + "\n"
+        conf_text += basic_sets
         scd = I_pnl.sets_pnl.setting_crtl_dict
         if type(scd[key]) == wx._core.Slider:
             range_start = self.range_start_tc.GetValue()
@@ -353,7 +363,7 @@ class ctrl_pnl(wx.Panel):
         for opt_n in opt_list:
             is_set = False
             temp_sets = ""
-            for line in basic_sets.splitlines():
+            for line in conf_text.splitlines():
                 if "key" in line:
                     line = key + "=" + str(opt_n)
                     is_set = True
@@ -400,8 +410,13 @@ class ctrl_pnl(wx.Panel):
         I_pnl = self.parent.dict_I_pnl['camera_pnl']
         rpp = self.parent.shared_data.remote_pigrow_path
         sets_text = I_pnl.sets_pnl.make_conf_text(I_pnl.sets_pnl.setting_crtl_dict)
+        cam_opt = self.cam_cb.GetValue()
+        cap_opt = self.captool_cb.GetValue()
+        conf_text = "cam_num=" + cam_opt + "\n"
+        conf_text += "cam_opt=" + cap_opt + "\n"
+        conf_text += sets_text
         temp_set_path = rpp + "temp/test_noise.txt"
-        self.parent.link_pnl.write_textfile_to_pi(sets_text, temp_set_path)
+        self.parent.link_pnl.write_textfile_to_pi(conf_text, temp_set_path)
         # take range of settings
         pic_amount = int(self.capture_stack_count.GetValue())
         filename_list = []
