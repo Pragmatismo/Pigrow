@@ -272,6 +272,7 @@ def new_take_with_fswebcam(sets_dict, caps_path=""):
     cam_cmd += " --jpeg " + sets_dict['fs_jpg_q'] # jpeg quality
     cam_cmd += " " + caps_path + filename  #output filename
     # Take picture
+    print(" Running - ", cam_cmd)
     os.system(cam_cmd)
     print("Capture Finished, Saving image to:" + caps_path + filename)
     #
