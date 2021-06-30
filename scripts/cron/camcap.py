@@ -91,6 +91,18 @@ def set_caps_path(loc_dic, caps_path):
                 caps_path = ""
     return caps_path
 
+def new_load_camera_settings(settings_file):
+    sets_dict = {}
+    if not settings_file == None:
+        with open(settings_file, "r") as f:
+            for line in f:
+                if "=" in line:
+                    e_pos = line.find("=")
+                    key = line[:e_pos].strip()
+                    val = line[e_pos+1:].strip()
+                    sets_dict[key] = val
+    return sets_dict
+
 def load_camera_settings(settings_file):
     s_val = ''
     c_val = ''
@@ -197,51 +209,72 @@ def take_with_uvccapture(s_val="", c_val="", g_val="", b_val="", x_dim=100000, y
     #or other mantipulation when this is being run from other scripts as a module
     return filename
 
-def take_with_fswebcam(s_val="", c_val="", g_val="", b_val="", x_dim=100000, y_dim=100000, cam_num='/dev/video0', fsw_extra='', caps_path=""):
-    #     fswebcam is a great little program
-    #     because it's reliable, quick and
-    #     gives loads of control especiully
-    #     cool is it's ability to grab webcam
-    #     control's from your camera using
-    # # #       fswebcam -d v4l2:/dev/video0 --list-controls
-    #     this is how the camera config
-    #     scripts determine the extra controls
-    #     you can use.
-    #     # cam_cmd += ' --info "HELLO INFO TEXT"'
-    #     is another interesting one to experiment with at some point
-    ####
+
+def fs_sets_trim(sets_dict):
+    # Add settings from fs_extra
+    if 'fsw_extra' in sets_dict:
+        extra = sets_dict['fsw_extra']
+        if '--set' in extra:
+            print(" - Adding fs_extra settings to sets dict")
+            extra_sets = sets_dict['fsw_extra'].split('--set')
+            for item in extra_sets:
+                if "=" in item:
+                    key, val = item.split("=")
+                    sets_dict[key] = val
+    # remove unused opts
+    to_remove = ['uvc_extra', 'fsw_extra', 'cam_opt']
+    for key in to_remove:
+        if key in sets_dict:
+            del sets_dict[key]
+    # add defaults
+    if not 'resolution' in sets_dict:
+        if 'x_dim' in sets_dict and 'y_dim' in sets_dict:
+            sets_dict['resolution'] = sets_dict['x_dim'] + "x" + sets_dict['y_dim']
+        else:
+            print(" Resolution not set, using default 1920x1080")
+            sets_dict['resolution'] = '1920x1080'
+    if not 'fs_delay' in sets_dict:
+        sets_dict['fs_delay'] = '2'
+    if not 'fs_fskip' in sets_dict:
+        sets_dict['fs_fskip'] = '5'
+    if not 'fs_jpg_q' in sets_dict:
+        sets_dict['fs_jpg_q'] = '90'
+    # add legacy
+    if "s_val" in sets_dict:
+        if not 'saturation' in sets_dict:
+            sets_dict['saturation'] = sets_dict['s_val']
+    if "c_val" in sets_dict:
+        if not 'contrast' in sets_dict:
+            sets_dict['contrast'] = sets_dict['c_val']
+    if "g_val" in sets_dict:
+        if not 'gain' in sets_dict:
+            sets_dict['gain'] = sets_dict['g_val']
+    if "b_val" in sets_dict:
+        if not 'brightness' in sets_dict:
+            sets_dict['brightness'] = sets_dict['b_val']
     #
-    #determine the time to use in the photos name
+    return sets_dict
+
+def new_take_with_fswebcam(sets_dict, caps_path=""):
+    sets_dict = fs_sets_trim(sets_dict)
     timenow = time.time()
     timenow = str(timenow)[0:10]
     filename= "cap_"+str(timenow)+".jpg"
-    # set the  important command string values for fswebcam
-    cam_cmd  = "fswebcam -r " + str(x_dim) + "x" + str(y_dim)
-    cam_cmd += " -d v4l2:" + cam_num
-    cam_cmd += " -D 2"      #the delay in seconds before taking photo
-    cam_cmd += " -S 5"      #number of frames to skip before taking image
-    # add extra options when set
-    if not b_val == '':
-        cam_cmd += " --set brightness=" + str(b_val)
-    if not c_val == '':
-        cam_cmd += " --set contrast=" + str(c_val)
-    if not s_val == '':
-        cam_cmd += " --set Saturation=" + str(s_val)
-    if not g_val == '':
-        cam_cmd += " --set gain=" + str(g_val)
-    cam_cmd += " " + fsw_extra.strip()
-    cam_cmd += " --jpeg 90" #jpeg quality
+    # Set the  command string for fswebcam
+    cam_cmd  = "fswebcam -r " + sets_dict['resolution']
+    cam_cmd += " -d v4l2:" + sets_dict['cam_num']
+    cam_cmd += " -D " + sets_dict['fs_delay']     # the delay in seconds before taking photo
+    cam_cmd += " -S " + sets_dict['fs_fskip']     # number of frames to skip before taking image
+    ignore_list = ['resolution', 'cam_num', 'fs_delay', 'fs_fskip']
+    for key, val in sets_dict.items():
+        if not key in ignore_list:
+            cam_cmd += ' --set "' + key + '"="' + val + '"'
+    cam_cmd += " --jpeg " + sets_dict['fs_jpg_q'] # jpeg quality
     cam_cmd += " " + caps_path + filename  #output filename
-    # show user command on command line
-    print("----")
-    print(cam_cmd)
-    print("----")
-    # run the command on the system
+    # Take picture
     os.system(cam_cmd)
-    #tell the user we're back in control after fsw has finished.
     print("Capture Finished, Saving image to:" + caps_path + filename)
-    #hand back the filename so we can check was created or pass it on for editing
-    #or other mantipulation when this is being run from other scripts as a module
+    #
     return filename
 
 #
@@ -280,7 +313,7 @@ if __name__ == '__main__':
     if settings_file == None:
         if "camera_settings" in loc_dic:
             settings_file = loc_dic['camera_settings']
-            print("loading settings from settings file referencesd in dirlocs ")
+            print("loading settings from settings file referenced in dirlocs ")
             s_val, c_val, g_val, b_val, x_dim, y_dim, cam_num, cam_opt, fsw_extra, uvc_extra, = load_camera_settings(settings_file)
         else:
             #if dirlocs doesn't contain settings file info for the camera
@@ -299,7 +332,8 @@ if __name__ == '__main__':
     if cam_opt == "uvccapture":
         filename = take_with_uvccapture(s_val, c_val, g_val, b_val, x_dim, y_dim, cam_num, uvc_extra, caps_path)
     elif cam_opt ==  "fswebcam":
-        filename = take_with_fswebcam(s_val, c_val, g_val, b_val, x_dim, y_dim, cam_num, fsw_extra, caps_path)
+        settings_dict = new_load_camera_settings(settings_file)
+        filename = new_take_with_fswebcam(settings_dict, caps_path)
     else:
         print("unknown capture option -" + str(cam_opt) + "- sorry")
     # testing if file was made
@@ -321,7 +355,8 @@ if __name__ == '__main__':
                             print("Done on extra attempt " + str(attempt))
                             sys.exit()
                     elif cam_opt ==  "fswebcam":
-                        filename = take_with_fswebcam(s_val, c_val, g_val, b_val, x_dim, y_dim, cam_num, fsw_extra, caps_path)
+                        settings_dict = new_load_camera_settings(settings_file)
+                        filename = new_take_with_fswebcam(settings_dict, caps_path)
                         if os.path.isfile(caps_path + filename):
                             print("Done on try " + str(attempt))
                             sys.exit()
