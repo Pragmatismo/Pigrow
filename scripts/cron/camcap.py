@@ -219,8 +219,8 @@ def fs_sets_trim(sets_dict):
             extra_sets = sets_dict['fsw_extra'].split('--set')
             for item in extra_sets:
                 if "=" in item:
-                    key, val = item.split("=")
-                    sets_dict[key] = val
+                    key, val = item.replace('"', "").replace("'", "").split("=")
+                    sets_dict[key.strip()] = val.strip()
     # remove unused opts
     to_remove = ['uvc_extra', 'fsw_extra', 'cam_opt']
     for key in to_remove:
