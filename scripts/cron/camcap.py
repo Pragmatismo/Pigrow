@@ -265,7 +265,10 @@ def new_take_with_fswebcam(sets_dict, caps_path=""):
     cam_cmd += " -d v4l2:" + sets_dict['cam_num']
     cam_cmd += " -D " + sets_dict['fs_delay']     # the delay in seconds before taking photo
     cam_cmd += " -S " + sets_dict['fs_fskip']     # number of frames to skip before taking image
-    ignore_list = ['resolution', 'cam_num', 'fs_delay', 'fs_fskip']
+    if "fs_banner" in sets_dict:
+        if sets_dict["fs_banner"] == "False":
+            cam_cmd += " --no-banner"
+    ignore_list = ['resolution', 'cam_num', 'fs_delay', 'fs_fskip', 'fs_banner']
     for key, val in sets_dict.items():
         if not key in ignore_list:
             cam_cmd += ' --set "' + key + '"="' + val + '"'
