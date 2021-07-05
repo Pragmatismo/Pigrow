@@ -86,6 +86,7 @@ class picam_sets_pnl(wx.Panel):
         main_sizer.Add(c_sets_sizer, 0, wx.ALL, 0)
         self.SetSizer(main_sizer)
 
+
     def slider_move(self, e):
         setting_name = e.GetEventObject().GetLabel()
         slider_val = e.GetEventObject().GetValue()
