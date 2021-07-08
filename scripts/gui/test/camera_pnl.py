@@ -6,7 +6,7 @@ import shutil
 from picam_set_pnl import picam_sets_pnl
 from fswebcam_set_pnl import fs_sets_pnl
 
-class ctrl_pnl(wx.Panel):
+class ctrl_pnl(scrolled.ScrolledPanel):
     def __init__( self, parent ):
         shared_data = parent.shared_data
         self.parent = parent
@@ -123,6 +123,8 @@ class ctrl_pnl(wx.Panel):
         main_sizer.Add(compare_sizer, 0, wx.ALL, 0)
         main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.Add(anal_sizer, 0, wx.ALL, 0)
+        self.SetAutoLayout(1)
+        self.SetupScrolling()
         self.SetSizer(main_sizer)
 
     # Load / Save Config
@@ -442,27 +444,6 @@ class ctrl_pnl(wx.Panel):
         compare_path = os.path.join(without_filename, "compare_image." + filetype)
         shutil.copy(file_to_set, compare_path)
         self.parent.shared_data.camcomf_compare_image = compare_path
-
-
-
-
-##
-#
-##
-#
-##
-#
-##
-    # add this to fswebcam page and remove
-    def install_fswebcam(self):
-        print("user asked to install fswebcam on the pi")
-        dbox = wx.MessageDialog(self, "fswebcam isn't installed on the pigrow, would you like to install it?", "install fswebcam?", wx.OK | wx.CANCEL | wx.ICON_QUESTION)
-        answer = dbox.ShowModal()
-        dbox.Destroy()
-        if (answer == wx.ID_OK):
-            print("installing fswebcam on pigrow")
-            out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo apt-get install fswebcam --force-yes -y")
-            print(out, error)
 
 
 
