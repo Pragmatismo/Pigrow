@@ -1,4 +1,5 @@
 import wx
+import os
 
 class ctrl_pnl(wx.Panel):
     def __init__( self, parent ):
@@ -9,18 +10,29 @@ class ctrl_pnl(wx.Panel):
         self.cron_label = wx.StaticText(self,  label='Cron Config Menu')
         self.read_cron_btn = wx.Button(self, label='Read Crontab', size=(175, 30))
         self.read_cron_btn.Bind(wx.EVT_BUTTON, self.read_cron_click)
-        self.new_cron_btn = wx.Button(self, label='New cron job', size=(175, 30))
+        self.new_cron_btn = wx.Button(self, label='Add new job', size=(175, 30))
         self.new_cron_btn.Bind(wx.EVT_BUTTON, self.new_cron_click)
-        self.update_cron_btn = wx.Button(self, label='Update Cron', size=(175, 30))
+        self.update_cron_btn = wx.Button(self, label='Save Cron', size=(175, 30))
         self.update_cron_btn.Bind(wx.EVT_BUTTON, self.update_cron_click)
         self.help_cron_btn = wx.Button(self, label='Cron Help', size=(175, 30))
         self.help_cron_btn.Bind(wx.EVT_BUTTON, self.help_cron_click)
+
+        self.cron_bkup_label = wx.StaticText(self,  label='backup;')
+        self.cron_backup_btn = wx.Button(self, label='Backup Cron', size=(175, 30))
+        self.cron_backup_btn.Bind(wx.EVT_BUTTON, self.cron_backup_click)
+        self.cron_restore_btn = wx.Button(self, label='Restore backup', size=(175, 30))
+        self.cron_restore_btn.Bind(wx.EVT_BUTTON, self.cron_restore_click)
 
         main_sizer = wx.BoxSizer(wx.VERTICAL)
         main_sizer.Add(self.cron_label, 0, wx.ALL, 5)
         main_sizer.Add(self.read_cron_btn, 0, wx.ALL, 5)
         main_sizer.Add(self.new_cron_btn, 0, wx.ALL, 5)
         main_sizer.Add(self.update_cron_btn, 0, wx.ALL, 5)
+        #
+        main_sizer.Add(self.cron_bkup_label, 0, wx.ALL, 5)
+        main_sizer.Add(self.cron_backup_btn, 0, wx.ALL, 5)
+        main_sizer.Add(self.cron_restore_btn, 0, wx.ALL, 5)
+        main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.Add(self.help_cron_btn, 0, wx.ALL, 5)
         self.SetSizer(main_sizer)
 
@@ -209,8 +221,9 @@ class ctrl_pnl(wx.Panel):
         if script_text == '':
             return False
         else:
-            #print 'pid of = ' + str(script_text)
+            #print ('pid of = ' + str(script_text)
             return True
+
 
     def add_to_startup_list(self, startup_list_instance, line_number, job_enabled, cron_task, cron_extra_args='', cron_comment=''):
         is_running = self.test_if_script_running(cron_task)
@@ -373,6 +386,116 @@ class ctrl_pnl(wx.Panel):
                 self.add_to_onetime_list(self.parent.dict_I_pnl['cron_pnl'].timed_cron ,'new', job_enabled, timing_string, cron_task, cron_extra_args, cron_comment)
             elif cron_jobtype == 'repeating':
                 self.add_to_repeat_list(self.parent.dict_I_pnl['cron_pnl'].repeat_cron, 'new', job_enabled, timing_string, cron_task, cron_extra_args, cron_comment)
+
+    def cron_backup_click(self, e):
+        #
+        # ask user to name conf - format 'cron_<NAME>.txt' default 'backup'
+        msg = "Select name of cron backup"
+        filename_dbox = wx.TextEntryDialog(self, msg, 'Cron backup', 'backup')
+        if filename_dbox.ShowModal() == wx.ID_OK:
+            cron_archive_name = filename_dbox.GetValue()
+        else:
+            return "cancelled"
+        filename_dbox.Destroy()
+        cron_archive_name = "cron_" + cron_archive_name + ".txt"
+        #
+        cron_save_path = os.path.join(self.parent.shared_data.frompi_path, "cron/")
+        os.makedirs(cron_save_path, exist_ok = True)
+        cron_save_path = os.path.join(cron_save_path, cron_archive_name)
+        if os.path.isfile(cron_save_path):
+            print(" FILE ALREADY EXISTS ASK THE USER IF THEY WANT TO OVERWRITE")
+        # read cron
+        cmd = "crontab -l"
+        out, error = self.parent.link_pnl.run_on_pi(cmd)
+        if out.strip() == "":
+            print("Error reading cron, or it's totally blank.")
+            return None
+        # save to text file
+        with open(cron_save_path, "w") as f:
+            f.write(out)
+        #
+        print("Cron backup saved to; ", cron_save_path)
+
+    def cron_restore_click(self ,e):
+        print(" restore cron button has been pressed, what do you think of that, hu?")
+        restore_dialog = restore_backup_dialog(self, self.parent)
+        restore_dialog.ShowModal()
+        self.read_cron_click("e")
+
+
+class restore_backup_dialog(wx.Dialog):
+    """
+    For restoring backup cron files to raspberry pi
+        """
+    def __init__(self, parent, *args, **kw):
+        self.parent = parent
+        super(restore_backup_dialog, self).__init__(*args, **kw)
+        self.InitUI()
+        self.SetSize((750, 750))
+        self.SetTitle("Restore cron backup to raspberry pi")
+        self.Bind(wx.EVT_CLOSE, self.OnClose)
+
+    def InitUI(self):
+        shared_data = self.parent.parent.shared_data
+        cron_save_path = os.path.join(self.parent.parent.shared_data.frompi_path, "cron/")
+        list_of_cron_bks = os.listdir(cron_save_path)
+
+        # panel
+        pnl = wx.Panel(self)
+        box_label = wx.StaticText(self,  label='Select backup to restore')
+        box_label.SetFont(shared_data.title_font)
+        self.logfile_cb = wx.ComboBox(self, choices = list_of_cron_bks, size=(265, 30))
+        self.logfile_cb.Bind(wx.EVT_COMBOBOX, self.logfile_combo_go)
+        self.crontext = wx.TextCtrl(self, -1, "", size=(700,500), style=wx.TE_MULTILINE)
+
+        # ok and cancel Buttons
+        self.restore_btn = wx.Button(self, label='Restore', size=(175, 30))
+        self.restore_btn.Bind(wx.EVT_BUTTON, self.restore_click)
+        self.cancel_btn = wx.Button(self, label='Close', size=(175, 30))
+        self.cancel_btn.Bind(wx.EVT_BUTTON, self.OnClose)
+        buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        buttons_sizer.Add(self.restore_btn, 0,  wx.ALL, 3)
+        buttons_sizer.AddStretchSpacer(1)
+        buttons_sizer.Add(self.cancel_btn, 0,  wx.ALL, 3)
+
+        main_sizer = wx.BoxSizer(wx.VERTICAL)
+        main_sizer.Add(box_label, 0, wx.ALL|wx.EXPAND, 5)
+        main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(self.logfile_cb, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
+        main_sizer.Add(self.crontext, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
+        main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(buttons_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
+        self.SetSizer(main_sizer)
+
+    def logfile_combo_go(self, e):
+        choice = self.logfile_cb.GetValue()
+        cron_local_path = os.path.join(self.parent.parent.shared_data.frompi_path, "cron/", choice)
+        with open(cron_local_path, "r") as f:
+            cron_text = f.read()
+        print(cron_text)
+        self.crontext.SetValue(cron_text)
+
+    def restore_click(self, e):
+
+        # copy backup file to pi
+        cron_text = self.crontext.GetValue()
+        if cron_text.strip() == "":
+            return None
+        temp_cron_remote = self.parent.parent.shared_data.remote_pigrow_path + "temp/cron_bkup.txt"
+        self.parent.parent.link_pnl.write_textfile_to_pi(cron_text, temp_cron_remote)
+
+        # install into crontab
+        cmd = "crontab " + temp_cron_remote
+        out, error = self.parent.parent.link_pnl.run_on_pi(cmd)
+        if not error == "":
+            mbox = wx.MessageDialog(None, error, "Error writing cron", wx.OK|wx.ICON_ERROR)
+            mbox.ShowModal()
+            mbox.Destroy()
+        print (out, error)
+        self.Destroy()
+
+    def OnClose(self, e):
+        self.Destroy()
 
 class info_pnl(wx.Panel):
     '''

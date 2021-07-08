@@ -5,7 +5,7 @@ import wx
 import shared_data
 import link_pnl as link_pnl
 
-list_of_panels = ['start_pnl',  'system_pnl', 'cron_pnl', 'camera_pnl', 'blank_pnl'] #, 'test_pnl', 'blue_pnl']
+list_of_panels = ['start_pnl',  'system_pnl', 'cron_pnl', 'camera_pnl', 'localfiles_pnl', 'blank_pnl'] #, 'test_pnl', 'blue_pnl']
 for x in list_of_panels:
     import_cmd = "import " + x
     exec(import_cmd)
@@ -76,6 +76,7 @@ class MainFrame(wx.Frame):
         side_bar_sizer.Add(self.link_pnl, 0, wx.ALL|wx.EXPAND, 0)
         side_bar_sizer.Add(self.view_pnl, 0, wx.ALL|wx.EXPAND, 0)
         for pnl in list_of_panels:
+            MainFrame.dict_C_pnl[pnl].SetMinSize((-1,800))
             side_bar_sizer.Add(MainFrame.dict_C_pnl[pnl], 0, wx.ALL|wx.EXPAND, 0)
         # add info panels
         main_sizer = wx.BoxSizer(wx.HORIZONTAL)
