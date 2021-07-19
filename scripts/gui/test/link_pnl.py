@@ -1,8 +1,13 @@
 import wx
 import os
+import sys
+import time
 from getmac import get_mac_address
-#import os
-#import sys
+import wx.lib.delayedresult as delayedresult
+import  wx.lib.newevent
+
+FileDownloadEvent, EVT_FILE_DOWNLOAD = wx.lib.newevent.NewEvent()
+#SomeNewCommandEvent, EVT_SOME_NEW_COMMAND_EVENT = wx.lib.newevent.NewCommandEvent()
 
 try:
     import paramiko
@@ -180,91 +185,7 @@ class link_pnl(wx.Panel):
             self.set_link_pi_text(log_on_test, box_name)
             self.set_shared_info_on_connect(box_name)
             #MainApp.window_self.Layout()
-######
- ### obsolete
-    def blank_settings(self):
-        return None
-        print("clearing settings")
-        # clear system pannel text
-        MainApp.system_info_pannel.sys_hdd_total.SetLabel("")
-        MainApp.system_info_pannel.sys_hdd_remain.SetLabel("")
-        MainApp.system_info_pannel.sys_hdd_used.SetLabel("")
-        MainApp.system_info_pannel.sys_pigrow_folder.SetLabel("")
-        MainApp.system_info_pannel.sys_os_name.SetLabel("")
-        MainApp.system_info_pannel.sys_pigrow_update.SetLabel("")
-        MainApp.system_info_pannel.sys_network_name.SetLabel("")
-        MainApp.system_info_pannel.available_wifi_list.SetLabel('')
-        MainApp.system_info_pannel.wifi_list.SetLabel("")
-        MainApp.system_info_pannel.sys_power_status.SetLabel("")
-        MainApp.system_info_pannel.sys_camera_info.SetLabel("")
-        MainApp.system_info_pannel.sys_pi_revision.SetLabel("")
-        MainApp.system_info_pannel.sys_pi_date.SetLabel("")
-        MainApp.system_info_pannel.sys_pc_date.SetLabel("")
-        MainApp.system_info_pannel.sys_i2c_info.SetLabel("")
-        MainApp.system_info_pannel.sys_uart_info.SetLabel("")
-        MainApp.system_info_pannel.sys_1wire_info.SetLabel("")
-        MainApp.system_ctrl_pannel.i2c_baudrate_btn.Disable()
-        MainApp.system_ctrl_pannel.add_1wire_btn.Disable()
-        MainApp.system_ctrl_pannel.edit_1wire_btn.Disable()
-        MainApp.system_ctrl_pannel.remove_1wire_btn.Disable()
-        # clear config ctrl text and tables
-        try:
-            MainApp.config_ctrl_pannel.dirlocs_dict.clear()
-        except:
-            pass
-        try:
-            MainApp.config_ctrl_pannel.config_dict.clear()
-        except:
-            pass
-        try:
-            MainApp.config_ctrl_pannel.gpio_dict.clear()
-        except:
-            pass
-        try:
-            MainApp.config_ctrl_pannel.gpio_on_dict.clear()
-        except:
-            pass
-        MainApp.config_info_pannel.gpio_table.DeleteAllItems()
-        config_info_pnl.boxname_text.SetValue("")
-        config_info_pnl.location_text.SetLabel("")
-        config_info_pnl.config_text.SetLabel("")
-        config_info_pnl.lamp_text.SetLabel("")
-        config_info_pnl.dht_text.SetLabel("")
-        # clear cron tables
-        cron_list_pnl.startup_cron.DeleteAllItems()
-        cron_list_pnl.repeat_cron.DeleteAllItems()
-        cron_list_pnl.timed_cron.DeleteAllItems()
-        # clear local files text and images
-        localfiles_info_pnl.cron_info.SetLabel("")
-        localfiles_info_pnl.local_path_txt.SetLabel("")
-        localfiles_info_pnl.folder_text.SetLabel("") ## check this updates on reconnect
-        localfiles_info_pnl.photo_text.SetLabel("")
-        localfiles_info_pnl.first_photo_title.SetLabel("")
-        localfiles_info_pnl.last_photo_title.SetLabel("")
 
-        blank = wx.Bitmap(220, 220)
-        try:
-            localfiles_info_pnl.photo_folder_first_pic.SetBitmap(blank)
-            localfiles_info_pnl.photo_folder_last_pic.SetBitmap(blank)
-        except:
-            pass
-        # clear local file info
-        localfiles_info_pnl.local_path = ""
-        localfiles_info_pnl.config_files.DeleteAllItems()
-        localfiles_info_pnl.logs_files.DeleteAllItems()
-        # graphing tab clear
-        graphing_ctrl_pnl.blank_options_ui_elements(MainApp.graphing_ctrl_pannel)
-        MainApp.graphing_ctrl_pannel.graph_cb.SetValue("")
-        MainApp.graphing_ctrl_pannel.select_script_cb.SetValue("")
-        MainApp.graphing_ctrl_pannel.opts_cb.SetValue("")
-        MainApp.graphing_ctrl_pannel.pigraph_text.Hide()
-        MainApp.graphing_ctrl_pannel.script_text.Hide()
-        MainApp.graphing_ctrl_pannel.select_script_cb.Hide()
-        MainApp.graphing_ctrl_pannel.get_opts_tb.Hide()
-        MainApp.user_log_info_pannel.user_log_variable_text.Clear()
-        MainApp.user_log_info_pannel.add_to_user_log_btn.Disable()
-        MainApp.window_self.Layout()
-########
     def set_link_pi_text(self, log_on_test, box_name):
         if not box_name == None:
             self.link_status_text.SetLabel("linked with - " + str(box_name))
@@ -394,3 +315,226 @@ class link_pnl(wx.Panel):
         ssh_tran.close()
         print(("    file copied to " + str(local_path)))
         return local_path
+
+    def download_folder(self, folder, overwrite=True, dest=None):
+        print("Downloading folder - ", folder, " overwrite = ", str(overwrite))
+        if type(folder) == 'str':
+            folder = [folder]
+        if len(folder) == 0:
+            return None
+        # connect sftp pipe
+        port = int(self.parent.shared_data.gui_set_dict['ssh_port'])
+        ssh_tran = paramiko.Transport((self.target_ip, port))
+        ssh_tran.connect(username=self.target_user, password=self.target_pass)
+        self.sftp = paramiko.SFTPClient.from_transport(ssh_tran)
+        # create list of files
+        self.files_to_download = []
+        for fold in folder:
+            if 'Pigrow' in fold:
+                base = fold.split('Pigrow')[1]
+                base = base[1:]
+            elif self.target_user in fold:
+                base = fold.split(self.target_user)[1]
+            else:
+                base = fold
+            local_base = self.parent.shared_data.frompi_path
+            local_f  = os.path.join(local_base, base)
+            # make folder if it doesn't exist
+            if not os.path.isdir(local_f):
+                os.makedirs(local_f)
+            # create list of from and to paths
+            f_file_list = self.sftp.listdir(fold)
+            for item in f_file_list:
+                local_item = os.path.join(local_f, item)
+                self.files_to_download.append([fold + "/" + item, local_item])
+        # open dialogue box which displays from and to info then closes when done or cancelled
+        if not len(self.files_to_download) == 0:
+            file_dbox = files_download_dialog(self, self.parent)
+            file_dbox.ShowModal()
+            #file_dbox.Destroy()
+
+        #disconnect the sftp pipe
+        self.sftp.close()
+        ssh_tran.close()
+
+    def select_files_on_pi(self):
+        print("selecting files on pi")
+        select_file_dbox = select_files_on_pi_dialog(self, self.parent)
+        select_file_dbox.ShowModal()
+
+class select_files_on_pi_dialog(wx.Dialog):
+    #Dialog box for downloding files from pi to local storage folder
+    def __init__(self, parent, *args, **kw):
+        self.parent = parent
+        super(select_files_on_pi_dialog, self).__init__(*args, **kw)
+        self.InitUI()
+        self.SetSize((700, 500))
+        self.SetTitle("Select file on pi")
+        self.Bind(wx.EVT_CLOSE, self.OnClose)
+
+    def InitUI(self):
+        #draw the pannel
+        label = wx.StaticText(self,  label='Select file or folder;')
+        # folder
+        pigrow_path = self.parent.parent.shared_data.remote_pigrow_path
+        self.folder_path = wx.StaticText(self,  label=pigrow_path)
+        self.up_a_level_btn = wx.Button(self, label='..')
+        self.up_a_level_btn.Bind(wx.EVT_BUTTON, self.up_a_level_click)
+        folder_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        folder_sizer.Add(self.folder_path, 0, wx.ALL|wx.EXPAND, 5)
+        folder_sizer.Add(self.up_a_level_btn, 0, wx.ALL|wx.ALIGN_RIGHT, 5)
+        # files
+        self.file_list = wx.ListCtrl(self, size=(600,300), style=wx.LC_REPORT|wx.BORDER_SUNKEN)
+        self.file_list.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.DoubleClick_filelist)
+        self.file_list.InsertColumn(0, 'Filename')
+        self.file_list.InsertColumn(1, 'size')
+        self.file_list.InsertColumn(2, 'modified')
+        self.fill_filelist()
+        # buttons
+        self.select_file_btn = wx.Button(self, label='Select')
+        self.select_file_btn.Bind(wx.EVT_BUTTON, self.select_item_click)
+        self.cancel_btn = wx.Button(self, label='Cancel')
+        self.cancel_btn.Bind(wx.EVT_BUTTON, self.OnClose)
+        button_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        button_sizer.Add(self.select_file_btn, 0, wx.ALL|wx.EXPAND, 5)
+        button_sizer.Add(self.cancel_btn, 0, wx.ALL|wx.ALIGN_RIGHT, 5)
+
+        # main sizer
+        main_sizer = wx.BoxSizer(wx.VERTICAL)
+        main_sizer.Add(label, 0, wx.ALL|wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL, 5)
+        main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(folder_sizer, 0, wx.LEFT|wx.EXPAND, 25)
+        main_sizer.Add(self.file_list, 0, wx.LEFT|wx.EXPAND, 25)
+        main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(button_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
+        self.SetSizer(main_sizer)
+
+    def fill_filelist(self):
+        current_folder = self.folder_path.GetLabel()
+        out, error = self.parent.parent.link_pnl.run_on_pi("ls -d " + current_folder + "*/")
+        p_folders = []
+        for item in out.splitlines():
+            item = item.replace(current_folder, "")
+            item = item.replace("/", "")
+            p_folders.append(item)
+        cmd = "ls " + current_folder + " -G -g --time-style=long --group-directories-first"
+        out, error = self.parent.parent.link_pnl.run_on_pi(cmd)
+        p_files = out.splitlines()
+        self.file_list.DeleteAllItems()
+        p_files.reverse()
+        for item in p_files:
+            if ":" in item:  ### items over a year old show year not time
+                name = str(item.split(":")[1])[2:].strip()
+                modified = item.replace(name, "").strip()[-16:]
+                size = item.replace(modified, "").replace(name, "").strip().split(" ")[-1]
+                count = item.replace(modified, "").replace(name, "").replace(size, "").strip().split(" ")[-1]
+                count = str(int(count) - 2)
+                if not name in p_folders:
+                    # normal colour
+                    self.file_list.InsertItem(0, str(name))
+                    self.file_list.SetItem(0, 1, str(size))
+                    self.file_list.SetItem(0, 2, str(modified))
+                else:
+                    # colour blue
+                    self.file_list.InsertItem(0, str(name))
+                    self.file_list.SetItem(0, 1, str(count))
+                    self.file_list.SetItem(0, 2, str(modified))
+                    self.file_list.SetItemTextColour(0, (90, 100, 190))
+        # Set column sizes to fit new data
+        self.file_list.SetColumnWidth(0, wx.LIST_AUTOSIZE)
+        self.file_list.SetColumnWidth(1, wx.LIST_AUTOSIZE)
+        self.file_list.SetColumnWidth(2, wx.LIST_AUTOSIZE)
+
+    def up_a_level_click(self, e):
+        current_folder = self.folder_path.GetLabel()
+        from pathlib import Path
+        p = Path(current_folder)
+        self.folder_path.SetLabel(str(p.parent) + "/")
+        self.fill_filelist()
+
+    def OnClose(self, e):
+        print(" Closing the dialog box without doing anything")
+        self.Destroy()
+
+    def DoubleClick_filelist(self, e):
+        current_folder = self.folder_path.GetLabel()
+        index =  e.GetIndex()
+        name = self.file_list.GetItem(index, 0).GetText()
+        colour = self.file_list.GetItemTextColour(index)
+        print("colour", str(colour))
+        if colour == (90, 100, 190, 255):
+            new_path = current_folder + name + "/"
+            self.folder_path.SetLabel(new_path)
+            self.Layout()
+            self.fill_filelist()
+        else:
+            print("Not doing anthing with files when double clicked on, lol")
+
+    def select_item_click(self, e):
+        print(" pressed select file/folder button and i'm not doing anything about it")
+
+
+class files_download_dialog(wx.Dialog):
+    #Dialog box for downloding files from pi to local storage folder
+    def __init__(self, parent, *args, **kw):
+        self.parent = parent
+        super(files_download_dialog, self).__init__(*args, **kw)
+        self.InitUI()
+        self.Bind(EVT_FILE_DOWNLOAD, self.handler)
+        self.SetSize((700, 200))
+        self.SetTitle("Downloading")
+        self.Bind(wx.EVT_CLOSE, self.OnClose)
+        self.jobID = 0
+        self.abortEvent = delayedresult.AbortEvent()
+        delayedresult.startWorker(self._resultConsumer, self._resultProducer,
+                                  wargs=(self.jobID,self.abortEvent), jobID=self.jobID)
+
+    def InitUI(self):
+        #draw the pannel
+        label = wx.StaticText(self,  label='Downloading files from Pigrow;')
+        self.current_file_txt = wx.StaticText(self,  label='from: ')
+        self.current_dest_txt = wx.StaticText(self,  label='  to: ')
+        self.cancel_btn = wx.Button(self, label='Cancel')
+        self.cancel_btn.Bind(wx.EVT_BUTTON, self.OnClose)
+
+        main_sizer = wx.BoxSizer(wx.VERTICAL)
+        main_sizer.Add(label, 0, wx.ALL|wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL, 5)
+        main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(self.current_file_txt, 0, wx.LEFT|wx.EXPAND, 25)
+        main_sizer.Add(self.current_dest_txt, 0, wx.LEFT|wx.EXPAND, 25)
+        main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(self.cancel_btn, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
+        self.SetSizer(main_sizer)
+
+    def handler(self, evt):
+        if evt.from_p == "Done":
+            self.Destroy()
+        self.current_file_txt.SetLabel("from; " + evt.from_p)
+        self.current_dest_txt.SetLabel("  to; " + evt.to_p)
+
+    def OnClose(self, e):
+        self.abortEvent.set()
+        self.Destroy()
+
+    def _resultConsumer(self, delayedResult):
+        pass
+
+    def _resultProducer(self, jobID, abortEvent):
+        """Run the file download with delayedresult module"""
+        files_list = self.parent.files_to_download
+        for file in files_list:
+            if abortEvent():
+                return None
+            else:
+                # Call event which updates dialog box text
+                evt = FileDownloadEvent(from_p=file[0], to_p=file[1])
+                wx.PostEvent(self, evt)
+                # download the file
+                try:
+                    self.parent.sftp.get(file[0], file[1])
+                except:
+                    if os.path.isfile(file[1]):
+                        os.remove(file[1])
+                    print(" - couldn't download " + file[0] + " probably a folder or something.")
+        wx.PostEvent(self,FileDownloadEvent(from_p="Done", to_p="Done"))
+        return jobID

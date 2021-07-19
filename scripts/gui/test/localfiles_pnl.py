@@ -10,12 +10,15 @@ class ctrl_pnl(wx.Panel):
 
         wx.Panel.__init__ (self, parent, id=wx.ID_ANY, size=(100,-1), style=wx.TAB_TRAVERSAL)
         # read / save cam config button
-        self.read_btn = wx.Button(self, label='read config')
+        self.read_btn = wx.Button(self, label='Read local files')
         self.read_btn.Bind(wx.EVT_BUTTON, self.read_click)
+        self.download_btn = wx.Button(self, label='Download')
+        self.download_btn.Bind(wx.EVT_BUTTON, self.download_click)
 
         main_sizer = wx.BoxSizer(wx.VERTICAL)
         main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.Add(self.read_btn, 0, wx.ALL, 0)
+        main_sizer.Add(self.download_btn, 0, wx.ALL, 0)
         self.SetSizer(main_sizer)
 
     def read_click(self, e):
@@ -24,11 +27,99 @@ class ctrl_pnl(wx.Panel):
             return None
         config_folder = "config"
         logs_folder   = "logs"
-        print(" This button does almost nothing.")
         I_pnl = self.parent.dict_I_pnl['localfiles_pnl']
         I_pnl.config_file_list.read_configs(I_pnl.config_files, config_folder)
         I_pnl.log_file_list.read_logs(I_pnl.log_files, logs_folder)
 
+    def download_click(self, e):
+        file_dbox = file_download_dialog(self, self.parent)
+        file_dbox.ShowModal()
+        file_dbox.Destroy()
+        #self.read_click("e")
+
+class file_download_dialog(wx.Dialog):
+    #Dialog box for downloding files from pi to local storage folder
+    def __init__(self, parent, *args, **kw):
+        self.parent = parent
+        super(file_download_dialog, self).__init__(*args, **kw)
+        self.InitUI()
+        self.SetSize((700, 400))
+        self.SetTitle("Download files from Pigrow")
+        self.Bind(wx.EVT_CLOSE, self.OnClose)
+    def InitUI(self):
+        # draw the pannel
+        label = wx.StaticText(self,  label='Select elements to download to local storage')
+        # tick boxes for default folder select
+        self.cb_conf = wx.CheckBox(self,  label='Config')
+        self.cb_logs = wx.CheckBox(self,  label='Logs')
+        self.cb_caps = wx.CheckBox(self,  label='Photos')
+        self.cb_graph = wx.CheckBox(self, label='Graphs')
+        tickbox_sizer = wx.BoxSizer(wx.VERTICAL)
+        tickbox_sizer.Add(self.cb_conf, 0, wx.ALL|wx.EXPAND, 5)
+        tickbox_sizer.Add(self.cb_logs, 0, wx.ALL|wx.EXPAND, 5)
+        tickbox_sizer.Add(self.cb_caps, 0, wx.ALL|wx.EXPAND, 5)
+        tickbox_sizer.Add(self.cb_graph, 0, wx.ALL|wx.EXPAND, 5)
+        # select files or folders to download
+        self.select_file_btn = wx.Button(self, label='Select Folder', size=(175, 50))
+        self.select_file_btn.Bind(wx.EVT_BUTTON, self.select_file_click)
+        self.cb_overwrite = wx.CheckBox(self, label='Overwrite existing')
+        self.selected_files = wx.StaticText(self,  label='--')
+        select_file_sizer = wx.BoxSizer(wx.VERTICAL)
+        select_file_sizer.Add(self.select_file_btn, 0, wx.ALL|wx.EXPAND, 5)
+        select_file_sizer.Add(self.cb_overwrite, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
+        select_file_sizer.Add(self.selected_files, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
+        #buttons
+        self.download_btn = wx.Button(self, label='Download', size=(175, 50))
+        self.download_btn.Bind(wx.EVT_BUTTON, self.start_download_click)
+        self.cancel_btn = wx.Button(self, label='Cancel', size=(175, 50))
+        self.cancel_btn.Bind(wx.EVT_BUTTON, self.OnClose)
+        buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        buttons_sizer.Add(self.download_btn, 0,  wx.ALL, 3)
+        buttons_sizer.AddStretchSpacer(1)
+        buttons_sizer.Add(self.cancel_btn, 0,  wx.ALL, 3)
+        # mid pnl
+        mid_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        mid_sizer.AddStretchSpacer(1)
+        mid_sizer.Add(tickbox_sizer, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 5)
+        mid_sizer.AddStretchSpacer(1)
+        mid_sizer.Add(select_file_sizer, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 5)
+        mid_sizer.AddStretchSpacer(1)
+        # main sizer
+        main_sizer = wx.BoxSizer(wx.VERTICAL)
+        main_sizer.Add(label, 0, wx.ALL|wx.EXPAND, 5)
+        main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(mid_sizer, 0, wx.ALL|wx.EXPAND, 5)
+        main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(buttons_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
+        self.SetSizer(main_sizer)
+
+    def select_file_click(self, e):
+        print(" THE BUTTON HAS BEEN PRESSED ")
+        self.parent.parent.link_pnl.select_files_on_pi()
+
+    def start_download_click(self, e):
+        folders_overwrite = []
+        folders_newonly   = []
+        remote_path = self.parent.parent.shared_data.remote_pigrow_path
+        if self.cb_conf.GetValue() == True:
+            folders_overwrite.append(remote_path + "config")
+        if self.cb_logs.GetValue() == True:
+            folders_overwrite.append(remote_path + "logs")
+        if self.cb_caps.GetValue() == True:
+            folders_newonly.append(remote_path + "caps")
+        if self.cb_graph.GetValue() == True:
+            folders_overwrite.append(remote_path + "graphs")
+        #
+        if not len(folders_overwrite) == 0:
+            self.parent.parent.link_pnl.download_folder(folders_overwrite, overwrite=True)
+        if not len(folders_newonly) == 0:
+            self.parent.parent.link_pnl.download_folder(folders_newonly, overwrite=False)
+        if not len(folders_overwrite) == 0 or not len(folders_newonly) == 0:
+            self.Destroy()
+
+    def OnClose(self, e):
+        #closes the dialogue box
+        self.Destroy()
 
 #class info_pnl(wx.Panel):
 class info_pnl(scrolled.ScrolledPanel):
