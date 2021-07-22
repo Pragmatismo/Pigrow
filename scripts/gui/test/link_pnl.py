@@ -31,6 +31,8 @@ class link_pnl(wx.Panel):
     # or allows seeking
     #
     def __init__( self, parent, shared_data ):
+        self.selected_files   = []
+        self.selected_folders = []
         self.parent = parent
         # intiation
         self.ssh = paramiko.SSHClient()
@@ -316,11 +318,11 @@ class link_pnl(wx.Panel):
         print(("    file copied to " + str(local_path)))
         return local_path
 
-    def download_folder(self, folder, overwrite=True, dest=None):
+    def download_folder(self, folder, overwrite=True, dest=None, extra_files=[]):
         print("Downloading folder - ", folder, " overwrite = ", str(overwrite))
         if type(folder) == 'str':
             folder = [folder]
-        if len(folder) == 0:
+        if len(folder) == 0 and len(extra_files) == 0:
             return None
         # connect sftp pipe
         port = int(self.parent.shared_data.gui_set_dict['ssh_port'])
@@ -345,10 +347,18 @@ class link_pnl(wx.Panel):
             # create list of from and to paths
             f_file_list = self.sftp.listdir(fold)
             for item in f_file_list:
-                local_item = os.path.join(local_f, item)
-                self.files_to_download.append([fold + "/" + item, local_item])
+                if overwrite == True:
+                    local_item = os.path.join(local_f, item)
+                    self.files_to_download.append([fold + "/" + item, local_item])
+                else:
+                    local_item = os.path.join(local_f, item)
+                    if not os.path.isfile(local_item):
+                        self.files_to_download.append([fold + "/" + item, local_item])
         # open dialogue box which displays from and to info then closes when done or cancelled
+        self.files_to_download = self.files_to_download + extra_files
+        print ("files to download", self.files_to_download)
         if not len(self.files_to_download) == 0:
+            print("Downlaoding ", len(self.files_to_download), " files")
             file_dbox = files_download_dialog(self, self.parent)
             file_dbox.ShowModal()
             #file_dbox.Destroy()
@@ -361,11 +371,18 @@ class link_pnl(wx.Panel):
         print("selecting files on pi")
         select_file_dbox = select_files_on_pi_dialog(self, self.parent)
         select_file_dbox.ShowModal()
+    #    if self.selected_files == []:
+    #        print(" no files selected ")
+    #    else:
+    #        print (self.selected_files)
+
 
 class select_files_on_pi_dialog(wx.Dialog):
     #Dialog box for downloding files from pi to local storage folder
     def __init__(self, parent, *args, **kw):
         self.parent = parent
+        self.parent.selected_folders = []
+        self.parent.selected_files   = []
         super(select_files_on_pi_dialog, self).__init__(*args, **kw)
         self.InitUI()
         self.SetSize((700, 500))
@@ -454,6 +471,9 @@ class select_files_on_pi_dialog(wx.Dialog):
 
     def OnClose(self, e):
         print(" Closing the dialog box without doing anything")
+        self.selected_files = []
+        self.parent.selected_folders = []
+        self.parent.selected_files   = []
         self.Destroy()
 
     def DoubleClick_filelist(self, e):
@@ -469,9 +489,47 @@ class select_files_on_pi_dialog(wx.Dialog):
             self.fill_filelist()
         else:
             print("Not doing anthing with files when double clicked on, lol")
+            file_selected = current_folder + name
+            print("doubeclick selected - ", file_selected)
 
     def select_item_click(self, e):
-        print(" pressed select file/folder button and i'm not doing anything about it")
+        local_base = self.parent.shared_data.frompi_path
+        print(" pressed select file/folder button, can select files but not folders")
+        current_folder = self.folder_path.GetLabel()
+        first_selected = self.file_list.GetNextSelected(-1)
+        s_count = self.file_list.GetSelectedItemCount()
+        s_folder_list = []
+        if s_count == 1:
+            print("one thing")
+        elif s_count == 0:
+            print("no file selected, using folder")
+            s_folder_list.append(current_folder)
+        #
+
+        s_file_list = []
+        selected_more = True
+        selected_num = -1
+        while selected_more == True:
+            selected_num = self.file_list.GetNextSelected(selected_num)
+            if selected_num == -1:
+                selected_more = False
+            else:
+                colour = self.file_list.GetItemTextColour(selected_num)
+                name = self.file_list.GetItem(selected_num, 0).GetText()
+                if colour == (90, 100, 190, 255):
+                    s_folder_list.append(current_folder + name + "/")
+                else:
+                    local_f = os.path.join(local_base, name) #local_base should be changed to using the location of the file on the pi with folders and sub folders
+                    s_file_list.append([current_folder + name, local_f])
+        #print(self.file_list.GetFocusedItem())
+        #print(self.file_list.GetNextSelected(-1))
+        print("folders ", s_folder_list)
+        print("files ", s_file_list)
+        for item in s_folder_list:
+            self.parent.selected_folders.append(item)
+        for item in s_file_list:
+            self.parent.selected_files.append(item)
+        self.Destroy()
 
 
 class files_download_dialog(wx.Dialog):
@@ -537,4 +595,5 @@ class files_download_dialog(wx.Dialog):
                         os.remove(file[1])
                     print(" - couldn't download " + file[0] + " probably a folder or something.")
         wx.PostEvent(self,FileDownloadEvent(from_p="Done", to_p="Done"))
+        print("Download completed")
         return jobID

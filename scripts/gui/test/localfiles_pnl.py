@@ -41,6 +41,8 @@ class file_download_dialog(wx.Dialog):
     #Dialog box for downloding files from pi to local storage folder
     def __init__(self, parent, *args, **kw):
         self.parent = parent
+        self.user_files_to_download = []
+        self.user_folders_to_download = []
         super(file_download_dialog, self).__init__(*args, **kw)
         self.InitUI()
         self.SetSize((700, 400))
@@ -63,11 +65,13 @@ class file_download_dialog(wx.Dialog):
         self.select_file_btn = wx.Button(self, label='Select Folder', size=(175, 50))
         self.select_file_btn.Bind(wx.EVT_BUTTON, self.select_file_click)
         self.cb_overwrite = wx.CheckBox(self, label='Overwrite existing')
-        self.selected_files = wx.StaticText(self,  label='--')
+        self.selected_files_l = wx.StaticText(self,  label='--')
+        self.selected_folders_l = wx.StaticText(self,  label='--')
         select_file_sizer = wx.BoxSizer(wx.VERTICAL)
         select_file_sizer.Add(self.select_file_btn, 0, wx.ALL|wx.EXPAND, 5)
         select_file_sizer.Add(self.cb_overwrite, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
-        select_file_sizer.Add(self.selected_files, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
+        select_file_sizer.Add(self.selected_files_l, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
+        select_file_sizer.Add(self.selected_folders_l, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
         #buttons
         self.download_btn = wx.Button(self, label='Download', size=(175, 50))
         self.download_btn.Bind(wx.EVT_BUTTON, self.start_download_click)
@@ -96,6 +100,33 @@ class file_download_dialog(wx.Dialog):
     def select_file_click(self, e):
         print(" THE BUTTON HAS BEEN PRESSED ")
         self.parent.parent.link_pnl.select_files_on_pi()
+        selected_files = self.parent.parent.link_pnl.selected_files
+        selected_folders = self.parent.parent.link_pnl.selected_folders
+        if len(selected_files) == 0 and len(selected_folders) == 0:
+            print("Nothing selected so not doing nothing lol")
+            return None
+        # folders
+        if len(selected_folders) > 0:
+            in_fold_list = self.selected_folders_l.GetLabel()
+            for fold in selected_folders:
+                in_fold_list += "\n" + fold
+                self.user_folders_to_download.append(fold)
+            in_fold_list = in_fold_list.replace("--\n", "")
+            self.selected_folders_l.SetLabel(in_fold_list)
+
+        # files
+        file_list = self.user_files_to_download
+        if len(selected_files) > 0:
+            for s_file in selected_files:
+                if not s_file in self.user_files_to_download:
+                    self.user_files_to_download.append(s_file)
+            # make text
+            in_file_text = ""
+            for item in self.user_files_to_download:
+                in_file_text += item[0] + "\n"
+            self.selected_files_l.SetLabel(in_file_text)
+        self.Layout()
+
 
     def start_download_click(self, e):
         folders_overwrite = []
@@ -109,13 +140,33 @@ class file_download_dialog(wx.Dialog):
             folders_newonly.append(remote_path + "caps")
         if self.cb_graph.GetValue() == True:
             folders_overwrite.append(remote_path + "graphs")
+        # set if overwrite is ticked
+        if self.cb_overwrite.GetValue() == True:
+            print(" OVERWRITING FILES")
+            folders_overwrite = folders_overwrite + self.user_folders_to_download
+            extra_files_over = []
+            extra_files = self.user_files_to_download
+        else:
+            print(" NOT OVERWRITING FILES")
+            folders_newonly = folders_newonly + self.user_folders_to_download
+            extra_files_over = self.user_files_to_download
+            extra_files = []
         #
-        if not len(folders_overwrite) == 0:
-            self.parent.parent.link_pnl.download_folder(folders_overwrite, overwrite=True)
-        if not len(folders_newonly) == 0:
-            self.parent.parent.link_pnl.download_folder(folders_newonly, overwrite=False)
-        if not len(folders_overwrite) == 0 or not len(folders_newonly) == 0:
-            self.Destroy()
+        if len(extra_files) > 0 or len(extra_files_over) > 0:
+            print(" HAS USER FILES TO DOWNLOAD!!!! ")
+        if len(self.user_folders_to_download) > 0:
+            print(" HAS USER FOLDERS TO DOWNLOAD!!!! ")
+
+        # only run if something to download
+        if not len(folders_overwrite) == 0 or not len(extra_files_over) == 0:
+            self.parent.parent.link_pnl.download_folder(folders_overwrite, overwrite=True, extra_files=extra_files_over)
+        if not len(folders_newonly) == 0 or not len(extra_files) == 0:
+            self.parent.parent.link_pnl.download_folder(folders_newonly, overwrite=False, extra_files=extra_files)
+
+        #if not len(folders_overwrite) == 0 or not len(folders_newonly) == 0:
+        self.user_files_to_download = []
+        self.user_folders_to_download = []
+        self.Destroy()
 
     def OnClose(self, e):
         #closes the dialogue box
