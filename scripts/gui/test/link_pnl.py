@@ -224,6 +224,7 @@ class link_pnl(wx.Panel):
         if not box_name == "" and not box_name == None:
             shared_data.frompi_path = os.path.join(shared_data.frompi_base_path, box_name)
             shared_data.remote_pigrow_path = "/home/" + self.tb_user.GetValue() + "/Pigrow/"
+            self.parent.tell_pnls_connected()
         else:
             shared_data.frompi_path = ""
             shared_data.remote_pigrow_path = ""
@@ -367,20 +368,35 @@ class link_pnl(wx.Panel):
         self.sftp.close()
         ssh_tran.close()
 
-    def select_files_on_pi(self):
+    def select_files_on_pi(self, single_folder=False):
         print("selecting files on pi")
+        self.single_folder = single_folder
         select_file_dbox = select_files_on_pi_dialog(self, self.parent)
         select_file_dbox.ShowModal()
-    #    if self.selected_files == []:
-    #        print(" no files selected ")
-    #    else:
-    #        print (self.selected_files)
+
+   # upload files
+
+    def upload_files(self, file_list):
+        port = int(self.parent.shared_data.gui_set_dict['ssh_port'])
+        print("  - connecting transport pipe... " + self.target_ip + " port:" + str(port))
+        print("    to  upload ", len(file_list), "files")
+        ssh_tran = paramiko.Transport((self.target_ip, port))
+        ssh_tran.connect(username=self.target_user, password=self.target_pass)
+        self.sftp = paramiko.SFTPClient.from_transport(ssh_tran)
+        for file in file_list:
+            local_path, remote_path = file
+            self.sftp.put(local_path, remote_path)
+        self.sftp.close()
+        ssh_tran.close()
+        print(("    file copied to " + str(local_path)))
+
 
 
 class select_files_on_pi_dialog(wx.Dialog):
     #Dialog box for downloding files from pi to local storage folder
     def __init__(self, parent, *args, **kw):
         self.parent = parent
+        self.single_folder = parent.single_folder
         self.parent.selected_folders = []
         self.parent.selected_files   = []
         super(select_files_on_pi_dialog, self).__init__(*args, **kw)
@@ -401,7 +417,11 @@ class select_files_on_pi_dialog(wx.Dialog):
         folder_sizer.Add(self.folder_path, 0, wx.ALL|wx.EXPAND, 5)
         folder_sizer.Add(self.up_a_level_btn, 0, wx.ALL|wx.ALIGN_RIGHT, 5)
         # files
-        self.file_list = wx.ListCtrl(self, size=(600,300), style=wx.LC_REPORT|wx.BORDER_SUNKEN)
+        if self.single_folder == True:
+            print("Single Folder mode activated ")
+            self.file_list = wx.ListCtrl(self, size=(600,300), style=wx.LC_REPORT|wx.BORDER_SUNKEN|wx.LC_SINGLE_SEL)
+        else:
+            self.file_list = wx.ListCtrl(self, size=(600,300), style=wx.LC_REPORT|wx.BORDER_SUNKEN)
         self.file_list.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.DoubleClick_filelist)
         self.file_list.InsertColumn(0, 'Filename')
         self.file_list.InsertColumn(1, 'size')
@@ -494,7 +514,6 @@ class select_files_on_pi_dialog(wx.Dialog):
 
     def select_item_click(self, e):
         local_base = self.parent.shared_data.frompi_path
-        print(" pressed select file/folder button, can select files but not folders")
         current_folder = self.folder_path.GetLabel()
         first_selected = self.file_list.GetNextSelected(-1)
         s_count = self.file_list.GetSelectedItemCount()
@@ -523,8 +542,14 @@ class select_files_on_pi_dialog(wx.Dialog):
                     s_file_list.append([current_folder + name, local_f])
         #print(self.file_list.GetFocusedItem())
         #print(self.file_list.GetNextSelected(-1))
+        if self.single_folder == True and len(s_folder_list) == 0:
+            filename = s_file_list[0][0]
+            folder = os.path.dirname(filename)
+            s_file_list = []
+            s_folder_list = [folder]
         print("folders ", s_folder_list)
         print("files ", s_file_list)
+
         for item in s_folder_list:
             self.parent.selected_folders.append(item)
         for item in s_file_list:

@@ -127,6 +127,11 @@ class ctrl_pnl(scrolled.ScrolledPanel):
         self.SetupScrolling()
         self.SetSizer(main_sizer)
 
+    def connect_to_pigrow(self):
+        print(" CAMERA PNL KNOWS YOU CONNECTED LMFAO ")
+        self.list_cams_click('e')
+        self.seek_cam_configs()
+
     # Load / Save Config
 
     def seek_cam_configs(self):

@@ -2,6 +2,7 @@ import wx
 import os
 import sys
 import platform
+import datetime
 import wx.lib.scrolledpanel as scrolled
 
 class shared_data:
@@ -119,6 +120,43 @@ class shared_data:
             print(" help file not found, check www.reddit.com/r/Pigrow/wiki for info.")
             print("     " + guide_path + " not found")
 
+    def scale_pic(self, pic, target_size):
+        pic_height = pic.GetHeight()
+        pic_width = pic.GetWidth()
+        # scale the image, preserving the aspect ratio
+        if pic_width > pic_height:
+            sizeratio = (pic_width / target_size)
+            new_height = int(pic_height / sizeratio)
+            scale_pic = pic.Scale(target_size, new_height, wx.IMAGE_QUALITY_HIGH)
+            #print(pic_width, pic_height, sizeratio, target_size, new_height, scale_pic.GetWidth(), scale_pic.GetHeight())
+        else:
+            sizeratio = (pic_height / target_size)
+            new_width = int(pic_width / sizeratio)
+            scale_pic = pic.Scale(new_width, target_size, wx.IMAGE_QUALITY_HIGH)
+            #print(pic_width, pic_height, sizeratio, new_width, target_size, scale_pic.GetWidth(), scale_pic.GetHeight())
+        return scale_pic
+
+    def date_from_fn(self, thefilename):
+        if "." in thefilename and "_" in thefilename:
+            fdate = thefilename.split(".")[0].split("_")[-1]
+            if len(fdate) == 10 and fdate.isdigit():
+                fdate = datetime.datetime.utcfromtimestamp(float(fdate))
+            else:
+                return None
+            return fdate
+        #elif "-" in thefilename:
+        #    try:
+        #        date = thefilename.split("-")[1]
+        #        # 10-2018 05 05 20 12 12-03
+        #        file_datetime = datetime.datetime.strptime(date, '%Y%m%d%H%M%S')
+        #        text_date = file_datetime.strftime('%Y-%m-%d %H:%M')
+        #        return file_datetime
+        #    except:
+        #        print("!! Tried to parse filename as Motion date but failed " + str(thefilename))
+        #        return None, None
+        else:
+            return None
+
 
 
 
@@ -203,6 +241,7 @@ class shared_data:
             btnsizer.Add((5,-1), 0, wx.ALL, 5)
             if cancel==True:
                 cancel_btn = wx.Button(self, wx.ID_CANCEL)
+                cancel_btn.Bind(wx.EVT_BUTTON, self.cancel_click)
                 btnsizer.Add(cancel_btn, 0, wx.ALL, 5)
             sizer.Add(self.text, 0, wx.EXPAND|wx.ALL, 5)
             sizer.Add(btnsizer, 0, wx.ALL, 5)
@@ -210,10 +249,20 @@ class shared_data:
         def ok_click(self, e):
             self.text = self.text.GetValue()
             self.Destroy()
+        def cancel_click(self, e):
+            self.text = None
+            self.Destroy()
 
     class show_image_dialog(wx.Dialog):
         def __init__(self, parent,  image_to_show, title):
             wx.Dialog.__init__(self, parent, title=(title))
+            # if path load image
+            if type(image_to_show) == type("str"):
+                print("LOADING IMAGE ", image_to_show)
+                image_to_show = wx.Image(image_to_show, wx.BITMAP_TYPE_ANY)
+                image_to_show = image_to_show.ConvertToBitmap()
+            else:
+                print( type(image_to_show))
             # limit size to screen
             width, height = wx.GetDisplaySize()
             im_width, im_height = image_to_show.GetSize()

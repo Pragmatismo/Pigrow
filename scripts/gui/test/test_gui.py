@@ -103,6 +103,16 @@ class MainFrame(wx.Frame):
         h = hpy()
         print (h.heap())
 
+    def tell_pnls_connected(self):
+        print("Connected to a pigrow - this is where we'd tell the pnls")
+        for key, value in MainFrame.dict_C_pnl.items():
+            try:
+                value.connect_to_pigrow()
+            except Exception as E:
+                print(key, "doesn't have connect_to_pigrow")
+                print(E)    
+
+
 
     def resize_window(self, e):
         '''

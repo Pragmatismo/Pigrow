@@ -14,11 +14,14 @@ class ctrl_pnl(wx.Panel):
         self.read_btn.Bind(wx.EVT_BUTTON, self.read_click)
         self.download_btn = wx.Button(self, label='Download')
         self.download_btn.Bind(wx.EVT_BUTTON, self.download_click)
+        self.upload_btn = wx.Button(self, label='Upload to pi')
+        self.upload_btn.Bind(wx.EVT_BUTTON, self.upload_click)
 
         main_sizer = wx.BoxSizer(wx.VERTICAL)
         main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.Add(self.read_btn, 0, wx.ALL, 0)
         main_sizer.Add(self.download_btn, 0, wx.ALL, 0)
+        main_sizer.Add(self.upload_btn, 0, wx.ALL, 0)
         self.SetSizer(main_sizer)
 
     def read_click(self, e):
@@ -27,15 +30,114 @@ class ctrl_pnl(wx.Panel):
             return None
         config_folder = "config"
         logs_folder   = "logs"
+        caps_folder   = 'caps'
+        local_caps  = os.path.join(self.parent.shared_data.frompi_path, caps_folder)
+        remote_caps = self.parent.shared_data.remote_pigrow_path + caps_folder
         I_pnl = self.parent.dict_I_pnl['localfiles_pnl']
         I_pnl.config_file_list.read_configs(I_pnl.config_files, config_folder)
         I_pnl.log_file_list.read_logs(I_pnl.log_files, logs_folder)
+        I_pnl.r_folder_text.SetLabel(remote_caps)
+        I_pnl.folder_text.SetLabel(local_caps)
+        I_pnl.set_r_caps_text()
+        I_pnl.read_caps_info()
 
     def download_click(self, e):
         file_dbox = file_download_dialog(self, self.parent)
         file_dbox.ShowModal()
         file_dbox.Destroy()
         #self.read_click("e")
+
+    def upload_click(self, e):
+        file_dbox = file_upload_dialog(self, self.parent)
+        file_dbox.ShowModal()
+        file_dbox.Destroy()
+
+    def connect_to_pigrow(self):
+        print(" LOCALFILES KNOWS YOU JUST CONNECTED TO A PIGROW - WOOT")
+        self.read_click("e")
+
+class file_upload_dialog(wx.Dialog):
+    #Dialog box for downloding files from pi to local storage folder
+    def __init__(self, parent, *args, **kw):
+        self.parent = parent
+        self.user_files_to_upload = []
+        self.user_folders_to_upload = []
+        super(file_upload_dialog, self).__init__(*args, **kw)
+        self.InitUI()
+        self.SetSize((700, 400))
+        self.SetTitle("Upload files to Pigrow")
+        self.Bind(wx.EVT_CLOSE, self.OnClose)
+    def InitUI(self):
+        # draw the pannel
+        label = wx.StaticText(self,  label='Select elements to upload onto pi')
+
+        # select files or folders to download
+        self.select_file_btn = wx.Button(self, label='Select files', size=(175, 50))
+        self.select_file_btn.Bind(wx.EVT_BUTTON, self.select_file_click)
+        # select files
+        self.cb_overwrite = wx.CheckBox(self, label='Overwrite existing')
+        self.selected_files_l = wx.StaticText(self,  label='--')
+        select_file_sizer = wx.BoxSizer(wx.VERTICAL)
+        select_file_sizer.Add(self.select_file_btn, 0, wx.ALL|wx.EXPAND, 5)
+        select_file_sizer.Add(self.cb_overwrite, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
+        #
+
+        self.selected_dest_folder_l = wx.StaticText(self,  label='--')
+        self.select_upload_folder_btn = wx.Button(self, label='Select upload folder', size=(175, 50))
+        self.select_upload_folder_btn.Bind(wx.EVT_BUTTON, self.select_upload_folder_click)
+        select_dest_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        select_dest_sizer.Add(self.selected_dest_folder_l, 0, wx.ALL|wx.EXPAND, 5)
+        select_dest_sizer.Add(self.select_upload_folder_btn, 0, wx.ALL|wx.EXPAND, 5)
+
+        #buttons
+        self.upload_btn = wx.Button(self, label='Upload', size=(175, 50))
+        self.upload_btn.Bind(wx.EVT_BUTTON, self.start_upload_click)
+        self.cancel_btn = wx.Button(self, label='Cancel', size=(175, 50))
+        self.cancel_btn.Bind(wx.EVT_BUTTON, self.OnClose)
+        buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        buttons_sizer.Add(self.upload_btn, 0,  wx.ALL, 3)
+        buttons_sizer.AddStretchSpacer(1)
+        buttons_sizer.Add(self.cancel_btn, 0,  wx.ALL, 3)
+        # main sizer
+        main_sizer = wx.BoxSizer(wx.VERTICAL)
+        main_sizer.Add(label, 0, wx.ALL|wx.EXPAND, 5)
+        main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(select_file_sizer, 0, wx.ALL|wx.EXPAND, 5)
+        main_sizer.Add(select_dest_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
+        main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(buttons_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
+        self.SetSizer(main_sizer)
+
+    def select_file_click(self, e):
+        dialog = wx.FileDialog(self, "Select files to upload to pi", style=wx.FD_MULTIPLE)
+        if dialog.ShowModal() == wx.ID_OK:
+            self.filelist = dialog.GetPaths()
+        self.Layout()
+
+    def select_upload_folder_click(self, e):
+        self.parent.parent.link_pnl.select_files_on_pi(single_folder=True)
+        selected_files = self.parent.parent.link_pnl.selected_files
+        self.selected_folders = self.parent.parent.link_pnl.selected_folders
+        self.selected_dest_folder_l.SetLabel(self.selected_folders[0])
+        self.Layout()
+
+    def start_upload_click(self, e):
+        dest_fold = self.selected_folders[0]
+        tocopy_files = self.filelist
+        print("Wants to copy", len(tocopy_files), "to", dest_fold)
+        copy_list = []
+        for file in tocopy_files:
+            dest = dest_fold + os.path.split(file)[1]
+            copy_list.append([file, dest])
+        print (copy_list)
+        self.parent.parent.link_pnl.upload_files(copy_list)
+        self.Layout()
+
+    def OnClose(self, e):
+        #closes the dialogue box
+    #    self.user_files_to_upload = []
+    #    self.user_folders_to_upload = []
+        self.Destroy()
 
 class file_download_dialog(wx.Dialog):
     #Dialog box for downloding files from pi to local storage folder
@@ -98,12 +200,10 @@ class file_download_dialog(wx.Dialog):
         self.SetSizer(main_sizer)
 
     def select_file_click(self, e):
-        print(" THE BUTTON HAS BEEN PRESSED ")
         self.parent.parent.link_pnl.select_files_on_pi()
         selected_files = self.parent.parent.link_pnl.selected_files
         selected_folders = self.parent.parent.link_pnl.selected_folders
         if len(selected_files) == 0 and len(selected_folders) == 0:
-            print("Nothing selected so not doing nothing lol")
             return None
         # folders
         if len(selected_folders) > 0:
@@ -137,7 +237,9 @@ class file_download_dialog(wx.Dialog):
         if self.cb_logs.GetValue() == True:
             folders_overwrite.append(remote_path + "logs")
         if self.cb_caps.GetValue() == True:
-            folders_newonly.append(remote_path + "caps")
+            remote_caps_path = self.parent.parent.dict_I_pnl['localfiles_pnl'].r_folder_text.GetLabel()
+            print(" ------- ", remote_caps_path, " --------- ")
+            folders_newonly.append(remote_caps_path)
         if self.cb_graph.GetValue() == True:
             folders_overwrite.append(remote_path + "graphs")
         # set if overwrite is ticked
@@ -170,6 +272,8 @@ class file_download_dialog(wx.Dialog):
 
     def OnClose(self, e):
         #closes the dialogue box
+        self.user_files_to_download = []
+        self.user_folders_to_download = []
         self.Destroy()
 
 #class info_pnl(wx.Panel):
@@ -208,12 +312,187 @@ class info_pnl(scrolled.ScrolledPanel):
         tables_sizer.SetItemMinSize(self.config_files, (w, -1))
         tables_sizer.SetItemMinSize(self.log_files, (w, -1))
 
+        #photos
+        #local photo storage info
+        photo_l = wx.StaticText(self,  label='Photos', size=(75,25))
+        photo_l.SetFont(shared_data.item_title_font)
+        # local caps folder
+        caps_folder_l = wx.StaticText(self,  label='Local;')
+        caps_folder = os.path.join(shared_data.frompi_path, 'caps')
+        self.folder_text = wx.StaticText(self,  label=caps_folder)
+        self.set_caps_folder_btn = wx.Button(self, label='...')
+        self.set_caps_folder_btn.Bind(wx.EVT_BUTTON, self.set_caps_folder_click)
+        caps_folder_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        caps_folder_sizer.Add(caps_folder_l, 0, wx.ALL|wx.EXPAND, 5)
+        caps_folder_sizer.Add(self.folder_text, 0, wx.ALL|wx.EXPAND, 5)
+        caps_folder_sizer.Add(self.set_caps_folder_btn, 0, wx.ALL|wx.EXPAND, 5)
+        # remote caps folder
+        r_caps_folder_l = wx.StaticText(self,  label='Remote;')
+        r_caps_folder = shared_data.remote_pigrow_path + 'caps'
+        self.r_folder_text = wx.StaticText(self,  label=r_caps_folder)
+        self.set_r_caps_folder_btn = wx.Button(self, label='...')
+        self.set_r_caps_folder_btn.Bind(wx.EVT_BUTTON, self.set_r_caps_folder_click)
+        r_caps_folder_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        r_caps_folder_sizer.Add(r_caps_folder_l, 0, wx.ALL|wx.EXPAND, 5)
+        r_caps_folder_sizer.Add(self.r_folder_text, 0, wx.ALL|wx.EXPAND, 5)
+        r_caps_folder_sizer.Add(self.set_r_caps_folder_btn, 0, wx.ALL|wx.EXPAND, 5)
+
+        self.photo_first_text = wx.StaticText(self, label='--')
+        self.photo_mid_text   = wx.StaticText(self, label='--', style=wx.ALIGN_CENTRE_HORIZONTAL)
+        self.r_mid_text       = wx.StaticText(self, label='--', style=wx.ALIGN_CENTRE_HORIZONTAL)
+        self.photo_last_text  = wx.StaticText(self, label='--')
+
+        photo_dates_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        photo_dates_sizer.Add(self.photo_first_text, 0, wx.RIGHT, 5)
+        photo_dates_sizer.AddStretchSpacer(1)
+        photo_dates_sizer.Add(self.photo_last_text, 0, wx.LEFT, 5)
+        photo_mid_sizer = wx.BoxSizer(wx.VERTICAL)
+        photo_mid_sizer.Add(caps_folder_sizer, 0, wx.ALL|wx.EXPAND, 5)
+        photo_mid_sizer.Add(r_caps_folder_sizer, 0, wx.ALL|wx.EXPAND, 5)
+        photo_mid_sizer.Add(photo_dates_sizer, 0, wx.ALL|wx.EXPAND, 1)
+        photo_mid_sizer.Add(self.photo_mid_text, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
+        photo_mid_sizer.Add(self.r_mid_text, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
+
+        blank_img = wx.Bitmap(255, 255)
+        self.first_photo_title = wx.StaticText(self,  label='first image')
+        self.photo_folder_first_pic = wx.BitmapButton(self, -1, blank_img, size=(255, 255))
+        self.photo_folder_first_pic.SetToolTip("none")
+        self.photo_folder_first_pic.Bind(wx.EVT_BUTTON, self.img_click)
+        self.last_photo_title = wx.StaticText(self,  label='last image')
+        self.photo_folder_last_pic = wx.BitmapButton(self, -1, blank_img, size=(255, 255))
+        self.photo_folder_last_pic.SetToolTip("none")
+        self.photo_folder_last_pic.Bind(wx.EVT_BUTTON, self.img_click)
+        first_pic_sizer = wx.BoxSizer(wx.VERTICAL)
+        first_pic_sizer.Add(self.photo_folder_first_pic, 0, wx.ALL|wx.EXPAND, 5)
+        first_pic_sizer.Add(self.first_photo_title, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
+        last_pic_sizer = wx.BoxSizer(wx.VERTICAL)
+        last_pic_sizer.Add(self.photo_folder_last_pic, 0, wx.ALL|wx.EXPAND, 5)
+        last_pic_sizer.Add(self.last_photo_title, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
+
+        photo_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        photo_sizer.Add(first_pic_sizer, 0, wx.ALL|wx.EXPAND, 5)
+        photo_sizer.Add(photo_mid_sizer, 0, wx.ALL|wx.EXPAND, 5)
+        photo_sizer.Add(last_pic_sizer, 0, wx.ALL|wx.EXPAND, 5)
+
+
         self.main_sizer = wx.BoxSizer(wx.VERTICAL)
         self.main_sizer.Add(title_sizer, 0, wx.ALL|wx.EXPAND, 5)
         self.main_sizer.Add(tables_sizer, 0, wx.ALL|wx.EXPAND, 5)
+        self.main_sizer.Add(photo_sizer, 0, wx.ALL|wx.EXPAND, 5)
         self.SetAutoLayout(1)
         self.SetupScrolling()
         self.SetSizer(self.main_sizer)
+
+    def set_r_caps_folder_click(self, e):
+        print("pressed to open remote caps path")
+        self.parent.link_pnl.select_files_on_pi(single_folder=True)
+        selected_folders = self.parent.link_pnl.selected_folders
+        self.r_folder_text.SetLabel(selected_folders[0])
+        self.set_r_caps_text()
+        self.Layout()
+
+    def set_r_caps_text(self):
+        r_path = self.r_folder_text.GetLabel()
+        out, error = self.parent.link_pnl.run_on_pi("ls " + r_path)
+        r_file_list = out.splitlines()
+        text = "Remote folder " + str(len(r_file_list)) + " files"
+        if len(r_file_list) > 1:
+            f_pic_date = self.parent.shared_data.date_from_fn(r_file_list[0])
+            l_pic_date = self.parent.shared_data.date_from_fn(r_file_list[-1])
+            if not f_pic_date == 'none' and not l_pic_date == 'none':
+                time_delta = l_pic_date - f_pic_date
+                text += "\n" + str(f_pic_date) + " - " + str(l_pic_date)
+                text += "\nDuration " + str(time_delta)
+
+        self.r_mid_text.SetLabel(text)
+
+
+    def img_click(self, e):
+        obj = e.GetEventObject()
+        tip_path = obj.GetToolTipText()
+        print (tip_path)
+        if not tip_path == "none":
+            dbox = self.parent.shared_data.show_image_dialog(None, tip_path, "First image")
+            dbox.ShowModal()
+            dbox.Destroy()
+
+    def set_caps_folder_click(self, e):
+        # get folder
+        wildcard = "JPG and PNG files (*.jpg;*.png)|*.jpg;*.png|GIF files (*.gif)|*.gif"
+        openFileDialog = wx.FileDialog(self, "Select caps folder", "", "", wildcard, wx.FD_OPEN | wx.FD_FILE_MUST_EXIST)
+        openFileDialog.SetMessage("Select an image from the caps folder you want to import")
+        if openFileDialog.ShowModal() == wx.ID_CANCEL:
+            return 'none'
+        new_cap_path = openFileDialog.GetPath()
+        cap_dir = os.path.split(new_cap_path)[0]
+        #
+        self.folder_text.SetLabel(cap_dir)
+        self.read_caps_info()
+        self.Layout()
+
+    def read_caps_info(self):
+        caps_folder = self.folder_text.GetLabel()
+        file_list = os.listdir(caps_folder)
+        pic_list = []
+        img_types = ['jpg', 'gif', 'png', 'bmp', 'raw']
+        for item in file_list:
+            if "." in item:
+                img_type = item.split(".")[1]
+                if img_type in img_types:
+                    full_path = os.path.join(caps_folder, item)
+                    pic_list.append(full_path)
+        pic_list.sort()
+
+        if len(pic_list) > 0:
+            self.set_mid_text(pic_list)
+            name = os.path.split(pic_list[0])[1]
+            self.first_photo_title.SetLabel(name)
+            self.set_image_preview(pic_list[0], 'first')
+            self.photo_first_text.SetLabel(self.make_image_text(pic_list[0]))
+            if len(pic_list) > 1:
+                name = os.path.split(pic_list[-1])[1]
+                self.last_photo_title.SetLabel(name)
+                self.set_image_preview(pic_list[-1], 'last')
+                self.photo_last_text.SetLabel(self.make_image_text(name))
+            else:
+                print(" only one image in caps folder")
+        else:
+            print(" No image files to load")
+
+    def set_image_preview(self, img_path, place):
+        #print("Loading -", img_path, "to", place)
+        try:
+            pic = wx.Image(img_path, wx.BITMAP_TYPE_ANY)
+            pic = self.parent.shared_data.scale_pic(pic, 300)
+            pic = pic.ConvertToBitmap()
+            if place == 'first':
+                self.photo_folder_first_pic.SetToolTip(img_path)
+                self.photo_folder_first_pic.SetBitmap(pic)
+            if place == 'last':
+                self.photo_folder_last_pic.SetToolTip(img_path)
+                self.photo_folder_last_pic.SetBitmap(pic)
+        except:
+            raise
+            print("!! image in local caps folder didn't work.", img_path)
+
+    def make_image_text(self, pic_path):
+        pic_date = self.parent.shared_data.date_from_fn(pic_path)
+        pic_text = str(pic_date)
+        return pic_text
+
+    def set_mid_text(self, pic_list):
+        mid_text = str(len(pic_list)) + " files locally"
+        # length of image dates
+        if len(pic_list) > 1:
+            date_f = self.parent.shared_data.date_from_fn(pic_list[0])
+            date_l = self.parent.shared_data.date_from_fn(pic_list[-1])
+            if not date_f == None or not date_l == None:
+                caps_delta = date_l - date_f
+                mid_text += "\nDuration " + str(caps_delta)
+
+        self.photo_mid_text.SetLabel(mid_text)
+        self.Layout()
+
 
     class config_file_list(wx.ListCtrl):
         def __init__(self, parent, id):
