@@ -333,15 +333,23 @@ class link_pnl(wx.Panel):
         # create list of files
         self.files_to_download = []
         for fold in folder:
-            if 'Pigrow' in fold:
-                base = fold.split('Pigrow')[1]
-                base = base[1:]
-            elif self.target_user in fold:
-                base = fold.split(self.target_user)[1]
+            if type(fold) == 'str':
+                # determine save location from path
+                if 'Pigrow' in fold:
+                    base = fold.split('Pigrow')[1]
+                    base = base[1:]
+                elif self.target_user in fold:
+                    base = fold.split(self.target_user)[1]
+                else:
+                    base = fold
+                local_base = self.parent.shared_data.frompi_path
+                local_f = os.path.join(local_base, base)
+            #    print("lol")
             else:
-                base = fold
-            local_base = self.parent.shared_data.frompi_path
-            local_f  = os.path.join(local_base, base)
+                # when handed [remote, local] paths
+                local_f = fold[1]
+                fold = fold[0]
+
             # make folder if it doesn't exist
             if not os.path.isdir(local_f):
                 os.makedirs(local_f)

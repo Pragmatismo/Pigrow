@@ -16,12 +16,15 @@ class ctrl_pnl(wx.Panel):
         self.download_btn.Bind(wx.EVT_BUTTON, self.download_click)
         self.upload_btn = wx.Button(self, label='Upload to pi')
         self.upload_btn.Bind(wx.EVT_BUTTON, self.upload_click)
+        self.clear_downed_btn = wx.Button(self, label='clear downloaded caps')
+        self.clear_downed_btn.Bind(wx.EVT_BUTTON, self.clear_downed_click)
 
         main_sizer = wx.BoxSizer(wx.VERTICAL)
         main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.Add(self.read_btn, 0, wx.ALL, 0)
         main_sizer.Add(self.download_btn, 0, wx.ALL, 0)
         main_sizer.Add(self.upload_btn, 0, wx.ALL, 0)
+        main_sizer.Add(self.clear_downed_btn, 0, wx.ALL, 0)
         self.SetSizer(main_sizer)
 
     def read_click(self, e):
@@ -31,13 +34,15 @@ class ctrl_pnl(wx.Panel):
         config_folder = "config"
         logs_folder   = "logs"
         caps_folder   = 'caps'
-        local_caps  = os.path.join(self.parent.shared_data.frompi_path, caps_folder)
-        remote_caps = self.parent.shared_data.remote_pigrow_path + caps_folder
         I_pnl = self.parent.dict_I_pnl['localfiles_pnl']
         I_pnl.config_file_list.read_configs(I_pnl.config_files, config_folder)
         I_pnl.log_file_list.read_logs(I_pnl.log_files, logs_folder)
-        I_pnl.r_folder_text.SetLabel(remote_caps)
-        I_pnl.folder_text.SetLabel(local_caps)
+        if I_pnl.r_folder_text.GetLabel().strip() == "caps":
+            remote_caps = self.parent.shared_data.remote_pigrow_path + caps_folder
+            I_pnl.r_folder_text.SetLabel(remote_caps)
+        if I_pnl.folder_text.GetLabel().strip() == "caps":
+            local_caps  = os.path.join(self.parent.shared_data.frompi_path, caps_folder)
+            I_pnl.folder_text.SetLabel(local_caps)
         I_pnl.set_r_caps_text()
         I_pnl.read_caps_info()
 
@@ -45,7 +50,7 @@ class ctrl_pnl(wx.Panel):
         file_dbox = file_download_dialog(self, self.parent)
         file_dbox.ShowModal()
         file_dbox.Destroy()
-        #self.read_click("e")
+        self.read_click("e")
 
     def upload_click(self, e):
         file_dbox = file_upload_dialog(self, self.parent)
@@ -55,6 +60,43 @@ class ctrl_pnl(wx.Panel):
     def connect_to_pigrow(self):
         print(" LOCALFILES KNOWS YOU JUST CONNECTED TO A PIGROW - WOOT")
         self.read_click("e")
+
+    def clear_downed_click(self, e):
+        # looks at local files an remote files removing any from the pigrows
+        # that are already stored in the local caps folder for that pigrow
+        print("clearing already downloaded images off pigrow")
+        remote_caps_path = self.parent.dict_I_pnl['localfiles_pnl'].r_folder_text.GetLabel()
+        local_caps_path = self.parent.dict_I_pnl['localfiles_pnl'].folder_text.GetLabel()
+        caps_files = os.listdir(local_caps_path)
+        print("---------")
+        print(local_caps_path)
+        print(len(caps_files))
+        print("-----")
+        caps_files.sort()
+        print(str(len(caps_files)) + " files locally \n")
+        #read pi's caps folder
+        try:
+
+            out, error = self.parent.link_pnl.run_on_pi("ls " + remote_caps_path)
+            remote_caps = out.splitlines()
+            print(len(remote_caps))
+            print("-------------------")
+        except Exception as e:
+            print(("-- reading remote caps folder failed; " + str(e)))
+            remote_caps = []
+        count = 0
+        for the_remote_file in remote_caps:
+            if the_remote_file in caps_files:
+                the_remote_file = remote_caps_path + "/" + the_remote_file
+                #MainApp.status.write_bar("clearing - " + the_remote_file)
+                print("clearing - " + the_remote_file)
+                self.parent.link_pnl.run_on_pi("rm " + the_remote_file, False)
+                #wx.GetApp().Yield()
+                count = count + 1
+            #MainApp.status.write_bar("Cleared " + str(count) + " files from the pigrow")
+            print("Cleared " + str(count) + " files from the pigrow")
+        # when done refreh the file info
+        self.parent.dict_I_pnl['localfiles_pnl'].set_r_caps_text()
 
 class file_upload_dialog(wx.Dialog):
     #Dialog box for downloding files from pi to local storage folder
@@ -238,8 +280,10 @@ class file_download_dialog(wx.Dialog):
             folders_overwrite.append(remote_path + "logs")
         if self.cb_caps.GetValue() == True:
             remote_caps_path = self.parent.parent.dict_I_pnl['localfiles_pnl'].r_folder_text.GetLabel()
-            print(" ------- ", remote_caps_path, " --------- ")
-            folders_newonly.append(remote_caps_path)
+            print(" ---remote---- ", remote_caps_path, " --------- ")
+            local_caps_path = self.parent.parent.dict_I_pnl['localfiles_pnl'].folder_text.GetLabel()
+            print(" ---local---- ", local_caps_path, " --------- ")
+            folders_newonly.append([remote_caps_path, local_caps_path])
         if self.cb_graph.GetValue() == True:
             folders_overwrite.append(remote_path + "graphs")
         # set if overwrite is ticked
@@ -399,7 +443,10 @@ class info_pnl(scrolled.ScrolledPanel):
         if len(r_file_list) > 1:
             f_pic_date = self.parent.shared_data.date_from_fn(r_file_list[0])
             l_pic_date = self.parent.shared_data.date_from_fn(r_file_list[-1])
-            if not f_pic_date == 'none' and not l_pic_date == 'none':
+            if f_pic_date == None or l_pic_date == None:
+                text += "\nfilename dates not readable"
+
+            else:
                 time_delta = l_pic_date - f_pic_date
                 text += "\n" + str(f_pic_date) + " - " + str(l_pic_date)
                 text += "\nDuration " + str(time_delta)
@@ -443,8 +490,8 @@ class info_pnl(scrolled.ScrolledPanel):
                     pic_list.append(full_path)
         pic_list.sort()
 
+        self.set_mid_text(pic_list)
         if len(pic_list) > 0:
-            self.set_mid_text(pic_list)
             name = os.path.split(pic_list[0])[1]
             self.first_photo_title.SetLabel(name)
             self.set_image_preview(pic_list[0], 'first')
@@ -472,7 +519,7 @@ class info_pnl(scrolled.ScrolledPanel):
                 self.photo_folder_last_pic.SetToolTip(img_path)
                 self.photo_folder_last_pic.SetBitmap(pic)
         except:
-            raise
+            #raise
             print("!! image in local caps folder didn't work.", img_path)
 
     def make_image_text(self, pic_path):
@@ -486,7 +533,9 @@ class info_pnl(scrolled.ScrolledPanel):
         if len(pic_list) > 1:
             date_f = self.parent.shared_data.date_from_fn(pic_list[0])
             date_l = self.parent.shared_data.date_from_fn(pic_list[-1])
-            if not date_f == None or not date_l == None:
+            if date_f == None or date_l == None:
+                mid_text += "\ndates not readable"
+            else:
                 caps_delta = date_l - date_f
                 mid_text += "\nDuration " + str(caps_delta)
 

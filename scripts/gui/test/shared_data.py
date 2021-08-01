@@ -144,16 +144,17 @@ class shared_data:
             else:
                 return None
             return fdate
-        #elif "-" in thefilename:
-        #    try:
-        #        date = thefilename.split("-")[1]
-        #        # 10-2018 05 05 20 12 12-03
-        #        file_datetime = datetime.datetime.strptime(date, '%Y%m%d%H%M%S')
-        #        text_date = file_datetime.strftime('%Y-%m-%d %H:%M')
-        #        return file_datetime
-        #    except:
-        #        print("!! Tried to parse filename as Motion date but failed " + str(thefilename))
-        #        return None, None
+        # for motion standard file name
+        elif "-" in thefilename:
+            try:
+                date = thefilename.split("-")[1]
+                # 10-2018 05 05 20 12 12-03
+                file_datetime = datetime.datetime.strptime(date, '%Y%m%d%H%M%S')
+                #text_date = file_datetime.strftime('%Y-%m-%d %H:%M')
+                return file_datetime
+            except:
+                print("!! Tried to parse filename as Motion date but failed " + str(thefilename))
+                return None #, None
         else:
             return None
 
