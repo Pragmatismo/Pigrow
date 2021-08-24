@@ -287,6 +287,26 @@ class link_pnl(wx.Panel):
     #    else:
     #        print("Error writing " + config_file + " ; " + error )
 
+    '''
+    # write text file to pi
+    self.parent.parent.link_pnl.write_textfile_to_pi( trigger_file_text, pi_trigger_events_file )
+
+    # check file is valid
+    cmd = "cat " + pi_trigger_events_file
+    out, error = self.parent.parent.link_pnl.run_on_pi(cmd)
+    out = "".join(l + "\n" for l in out.splitlines() if l)
+    if out.strip() == trigger_file_text.strip():
+        print(" - Copied trigger file matches expected text. ")
+    else:
+        print(" - ERROR - copied trigger file does not match expected text! reverted to original")
+        cmd = "mv " + backup_events_file + " " + pi_trigger_events_file
+        out, error = self.parent.parent.link_pnl.run_on_pi(cmd)
+        msg_text = "There was an error copying the file, the written file did not match the expected text changes not saved."
+        dbox = wx.MessageDialog(self, msg_text, "Error", wx.OK | wx.ICON_ERROR)
+        dbox.ShowModal()
+        dbox.Destroy()
+    '''
+
     # download files
 
     def download_file_to_folder(self, remote_file, local_name):
@@ -321,7 +341,9 @@ class link_pnl(wx.Panel):
 
     def download_folder(self, folder, overwrite=True, dest=None, extra_files=[]):
         print("Downloading folder - ", folder, " overwrite = ", str(overwrite))
-        if type(folder) == 'str':
+        if type(folder) == type('str'):
+            if folder == "":
+                return None
             folder = [folder]
         if len(folder) == 0 and len(extra_files) == 0:
             return None
@@ -333,7 +355,7 @@ class link_pnl(wx.Panel):
         # create list of files
         self.files_to_download = []
         for fold in folder:
-            if type(fold) == 'str':
+            if type(fold) == type('str'):
                 # determine save location from path
                 if 'Pigrow' in fold:
                     base = fold.split('Pigrow')[1]

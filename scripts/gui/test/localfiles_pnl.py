@@ -629,6 +629,7 @@ class info_pnl(scrolled.ScrolledPanel):
             shared_data = self.parent.parent.shared_data
             index =  e.GetIndex()
             filename = self.GetItem(index, 0).GetText()
+            print(" not doing anything with the log at this momement")
 
         def autosizeme(self):
             if self.GetItemCount() == 0:

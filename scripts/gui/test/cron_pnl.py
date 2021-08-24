@@ -423,8 +423,7 @@ class ctrl_pnl(wx.Panel):
         self.read_cron_click("e")
 
     def connect_to_pigrow(self):
-        print(" CRON KNOWS YOU JUST CONNECTED TO A PIGROW - YAY!")
-        self.read_cron_click('e')    
+        self.read_cron_click('e')
 
 
 class restore_backup_dialog(wx.Dialog):

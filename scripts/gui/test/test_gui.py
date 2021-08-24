@@ -5,7 +5,7 @@ import wx
 import shared_data
 import link_pnl as link_pnl
 
-list_of_panels = ['start_pnl',  'system_pnl', 'cron_pnl', 'camera_pnl', 'localfiles_pnl', 'blank_pnl'] #, 'test_pnl', 'blue_pnl']
+list_of_panels = ['start_pnl',  'system_pnl', 'cron_pnl', 'camera_pnl', 'localfiles_pnl', 'sensors_pnl', 'blank_pnl'] #, 'test_pnl', 'blue_pnl']
 for x in list_of_panels:
     import_cmd = "import " + x
     exec(import_cmd)
@@ -110,7 +110,7 @@ class MainFrame(wx.Frame):
                 value.connect_to_pigrow()
             except Exception as E:
                 print(key, "doesn't have connect_to_pigrow")
-                print(E)    
+                print(E)
 
 
 
@@ -142,7 +142,7 @@ class MainFrame(wx.Frame):
 class MainApp(MainFrame):
     def __init__(self, parent):
         # intiate shared data
-        MainApp.shared_data = shared_data.shared_data()
+        MainApp.shared_data = shared_data.shared_data(self)
         # Initiate frame
         MainFrame.__init__(self, parent)
         self.Bind(wx.EVT_CLOSE, self.OnClose)

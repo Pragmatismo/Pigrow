@@ -10,6 +10,12 @@ class ctrl_pnl(wx.Panel):
         self.SetBackgroundColour((150,230,170))
         self.l = wx.StaticText(self,  label=((' CTRL '*5)+"\n")*10)
 
+    def connect_to_pigrow(self):
+        '''
+        This is called every time a connection to a pigrow is made
+        '''
+        pass
+
 class info_pnl(wx.Panel):
     #
     #

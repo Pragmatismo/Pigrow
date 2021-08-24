@@ -6,7 +6,8 @@ import datetime
 import wx.lib.scrolledpanel as scrolled
 
 class shared_data:
-    def __init__(self):
+    def __init__(self, parent):
+        self.parent = parent
         # Connection settings
         # defaults
         self.gui_set_dict = {}
@@ -21,9 +22,10 @@ class shared_data:
         #
         ## settings
         # setiings related to current connection
-        self.frompi_base_path = self.set_local_path()
+        self.frompi_base_path = self.set_local_path() # base path without box_name folder
         self.frompi_path = ""
         self.remote_pigrow_path = ""
+        self.config_dict = {} # pigrow_config.txt
         #
         self.always_show_config_changes = False  # if true always show the 'upload to pigrow?' dialog box
         #
@@ -157,6 +159,33 @@ class shared_data:
                 return None #, None
         else:
             return None
+
+    def get_module_options(self, module_prefix, m_folder="graph_modules"):
+        list_of_modules = []
+        modules_folder = os.path.join(os.getcwd(), m_folder)
+        module_options = os.listdir(modules_folder)
+        for file in module_options:
+            if module_prefix in file:
+                file = file.split(module_prefix)[1]
+                if ".py" in file:
+                    file = file.split(".py")[0]
+                    list_of_modules.append(file)
+        return list_of_modules
+
+    def read_pigrow_settings_file(self):
+        print("READ TEST OF SETTINGS FILE")
+        setfile_path = self.remote_pigrow_path + "config/pigrow_config.txt"
+        out, error = self.parent.link_pnl.run_on_pi("cat " + setfile_path)
+        #print(out, error)
+        self.config_dict.clear()
+        for line in out.splitlines():
+            if "=" in line:
+                e_pos    = line.find("=")
+                s_value  = line[e_pos + 1:]
+                s_name   = line[:e_pos]
+                self.config_dict[s_name] = s_value
+        print(" shared_data.config_dict set from pigrow file")
+
 
 
 
