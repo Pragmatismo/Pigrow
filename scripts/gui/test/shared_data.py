@@ -173,7 +173,6 @@ class shared_data:
         return list_of_modules
 
     def read_pigrow_settings_file(self):
-        print("READ TEST OF SETTINGS FILE")
         setfile_path = self.remote_pigrow_path + "config/pigrow_config.txt"
         out, error = self.parent.link_pnl.run_on_pi("cat " + setfile_path)
         #print(out, error)
@@ -184,8 +183,32 @@ class shared_data:
                 s_value  = line[e_pos + 1:]
                 s_name   = line[:e_pos]
                 self.config_dict[s_name] = s_value
-        print(" shared_data.config_dict set from pigrow file")
+        print("  - Shared_data.config_dict set from pigrow_config.txt")
 
+    def update_pigrow_config_file_on_pi(self, ask="yes"):
+        print(" SAVING PIGROW_CONFIG.TXT")
+        setting_file_path = self.remote_pigrow_path + "config/pigrow_config.txt"
+
+        config_text = ""
+        for key, value in list(self.config_dict.items()):
+            if not key == "":
+                config_text += key + "=" + value + "\n"
+        config_text = config_text.strip()
+
+        # show user and ask user if they relly want to update
+        if ask == "yes":
+            dbox = shared_data.scroll_text_dialog(None, config_text, "Upload to Pigrow? ", cancel=True)
+            dbox.ShowModal()
+            out_conf = dbox.text
+            dbox.Destroy()
+            if out_conf == None:
+                #print("User aborted")
+                return None
+            else:
+                print(" ACTUALLY SAVING THE FILE AT THIS very MOMENT")
+                #self.parent.link_pnl.save_text_to_file_on_pi(setting_file_path, config_text)
+                self.parent.link_pnl.update_config_file_on_pi(config_text, setting_file_path)
+                self.parent.tell_pnls_updated_config()
 
 
 

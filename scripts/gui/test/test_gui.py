@@ -112,6 +112,14 @@ class MainFrame(wx.Frame):
                 print(key, "doesn't have connect_to_pigrow")
                 print(E)
 
+    def tell_pnls_updated_config(self):
+        print("       Telling all pnls that the config file has been updated")
+        for key, value in MainFrame.dict_C_pnl.items():
+            try:
+                value.updated_config()
+            except Exception as E:
+                print(key, "         - doesn't have updated_config function, no problem it probably doens't need it")
+
 
 
     def resize_window(self, e):
