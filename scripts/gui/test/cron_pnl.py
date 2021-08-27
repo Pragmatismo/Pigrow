@@ -224,6 +224,24 @@ class ctrl_pnl(wx.Panel):
             #print ('pid of = ' + str(script_text)
             return True
 
+    def check_if_script_in_startup(self, script_name):
+        print(" checking startup cron for " + script_name )
+        startup_cron = self.parent.dict_I_pnl['cron_pnl'].startup_cron
+        last_index = startup_cron.GetItemCount()
+
+        script_status = "none"
+        if not last_index == 0:
+           for index in range(0, last_index):
+                name = startup_cron.GetItem(index, 3).GetText()
+                if script_name in name:
+                    if not startup_cron.GetItem(index, 0).GetText() == "deleted":
+                        script_enabled = startup_cron.GetItem(index, 1).GetText()
+                        if script_enabled == 'True':
+                            script_status = 'enabled'
+                        else:
+                            script_status = 'disabled'
+
+        return script_status
 
     def add_to_startup_list(self, startup_list_instance, line_number, job_enabled, cron_task, cron_extra_args='', cron_comment=''):
         is_running = self.test_if_script_running(cron_task)
@@ -634,7 +652,6 @@ class info_pnl(wx.Panel):
         self.startup_cron.Select(startup_focus, on=0)
         repeat_focus = self.repeat_cron.GetFocusedItem()
         self.repeat_cron.Select(repeat_focus, on=0)
-
 
     def del_item(self, e):
         keycode = e.GetKeyCode()

@@ -115,6 +115,23 @@ class info_pnl(scrolled.ScrolledPanel):
 
     def check_trigger_script_activity(self):
         print(" CRON IS NOT CHECKED TO SEE IF THE SCRIPT IS IN IT - NEEDS A BIT OF REWRITING")
+        cron_C_pnl = self.parent.dict_C_pnl['cron_pnl']
+        script = 'trigger_watcher.py'
+        script_path = self.parent.shared_data.remote_pigrow_path + "scripts/autorun/trigger_watcher.py"
+        # check if script in startup cron
+        script_status = cron_C_pnl.check_if_script_in_startup(script)
+        if script_status == "enabled":
+            self.trigger_script_activity_cron.SetForegroundColour((80,150,80))
+            self.trigger_script_activity_cron.SetLabel("trigger_watcher.py starting on boot")
+        elif script_status == "disabled":
+            self.trigger_script_activity_cron.SetForegroundColour((200,110,110))
+            self.trigger_script_activity_cron.SetLabel("trigger_watcher.py cronjob disabled, won't start on boot")
+        elif script_status == "none":
+            self.trigger_script_activity_cron.SetForegroundColour((200,75,75))
+            self.trigger_script_activity_cron.SetLabel("No trigger_watcher.py in startup cron, this is required.")
+
+
+
         # Check Cron
     #    script_has_cronjob, script_enabled, script_startupcron_index = install_dialog.check_for_control_script("", scriptname='trigger_watcher.py')
     #    if script_has_cronjob and script_enabled:
@@ -128,10 +145,8 @@ class info_pnl(scrolled.ScrolledPanel):
     #        self.trigger_script_activity_cron.SetLabel("No trigger_watcher.py in startup cron, this is required.")
 
         # Check running
-        script_path = self.parent.shared_data.remote_pigrow_path + "scripts/autorun/trigger_watcher.py"
-        cmd = "pidof " + script_path + " -x"
-        out, error = self.parent.link_pnl.run_on_pi(cmd)
-        if len(out) > 0:
+        is_running = cron_C_pnl.test_if_script_running(script_path)
+        if is_running == True:
             self.trigger_script_activity_live.SetLabel(" trigger_watcher.py currently running ")
             self.trigger_script_activity_live.SetForegroundColour((80,150,80))
         else:
