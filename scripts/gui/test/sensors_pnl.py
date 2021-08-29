@@ -94,8 +94,7 @@ class info_pnl(scrolled.ScrolledPanel):
                         name = self.sensor_list.GetItem(self.sensor_list.GetFocusedItem(), 0).GetText()
                         repeat_cron = self.parent.dict_I_pnl['cron_pnl'] #.repeating_cron_list
                         repeat_cron.remove_by_name(sensor_script, name)
-                        #
-                        print(self.sensor_list.DeleteItem(self.sensor_list.GetFocusedItem()))
+                        # remove from config dict
                         if "sensor_" + name + "_type" in config_dict:
                             del config_dict["sensor_" + name + "_type"]
                         if "sensor_" + name + "_log" in config_dict:
@@ -104,14 +103,11 @@ class info_pnl(scrolled.ScrolledPanel):
                             del config_dict["sensor_" + name + "_loc"]
                         if "sensor_" + name + "_extra" in config_dict:
                             del config_dict["sensor_" + name + "_extra"]
-                        #MainApp.config_ctrl_pannel.update_setting_file_on_pi_click('e')
-                        print(" !!!!!!! THIS CURRENTLY DOES NOT REMOVE THE SENSOR FROM THE CONFIG FILE")
-                        print(" THAT STILL NEEDS TO BE CODED !!!!!!!!!")
+                        self.parent.shared_data.update_pigrow_config_file_on_pi() #ask="no")
                     if trigger_list.GetSelectedItemCount() == 1:
                         # if deleted item from trigger list remove and save file
                         print(trigger_list.DeleteItem(trigger_list.GetFocusedItem()))
                         trigger_list.save_table_to_pi()
-                    # remove from config dict
 
 
     def check_trigger_script_activity(self):
@@ -1149,29 +1145,39 @@ class sensor_from_module_dialog(wx.Dialog):
         print(out, error)
         print(" ")
 
+    def read_current_o_extra(self, name):
+        # this is needed because the sensor modules
+        # might edit the sensors extra string
+        # while the dialog box is open
+        shared_data = self.parent.parent.parent.shared_data
+        config_path = shared_data.remote_pigrow_path + "config/pigrow_config.txt"
+        sensor_string = "sensor_" + name + "_extra="
+        read_extra_cmd = "cat " + config_path + " |grep " + sensor_string
+        out, error = self.parent.parent.parent.link_pnl.run_on_pi(read_extra_cmd)
+        return out.strip().strip(sensor_string)
+
+
     def add_click(self, e):
         i_pnl       = self.parent.parent.parent.dict_I_pnl['sensors_pnl']
         cron_i_pnl  = self.parent.parent.parent.dict_I_pnl['cron_pnl']
         shared_data = self.parent.parent.parent.shared_data
         link_pnl    = self.parent.parent.parent.link_pnl
         sensor_list = i_pnl.sensor_list
-        #
         o_name = self.name_tc.GetValue()
         o_log = self.log_tc.GetValue()
         o_loc = self.loc_cb.GetValue()
         new_cron_num = self.rep_num_tc.GetValue()
         new_cron_txt = self.rep_opts_cb.GetValue()
         new_timing_string = str(new_cron_num) + " " + new_cron_txt
+
         # check to see if changes have been made
         changed = "probably something"
         if self.s_name == o_name:
-            #print("name not changed")
             if self.s_log == o_log:
-                #print("log path not changed")
                 if self.s_loc == o_loc:
-                    #print("wiring location not changed")
                         changed = "nothing"
                         #nothing has changed in the config file so no need to update.
+
         # check to see if changes have been made to the cron timing
         if self.timing_string == new_timing_string and self.s_name == o_name:
             print(" -- Timing string didn't change, nor did the name so no need to chagne cron-- ")
@@ -1183,15 +1189,20 @@ class sensor_from_module_dialog(wx.Dialog):
         if changed == "nothing":
             print("------- config settings not changed -------")
         else:
-            log_freq = str(new_cron_num) + " " + new_cron_txt
-            extra_string = "cat " + shared_data.remote_pigrow_path + "config/pigrow_config.txt |grep sensor_" + self.s_name + "_extra"
-            out, error = link_pnl.run_on_pi(extra_string)
-            o_extra = out.strip().strip("sensor_" + self.s_name + "_extra=")
-            #sensor_list.add_to_sensor_list(o_name,self.s_type,o_log,o_loc,o_extra,log_freq)
+            o_extra = self.read_current_o_extra(self.s_name)
             shared_data.config_dict["sensor_" + o_name + "_type"] = self.s_type
             shared_data.config_dict["sensor_" + o_name + "_log"] = o_log
             shared_data.config_dict["sensor_" + o_name + "_loc"] = o_loc
-            #shared_data.config_dict["sensor_" + o_name + "_extra"] = o_extra
+            if not o_extra.strip() == "":
+                shared_data.config_dict["sensor_" + o_name + "_extra"] = o_extra
+            # if renaming remove the sensor with the old name
+            if not o_name == self.s_name:
+                del shared_data.config_dict["sensor_" + self.s_name + "_type"]
+                del shared_data.config_dict["sensor_" + self.s_name + "_log"]
+                del shared_data.config_dict["sensor_" + self.s_name + "_loc"]
+                if "sensor_" + self.s_name + "_extra" in shared_data.config_dict:
+                    del shared_data.config_dict["sensor_" + self.s_name + "_extra"]
+            # save setting to pi
             shared_data.update_pigrow_config_file_on_pi() #ask="no")
         self.Destroy()
 
