@@ -43,7 +43,7 @@ class info_pnl(scrolled.ScrolledPanel):
         self.sensor_list = self.sensor_table(self, 1)
         self.sensor_list.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.sensor_list.double_click)
         self.sensor_list.Bind(wx.EVT_LIST_KEY_DOWN, self.del_item)
-    #    self.sensor_list.Bind(wx.EVT_LIST_ITEM_FOCUSED, self.sensor_got_focus)
+        self.sensor_list.Bind(wx.EVT_LIST_ITEM_FOCUSED, self.sensor_got_focus)
         # trigger table
         trigger_sub_title =  wx.StaticText(self,  label='Log Triggers ')
         trigger_sub_title.SetFont(shared_data.sub_title_font)
@@ -51,7 +51,7 @@ class info_pnl(scrolled.ScrolledPanel):
         self.trigger_script_activity_live =  wx.StaticText(self,  label="")
         self.trigger_list = self.trigger_table(self, 1)
         self.trigger_list.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.trigger_list.double_click)
-        #self.trigger_list.Bind(wx.EVT_LIST_ITEM_FOCUSED, self.trigger_got_focus)
+        self.trigger_list.Bind(wx.EVT_LIST_ITEM_FOCUSED, self.trigger_got_focus)
         self.trigger_list.Bind(wx.EVT_LIST_KEY_DOWN, self.del_item)
         # sizers
         trigger_label_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -68,8 +68,16 @@ class info_pnl(scrolled.ScrolledPanel):
         main_sizer.Add(self.trigger_list, 1, wx.ALL|wx.EXPAND, 3)
         self.SetSizer(main_sizer)
 
+    def sensor_got_focus(self, e):
+        trigger_focus = self.trigger_list.GetFocusedItem()
+        self.trigger_list.Select(trigger_focus, on=0)
+
+    def trigger_got_focus(self, e):
+        sensor_focus = self.sensor_list.GetFocusedItem()
+        self.sensor_list.Select(sensor_focus, on=0)
+
+
     def del_item(self, e):
-        print(" WARNING IT'S STILL POSSIBLE TO HAVE SOMETHING SELECTED IN BOTH TABLES - THIS WILL CAUSE PROBLEMS BY DELETING BOTH! ")
         # cron_list_pnl - needs to be set before this works
         cron_list_pnl = self.parent.dict_C_pnl['cron_pnl']
         #                 also other cron stuff
@@ -81,19 +89,11 @@ class info_pnl(scrolled.ScrolledPanel):
                 sure = mbox.ShowModal()
                 if sure == wx.ID_YES:
                     if self.sensor_list.GetSelectedItemCount() == 1:
-                        name = self.sensor_list.GetItem(self.sensor_list.GetFocusedItem(), 0).GetText()
-                        #
                         # Delete cron job
-                        print(" - NOT REMOVING SENSORS LINKED CRON JOB")
-                    #    last_index = cron_list_pnl.repeat_cron.GetItemCount()
-                    #    if not last_index == 0:
-                    #        for index in range(0, last_index):
-                    #            job_name  = cron_list_pnl.repeat_cron.GetItem(index, 3).GetText()
-                    #            job_extra = cron_list_pnl.repeat_cron.GetItem(index, 4).GetText()
-                    #            if "log_sensor_module.py" in job_name:
-                    #                if "name=" + name in job_extra:
-                    #                    cron_list_pnl.repeat_cron.DeleteItem(index)
-                    #                    self.parent.dict_C_pnl['cron_pnl'].update_cron_click("e")
+                        sensor_script = "log_sensor_module.py"
+                        name = self.sensor_list.GetItem(self.sensor_list.GetFocusedItem(), 0).GetText()
+                        repeat_cron = self.parent.dict_I_pnl['cron_pnl'] #.repeating_cron_list
+                        repeat_cron.remove_by_name(sensor_script, name)
                         #
                         print(self.sensor_list.DeleteItem(self.sensor_list.GetFocusedItem()))
                         if "sensor_" + name + "_type" in config_dict:
@@ -108,16 +108,17 @@ class info_pnl(scrolled.ScrolledPanel):
                         print(" !!!!!!! THIS CURRENTLY DOES NOT REMOVE THE SENSOR FROM THE CONFIG FILE")
                         print(" THAT STILL NEEDS TO BE CODED !!!!!!!!!")
                     if trigger_list.GetSelectedItemCount() == 1:
+                        # if deleted item from trigger list remove and save file
                         print(trigger_list.DeleteItem(trigger_list.GetFocusedItem()))
                         trigger_list.save_table_to_pi()
                     # remove from config dict
 
 
     def check_trigger_script_activity(self):
-        print(" CRON IS NOT CHECKED TO SEE IF THE SCRIPT IS IN IT - NEEDS A BIT OF REWRITING")
         cron_C_pnl = self.parent.dict_C_pnl['cron_pnl']
         script = 'trigger_watcher.py'
         script_path = self.parent.shared_data.remote_pigrow_path + "scripts/autorun/trigger_watcher.py"
+
         # check if script in startup cron
         script_status = cron_C_pnl.check_if_script_in_startup(script)
         if script_status == "enabled":
@@ -129,20 +130,6 @@ class info_pnl(scrolled.ScrolledPanel):
         elif script_status == "none":
             self.trigger_script_activity_cron.SetForegroundColour((200,75,75))
             self.trigger_script_activity_cron.SetLabel("No trigger_watcher.py in startup cron, this is required.")
-
-
-
-        # Check Cron
-    #    script_has_cronjob, script_enabled, script_startupcron_index = install_dialog.check_for_control_script("", scriptname='trigger_watcher.py')
-    #    if script_has_cronjob and script_enabled:
-    #        self.trigger_script_activity_cron.SetForegroundColour((80,150,80))
-    #        self.trigger_script_activity_cron.SetLabel("trigger_watcher.py starting on boot")
-    #    elif script_has_cronjob and not script_enabled:
-    #        self.trigger_script_activity_cron.SetForegroundColour((200,110,110))
-    #        self.trigger_script_activity_cron.SetLabel("trigger_watcher.py cronjob disabled, won't start on boot")
-    #    elif not script_has_cronjob:
-    #        self.trigger_script_activity_cron.SetForegroundColour((200,75,75))
-    #        self.trigger_script_activity_cron.SetLabel("No trigger_watcher.py in startup cron, this is required.")
 
         # Check running
         is_running = cron_C_pnl.test_if_script_running(script_path)
@@ -1162,49 +1149,9 @@ class sensor_from_module_dialog(wx.Dialog):
         print(out, error)
         print(" ")
 
-    def edit_cron_job(self, start_name, new_name, new_cron_txt, new_cron_num):
-        print(" EDITING CRON JOB NOT ENABLED AT THIS POINT")
-        return None
-        cron_list_pnl = self.parent.parent.parent.dict_I_pnl['sensors_pnl']
-        shared_data = self.parent.parent.parent.shared_data
-        # check to find cron job handling this sensor
-        #print(" - Checking cron for existing jobs")
-        line_number_repeting_cron = -1
-        if not start_name == "":
-            for index in range(0, cron_list_pnl.repeat_cron.GetItemCount()):
-                cmd_path = cron_list_pnl.repeat_cron.GetItem(index, 3).GetText()
-                if "log_sensor_module.py" in cmd_path:
-                    #print("    -Found  ;- " + cmd_path)
-                    cmd_args = cron_list_pnl.repeat_cron.GetItem(index, 4).GetText()
-                    if  "name=" + start_name in cmd_args:
-                        #print("    -Located; " + start_name)
-                        line_number_repeting_cron = index
-
-        # check to see if this is a new job or not
-        if not line_number_repeting_cron == -1:
-            cron_enabled = cron_list_pnl.repeat_cron.GetItem(line_number_repeting_cron, 1).GetText()
-            cron_task    = cron_list_pnl.repeat_cron.GetItem(line_number_repeting_cron, 3).GetText()
-            # cron_args_original = cron_list_pnl.repeat_cron.GetItem(line_number_repeting_cron, 4).GetText()
-            cron_args    = "name=" + new_name
-            cron_comment = cron_list_pnl.repeat_cron.GetItem(line_number_repeting_cron, 5).GetText()
-            timing_string = cron_info_pnl.make_repeating_cron_timestring(self, new_cron_txt, new_cron_num)
-            print("    - Cron job; " + str(line_number_repeting_cron) + " modified " + cron_enabled + " " + timing_string + " " + cron_task + " " + cron_args + " " + cron_comment)
-            cron_list_pnl.repeat_cron.DeleteItem(line_number_repeting_cron)
-            cron_info_pnl.add_to_repeat_list(MainApp.cron_info_pannel, 'modified', cron_enabled, timing_string, cron_task, cron_args, cron_comment)
-            MainApp.cron_info_pannel.update_cron_click("e")
-        else:
-            #print("    - Job not currently in cron, adding it...")
-            cron_enabled = "True"
-            cron_task = shared_data.remote_pigrow_path + "scripts/sensors/log_sensor_module.py"
-            cron_args = "name=" + new_name
-            timing_string = cron_info_pnl.make_repeating_cron_timestring(self, new_cron_txt, new_cron_num)
-            cron_comment = ""
-            cron_info_pnl.add_to_repeat_list(MainApp.cron_info_pannel, 'new', cron_enabled, timing_string, cron_task, cron_args, cron_comment)
-            print("    - New Cron job; " + cron_enabled + " " + timing_string + " " + cron_task + " " + cron_args + " " + cron_comment)
-            MainApp.cron_info_pannel.update_cron_click("e")
-
     def add_click(self, e):
         i_pnl       = self.parent.parent.parent.dict_I_pnl['sensors_pnl']
+        cron_i_pnl  = self.parent.parent.parent.dict_I_pnl['cron_pnl']
         shared_data = self.parent.parent.parent.shared_data
         link_pnl    = self.parent.parent.parent.link_pnl
         sensor_list = i_pnl.sensor_list
@@ -1229,7 +1176,8 @@ class sensor_from_module_dialog(wx.Dialog):
         if self.timing_string == new_timing_string and self.s_name == o_name:
             print(" -- Timing string didn't change, nor did the name so no need to chagne cron-- ")
         else:
-            self.edit_cron_job(self.s_name, o_name, new_cron_txt, new_cron_num)
+            script_path = shared_data.remote_pigrow_path + "scripts/sensors/log_sensor_module.py"
+            cron_i_pnl.edit_repeat_job_by_name(script_path, self.s_name, o_name, new_cron_txt, new_cron_num)
 
         # config file changes
         if changed == "nothing":

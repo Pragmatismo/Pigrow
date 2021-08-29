@@ -243,6 +243,8 @@ class ctrl_pnl(wx.Panel):
 
         return script_status
 
+
+
     def add_to_startup_list(self, startup_list_instance, line_number, job_enabled, cron_task, cron_extra_args='', cron_comment=''):
         is_running = self.test_if_script_running(cron_task)
         startup_list_instance.InsertItem(0, str(line_number))
@@ -652,6 +654,60 @@ class info_pnl(wx.Panel):
         self.startup_cron.Select(startup_focus, on=0)
         repeat_focus = self.repeat_cron.GetFocusedItem()
         self.repeat_cron.Select(repeat_focus, on=0)
+
+    def remove_by_name(self, script, name=None):
+        #remove named script from repeat cron
+        c_pnl = self.parent.dict_C_pnl['cron_pnl']
+        print("removing " + script + " named " + str(name) + " if it's set")
+        last_index = self.repeat_cron.GetItemCount()
+        if not last_index == 0:
+            for index in range(0, last_index):
+                job_name  = self.repeat_cron.GetItem(index, 3).GetText()
+                job_extra = self.repeat_cron.GetItem(index, 4).GetText()
+                if script in job_name:
+                    if "name=" + name in job_extra:
+                        self.repeat_cron.DeleteItem(index)
+                        print("REMOVED FROM CRON")
+                        c_pnl.update_cron_click("e")
+                        return "removed"
+
+    def edit_repeat_job_by_name(self, script_path, start_name, new_name, new_cron_time_txt, new_cron_time_num):
+    #    script_path = shared_data.remote_pigrow_path + "scripts/sensors/log_sensor_module.py"
+        script = os.path.split(script_path)[1]
+        print("Changing " + script + " with name " + start_name)
+        c_pnl = self.parent.dict_C_pnl['cron_pnl']
+
+        # check to find cron job for script and name=start_name
+        script_index_repeating = -1
+        if not start_name == "":
+            for index in range(0, self.repeat_cron.GetItemCount()):
+                cmd_path = self.repeat_cron.GetItem(index, 3).GetText()
+                if script in cmd_path:
+                    cmd_args = self.repeat_cron.GetItem(index, 4).GetText()
+                    if  "name=" + start_name in cmd_args:
+                        script_index_repeating = index
+
+        if not script_index_repeating == -1:
+            print("    - found in cron, editing it...")
+            cron_enabled  = self.repeat_cron.GetItem(script_index_repeating, 1).GetText()
+            cron_comment  = self.repeat_cron.GetItem(script_index_repeating, 5).GetText()
+            cron_args     = self.repeat_cron.GetItem(script_index_repeating, 4).GetText()
+            cron_args = cron_args.replace("name=" + start_name, "name=" + new_name)
+            # clear job ready to add new one using the same info
+            self.repeat_cron.DeleteItem(script_index_repeating)
+        else:
+            print("    - Job not currently in cron, adding it...")
+            cron_enabled  = "True"
+            cron_comment  = ""
+            cron_args     = "name=" + new_name
+
+        timing_string = c_pnl.make_repeating_cron_timestring(new_cron_time_txt, new_cron_time_num)
+        print("   setting - Cron job; " + cron_enabled + " " + timing_string + " " + script_path + " " + cron_args + " " + cron_comment)
+        c_pnl.add_to_repeat_list(self.repeat_cron, 'new', cron_enabled, timing_string, script_path, cron_args, cron_comment)
+
+        # offer to write cron to pi
+        c_pnl.update_cron_click("e")
+
 
     def del_item(self, e):
         keycode = e.GetKeyCode()
