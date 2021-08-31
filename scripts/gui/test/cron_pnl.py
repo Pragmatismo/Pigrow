@@ -39,7 +39,20 @@ class ctrl_pnl(wx.Panel):
     def help_cron_click(self, e):
         self.parent.shared_data.show_help('cron_help.png')
 
-    def update_cron_click(self, e):
+    def start_running_script_in_background_on_pi(self, script_cmd):
+        text_msg = "Script " + str(script_cmd) + " not currently running, "
+        text_msg += "would you like to start it in the background on the pi?"
+        dbox = wx.MessageDialog(self, text_msg, "Run on Pigrow?", wx.YES_NO | wx.ICON_QUESTION)
+        answer = dbox.ShowModal()
+        dbox.Destroy()
+        if (answer == wx.ID_YES):
+            print(("Running " + str(script_cmd)))
+            self.parent.link_pnl.run_on_pi(script_cmd + " &")
+                                                # the & at the end is so that it
+                                                # doesn't ask for output and is non-blocking
+                                                # this is absolutely vital!
+
+    def update_cron_click(self, e, no_starting=False):
         #
         self.startup_cron = self.parent.dict_I_pnl['cron_pnl'].startup_cron
         self.repeat_cron = self.parent.dict_I_pnl['cron_pnl'].repeat_cron
@@ -62,17 +75,11 @@ class ctrl_pnl(wx.Panel):
                 num_new += 1
             cron_line_dict[line_num] = cron_line
             # ask if unrunning scripts should be started
-            is_running = self.test_if_script_running(self.startup_cron.GetItemText(num, 3))
-            enabled = self.startup_cron.GetItemText(num, 1)
-            print (enabled)
-            if is_running == False and enabled == 'True':
-                dbox = wx.MessageDialog(self, "Would you like to start running script " + str(script_cmd), "Run on Pigrow?", wx.OK | wx.CANCEL | wx.ICON_QUESTION)
-                answer = dbox.ShowModal()
-                dbox.Destroy()
-                if (answer == wx.ID_OK):
-                    print(("Running " +str(script_cmd)))
-                    ssh.exec_command(script_cmd + " &") # don't ask for output and it's non-blocking
-                                                        # this is absolutely vital!
+            if not no_starting == True:
+                is_running = self.test_if_script_running(self.startup_cron.GetItemText(num, 3))
+                enabled = self.startup_cron.GetItemText(num, 1)
+                if is_running == False and enabled == 'True':
+                    self.start_running_script_in_background_on_pi(script_cmd)
         # add repating jobs to cron list
         repeat_num = self.repeat_cron.GetItemCount()
         for num in range(0, repeat_num):
@@ -242,8 +249,6 @@ class ctrl_pnl(wx.Panel):
                             script_status = 'disabled'
 
         return script_status
-
-
 
     def add_to_startup_list(self, startup_list_instance, line_number, job_enabled, cron_task, cron_extra_args='', cron_comment=''):
         is_running = self.test_if_script_running(cron_task)
@@ -671,6 +676,17 @@ class info_pnl(wx.Panel):
                         c_pnl.update_cron_click("e")
                         return "removed"
 
+    def find_repeat_pos_by_name(self, script, name):
+        script_index_repeating = -1
+        if not name == "":
+            for index in range(0, self.repeat_cron.GetItemCount()):
+                cmd_path = self.repeat_cron.GetItem(index, 3).GetText()
+                if script in cmd_path:
+                    cmd_args = self.repeat_cron.GetItem(index, 4).GetText()
+                    if  "name=" + name in cmd_args:
+                        script_index_repeating = index
+        return script_index_repeating
+
     def edit_repeat_job_by_name(self, script_path, start_name, new_name, new_cron_time_txt, new_cron_time_num):
     #    script_path = shared_data.remote_pigrow_path + "scripts/sensors/log_sensor_module.py"
         script = os.path.split(script_path)[1]
@@ -678,14 +694,7 @@ class info_pnl(wx.Panel):
         c_pnl = self.parent.dict_C_pnl['cron_pnl']
 
         # check to find cron job for script and name=start_name
-        script_index_repeating = -1
-        if not start_name == "":
-            for index in range(0, self.repeat_cron.GetItemCount()):
-                cmd_path = self.repeat_cron.GetItem(index, 3).GetText()
-                if script in cmd_path:
-                    cmd_args = self.repeat_cron.GetItem(index, 4).GetText()
-                    if  "name=" + start_name in cmd_args:
-                        script_index_repeating = index
+        script_index_repeating = self.find_repeat_pos_by_name(script, start_name)
 
         if not script_index_repeating == -1:
             print("    - found in cron, editing it...")
@@ -706,7 +715,17 @@ class info_pnl(wx.Panel):
         c_pnl.add_to_repeat_list(self.repeat_cron, 'new', cron_enabled, timing_string, script_path, cron_args, cron_comment)
 
         # offer to write cron to pi
-        c_pnl.update_cron_click("e")
+        c_pnl.update_cron_click("e", no_starting=True)
+
+    def time_text_from_name(self, script, name):
+        script_index_repeating = self.find_repeat_pos_by_name(script, name)
+        if not script_index_repeating == -1:
+            cron_time_string = self.repeat_cron.GetItem(script_index_repeating, 2).GetText()
+            freq_num, freq_text = self.repeat_cron.parse_cron_string(cron_time_string)
+            return freq_num, freq_text
+        else:
+            return "not", "found"
+
 
 
     def del_item(self, e):

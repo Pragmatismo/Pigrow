@@ -199,8 +199,7 @@ class info_pnl(scrolled.ScrolledPanel):
             # add sensors to table
             for sensor_name in sensor_name_list:
                 type, log, loc, extra = self.read_sensor_conf(sensor_name, config_dict, "sensor_")
-                log_freq = "NOT CODED"
-        #        log_freq = self.find_cron_freq(sensor_name, type, loc)
+                log_freq = self.find_cron_freq(sensor_name, type, loc)
                 # get settings for buttons
                 self.add_to_sensor_list(sensor_name, type, log, loc, extra, log_freq)
 
@@ -208,32 +207,17 @@ class info_pnl(scrolled.ScrolledPanel):
             '''
                check cron to see if sensor is being logged and how often
             '''
-            last_index = cron_list_pnl.repeat_cron.GetItemCount()
-            extra_name  = "name=" + str(sensor_name) + " "
-            if not last_index == 0: # skip if blank table
-                for index in range(0, last_index):
-                    job_name  = cron_list_pnl.repeat_cron.GetItem(index, 3).GetText()
-                    job_extra = cron_list_pnl.repeat_cron.GetItem(index, 4).GetText()
-                    if "log_chirp.py" in job_name and type == "chirp":
-                        if loc[4:] in job_extra:
-                            log_freq = cron_list_pnl.repeat_cron.GetItem(index, 2).GetText()
-                            freq_num, freq_text = cron_list_pnl.repeating_cron_list.parse_cron_string(self, log_freq)
-                            log_freq = str(freq_num) + " " + freq_text
-                            return log_freq
-                    elif "log_ads1115.py" in job_name and type == "ads1115":
-                        if loc[0:3] in job_extra:
-                            log_freq = cron_list_pnl.repeat_cron.GetItem(index, 2).GetText()
-                            freq_num, freq_text = cron_list_pnl.repeating_cron_list.parse_cron_string(self, log_freq)
-                            log_freq = str(freq_num) + " " + freq_text
-                            return log_freq
-                    # modular sensors
-                    elif "log_sensor_module.py" in job_name:
-                        if extra_name in job_extra:
-                            log_freq = cron_list_pnl.repeat_cron.GetItem(index, 2).GetText()
-                            freq_num, freq_text = cron_list_pnl.repeating_cron_list.parse_cron_string(self, log_freq)
-                            log_freq = str(freq_num) + " " + freq_text
-                            return log_freq
-            return "not found"
+            cron_I_pnl  = self.parent.parent.dict_I_pnl['cron_pnl']
+            script = "log_sensor_module.py"
+            freq_num, freq_text = cron_I_pnl.time_text_from_name(script, sensor_name)
+            log_freq = str(freq_num) + " " + freq_text
+            return log_freq
+            #
+            # The prior version had special controlls for which will soon be
+            # obsolete, so currently not including them here
+            # "log_chirp.py", "log_ads1115.py"
+
+
 
         def add_to_sensor_list(self, sensor, type, log, loc, extra='', log_freq=''):
             self.InsertItem(0, str(sensor))
@@ -259,7 +243,7 @@ class info_pnl(scrolled.ScrolledPanel):
             else:
                 # old style sensors
                 if self.s_type == 'chirp':
-                    print(" Chirp dialog not written")
+                    print(" Chirp dialog not written, switch to chirpM in modular sensors")
                     #edit_chirp_dbox = chirp_dialog(None)
                     #edit_chirp_dbox.ShowModal()
                 elif self.s_type == "ADS1115":
@@ -270,6 +254,8 @@ class info_pnl(scrolled.ScrolledPanel):
                 else:
                     modular_sensor_dialog_box = sensor_from_module_dialog(self, self.parent)
                     modular_sensor_dialog_box.ShowModal()
+                    self.make_sensor_table()
+
 
     class trigger_table(wx.ListCtrl):
         def __init__(self, parent, id):
@@ -483,6 +469,7 @@ class ctrl_pnl(wx.Panel):
         # call dialog box
         add_module_sensor = sensor_from_module_dialog(i_pnl.sensor_list, i_pnl.sensor_list.parent)
         add_module_sensor.ShowModal()
+        self.make_sensor_table()
 
     def add_button_click(self, e):
         # load config from file and fill tables so there are no conflicts
@@ -1197,11 +1184,13 @@ class sensor_from_module_dialog(wx.Dialog):
                 shared_data.config_dict["sensor_" + o_name + "_extra"] = o_extra
             # if renaming remove the sensor with the old name
             if not o_name == self.s_name:
-                del shared_data.config_dict["sensor_" + self.s_name + "_type"]
-                del shared_data.config_dict["sensor_" + self.s_name + "_log"]
-                del shared_data.config_dict["sensor_" + self.s_name + "_loc"]
-                if "sensor_" + self.s_name + "_extra" in shared_data.config_dict:
-                    del shared_data.config_dict["sensor_" + self.s_name + "_extra"]
+                possible_keys = ["sensor_" + self.s_name + "_type",
+                                 "sensor_" + self.s_name + "_log",
+                                 "sensor_" + self.s_name + "_loc",
+                                 "sensor_" + self.s_name + "_extra"]
+                for possible_key in possible_keys:
+                    if possible_key in shared_data.config_dict:
+                        del shared_data.config_dict[possible_key]
             # save setting to pi
             shared_data.update_pigrow_config_file_on_pi() #ask="no")
         self.Destroy()
