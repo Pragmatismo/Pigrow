@@ -238,7 +238,7 @@ class info_pnl(scrolled.ScrolledPanel):
             self.s_timing = self.GetItem(index, 5).GetText()
             #
             if self.s_timing == "button":
-                add_button = add_button_dialog(None)
+                add_button = button_dialog(self, self.parent)
                 add_button.ShowModal()
             else:
                 # old style sensors
@@ -472,6 +472,7 @@ class ctrl_pnl(wx.Panel):
         self.make_sensor_table()
 
     def add_button_click(self, e):
+        i_pnl = self.parent.dict_I_pnl['sensors_pnl']
         # load config from file and fill tables so there are no conflicts
         self.make_tables_click("e")
         # set blanks for dialog box
@@ -483,7 +484,7 @@ class ctrl_pnl(wx.Panel):
         self.s_extra = ""
         self.s_timing = ""
         # call dialog box
-        add_button = add_button_dialog(None)
+        add_button = button_dialog(i_pnl.sensor_list, i_pnl.sensor_list.parent)
         add_button.ShowModal()
 
 
@@ -1143,7 +1144,6 @@ class sensor_from_module_dialog(wx.Dialog):
         out, error = self.parent.parent.parent.link_pnl.run_on_pi(read_extra_cmd)
         return out.strip().strip(sensor_string)
 
-
     def add_click(self, e):
         i_pnl       = self.parent.parent.parent.dict_I_pnl['sensors_pnl']
         cron_i_pnl  = self.parent.parent.parent.dict_I_pnl['cron_pnl']
@@ -1194,6 +1194,170 @@ class sensor_from_module_dialog(wx.Dialog):
             # save setting to pi
             shared_data.update_pigrow_config_file_on_pi() #ask="no")
         self.Destroy()
+
+    def OnClose(self, e):
+        i_pnl = self.parent.parent.parent.dict_I_pnl['sensors_pnl']
+        sensor_list = i_pnl.sensor_list
+        sensor_list.s_name = ""
+        sensor_list.s_log = ""
+        sensor_list.s_loc = ""
+        sensor_list.s_extra = ""
+        sensor_list.s_timing = ""
+        self.Destroy()
+
+class button_dialog(wx.Dialog):
+    def __init__(self, parent, *args, **kw):
+        self.parent = parent
+        super(button_dialog, self).__init__(*args, **kw)
+        self.InitUI()
+        self.SetSize((800, 700))
+        self.SetTitle("Button setup")
+        self.Bind(wx.EVT_CLOSE, self.OnClose)
+
+    def InitUI(self):
+        i_pnl = self.parent.parent.parent.dict_I_pnl['sensors_pnl']
+        shared_data = self.parent.parent.parent.shared_data
+        #link_pnl = self.parent.parent.parent.link_pnl
+        sensor_list = i_pnl.sensor_list
+        # read values - blank for adding a new sensor, used when editing existing entry
+        self.s_name  = sensor_list.s_name
+        self.s_type  = sensor_list.s_type
+        self.s_log   = sensor_list.s_log
+        self.s_loc   = sensor_list.s_loc
+        self.s_extra = sensor_list.s_extra
+        self.s_cmdD  = "not coded"
+        self.s_cmdU  = "not coded"
+        #self.timing_string = sensor_list.s_timing
+
+        # panel
+        pnl = wx.Panel(self)
+        box_label = wx.StaticText(self,  label='Button')
+        box_label.SetFont(shared_data.title_font)
+        # Show guide button
+        show_guide_btn = wx.Button(self, label='Guide', size=(175, 30))
+        show_guide_btn.Bind(wx.EVT_BUTTON, self.show_guide_click)
+        header_sizer =  wx.BoxSizer(wx.HORIZONTAL)
+        header_sizer.Add(box_label, 0, wx.ALL|wx.ALIGN_LEFT, 5)
+        header_sizer.AddStretchSpacer(1)
+        header_sizer.Add(show_guide_btn, 0, wx.ALL|wx.ALIGN_RIGHT, 5)
+
+        # controls
+        ## unique name
+        name_label = wx.StaticText(self,  label='Unique name')
+        self.name_tc = wx.TextCtrl(self, value=self.s_name, size=(200,30))
+        name_sizer =  wx.BoxSizer(wx.HORIZONTAL)
+        name_sizer.Add(name_label, 0, wx.ALL|wx.EXPAND, 5)
+        name_sizer.Add(self.name_tc, 0, wx.ALL|wx.EXPAND, 5)
+        ## type  - GND or HIGH depending on which the non-gpio wire is attached to
+        type_label = wx.StaticText(self,  label='Type')
+        self.type_cb = wx.ComboBox(self, choices = ['GND', 'High'], value=self.s_type, size=(100,30))
+        type_sizer =  wx.BoxSizer(wx.HORIZONTAL)
+        type_sizer.Add(type_label, 0, wx.ALL|wx.EXPAND, 5)
+        type_sizer.Add(self.type_cb, 0, wx.ALL|wx.EXPAND, 5)
+        ## gpio pin
+        gpio_label = wx.StaticText(self,  label='GPIO pin')
+        self.gpio_tc = wx.TextCtrl(self, value=self.s_loc)
+        #self.gpio_tc.SetValue()
+        gpio_sizer =  wx.BoxSizer(wx.HORIZONTAL)
+        gpio_sizer.Add(gpio_label, 0, wx.ALL|wx.ALIGN_RIGHT, 5)
+        gpio_sizer.Add(self.gpio_tc, 0, wx.ALL|wx.ALIGN_LEFT, 5)
+        # read button state button
+        self.read_but_btn = wx.Button(self, label='Read Button', size=(175, 30))
+        self.read_but_btn.Bind(wx.EVT_BUTTON, self.read_but_click)
+
+        main_ctrl_sizer = wx.BoxSizer(wx.VERTICAL)
+        main_ctrl_sizer.Add(name_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
+        main_ctrl_sizer.Add(type_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
+        main_ctrl_sizer.Add(gpio_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
+        main_ctrl_sizer.Add(self.read_but_btn, 0, wx.ALL, 3)
+
+        # controls used by button_watcher.py
+        watcher_label = wx.StaticText(self,  label='button_watcher.py')
+        watcher_label.SetFont(shared_data.sub_title_font)
+        ## log path  - path for log
+        log_label = wx.StaticText(self,  label='Log path')
+        self.log_tc = wx.TextCtrl(self, value=self.s_log, size=(400,30))
+        self.log_btn = wx.Button(self, label='..', size=(75, 30))
+        self.log_btn.Bind(wx.EVT_BUTTON, self.log_click)
+        log_sizer =  wx.BoxSizer(wx.HORIZONTAL)
+        log_sizer.Add(log_label, 0, wx.ALL|wx.EXPAND, 5)
+        log_sizer.Add(self.log_tc, 0, wx.ALL|wx.EXPAND, 5)
+        log_sizer.Add(self.log_btn, 0, wx.ALL|wx.EXPAND, 5)
+        ## cmd_D - command to run when button pressed down
+        cmdD_label = wx.StaticText(self,  label='Run on Down')
+        self.s_cmdD = wx.TextCtrl(self, value=self.s_cmdD, size=(400,30))
+        self.cmdD_btn = wx.Button(self, label='..', size=(75, 30))
+        self.cmdD_btn.Bind(wx.EVT_BUTTON, self.cmdD_click)
+        cmdD_sizer =  wx.BoxSizer(wx.HORIZONTAL)
+        cmdD_sizer.Add(cmdD_label, 0, wx.ALL|wx.EXPAND, 5)
+        cmdD_sizer.Add(self.s_cmdD, 0, wx.ALL|wx.EXPAND, 5)
+        cmdD_sizer.Add(self.cmdD_btn, 0, wx.ALL|wx.EXPAND, 5)
+        ## cmd_U - command to run when button released
+        cmdU_label = wx.StaticText(self,  label='Run on Up')
+        self.s_cmdU = wx.TextCtrl(self, value=self.s_cmdU, size=(400,30))
+        self.cmdU_btn = wx.Button(self, label='..', size=(75, 30))
+        self.cmdU_btn.Bind(wx.EVT_BUTTON, self.cmdU_click)
+        cmdU_sizer =  wx.BoxSizer(wx.HORIZONTAL)
+        cmdU_sizer.Add(cmdU_label, 0, wx.ALL|wx.EXPAND, 5)
+        cmdU_sizer.Add(self.s_cmdU, 0, wx.ALL|wx.EXPAND, 5)
+        cmdU_sizer.Add(self.cmdU_btn, 0, wx.ALL|wx.EXPAND, 5)
+
+        watcher_ctrl_sizer = wx.BoxSizer(wx.VERTICAL)
+        watcher_ctrl_sizer.Add(watcher_label, 0, wx.ALL|wx.EXPAND, 3)
+        watcher_ctrl_sizer.Add(log_sizer, 0, wx.ALL|wx.EXPAND, 3)
+        watcher_ctrl_sizer.Add(cmdD_sizer, 0, wx.ALL|wx.EXPAND, 3)
+        watcher_ctrl_sizer.Add(cmdU_sizer, 0, wx.ALL|wx.EXPAND, 3)
+
+        # buttons_
+        self.save_btn = wx.Button(self, label='Save', size=(175, 30))
+        self.save_btn.Bind(wx.EVT_BUTTON, self.save_click)
+        self.cancel_btn = wx.Button(self, label='Cancel', size=(175, 30))
+        self.cancel_btn.Bind(wx.EVT_BUTTON, self.OnClose)
+        buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        buttons_sizer.AddStretchSpacer(1)
+        buttons_sizer.Add(self.save_btn, 0,  wx.ALL, 3)
+        buttons_sizer.AddStretchSpacer(1)
+        buttons_sizer.Add(self.cancel_btn, 0,  wx.ALL, 3)
+        buttons_sizer.AddStretchSpacer(1)
+
+        main_sizer =  wx.BoxSizer(wx.VERTICAL)
+        main_sizer.Add(header_sizer, 0, wx.ALL|wx.EXPAND, 5)
+        main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(main_ctrl_sizer, 0, wx.ALL|wx.EXPAND, 5)
+        main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(watcher_ctrl_sizer, 0, wx.ALL|wx.EXPAND, 5)
+        main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(buttons_sizer, 0, wx.ALL|wx.EXPAND, 5)
+        self.SetSizer(main_sizer)
+
+    def log_click(self, e):
+        print(" - not yet written code to choose log. lol")
+
+    def cmdD_click(self, e):
+        print(" - no cmdD click code. lol")
+
+    def cmdU_click(self, e):
+        print(" - no cmdU click code. lol")
+
+    def save_click(self, e):
+        print(" - Clicking save on the button dialogue does absolutely nothing. lol")
+
+    def read_but_click(self, e):
+        print(" - Clicking read button does absolutely nothing, possibly it never will.")
+
+    def show_guide_click(self, e):
+        shared_data = self.parent.parent.parent.shared_data
+        guide_path = os.path.join(shared_data.ui_img_path, "button_help.png")
+
+        if os.path.isfile(guide_path):
+            guide = wx.Image(guide_path, wx.BITMAP_TYPE_ANY)
+            guide = guide.ConvertToBitmap()
+            dbox = shared_data.show_image_dialog(None, guide, "Button Help")
+            dbox.ShowModal()
+            dbox.Destroy()
+        else:
+            print(" - Button help file not found, sorry.")
+            print("     No file at " + guide_path)
 
     def OnClose(self, e):
         i_pnl = self.parent.parent.parent.dict_I_pnl['sensors_pnl']
