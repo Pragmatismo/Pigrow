@@ -479,14 +479,14 @@ class ctrl_pnl(wx.Panel):
         self.make_tables_click("e")
         # set blanks for dialog box
         module_name = self.sensor_module_list_cb.GetValue()
-        self.s_type = ""
-        self.s_name = ""
-        self.s_log = self.parent.shared_data.remote_pigrow_path + "logs/button_log.txt"
-        self.s_loc = ""
-        self.s_extra = ""
-        self.s_timing = ""
-        self.s_cmdD = ""
-        self.s_cmdU = ""
+        i_pnl.sensor_list.s_type = ""
+        i_pnl.sensor_list.s_name = ""
+        i_pnl.sensor_list.s_log = ""
+        i_pnl.sensor_list.s_loc = ""
+        i_pnl.sensor_list.s_extra = ""
+        i_pnl.sensor_list.s_timing = ""
+        i_pnl.sensor_list.s_cmdD = ""
+        i_pnl.sensor_list.s_cmdU = ""
         # call dialog box
         add_button = button_dialog(i_pnl.sensor_list, i_pnl.sensor_list.parent)
         add_button.ShowModal()
@@ -1335,7 +1335,18 @@ class button_dialog(wx.Dialog):
         self.SetSizer(main_sizer)
 
     def log_click(self, e):
-        print(" - not yet written code to choose log. lol")
+        #if
+        log_path = self.log_tc.GetValue()
+        if log_path == "":
+            pigrow_log_path = self.parent.parent.parent.shared_data.remote_pigrow_path
+            log_path = pigrow_log_path + "logs/button_" + self.name_tc.GetValue() + ".txt"
+        self.parent.parent.parent.link_pnl.select_files_on_pi(create_file=True, default_path=log_path)
+        selected_files = self.parent.parent.parent.link_pnl.selected_files
+        selected_folders = self.parent.parent.parent.link_pnl.selected_folders
+        if len(selected_files) == 0 and len(selected_folders) == 0:
+            return None
+        else:
+            self.log_tc.SetValue(selected_files[0])
 
     def cmdD_click(self, e):
         print(" - no cmdD click code. lol")
@@ -1344,8 +1355,6 @@ class button_dialog(wx.Dialog):
         print(" - no cmdU click code. lol")
 
     def save_click(self, e):
-        print(" - Clicking save on the button dialogue does absolutely nothing. lol")
-
         i_pnl       = self.parent.parent.parent.dict_I_pnl['sensors_pnl']
         cron_i_pnl  = self.parent.parent.parent.dict_I_pnl['cron_pnl']
         shared_data = self.parent.parent.parent.shared_data

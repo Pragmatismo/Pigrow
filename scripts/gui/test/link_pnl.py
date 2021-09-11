@@ -398,9 +398,11 @@ class link_pnl(wx.Panel):
         self.sftp.close()
         ssh_tran.close()
 
-    def select_files_on_pi(self, single_folder=False):
+    def select_files_on_pi(self, single_folder=False, create_file=False, default_path=""):
         print("selecting files on pi")
         self.single_folder = single_folder
+        self.create_file   = create_file
+        self.default_path  = default_path
         select_file_dbox = select_files_on_pi_dialog(self, self.parent)
         select_file_dbox.ShowModal()
 
@@ -427,6 +429,8 @@ class select_files_on_pi_dialog(wx.Dialog):
     def __init__(self, parent, *args, **kw):
         self.parent = parent
         self.single_folder = parent.single_folder
+        self.create_file   = parent.create_file
+        self.default_path  = parent.default_path
         self.parent.selected_folders = []
         self.parent.selected_files   = []
         super(select_files_on_pi_dialog, self).__init__(*args, **kw)
@@ -439,8 +443,12 @@ class select_files_on_pi_dialog(wx.Dialog):
         #draw the pannel
         label = wx.StaticText(self,  label='Select file or folder;')
         # folder
-        pigrow_path = self.parent.parent.shared_data.remote_pigrow_path
-        self.folder_path = wx.StaticText(self,  label=pigrow_path)
+        if self.default_path == "":
+            s_path = self.parent.parent.shared_data.remote_pigrow_path
+        else:
+            s_path = os.path.split(self.default_path)[0]
+
+        self.folder_path = wx.StaticText(self,  label=s_path)
         self.up_a_level_btn = wx.Button(self, label='..')
         self.up_a_level_btn.Bind(wx.EVT_BUTTON, self.up_a_level_click)
         folder_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -453,6 +461,8 @@ class select_files_on_pi_dialog(wx.Dialog):
         else:
             self.file_list = wx.ListCtrl(self, size=(600,300), style=wx.LC_REPORT|wx.BORDER_SUNKEN)
         self.file_list.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.DoubleClick_filelist)
+        if self.create_file == True:
+            self.file_list.Bind(wx.EVT_LIST_ITEM_SELECTED, self.selected_item)
         self.file_list.InsertColumn(0, 'Filename')
         self.file_list.InsertColumn(1, 'size')
         self.file_list.InsertColumn(2, 'modified')
@@ -466,15 +476,34 @@ class select_files_on_pi_dialog(wx.Dialog):
         button_sizer.Add(self.select_file_btn, 0, wx.ALL|wx.EXPAND, 5)
         button_sizer.Add(self.cancel_btn, 0, wx.ALL|wx.ALIGN_RIGHT, 5)
 
+        # for creating a file rather than selecting one
+        if self.create_file == True:
+            filename_l = wx.StaticText(self, label="Filename")
+            fn = os.path.split(self.default_path)[1]
+            self.filename_tc = wx.TextCtrl(self, value=fn, size=(600,30))
+            filename_sizer = wx.BoxSizer(wx.HORIZONTAL)
+            filename_sizer.Add(filename_l, 0, wx.ALL, 5)
+            filename_sizer.Add(self.filename_tc, 0, wx.ALL|wx.ALIGN_RIGHT|wx.EXPAND, 5)
+
         # main sizer
         main_sizer = wx.BoxSizer(wx.VERTICAL)
         main_sizer.Add(label, 0, wx.ALL|wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL, 5)
         main_sizer.AddStretchSpacer(1)
         main_sizer.Add(folder_sizer, 0, wx.LEFT|wx.EXPAND, 25)
         main_sizer.Add(self.file_list, 0, wx.LEFT|wx.EXPAND, 25)
+        if self.create_file == True:
+            main_sizer.Add(filename_sizer, 0, wx.LEFT|wx.EXPAND, 25)
         main_sizer.AddStretchSpacer(1)
         main_sizer.Add(button_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
         self.SetSizer(main_sizer)
+
+    def selected_item(self, e):
+        selected_num = self.file_list.GetFocusedItem()
+
+        colour = self.file_list.GetItemTextColour(selected_num)
+        name = self.file_list.GetItem(selected_num, 0).GetText()
+        if not colour == (90, 100, 190, 255):
+            self.filename_tc.SetValue(str(name))
 
     def fill_filelist(self):
         current_folder = self.folder_path.GetLabel()
@@ -545,45 +574,53 @@ class select_files_on_pi_dialog(wx.Dialog):
     def select_item_click(self, e):
         local_base = self.parent.shared_data.frompi_path
         current_folder = self.folder_path.GetLabel()
-        first_selected = self.file_list.GetNextSelected(-1)
-        s_count = self.file_list.GetSelectedItemCount()
-        s_folder_list = []
-        if s_count == 1:
-            print("one thing")
-        elif s_count == 0:
-            print("no file selected, using folder")
-            s_folder_list.append(current_folder)
-        #
-
-        s_file_list = []
-        selected_more = True
-        selected_num = -1
-        while selected_more == True:
-            selected_num = self.file_list.GetNextSelected(selected_num)
-            if selected_num == -1:
-                selected_more = False
-            else:
-                colour = self.file_list.GetItemTextColour(selected_num)
-                name = self.file_list.GetItem(selected_num, 0).GetText()
-                if colour == (90, 100, 190, 255):
-                    s_folder_list.append(current_folder + name + "/")
-                else:
-                    local_f = os.path.join(local_base, name) #local_base should be changed to using the location of the file on the pi with folders and sub folders
-                    s_file_list.append([current_folder + name, local_f])
-        #print(self.file_list.GetFocusedItem())
-        #print(self.file_list.GetNextSelected(-1))
-        if self.single_folder == True and len(s_folder_list) == 0:
-            filename = s_file_list[0][0]
-            folder = os.path.dirname(filename)
-            s_file_list = []
-            s_folder_list = [folder]
-        print("folders ", s_folder_list)
-        print("files ", s_file_list)
-
-        for item in s_folder_list:
-            self.parent.selected_folders.append(item)
-        for item in s_file_list:
+        if self.create_file == True:
+            filename = self.filename_tc.GetValue()
+            if filename == "":
+                return None
+            item = current_folder + filename
             self.parent.selected_files.append(item)
+
+        else:
+            first_selected = self.file_list.GetNextSelected(-1)
+            s_count = self.file_list.GetSelectedItemCount()
+            s_folder_list = []
+            if s_count == 1:
+                print("one thing")
+            elif s_count == 0:
+                print("no file selected, using folder")
+                s_folder_list.append(current_folder)
+
+            s_file_list = []
+            selected_more = True
+            selected_num = -1
+            while selected_more == True:
+                selected_num = self.file_list.GetNextSelected(selected_num)
+                if selected_num == -1:
+                    selected_more = False
+                else:
+                    colour = self.file_list.GetItemTextColour(selected_num)
+                    name = self.file_list.GetItem(selected_num, 0).GetText()
+                    if colour == (90, 100, 190, 255):
+                        s_folder_list.append(current_folder + name + "/")
+                    else:
+                        local_f = os.path.join(local_base, name) #local_base should be changed to using the location of the file on the pi with folders and sub folders
+                        s_file_list.append([current_folder + name, local_f])
+            #print(self.file_list.GetFocusedItem())
+            #print(self.file_list.GetNextSelected(-1))
+            if self.single_folder == True and len(s_folder_list) == 0:
+                filename = s_file_list[0][0]
+                folder = os.path.dirname(filename)
+                s_file_list = []
+                s_folder_list = [folder]
+            print("folders ", s_folder_list)
+            print("files ", s_file_list)
+
+            for item in s_folder_list:
+                self.parent.selected_folders.append(item)
+            for item in s_file_list:
+                self.parent.selected_files.append(item)
+
         self.Destroy()
 
 
