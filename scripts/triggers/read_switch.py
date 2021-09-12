@@ -86,12 +86,13 @@ if __name__ == '__main__':
         print("Switch not identified, please include name= in the commandline arguments.")
         sys.exit()
 
-    if gpio_type == None:
+    if gpio_pos == None:
         pigrow_settings = load_config()
         name, type, loc, log = read_button_settings(pigrow_settings, switch_name)
         position = read_switch_pos(name, type, loc)
     else:
-        position = read_switch_pos("gpio " + str(gpio_pos), gpio_type, gpio_pos)
+        name = "gpio " + str(gpio_pos)
+        position = read_switch_pos(name, gpio_type, gpio_pos)
     print(name + " is currently " + position)
     if position == "1":
         print("activate=True")
