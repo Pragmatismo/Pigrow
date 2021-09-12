@@ -82,7 +82,7 @@ if __name__ == '__main__':
             print("name=")
             sys.exit(0)
 
-    if switch_name == None:
+    if switch_name == None and gpio == None:
         print("Switch not identified, please include name= in the commandline arguments.")
         sys.exit()
 
