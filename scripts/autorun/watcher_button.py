@@ -25,59 +25,77 @@ if button_name == None:
     print("Button not identified, please include name= in the commandline arguments.")
     sys.exit()
 
-# Read the settings file
-homedir = os.getenv("HOME")
-sys.path.append(homedir + '/Pigrow/scripts/')
-try:
-    import pigrow_defs
-    script = 'button_watcher.py'
-except:
-    print("pigrow_defs.py not found, unable to continue.")
-    print("make sure pigrow software is installed correctly")
-    sys.exit()
-loc_dic = pigrow_defs.load_locs(homedir + '/Pigrow/config/dirlocs.txt')
-pigrow_settings = pigrow_defs.load_settings(loc_dic['loc_settings'])
+def load_config():
+    # Read the settings file
+    homedir = os.getenv("HOME")
+    sys.path.append(homedir + '/Pigrow/scripts/')
+    try:
+        import pigrow_defs
+        script = 'button_watcher.py'
+    except:
+        print("pigrow_defs.py not found, unable to continue.")
+        print("make sure pigrow software is installed correctly")
+        sys.exit()
+    loc_dic = pigrow_defs.load_locs(homedir + '/Pigrow/config/dirlocs.txt')
+    pigrow_settings = pigrow_defs.load_settings(loc_dic['loc_settings'])
+    return pigrow_settings
 
-# Read the sensor info from the settigns file
-button_type = None
-button_log = None
-button_loc = None
-for key, value in list(pigrow_settings.items()):
-    button_key = "button_" + button_name
-    if button_key in key:
-        if "type" in key:
-            button_type = value
-        elif "log" in key:
-            button_log = value
-        elif "loc" in key:
-            button_loc = value
+def read_button_settings(pigrow_settings, button_name):
+    # Read the sensor info from the settigns file
+    possible_keys = ["button_" + button_name + "_type",
+                     "button_" + button_name + "_loc",
+                     "button_" + button_name + "_log",
+                     "button_" + button_name + "_cmdD",
+                     "button_" + button_name + "_cmdU"]
+    butt_settings = []
+    for possible_key in possible_keys:
+        if possible_key in pigrow_settings:
+            butt_settings.append(pigrow_settings[possible_key])
+        else:
+            butt_settings.apend(None)
 
-if button_type == None or button_log == None or button_loc == None:
-    err_msg = "Button settings not found in " + loc_dic['loc_settings']
-    print(err_msg)
-    pigrow_defs.write_log('log_sensor_module.py', err_msg, loc_dic['err_log'])
-    sys.exit()
+    if butt_settings[1] == None:
+        err_msg = button_name + " location not found in settings file."
+        print(err_msg)
+    #    pigrow_defs.write_log('log_sensor_module.py', err_msg, loc_dic['err_log'])
+        sys.exit()
+    return butt_settings
 
+pigrow_settings = load_config()
+type, loc, log, cmdD, cmdU = read_button_settings(pigrow_settings, button_name)
 
+def pressed():
+    print( " Button Pressed " )
+    if not listen.cmdD == None:
+        print(" RUNNING - " + cmdD)
+        os.system(cmdD + " &")
+    if not listen.log == None:
+        listen.press_start = time.time()
 
-def listen(gpio_num, log_path, *args):
-    button = Button(gpio_num)
-
-    def pressed():
-         #print( " Button Pressed " )
-         listen.press_start = time.time()
-
-    def released():
-        #print( " Button released " )
+def released():
+    print( " Button released " )
+    if not listen.cmdU == None:
+        print(" RUNNING - " + cmdU)
+        os.system(cmdU + " &")
+    if not listen.log == None:
         listen.press_end = time.time()
+
+def listen(gpio_num, log, cmdD, cmdU, *args):
+    button = Button(gpio_num)
+    listen.cmdD = cmdD
+    listen.cmdU = cmdU
+    listen.log  = log
 
     button.wait_for_press()
     pressed()
     button.wait_for_release()
     released()
-    duration = listen.press_end - listen.press_start
-    print(duration)
-    log_button_presss(log_path, duration)
+
+    if not log == None:
+        duration = listen.press_end - listen.press_start
+        print("Pressed for", duration)
+        log_button_presss(log, duration)
+
 
 def log_button_presss(log_path, duration):
     timenow = str(datetime.datetime.now())
@@ -87,8 +105,8 @@ def log_button_presss(log_path, duration):
         f.write(line)
     print("Written; " +  line)
 
-if button_type == "gnd":
+if type == "GND":
     while True:
-        listen(button_loc, button_log)
+        listen(loc, log, cmdD, cmdU)
 else:
-    print("Sensor type not recognised, currently only 'gnd' is supported.")
+    print("Sensor type not recognised, currently only 'GND' is supported.")
