@@ -47,11 +47,12 @@ def read_switch_pos(name, type, loc):
     print("Reading switch " + name)
     import RPi.GPIO as GPIO
     GPIO.setmode(GPIO.BCM)
-    GPIO.setup(int(loc),GPIO.IN, pull_up_down=GPIO.PUD_UP)
+    if type == "HIGH":
+        GPIO.setup(int(loc),GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+    else:
+        GPIO.setup(int(loc),GPIO.IN, pull_up_down=GPIO.PUD_UP)
     input = GPIO.input(int(loc))
     return str(input)
-
-
 
 
 if __name__ == '__main__':
@@ -67,8 +68,8 @@ if __name__ == '__main__':
                 switch_name = thevalue
             if thearg == "gpio":
                 gpio_pos = thevalue
-#            if thearg == "type":
-#                gpio_type = thevalue
+            if thearg == "type":
+                gpio_type = thevalue
         elif 'help' in argu or argu == '-h':
             print(" Script returns the state of a switch")
             print(" ")
