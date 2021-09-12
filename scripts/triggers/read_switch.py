@@ -47,7 +47,7 @@ def read_switch_pos(name, type, loc):
     print("Reading switch " + name)
     import RPi.GPIO as GPIO
     GPIO.setmode(GPIO.BCM)
-    GPIO.setup(int(loc),GPIO.IN)
+    GPIO.setup(int(loc),GPIO.IN, pull_up_down=GPIO.PUD_UP)
     input = GPIO.input(int(loc))
     return str(input)
 
