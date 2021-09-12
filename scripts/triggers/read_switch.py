@@ -40,10 +40,10 @@ def read_button_settings(pigrow_settings, button_name):
         err_msg = button_name + " location not found in settings file."
         print(err_msg)
     #    pigrow_defs.write_log('log_sensor_module.py', err_msg, loc_dic['err_log'])
-    #    sys.exit()
+        sys.exit()
     return button_name, button_type, button_loc, button_log
 
-def read_switch_pos(name, type, loc, log):
+def read_switch_pos(name, type, loc):
     print("Reading switch " + name)
     import RPi.GPIO as GPIO
     GPIO.setmode(GPIO.BCM)
@@ -57,12 +57,18 @@ def read_switch_pos(name, type, loc, log):
 if __name__ == '__main__':
 
     switch_name = None
+    gpio = None
+    type = None
     for argu in sys.argv[1:]:
         if "=" in argu:
             thearg = str(argu).split('=')[0]
             thevalue = str(argu).split('=')[1]
             if thearg == 'name':
                 switch_name = thevalue
+            if thearg == "gpio":
+                gpio_pos = thevalue
+#            if thearg == "type":
+#                gpio_type = thevalue
         elif 'help' in argu or argu == '-h':
             print(" Script returns the state of a switch")
             print(" ")
@@ -79,9 +85,12 @@ if __name__ == '__main__':
         print("Switch not identified, please include name= in the commandline arguments.")
         sys.exit()
 
-    pigrow_settings = load_config()
-    name, type, loc, log = read_button_settings(pigrow_settings, switch_name)
-    position = read_switch_pos(name, type, loc, log)
+    if gpio == None:
+        pigrow_settings = load_config()
+        name, type, loc, log = read_button_settings(pigrow_settings, switch_name)
+        position = read_switch_pos(name, type, loc)
+    else:
+        position = read_switch_pos("gpio " + str(gpio_pos), type, gpio_pos)
     print(name + " is currently " + position)
     if position == "1":
         print("activate=True")
