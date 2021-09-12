@@ -1268,12 +1268,16 @@ class button_dialog(wx.Dialog):
         # read button state button
         self.read_but_btn = wx.Button(self, label='Read Button', size=(175, 30))
         self.read_but_btn.Bind(wx.EVT_BUTTON, self.read_but_click)
+        self.read_but_text = wx.StaticText(self,  label='\n \n \n')
+        readbut_sizer =  wx.BoxSizer(wx.HORIZONTAL)
+        readbut_sizer.Add(self.read_but_btn, 0, wx.ALL|wx.ALIGN_RIGHT, 5)
+        readbut_sizer.Add(self.read_but_text, 0, wx.ALL|wx.ALIGN_LEFT, 5)
 
         main_ctrl_sizer = wx.BoxSizer(wx.VERTICAL)
         main_ctrl_sizer.Add(name_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
         main_ctrl_sizer.Add(type_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
         main_ctrl_sizer.Add(gpio_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
-        main_ctrl_sizer.Add(self.read_but_btn, 0, wx.ALL, 3)
+        main_ctrl_sizer.Add(readbut_sizer, 0, wx.ALL, 3)
 
         # controls used by button_watcher.py
         watcher_label = wx.StaticText(self,  label='button_watcher.py')
@@ -1334,25 +1338,32 @@ class button_dialog(wx.Dialog):
         main_sizer.Add(buttons_sizer, 0, wx.ALL|wx.EXPAND, 5)
         self.SetSizer(main_sizer)
 
-    def log_click(self, e):
-        #if
-        log_path = self.log_tc.GetValue()
-        if log_path == "":
-            pigrow_log_path = self.parent.parent.parent.shared_data.remote_pigrow_path
-            log_path = pigrow_log_path + "logs/button_" + self.name_tc.GetValue() + ".txt"
-        self.parent.parent.parent.link_pnl.select_files_on_pi(create_file=True, default_path=log_path)
+    def select_file(self, text_control, default_path=""):
+        set_path = text_control.GetValue()
+        if default_path == "":
+            default_path = self.parent.parent.parent.shared_data.remote_pigrow_path
+        if set_path == "":
+            set_path = default_path
+        self.parent.parent.parent.link_pnl.select_files_on_pi(create_file=True, default_path=set_path)
         selected_files = self.parent.parent.parent.link_pnl.selected_files
         selected_folders = self.parent.parent.parent.link_pnl.selected_folders
         if len(selected_files) == 0 and len(selected_folders) == 0:
             return None
         else:
-            self.log_tc.SetValue(selected_files[0])
+            text_control.SetValue(selected_files[0])
+
+    def log_click(self, e):
+        pigrow_log_path = self.parent.parent.parent.shared_data.remote_pigrow_path
+        log_path = pigrow_log_path + "logs/button_" + self.name_tc.GetValue() + ".txt"
+        self.select_file(self.log_tc, log_path)
 
     def cmdD_click(self, e):
-        print(" - no cmdD click code. lol")
+        scripts_path = self.parent.parent.parent.shared_data.remote_pigrow_path + "scripts/"
+        self.select_file(self.cmdD_tc, scripts_path)
 
     def cmdU_click(self, e):
-        print(" - no cmdU click code. lol")
+        scripts_path = self.parent.parent.parent.shared_data.remote_pigrow_path + "scripts/"
+        self.select_file(self.cmdU_tc, scripts_path)
 
     def save_click(self, e):
         i_pnl       = self.parent.parent.parent.dict_I_pnl['sensors_pnl']
@@ -1413,7 +1424,15 @@ class button_dialog(wx.Dialog):
         self.Destroy()
 
     def read_but_click(self, e):
-        print(" - Clicking read button does absolutely nothing, possibly it never will.")
+        print(" - Clicking read button does stuff.")
+        gpio = self.gpio_tc.GetValue()
+        type = "GND"
+        if not gpio == "":
+            script = self.parent.parent.parent.shared_data.remote_pigrow_path + "scripts/triggers/read_switch.py"
+            cmd = script + " gpio=" + gpio + " type=" + type
+            out, error = self.parent.parent.parent.link_pnl.run_on_pi(cmd)
+            self.read_but_text.SetLabel(out)
+
 
     def show_guide_click(self, e):
         shared_data = self.parent.parent.parent.shared_data
