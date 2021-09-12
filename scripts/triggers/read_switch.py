@@ -58,8 +58,8 @@ def read_switch_pos(name, type, loc):
 if __name__ == '__main__':
 
     switch_name = None
-    gpio = None
-    type = None
+    gpio_pos = None
+    gpio_type = None
     for argu in sys.argv[1:]:
         if "=" in argu:
             thearg = str(argu).split('=')[0]
@@ -82,7 +82,7 @@ if __name__ == '__main__':
             print("name=")
             sys.exit(0)
 
-    if switch_name == None and gpio == None:
+    if switch_name == None and gpio_pos == None:
         print("Switch not identified, please include name= in the commandline arguments.")
         sys.exit()
 
@@ -91,7 +91,7 @@ if __name__ == '__main__':
         name, type, loc, log = read_button_settings(pigrow_settings, switch_name)
         position = read_switch_pos(name, type, loc)
     else:
-        position = read_switch_pos("gpio " + str(gpio_pos), type, gpio_pos)
+        position = read_switch_pos("gpio " + str(gpio_pos), gpio_type, gpio_pos)
     print(name + " is currently " + position)
     if position == "1":
         print("activate=True")
