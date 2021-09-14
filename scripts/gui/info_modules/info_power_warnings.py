@@ -8,10 +8,10 @@ def show_info():
     #
     out =  os.popen("vcgencmd get_throttled").read()
     out = out.strip().strip("throttled=")
+    display_message = ""
     if out == "0x0":
         display_message = " No Temp or Volt Alerts"
     #
-    display_message = ""
     out_int = int(out, 16)
     #display_message += "\nint-" + str(out_int)
     bit_nums = [[0, "Under_Voltage detected"],
