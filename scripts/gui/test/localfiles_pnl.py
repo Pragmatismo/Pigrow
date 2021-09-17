@@ -652,6 +652,9 @@ class info_pnl(scrolled.ScrolledPanel):
         def read_logs(self, folder_name):
             self.DeleteAllItems()
             full_path = os.path.join(self.parent.parent.shared_data.frompi_path, folder_name)
+            if not os.path.exists(full_path):
+                print(" - folder not found " + full_path)
+                return None
             logs_files = os.listdir(full_path)
             for file in logs_files:
                 if file.endswith("txt"):
