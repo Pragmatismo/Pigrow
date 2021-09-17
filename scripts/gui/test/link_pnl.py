@@ -487,7 +487,7 @@ class select_files_on_pi_dialog(wx.Dialog):
 
         # main sizer
         main_sizer = wx.BoxSizer(wx.VERTICAL)
-        main_sizer.Add(label, 0, wx.ALL|wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL, 5)
+        main_sizer.Add(label, 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.AddStretchSpacer(1)
         main_sizer.Add(folder_sizer, 0, wx.LEFT|wx.EXPAND, 25)
         main_sizer.Add(self.file_list, 0, wx.LEFT|wx.EXPAND, 25)
