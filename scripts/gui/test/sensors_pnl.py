@@ -1241,9 +1241,9 @@ class button_dialog(wx.Dialog):
         show_guide_btn = wx.Button(self, label='Guide', size=(175, 30))
         show_guide_btn.Bind(wx.EVT_BUTTON, self.show_guide_click)
         header_sizer =  wx.BoxSizer(wx.HORIZONTAL)
-        header_sizer.Add(box_label, 0, wx.ALL|wx.ALIGN_LEFT, 5)
+        header_sizer.Add(box_label, 0, wx.ALL, 5)
         header_sizer.AddStretchSpacer(1)
-        header_sizer.Add(show_guide_btn, 0, wx.ALL|wx.ALIGN_RIGHT, 5)
+        header_sizer.Add(show_guide_btn, 0, wx.ALL, 5)
 
         # controls
         ## unique name
@@ -1263,15 +1263,15 @@ class button_dialog(wx.Dialog):
         self.gpio_tc = wx.TextCtrl(self, value=self.s_loc)
         #self.gpio_tc.SetValue()
         gpio_sizer =  wx.BoxSizer(wx.HORIZONTAL)
-        gpio_sizer.Add(gpio_label, 0, wx.ALL|wx.ALIGN_RIGHT, 5)
-        gpio_sizer.Add(self.gpio_tc, 0, wx.ALL|wx.ALIGN_LEFT, 5)
+        gpio_sizer.Add(gpio_label, 0, wx.ALL, 5)
+        gpio_sizer.Add(self.gpio_tc, 0, wx.ALL, 5)
         # read button state button
         self.read_but_btn = wx.Button(self, label='Read Button', size=(175, 30))
         self.read_but_btn.Bind(wx.EVT_BUTTON, self.read_but_click)
         self.read_but_text = wx.StaticText(self,  label='\n \n \n')
         readbut_sizer =  wx.BoxSizer(wx.HORIZONTAL)
-        readbut_sizer.Add(self.read_but_btn, 0, wx.ALL|wx.ALIGN_RIGHT, 5)
-        readbut_sizer.Add(self.read_but_text, 0, wx.ALL|wx.ALIGN_LEFT, 5)
+        readbut_sizer.Add(self.read_but_btn, 0, wx.ALL, 5)
+        readbut_sizer.Add(self.read_but_text, 0, wx.ALL, 5)
 
         main_ctrl_sizer = wx.BoxSizer(wx.VERTICAL)
         main_ctrl_sizer.Add(name_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)

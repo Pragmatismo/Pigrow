@@ -453,7 +453,7 @@ class select_files_on_pi_dialog(wx.Dialog):
         self.up_a_level_btn.Bind(wx.EVT_BUTTON, self.up_a_level_click)
         folder_sizer = wx.BoxSizer(wx.HORIZONTAL)
         folder_sizer.Add(self.folder_path, 0, wx.ALL|wx.EXPAND, 5)
-        folder_sizer.Add(self.up_a_level_btn, 0, wx.ALL|wx.ALIGN_RIGHT, 5)
+        folder_sizer.Add(self.up_a_level_btn, 0, wx.ALL, 5)
         # files
         if self.single_folder == True:
             print("Single Folder mode activated ")
@@ -474,7 +474,7 @@ class select_files_on_pi_dialog(wx.Dialog):
         self.cancel_btn.Bind(wx.EVT_BUTTON, self.OnClose)
         button_sizer = wx.BoxSizer(wx.HORIZONTAL)
         button_sizer.Add(self.select_file_btn, 0, wx.ALL|wx.EXPAND, 5)
-        button_sizer.Add(self.cancel_btn, 0, wx.ALL|wx.ALIGN_RIGHT, 5)
+        button_sizer.Add(self.cancel_btn, 0, wx.ALL, 5)
 
         # for creating a file rather than selecting one
         if self.create_file == True:
@@ -483,7 +483,7 @@ class select_files_on_pi_dialog(wx.Dialog):
             self.filename_tc = wx.TextCtrl(self, value=fn, size=(600,30))
             filename_sizer = wx.BoxSizer(wx.HORIZONTAL)
             filename_sizer.Add(filename_l, 0, wx.ALL, 5)
-            filename_sizer.Add(self.filename_tc, 0, wx.ALL|wx.ALIGN_RIGHT|wx.EXPAND, 5)
+            filename_sizer.Add(self.filename_tc, 0, wx.ALL|wx.EXPAND, 5)
 
         # main sizer
         main_sizer = wx.BoxSizer(wx.VERTICAL)
