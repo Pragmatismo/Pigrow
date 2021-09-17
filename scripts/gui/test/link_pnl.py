@@ -545,7 +545,7 @@ class select_files_on_pi_dialog(wx.Dialog):
         current_folder = self.folder_path.GetLabel()
         from pathlib import Path
         p = Path(current_folder)
-        self.folder_path.SetLabel(str(p.parent) + "/")
+        self.folder_path.SetLabel(str(p.parent).replace("\", "/") + "/")
         self.fill_filelist()
 
     def OnClose(self, e):
@@ -563,6 +563,7 @@ class select_files_on_pi_dialog(wx.Dialog):
         print("colour", str(colour))
         if colour == (90, 100, 190, 255):
             new_path = current_folder + name + "/"
+            new_path.replace("\", "/")
             self.folder_path.SetLabel(new_path)
             self.Layout()
             self.fill_filelist()
