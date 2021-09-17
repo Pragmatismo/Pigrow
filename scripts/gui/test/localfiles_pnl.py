@@ -575,6 +575,9 @@ class info_pnl(scrolled.ScrolledPanel):
             self.DeleteAllItems()
             print("Loading content of config folder into listctrl")
             full_path = os.path.join(self.parent.parent.shared_data.frompi_path, folder_name)
+            if not os.path.exists(full_path):
+                print(" - folder not found " + full_path)
+                return None
             config_files = os.listdir(full_path)
             for file in config_files:
                 if file.endswith("txt"):
