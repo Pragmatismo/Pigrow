@@ -447,6 +447,9 @@ class select_files_on_pi_dialog(wx.Dialog):
             s_path = self.parent.parent.shared_data.remote_pigrow_path
         else:
             s_path = os.path.split(self.default_path)[0]
+        if not s_path[-1:] == "/":
+            s_path = s_path + "/"
+
 
         self.folder_path = wx.StaticText(self,  label=s_path)
         self.up_a_level_btn = wx.Button(self, label='..')
@@ -466,7 +469,6 @@ class select_files_on_pi_dialog(wx.Dialog):
         self.file_list.InsertColumn(0, 'Filename')
         self.file_list.InsertColumn(1, 'size')
         self.file_list.InsertColumn(2, 'modified')
-        self.fill_filelist()
         # buttons
         self.select_file_btn = wx.Button(self, label='Select')
         self.select_file_btn.Bind(wx.EVT_BUTTON, self.select_item_click)
@@ -497,6 +499,8 @@ class select_files_on_pi_dialog(wx.Dialog):
         main_sizer.Add(button_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
         self.SetSizer(main_sizer)
 
+        self.fill_filelist()
+
     def selected_item(self, e):
         selected_num = self.file_list.GetFocusedItem()
 
@@ -506,7 +510,7 @@ class select_files_on_pi_dialog(wx.Dialog):
             self.filename_tc.SetValue(str(name))
 
     def fill_filelist(self):
-        current_folder = self.folder_path.GetLabel()
+        current_folder = self.folder_path.GetLabel().strip()
         out, error = self.parent.parent.link_pnl.run_on_pi("ls -d " + current_folder + "*/")
         p_folders = []
         for item in out.splitlines():
@@ -545,9 +549,6 @@ class select_files_on_pi_dialog(wx.Dialog):
         current_folder = self.folder_path.GetLabel()
         if current_folder[-1:] == "/":
             current_folder = current_folder[:-1]
-        #from pathlib import Path
-        #p = Path(current_folder)
-        #p = str(p.parent)
         top_f = current_folder.split("/")[-1] #+ "/"
         p = current_folder.replace(top_f, "")
         self.folder_path.SetLabel(p)
