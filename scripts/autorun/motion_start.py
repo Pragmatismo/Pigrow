@@ -59,7 +59,8 @@ if __name__ == '__main__':
     if not settings_file == None:
         sets_dict = load_settings(settings_file)
         cmd = create_cmd(sets_dict)
-        print(cmd)
+        print("Startion motion with - " + cmd)
+        os.system(cmd)
 
     else:
         print("No pigrow camera settings file set, set using")
