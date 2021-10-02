@@ -5,6 +5,7 @@ import image_combine
 import shutil
 from picam_set_pnl import picam_sets_pnl
 from fswebcam_set_pnl import fs_sets_pnl
+from motion_set_pnl import motion_sets_pnl
 
 class ctrl_pnl(scrolled.ScrolledPanel):
     def __init__( self, parent ):
@@ -25,7 +26,7 @@ class ctrl_pnl(scrolled.ScrolledPanel):
         self.cam_cb = wx.ComboBox(self, choices = cam_opts, size=(225, 30))
         #
         self.cap_tool_l = wx.StaticText(self,  label='Capture tool;')
-        webcam_opts = ['uvccapture', 'fswebcam', 'picamcap']
+        webcam_opts = ['uvccapture', 'fswebcam', 'picamcap', 'motion']
         self.captool_cb = wx.ComboBox(self, choices = webcam_opts, size=(265, 30))
         self.captool_cb.Bind(wx.EVT_COMBOBOX, self.camcap_combo_go)
 
@@ -241,6 +242,8 @@ class ctrl_pnl(scrolled.ScrolledPanel):
             I_pnl.show_uvc_control()
         elif self.captool_cb.GetValue() == 'picamcap':
             I_pnl.show_picamcap_control()
+        elif self.captool_cb.GetValue() == 'motion':
+            I_pnl.show_motion_control()
         # add rangeable items to range_combo box
         self.range_combo.Clear()
         scd = I_pnl.sets_pnl.setting_crtl_dict
@@ -466,6 +469,7 @@ class info_pnl(scrolled.ScrolledPanel):
         #intiate settings pnls
         self.picam_set_pnl = picam_sets_pnl(self)
         self.fs_set_pnl = fs_sets_pnl(self)
+        self.motion_set_pnl = motion_sets_pnl(self)
 
         self.sets_pnl = None #self.picam_set_pnl
         cam_conf_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -478,6 +482,7 @@ class info_pnl(scrolled.ScrolledPanel):
         self.main_sizer.Add(cam_conf_sizer, 0, wx.ALL, 0)
         self.main_sizer.Add(self.picam_set_pnl , 0, wx.ALL, 5)
         self.main_sizer.Add(self.fs_set_pnl , 0, wx.ALL, 5)
+        self.main_sizer.Add(self.motion_set_pnl , 0, wx.ALL, 5)
         self.main_sizer.Add(self.picture_sizer , 0, wx.ALL, 5)
 
 
@@ -486,6 +491,7 @@ class info_pnl(scrolled.ScrolledPanel):
         self.SetSizer(self.main_sizer)
         self.picam_set_pnl.Hide()
         self.fs_set_pnl.Hide()
+        self.motion_set_pnl.Hide()
 
     def show_image_onscreen(self, img_path, label):
         #
@@ -536,6 +542,14 @@ class info_pnl(scrolled.ScrolledPanel):
             self.sets_pnl.Hide()
         self.sets_pnl = self.fs_set_pnl
         self.fs_set_pnl.Show()
+        self.Layout()
+
+    def show_motion_control(self):
+        print(" Showing fswebcam ctrl")
+        if not self.sets_pnl == None:
+            self.sets_pnl.Hide()
+        self.sets_pnl = self.motion_set_pnl
+        self.sets_pnl.Show()
         self.Layout()
 
     def show_uvc_control(self):
