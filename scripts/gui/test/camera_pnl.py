@@ -160,9 +160,11 @@ class ctrl_pnl(scrolled.ScrolledPanel):
         # Ask filename to save to
         c_sets_path = I_pnl.camconf_path_tc.GetValue()
         if c_sets_path == "":
+            rpp = self.parent.shared_data.remote_pigrow_path
             if cap_opt == "picamcap":
-                rpp = self.parent.shared_data.remote_pigrow_path
                 c_sets_path = rpp + "config/picam_config.txt"
+            elif cap_opt == "motion":
+                c_sets_path = rpp + "config/motion_config.txt"
             else:
                 c_sets_path = rpp + "config/camera_config.txt"
         remote_path = os.path.dirname(c_sets_path)
@@ -545,7 +547,7 @@ class info_pnl(scrolled.ScrolledPanel):
         self.Layout()
 
     def show_motion_control(self):
-        print(" Showing fswebcam ctrl")
+        print(" Showing motion ctrl")
         if not self.sets_pnl == None:
             self.sets_pnl.Hide()
         self.sets_pnl = self.motion_set_pnl

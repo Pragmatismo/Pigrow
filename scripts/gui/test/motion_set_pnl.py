@@ -8,20 +8,82 @@ class motion_sets_pnl(wx.Panel):
 
         self.label = wx.StaticText(self,  label='Motion Settings')
         self.label.SetFont(shared_data.button_font)
+        self.help_btn = wx.Button(self, label='Help')
+        self.help_btn.Bind(wx.EVT_BUTTON, self.help_click)
         self.mcf_label = wx.StaticText(self,  label='Motion Config File')
         #self.mcf_label.SetFont(shared_data.button_font)
 
         # control buttons
         self.make_status_sizer()
         self.control_buttons()
+        self.make_capture_settings_ui()
 
-        self.generic_settings_dict = {"config_path"            : ["", ""],
-                                      "log_path"               : ["", ""],
-                                      "log_level"              : ["6", (1, 9)]}
 
-        self.c_sets_sizer, self.setting_crtl_dict, self.setting_t_dict = self.create_settings_sizer(self.generic_settings_dict)
+        #conf_default = shared_data.remote_pigrow_path + "config/motion.conf"
+        self.generic_settings_dict = {}
+
+    #    self.c_sets_sizer, self.setting_crtl_dict, self.setting_t_dict = self.create_settings_sizer(self.generic_settings_dict)
+        self.setting_crtl_dict = {}
+        self.c_sets_sizer = {}
+        self.setting_t_dict = {}
 
         self.make_sizer()
+
+    def make_capture_settings_ui(self):
+        self.conf_path_l = wx.StaticText(self,  label='motion.conf path')
+        conf_path = ""
+        self.conf_path_tc = wx.TextCtrl(self, value=conf_path)
+        self.conf_path_tc.SetMinSize((350, 30))
+        self.set_m_conf_btn = wx.Button(self, label='..')
+        self.set_m_conf_btn.Bind(wx.EVT_BUTTON, self.set_m_conf_click)
+        self.m_conf_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.m_conf_sizer.Add(self.conf_path_l, 0, wx.ALL, 3)
+        self.m_conf_sizer.Add(self.conf_path_tc, 0, wx.ALL, 3)
+        self.m_conf_sizer.Add(self.set_m_conf_btn, 0, wx.ALL, 3)
+
+        self.log_path_l = wx.StaticText(self,  label='motion log path')
+        log_path = ""
+        self.log_path_tc = wx.TextCtrl(self, value=log_path)
+        self.log_path_tc.SetMinSize((350, 30))
+        self.set_m_log_btn = wx.Button(self, label='..')
+        self.set_m_log_btn.Bind(wx.EVT_BUTTON, self.set_m_log_click)
+        self.m_log_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.m_log_sizer.Add(self.log_path_l, 0, wx.ALL, 3)
+        self.m_log_sizer.Add(self.log_path_tc, 0, wx.ALL, 3)
+        self.m_log_sizer.Add(self.set_m_log_btn, 0, wx.ALL, 3)
+
+        self.log_lev_l = wx.StaticText(self,  label='log level')
+        self.log_lev_tc = wx.TextCtrl(self, value="6")
+        self.m_log_lev_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.m_log_lev_sizer.Add(self.log_lev_l, 0, wx.ALL, 3)
+        self.m_log_lev_sizer.Add(self.log_lev_tc, 0, wx.ALL, 3)
+
+        self.cap_sets_sizer = wx.BoxSizer(wx.VERTICAL)
+        self.cap_sets_sizer.Add(self.m_conf_sizer, 0, wx.ALL, 3)
+        self.cap_sets_sizer.Add(self.m_log_sizer, 0, wx.ALL, 3)
+        self.cap_sets_sizer.Add(self.m_log_lev_sizer, 0, wx.ALL, 3)
+
+    def help_click(self, e):
+        self.parent.parent.shared_data.show_help('motion_help.png')
+
+
+    def set_m_conf_click(self, e):
+        conf_path = self.conf_path_tc.GetValue()
+        if conf_path == "":
+            conf_path = self.parent.parent.shared_data.remote_pigrow_path + "config/"
+        self.parent.parent.link_pnl.select_files_on_pi(create_file=True, default_path=conf_path)
+        selected_files = self.parent.parent.link_pnl.selected_files
+        if not selected_files == []:
+            self.conf_path_tc.SetValue(selected_files[0])
+
+    def set_m_log_click(self, e):
+        log_path = self.log_path_tc.GetValue()
+        if log_path == "":
+            log_path = self.parent.parent.shared_data.remote_pigrow_path + "logs/"
+        self.parent.parent.link_pnl.select_files_on_pi(create_file=True, default_path=log_path)
+        selected_files = self.parent.parent.link_pnl.selected_files
+        if not selected_files == []:
+            self.log_path_tc.SetValue(selected_files[0])
 
     def control_buttons(self):
         self.start_motion_btn = wx.Button(self, label='Start Motion')
@@ -39,7 +101,6 @@ class motion_sets_pnl(wx.Panel):
         self.start_pause_sizer.Add(self.pause_motion_btn, 0, wx.ALL, 0)
         self.start_pause_sizer.Add(self.quit_motion_btn, 0, wx.ALL, 0)
 
-
     def make_status_sizer(self):
         self.check_status_btn = wx.Button(self, label='check status')
         self.check_status_btn.Bind(wx.EVT_BUTTON, self.check_status_click)
@@ -54,21 +115,30 @@ class motion_sets_pnl(wx.Panel):
     def make_motion_conf_sizer(self):
         self.show_motion_config_btn = wx.Button(self, label='Show saved\nmotion config')
         self.show_motion_config_btn.Bind(wx.EVT_BUTTON, self.show_motion_config_click)
+        self.new_motion_config_btn = wx.Button(self, label='Create new\nmotion config')
+        self.new_motion_config_btn.Bind(wx.EVT_BUTTON, self.new_motion_config_click)
+        self.reload_motion_config_btn = wx.Button(self, label='Reload\nmotion config')
+        self.reload_motion_config_btn.Bind(wx.EVT_BUTTON, self.reload_motion_config_click)
+
+        self.conf_butt_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.conf_butt_sizer.Add(self.show_motion_config_btn, 0, wx.ALL, 0)
+        self.conf_butt_sizer.Add(self.new_motion_config_btn, 0, wx.ALL, 0)
+        self.conf_butt_sizer.Add(self.reload_motion_config_btn, 0, wx.ALL, 0)
 
         self.get_res_btn = wx.Button(self, label='get resolutions')
         #self.get_res_btn.SetFont(shared_data.button_font)
         self.get_res_btn.Bind(wx.EVT_BUTTON, self.get_resolutions_click)
-        self.get_opts_btn = wx.Button(self, label='get opt list ')
+#        self.get_opts_btn = wx.Button(self, label='get opt list ')
         #self.get_opts_btn.SetFont(shared_data.button_font)
-        self.get_opts_btn.Bind(wx.EVT_BUTTON, self.get_opt_list)
+#        self.get_opts_btn.Bind(wx.EVT_BUTTON, self.get_opt_list)
 
-        self.get_opts_btn.Disable()
+#        self.get_opts_btn.Disable()
         self.get_res_btn.Disable()
 
         self.motion_conf_sizer = wx.BoxSizer(wx.VERTICAL)
-        self.motion_conf_sizer.Add(self.show_motion_config_btn, 0, wx.ALL, 0)
+        self.motion_conf_sizer.Add(self.conf_butt_sizer, 0, wx.ALL, 0)
         self.motion_conf_sizer.Add(self.get_res_btn, 0, wx.ALL, 0)
-        self.motion_conf_sizer.Add(self.get_opts_btn, 0, wx.ALL, 0)
+#        self.motion_conf_sizer.Add(self.get_opts_btn, 0, wx.ALL, 0)
 
 
     def make_sizer(self):
@@ -76,58 +146,60 @@ class motion_sets_pnl(wx.Panel):
 
         self.main_sizer = wx.BoxSizer(wx.VERTICAL)
         self.main_sizer.Add(self.label, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 7)
-        self.main_sizer.Add(self.status_sizer, 0, wx.ALL, 0)
-        self.main_sizer.Add(self.start_pause_sizer, 0, wx.ALL, 0)
-        self.main_sizer.Add(self.c_sets_sizer, 0, wx.ALL, 0)
+        self.main_sizer.Add(self.help_btn, 0, wx.ALL|wx.ALIGN_RIGHT, 7)
+        self.main_sizer.Add(self.status_sizer, 0, wx.ALL, 3)
+        self.main_sizer.Add(self.start_pause_sizer, 0, wx.ALL, 3)
+        self.main_sizer.Add(self.cap_sets_sizer, 0, wx.ALL, 3)
+    #    self.main_sizer.Add(self.c_sets_sizer, 0, wx.ALL, 3)
         self.main_sizer.Add(self.mcf_label, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 7)
-        self.main_sizer.Add(self.motion_conf_sizer, 0, wx.ALL, 0)
+        self.main_sizer.Add(self.motion_conf_sizer, 0, wx.ALL, 3)
         self.SetSizer(self.main_sizer)
 
-    def create_settings_sizer(self, settings_dict):
-        c_settings_sizer = wx.FlexGridSizer(3, 0, 5)
-        settings_dict = {**self.generic_settings_dict, **settings_dict}
-        setting_crtl_dict = {}
-        setting_t_dict = {}
-        for setting in settings_dict.keys():
-            label, box, box_t = self.create_ui_element(setting, settings_dict[setting])
-            if not label == None:
-                setting_crtl_dict[setting] = box
-                setting_t_dict[setting] = box_t
-                c_settings_sizer.Add(label, 0, wx.TOP|wx.EXPAND|wx.ALIGN_RIGHT, 2)
-                c_settings_sizer.Add(box, 0, wx.TOP|wx.EXPAND, 2)
-                c_settings_sizer.Add(box_t, 0, wx.TOP|wx.EXPAND, 2)
-        return c_settings_sizer, setting_crtl_dict, setting_t_dict
+    # def create_settings_sizer(self, settings_dict):
+    #     c_settings_sizer = wx.FlexGridSizer(3, 0, 5)
+    #     settings_dict = {**self.generic_settings_dict, **settings_dict}
+    #     setting_crtl_dict = {}
+    #     setting_t_dict = {}
+    #     for setting in settings_dict.keys():
+    #         label, box, box_t = self.create_ui_element(setting, settings_dict[setting])
+    #         if not label == None:
+    #             setting_crtl_dict[setting] = box
+    #             setting_t_dict[setting] = box_t
+    #             c_settings_sizer.Add(label, 0, wx.TOP|wx.EXPAND|wx.ALIGN_RIGHT, 2)
+    #             c_settings_sizer.Add(box, 0, wx.TOP|wx.EXPAND, 2)
+    #             c_settings_sizer.Add(box_t, 0, wx.TOP|wx.EXPAND, 2)
+    #     return c_settings_sizer, setting_crtl_dict, setting_t_dict
 
-    def create_ui_element(self, setting, vals):
-        label     = wx.StaticText(self,  label=setting)
-        input_box_t = wx.StaticText(self,  label="")
-        if isinstance(vals[1], list):
-            input_box = wx.ComboBox(self, choices=vals[1], value=vals[0])
-        elif isinstance(vals[1], str):
-            input_box = wx.TextCtrl(self, value=vals[0])
-        elif isinstance(vals[1], tuple):
-            min_val, max_val = vals[1]
-            default_val = int(vals[0])
-            #print(min_val, max_val, default_val)
-            input_box_t = wx.TextCtrl(self, value=str(default_val), style=wx.TE_PROCESS_ENTER)
-            input_box_t.SetLabel(setting)
-            input_box_t.Bind(wx.EVT_TEXT_ENTER, self.slider_text_change)
-            input_box = wx.Slider(self, id=wx.ID_ANY, value=default_val, minValue=int(min_val), maxValue=int(max_val))
-            input_box.SetLabel(setting)
-            input_box.Bind(wx.EVT_SLIDER, self.slider_move)
-        else:
-            print (" Error - motion_set create_ui_element - Not set up to undertand ", type(vals[1]), " as options type")
-            input_box = wx.TextCtrl(self, value="")
-        return label, input_box, input_box_t
+    # def create_ui_element(self, setting, vals):
+    #     label     = wx.StaticText(self,  label=setting)
+    #     input_box_t = wx.StaticText(self,  label="")
+    #     if isinstance(vals[1], list):
+    #         input_box = wx.ComboBox(self, choices=vals[1], value=vals[0])
+    #     elif isinstance(vals[1], str):
+    #         input_box = wx.TextCtrl(self, value=vals[0])
+    #     elif isinstance(vals[1], tuple):
+    #         min_val, max_val = vals[1]
+    #         default_val = int(vals[0])
+    #         #print(min_val, max_val, default_val)
+    #         input_box_t = wx.TextCtrl(self, value=str(default_val), style=wx.TE_PROCESS_ENTER)
+    #         input_box_t.SetLabel(setting)
+    #         input_box_t.Bind(wx.EVT_TEXT_ENTER, self.slider_text_change)
+    #         input_box = wx.Slider(self, id=wx.ID_ANY, value=default_val, minValue=int(min_val), maxValue=int(max_val))
+    #         input_box.SetLabel(setting)
+    #         input_box.Bind(wx.EVT_SLIDER, self.slider_move)
+    #     else:
+    #         print (" Error - motion_set create_ui_element - Not set up to undertand ", type(vals[1]), " as options type")
+    #         input_box = wx.TextCtrl(self, value="")
+    #     return label, input_box, input_box_t
 
     def start_motion_click(self, e):
         rpp = self.parent.parent.shared_data.remote_pigrow_path
         set_loc = self.parent.camconf_path_tc.GetValue()
-        cmd = rpp + "/scripts/autorun/motion_start.py set=" + set_loc
-        print(" RUNNING - " + cmd)
-        print(" ")
+        cmd = rpp + "scripts/autorun/motion_start.py set=" + set_loc
+        #print(" Running command - " + cmd)
+        #print(" ")
         out, error = self.parent.parent.link_pnl.run_on_pi(cmd)
-        print("out, error =", out, error)
+        #print("out, error =", out, error)
 
     def start_detect_click(self, e):
         port = "8080"
@@ -204,7 +276,6 @@ class motion_sets_pnl(wx.Panel):
         self.staus.SetLabel(text)
         self.parent.Layout()
 
-
     def check_status(self):
         port = "8080"
         cmd_base = "curl http://localhost:" + port + "/0/"
@@ -228,11 +299,17 @@ class motion_sets_pnl(wx.Panel):
         return text.strip()
 
 
-    def reread_motion_conf(self):
+    def reload_motion_config_click(self, e=""):
         #
         #    THIS CODE IS CURRENTLY NOT USED
         #
-        out, error = self.parent.parent.link_pnl.run_on_pi("kill -s SIGHUP")
+        print(" SENDING SIGHUP SIGNAL TO MOTION IS NOT YET WRITTEN!!!!!!!!")
+        out, error = self.parent.parent.link_pnl.run_on_pi("pidof motion")
+        if out.strip() == "":
+            print("  - Motion not running")
+        else:
+            motion_pid = out.strip()
+        out, error = self.parent.parent.link_pnl.run_on_pi("kill -s SIGHUP " + motion_pid)
 
     # install motion functions
     def check_motion_install(self):
@@ -305,11 +382,33 @@ class motion_sets_pnl(wx.Panel):
 
     # special controls
     def show_motion_config_click(self, e):
+        #read file from pi
+        shared_data = self.parent.parent.shared_data
         print("Showing motion config ")
-        motion_conf_path = self.setting_crtl_dict['config_path'].GetValue()
+        motion_conf_path = self.conf_path_tc.GetValue()
         cmd = "cat " + motion_conf_path
         out, error = self.parent.parent.link_pnl.run_on_pi(cmd)
-        print (out)
+        # display in dialog box
+        dbox = shared_data.scroll_text_dialog(None, out, "Editing " + motion_conf_path, True, False)
+        dbox.ShowModal()
+        out_conf = dbox.text
+        dbox.Destroy()
+        if out_conf == None:
+            #print("User aborted")
+            return None
+        else:
+            if not out_conf == out:
+                question_text = "Save changes to config file?"
+                dbox = wx.MessageDialog(self, question_text, "Save Changes?", wx.OK | wx.CANCEL | wx.ICON_QUESTION)
+                answer = dbox.ShowModal()
+                if (answer == wx.ID_OK):
+                    self.parent.parent.link_pnl.write_textfile_to_pi(out_conf, motion_conf_path)
+
+    def new_motion_config_click(self, e):
+        shared_data = self.parent.parent.shared_data
+        conf_default = shared_data.remote_pigrow_path + "config/motion.conf"
+        print (" Not creating ", conf_default)
+
 
 
 
@@ -344,8 +443,6 @@ class motion_sets_pnl(wx.Panel):
     #    self.setting_crtl_dict['resolution'].Append(res_opts)
 
 
-
-
     def make_line_dict(self, line):
         line_opts = line.strip().split(":")[1].split(" ")
         line_dict = {}
@@ -355,53 +452,53 @@ class motion_sets_pnl(wx.Panel):
                 line_dict[key]=value
         return line_dict
 
-    def get_opt_list(self, e):
-        print("Getting opt list")
-        opt_list = []
-        #
-        cmd = 'v4l2-ctl --list-ctrls-menus'
-        out, error = self.parent.parent.link_pnl.run_on_pi(cmd)
-        if not error.strip() == "":
-            print ("Error - ", error, "\n")
-            print("  Ensure v412-crl is installed correctly on the raspberry pi")
-            print("              sudo apt-get install v4l-utils")
-        lines = out.splitlines()
-        new_sets_dict = {}
-        for i in range(0, len(lines)-1):
-            if ":" in lines[i] and "=" in lines[i]:
-                crtl_name = lines[i].strip().split(" ")[0]
-                line_dict = self.make_line_dict(lines[i])
-                if "(int)" in lines[i]:
-                    if "min" in line_dict and "max" in line_dict and "value" in line_dict:
-                        # add new control to dict for sliders - a list containing the current value and a tuple of min and max
-                        new_sets_dict[crtl_name] = [ line_dict['value'], (int(line_dict['min']), int(line_dict['max'])) ]
-                elif "(bool)" in lines[i]:
-                    if "value" in line_dict:
-                        val = line_dict['value']
-                        if val == "0":
-                            val = "False"
-                        else:
-                            val = "True"
-                        new_sets_dict[crtl_name] = [ val, ["True", "False"] ]
-                    else:
-                        new_sets_dict[crtl_name] = [ "", ["True", "False"] ]
-                elif "(menu)" in lines[i] or "(intmenu)" in lines[i]:
-                    menu_list = []
-                    for ii in range( i+1, i+int(line_dict['max'])+2 ):
-                        if not ii > len(lines)-1:
-                            if ":" in lines[ii]:
-                                line = lines[ii].strip().split(":")
-                                if line[0].isdigit():
-                                    menu_list.append(line[1])
-                        new_sets_dict[crtl_name] = [ '', menu_list ]
-        #print (new_sets_dict)
-        self.c_sets_sizer.Clear(True)
-        self.c_sets_sizer, self.setting_crtl_dict, self.setting_t_dict = self.create_settings_sizer(new_sets_dict)
-        self.make_sizer()
-        C_pnl = self.parent.parent.dict_C_pnl['camera_pnl']
-        C_pnl.camcap_combo_go("e")
-        self.parent.SetupScrolling()
-        self.parent.Layout()
+    # def get_opt_list(self, e):
+    #     print("Getting opt list")
+    #     opt_list = []
+    #     #
+    #     cmd = 'v4l2-ctl --list-ctrls-menus'
+    #     out, error = self.parent.parent.link_pnl.run_on_pi(cmd)
+    #     if not error.strip() == "":
+    #         print ("Error - ", error, "\n")
+    #         print("  Ensure v412-crl is installed correctly on the raspberry pi")
+    #         print("              sudo apt-get install v4l-utils")
+    #     lines = out.splitlines()
+    #     new_sets_dict = {}
+    #     for i in range(0, len(lines)-1):
+    #         if ":" in lines[i] and "=" in lines[i]:
+    #             crtl_name = lines[i].strip().split(" ")[0]
+    #             line_dict = self.make_line_dict(lines[i])
+    #             if "(int)" in lines[i]:
+    #                 if "min" in line_dict and "max" in line_dict and "value" in line_dict:
+    #                     # add new control to dict for sliders - a list containing the current value and a tuple of min and max
+    #                     new_sets_dict[crtl_name] = [ line_dict['value'], (int(line_dict['min']), int(line_dict['max'])) ]
+    #             elif "(bool)" in lines[i]:
+    #                 if "value" in line_dict:
+    #                     val = line_dict['value']
+    #                     if val == "0":
+    #                         val = "False"
+    #                     else:
+    #                         val = "True"
+    #                     new_sets_dict[crtl_name] = [ val, ["True", "False"] ]
+    #                 else:
+    #                     new_sets_dict[crtl_name] = [ "", ["True", "False"] ]
+    #             elif "(menu)" in lines[i] or "(intmenu)" in lines[i]:
+    #                 menu_list = []
+    #                 for ii in range( i+1, i+int(line_dict['max'])+2 ):
+    #                     if not ii > len(lines)-1:
+    #                         if ":" in lines[ii]:
+    #                             line = lines[ii].strip().split(":")
+    #                             if line[0].isdigit():
+    #                                 menu_list.append(line[1])
+    #                     new_sets_dict[crtl_name] = [ '', menu_list ]
+    #     #print (new_sets_dict)
+    #     self.c_sets_sizer.Clear(True)
+    #     self.c_sets_sizer, self.setting_crtl_dict, self.setting_t_dict = self.create_settings_sizer(new_sets_dict)
+    #     self.make_sizer()
+    #     C_pnl = self.parent.parent.dict_C_pnl['camera_pnl']
+    #     C_pnl.camcap_combo_go("e")
+    #     self.parent.SetupScrolling()
+    #     self.parent.Layout()
 
         #
 
@@ -419,19 +516,30 @@ class motion_sets_pnl(wx.Panel):
     # conf
     def make_conf_text(self, setting_dict):
         settings_text = ""
-        for item in setting_dict.keys():
-            value = str(setting_dict[item].GetValue())
-            if not value == "":
-                if not item == "resolution":
+
+        conf_path = self.conf_path_tc.GetValue()
+        if not conf_path == "":
+            settings_text += "config_path=" + conf_path +"\n"
+        log_path = self.log_path_tc.GetValue()
+        if not log_path == "":
+            settings_text += "log_path=" + log_path +"\n"
+        log_level = self.log_lev_tc.GetValue()
+        if not log_path == "":
+            settings_text += "log_level=" + log_level +"\n"
+
+    #    for item in setting_dict.keys():
+    #        value = str(setting_dict[item].GetValue())
+    #        if not value == "":
+    #            if not item == "resolution":
                     #settings_text += ' --set "' + item + '"="' + str(value) + '"'
-                    settings_text += item + "=" + str(value) + '\n'
-                else:
-                    res = value
-        #res_text = "resolution=" + res + "\n"
-        #return res_text + settings_text
+    #                settings_text += item + "=" + str(value) + '\n'
+    #            else:
+    #                res = value
+
         return settings_text
 
     def text_into_ui(self, set_text):
+        print(" !!!!!!!!!!!!!!!!!!!! putting text into the ui")
         cam_settings = set_text.splitlines()
         self.camera_settings_dict = {}
         for line in cam_settings:
@@ -440,14 +548,23 @@ class motion_sets_pnl(wx.Panel):
                 key = line[:equals_pos]
                 value = line[equals_pos+1:]
                 self.camera_settings_dict[key] = value
+
+        if "config_path" in self.camera_settings_dict:
+            self.conf_path_tc.SetValue(self.camera_settings_dict["config_path"])
+        if "log_path" in self.camera_settings_dict:
+            self.log_path_tc.SetValue(self.camera_settings_dict["log_path"])
+        if "log_level" in self.camera_settings_dict:
+            self.log_lev_tc.SetValue(self.camera_settings_dict["log_level"])
+
+    #    self.camera_settings_dict = {}
         # put into ui items
-        csd = self.camera_settings_dict
-        for key in csd.keys():
-            if key in self.setting_crtl_dict:
-                if type(self.setting_crtl_dict[key]) == wx._core.Slider:
-                    self.setting_t_dict[key].SetValue(csd[key])
-                    csd[key] = int(csd[key])
-                self.setting_crtl_dict[key].SetValue(csd[key])
+    #    csd = self.camera_settings_dict
+    #    for key in csd.keys():
+    #        if key in self.setting_crtl_dict:
+    #            if type(self.setting_crtl_dict[key]) == wx._core.Slider:
+    #                self.setting_t_dict[key].SetValue(csd[key])
+    #                csd[key] = int(csd[key])
+    #            self.setting_crtl_dict[key].SetValue(csd[key])
 
     #capture
 
