@@ -18,7 +18,6 @@ class motion_sets_pnl(wx.Panel):
         self.control_buttons()
         self.make_capture_settings_ui()
 
-
         #conf_default = shared_data.remote_pigrow_path + "config/motion.conf"
         self.generic_settings_dict = {}
 
@@ -261,8 +260,7 @@ class motion_sets_pnl(wx.Panel):
                 # {IP}:{port}/{camid}/detection/status
                 status_text = self.check_status()
 
-
-                # IP}:{port}/{camid}/detection/
+                # IP}:{port}/{camid}/detection/connection
                 port = "8080"
                 cmd_base = "curl http://localhost:" + port + "/0/"
                 cmd = "detection/connection"
@@ -270,7 +268,7 @@ class motion_sets_pnl(wx.Panel):
                 if out == "":
                     connect_text = ""
                 else:
-                    print("!!!!!!!!"+out+"!!!!!!!!!!!")
+                    #print("!!!!!!!!"+out+"!!!!!!!!!!!")
                     connect_text = self.read_motion_output(out)
                 text = text + "\n" + status_text +  "\n" + connect_text
         self.staus.SetLabel(text)
@@ -289,9 +287,16 @@ class motion_sets_pnl(wx.Panel):
         return status_text
 
     def read_motion_output(self, text):
-        print (text)
-        text = text.split("<body>")[1]
-        text = text.split("</body>")[0]
+        '''
+        This is a quick and dirty way of stripping the http tags,
+        it works on the motion output but will create confused output
+        with pretty much anything else.
+        '''
+        #print (text)
+        if "<body>" in text:
+            text = text.split("<body>")[1]
+        if "</body>" in text:
+            text = text.split("</body>")[0]
         if "</b>" in text:
             text = text.split("</b>")[1]
         if "<br>" in text:
@@ -300,16 +305,12 @@ class motion_sets_pnl(wx.Panel):
 
 
     def reload_motion_config_click(self, e=""):
-        #
-        #    THIS CODE IS CURRENTLY NOT USED
-        #
-        print(" SENDING SIGHUP SIGNAL TO MOTION IS NOT YET WRITTEN!!!!!!!!")
         out, error = self.parent.parent.link_pnl.run_on_pi("pidof motion")
         if out.strip() == "":
             print("  - Motion not running")
         else:
             motion_pid = out.strip()
-        out, error = self.parent.parent.link_pnl.run_on_pi("kill -s SIGHUP " + motion_pid)
+            out, error = self.parent.parent.link_pnl.run_on_pi("kill -s SIGHUP " + motion_pid)
 
     # install motion functions
     def check_motion_install(self):
@@ -408,8 +409,7 @@ class motion_sets_pnl(wx.Panel):
         shared_data = self.parent.parent.shared_data
         conf_default = shared_data.remote_pigrow_path + "config/motion.conf"
         print (" Not creating ", conf_default)
-
-
+        print(" !!!!!!!!!!!!!!!!!!! THIS IS NOT YET CODED !!!!!!!!!!!!!!!!!!!!!")
 
 
     def get_resolutions_click(self, e):
@@ -443,14 +443,14 @@ class motion_sets_pnl(wx.Panel):
     #    self.setting_crtl_dict['resolution'].Append(res_opts)
 
 
-    def make_line_dict(self, line):
-        line_opts = line.strip().split(":")[1].split(" ")
-        line_dict = {}
-        for item in line_opts:
-            if "=" in item:
-                key, value = item.strip().split("=")
-                line_dict[key]=value
-        return line_dict
+    # def make_line_dict(self, line):
+    #     line_opts = line.strip().split(":")[1].split(" ")
+    #     line_dict = {}
+    #     for item in line_opts:
+    #         if "=" in item:
+    #             key, value = item.strip().split("=")
+    #             line_dict[key]=value
+    #     return line_dict
 
     # def get_opt_list(self, e):
     #     print("Getting opt list")
@@ -503,21 +503,21 @@ class motion_sets_pnl(wx.Panel):
         #
 
     # controls
-    def slider_move(self, e):
-        setting_name = e.GetEventObject().GetLabel()
-        slider_val = e.GetEventObject().GetValue()
-        self.setting_t_dict[setting_name].SetValue(str(slider_val))
-
-    def slider_text_change(self, e):
-        setting_name = e.GetEventObject().GetLabel()
-        box_val = e.GetEventObject().GetValue()
-        self.setting_crtl_dict[setting_name].SetValue(int(box_val))
+    # def slider_move(self, e):
+    #     setting_name = e.GetEventObject().GetLabel()
+    #     slider_val = e.GetEventObject().GetValue()
+    #     self.setting_t_dict[setting_name].SetValue(str(slider_val))
+    #
+    # def slider_text_change(self, e):
+    #     setting_name = e.GetEventObject().GetLabel()
+    #     box_val = e.GetEventObject().GetValue()
+    #     self.setting_crtl_dict[setting_name].SetValue(int(box_val))
 
     # conf
     def make_conf_text(self, setting_dict):
         settings_text = ""
-
         conf_path = self.conf_path_tc.GetValue()
+
         if not conf_path == "":
             settings_text += "config_path=" + conf_path +"\n"
         log_path = self.log_path_tc.GetValue()
@@ -527,19 +527,9 @@ class motion_sets_pnl(wx.Panel):
         if not log_path == "":
             settings_text += "log_level=" + log_level +"\n"
 
-    #    for item in setting_dict.keys():
-    #        value = str(setting_dict[item].GetValue())
-    #        if not value == "":
-    #            if not item == "resolution":
-                    #settings_text += ' --set "' + item + '"="' + str(value) + '"'
-    #                settings_text += item + "=" + str(value) + '\n'
-    #            else:
-    #                res = value
-
         return settings_text
 
     def text_into_ui(self, set_text):
-        print(" !!!!!!!!!!!!!!!!!!!! putting text into the ui")
         cam_settings = set_text.splitlines()
         self.camera_settings_dict = {}
         for line in cam_settings:
@@ -556,18 +546,7 @@ class motion_sets_pnl(wx.Panel):
         if "log_level" in self.camera_settings_dict:
             self.log_lev_tc.SetValue(self.camera_settings_dict["log_level"])
 
-    #    self.camera_settings_dict = {}
-        # put into ui items
-    #    csd = self.camera_settings_dict
-    #    for key in csd.keys():
-    #        if key in self.setting_crtl_dict:
-    #            if type(self.setting_crtl_dict[key]) == wx._core.Slider:
-    #                self.setting_t_dict[key].SetValue(csd[key])
-    #                csd[key] = int(csd[key])
-    #            self.setting_crtl_dict[key].SetValue(csd[key])
-
     #capture
-
     def take_image(self, settings_file, outpath):
         pigrow_path = self.parent.parent.shared_data.remote_pigrow_path
         port = "8080"
