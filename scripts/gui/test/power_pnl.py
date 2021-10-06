@@ -16,13 +16,20 @@ class ctrl_pnl(wx.Panel):
         self.add_hbridge_btn = wx.Button(self, label='Add\nH-Bridge\nControl')
         self.add_hbridge_btn.Bind(wx.EVT_BUTTON, self.add_hbridge_click)
 
+        self.add_pca_btn = wx.Button(self, label='Add\npca9685\nControl')
+        self.add_pca_btn.Bind(wx.EVT_BUTTON, self.add_pca_click)
+
         # main sizer
         main_sizer =  wx.BoxSizer(wx.VERTICAL)
         main_sizer.Add(self.l, 0, wx.ALL|wx.EXPAND, 5)
-        main_sizer.AddStretchSpacer(1)
+        #main_sizer.AddStretchSpacer(1)
         main_sizer.Add(self.fill_table_btn, 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.AddStretchSpacer(1)
         main_sizer.Add(self.add_hbridge_btn, 0, wx.ALL|wx.EXPAND, 5)
+        main_sizer.AddStretchSpacer(1)
+        main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(self.add_pca_btn, 0, wx.ALL|wx.EXPAND, 5)
+        main_sizer.AddStretchSpacer(1)
         main_sizer.AddStretchSpacer(1)
         self.SetSizer(main_sizer)
 
@@ -45,11 +52,24 @@ class ctrl_pnl(wx.Panel):
         add_button = hbridge_dialog(i_pnl.motor_ctrl_lst, i_pnl.motor_ctrl_lst.parent)
         add_button.ShowModal()
 
+    def add_pca_click(self, e):
+        i_pnl = self.parent.dict_I_pnl['power_pnl']
+        # load config from file and fill tables so there are no conflicts
+        self.fill_tables_click("e")
+        # set blanks for dialog box
+        i_pnl.pca_device_lst.s_name = ""
+        i_pnl.pca_device_lst.s_loc = ""
+        i_pnl.pca_device_lst.s_freq = ""
+        # call dialog box
+        add_button = pca_dialog(i_pnl.pca_device_lst, i_pnl.pca_device_lst.parent)
+        add_button.ShowModal()
+
 
     def connect_to_pigrow(self):
         '''
         This is called every time a connection to a pigrow is made
         '''
+        self.fill_tables_click("e")
         pass
 
 class info_pnl(wx.Panel):
@@ -185,8 +205,6 @@ class info_pnl(wx.Panel):
             self.SetItem(0, 3, str(pwm_ctrl))
 
         def doubleclick(self, e):
-            shared_data = self.parent.parent.shared_data
-
             index =  e.GetIndex()
             #get info for dialogue box
             self.s_name  = self.GetItem(index, 0).GetText()
@@ -252,10 +270,12 @@ class info_pnl(wx.Panel):
             self.SetItem(0, 2, str(freq))
 
         def doubleclick(self, e):
-            shared_data = self.parent.parent.shared_data
             index =  e.GetIndex()
-            name = self.GetItem(index, 0).GetText()
-            print(" Sorry double clicking on " + name + " does nothing.")
+            self.s_name  = self.GetItem(index, 0).GetText()
+            self.s_loc = self.GetItem(index, 1).GetText()
+            self.s_freq = self.GetItem(index, 2).GetText()
+            h_dialog_box = pca_dialog(self, self.parent)
+            h_dialog_box.ShowModal()
 
 
 class hbridge_dialog(wx.Dialog):
@@ -263,7 +283,7 @@ class hbridge_dialog(wx.Dialog):
         self.parent = parent
         super(hbridge_dialog, self).__init__(*args, **kw)
         self.InitUI()
-        self.SetSize((800, 700))
+        self.SetSize((650, 450))
         self.SetTitle("H-Bridge setup")
         self.Bind(wx.EVT_CLOSE, self.OnClose)
 
@@ -315,12 +335,22 @@ class hbridge_dialog(wx.Dialog):
         self.read_m_btn = wx.Button(self, label='Read Motor Direction', size=(175, 30))
         self.read_m_btn.Bind(wx.EVT_BUTTON, self.read_motor_directon)
         self.read_m_label = wx.StaticText(self,  label='')
-        self.switch_m_d_btn = wx.Button(self, label='Switch Motor Direction', size=(175, 30))
-        self.switch_m_d_btn.Bind(wx.EVT_BUTTON, self.switch_m_d)
         read_m_sizer =  wx.BoxSizer(wx.HORIZONTAL)
         read_m_sizer.Add(self.read_m_btn, 0, wx.ALL|wx.EXPAND, 5)
         read_m_sizer.Add(self.read_m_label, 0, wx.ALL|wx.EXPAND, 5)
-        read_m_sizer.Add(self.switch_m_d_btn, 0, wx.ALL|wx.EXPAND, 5)
+
+        self.switch_m_d_label = wx.StaticText(self,  label='Set direction - ')
+        self.switch_m_d_a_btn = wx.Button(self, label='<<   A +')
+        self.switch_m_d_a_btn.Bind(wx.EVT_BUTTON, self.switch_m_d_a)
+        self.switch_m_d_off_btn = wx.Button(self, label='Off')
+        self.switch_m_d_off_btn.Bind(wx.EVT_BUTTON, self.switch_m_d_off)
+        self.switch_m_d_b_btn = wx.Button(self, label='B +   >>')
+        self.switch_m_d_b_btn.Bind(wx.EVT_BUTTON, self.switch_m_d_b)
+        switch_m_d_sizer =  wx.BoxSizer(wx.HORIZONTAL)
+        switch_m_d_sizer.Add(self.switch_m_d_label, 0, wx.ALL|wx.EXPAND, 5)
+        switch_m_d_sizer.Add(self.switch_m_d_a_btn, 0, wx.ALL|wx.EXPAND, 5)
+        switch_m_d_sizer.Add(self.switch_m_d_off_btn, 0, wx.ALL|wx.EXPAND, 5)
+        switch_m_d_sizer.Add(self.switch_m_d_b_btn, 0, wx.ALL|wx.EXPAND, 5)
 
         # buttons_
         self.save_btn = wx.Button(self, label='Save', size=(175, 30))
@@ -341,6 +371,7 @@ class hbridge_dialog(wx.Dialog):
         main_sizer.Add(gpioA_sizer, 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.Add(gpioB_sizer, 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.Add(read_m_sizer, 0, wx.ALL|wx.EXPAND, 5)
+        main_sizer.Add(switch_m_d_sizer, 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.AddStretchSpacer(1)
         main_sizer.Add(buttons_sizer, 0, wx.ALL|wx.EXPAND, 5)
         self.SetSizer(main_sizer)
@@ -371,7 +402,6 @@ class hbridge_dialog(wx.Dialog):
         if changed == None:
             print(" - Nothing changed, no need to save ")
         else:
-            print(" - Something changed, not saving though that's not coded yet")
             name_start = "hbridge_" + n_name
             shared_data.config_dict[name_start + "_gpioA"] = n_gpioA
             shared_data.config_dict[name_start + "_gpioB"] = n_gpioB
@@ -399,13 +429,18 @@ class hbridge_dialog(wx.Dialog):
         msg = "A = " + state_a + "  B = " + state_b + "\n"
         if state_a == "1" and state_b == "0":
             msg += "Direction set to +"
-        if state_b == "0" and state_a == "1":
+        elif state_a == "0" and state_b == "1":
             msg += "Direction set to -"
+        elif state_b == "0" and state_a == "0":
+            msg += "Motor Off"
         else:
             msg += "Not a valid direction setting."
         self.read_m_label.SetLabel(msg)
 
     def read_pin_state(self, gpio_pin):
+        # could also just use
+        # cmd = "gpio -g read " + gpio_pin
+
         # create info on gpio pin
         cmd = "echo " + str(gpio_pin) + " > /sys/class/gpio/export"
         out, error = self.parent.parent.parent.link_pnl.run_on_pi(cmd)
@@ -415,6 +450,145 @@ class hbridge_dialog(wx.Dialog):
         gpio_status = out.strip()
         return gpio_status
 
+    def set_pin(self, pin, dir):
+        cmd = "gpio -g mode " + str(pin) + "out"
+        out, error = self.parent.parent.parent.link_pnl.run_on_pi(cmd)
+        cmd = "gpio -g write " + str(pin) + " " + str(dir)
+        out, error = self.parent.parent.parent.link_pnl.run_on_pi(cmd)
 
-    def switch_m_d(self, e):
-        print(" THIS BUTTON DOES NOTHING lol")
+    def switch_m_d_a(self, e):
+        gpio_a = self.gpioA_tc.GetValue()
+        gpio_b = self.gpioB_tc.GetValue()
+        self.set_pin(gpio_b, 0)
+        self.set_pin(gpio_a, 1)
+        self.read_motor_directon("e")
+
+    def switch_m_d_off(self, e):
+        gpio_a = self.gpioA_tc.GetValue()
+        gpio_b = self.gpioB_tc.GetValue()
+        self.set_pin(gpio_a, 0)
+        self.set_pin(gpio_b, 0)
+        self.read_motor_directon("e")
+
+    def switch_m_d_b(self, e):
+        gpio_a = self.gpioA_tc.GetValue()
+        gpio_b = self.gpioB_tc.GetValue()
+        self.set_pin(gpio_a, 0)
+        self.set_pin(gpio_b, 1)
+        self.read_motor_directon("e")
+
+class pca_dialog(wx.Dialog):
+    def __init__(self, parent, *args, **kw):
+        self.parent = parent
+        super(pca_dialog, self).__init__(*args, **kw)
+        self.InitUI()
+        self.SetSize((650, 450))
+        self.SetTitle("PCA9685 setup")
+        self.Bind(wx.EVT_CLOSE, self.OnClose)
+
+    def InitUI(self):
+        i_pnl = self.parent.parent.parent.dict_I_pnl['power_pnl']
+        shared_data = self.parent.parent.parent.shared_data
+        #link_pnl = self.parent.parent.parent.link_pnl
+        self.pca_device_lst = i_pnl.pca_device_lst
+        # read values - blank for adding a new sensor, used when editing existing entry
+        self.s_name  = self.pca_device_lst.s_name
+        self.s_loc= self.pca_device_lst.s_loc
+        self.s_freq = self.pca_device_lst.s_freq
+
+        # panel
+        pnl = wx.Panel(self)
+
+        # Header
+        box_label = wx.StaticText(self,  label='PCA9685 controller')
+        box_label.SetFont(shared_data.title_font)
+
+        # Show guide button
+        show_guide_btn = wx.Button(self, label='Guide', size=(175, 30))
+        show_guide_btn.Bind(wx.EVT_BUTTON, self.show_guide_click)
+        header_sizer =  wx.BoxSizer(wx.HORIZONTAL)
+        header_sizer.Add(box_label, 0, wx.ALL, 5)
+        header_sizer.AddStretchSpacer(1)
+        header_sizer.Add(show_guide_btn, 0, wx.ALL, 5)
+
+        ## unique name
+        name_label = wx.StaticText(self,  label='Unique name')
+        self.name_tc = wx.TextCtrl(self, value=self.s_name, size=(200,30))
+        name_sizer =  wx.BoxSizer(wx.HORIZONTAL)
+        name_sizer.Add(name_label, 0, wx.ALL|wx.EXPAND, 5)
+        name_sizer.Add(self.name_tc, 0, wx.ALL|wx.EXPAND, 5)
+        ## i2c
+        loc_label = wx.StaticText(self,  label='i2c address')
+        self.loc_tc = wx.TextCtrl(self, value=self.s_loc, size=(200,30))
+        loc_sizer =  wx.BoxSizer(wx.HORIZONTAL)
+        loc_sizer.Add(loc_label, 0, wx.ALL|wx.EXPAND, 5)
+        loc_sizer.Add(self.loc_tc, 0, wx.ALL|wx.EXPAND, 5)
+        ## freq
+        freq_label = wx.StaticText(self,  label='freq')
+        self.freq_tc = wx.TextCtrl(self, value=self.s_freq, size=(200,30))
+        freq_sizer =  wx.BoxSizer(wx.HORIZONTAL)
+        freq_sizer.Add(freq_label, 0, wx.ALL|wx.EXPAND, 5)
+        freq_sizer.Add(self.freq_tc, 0, wx.ALL|wx.EXPAND, 5)
+
+        # buttons_
+        self.save_btn = wx.Button(self, label='Save', size=(175, 30))
+        self.save_btn.Bind(wx.EVT_BUTTON, self.save_click)
+        self.cancel_btn = wx.Button(self, label='Cancel', size=(175, 30))
+        self.cancel_btn.Bind(wx.EVT_BUTTON, self.OnClose)
+        buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        buttons_sizer.AddStretchSpacer(1)
+        buttons_sizer.Add(self.save_btn, 0,  wx.ALL, 3)
+        buttons_sizer.AddStretchSpacer(1)
+        buttons_sizer.Add(self.cancel_btn, 0,  wx.ALL, 3)
+        buttons_sizer.AddStretchSpacer(1)
+
+        main_sizer =  wx.BoxSizer(wx.VERTICAL)
+        main_sizer.Add(header_sizer, 0, wx.ALL|wx.EXPAND, 5)
+        main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(name_sizer, 0, wx.ALL|wx.EXPAND, 5)
+        main_sizer.Add(loc_sizer, 0, wx.ALL|wx.EXPAND, 5)
+        main_sizer.Add(freq_sizer, 0, wx.ALL|wx.EXPAND, 5)
+        main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(buttons_sizer, 0, wx.ALL|wx.EXPAND, 5)
+        self.SetSizer(main_sizer)
+
+    def OnClose(self, e):
+        self.pca_device_lst.s_name  = ""
+        self.pca_device_lst.s_loc = ""
+        self.pca_device_lst.s_freq = ""
+        self.Destroy()
+
+    def save_click(self, e):
+        shared_data = self.parent.parent.parent.shared_data
+        n_name  = self.name_tc.GetValue()
+        n_loc = self.loc_tc.GetValue()
+        n_freq = self.freq_tc.GetValue()
+
+        changed = "yes"
+        if self.s_name == n_name:
+            if self.s_loc == n_loc:
+                if self.s_freq == n_freq:
+                    changed = None
+
+        if changed == None:
+            print(" - Nothing changed, no need to save ")
+        else:
+            print(" - Something changed")
+            name_start = "pca_" + n_name
+            shared_data.config_dict[name_start + "_loc"] = n_loc
+            shared_data.config_dict[name_start + "_freq"] = n_freq
+
+            # If name changed delete old entries
+            if not n_name == self.s_name:
+                name_start = "pca_" + self.s_name
+                possible_keys = [name_start + "_loc",
+                                 name_start + "_freq"]
+                for possible_key in possible_keys:
+                    if possible_key in shared_data.config_dict:
+                        del shared_data.config_dict[possible_key]
+
+            shared_data.update_pigrow_config_file_on_pi()
+        self.Destroy()
+
+    def show_guide_click(self, e):
+        self.parent.parent.parent.shared_data.show_help('pca_help.png')

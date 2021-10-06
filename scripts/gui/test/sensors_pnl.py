@@ -1424,7 +1424,6 @@ class button_dialog(wx.Dialog):
         self.Destroy()
 
     def read_but_click(self, e):
-        print(" - Clicking read button does stuff.")
         gpio = self.gpio_tc.GetValue()
         type = "GND"
         if not gpio == "":
