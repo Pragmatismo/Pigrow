@@ -114,6 +114,6 @@ if __name__ == '__main__':
         print(" no value set, use value= to set a power level percentage")
         sys.exit()
 
-    value = int(value) / 100 * 33000
+    value = int(value) / 100 * 65534
 
     pca_switch(name, i2c, freq, chan, value, set_dic, loc_dic['loc_switchlog'])
