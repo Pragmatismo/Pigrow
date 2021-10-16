@@ -13,6 +13,9 @@ class ctrl_pnl(wx.Panel):
         self.fill_table_btn = wx.Button(self, label='Fill Table', size=(75, 30))
         self.fill_table_btn.Bind(wx.EVT_BUTTON, self.fill_tables_click)
 
+        self.add_relay_btn = wx.Button(self, label='Add\nRelay\nControl')
+        self.add_relay_btn.Bind(wx.EVT_BUTTON, self.add_relay_click)
+
         self.add_hbridge_btn = wx.Button(self, label='Add\nH-Bridge\nControl')
         self.add_hbridge_btn.Bind(wx.EVT_BUTTON, self.add_hbridge_click)
 
@@ -25,6 +28,9 @@ class ctrl_pnl(wx.Panel):
         #main_sizer.AddStretchSpacer(1)
         main_sizer.Add(self.fill_table_btn, 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(self.add_relay_btn, 0, wx.ALL|wx.EXPAND, 5)
+        main_sizer.AddStretchSpacer(1)
+        main_sizer.AddStretchSpacer(1)
         main_sizer.Add(self.add_hbridge_btn, 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.AddStretchSpacer(1)
         main_sizer.AddStretchSpacer(1)
@@ -36,8 +42,22 @@ class ctrl_pnl(wx.Panel):
     def fill_tables_click(self, e):
         self.parent.shared_data.read_pigrow_settings_file()
         i_pnl = self.parent.dict_I_pnl['power_pnl']
+        i_pnl.relay_ctrl_lst.make_table()
         i_pnl.motor_ctrl_lst.make_table()
         i_pnl.pca_device_lst.make_table()
+
+    def add_relay_click(self, e):
+        i_pnl = self.parent.dict_I_pnl['power_pnl']
+        # load config from file and fill tables so there are no conflicts
+        self.fill_tables_click("e")
+        # set blanks for dialog box
+        i_pnl.relay_ctrl_lst.s_name = ""
+        i_pnl.relay_ctrl_lst.s_gpio = ""
+        i_pnl.relay_ctrl_lst.s_wiring = ""
+    #    i_pnl.motor_ctrl_lst.s_current = ""
+        # call dialog box
+        add_button = relay_dialog(i_pnl.relay_ctrl_lst, i_pnl.relay_ctrl_lst.parent)
+        add_button.ShowModal()
 
     def add_hbridge_click(self, e):
         i_pnl = self.parent.dict_I_pnl['power_pnl']
@@ -82,8 +102,25 @@ class info_pnl(wx.Panel):
         #self.SetBackgroundColour((50,50,50))
         self.title = wx.StaticText(self,  label=' Power Control Devices')
 
+        # relay control
+        self.relay_l = wx.StaticText(self,  label='Relay Control')
+        self.relay_help_btn = wx.Button(self, label='Guide', size=(75, 30))
+        self.relay_help_btn.Bind(wx.EVT_BUTTON, self.relay_help_click)
+        relay_l_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        relay_l_sizer.Add(self.relay_l, 0, wx.ALL, 3)
+        relay_l_sizer.AddStretchSpacer(1)
+        relay_l_sizer.Add(self.relay_help_btn, 0, wx.ALL, 3)
+
+        self.relay_ctrl_lst = self.relay_control_list(self, 1)
+        self.relay_ctrl_lst.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.relay_ctrl_lst.doubleclick)
+
+        relay_sizer = wx.BoxSizer(wx.VERTICAL)
+        relay_sizer.Add(relay_l_sizer, 0, wx.ALL|wx.EXPAND, 3)
+        relay_sizer.Add(self.relay_ctrl_lst, 0, wx.ALL|wx.EXPAND, 3)
+
+
         # motor control
-        self.motor_l = wx.StaticText(self,  label='L298N - H-Bridge Motor Control')
+        self.motor_l = wx.StaticText(self,  label='H-Bridge Motor Control')
         self.motor_help_btn = wx.Button(self, label='Guide', size=(75, 30))
         self.motor_help_btn.Bind(wx.EVT_BUTTON, self.motor_help_click)
         motor_l_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -121,6 +158,8 @@ class info_pnl(wx.Panel):
         main_sizer =  wx.BoxSizer(wx.VERTICAL)
         main_sizer.Add(self.title, 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(relay_sizer, 0, wx.ALL|wx.EXPAND, 5)
+        main_sizer.AddStretchSpacer(1)
         main_sizer.Add(motor_sizer, 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.AddStretchSpacer(1)
         main_sizer.Add(pca_sizer, 0, wx.ALL|wx.EXPAND, 5)
@@ -128,6 +167,9 @@ class info_pnl(wx.Panel):
         #main_sizer.Add(buttons_sizer, 0, wx.ALL|wx.EXPAND, 5)
         self.make_chan_ctrl()
         self.SetSizer(main_sizer)
+
+    def relay_help_click(self, e):
+        self.parent.shared_data.show_help('relay_help.png')
 
     def motor_help_click(self, e):
         self.parent.shared_data.show_help('motor_help.png')
@@ -145,6 +187,75 @@ class info_pnl(wx.Panel):
         self.pca_chan_sizer.Add(self.pca_chan_l, 0, wx.ALL|wx.EXPAND, 5)
         self.Layout()
         self.parent.Layout()
+
+    class relay_control_list(wx.ListCtrl):
+        def __init__(self, parent, id):
+            self.parent = parent
+            wx.ListCtrl.__init__(self, parent, id, style=wx.LC_REPORT)
+            self.InsertColumn(0, 'Unique Name')
+            self.InsertColumn(1, 'gpio')
+            self.InsertColumn(2, 'wiring')
+            self.InsertColumn(3, 'currently')
+            self.autosizeme()
+
+        def make_table(self):
+            config_dict = self.parent.parent.shared_data.config_dict
+            relay_list = []
+            print("  - Using config_dict to fill relay table")
+            self.DeleteAllItems()
+            # Create a list of items
+            for key, value in list(config_dict.items()):
+                if "gpio_" in key:
+                    name = key.split("_")[1]
+                    if not name in relay_list:
+                        relay_list.append(name)
+
+            for relay_name in relay_list:
+                gpio, wiring = self.read_relay_conf(relay_name, config_dict, "gpio_")
+                if not relay_name == "dht22sensor": #ignore
+                    self.add_to_relay_table(relay_name, gpio, wiring)
+
+        def read_relay_conf(self, item_name, config_dict, prefix):
+            # Extract sensor config info from config dictionary
+            field_list = ["",
+                          "_on"]
+            info = []
+            for field in field_list:
+                field_key = prefix + item_name + field
+                if field_key in config_dict:
+                    info.append(config_dict[field_key])
+                else:
+                    info.append("")
+            return info
+
+        def autosizeme(self):
+            if self.GetItemCount() == 0:
+                self.SetColumnWidth(0, wx.LIST_AUTOSIZE_USEHEADER)
+                self.SetColumnWidth(1, wx.LIST_AUTOSIZE_USEHEADER)
+                self.SetColumnWidth(2, wx.LIST_AUTOSIZE_USEHEADER)
+                self.SetColumnWidth(3, wx.LIST_AUTOSIZE_USEHEADER)
+            else:
+                self.SetColumnWidth(0, wx.LIST_AUTOSIZE)
+                self.SetColumnWidth(1, wx.LIST_AUTOSIZE)
+                self.SetColumnWidth(2, wx.LIST_AUTOSIZE)
+                self.SetColumnWidth(3, wx.LIST_AUTOSIZE)
+
+        def add_to_relay_table(self, name, gpio, wiring):
+            self.InsertItem(0, str(name))
+            self.SetItem(0, 1, str(gpio))
+            self.SetItem(0, 2, str(wiring))
+            current = "no coded yet"
+            self.SetItem(0, 3, str(current))
+
+        def doubleclick(self, e):
+            index =  e.GetIndex()
+            #get info for dialogue box
+            self.s_name  = self.GetItem(index, 0).GetText()
+            self.s_gpio = self.GetItem(index, 1).GetText()
+            self.s_wiring = self.GetItem(index, 2).GetText()
+        #    self.s_current   = self.GetItem(index, 3).GetText()
+            relay_box = relay_dialog(self, self.parent)
+            relay_box.ShowModal()
 
     class motor_control_list(wx.ListCtrl):
         def __init__(self, parent, id):
@@ -214,7 +325,6 @@ class info_pnl(wx.Panel):
             h_dialog_box = hbridge_dialog(self, self.parent)
             h_dialog_box.ShowModal()
 
-
     class pca_list(wx.ListCtrl):
         def __init__(self, parent, id):
             self.parent = parent
@@ -276,6 +386,188 @@ class info_pnl(wx.Panel):
             self.s_freq = self.GetItem(index, 2).GetText()
             h_dialog_box = pca_dialog(self, self.parent)
             h_dialog_box.ShowModal()
+
+class relay_dialog(wx.Dialog):
+    def __init__(self, parent, *args, **kw):
+        self.parent = parent
+        super(relay_dialog, self).__init__(*args, **kw)
+        self.InitUI()
+        self.SetSize((650, 450))
+        self.SetTitle("Relay setup")
+        self.Bind(wx.EVT_CLOSE, self.OnClose)
+
+    def InitUI(self):
+        i_pnl = self.parent.parent.parent.dict_I_pnl['power_pnl']
+        shared_data = self.parent.parent.parent.shared_data
+        #link_pnl = self.parent.parent.parent.link_pnl
+        self.relay_ctrl_lst = i_pnl.relay_ctrl_lst
+        # read values - blank for adding a new sensor, used when editing existing entry
+        self.s_name  = self.relay_ctrl_lst.s_name
+        self.s_gpio = self.relay_ctrl_lst.s_gpio
+        self.s_wiring = self.relay_ctrl_lst.s_wiring
+
+        # panel
+        pnl = wx.Panel(self)
+
+        # Header
+        box_label = wx.StaticText(self,  label='Relay control')
+        box_label.SetFont(shared_data.title_font)
+        # Show guide button
+        show_guide_btn = wx.Button(self, label='Guide', size=(175, 30))
+        show_guide_btn.Bind(wx.EVT_BUTTON, self.show_guide_click)
+        header_sizer =  wx.BoxSizer(wx.HORIZONTAL)
+        header_sizer.Add(box_label, 0, wx.ALL, 5)
+        header_sizer.AddStretchSpacer(1)
+        header_sizer.Add(show_guide_btn, 0, wx.ALL, 5)
+
+        ## unique name
+        name_label = wx.StaticText(self,  label='Unique name')
+        self.name_tc = wx.TextCtrl(self, value=self.s_name, size=(200,30))
+        name_sizer =  wx.BoxSizer(wx.HORIZONTAL)
+        name_sizer.Add(name_label, 0, wx.ALL|wx.EXPAND, 5)
+        name_sizer.Add(self.name_tc, 0, wx.ALL|wx.EXPAND, 5)
+        ## gpio
+        gpio_label = wx.StaticText(self,  label='gpio')
+        self.gpio_tc = wx.TextCtrl(self, value=self.s_gpio)
+        gpio_sizer =  wx.BoxSizer(wx.HORIZONTAL)
+        gpio_sizer.Add(gpio_label, 0, wx.ALL|wx.EXPAND, 5)
+        gpio_sizer.Add(self.gpio_tc, 0, wx.ALL|wx.EXPAND, 5)
+
+        ## wiring
+        wiring_label = wx.StaticText(self,  label='wiring')
+        wiring_choices = ['low', 'high']
+        self.wiring_combo = wx.ComboBox(self, choices = wiring_choices, value=self.s_wiring, size=(110, 30))
+        #self.wiring_tc = wx.TextCtrl(self, value=self.s_wiring, size=(200,30))
+        wiring_sizer =  wx.BoxSizer(wx.HORIZONTAL)
+        wiring_sizer.Add(wiring_label, 0, wx.ALL|wx.EXPAND, 5)
+        wiring_sizer.Add(self.wiring_combo, 0, wx.ALL|wx.EXPAND, 5)
+
+        # Read relay directon
+        self.read_m_btn = wx.Button(self, label='Read Relay Direction', size=(175, 30))
+        self.read_m_btn.Bind(wx.EVT_BUTTON, self.read_relay_directon)
+        self.read_m_label = wx.StaticText(self,  label='')
+        read_m_sizer =  wx.BoxSizer(wx.HORIZONTAL)
+        read_m_sizer.Add(self.read_m_btn, 0, wx.ALL|wx.EXPAND, 5)
+        read_m_sizer.Add(self.read_m_label, 0, wx.ALL|wx.EXPAND, 5)
+
+        self.switch_relay_label = wx.StaticText(self,  label='Switch Relay - ')
+        self.switch_relay_on_btn = wx.Button(self, label='On')
+        self.switch_relay_on_btn.Bind(wx.EVT_BUTTON, self.switch_relay_on)
+        self.switch_relay_off_btn = wx.Button(self, label='Off')
+        self.switch_relay_off_btn.Bind(wx.EVT_BUTTON, self.switch_relay_off)
+        switch_m_d_sizer =  wx.BoxSizer(wx.HORIZONTAL)
+        switch_m_d_sizer.Add(self.switch_relay_label, 0, wx.ALL|wx.EXPAND, 5)
+        switch_m_d_sizer.Add(self.switch_relay_on_btn, 0, wx.ALL|wx.EXPAND, 5)
+        switch_m_d_sizer.Add(self.switch_relay_off_btn, 0, wx.ALL|wx.EXPAND, 5)
+
+        # buttons_
+        self.save_btn = wx.Button(self, label='Save', size=(175, 30))
+        self.save_btn.Bind(wx.EVT_BUTTON, self.save_click)
+        self.cancel_btn = wx.Button(self, label='Cancel', size=(175, 30))
+        self.cancel_btn.Bind(wx.EVT_BUTTON, self.OnClose)
+        buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        buttons_sizer.AddStretchSpacer(1)
+        buttons_sizer.Add(self.save_btn, 0,  wx.ALL, 3)
+        buttons_sizer.AddStretchSpacer(1)
+        buttons_sizer.Add(self.cancel_btn, 0,  wx.ALL, 3)
+        buttons_sizer.AddStretchSpacer(1)
+
+        main_sizer =  wx.BoxSizer(wx.VERTICAL)
+        main_sizer.Add(header_sizer, 0, wx.ALL|wx.EXPAND, 5)
+        main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(name_sizer, 0, wx.ALL|wx.EXPAND, 5)
+        main_sizer.Add(gpio_sizer, 0, wx.ALL|wx.EXPAND, 5)
+        main_sizer.Add(wiring_sizer, 0, wx.ALL|wx.EXPAND, 5)
+        main_sizer.Add(read_m_sizer, 0, wx.ALL|wx.EXPAND, 5)
+        main_sizer.Add(switch_m_d_sizer, 0, wx.ALL|wx.EXPAND, 5)
+        main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(buttons_sizer, 0, wx.ALL|wx.EXPAND, 5)
+        self.SetSizer(main_sizer)
+
+    def show_guide_click(self, e):
+        self.parent.parent.parent.shared_data.show_help('relay_help.png')
+
+    def OnClose(self, e):
+        self.relay_ctrl_lst.s_name  = ""
+        self.relay_ctrl_lst.s_gpio = ""
+        self.relay_ctrl_lst.s_wiring = ""
+        self.Destroy()
+
+    def save_click(self, e):
+        shared_data = self.parent.parent.parent.shared_data
+        n_name  = self.name_tc.GetValue()
+        n_gpio = self.gpio_tc.GetValue()
+        n_wiring = self.wiring_combo.GetValue()
+        #n_pwm   =
+        # as yet unused self.s_pwm
+        changed = "yes"
+        if self.s_name == n_name:
+            if self.s_gpio == n_gpio:
+                if self.s_wiring == n_wiring:
+                    changed = None
+
+        if changed == None:
+            print(" - Nothing changed, no need to save ")
+        else:
+            name_start = "gpio_" + n_name
+            shared_data.config_dict[name_start + ""] = n_gpio
+            shared_data.config_dict[name_start + "_on"] = n_wiring
+            #shared_data.config_dict[name_start + "_pwm"] = n_pwm
+
+            # If name changed delete old entries
+            if not n_name == self.s_name:
+                name_start = "gpio_" + self.s_name
+                possible_keys = [name_start + "",
+                                 name_start + "_on"]
+                for possible_key in possible_keys:
+                    if possible_key in shared_data.config_dict:
+                        del shared_data.config_dict[possible_key]
+
+            shared_data.update_pigrow_config_file_on_pi()
+        self.Destroy()
+
+
+    def read_relay_directon(self, e):
+        gpio_a = self.gpio_tc.GetValue()
+        state_a = self.read_pin_state(gpio_a)
+        msg = "pin value = " + state_a + "\n"
+        self.read_m_label.SetLabel(msg)
+
+    def read_pin_state(self, gpio_pin):
+        # could also just use
+        # cmd = "gpio -g read " + gpio_pin
+
+        # create info on gpio pin
+        cmd = "echo " + str(gpio_pin) + " > /sys/class/gpio/export"
+        out, error = self.parent.parent.parent.link_pnl.run_on_pi(cmd)
+        # read the pins value
+        cmd = "cat /sys/class/gpio/gpio" + str(gpio_pin) + "/value"
+        out, error = self.parent.parent.parent.link_pnl.run_on_pi(cmd)
+        gpio_status = out.strip()
+        return gpio_status
+
+    def set_pin(self, pin, dir):
+        cmd = "gpio -g mode " + str(pin) + "out"
+        out, error = self.parent.parent.parent.link_pnl.run_on_pi(cmd)
+        cmd = "gpio -g write " + str(pin) + " " + str(dir)
+        out, error = self.parent.parent.parent.link_pnl.run_on_pi(cmd)
+
+    def switch_relay_on(self, e):
+        gpio = self.gpio_tc.GetValue()
+        print("not actually doing it")
+    #    gpio_b = self.gpioB_tc.GetValue()
+    #    self.set_pin(gpio_b, 0)
+    #    self.set_pin(gpio_a, 1)
+        self.read_relay_directon("e")
+
+    def switch_relay_off(self, e):
+        gpio = self.gpio_tc.GetValue()
+        print("not actually doing it")
+    #    gpio_b = self.gpioB_tc.GetValue()
+    #    self.set_pin(gpio_a, 0)
+    #    self.set_pin(gpio_b, 0)
+        self.read_relay_directon("e")
+
 
 
 class hbridge_dialog(wx.Dialog):
@@ -530,6 +822,21 @@ class pca_dialog(wx.Dialog):
         freq_sizer.Add(freq_label, 0, wx.ALL|wx.EXPAND, 5)
         freq_sizer.Add(self.freq_tc, 0, wx.ALL|wx.EXPAND, 5)
 
+        #controlls
+        set_value_btn = wx.Button(self, label='Set')
+        set_value_btn.Bind(wx.EVT_BUTTON, self.set_value_click)
+        channel_l = wx.StaticText(self,  label='channel')
+        self.channel_tc = wx.TextCtrl(self, value="0")
+        power_l = wx.StaticText(self,  label='power %')
+        self.power_tc = wx.TextCtrl(self, value="100")
+
+        set_val_sizer =  wx.BoxSizer(wx.HORIZONTAL)
+        set_val_sizer.Add(set_value_btn, 0, wx.ALL|wx.EXPAND, 5)
+        set_val_sizer.Add(channel_l, 0, wx.ALL|wx.EXPAND, 5)
+        set_val_sizer.Add(self.channel_tc, 0, wx.ALL|wx.EXPAND, 5)
+        set_val_sizer.Add(power_l, 0, wx.ALL|wx.EXPAND, 5)
+        set_val_sizer.Add(self.power_tc, 0, wx.ALL|wx.EXPAND, 5)
+
         # buttons_
         self.save_btn = wx.Button(self, label='Save', size=(175, 30))
         self.save_btn.Bind(wx.EVT_BUTTON, self.save_click)
@@ -549,6 +856,8 @@ class pca_dialog(wx.Dialog):
         main_sizer.Add(loc_sizer, 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.Add(freq_sizer, 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(set_val_sizer, 0, wx.ALL|wx.EXPAND, 5)
+        main_sizer.AddStretchSpacer(1)
         main_sizer.Add(buttons_sizer, 0, wx.ALL|wx.EXPAND, 5)
         self.SetSizer(main_sizer)
 
@@ -557,6 +866,20 @@ class pca_dialog(wx.Dialog):
         self.pca_device_lst.s_loc = ""
         self.pca_device_lst.s_freq = ""
         self.Destroy()
+
+    def set_value_click(self, e):
+        i2c = self.loc_tc.GetValue()
+        freq = self.freq_tc.GetValue()
+        chan  = self.channel_tc.GetValue()
+        power = self.power_tc.GetValue()
+        print("FUCK YOU BUDDY", i2c, freq, chan, power)
+        cmd = self.parent.parent.parent.shared_data.remote_pigrow_path
+        cmd += "scripts/switches/pca9685_set.py i2c=" + i2c + " freq=" + freq
+        cmd += " chan=" + chan + " value=" + power
+        print(cmd)
+        out, error = self.parent.parent.parent.link_pnl.run_on_pi(cmd)
+        print(out, error)
+
 
     def save_click(self, e):
         shared_data = self.parent.parent.parent.shared_data
