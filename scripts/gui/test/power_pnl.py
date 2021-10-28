@@ -244,7 +244,8 @@ class info_pnl(wx.Panel):
             self.InsertItem(0, str(name))
             self.SetItem(0, 1, str(gpio))
             self.SetItem(0, 2, str(wiring))
-            current = "no coded yet"
+            pin_state = self.read_pin_state(gpio)
+            current = self.determine_device_state(pin_state, wiring)
             self.SetItem(0, 3, str(current))
 
         def doubleclick(self, e):
@@ -256,6 +257,34 @@ class info_pnl(wx.Panel):
         #    self.s_current   = self.GetItem(index, 3).GetText()
             relay_box = relay_dialog(self, self.parent)
             relay_box.ShowModal()
+
+        def read_pin_state(self, gpio_pin):
+            # could also just use
+            # cmd = "gpio -g read " + gpio_pin
+
+            # create info on gpio pin
+            cmd = "echo " + str(gpio_pin) + " > /sys/class/gpio/export"
+            out, error = self.parent.parent.link_pnl.run_on_pi(cmd)
+            # read the pins value
+            cmd = "cat /sys/class/gpio/gpio" + str(gpio_pin) + "/value"
+            out, error = self.parent.parent.link_pnl.run_on_pi(cmd)
+            gpio_status = out.strip()
+            return gpio_status
+
+        def determine_device_state(self, pin_state, wiring):
+            if pin_state == "1":
+                if wiring == "low":
+                    text = "off"
+                elif wiring == "high":
+                    text = "on"
+
+            elif pin_state == "0":
+                if wiring == "low":
+                    text = "on"
+                elif wiring == "high":
+                    text = "off"
+
+            return text
 
     class motor_control_list(wx.ListCtrl):
         def __init__(self, parent, id):
@@ -392,7 +421,7 @@ class relay_dialog(wx.Dialog):
         self.parent = parent
         super(relay_dialog, self).__init__(*args, **kw)
         self.InitUI()
-        self.SetSize((650, 450))
+        self.SetSize((500, 450))
         self.SetTitle("Relay setup")
         self.Bind(wx.EVT_CLOSE, self.OnClose)
 
@@ -460,6 +489,8 @@ class relay_dialog(wx.Dialog):
         switch_m_d_sizer.Add(self.switch_relay_on_btn, 0, wx.ALL|wx.EXPAND, 5)
         switch_m_d_sizer.Add(self.switch_relay_off_btn, 0, wx.ALL|wx.EXPAND, 5)
 
+        self.switch_warn_label = wx.StaticText(self,  label='WARNING: changes it directly, for testing only')
+
         # buttons_
         self.save_btn = wx.Button(self, label='Save', size=(175, 30))
         self.save_btn.Bind(wx.EVT_BUTTON, self.save_click)
@@ -475,11 +506,12 @@ class relay_dialog(wx.Dialog):
         main_sizer =  wx.BoxSizer(wx.VERTICAL)
         main_sizer.Add(header_sizer, 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.AddStretchSpacer(1)
-        main_sizer.Add(name_sizer, 0, wx.ALL|wx.EXPAND, 5)
-        main_sizer.Add(gpio_sizer, 0, wx.ALL|wx.EXPAND, 5)
-        main_sizer.Add(wiring_sizer, 0, wx.ALL|wx.EXPAND, 5)
+        main_sizer.Add(name_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
+        main_sizer.Add(gpio_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
+        main_sizer.Add(wiring_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
         main_sizer.Add(read_m_sizer, 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.Add(switch_m_d_sizer, 0, wx.ALL|wx.EXPAND, 5)
+        main_sizer.Add(self.switch_warn_label, 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.AddStretchSpacer(1)
         main_sizer.Add(buttons_sizer, 0, wx.ALL|wx.EXPAND, 5)
         self.SetSizer(main_sizer)
@@ -529,22 +561,12 @@ class relay_dialog(wx.Dialog):
 
     def read_relay_directon(self, e):
         gpio_a = self.gpio_tc.GetValue()
-        state_a = self.read_pin_state(gpio_a)
+        state_a = self.parent.read_pin_state(gpio_a)
+        wiring = self.wiring_combo.GetValue()
         msg = "pin value = " + state_a + "\n"
+        text = self.parent.determine_device_state(state_a, wiring)
+        msg += "Device = " + text
         self.read_m_label.SetLabel(msg)
-
-    def read_pin_state(self, gpio_pin):
-        # could also just use
-        # cmd = "gpio -g read " + gpio_pin
-
-        # create info on gpio pin
-        cmd = "echo " + str(gpio_pin) + " > /sys/class/gpio/export"
-        out, error = self.parent.parent.parent.link_pnl.run_on_pi(cmd)
-        # read the pins value
-        cmd = "cat /sys/class/gpio/gpio" + str(gpio_pin) + "/value"
-        out, error = self.parent.parent.parent.link_pnl.run_on_pi(cmd)
-        gpio_status = out.strip()
-        return gpio_status
 
     def set_pin(self, pin, dir):
         cmd = "gpio -g mode " + str(pin) + "out"
@@ -554,20 +576,29 @@ class relay_dialog(wx.Dialog):
 
     def switch_relay_on(self, e):
         gpio = self.gpio_tc.GetValue()
-        print("not actually doing it")
-    #    gpio_b = self.gpioB_tc.GetValue()
-    #    self.set_pin(gpio_b, 0)
-    #    self.set_pin(gpio_a, 1)
+        wiring = self.wiring_combo.GetValue()
+        if wiring == "low":
+            set_to = 0
+        elif wiring == "high":
+            set_to = 1
+        else:
+            print ("Can't set relay if direction not set ")
+            return None
+        self.set_pin(gpio, set_to)
         self.read_relay_directon("e")
 
     def switch_relay_off(self, e):
         gpio = self.gpio_tc.GetValue()
-        print("not actually doing it")
-    #    gpio_b = self.gpioB_tc.GetValue()
-    #    self.set_pin(gpio_a, 0)
-    #    self.set_pin(gpio_b, 0)
+        wiring = self.wiring_combo.GetValue()
+        if wiring == "low":
+            set_to = 1
+        elif wiring == "high":
+            set_to = 0
+        else:
+            print ("Can't set relay if direction not set ")
+            return None
+        self.set_pin(gpio, set_to)
         self.read_relay_directon("e")
-
 
 
 class hbridge_dialog(wx.Dialog):
