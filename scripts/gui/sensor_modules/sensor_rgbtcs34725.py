@@ -5,8 +5,8 @@ class sensor_config():
     # find connected sensors
     def find_settings():
         print("connection_type=i2c")
-        print("connection_address_list=")
-        print("default_connection_address=")
+        print("connection_address_list=0x29")
+        print("default_connection_address=0x29")
 
 
 
