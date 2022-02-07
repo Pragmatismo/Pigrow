@@ -7,6 +7,7 @@ homedir = os.getenv("HOME")
 sys.path.append(homedir + '/chirp-rpi/')
 import chirp
 
+
 homedir = os.getenv("HOME")
 log_path = homedir + "/Pigrow/logs/chirp_log.txt"
 chirp_address = 0x20
