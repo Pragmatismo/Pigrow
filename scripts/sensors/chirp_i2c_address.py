@@ -2,6 +2,8 @@
 import os, sys
 homedir = os.getenv("HOME")
 sys.path.append(homedir + '/chirp-rpi/')
+sys.path.append(homedir + '/Pigrow/scripts/gui/sensor_modules/chirp-rpi/')
+
 import chirp
 
 chirp_address = None
