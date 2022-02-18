@@ -72,7 +72,7 @@ def read_sensor(location="", extra="", sensor_name="", *args):
     # set up and read the sensor
     try:
         i2c = board.I2C()
-        sensor = Seesaw(i2c, addr=location)
+        sensor = Seesaw(i2c, addr=0x36)
         moist, moist0, erraticrem, removed = read_moist(sensor)
         temp = sensor.get_temp()
         temp = round(temp, 2)
@@ -93,7 +93,7 @@ if __name__ == '__main__':
           ##
       '''
      # check for command line arguments
-    sensor_location = "0x36"
+    sensor_location = ""
     for argu in sys.argv[1:]:
         if "=" in argu:
             thearg = str(argu).split('=')[0]
