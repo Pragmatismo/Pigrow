@@ -22,6 +22,9 @@ class ctrl_pnl(wx.Panel):
         self.add_pca_btn = wx.Button(self, label='Add\npca9685\nControl')
         self.add_pca_btn.Bind(wx.EVT_BUTTON, self.add_pca_click)
 
+        self.add_hwpwm_btn = wx.Button(self, label='Add\nHardware PWM\n')
+        self.add_hwpwm_btn.Bind(wx.EVT_BUTTON, self.add_hwpwm_click)
+
         # main sizer
         main_sizer =  wx.BoxSizer(wx.VERTICAL)
         main_sizer.Add(self.l, 0, wx.ALL|wx.EXPAND, 5)
@@ -34,6 +37,7 @@ class ctrl_pnl(wx.Panel):
         main_sizer.Add(self.add_hbridge_btn, 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.AddStretchSpacer(1)
         main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(self.add_hwpwm_btn, 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.Add(self.add_pca_btn, 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.AddStretchSpacer(1)
         main_sizer.AddStretchSpacer(1)
@@ -44,7 +48,7 @@ class ctrl_pnl(wx.Panel):
         i_pnl = self.parent.dict_I_pnl['power_pnl']
         i_pnl.relay_ctrl_lst.make_table()
         i_pnl.motor_ctrl_lst.make_table()
-        i_pnl.pca_device_lst.make_table()
+        i_pnl.pwm_device_lst.make_table()
 
     def add_relay_click(self, e):
         i_pnl = self.parent.dict_I_pnl['power_pnl']
@@ -58,6 +62,7 @@ class ctrl_pnl(wx.Panel):
         # call dialog box
         add_button = relay_dialog(i_pnl.relay_ctrl_lst, i_pnl.relay_ctrl_lst.parent)
         add_button.ShowModal()
+        self.fill_tables_click("e")
 
     def add_hbridge_click(self, e):
         i_pnl = self.parent.dict_I_pnl['power_pnl']
@@ -71,18 +76,33 @@ class ctrl_pnl(wx.Panel):
         # call dialog box
         add_button = hbridge_dialog(i_pnl.motor_ctrl_lst, i_pnl.motor_ctrl_lst.parent)
         add_button.ShowModal()
+        self.fill_tables_click("e")
 
     def add_pca_click(self, e):
         i_pnl = self.parent.dict_I_pnl['power_pnl']
         # load config from file and fill tables so there are no conflicts
         self.fill_tables_click("e")
         # set blanks for dialog box
-        i_pnl.pca_device_lst.s_name = ""
-        i_pnl.pca_device_lst.s_loc = ""
-        i_pnl.pca_device_lst.s_freq = ""
+        i_pnl.pwm_device_lst.s_name = ""
+        i_pnl.pwm_device_lst.s_loc = ""
+        i_pnl.pwm_device_lst.s_freq = ""
         # call dialog box
-        add_button = pca_dialog(i_pnl.pca_device_lst, i_pnl.pca_device_lst.parent)
+        add_button = pca_dialog(i_pnl.pwm_device_lst, i_pnl.pwm_device_lst.parent)
         add_button.ShowModal()
+        self.fill_tables_click("e")
+
+    def add_hwpwm_click(self, e):
+        i_pnl = self.parent.dict_I_pnl['power_pnl']
+        # load config from file and fill tables so there are no conflicts
+        self.fill_tables_click("e")
+        # set blanks for dialog box
+        i_pnl.pwm_device_lst.s_name = ""
+        i_pnl.pwm_device_lst.s_loc = ""
+        i_pnl.pwm_device_lst.s_freq = ""
+        # call dialog box
+        add_button = hwpwm_dialog(i_pnl.pwm_device_lst, i_pnl.pwm_device_lst.parent)
+        add_button.ShowModal()
+        self.fill_tables_click("e")
 
 
     def connect_to_pigrow(self):
@@ -97,6 +117,7 @@ class info_pnl(wx.Panel):
     #
     def __init__( self, parent ):
         self.parent = parent
+        self.c_pnl = parent.dict_C_pnl['power_pnl']
         shared_data = parent.shared_data
         wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, style = wx.TAB_TRAVERSAL )
         #self.SetBackgroundColour((50,50,50))
@@ -144,13 +165,13 @@ class info_pnl(wx.Panel):
         pca_l_sizer.AddStretchSpacer(1)
         pca_l_sizer.Add(self.pca_help_btn, 0, wx.ALL, 3)
 
-        self.pca_device_lst = self.pca_list(self, 1)
-        self.pca_device_lst.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.pca_device_lst.doubleclick)
+        self.pwm_device_lst = self.pwm_list(self, 1)
+        self.pwm_device_lst.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.pwm_device_lst.doubleclick)
         self.pca_chan_sizer =  wx.BoxSizer(wx.VERTICAL)
 
         pca_sizer = wx.BoxSizer(wx.VERTICAL)
         pca_sizer.Add(pca_l_sizer, 0, wx.ALL|wx.EXPAND, 3)
-        pca_sizer.Add(self.pca_device_lst, 0, wx.ALL|wx.EXPAND, 3)
+        pca_sizer.Add(self.pwm_device_lst, 0, wx.ALL|wx.EXPAND, 3)
         pca_sizer.Add(self.pca_chan_sizer, 0, wx.ALL|wx.EXPAND, 3)
 
 
@@ -178,10 +199,10 @@ class info_pnl(wx.Panel):
         self.parent.shared_data.show_help('pca_help.png')
 
     def make_chan_ctrl(self):
-        selected = self.pca_device_lst.GetNextSelected(-1)
+        selected = self.pwm_device_lst.GetNextSelected(-1)
         name = ""
         if not selected == -1:
-            name = self.pca_device_lst.GetItemText(selected, 0)
+            name = self.pwm_device_lst.GetItemText(selected, 0)
         self.pca_chan_l = wx.StaticText(self,  label='PCA Channel info ' + name)
 
         self.pca_chan_sizer.Add(self.pca_chan_l, 0, wx.ALL|wx.EXPAND, 5)
@@ -257,6 +278,7 @@ class info_pnl(wx.Panel):
         #    self.s_current   = self.GetItem(index, 3).GetText()
             relay_box = relay_dialog(self, self.parent)
             relay_box.ShowModal()
+            self.parent.c_pnl.fill_tables_click("e")
 
         def read_pin_state(self, gpio_pin):
             # could also just use
@@ -353,21 +375,23 @@ class info_pnl(wx.Panel):
             self.s_pwm   = self.GetItem(index, 3).GetText()
             h_dialog_box = hbridge_dialog(self, self.parent)
             h_dialog_box.ShowModal()
+            self.parent.c_pnl.fill_tables_click("e")
 
-    class pca_list(wx.ListCtrl):
+    class pwm_list(wx.ListCtrl):
         def __init__(self, parent, id):
             self.parent = parent
             wx.ListCtrl.__init__(self, parent, id, style=wx.LC_REPORT)
-            self.InsertColumn(0, 'Name')
-            self.InsertColumn(1, 'i2c address')
-            self.InsertColumn(2, 'Frequency')
+            self.InsertColumn(0, 'Type')
+            self.InsertColumn(1, 'Unique Name')
+            self.InsertColumn(2, 'i2c address')
+            self.InsertColumn(3, 'Frequency')
             self.autosizeme()
 
         def make_table(self):
-            print(" pca_list - make_table does nothing, so far")
             config_dict = self.parent.parent.shared_data.config_dict
             pca_list = []
-            print("  - Using config_dict to fill pca table")
+            hwpwm_list = []
+            print("  - Using config_dict to fill PWM table")
             self.DeleteAllItems()
             # Create a list of items
             for key, value in list(config_dict.items()):
@@ -375,12 +399,20 @@ class info_pnl(wx.Panel):
                     name = key.split("_")[1]
                     if not name in pca_list:
                         pca_list.append(name)
+                if "hwpwm_" in key:
+                    name = key.split("_")[1]
+                    if not name in hwpwm_list:
+                        hwpwm_list.append(name)
 
             for pca_name in pca_list:
-                i2c, freq = self.read_pca_conf(pca_name, config_dict, "pca_")
-                self.add_to_pca_list(pca_name, i2c, freq)
+                i2c, freq = self.read_pwm_conf(pca_name, config_dict, "pca_")
+                self.add_to_pwm_list(pca_name, 'pca', i2c, freq)
 
-        def read_pca_conf(self, item_name, config_dict, prefix):
+            for hwpwm_name in hwpwm_list:
+                gpio, freq = self.read_pwm_conf(hwpwm_name, config_dict, 'hwpwm_')
+                self.add_to_pwm_list(hwpwm_name, 'hwpwm',gpio, freq)
+
+        def read_pwm_conf(self, item_name, config_dict, prefix):
             # Extract sensor config info from config dictionary
             field_list = ["_loc",
                           "_freq"]
@@ -398,23 +430,36 @@ class info_pnl(wx.Panel):
                 self.SetColumnWidth(0, wx.LIST_AUTOSIZE_USEHEADER)
                 self.SetColumnWidth(1, wx.LIST_AUTOSIZE_USEHEADER)
                 self.SetColumnWidth(2, wx.LIST_AUTOSIZE_USEHEADER)
+                self.SetColumnWidth(3, wx.LIST_AUTOSIZE_USEHEADER)
             else:
                 self.SetColumnWidth(0, wx.LIST_AUTOSIZE)
                 self.SetColumnWidth(1, wx.LIST_AUTOSIZE)
                 self.SetColumnWidth(2, wx.LIST_AUTOSIZE)
+                self.SetColumnWidth(3, wx.LIST_AUTOSIZE)
 
-        def add_to_pca_list(self, name, i2c, freq):
-            self.InsertItem(0, str(name))
-            self.SetItem(0, 1, str(i2c))
-            self.SetItem(0, 2, str(freq))
+        def add_to_pwm_list(self, name, type, i2c, freq):
+            self.InsertItem(0, str(type))
+            self.SetItem(0, 1,str(name))
+            self.SetItem(0, 2, str(i2c))
+            self.SetItem(0, 3, str(freq))
 
         def doubleclick(self, e):
             index =  e.GetIndex()
-            self.s_name  = self.GetItem(index, 0).GetText()
-            self.s_loc = self.GetItem(index, 1).GetText()
-            self.s_freq = self.GetItem(index, 2).GetText()
-            h_dialog_box = pca_dialog(self, self.parent)
-            h_dialog_box.ShowModal()
+            self.s_type = self.GetItem(index, 0).GetText()
+            self.s_name  = self.GetItem(index, 1).GetText()
+            self.s_loc = self.GetItem(index, 2).GetText()
+            self.s_freq = self.GetItem(index, 3).GetText()
+            if self.s_type == 'pca':
+                h_dialog_box = pca_dialog(self, self.parent)
+                h_dialog_box.ShowModal()
+                self.parent.c_pnl.fill_tables_click("e")
+            if self.s_type == 'hwpwm':
+                dialog_box = hwpwm_dialog(self, self.parent)
+                dialog_box.ShowModal()
+                self.parent.c_pnl.fill_tables_click("e")
+
+            else:
+                print("Error - type of PWM device not recognised")
 
 class relay_dialog(wx.Dialog):
     def __init__(self, parent, *args, **kw):
@@ -600,7 +645,6 @@ class relay_dialog(wx.Dialog):
         self.set_pin(gpio, set_to)
         self.read_relay_directon("e")
 
-
 class hbridge_dialog(wx.Dialog):
     def __init__(self, parent, *args, **kw):
         self.parent = parent
@@ -774,7 +818,7 @@ class hbridge_dialog(wx.Dialog):
         return gpio_status
 
     def set_pin(self, pin, dir):
-        cmd = "gpio -g mode " + str(pin) + "out"
+        cmd = "gpio -g mode " + str(pin) + " out"
         out, error = self.parent.parent.parent.link_pnl.run_on_pi(cmd)
         cmd = "gpio -g write " + str(pin) + " " + str(dir)
         out, error = self.parent.parent.parent.link_pnl.run_on_pi(cmd)
@@ -813,11 +857,11 @@ class pca_dialog(wx.Dialog):
         i_pnl = self.parent.parent.parent.dict_I_pnl['power_pnl']
         shared_data = self.parent.parent.parent.shared_data
         #link_pnl = self.parent.parent.parent.link_pnl
-        self.pca_device_lst = i_pnl.pca_device_lst
+        self.pwm_device_lst = i_pnl.pwm_device_lst
         # read values - blank for adding a new sensor, used when editing existing entry
-        self.s_name  = self.pca_device_lst.s_name
-        self.s_loc= self.pca_device_lst.s_loc
-        self.s_freq = self.pca_device_lst.s_freq
+        self.s_name  = self.pwm_device_lst.s_name
+        self.s_loc= self.pwm_device_lst.s_loc
+        self.s_freq = self.pwm_device_lst.s_freq
 
         # panel
         pnl = wx.Panel(self)
@@ -893,9 +937,9 @@ class pca_dialog(wx.Dialog):
         self.SetSizer(main_sizer)
 
     def OnClose(self, e):
-        self.pca_device_lst.s_name  = ""
-        self.pca_device_lst.s_loc = ""
-        self.pca_device_lst.s_freq = ""
+        self.pwm_device_lst.s_name  = ""
+        self.pwm_device_lst.s_loc = ""
+        self.pwm_device_lst.s_freq = ""
         self.Destroy()
 
     def set_value_click(self, e):
@@ -903,7 +947,6 @@ class pca_dialog(wx.Dialog):
         freq = self.freq_tc.GetValue()
         chan  = self.channel_tc.GetValue()
         power = self.power_tc.GetValue()
-        print("FUCK YOU BUDDY", i2c, freq, chan, power)
         cmd = self.parent.parent.parent.shared_data.remote_pigrow_path
         cmd += "scripts/switches/pca9685_set.py i2c=" + i2c + " freq=" + freq
         cmd += " chan=" + chan + " value=" + power
@@ -946,3 +989,149 @@ class pca_dialog(wx.Dialog):
 
     def show_guide_click(self, e):
         self.parent.parent.parent.shared_data.show_help('pca_help.png')
+
+class hwpwm_dialog(wx.Dialog):
+    def __init__(self, parent, *args, **kw):
+        self.parent = parent
+        super(hwpwm_dialog, self).__init__(*args, **kw)
+        self.InitUI()
+        self.SetSize((650, 450))
+        self.SetTitle("Hardware PWM setup")
+        self.Bind(wx.EVT_CLOSE, self.OnClose)
+
+    def InitUI(self):
+        i_pnl = self.parent.parent.parent.dict_I_pnl['power_pnl']
+        shared_data = self.parent.parent.parent.shared_data
+        #link_pnl = self.parent.parent.parent.link_pnl
+        self.pwm_device_lst = i_pnl.pwm_device_lst
+        # read values - blank for adding a new sensor, used when editing existing entry
+        self.s_name  = self.pwm_device_lst.s_name
+        self.s_loc= self.pwm_device_lst.s_loc
+        self.s_freq = self.pwm_device_lst.s_freq
+
+        # panel
+        pnl = wx.Panel(self)
+
+        # Header
+        box_label = wx.StaticText(self,  label='Hardware PWM settings')
+        box_label.SetFont(shared_data.title_font)
+
+        # Show guide button
+        show_guide_btn = wx.Button(self, label='Guide', size=(175, 30))
+        show_guide_btn.Bind(wx.EVT_BUTTON, self.show_guide_click)
+        header_sizer =  wx.BoxSizer(wx.HORIZONTAL)
+        header_sizer.Add(box_label, 0, wx.ALL, 5)
+        header_sizer.AddStretchSpacer(1)
+        header_sizer.Add(show_guide_btn, 0, wx.ALL, 5)
+
+        ## unique name
+        name_label = wx.StaticText(self,  label='Unique name')
+        self.name_tc = wx.TextCtrl(self, value=self.s_name, size=(200,30))
+        name_sizer =  wx.BoxSizer(wx.HORIZONTAL)
+        name_sizer.Add(name_label, 0, wx.ALL|wx.EXPAND, 5)
+        name_sizer.Add(self.name_tc, 0, wx.ALL|wx.EXPAND, 5)
+        ## i2c
+        loc_label = wx.StaticText(self,  label='gpio pin')
+        self.loc_tc = wx.TextCtrl(self, value=self.s_loc, size=(200,30))
+        loc_sizer =  wx.BoxSizer(wx.HORIZONTAL)
+        loc_sizer.Add(loc_label, 0, wx.ALL|wx.EXPAND, 5)
+        loc_sizer.Add(self.loc_tc, 0, wx.ALL|wx.EXPAND, 5)
+        ## freq
+        freq_label = wx.StaticText(self,  label='freq')
+        self.freq_tc = wx.TextCtrl(self, value=self.s_freq, size=(200,30))
+        freq_sizer =  wx.BoxSizer(wx.HORIZONTAL)
+        freq_sizer.Add(freq_label, 0, wx.ALL|wx.EXPAND, 5)
+        freq_sizer.Add(self.freq_tc, 0, wx.ALL|wx.EXPAND, 5)
+
+        #controlls
+        set_value_btn = wx.Button(self, label='Set')
+        set_value_btn.Bind(wx.EVT_BUTTON, self.set_value_click)
+#        channel_l = wx.StaticText(self,  label='channel')
+#        self.channel_tc = wx.TextCtrl(self, value="0")
+        power_l = wx.StaticText(self,  label='power %')
+        self.power_tc = wx.TextCtrl(self, value="100")
+
+        set_val_sizer =  wx.BoxSizer(wx.HORIZONTAL)
+        set_val_sizer.Add(set_value_btn, 0, wx.ALL|wx.EXPAND, 5)
+#        set_val_sizer.Add(channel_l, 0, wx.ALL|wx.EXPAND, 5)
+#        set_val_sizer.Add(self.channel_tc, 0, wx.ALL|wx.EXPAND, 5)
+        set_val_sizer.Add(power_l, 0, wx.ALL|wx.EXPAND, 5)
+        set_val_sizer.Add(self.power_tc, 0, wx.ALL|wx.EXPAND, 5)
+
+        # buttons_
+        self.save_btn = wx.Button(self, label='Save', size=(175, 30))
+        self.save_btn.Bind(wx.EVT_BUTTON, self.save_click)
+        self.cancel_btn = wx.Button(self, label='Cancel', size=(175, 30))
+        self.cancel_btn.Bind(wx.EVT_BUTTON, self.OnClose)
+        buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        buttons_sizer.AddStretchSpacer(1)
+        buttons_sizer.Add(self.save_btn, 0,  wx.ALL, 3)
+        buttons_sizer.AddStretchSpacer(1)
+        buttons_sizer.Add(self.cancel_btn, 0,  wx.ALL, 3)
+        buttons_sizer.AddStretchSpacer(1)
+
+        main_sizer =  wx.BoxSizer(wx.VERTICAL)
+        main_sizer.Add(header_sizer, 0, wx.ALL|wx.EXPAND, 5)
+        main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(name_sizer, 0, wx.ALL|wx.EXPAND, 5)
+        main_sizer.Add(loc_sizer, 0, wx.ALL|wx.EXPAND, 5)
+        main_sizer.Add(freq_sizer, 0, wx.ALL|wx.EXPAND, 5)
+        main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(set_val_sizer, 0, wx.ALL|wx.EXPAND, 5)
+        main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(buttons_sizer, 0, wx.ALL|wx.EXPAND, 5)
+        self.SetSizer(main_sizer)
+
+    def OnClose(self, e):
+        self.pwm_device_lst.s_name  = ""
+        self.pwm_device_lst.s_loc = ""
+        self.pwm_device_lst.s_freq = ""
+        self.Destroy()
+
+    def set_value_click(self, e):
+        gpio = self.loc_tc.GetValue()
+        freq = self.freq_tc.GetValue()
+        power = self.power_tc.GetValue()
+        cmd = self.parent.parent.parent.shared_data.remote_pigrow_path
+        cmd += "scripts/switches/hwpwm_set.py pin=" + gpio
+        cmd += " freq=" + freq
+        cmd += " value=" + power
+        print(cmd)
+        out, error = self.parent.parent.parent.link_pnl.run_on_pi(cmd)
+        print(out, error)
+
+
+    def save_click(self, e):
+        shared_data = self.parent.parent.parent.shared_data
+        n_name  = self.name_tc.GetValue()
+        n_loc = self.loc_tc.GetValue()
+        n_freq = self.freq_tc.GetValue()
+
+        changed = "yes"
+        if self.s_name == n_name:
+            if self.s_loc == n_loc:
+                if self.s_freq == n_freq:
+                    changed = None
+
+        if changed == None:
+            print(" - Nothing changed, no need to save ")
+        else:
+            print(" - Something changed")
+            name_start = "hwpwm_" + n_name
+            shared_data.config_dict[name_start + "_loc"] = n_loc
+            shared_data.config_dict[name_start + "_freq"] = n_freq
+
+            # If name changed delete old entries
+            if not n_name == self.s_name:
+                name_start = "hwpwm_" + self.s_name
+                possible_keys = [name_start + "_loc",
+                                 name_start + "_freq"]
+                for possible_key in possible_keys:
+                    if possible_key in shared_data.config_dict:
+                        del shared_data.config_dict[possible_key]
+
+            shared_data.update_pigrow_config_file_on_pi()
+        self.Destroy()
+
+    def show_guide_click(self, e):
+        self.parent.parent.parent.shared_data.show_help('hwpwm_help.png')
