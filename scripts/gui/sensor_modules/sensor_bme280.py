@@ -50,7 +50,7 @@ def read_sensor(location="", extra="", sensor_name="", *args):
                 logtime = datetime.datetime.now()
                 return [['time',logtime], ['humid', humidity], ['temperature', temperature], ['pressure', pressure]]
         except Exception as e:
-            print("--exception while reading bcm280, try " + str(read_attempt))
+            print("--exception while reading bme280, try " + str(read_attempt))
             print(" -- " + str(e))
             time.sleep(2)
             read_attempt = read_attempt + 1

@@ -17,8 +17,8 @@ def read_sensor(location="", extra="", sensor_name="", *args):
         import board
         import adafruit_veml7700
     except:
-        print("adafruit_si7021 module not installed, install using the command;")
-        print("     sudo pip3 install adafruit-circuitpython-si7021")
+        print("adafruit_veml7700 module not installed, install using the command;")
+        print("     sudo pip3 install adafruit-circuitpython-veml7700")
         return None
 
     # set up and read the sensor
