@@ -72,10 +72,20 @@ class info_pnl(wx.Panel):
         tank_l.SetFont(shared_data.sub_title_font)
         self.wtank_lst = self.water_tank_list(self, 1)
         self.wtank_lst.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.wtank_lst.doubleclick)
+        self.wtank_lst.Bind(wx.EVT_LIST_ITEM_FOCUSED, self.wtank_select)
 
         tank_table_sizer = wx.BoxSizer(wx.VERTICAL)
         tank_table_sizer.Add(tank_l, 1, wx.ALL|wx.EXPAND, 3)
         tank_table_sizer.Add(self.wtank_lst, 0, wx.ALL|wx.EXPAND, 3)
+
+        # Selected Tank Info Sizer
+        swtinfo_title =  wx.StaticText(self,  label='Selected Water Tank Sensor and Info:')
+        self.lev_s_lst = self.level_sensor_list(self, 1)
+    #    self.lev_s_lst.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.level_sensor_list.doubleclick)
+        self.swtinfo_sizer = wx.BoxSizer(wx.VERTICAL)
+        self.swtinfo_sizer.Add(swtinfo_title, 1, wx.ALL, 3)
+        self.swtinfo_sizer.Add(self.lev_s_lst, 0, wx.ALL|wx.EXPAND, 3)
+
 
         # Tank Size Panel
         tank_size_title =  wx.StaticText(self,  label='Tank Size Calculations')
@@ -89,17 +99,108 @@ class info_pnl(wx.Panel):
         tank_size_sizer.Add(tank_size_title, 1, wx.ALL|wx.EXPAND, 3)
         tank_size_sizer.Add(t_size_sizer, 1, wx.ALL, 3)
 
-        # Main Sizer 
+        # Main Sizer
         main_sizer = wx.BoxSizer(wx.VERTICAL)
         main_sizer.Add(title_l, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
         main_sizer.Add(page_sub_title, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
         main_sizer.AddStretchSpacer(1)
         main_sizer.Add(tank_table_sizer, 0, wx.ALL|wx.EXPAND, 3)
-        main_sizer.Add(tank_size_sizer, 1, wx.ALL, 3)
+        main_sizer.Add(self.swtinfo_sizer, 1, wx.ALL, 3)
         main_sizer.AddStretchSpacer(1)
         main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
+        main_sizer.Add(tank_size_sizer, 1, wx.ALL, 3)
         main_sizer.AddStretchSpacer(1)
         self.SetSizer(main_sizer)
+
+    def wtank_select(self, e):
+        index = self.wtank_lst.GetFocusedItem()
+        wtank_name  = self.wtank_lst.GetItem(index, 3).GetText()
+        wtank_size  = self.wtank_lst.GetItem(index, 3).GetText()
+        wtank_type  = self.wtank_lst.GetItem(index, 3).GetText()
+        self.set_tank_ui(wtank_name, wtank_size, wtank_type)
+
+    def set_tank_ui(self, wtank_name, wtank_size, wtank_type):
+        swtinfo_title =  wx.StaticText(self,  label='Selected Water Tank Sensor and Info')
+        self.set_sensor_table(wtank_name)
+
+    def set_sensor_table(self, wtank_name):
+        shared_data = self.parent.shared_data
+        # Button-type Level Sensors
+        # read setting
+        setting_name = "wtank_" + wtank_name + "_levsw"
+        if setting_name in shared_data.config_dict:
+            s_raw = shared_data.config_dict[setting_name]
+            if "," in s_raw:
+                s_raw.split(",")
+            else:
+                s_raw = [s_raw]
+            # make list of sensors
+            stls_list = []
+            for item in s_raw:
+                if ":" in s_raw:
+                    name, pos = item.split(":")
+                    trig_on, trig_off = self.read_switch_trigs(self, name)
+                    stls_list.append([name, pos, trig_on, trig_off])
+
+            # add to relay table
+            for item in stls_list:
+                name, pos, trig_on, trig_off = item
+                self.lev_s_lst.add_to_relay_table(name, pos, trig_on, trig_off)
+
+    def read_switch_trigs(name):
+        return ("nc", "nc")
+
+
+    class level_sensor_list(wx.ListCtrl):
+        def __init__(self, parent, id):
+            self.parent = parent
+            wx.ListCtrl.__init__(self, parent, id, style=wx.LC_REPORT)
+            self.InsertColumn(0, 'Button Name')
+            self.InsertColumn(1, 'Position %')
+            self.InsertColumn(2, 'Status')
+            self.InsertColumn(3, 'Trigger On')
+            self.InsertColumn(4, 'Trigger Off')
+            self.autosizeme()
+
+        def autosizeme(self):
+            col_n = 4
+            if self.GetItemCount() == 0:
+                for i in range(0, col_n):
+                    self.SetColumnWidth(i, wx.LIST_AUTOSIZE_USEHEADER)
+            else:
+                for i in range(0,col_n):
+                    self.SetColumnWidth(i, wx.LIST_AUTOSIZE)
+
+        def make_table(self):
+            config_dict = self.parent.parent.shared_data.config_dict
+            level_sensor_list = []
+            print(" LEVEL SENSOR LIST BEING MADE - kinda ")
+            self.DeleteAllItems()
+
+            # Create a list of items
+            # for key, value in list(config_dict.items()):
+            #     if "wtank_" in key:
+            #         name = key.split("_")[1]
+            #         if not name in wtank_list:
+            #             wtank_list.append(name)
+
+
+        #    for name in level_sensor_list:
+        ##        name, pos, trig_on, trig_off = "lol", "", "ha", ""
+        #        #size, type = self.read_wtank_conf(name, config_dict, "wtank_")
+        #        self.add_to_relay_table(name, pos, trig_on, trig_off)
+
+        def add_to_relay_table(self, name, pos, trig_on, trig_off):
+            self.InsertItem(0, str(name))
+            self.SetItem(0, 1, str(pos))
+            s_status = self.read_switch_state(name)
+            self.SetItem(0, 2, str(s_status))
+            self.SetItem(0, 3, str(trig_on))
+            self.SetItem(0, 4, str(trig_off))
+
+        def read_switch_state(self, name):
+            return "not coded"
+
 
     class water_tank_list(wx.ListCtrl):
         def __init__(self, parent, id):
@@ -161,7 +262,6 @@ class info_pnl(wx.Panel):
 
         def doubleclick(self, e):
             index =  e.GetIndex()
-            print(" please don't click on " + str(e) + " it does nothing")
             #get info for dialogue box
             tank_dialog.s_name  = self.GetItem(index, 0).GetText()
             tank_dialog.s_volume = self.GetItem(index, 1).GetText()
