@@ -94,15 +94,32 @@ class info_pnl(scrolled.ScrolledPanel):
                         name = self.sensor_list.GetItem(self.sensor_list.GetFocusedItem(), 0).GetText()
                         repeat_cron = self.parent.dict_I_pnl['cron_pnl'] #.repeating_cron_list
                         repeat_cron.remove_by_name(sensor_script, name)
-                        # remove from config dict
-                        if "sensor_" + name + "_type" in config_dict:
-                            del config_dict["sensor_" + name + "_type"]
-                        if "sensor_" + name + "_log" in config_dict:
-                            del config_dict["sensor_" + name + "_log"]
-                        if "sensor_" + name + "_loc" in config_dict:
-                            del config_dict["sensor_" + name + "_loc"]
-                        if "sensor_" + name + "_extra" in config_dict:
-                            del config_dict["sensor_" + name + "_extra"]
+
+                        ## remove from config dict
+                        logfreq = self.sensor_list.GetItem(self.sensor_list.GetFocusedItem(), 5).GetText()
+                        if logfreq == "button":
+                            prefix = "button"
+                        else:
+                            prefix = "sensor"
+                        # make list of keys
+                        keys = ['type', 'log', 'logtype', 'loc', 'extra', 'cmdD', 'cmdU']
+                        list_of_keys = []
+                        for key in keys:
+                            list_of_keys.append(prefix + "_" + name + "_" + key)
+                        # remove keys
+                        for key in list_of_keys:
+                            if key in config_dict:
+                                del config_dict[key]
+
+                        #
+                        # if "sensor_" + name + "_type" in config_dict:
+                        #     del config_dict["sensor_" + name + "_type"]
+                        # if "sensor_" + name + "_log" in config_dict:
+                        #     del config_dict["sensor_" + name + "_log"]
+                        # if "sensor_" + name + "_loc" in config_dict:
+                        #     del config_dict["sensor_" + name + "_loc"]
+                        # if "sensor_" + name + "_extra" in config_dict:
+                        #     del config_dict["sensor_" + name + "_extra"]
                         self.parent.shared_data.update_pigrow_config_file_on_pi() #ask="no")
                     if trigger_list.GetSelectedItemCount() == 1:
                         # if deleted item from trigger list remove and save file
@@ -149,6 +166,7 @@ class info_pnl(scrolled.ScrolledPanel):
             self.InsertColumn(5, 'log freq')
             self.InsertColumn(6, 'cmdD')
             self.InsertColumn(7, 'cmdU')
+            self.InsertColumn(8, 'logtype')
             self.SetColumnWidth(0, 125)
             self.SetColumnWidth(1, 75)
             self.SetColumnWidth(2, 300)
@@ -157,11 +175,13 @@ class info_pnl(scrolled.ScrolledPanel):
             self.SetColumnWidth(5, 100)
             self.SetColumnWidth(6, 150)
             self.SetColumnWidth(7, 150)
+            self.SetColumnWidth(8, 75)
 
         def read_sensor_conf(self, item_name, config_dict, prefix):
             # Extract sensor config info from config dictionary
             field_list = ["_type",
                           "_log",
+                          "_logtype",
                           "_loc",
                           "_extra",
                           "_cmdD",
@@ -192,11 +212,11 @@ class info_pnl(scrolled.ScrolledPanel):
                         button_name_list.append(key.split("_")[1])
             # add buttons to table
             for button_name in button_name_list:
-                type, log, loc, extra, cmdD, cmdU = self.read_sensor_conf(button_name, config_dict, "button_")
-                self.add_to_sensor_list(button_name, type, log, loc, extra, "button", cmdD, cmdU)
+                type, log, logtype, loc, extra, cmdD, cmdU = self.read_sensor_conf(button_name, config_dict, "button_")
+                self.add_to_sensor_list(button_name, type, log, loc, extra, "button", cmdD, cmdU, logtype)
             # add sensors to table
             for sensor_name in sensor_name_list:
-                type, log, loc, extra, cmdD, cmdU = self.read_sensor_conf(sensor_name, config_dict, "sensor_")
+                type, log, logtype, loc, extra, cmdD, cmdU = self.read_sensor_conf(sensor_name, config_dict, "sensor_")
                 log_freq = self.find_cron_freq(sensor_name, type, loc)
                 # get settings for buttons
                 self.add_to_sensor_list(sensor_name, type, log, loc, extra, log_freq)
@@ -217,7 +237,7 @@ class info_pnl(scrolled.ScrolledPanel):
 
 
 
-        def add_to_sensor_list(self, sensor, type, log, loc, extra='', log_freq='', cmdD="", cmdU=""):
+        def add_to_sensor_list(self, sensor, type, log, loc, extra='', log_freq='', cmdD="", cmdU="", logtype=""):
             self.InsertItem(0, str(sensor))
             self.SetItem(0, 1, str(type))
             self.SetItem(0, 2, str(log))
@@ -226,6 +246,7 @@ class info_pnl(scrolled.ScrolledPanel):
             self.SetItem(0, 5, str(log_freq))
             self.SetItem(0, 6, str(cmdD))
             self.SetItem(0, 7, str(cmdU))
+            self.SetItem(0, 8, str(logtype))
 
         def double_click(self, e):
             index =  e.GetIndex()
@@ -238,6 +259,7 @@ class info_pnl(scrolled.ScrolledPanel):
             self.s_timing = self.GetItem(index, 5).GetText()
             self.s_cmdD = self.GetItem(index, 6).GetText()
             self.s_cmdU = self.GetItem(index, 7).GetText()
+            self.s_logtype = self.GetItem(index, 8).GetText()
             #
             if self.s_timing == "button":
                 add_button = button_dialog(self, self.parent)
@@ -482,6 +504,7 @@ class ctrl_pnl(wx.Panel):
         i_pnl.sensor_list.s_type = ""
         i_pnl.sensor_list.s_name = ""
         i_pnl.sensor_list.s_log = ""
+        i_pnl.sensor_list.s_logtype = ""
         i_pnl.sensor_list.s_loc = ""
         i_pnl.sensor_list.s_extra = ""
         i_pnl.sensor_list.s_timing = ""
@@ -1227,6 +1250,7 @@ class button_dialog(wx.Dialog):
         self.s_name  = sensor_list.s_name
         self.s_type  = sensor_list.s_type
         self.s_log   = sensor_list.s_log
+        self.s_logtype = sensor_list.s_logtype
         self.s_loc   = sensor_list.s_loc
         self.s_extra = sensor_list.s_extra
         self.s_cmdD  = sensor_list.s_cmdD
@@ -1291,6 +1315,10 @@ class button_dialog(wx.Dialog):
         log_sizer.Add(log_label, 0, wx.ALL|wx.EXPAND, 5)
         log_sizer.Add(self.log_tc, 0, wx.ALL|wx.EXPAND, 5)
         log_sizer.Add(self.log_btn, 0, wx.ALL|wx.EXPAND, 5)
+        ## button or switch
+        self.logtype_cb = wx.CheckBox(self, 0, label="Log as Switch")
+        if self.s_logtype == "True":
+            self.logtype_cb.SetValue(True)
         ## cmd_D - command to run when button pressed down
         cmdD_label = wx.StaticText(self,  label='Run on Down')
         self.cmdD_tc = wx.TextCtrl(self, value=self.s_cmdD, size=(400,30))
@@ -1313,6 +1341,7 @@ class button_dialog(wx.Dialog):
         watcher_ctrl_sizer = wx.BoxSizer(wx.VERTICAL)
         watcher_ctrl_sizer.Add(watcher_label, 0, wx.ALL|wx.EXPAND, 3)
         watcher_ctrl_sizer.Add(log_sizer, 0, wx.ALL|wx.EXPAND, 3)
+        watcher_ctrl_sizer.Add(self.logtype_cb, 0, wx.ALL|wx.EXPAND, 3)
         watcher_ctrl_sizer.Add(cmdD_sizer, 0, wx.ALL|wx.EXPAND, 3)
         watcher_ctrl_sizer.Add(cmdU_sizer, 0, wx.ALL|wx.EXPAND, 3)
 
@@ -1375,6 +1404,7 @@ class button_dialog(wx.Dialog):
         o_type  = self.type_cb.GetValue()
         o_name  = self.name_tc.GetValue()
         o_log   = self.log_tc.GetValue()
+        o_logtype = str(self.logtype_cb.GetValue())
         o_loc   = self.gpio_tc.GetValue()
         o_cmdD  = self.cmdD_tc.GetValue()
         o_cmdU  = self.cmdU_tc.GetValue()
@@ -1387,8 +1417,9 @@ class button_dialog(wx.Dialog):
                     if self.s_loc == o_loc:
                         if self.s_cmdD == o_cmdD:
                             if self.s_cmdU == o_cmdU:
-                                changed = "nothing"
-                                #nothing has changed in the config file so no need to update.
+                                if self.s_logtype == o_logtype:
+                                    changed = "nothing"
+                                    #nothing has changed in the config file so no need to update.
 
         # check to see if changes have been made to the cron timing
         if self.s_name == o_name:
@@ -1406,6 +1437,7 @@ class button_dialog(wx.Dialog):
             shared_data.config_dict[name_start + "_type"] = o_type
             shared_data.config_dict[name_start + "_loc"] = o_loc
             shared_data.config_dict[name_start + "_log"] = o_log
+            shared_data.config_dict[name_start + "_logtype"] = o_logtype
             shared_data.config_dict[name_start + "_cmdD"] = o_cmdD
             shared_data.config_dict[name_start + "_cmdU"] = o_cmdU
 
@@ -1413,6 +1445,7 @@ class button_dialog(wx.Dialog):
             if not o_name == self.s_name:
                 possible_keys = ["button_" + self.s_name + "_type",
                                  "button_" + self.s_name + "_log",
+                                 "button_" + self.s_name + "_logtype",
                                  "button_" + self.s_name + "_loc",
                                  "button_" + self.s_name + "_cmdD",
                                  "button_" + self.s_name + "_cmdU"]
@@ -1452,6 +1485,7 @@ class button_dialog(wx.Dialog):
         sensor_list = i_pnl.sensor_list
         sensor_list.s_name   = ""
         sensor_list.s_log    = ""
+        sensor_list.s_logtype = ""
         sensor_list.s_loc    = ""
         sensor_list.s_timing = ""
         sensor_list.s_extra  = ""
