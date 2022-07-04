@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 import os, sys, time, datetime
 from gpiozero import Button
+from subprocess import Popen
 
 button_name = None
 for argu in sys.argv[1:]:
@@ -10,7 +11,7 @@ for argu in sys.argv[1:]:
         if thearg == 'log' or thearg == 'name':
             button_name = thevalue
     elif 'help' in argu or argu == '-h':
-        print(" Script for logging the duration of button presses")
+        print(" Script for logging the duration or position of button presses")
         print(" ")
         print(" This requres the button to be configured in the remote gui.")
         print(" ")
@@ -45,6 +46,7 @@ def read_button_settings(pigrow_settings, button_name):
     possible_keys = ["button_" + button_name + "_type",
                      "button_" + button_name + "_loc",
                      "button_" + button_name + "_log",
+                     "button_" + button_name + "_logtype",
                      "button_" + button_name + "_cmdD",
                      "button_" + button_name + "_cmdU"]
     butt_settings = []
@@ -52,7 +54,7 @@ def read_button_settings(pigrow_settings, button_name):
         if possible_key in pigrow_settings:
             butt_settings.append(pigrow_settings[possible_key])
         else:
-            butt_settings.apend(None)
+            butt_settings.append(None)
 
     if butt_settings[1] == None:
         err_msg = button_name + " location not found in settings file."
@@ -62,40 +64,70 @@ def read_button_settings(pigrow_settings, button_name):
     return butt_settings
 
 pigrow_settings = load_config()
-type, loc, log, cmdD, cmdU = read_button_settings(pigrow_settings, button_name)
+type, loc, log, log_type, cmdD, cmdU = read_button_settings(pigrow_settings, button_name)
+if log_type == "True":
+    log_type = "switch"
 
 def pressed():
     print( " Button Pressed " )
-    if not listen.cmdD == None:
+    # run command
+    if not listen.cmdD == None and not listen.cmdD == "":
         print(" RUNNING - " + cmdD)
-        os.system(cmdD + " &")
+        try:
+            cmdD_p = Popen(cmdD)
+        except:
+            pass
+    # log
     if not listen.log == None:
-        listen.press_start = time.time()
+        if listen.log_type == "switch":
+            # record each press individual from release
+            log_switch(listen.log, "1")
+        else:
+            # record press duration
+            listen.press_start = time.time()
 
 def released():
     print( " Button released " )
-    if not listen.cmdU == None:
+    # run command
+    if not listen.cmdU == None  and not listen.cmdU == "":
         print(" RUNNING - " + cmdU)
-        os.system(cmdU + " &")
+        try:
+            cmdU_p = Popen(cmdU)
+        except:
+            pass
+    # log
     if not listen.log == None:
-        listen.press_end = time.time()
+        if listen.log_type == "switch":
+            # record each press and release
+            log_switch(listen.log, "0")
+        else:
+            # record press duration
+            listen.press_end = time.time()
 
-def listen(gpio_num, log, cmdD, cmdU, *args):
+def listen(gpio_num, log, log_type, cmdD, cmdU, *args):
     button = Button(gpio_num)
     listen.cmdD = cmdD
     listen.cmdU = cmdU
     listen.log  = log
+    listen.log_type = log_type
 
     button.wait_for_press()
     pressed()
     button.wait_for_release()
     released()
 
-    if not log == None:
+    if not log == None and not log_type == "switch":
         duration = listen.press_end - listen.press_start
         print("Pressed for", duration)
         log_button_presss(log, duration)
 
+def log_switch(log_path, label):
+    timenow = str(datetime.datetime.now())
+    line = "time=" + str(timenow)
+    line += ">pos=" + str(label) + "\n"
+    with open(log_path, "a") as f:
+        f.write(line)
+    print("Written; " +  line)
 
 def log_button_presss(log_path, duration):
     timenow = str(datetime.datetime.now())
@@ -107,6 +139,6 @@ def log_button_presss(log_path, duration):
 
 if type == "GND":
     while True:
-        listen(loc, log, cmdD, cmdU)
+        listen(loc, log, log_type, cmdD, cmdU)
 else:
-    print("Sensor type not recognised, currently only 'GND' is supported.")
+    print("Sensor type not recognised, sorry currently only 'GND' is supported.")
