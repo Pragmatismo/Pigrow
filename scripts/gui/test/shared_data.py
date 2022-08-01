@@ -17,6 +17,8 @@ class shared_data:
         self.gui_set_dict['username'] = "pi"
         self.gui_set_dict['password'] = "raspberry"
         self.gui_set_dict['font_scale'] = "1"
+        self.gui_set_dict['volume_unit'] = "Litre"
+        self.gui_set_dict['temp_unit'] = "c"
         # load from file
         self.load_gui_settings()
         #
@@ -239,6 +241,13 @@ class shared_data:
             # ui settings
             self.font_scale_l = wx.StaticText(self, label='Font Scale')
             self.font_scale = wx.TextCtrl(self, -1, str(self.gui_set_dict['font_scale']))
+            # units
+            self.temp_unit_l = wx.StaticText(self, label='Temp Unit')
+            tunits = ['C', 'F']
+            self.temp_unit_cb = wx.ComboBox(self, choices = tunits, size=(200, 40), style=wx.CB_READONLY, value=self.gui_set_dict['temp_unit'])
+            self.vol_unit_l = wx.StaticText(self, label='Volume Unit')
+            vunits = ['Litre', 'Gallon (US)']
+            self.vol_unit_cb = wx.ComboBox(self, choices = vunits, size=(200, 40), style=wx.CB_READONLY, value=self.gui_set_dict['volume_unit'])
             # Buttons
             btn = wx.Button(self, wx.ID_OK)
             cancel_btn = wx.Button(self, wx.ID_CANCEL)
@@ -254,7 +263,11 @@ class shared_data:
                 (self.sshport_l, 0, wx.ALIGN_RIGHT),
                 (self.ssh_port_tc, 0),
                 (self.font_scale_l, 0),
-                (self.font_scale, 0)])
+                (self.font_scale, 0),
+                (self.temp_unit_l, 0),
+                (self.temp_unit_cb, 0),
+                (self.vol_unit_l, 0),
+                (self.vol_unit_cb, 0)])
             btnsizer = wx.BoxSizer(wx.HORIZONTAL)
             btnsizer.Add(btn, 0, wx.ALL, 5)
             btnsizer.Add((5,-1), 0, wx.ALL, 5)
@@ -269,6 +282,8 @@ class shared_data:
             self.gui_set_dict['username'] = self.default_username_tc.GetValue()
             self.gui_set_dict['password'] = self.default_password_tc.GetValue()
             self.gui_set_dict['font_scale'] = self.font_scale.GetValue()
+            self.gui_set_dict['temp_unit'] = self.temp_unit_cb.GetValue()
+            self.gui_set_dict['volume_unit'] = self.vol_unit_cb.GetValue()
             # save settings
             gui_settings_path = "gui_settings.txt"
             settings_file_text = ""
