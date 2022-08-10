@@ -20,7 +20,7 @@ class libcam_sets_pnl(wx.Panel):
                              "gain"                  : ["0", (-100, 100)],
                              "shutter"               : ["0", "???"],
                              "rot"                   : ["(0.0, 0.0, 1.0, 1.0)", ""],
-                             "rotation"              : ["0", (0, 180)],
+                            # "rotation"              : ["0", (0, 180)],
                              "vflip"                 : ["0", ["0", "1"]],
                              "hflip"                 : ["0", ["0", "1"]],
                              "metering"              : ["centre", ["centre", "spot", "average", "custom"]],
@@ -117,9 +117,10 @@ class libcam_sets_pnl(wx.Panel):
         csd = self.camera_settings_dict
         for key in csd.keys():
             if key in self.setting_crtl_dict:
-                if type(self.setting_crtl_dict[key]) == wx._core.Slider:
-                    self.setting_t_dict[key].SetValue(csd[key])
+                if type(self.setting_crtl_dict[key]) == wx.lib.agw.floatspin.FloatSpin:
                     csd[key] = float(csd[key])
+                else:
+                    print(type(self.setting_crtl_dict[key]))
                 self.setting_crtl_dict[key].SetValue(csd[key])
 
     def take_image(self, settings_file, outpath):
