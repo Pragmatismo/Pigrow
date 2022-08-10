@@ -6,6 +6,7 @@ import shutil
 from picam_set_pnl import picam_sets_pnl
 from fswebcam_set_pnl import fs_sets_pnl
 from motion_set_pnl import motion_sets_pnl
+from libcam_set_pnl import libcam_sets_pnl
 
 class ctrl_pnl(scrolled.ScrolledPanel):
     def __init__( self, parent ):
@@ -26,7 +27,7 @@ class ctrl_pnl(scrolled.ScrolledPanel):
         self.cam_cb = wx.ComboBox(self, choices = cam_opts, size=(225, 30))
         #
         self.cap_tool_l = wx.StaticText(self,  label='Capture tool;')
-        webcam_opts = ['uvccapture', 'fswebcam', 'picamcap', 'motion']
+        webcam_opts = ['uvccapture', 'fswebcam', 'picamcap', 'libcamera', 'motion']
         self.captool_cb = wx.ComboBox(self, choices = webcam_opts, size=(265, 30))
         self.captool_cb.Bind(wx.EVT_COMBOBOX, self.camcap_combo_go)
 
@@ -165,6 +166,8 @@ class ctrl_pnl(scrolled.ScrolledPanel):
                 c_sets_path = rpp + "config/picam_config.txt"
             elif cap_opt == "motion":
                 c_sets_path = rpp + "config/motion_config.txt"
+            elif cap_opt == "libcamera":
+                c_sets_path = rpp + "config/libcam_settings.txt"
             else:
                 c_sets_path = rpp + "config/camera_config.txt"
         remote_path = os.path.dirname(c_sets_path)
@@ -238,14 +241,17 @@ class ctrl_pnl(scrolled.ScrolledPanel):
     def camcap_combo_go(self, e):
         print ( " changing ")
         I_pnl = self.parent.dict_I_pnl['camera_pnl']
-        if self.captool_cb.GetValue() == 'fswebcam':
+        option = self.captool_cb.GetValue()
+        if option == 'fswebcam':
             I_pnl.show_fswebcam_control()
-        elif self.captool_cb.GetValue() == 'uvccapture':
+        elif option == 'uvccapture':
             I_pnl.show_uvc_control()
-        elif self.captool_cb.GetValue() == 'picamcap':
+        elif option == 'picamcap':
             I_pnl.show_picamcap_control()
-        elif self.captool_cb.GetValue() == 'motion':
+        elif option == 'motion':
             I_pnl.show_motion_control()
+        elif option == 'libcamera':
+            I_pnl.show_libcam_control()
         # add rangeable items to range_combo box
         self.range_combo.Clear()
         scd = I_pnl.sets_pnl.setting_crtl_dict
@@ -472,6 +478,7 @@ class info_pnl(scrolled.ScrolledPanel):
         self.picam_set_pnl = picam_sets_pnl(self)
         self.fs_set_pnl = fs_sets_pnl(self)
         self.motion_set_pnl = motion_sets_pnl(self)
+        self.libcam_set_pnl = libcam_sets_pnl(self)
 
         self.sets_pnl = None #self.picam_set_pnl
         cam_conf_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -485,6 +492,7 @@ class info_pnl(scrolled.ScrolledPanel):
         self.main_sizer.Add(self.picam_set_pnl , 0, wx.ALL, 5)
         self.main_sizer.Add(self.fs_set_pnl , 0, wx.ALL, 5)
         self.main_sizer.Add(self.motion_set_pnl , 0, wx.ALL, 5)
+        self.main_sizer.Add(self.libcam_set_pnl , 0, wx.ALL, 5)
         self.main_sizer.Add(self.picture_sizer , 0, wx.ALL, 5)
 
 
@@ -494,6 +502,7 @@ class info_pnl(scrolled.ScrolledPanel):
         self.picam_set_pnl.Hide()
         self.fs_set_pnl.Hide()
         self.motion_set_pnl.Hide()
+        self.libcam_set_pnl.Hide()
 
     def show_image_onscreen(self, img_path, label):
         #
@@ -551,6 +560,14 @@ class info_pnl(scrolled.ScrolledPanel):
         if not self.sets_pnl == None:
             self.sets_pnl.Hide()
         self.sets_pnl = self.motion_set_pnl
+        self.sets_pnl.Show()
+        self.Layout()
+
+    def show_libcam_control(self):
+        print(" Showing libcam ctrl")
+        if not self.sets_pnl == None:
+            self.sets_pnl.Hide()
+        self.sets_pnl = self.libcam_set_pnl
         self.sets_pnl.Show()
         self.Layout()
 
