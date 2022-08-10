@@ -2,6 +2,7 @@
 import time
 import os, sys
 
+dangermode = False
 
 # default settings
 max_disk_percent = 95 # only fill 90% of the disk
@@ -52,26 +53,67 @@ def load_libcam_set(setloc= homedir + "/Pigrow/config/libcam_settings.txt"):
         for line in f:
             s_item = line.split("=")
             libcam_dic[s_item[0]]=s_item[1].rstrip('\n')
+    del libcam_dic["cam_opt"]
+    return libcam_dic
+
+def create_set_string(libcam_dic):
+    # set resolution to usable form
+    if "resolution" in libcam_dic:
+        w,h = libcam_dic["resolution"].split("x")
+        libcam_dic["width"] = w
+        libcam_dic["height"] = h
+        del libcam_dic["resolution"]
+    elif not "width" in libcam_dic or not "height" in libcam_dic:
+        libcam_dic["width"] = 0
+        libcam_dic["height"] = 0
+
+    # set camera choice
+    cam_choice = libcam_dic["cam_num"]
+    del libcam_dic["cam_num"]
+
+    # remove any settings that aren't in the white list
+    if dangermode == False:
+        new_dict = {}
+        whitelist = ["width", "height", "brightness", "contrast", "saturation", "sharpness", "awb", "roi" ]
+        for item in libcam_dic:
+            if item in whitelist:
+                new_dict[item] = libcam_dic[item]
+        libcam_dic = new_dict
+
+
+    # create text string
+    extra_cmds = ""
+    for item in libcam_dic:
+        print(item)
+        extra_cmds += " --" + item + ' "' + libcam_dic[item] + '"'
+        print (extra_cmds)
+    libcam_dic["extra_commands"] = extra_cmds
+    print (extra_cmds)
     return libcam_dic
 
 
+
 def take_libcamera(libcam_dic, caps_path):
-    # take and save photo
+    ## take and save photo
+    # create filename
     timenow = str(time.time())[0:10]
     filename= "cap_"+str(timenow)+".jpg"
+    # get config setting string
     try:
         extra_commands = libcam_dic['extra_commands']
     except:
         extra_commands = ''
+    # set filename
     if user_filename == None:
-#        libcamera-still -t 5000 -o testn7.jpg --autofocus
-
-        os.system("libcamera-still -t 5000 -o "+caps_path+filename+" --autofocus " + extra_commands)
-        saved_filename = caps_path+filename
+        save_filename = caps_path+filename
     else:
-        os.system("libcamera-still -t 5000 -o " + user_filename + " --autofocus " + extra_commands)
-        saved_filename = user_filename
-    return saved_filename
+        save_filename = user_filename
+    # create and run command
+    cmd = 'libcamera-still -t 5000 -o ' +save_filename+ ' --autofocus ' + extra_commands
+    print (cmd)
+    os.system(cmd)
+    # return filename of saved file
+    return save_filename
 
 def set_caps_path(loc_dic, caps_path):
     # Select location to save images
@@ -136,5 +178,6 @@ if __name__ == '__main__':
     caps_path = set_caps_path(loc_dic, caps_path)
     check_disk_percentage(caps_path)
     libcam_dic = load_libcam_set(setloc=settings_file)
+    libcam_dic = create_set_string(libcam_dic)
     filename = take_libcamera(libcam_dic, caps_path)
     print("Saving image to:" + filename)
