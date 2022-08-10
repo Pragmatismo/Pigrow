@@ -79,7 +79,7 @@ def create_set_string(libcam_dic):
         new_dict = {}
         whitelist = ["width", "height", "brightness", "contrast",
                      "saturation", "sharpness", "awb", "roi",
-                     "gain", "shutter", "rotation", "vflip", "hflip",
+                     "gain", "shutter", "vflip", "hflip",
                      "metering", "exposure", "ev", "denoise", "encoding", "quality" ]
         for item in libcam_dic:
             if item in whitelist:
@@ -88,7 +88,6 @@ def create_set_string(libcam_dic):
 
     # ensure commads that require it are ints
     if "rotation" in libcam_dic:
-        print(libcam_dic['rotation'])
         libcam_dic['rotation'] = str(int(float(libcam_dic['rotation'])))
     if "quality" in libcam_dic:
         libcam_dic['quality'] = str(int(float(libcam_dic['quality'])))
