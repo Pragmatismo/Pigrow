@@ -85,6 +85,10 @@ def create_set_string(libcam_dic):
             if item in whitelist:
                 new_dict[item] = libcam_dic[item]
         libcam_dic = new_dict
+    if "rotation" in libcam_dic:
+        libcam_dic['rotation'] = int(libcam_dic['rotation'])
+    if "quality" in libcam_dic:    
+        libcam_dic['quality'] = int(libcam_dic['quality'])
 
 
     # create text string
