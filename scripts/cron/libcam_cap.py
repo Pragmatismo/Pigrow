@@ -77,7 +77,10 @@ def create_set_string(libcam_dic):
     # remove any settings that aren't in the white list
     if dangermode == False:
         new_dict = {}
-        whitelist = ["width", "height", "brightness", "contrast", "saturation", "sharpness", "awb", "roi" ]
+        whitelist = ["width", "height", "brightness", "contrast",
+                     "saturation", "sharpness", "awb", "roi",
+                     "gain", "shutter", "rotation", "vflip", "hflip",
+                     "metering", "exposure", "ev", "denoise", "encoding", "quality" ]
         for item in libcam_dic:
             if item in whitelist:
                 new_dict[item] = libcam_dic[item]
