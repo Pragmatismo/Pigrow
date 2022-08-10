@@ -89,9 +89,9 @@ def create_set_string(libcam_dic):
     # ensure commads that require it are ints
     if "rotation" in libcam_dic:
         print(libcam_dic['rotation'])
-        libcam_dic['rotation'] = int(float(libcam_dic['rotation']))
+        libcam_dic['rotation'] = str(int(float(libcam_dic['rotation'])))
     if "quality" in libcam_dic:
-        libcam_dic['quality'] = int(float(libcam_dic['quality']))
+        libcam_dic['quality'] = str(int(float(libcam_dic['quality'])))
 
 
     # create text string
