@@ -2,6 +2,9 @@
 import time
 import os, sys
 
+with open("/home/pi/piclog.txt", "a") as f:
+    f.write("running at " + str(time.time()))
+
 dangermode = False
 
 # default settings
@@ -109,7 +112,7 @@ def take_libcamera(libcam_dic, caps_path):
     else:
         save_filename = user_filename
     # create and run command
-    cmd = 'libcamera-still -t 5000 -o ' +save_filename+ ' --autofocus ' + extra_commands
+    cmd = '/usr/local/bin/libcamera-still -t 5000 -o ' +save_filename+ ' --autofocus ' + extra_commands
     print (cmd)
     os.system(cmd)
     # return filename of saved file
