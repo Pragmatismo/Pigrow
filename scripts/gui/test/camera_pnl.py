@@ -130,7 +130,6 @@ class ctrl_pnl(scrolled.ScrolledPanel):
         self.SetSizer(main_sizer)
 
     def connect_to_pigrow(self):
-        print(" CAMERA PNL KNOWS YOU CONNECTED LMFAO ")
         self.list_cams_click('e')
         self.seek_cam_configs()
 
@@ -239,7 +238,6 @@ class ctrl_pnl(scrolled.ScrolledPanel):
                     self.cam_cb.Append(cam)
 
     def camcap_combo_go(self, e):
-        print ( " changing ")
         I_pnl = self.parent.dict_I_pnl['camera_pnl']
         option = self.captool_cb.GetValue()
         if option == 'fswebcam':
@@ -256,7 +254,6 @@ class ctrl_pnl(scrolled.ScrolledPanel):
         self.range_combo.Clear()
         scd = I_pnl.sets_pnl.setting_crtl_dict
         for key in scd.keys():
-            #print(type(scd[key]))
             if type(scd[key]) == wx._core.Slider or type(scd[key]) == wx._core.ComboBox:
                 self.range_combo.Append(key)
 
@@ -264,7 +261,6 @@ class ctrl_pnl(scrolled.ScrolledPanel):
         key = self.range_combo.GetValue()
         scd = self.parent.dict_I_pnl['camera_pnl'].sets_pnl.setting_crtl_dict
         if type(scd[key]) == wx._core.Slider:
-            print(" slider ")
             self.range_start_tc.Show()
             self.range_end_tc.Show()
             self.range_every_tc.Show()
@@ -274,7 +270,6 @@ class ctrl_pnl(scrolled.ScrolledPanel):
             self.range_start_tc.SetValue(str(scd[key].GetMin()))
             self.range_end_tc.SetValue(str(scd[key].GetMax()))
         if type(scd[key]) == wx._core.ComboBox:
-            print(" combo ")
             self.range_start_tc.Hide()
             self.range_end_tc.Hide()
             self.range_every_tc.Hide()
@@ -411,7 +406,6 @@ class ctrl_pnl(scrolled.ScrolledPanel):
             path = img_paths[i]
             val = opt_list[i]
             label = "Range - " + key + " " + str(val)
-            print(label, path)
             if not self.use_range_combine.GetValue() == True:
                 self.download_and_show_picture(path, label)
             else:
@@ -533,7 +527,6 @@ class info_pnl(scrolled.ScrolledPanel):
                 img_to_show = img_path
                 text_label  = label + " set as compare image"
             else:
-                print("COMPARING!!!!!")
                 style = C_pnl.compare_style_cb.GetValue()
                 img_to_show = image_combine.combine([shared_data.camcomf_compare_image, img_path], style)
                 text_label  = label + " compared with " + os.path.split(shared_data.camcomf_compare_image)[1]
@@ -559,9 +552,6 @@ class info_pnl(scrolled.ScrolledPanel):
             dbox.Destroy()
         except:
             pass
-        print(" --- ")
-        print(path_label)
-        print("----")
 
     def show_last_click(self, e):
         shared_data = self.parent.shared_data
@@ -583,7 +573,6 @@ class info_pnl(scrolled.ScrolledPanel):
 
 
     def show_picamcap_control(self):
-        print(" Showing picam ctrl")
         if not self.sets_pnl == None:
             self.sets_pnl.Hide()
         self.sets_pnl = self.picam_set_pnl
@@ -591,7 +580,6 @@ class info_pnl(scrolled.ScrolledPanel):
         self.Layout()
 
     def show_fswebcam_control(self):
-        print(" Showing fswebcam ctrl")
         if not self.sets_pnl == None:
             self.sets_pnl.Hide()
         self.sets_pnl = self.fs_set_pnl
@@ -599,7 +587,6 @@ class info_pnl(scrolled.ScrolledPanel):
         self.Layout()
 
     def show_motion_control(self):
-        print(" Showing motion ctrl")
         if not self.sets_pnl == None:
             self.sets_pnl.Hide()
         self.sets_pnl = self.motion_set_pnl
@@ -607,7 +594,6 @@ class info_pnl(scrolled.ScrolledPanel):
         self.Layout()
 
     def show_libcam_control(self):
-        print(" Showing libcam ctrl")
         if not self.sets_pnl == None:
             self.sets_pnl.Hide()
         self.sets_pnl = self.libcam_set_pnl
