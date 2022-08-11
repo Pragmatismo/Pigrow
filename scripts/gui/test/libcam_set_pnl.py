@@ -72,7 +72,7 @@ class libcam_sets_pnl(wx.Panel):
                 input_box.SetDigits(2)
                 #input_box.SetLabel(setting)
             else:
-                print (" Error - libcam_set create_ui_element - Not set up to undertand ", type(vals[1]), " as options type")
+                print (" Error - libcam_set create_ui_element - Not set up to understand ", type(vals[1]), " as options type")
                 input_box = wx.TextCtrl(self, value="")
             return label, input_box, input_box_t
 

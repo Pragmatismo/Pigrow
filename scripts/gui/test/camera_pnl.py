@@ -473,6 +473,7 @@ class info_pnl(scrolled.ScrolledPanel):
         # config file choice
         ccf_label = wx.StaticText(self,  label='Camera Config file', size=(150,30))
         self.camconf_path_tc = wx.ComboBox(self, choices = [], size=(400, 30))
+        self.camconf_path_tc.Bind(wx.EVT_COMBOBOX, self.camconf_select)
 
         #intiate settings pnls
         self.picam_set_pnl = picam_sets_pnl(self)
@@ -488,8 +489,11 @@ class info_pnl(scrolled.ScrolledPanel):
         # picture sizer and buttons
         self.clear_pics_btn = wx.Button(self, label='Clear pics')
         self.clear_pics_btn.Bind(wx.EVT_BUTTON, self.clear_pics_click)
+        self.show_last_btn = wx.Button(self, label='show last pic')
+        self.show_last_btn.Bind(wx.EVT_BUTTON, self.show_last_click)
         self.pic_buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
         self.pic_buttons_sizer.Add(self.clear_pics_btn, 0, wx.ALL, 5)
+        self.pic_buttons_sizer.Add(self.show_last_btn, 0, wx.ALL, 5)
 
         self.picture_sizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -510,6 +514,10 @@ class info_pnl(scrolled.ScrolledPanel):
         self.fs_set_pnl.Hide()
         self.motion_set_pnl.Hide()
         self.libcam_set_pnl.Hide()
+
+    def camconf_select(self, e):
+        c_pnl = self.parent.dict_C_pnl['camera_pnl']
+        c_pnl.read_cam_config_click(None)
 
     def show_image_onscreen(self, img_path, label):
         #
@@ -533,10 +541,38 @@ class info_pnl(scrolled.ScrolledPanel):
             img_to_show = img_path
             text_label  = label
         #
+        pic = wx.StaticBitmap(self, -1, wx.Image(img_to_show, wx.BITMAP_TYPE_ANY).ConvertToBitmap())
+        pic.SetLabel(img_to_show)
+        pic.Bind(wx.EVT_LEFT_DOWN, self.pic_click)
+
         self.picture_sizer.Add(wx.StaticText(self,  label=text_label), 0, wx.ALL, 2)
-        self.picture_sizer.Add(wx.StaticBitmap(self, -1, wx.Image(img_to_show, wx.BITMAP_TYPE_ANY).ConvertToBitmap()), 0, wx.ALL, 2)
+        self.picture_sizer.Add(pic, 0, wx.ALL, 2)
         shared_data.most_recent_camconf_image = img_to_show
         self.parent.Layout()
+
+    def pic_click(self, e):
+        bitmap = e.GetEventObject()
+        path_label = bitmap.GetLabel()
+        try:
+            dbox = self.parent.shared_data.show_image_dialog(None, path_label, path_label)
+            dbox.ShowModal()
+            dbox.Destroy()
+        except:
+            pass
+        print(" --- ")
+        print(path_label)
+        print("----")
+
+    def show_last_click(self, e):
+        shared_data = self.parent.shared_data
+        path = shared_data.most_recent_camconf_image
+        try:
+            dbox = self.parent.shared_data.show_image_dialog(None, path, path)
+            dbox.ShowModal()
+            dbox.Destroy()
+        except:
+            pass
+
 
 
     def clear_pics_click(self, e): # was; clear_picture_area(self):
