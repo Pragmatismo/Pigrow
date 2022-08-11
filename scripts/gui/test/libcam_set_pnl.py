@@ -12,25 +12,25 @@ class libcam_sets_pnl(wx.Panel):
 
         def create_settings_sizer():
             camera_res = get_camera_res()
-            self.default_settings_dict = {"resolution"            : [camera_res[0], camera_res],
-                             "brightness"            : ["0", (-1.0, 1.0)],
-                             "contrast"              : ["1", (-1.0, 1.0)],
-                             "saturation"            : ["1", (-0.0, 1.0)],
-                             "sharpness"             : ["1", (-1.0, 1.0)],
-                             "gain"                  : ["0", (-100, 100)],
-                             "shutter"               : ["0", "???"],
-                             "rot"                   : ["(0.0, 0.0, 1.0, 1.0)", ""],
-                            # "rotation"              : ["0", (0, 180)],
-                             "vflip"                 : ["0", ["0", "1"]],
-                             "hflip"                 : ["0", ["0", "1"]],
-                             "metering"              : ["centre", ["centre", "spot", "average", "custom"]],
-                             "exposure"              : ["normal", ["normal", "sport"]],
-                             "ev"                    : ["0", "???"],
-                             "awb"                   : ["auto", ["auto", "incandescent", "tungsten", "fluorescent", "indoor", "daylight", "cloudy", "custom"]],
-                             "denoise"               : ["auto", ["auto", "off", "cdn_off", "cdn_fast", "cdn_hq"]],
+            self.default_settings_dict = {"resolution"            : [camera_res[0], camera_res, "0x0 sets full-size default"],
+                             "brightness"            : ["0", (-1.0, 1.0), "-1.0 to 1.0"],
+                             "contrast"              : ["1", (-1.0, 1.0), "1.0 = normal contrast"],
+                             "saturation"            : ["1", (-0.0, 1.0), "1.0 = normal and 0.0 = greyscale"],
+                             "sharpness"             : ["1", (-1.0, 1.0), "1.0 = normal sharpening"],
+                             "gain"                  : ["0", (-100, 100), ""],
+                             "shutter"               : ["0", "", "Shutter speed in"],
+                             "roi"                   : ["(0.0, 0.0, 1.0, 1.0)", "", "Region Of Interest (digital zoom)"],
+                            # "rotation"              : ["0", (0, 180), ""],
+                             "vflip"                 : ["0", ["0", "1"], ""],
+                             "hflip"                 : ["0", ["0", "1"], ""],
+                             "metering"              : ["centre", ["centre", "spot", "average", "custom"], ""],
+                             "exposure"              : ["normal", ["normal", "sport"], ""],
+                             "ev"                    : ["0", "", "EV exposure compensation, where 0 = no change"],
+                             "awb"                   : ["auto", ["auto", "incandescent", "tungsten", "fluorescent", "indoor", "daylight", "cloudy", "custom"], ""],
+                             "denoise"               : ["auto", ["auto", "off", "cdn_off", "cdn_fast", "cdn_hq"], ""],
 
-                             "encoding"              : ["jpg", ["jpg", "png", "rgb", "bmp", "yuv420"]],
-                             "quality"               : ["93", (1,100)]
+                             "encoding"              : ["jpg", ["jpg", "png", "rgb", "bmp", "yuv420"], ""],
+                             "quality"               : ["93", (1,100), "jpg quality"]
                              }
             settings_dict = self.default_settings_dict
             c_settings_sizer = wx.FlexGridSizer(3, 0, 5)
@@ -53,17 +53,15 @@ class libcam_sets_pnl(wx.Panel):
 
         def create_ui_element(setting, vals):
             label     = wx.StaticText(self,  label=setting)
-            input_box_t = wx.StaticText(self,  label="")
+            input_box_t = wx.StaticText(self,  label=vals[2])
             if isinstance(vals[1], list):
                 input_box = wx.ComboBox(self, choices=vals[1], value=vals[0])
             elif isinstance(vals[1], str):
                 input_box = wx.TextCtrl(self, value=vals[0])
             elif isinstance(vals[1], tuple):
                 # set the size of the scroll step
-                print("TYPE: ", type(vals[1][1]))
                 if isinstance(vals[1][1], int):
                     slidestep = 1
-                    print("step to 1")
                 else:
                     slidestep = 0.1
                 # create spin control
@@ -119,8 +117,6 @@ class libcam_sets_pnl(wx.Panel):
             if key in self.setting_crtl_dict:
                 if type(self.setting_crtl_dict[key]) == wx.lib.agw.floatspin.FloatSpin:
                     csd[key] = float(csd[key])
-                else:
-                    print(type(self.setting_crtl_dict[key]))
                 self.setting_crtl_dict[key].SetValue(csd[key])
 
     def take_image(self, settings_file, outpath):
