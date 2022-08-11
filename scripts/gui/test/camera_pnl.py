@@ -485,6 +485,12 @@ class info_pnl(scrolled.ScrolledPanel):
         cam_conf_sizer.Add(ccf_label, 0, wx.ALL, 5)
         cam_conf_sizer.Add(self.camconf_path_tc , 0, wx.ALL, 5)
 
+        # picture sizer and buttons
+        self.clear_pics_btn = wx.Button(self, label='Clear pics')
+        self.clear_pics_btn.Bind(wx.EVT_BUTTON, self.clear_pics_click)
+        self.pic_buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.pic_buttons_sizer.Add(self.clear_pics_btn, 0, wx.ALL, 5)
+
         self.picture_sizer = wx.BoxSizer(wx.VERTICAL)
 
         self.main_sizer = wx.BoxSizer(wx.VERTICAL)
@@ -493,6 +499,7 @@ class info_pnl(scrolled.ScrolledPanel):
         self.main_sizer.Add(self.fs_set_pnl , 0, wx.ALL, 5)
         self.main_sizer.Add(self.motion_set_pnl , 0, wx.ALL, 5)
         self.main_sizer.Add(self.libcam_set_pnl , 0, wx.ALL, 5)
+        self.main_sizer.Add(self.pic_buttons_sizer , 0, wx.ALL, 5)
         self.main_sizer.Add(self.picture_sizer , 0, wx.ALL, 5)
 
 
@@ -532,7 +539,7 @@ class info_pnl(scrolled.ScrolledPanel):
         self.parent.Layout()
 
 
-    def clear_picture_area(self):
+    def clear_pics_click(self, e): # was; clear_picture_area(self):
         children = self.picture_sizer.GetChildren()
         for child in children:
             item = child.GetWindow()
