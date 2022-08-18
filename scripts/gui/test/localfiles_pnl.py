@@ -9,15 +9,21 @@ class ctrl_pnl(wx.Panel):
         self.parent = parent
 
         wx.Panel.__init__ (self, parent, id=wx.ID_ANY, size=(100,-1), style=wx.TAB_TRAVERSAL)
-        # read / save cam config button
+        # button to read local files
         self.read_btn = wx.Button(self, label='Read local files')
         self.read_btn.Bind(wx.EVT_BUTTON, self.read_click)
+        # buttons to open file transfer dialogue boxes
         self.download_btn = wx.Button(self, label='Download')
         self.download_btn.Bind(wx.EVT_BUTTON, self.download_click)
         self.upload_btn = wx.Button(self, label='Upload to pi')
         self.upload_btn.Bind(wx.EVT_BUTTON, self.upload_click)
         self.clear_downed_btn = wx.Button(self, label='clear downloaded caps')
         self.clear_downed_btn.Bind(wx.EVT_BUTTON, self.clear_downed_click)
+        # buttons to backup config, restore config, archive grow + start fresh with same or loaded config
+        self.saveconf_btn = wx.Button(self, label='Save Config')
+        self.saveconf_btn.Bind(wx.EVT_BUTTON, self.saveconf_click)
+        self.loadconf_btn = wx.Button(self, label='Load Config')
+        self.loadconf_btn.Bind(wx.EVT_BUTTON, self.loadconf_click)
 
         main_sizer = wx.BoxSizer(wx.VERTICAL)
         main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
@@ -25,6 +31,9 @@ class ctrl_pnl(wx.Panel):
         main_sizer.Add(self.download_btn, 0, wx.ALL, 0)
         main_sizer.Add(self.upload_btn, 0, wx.ALL, 0)
         main_sizer.Add(self.clear_downed_btn, 0, wx.ALL, 0)
+        #
+        main_sizer.Add(self.saveconf_btn, 0, wx.ALL, 0)
+        main_sizer.Add(self.loadconf_btn, 0, wx.ALL, 0)
         self.SetSizer(main_sizer)
 
     def read_click(self, e):
@@ -57,8 +66,98 @@ class ctrl_pnl(wx.Panel):
         file_dbox.ShowModal()
         file_dbox.Destroy()
 
+    def saveconf_click(self, e):
+        # tell user this will save the current pi's config to the local folder
+        # give config a name   - folder name;  config_NAME
+        msg = "Choose a name for this settings configuration"
+        name_dbox = wx.TextEntryDialog(self, msg, 'Select name for config', '')
+        if name_dbox.ShowModal() == wx.ID_OK:
+            conf_name = name_dbox.GetValue()
+        else:
+            return "cancelled"
+        name_dbox.Destroy()
+        # make backup folder with selected name
+        folder_name = "config_" + conf_name
+        confstore_dir = os.path.join(self.parent.shared_data.frompi_path, folder_name)
+        if not os.path.exists(confstore_dir):
+            print(" Creating config store folder " + confstore_dir)
+            os.makedirs(confstore_dir)
+        else:
+            # delete everything from full folder
+            print(" Config store folder already exists.")
+            question_text = "config store with name " + confstore_dir + " already exists, do you want to replace it?"
+            question_text += "\n This will delete everything in the folder."
+            dbox = wx.MessageDialog(self, question_text, "Replace existing config store?", wx.OK | wx.CANCEL | wx.ICON_QUESTION)
+            answer = dbox.ShowModal()
+            dbox.Destroy()
+            if (answer == wx.ID_OK):
+                dir_list = os.listdir(path=confstore_dir)
+                for file in dir_list:
+                    if not os.path.isdir(file):
+                        local_path = os.path.join(confstore_dir, file)
+                        os.remove(local_path)
+            else:
+                return None
+        # list config files & download
+        #  list files
+        pi_conf_folder = self.parent.shared_data.remote_pigrow_path + "config/"
+        out, error = self.parent.link_pnl.run_on_pi("ls " + pi_conf_folder)
+        pi_conf_list = out.splitlines()
+        #  create local paths
+        folders = []
+        for file in pi_conf_list:
+            #filename = file.split("/")[-1]
+            remote_path = pi_conf_folder + file
+            local_path = os.path.join(confstore_dir, file)
+            folders.append([remote_path, local_path])
+
+        self.parent.link_pnl.download_folder([], extra_files=folders, overwrite=True) #, extra_files=extra_files_over)
+        # save cron to confstore
+        cron_save_path = os.path.join(confstore_dir, 'cron_store.txt')
+        out, error = self.parent.link_pnl.run_on_pi("crontab -l ")
+        with open(cron_save_path, "w") as cron_file:
+            cron_file.write(out)
+
+
+
+    def loadconf_click(self, e):
+        print("loading config not written yet, save must come first obvs")
+        # list saved configs - folder name; config_NAME
+        defpath = self.parent.shared_data.frompi_path
+        dialog = wx.DirDialog(self, "Select config folder", defaultPath=defpath, style=wx.DD_DIR_MUST_EXIST)
+        if dialog.ShowModal() == wx.ID_OK:
+            conf_folder = dialog.GetPath()
+        if len(conf_folder) == 0:
+            return None
+        print("Selected ", conf_folder)
+        # show diff between current and selected config
+        self.compare_config_folders(conf_folder)
+        # remove prior config, copy stored config, restart pi
+        self.upload_cron()
+
+    def compare_config_folders(self, conf_folder):
+        print("A dialogue box will open here to show a comparison of the config folders")
+        self.conf_local = conf_folder
+        self.conf_remote = self.parent.shared_data.remote_pigrow_path + "config/"
+        conf_dbox = config_compare_dialog(self, self.parent)
+        conf_dbox.ShowModal()
+        conf_dbox.Destroy()
+
+
+    def upload_cron(self):
+        print(" Not currently uploading cron - sorry")
+        # copied from old gui
+        #
+        #    temp_folder = "/home/" + pi_link_pnl.target_user + "/Pigrow/temp/"
+        #    cron_temp = temp_folder + "cron_store.txt"
+        #    if self.cb_cron.GetValue() == True:
+        #        print("including crontab file")
+        #        #upload cronfile to temp folder
+        #        sftp.put(localfiles_ctrl_pnl.cron_backup_file, cron_temp)
+        #        # install cron to pi
+        #        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("crontab " + cron_temp)
+
     def connect_to_pigrow(self):
-        print(" LOCALFILES KNOWS YOU JUST CONNECTED TO A PIGROW - WOOT")
         self.read_click("e")
 
     def clear_downed_click(self, e):
@@ -97,6 +196,213 @@ class ctrl_pnl(wx.Panel):
             print("Cleared " + str(count) + " files from the pigrow")
         # when done refreh the file info
         self.parent.dict_I_pnl['localfiles_pnl'].set_r_caps_text()
+
+class config_compare_dialog(wx.Dialog):
+    #Dialog box for downloding files from pi to local storage folder
+    def __init__(self, parent, *args, **kw):
+        self.parent = parent
+        self.conf_local = parent.conf_local
+        self.conf_remote = parent.conf_remote
+        self.files_remove = []
+        self.files_add = []
+        self.files_replace = []
+        super(config_compare_dialog, self).__init__(*args, **kw)
+        self.InitUI()
+        self.SetSize((700, 400))
+        self.SetTitle("Replace current config?")
+        self.Bind(wx.EVT_CLOSE, self.OnClose)
+
+    def InitUI(self):
+        # draw the pannel
+        label = wx.StaticText(self,  label='Config files to be replaced;')
+
+        #buttons
+        self.upload_btn = wx.Button(self, label='Upload', size=(175, 50))
+        self.upload_btn.Bind(wx.EVT_BUTTON, self.upload_click)
+        self.cancel_btn = wx.Button(self, label='Cancel', size=(175, 50))
+        self.cancel_btn.Bind(wx.EVT_BUTTON, self.OnClose)
+        buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        buttons_sizer.Add(self.upload_btn, 0,  wx.ALL, 3)
+        buttons_sizer.AddStretchSpacer(1)
+        buttons_sizer.Add(self.cancel_btn, 0,  wx.ALL, 3)
+        # main sizer
+        self.main_sizer = wx.BoxSizer(wx.VERTICAL)
+        self.main_sizer.Add(label, 0, wx.ALL|wx.EXPAND, 5)
+        self.main_sizer.AddStretchSpacer(1)
+        self.conf_sizer = self.make_conf_sizer()
+        self.main_sizer.Add(self.conf_sizer, 0, wx.ALL|wx.EXPAND, 5)
+        self.main_sizer.AddStretchSpacer(1)
+        self.main_sizer.Add(buttons_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
+        self.SetSizer(self.main_sizer)
+
+    def list_confstore(self):
+        print("Listing local confstore")
+        dir_list = os.listdir(path=self.conf_local)
+        return dir_list
+
+    def list_remote_conf(self):
+        print("listing remote conf")
+        out, error = self.parent.parent.link_pnl.run_on_pi("ls -p " + self.conf_remote + " | grep -v / ")
+        pi_conf_list = out.splitlines()
+        return pi_conf_list
+
+    def make_conf_sizer(self):
+        print(" making a sizer for conf file comparison")
+        # list files
+        confstore_files = self.list_confstore()
+        remote_conf = self.list_remote_conf()
+        # create compare lists
+        self.files_remove = []
+        self.files_add = []
+        self.files_replace = []
+        for file in confstore_files:
+            if file not in remote_conf:
+                self.files_add.append(file)
+            else:
+                if not self.read_diff(file, to_return="answer"):
+                    self.files_replace.append(file)
+        for r_file in remote_conf:
+            if r_file not in confstore_files:
+                self.files_remove.append(r_file)
+        # create add file sizer
+        self.add_sizer = wx.BoxSizer(wx.VERTICAL)
+        for file in self.files_add:
+            item_sizer = self.make_conf_element(file, "Add")
+            self.add_sizer.Add(item_sizer, 0, wx.ALL|wx.EXPAND, 5)
+
+        # create remove file sizer
+        self.rm_sizer = wx.BoxSizer(wx.VERTICAL)
+        for file in self.files_remove:
+            item_sizer = self.make_conf_element(file, "Remove")
+            self.rm_sizer.Add(item_sizer, 0, wx.ALL|wx.EXPAND, 5)
+
+        # create modify file sizer
+        self.mod_sizer = wx.BoxSizer(wx.VERTICAL)
+        for file in self.files_replace:
+            item_sizer = self.make_conf_element(file, "Modify")
+            self.mod_sizer.Add(item_sizer, 0, wx.ALL|wx.EXPAND, 5)
+
+        #create combined sizer
+        # labels
+        add_l = wx.StaticText(self, label=str(len(self.files_add)) + ' files to be added;')
+        add_view = wx.Button(self, label='hide', size=(40, 20))
+        add_view.Bind(wx.EVT_BUTTON, self.add_view_click)
+        add_l_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        add_l_sizer.Add(add_l, 0, wx.ALL|wx.EXPAND, 5)
+        add_l_sizer.Add(add_view, 0, wx.ALL|wx.EXPAND, 5)
+        if len(self.files_add) == 0:
+            add_view.Hide()
+
+        rm_l = wx.StaticText(self, label=str(len(self.files_remove)) + ' files to be removed;')
+        rm_view = wx.Button(self, label='hide', size=(40, 20))
+        rm_view.Bind(wx.EVT_BUTTON, self.rm_view_click)
+        rm_l_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        rm_l_sizer.Add(rm_l, 0, wx.ALL|wx.EXPAND, 5)
+        rm_l_sizer.Add(rm_view, 0, wx.ALL|wx.EXPAND, 5)
+        if len(self.files_remove) == 0:
+            rm_view.Hide()
+
+        mod_l = wx.StaticText(self, label=str(len(self.files_replace)) + ' files to be replaced;')
+        mod_view = wx.Button(self, label='hide', size=(40, 20))
+        mod_view.Bind(wx.EVT_BUTTON, self.mod_view_click)
+        mod_l_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        mod_l_sizer.Add(mod_l, 0, wx.ALL|wx.EXPAND, 5)
+        mod_l_sizer.Add(mod_view, 0, wx.ALL|wx.EXPAND, 5)
+        if len(self.files_replace) == 0:
+            rm_view.Hide()
+
+        # final sizer
+        conf_sizer = wx.BoxSizer(wx.VERTICAL)
+        conf_sizer.Add(add_l_sizer, 0, wx.LEFT|wx.ALIGN_LEFT, 25)
+        conf_sizer.Add(self.add_sizer, 0, wx.ALL|wx.EXPAND, 5)
+        conf_sizer.Add(rm_l_sizer, 0, wx.LEFT|wx.ALIGN_LEFT, 25)
+        conf_sizer.Add(self.rm_sizer, 0, wx.ALL|wx.EXPAND, 5)
+        conf_sizer.Add(mod_l_sizer, 0, wx.LEFT|wx.ALIGN_LEFT, 25)
+        conf_sizer.Add(self.mod_sizer, 0, wx.ALL|wx.EXPAND, 5)
+
+        return conf_sizer
+
+    def add_view_click(self, e):
+        self.conf_sizer.Hide(self.add_sizer)
+        self.main_sizer.Layout()
+
+    def rm_view_click(self, e):
+        self.conf_sizer.Hide(self.rm_sizer)
+        self.main_sizer.Layout()
+
+    def mod_view_click(self, e):
+        self.conf_sizer.Hide(self.mod_sizer)
+        self.main_sizer.Layout()
+
+    def make_conf_element(self, name, status="--"):
+        if status == 'Modify':
+            # create button instead of label
+            status_c = wx.Button(self, label='diff', size=(40, 20))
+            status_c.Bind(wx.EVT_BUTTON, self.dif_view_click)
+        else:
+            status_c = wx.StaticText(self,  label=status)
+
+        use_cb = wx.CheckBox(self, label='')
+        name_l = wx.StaticText(self,  label=name)
+
+        item_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        item_sizer.Add(use_cb, 0, wx.ALL|wx.EXPAND, 5)
+        item_sizer.Add(name_l, 0, wx.ALL|wx.EXPAND, 5)
+        item_sizer.Add(status_c, 0, wx.ALL|wx.EXPAND, 5)
+
+        return item_sizer
+
+    def dif_view_click(self, e):
+        # get name of the file from sizer
+        button = e.GetEventObject()
+        button_sizer = button.ContainingSizer
+        kids = button_sizer.GetChildren()
+        text_box = kids[1].GetWindow()
+        filename = text_box.GetLabel()
+        # load remote and local copies of the file
+        r_file, l_file = self.read_diff(filename, to_return="text")
+        # break both down into simple k:d dicts & cycle through
+        print(" THIS CURReNTLY STOPS HERE! ITS NOT ACTUALLY DOING ANTHING LOL")
+
+
+    def read_diff(self, filename, to_return="answer"):
+        # load remote file
+        remote_file_path = self.conf_remote + filename
+        r_file, error = self.parent.parent.link_pnl.run_on_pi("cat " + remote_file_path)
+
+        # load local file
+        local_file_path = os.path.join(self.conf_local, filename)
+        with open(local_file_path, "r") as config_file:
+            l_file = config_file.read()
+
+        print("Compairing; ", local_file_path, " and ", remote_file_path)
+        if to_return == "text":
+            return r_file, l_file
+        elif to_return == "answer":
+            if r_file.strip() == l_file.strip():
+                return True
+            else:
+                return False
+
+    def compare_cron(self, e):
+        print("ONLY HALF comparing cron THIS FEATURE IS NOT CODED FULLY")
+        # load remote file
+        r_cron, error = self.parent.parent.link_pnl.run_on_pi("crontab -l ")
+
+        # load local file
+        local_file_path = os.path.join(self.conf_local, "cron_store.txt")
+        with open(local_file_path, "r") as l_cron_file:
+            l_cron = l_cron_file.read()
+        if not l_cron == r_cron:
+            print("The crons are the same")
+        else:
+            print("The crons are different but i'm not doing anything with that fact")
+
+    def upload_click(self, e):
+        print("Not uploading anything yet, sorry")
+
+    def OnClose(self, e):
+        self.Destroy()
 
 class file_upload_dialog(wx.Dialog):
     #Dialog box for downloding files from pi to local storage folder
