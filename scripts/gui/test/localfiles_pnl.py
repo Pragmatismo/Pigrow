@@ -285,7 +285,7 @@ class config_compare_dialog(wx.Dialog):
         #create combined sizer
         # labels
         add_l = wx.StaticText(self, label=str(len(self.files_add)) + ' files to be added;')
-        add_view = wx.Button(self, label='hide', size=(40, 20))
+        add_view = wx.Button(self, label='Hide', size=(40, 20))
         add_view.Bind(wx.EVT_BUTTON, self.add_view_click)
         add_l_sizer = wx.BoxSizer(wx.HORIZONTAL)
         add_l_sizer.Add(add_l, 0, wx.ALL|wx.EXPAND, 5)
@@ -294,7 +294,7 @@ class config_compare_dialog(wx.Dialog):
             add_view.Hide()
 
         rm_l = wx.StaticText(self, label=str(len(self.files_remove)) + ' files to be removed;')
-        rm_view = wx.Button(self, label='hide', size=(40, 20))
+        rm_view = wx.Button(self, label='Hide', size=(40, 20))
         rm_view.Bind(wx.EVT_BUTTON, self.rm_view_click)
         rm_l_sizer = wx.BoxSizer(wx.HORIZONTAL)
         rm_l_sizer.Add(rm_l, 0, wx.ALL|wx.EXPAND, 5)
@@ -303,7 +303,7 @@ class config_compare_dialog(wx.Dialog):
             rm_view.Hide()
 
         mod_l = wx.StaticText(self, label=str(len(self.files_replace)) + ' files to be replaced;')
-        mod_view = wx.Button(self, label='hide', size=(40, 20))
+        mod_view = wx.Button(self, label='Hide', size=(40, 20))
         mod_view.Bind(wx.EVT_BUTTON, self.mod_view_click)
         mod_l_sizer = wx.BoxSizer(wx.HORIZONTAL)
         mod_l_sizer.Add(mod_l, 0, wx.ALL|wx.EXPAND, 5)
@@ -323,15 +323,33 @@ class config_compare_dialog(wx.Dialog):
         return conf_sizer
 
     def add_view_click(self, e):
-        self.conf_sizer.Hide(self.add_sizer)
+        button = e.GetEventObject()
+        if button.GetLabel() == "Hide":
+            button.SetLabel("Show")
+            self.conf_sizer.Hide(self.add_sizer)
+        else:
+            button.SetLabel("Hide")
+            self.conf_sizer.Show(self.add_sizer)
         self.main_sizer.Layout()
 
     def rm_view_click(self, e):
-        self.conf_sizer.Hide(self.rm_sizer)
+        button = e.GetEventObject()
+        if button.GetLabel() == "Hide":
+            button.SetLabel("Show")
+            self.conf_sizer.Hide(self.rm_sizer)
+        else:
+            button.SetLabel("Hide")
+            self.conf_sizer.Show(self.rm_sizer)
         self.main_sizer.Layout()
 
     def mod_view_click(self, e):
-        self.conf_sizer.Hide(self.mod_sizer)
+        button = e.GetEventObject()
+        if button.GetLabel() == "Hide":
+            button.SetLabel("Show")
+            self.conf_sizer.Hide(self.mod_sizer)
+        else:
+            button.SetLabel("Hide")
+            self.conf_sizer.Show(self.mod_sizer)
         self.main_sizer.Layout()
 
     def make_conf_element(self, name, status="--"):
@@ -363,6 +381,12 @@ class config_compare_dialog(wx.Dialog):
         r_file, l_file = self.read_diff(filename, to_return="text")
         # break both down into simple k:d dicts & cycle through
         print(" THIS CURReNTLY STOPS HERE! ITS NOT ACTUALLY DOING ANTHING LOL")
+        self.conf_l_txt = l_file
+        self.conf_r_txt = r_file
+        self.conf_filename = filename
+        conf_dbox = compare_conf_file_dialog(self, self.parent)
+        conf_dbox.ShowModal()
+        conf_dbox.Destroy()
 
 
     def read_diff(self, filename, to_return="answer"):
@@ -403,6 +427,79 @@ class config_compare_dialog(wx.Dialog):
 
     def OnClose(self, e):
         self.Destroy()
+
+class compare_conf_file_dialog(wx.Dialog):
+    #Dialog box for downloding files from pi to local storage folder
+    def __init__(self, parent, *args, **kw):
+        self.parent = parent
+        self.conf_l_txt = parent.conf_l_txt
+        self.conf_r_txt = parent.conf_r_txt
+        self.conf_filename = parent.conf_filename
+        super(compare_conf_file_dialog, self).__init__(*args, **kw)
+        self.InitUI()
+        self.SetSize((700, 400))
+        self.SetTitle("Compairing config files")
+        self.Bind(wx.EVT_CLOSE, self.OnClose)
+    def InitUI(self):
+        # draw the pannel
+        label = wx.StaticText(self,  label='Compairing ' + self.conf_filename)
+
+        #buttons
+        self.upload_btn = wx.Button(self, label='Upload', size=(175, 50))
+        #self.upload_btn.Bind(wx.EVT_BUTTON, self.start_upload_click)
+        self.cancel_btn = wx.Button(self, label='Cancel', size=(175, 50))
+        self.cancel_btn.Bind(wx.EVT_BUTTON, self.OnClose)
+        buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        buttons_sizer.Add(self.upload_btn, 0,  wx.ALL, 3)
+        buttons_sizer.AddStretchSpacer(1)
+        buttons_sizer.Add(self.cancel_btn, 0,  wx.ALL, 3)
+        # main sizer
+        main_sizer = wx.BoxSizer(wx.VERTICAL)
+        main_sizer.Add(label, 0, wx.ALL|wx.EXPAND, 5)
+        main_sizer.AddStretchSpacer(1)
+        main_sizer = self.make_conf_sizer()
+        main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(buttons_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
+        self.SetSizer(main_sizer)
+
+    def make_conf_sizer(self):
+        print(" making a sizer for conf file comparison")
+        # create dicts from files
+        l_txt = self.conf_l_txt
+        r_txt = self.conf_r_txt
+        l_dict = self.read_conf_to_dict(l_txt)
+        r_dict = self.read_conf_to_dict(r_txt)
+        # compare
+        for item in l_dict:
+            if item not in r_dict:
+                print(" ADDING setting", item)
+            else:
+                if not r_dict[item] == l_dict[item]:
+                    print(" CHANGING setting", item, "from", r_dict[item], "to", l_dict[item])
+                else:
+                    print(" NO CHANGE to", item)
+        for item in r_dict:
+            if item not in l_dict:
+                print("REMOVING setting", item)
+
+        # sizer
+        conf_sizer = wx.BoxSizer(wx.VERTICAL)
+        #conf_sizer.Add(add_l_sizer, 0, wx.LEFT|wx.ALIGN_LEFT, 25)
+        #conf_sizer.Add(self.add_sizer, 0, wx.ALL|wx.EXPAND, 5)
+
+        return conf_sizer
+
+    def read_conf_to_dict(self, conf):
+        conf = conf.splitlines()
+        conf_dict = {}
+        for line in conf:
+            place = line.find("=")
+            conf_dict[line[:place]] = line[place+1:]
+        return conf_dict
+
+    def OnClose(self, e):
+        self.Destroy()
+
 
 class file_upload_dialog(wx.Dialog):
     #Dialog box for downloding files from pi to local storage folder
