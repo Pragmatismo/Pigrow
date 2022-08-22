@@ -208,7 +208,7 @@ class config_compare_dialog(wx.Dialog):
         self.files_replace = []
         super(config_compare_dialog, self).__init__(*args, **kw)
         self.InitUI()
-        self.SetSize((700, 400))
+        self.SetSize((500, 600))
         self.SetTitle("Replace current config?")
         self.Bind(wx.EVT_CLOSE, self.OnClose)
 
@@ -255,6 +255,7 @@ class config_compare_dialog(wx.Dialog):
         self.files_remove = []
         self.files_add = []
         self.files_replace = []
+        self.ignore_files = []
         for file in confstore_files:
             if file not in remote_conf:
                 self.files_add.append(file)
@@ -361,6 +362,8 @@ class config_compare_dialog(wx.Dialog):
             status_c = wx.StaticText(self,  label=status)
 
         use_cb = wx.CheckBox(self, label='')
+        use_cb.SetValue(True)
+        use_cb.Bind(wx.EVT_CHECKBOX, self.checkbox_click)
         name_l = wx.StaticText(self,  label=name)
 
         item_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -369,6 +372,21 @@ class config_compare_dialog(wx.Dialog):
         item_sizer.Add(status_c, 0, wx.ALL|wx.EXPAND, 5)
 
         return item_sizer
+
+    def checkbox_click(self, e):
+        # get name of the file from sizer
+        cb = e.GetEventObject()
+        cb_sizer = cb.ContainingSizer
+        kids = cb_sizer.GetChildren()
+        text_box = kids[1].GetWindow()
+        filename = text_box.GetLabel()
+        # add or remove from ignore list
+        if cb.GetValue() == False:
+            self.ignore_files.append(filename)
+        else:
+            if filename in self.ignore_files:
+                self.ignore_files.remove(filename)
+
 
     def dif_view_click(self, e):
         # get name of the file from sizer
@@ -423,6 +441,24 @@ class config_compare_dialog(wx.Dialog):
 
     def upload_click(self, e):
         print("Not uploading anything yet, sorry")
+        print(' but if i was i would ignore', self.ignore_files)
+        # add and replace
+        add_list = self.files_add + self.files_replace
+        upload_list = []
+        for filename in add_list:
+            if not filename in self.ignore_files:
+                local_file_path = os.path.join(self.conf_local, filename)
+                remote_file_path = self.conf_remote + filename
+                upload_list.append([local_file_path, remote_file_path])
+        print(' I would copy', upload_list)
+        #self.parent.parent.link_pnl.upload_files(upload_list)
+        # remove from pi
+        print("i would remove;")
+        for filename in self.files_remove:
+            if not filename in self.ignore_files:
+                cmd = 'rm ' + self.conf_remote + filename
+                print (cmd)
+                #out, error = self.parent.parent.link_pnl.run_on_pi(cmd)
 
     def OnClose(self, e):
         self.Destroy()
@@ -456,7 +492,6 @@ class compare_conf_file_dialog(wx.Dialog):
         self.SetSizer(main_sizer)
 
     def make_com_sizer(self):
-        print(" making a sizer for conf file comparison")
         # create dicts from files
         l_txt = self.conf_l_txt
         r_txt = self.conf_r_txt
