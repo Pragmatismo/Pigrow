@@ -380,7 +380,6 @@ class config_compare_dialog(wx.Dialog):
         # load remote and local copies of the file
         r_file, l_file = self.read_diff(filename, to_return="text")
         # break both down into simple k:d dicts & cycle through
-        print(" THIS CURReNTLY STOPS HERE! ITS NOT ACTUALLY DOING ANTHING LOL")
         self.conf_l_txt = l_file
         self.conf_r_txt = r_file
         self.conf_filename = filename
@@ -445,24 +444,18 @@ class compare_conf_file_dialog(wx.Dialog):
         label = wx.StaticText(self,  label='Compairing ' + self.conf_filename)
 
         #buttons
-        self.upload_btn = wx.Button(self, label='Upload', size=(175, 50))
-        #self.upload_btn.Bind(wx.EVT_BUTTON, self.start_upload_click)
-        self.cancel_btn = wx.Button(self, label='Cancel', size=(175, 50))
-        self.cancel_btn.Bind(wx.EVT_BUTTON, self.OnClose)
-        buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        buttons_sizer.Add(self.upload_btn, 0,  wx.ALL, 3)
-        buttons_sizer.AddStretchSpacer(1)
-        buttons_sizer.Add(self.cancel_btn, 0,  wx.ALL, 3)
+        self.ok_btn = wx.Button(self, label='ok', size=(175, 50))
+        self.ok_btn.Bind(wx.EVT_BUTTON, self.OnClose)
         # main sizer
         main_sizer = wx.BoxSizer(wx.VERTICAL)
         main_sizer.Add(label, 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.AddStretchSpacer(1)
-        main_sizer = self.make_conf_sizer()
+        main_sizer.Add(self.make_com_sizer(), 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.AddStretchSpacer(1)
-        main_sizer.Add(buttons_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
+        main_sizer.Add(self.ok_btn, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
         self.SetSizer(main_sizer)
 
-    def make_conf_sizer(self):
+    def make_com_sizer(self):
         print(" making a sizer for conf file comparison")
         # create dicts from files
         l_txt = self.conf_l_txt
@@ -470,22 +463,35 @@ class compare_conf_file_dialog(wx.Dialog):
         l_dict = self.read_conf_to_dict(l_txt)
         r_dict = self.read_conf_to_dict(r_txt)
         # compare
+        changed = []
+        unchanged = []
         for item in l_dict:
             if item not in r_dict:
-                print(" ADDING setting", item)
+                changed.append([item, 'add'])
             else:
                 if not r_dict[item] == l_dict[item]:
-                    print(" CHANGING setting", item, "from", r_dict[item], "to", l_dict[item])
+                    changed.append([item, ' change from ' + r_dict[item] + " to " + l_dict[item]])
                 else:
-                    print(" NO CHANGE to", item)
+                    unchanged.append(item)
         for item in r_dict:
             if item not in l_dict:
-                print("REMOVING setting", item)
+                changed.append([item, 'remove'])
 
         # sizer
         conf_sizer = wx.BoxSizer(wx.VERTICAL)
-        #conf_sizer.Add(add_l_sizer, 0, wx.LEFT|wx.ALIGN_LEFT, 25)
-        #conf_sizer.Add(self.add_sizer, 0, wx.ALL|wx.EXPAND, 5)
+        changed_list_l = wx.StaticText(self,  label="Changed;")
+        conf_sizer.Add(changed_list_l, 0, wx.LEFT, 50)
+        for item in changed:
+            changed_text = item[0] + " " + item[1]
+            changed_l = wx.StaticText(self,  label=changed_text)
+            conf_sizer.Add(changed_l, 0, wx.LEFT, 25)
+        # unchanged
+        unchanged_list_l = wx.StaticText(self,  label="Unchanged;")
+        conf_sizer.Add(unchanged_list_l, 0, wx.LEFT, 50)
+        for item in unchanged:
+            txt = item + " " + l_dict[item]
+            changed_l = wx.StaticText(self,  label=txt)
+            conf_sizer.Add(changed_l, 0, wx.LEFT, 25)
 
         return conf_sizer
 
@@ -494,7 +500,8 @@ class compare_conf_file_dialog(wx.Dialog):
         conf_dict = {}
         for line in conf:
             place = line.find("=")
-            conf_dict[line[:place]] = line[place+1:]
+            if not place == -1:
+                conf_dict[line[:place]] = line[place+1:]
         return conf_dict
 
     def OnClose(self, e):
