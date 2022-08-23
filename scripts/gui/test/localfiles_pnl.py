@@ -201,11 +201,6 @@ class config_compare_dialog(wx.Dialog):
     #Dialog box for downloding files from pi to local storage folder
     def __init__(self, parent, *args, **kw):
         self.parent = parent
-        self.conf_local = parent.conf_local
-        self.conf_remote = parent.conf_remote
-        self.files_remove = []
-        self.files_add = []
-        self.files_replace = []
         super(config_compare_dialog, self).__init__(*args, **kw)
         self.InitUI()
         self.SetSize((500, 600))
@@ -229,239 +224,259 @@ class config_compare_dialog(wx.Dialog):
         self.main_sizer = wx.BoxSizer(wx.VERTICAL)
         self.main_sizer.Add(label, 0, wx.ALL|wx.EXPAND, 5)
         self.main_sizer.AddStretchSpacer(1)
-        self.conf_sizer = self.make_conf_sizer()
-        self.main_sizer.Add(self.conf_sizer, 0, wx.ALL|wx.EXPAND, 5)
+        self.scroll_box = self.scroll_area(self)
+        self.main_sizer.Add(self.scroll_box, 0, wx.ALL|wx.EXPAND, 5)
         self.main_sizer.AddStretchSpacer(1)
         self.main_sizer.Add(buttons_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
         self.SetSizer(self.main_sizer)
 
-    def list_confstore(self):
-        print("Listing local confstore")
-        dir_list = os.listdir(path=self.conf_local)
-        return dir_list
-
-    def list_remote_conf(self):
-        print("listing remote conf")
-        out, error = self.parent.parent.link_pnl.run_on_pi("ls -p " + self.conf_remote + " | grep -v / ")
-        pi_conf_list = out.splitlines()
-        return pi_conf_list
-
-    def make_conf_sizer(self):
-        print(" making a sizer for conf file comparison")
-        # list files
-        confstore_files = self.list_confstore()
-        remote_conf = self.list_remote_conf()
-        # create compare lists
-        self.files_remove = []
-        self.files_add = []
-        self.files_replace = []
-        self.ignore_files = []
-        for file in confstore_files:
-            if file not in remote_conf:
-                self.files_add.append(file)
-            else:
-                if not self.read_diff(file, to_return="answer"):
-                    self.files_replace.append(file)
-        for r_file in remote_conf:
-            if r_file not in confstore_files:
-                self.files_remove.append(r_file)
-        # create add file sizer
-        self.add_sizer = wx.BoxSizer(wx.VERTICAL)
-        for file in self.files_add:
-            item_sizer = self.make_conf_element(file, "Add")
-            self.add_sizer.Add(item_sizer, 0, wx.ALL|wx.EXPAND, 5)
-
-        # create remove file sizer
-        self.rm_sizer = wx.BoxSizer(wx.VERTICAL)
-        for file in self.files_remove:
-            item_sizer = self.make_conf_element(file, "Remove")
-            self.rm_sizer.Add(item_sizer, 0, wx.ALL|wx.EXPAND, 5)
-
-        # create modify file sizer
-        self.mod_sizer = wx.BoxSizer(wx.VERTICAL)
-        for file in self.files_replace:
-            item_sizer = self.make_conf_element(file, "Modify")
-            self.mod_sizer.Add(item_sizer, 0, wx.ALL|wx.EXPAND, 5)
-
-        #create combined sizer
-        # labels
-        add_l = wx.StaticText(self, label=str(len(self.files_add)) + ' files to be added;')
-        add_view = wx.Button(self, label='Hide', size=(40, 20))
-        add_view.Bind(wx.EVT_BUTTON, self.add_view_click)
-        add_l_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        add_l_sizer.Add(add_l, 0, wx.ALL|wx.EXPAND, 5)
-        add_l_sizer.Add(add_view, 0, wx.ALL|wx.EXPAND, 5)
-        if len(self.files_add) == 0:
-            add_view.Hide()
-
-        rm_l = wx.StaticText(self, label=str(len(self.files_remove)) + ' files to be removed;')
-        rm_view = wx.Button(self, label='Hide', size=(40, 20))
-        rm_view.Bind(wx.EVT_BUTTON, self.rm_view_click)
-        rm_l_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        rm_l_sizer.Add(rm_l, 0, wx.ALL|wx.EXPAND, 5)
-        rm_l_sizer.Add(rm_view, 0, wx.ALL|wx.EXPAND, 5)
-        if len(self.files_remove) == 0:
-            rm_view.Hide()
-
-        mod_l = wx.StaticText(self, label=str(len(self.files_replace)) + ' files to be replaced;')
-        mod_view = wx.Button(self, label='Hide', size=(40, 20))
-        mod_view.Bind(wx.EVT_BUTTON, self.mod_view_click)
-        mod_l_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        mod_l_sizer.Add(mod_l, 0, wx.ALL|wx.EXPAND, 5)
-        mod_l_sizer.Add(mod_view, 0, wx.ALL|wx.EXPAND, 5)
-        if len(self.files_replace) == 0:
-            rm_view.Hide()
-
-        # final sizer
-        conf_sizer = wx.BoxSizer(wx.VERTICAL)
-        conf_sizer.Add(add_l_sizer, 0, wx.LEFT|wx.ALIGN_LEFT, 25)
-        conf_sizer.Add(self.add_sizer, 0, wx.ALL|wx.EXPAND, 5)
-        conf_sizer.Add(rm_l_sizer, 0, wx.LEFT|wx.ALIGN_LEFT, 25)
-        conf_sizer.Add(self.rm_sizer, 0, wx.ALL|wx.EXPAND, 5)
-        conf_sizer.Add(mod_l_sizer, 0, wx.LEFT|wx.ALIGN_LEFT, 25)
-        conf_sizer.Add(self.mod_sizer, 0, wx.ALL|wx.EXPAND, 5)
-
-        return conf_sizer
-
-    def add_view_click(self, e):
-        button = e.GetEventObject()
-        if button.GetLabel() == "Hide":
-            button.SetLabel("Show")
-            self.conf_sizer.Hide(self.add_sizer)
-        else:
-            button.SetLabel("Hide")
-            self.conf_sizer.Show(self.add_sizer)
-        self.main_sizer.Layout()
-
-    def rm_view_click(self, e):
-        button = e.GetEventObject()
-        if button.GetLabel() == "Hide":
-            button.SetLabel("Show")
-            self.conf_sizer.Hide(self.rm_sizer)
-        else:
-            button.SetLabel("Hide")
-            self.conf_sizer.Show(self.rm_sizer)
-        self.main_sizer.Layout()
-
-    def mod_view_click(self, e):
-        button = e.GetEventObject()
-        if button.GetLabel() == "Hide":
-            button.SetLabel("Show")
-            self.conf_sizer.Hide(self.mod_sizer)
-        else:
-            button.SetLabel("Hide")
-            self.conf_sizer.Show(self.mod_sizer)
-        self.main_sizer.Layout()
-
-    def make_conf_element(self, name, status="--"):
-        if status == 'Modify':
-            # create button instead of label
-            status_c = wx.Button(self, label='diff', size=(40, 20))
-            status_c.Bind(wx.EVT_BUTTON, self.dif_view_click)
-        else:
-            status_c = wx.StaticText(self,  label=status)
-
-        use_cb = wx.CheckBox(self, label='')
-        use_cb.SetValue(True)
-        use_cb.Bind(wx.EVT_CHECKBOX, self.checkbox_click)
-        name_l = wx.StaticText(self,  label=name)
-
-        item_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        item_sizer.Add(use_cb, 0, wx.ALL|wx.EXPAND, 5)
-        item_sizer.Add(name_l, 0, wx.ALL|wx.EXPAND, 5)
-        item_sizer.Add(status_c, 0, wx.ALL|wx.EXPAND, 5)
-
-        return item_sizer
-
-    def checkbox_click(self, e):
-        # get name of the file from sizer
-        cb = e.GetEventObject()
-        cb_sizer = cb.ContainingSizer
-        kids = cb_sizer.GetChildren()
-        text_box = kids[1].GetWindow()
-        filename = text_box.GetLabel()
-        # add or remove from ignore list
-        if cb.GetValue() == False:
-            self.ignore_files.append(filename)
-        else:
-            if filename in self.ignore_files:
-                self.ignore_files.remove(filename)
-
-
-    def dif_view_click(self, e):
-        # get name of the file from sizer
-        button = e.GetEventObject()
-        button_sizer = button.ContainingSizer
-        kids = button_sizer.GetChildren()
-        text_box = kids[1].GetWindow()
-        filename = text_box.GetLabel()
-        # load remote and local copies of the file
-        r_file, l_file = self.read_diff(filename, to_return="text")
-        # break both down into simple k:d dicts & cycle through
-        self.conf_l_txt = l_file
-        self.conf_r_txt = r_file
-        self.conf_filename = filename
-        conf_dbox = compare_conf_file_dialog(self, self.parent)
-        conf_dbox.ShowModal()
-        conf_dbox.Destroy()
-
-
-    def read_diff(self, filename, to_return="answer"):
-        # load remote file
-        remote_file_path = self.conf_remote + filename
-        r_file, error = self.parent.parent.link_pnl.run_on_pi("cat " + remote_file_path)
-
-        # load local file
-        local_file_path = os.path.join(self.conf_local, filename)
-        with open(local_file_path, "r") as config_file:
-            l_file = config_file.read()
-
-        print("Compairing; ", local_file_path, " and ", remote_file_path)
-        if to_return == "text":
-            return r_file, l_file
-        elif to_return == "answer":
-            if r_file.strip() == l_file.strip():
-                return True
-            else:
-                return False
-
-    def compare_cron(self, e):
-        print("ONLY HALF comparing cron THIS FEATURE IS NOT CODED FULLY")
-        # load remote file
-        r_cron, error = self.parent.parent.link_pnl.run_on_pi("crontab -l ")
-
-        # load local file
-        local_file_path = os.path.join(self.conf_local, "cron_store.txt")
-        with open(local_file_path, "r") as l_cron_file:
-            l_cron = l_cron_file.read()
-        if not l_cron == r_cron:
-            print("The crons are the same")
-        else:
-            print("The crons are different but i'm not doing anything with that fact")
+    # def compare_cron(self, e):
+    #     print("ONLY HALF comparing cron THIS FEATURE IS NOT CODED FULLY")
+    #     # load remote file
+    #     r_cron, error = self.parent.parent.link_pnl.run_on_pi("crontab -l ")
+    #
+    #     # load local file
+    #     local_file_path = os.path.join(self.conf_local, "cron_store.txt")
+    #     with open(local_file_path, "r") as l_cron_file:
+    #         l_cron = l_cron_file.read()
+    #     if not l_cron == r_cron:
+    #         print("The crons are the same")
+    #     else:
+    #         print("The crons are different but i'm not doing anything with that fact")
 
     def upload_click(self, e):
+        ignore_files = self.scroll_box.ignore_files
+        files_add = self.scroll_box.files_add
+        files_replace = self.scroll_box.files_replace
+        files_remove = self.scroll_box.files_remove
+        conf_remote = self.parent.conf_remote
+        conf_local = self.parent.conf_local
         print("Not uploading anything yet, sorry")
-        print(' but if i was i would ignore', self.ignore_files)
+        print(' but if i was i would ignore', ignore_files)
         # add and replace
-        add_list = self.files_add + self.files_replace
+        add_list = files_add + files_replace
         upload_list = []
         for filename in add_list:
-            if not filename in self.ignore_files:
-                local_file_path = os.path.join(self.conf_local, filename)
-                remote_file_path = self.conf_remote + filename
+            if not filename in ignore_files:
+                local_file_path = os.path.join(conf_local, filename)
+                remote_file_path = conf_remote + filename
                 upload_list.append([local_file_path, remote_file_path])
         print(' I would copy', upload_list)
-        #self.parent.parent.link_pnl.upload_files(upload_list)
+        #self.parent.parent.link_pnl.upload_files(upload_list, overwr)
         # remove from pi
         print("i would remove;")
-        for filename in self.files_remove:
-            if not filename in self.ignore_files:
-                cmd = 'rm ' + self.conf_remote + filename
+        for filename in files_remove:
+            if not filename in ignore_files:
+                cmd = 'rm ' + conf_remote + filename
                 print (cmd)
                 #out, error = self.parent.parent.link_pnl.run_on_pi(cmd)
 
     def OnClose(self, e):
         self.Destroy()
+
+    class scroll_area(scrolled.ScrolledPanel):
+        def __init__(self, parent):
+            self.parent = parent
+            self.conf_local = parent.parent.conf_local
+            self.conf_remote = parent.parent.conf_remote
+            scrolled.ScrolledPanel.__init__(self, parent, -1, size=(600,400))
+            vbox = wx.BoxSizer(wx.VERTICAL)
+            vbox.Add(self.make_conf_sizer(), 0, wx.ALIGN_LEFT | wx.ALL, 5)
+            self.SetSizer(vbox)
+            self.SetupScrolling()
+
+        def make_conf_sizer(self):
+            print(" making a sizer for conf file comparison")
+            # list files
+            confstore_files = self.list_confstore()
+            remote_conf = self.list_remote_conf()
+            # create compare lists
+            self.files_remove = []
+            self.files_add = []
+            self.files_replace = []
+            self.ignore_files = []
+            for file in confstore_files:
+                if file not in remote_conf:
+                    self.files_add.append(file)
+                else:
+                    if not self.read_diff(file, to_return="answer"):
+                        self.files_replace.append(file)
+            for r_file in remote_conf:
+                if r_file not in confstore_files:
+                    self.files_remove.append(r_file)
+            # create add file sizer
+            self.add_sizer = wx.BoxSizer(wx.VERTICAL)
+            for file in self.files_add:
+                item_sizer = self.make_conf_element(file, "Add")
+                self.add_sizer.Add(item_sizer, 0, wx.ALL|wx.EXPAND, 5)
+
+            # create remove file sizer
+            self.rm_sizer = wx.BoxSizer(wx.VERTICAL)
+            for file in self.files_remove:
+                item_sizer = self.make_conf_element(file, "Remove")
+                self.rm_sizer.Add(item_sizer, 0, wx.ALL|wx.EXPAND, 5)
+
+            # create modify file sizer
+            self.mod_sizer = wx.BoxSizer(wx.VERTICAL)
+            for file in self.files_replace:
+                item_sizer = self.make_conf_element(file, "Modify")
+                self.mod_sizer.Add(item_sizer, 0, wx.ALL|wx.EXPAND, 5)
+
+            #create combined sizer
+            # labels
+            add_l = wx.StaticText(self, label=str(len(self.files_add)) + ' files to be added;')
+            add_view = wx.Button(self, label='Hide', size=(40, 20))
+            add_view.Bind(wx.EVT_BUTTON, self.add_view_click)
+            add_l_sizer = wx.BoxSizer(wx.HORIZONTAL)
+            add_l_sizer.Add(add_l, 0, wx.ALL|wx.EXPAND, 5)
+            add_l_sizer.Add(add_view, 0, wx.ALL|wx.EXPAND, 5)
+            if len(self.files_add) == 0:
+                add_view.Hide()
+
+            rm_l = wx.StaticText(self, label=str(len(self.files_remove)) + ' files to be removed;')
+            rm_view = wx.Button(self, label='Hide', size=(40, 20))
+            rm_view.Bind(wx.EVT_BUTTON, self.rm_view_click)
+            rm_l_sizer = wx.BoxSizer(wx.HORIZONTAL)
+            rm_l_sizer.Add(rm_l, 0, wx.ALL|wx.EXPAND, 5)
+            rm_l_sizer.Add(rm_view, 0, wx.ALL|wx.EXPAND, 5)
+            if len(self.files_remove) == 0:
+                rm_view.Hide()
+
+            mod_l = wx.StaticText(self, label=str(len(self.files_replace)) + ' files to be replaced;')
+            mod_view = wx.Button(self, label='Hide', size=(40, 20))
+            mod_view.Bind(wx.EVT_BUTTON, self.mod_view_click)
+            mod_l_sizer = wx.BoxSizer(wx.HORIZONTAL)
+            mod_l_sizer.Add(mod_l, 0, wx.ALL|wx.EXPAND, 5)
+            mod_l_sizer.Add(mod_view, 0, wx.ALL|wx.EXPAND, 5)
+            if len(self.files_replace) == 0:
+                rm_view.Hide()
+
+            # final sizer
+            self.conf_sizer = wx.BoxSizer(wx.VERTICAL)
+            self.conf_sizer.Add(add_l_sizer, 0, wx.LEFT|wx.ALIGN_LEFT, 25)
+            self.conf_sizer.Add(self.add_sizer, 0, wx.ALL|wx.EXPAND, 5)
+            self.conf_sizer.Add(rm_l_sizer, 0, wx.LEFT|wx.ALIGN_LEFT, 25)
+            self.conf_sizer.Add(self.rm_sizer, 0, wx.ALL|wx.EXPAND, 5)
+            self.conf_sizer.Add(mod_l_sizer, 0, wx.LEFT|wx.ALIGN_LEFT, 25)
+            self.conf_sizer.Add(self.mod_sizer, 0, wx.ALL|wx.EXPAND, 5)
+
+            return self.conf_sizer
+
+        def list_confstore(self):
+            print("Listing local confstore")
+            dir_list = os.listdir(path=self.conf_local)
+            if 'cron_store.txt' in dir_list:
+                dir_list.remove('cron_store.txt')
+            return dir_list
+
+        def list_remote_conf(self):
+            print("listing remote conf")
+            out, error = self.parent.parent.parent.link_pnl.run_on_pi("ls -p " + self.conf_remote + " | grep -v / ")
+            pi_conf_list = out.splitlines()
+            return pi_conf_list
+
+        def add_view_click(self, e):
+            button = e.GetEventObject()
+            if button.GetLabel() == "Hide":
+                button.SetLabel("Show")
+                self.conf_sizer.Hide(self.add_sizer)
+            else:
+                button.SetLabel("Hide")
+                self.conf_sizer.Show(self.add_sizer)
+            self.parent.Layout()
+
+        def rm_view_click(self, e):
+            button = e.GetEventObject()
+            if button.GetLabel() == "Hide":
+                button.SetLabel("Show")
+                self.conf_sizer.Hide(self.rm_sizer)
+            else:
+                button.SetLabel("Hide")
+                self.conf_sizer.Show(self.rm_sizer)
+            self.main_sizer.Layout()
+
+        def mod_view_click(self, e):
+            button = e.GetEventObject()
+            if button.GetLabel() == "Hide":
+                button.SetLabel("Show")
+                self.conf_sizer.Hide(self.mod_sizer)
+            else:
+                button.SetLabel("Hide")
+                self.conf_sizer.Show(self.mod_sizer)
+            self.main_sizer.Layout()
+
+        def make_conf_element(self, name, status="--"):
+            if status == 'Modify':
+                # create button instead of label
+                status_c = wx.Button(self, label='diff', size=(40, 20))
+                status_c.Bind(wx.EVT_BUTTON, self.dif_view_click)
+            else:
+                status_c = wx.StaticText(self,  label=status)
+
+            use_cb = wx.CheckBox(self, label='')
+            use_cb.SetValue(True)
+            use_cb.Bind(wx.EVT_CHECKBOX, self.checkbox_click)
+            name_l = wx.StaticText(self,  label=name)
+
+            item_sizer = wx.BoxSizer(wx.HORIZONTAL)
+            item_sizer.Add(use_cb, 0, wx.ALL|wx.EXPAND, 5)
+            item_sizer.Add(name_l, 0, wx.ALL|wx.EXPAND, 5)
+            item_sizer.Add(status_c, 0, wx.ALL|wx.EXPAND, 5)
+
+            return item_sizer
+
+        def checkbox_click(self, e):
+            # get name of the file from sizer
+            cb = e.GetEventObject()
+            cb_sizer = cb.ContainingSizer
+            kids = cb_sizer.GetChildren()
+            text_box = kids[1].GetWindow()
+            filename = text_box.GetLabel()
+            # add or remove from ignore list
+            if cb.GetValue() == False:
+                self.ignore_files.append(filename)
+            else:
+                if filename in self.ignore_files:
+                    self.ignore_files.remove(filename)
+
+
+        def dif_view_click(self, e):
+            # get name of the file from sizer
+            button = e.GetEventObject()
+            button_sizer = button.ContainingSizer
+            kids = button_sizer.GetChildren()
+            text_box = kids[1].GetWindow()
+            filename = text_box.GetLabel()
+            # load remote and local copies of the file
+            r_file, l_file = self.read_diff(filename, to_return="text")
+            # break both down into simple k:d dicts & cycle through
+            self.conf_l_txt = l_file
+            self.conf_r_txt = r_file
+            self.conf_filename = filename
+            conf_dbox = compare_conf_file_dialog(self, self.parent)
+            conf_dbox.ShowModal()
+            conf_dbox.Destroy()
+
+
+        def read_diff(self, filename, to_return="answer"):
+            # load remote file
+            remote_file_path = self.conf_remote + filename
+            r_file, error = self.parent.parent.parent.link_pnl.run_on_pi("cat " + remote_file_path)
+
+            # load local file
+            local_file_path = os.path.join(self.conf_local, filename)
+            with open(local_file_path, "r") as config_file:
+                l_file = config_file.read()
+
+            print("Compairing; ", local_file_path, " and ", remote_file_path)
+            if to_return == "text":
+                return r_file, l_file
+            elif to_return == "answer":
+                if r_file.strip() == l_file.strip():
+                    return True
+                else:
+                    return False
+
 
 class compare_conf_file_dialog(wx.Dialog):
     #Dialog box for downloding files from pi to local storage folder
@@ -471,77 +486,88 @@ class compare_conf_file_dialog(wx.Dialog):
         self.conf_r_txt = parent.conf_r_txt
         self.conf_filename = parent.conf_filename
         super(compare_conf_file_dialog, self).__init__(*args, **kw)
-        self.InitUI()
         self.SetSize((700, 400))
+        self.InitUI()
         self.SetTitle("Compairing config files")
         self.Bind(wx.EVT_CLOSE, self.OnClose)
     def InitUI(self):
-        # draw the pannel
+        # label
         label = wx.StaticText(self,  label='Compairing ' + self.conf_filename)
-
         #buttons
         self.ok_btn = wx.Button(self, label='ok', size=(175, 50))
         self.ok_btn.Bind(wx.EVT_BUTTON, self.OnClose)
         # main sizer
         main_sizer = wx.BoxSizer(wx.VERTICAL)
         main_sizer.Add(label, 0, wx.ALL|wx.EXPAND, 5)
-        main_sizer.AddStretchSpacer(1)
-        main_sizer.Add(self.make_com_sizer(), 0, wx.ALL|wx.EXPAND, 5)
-        main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(self.scroll_section(self))
         main_sizer.Add(self.ok_btn, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
-        self.SetSizer(main_sizer)
-
-    def make_com_sizer(self):
-        # create dicts from files
-        l_txt = self.conf_l_txt
-        r_txt = self.conf_r_txt
-        l_dict = self.read_conf_to_dict(l_txt)
-        r_dict = self.read_conf_to_dict(r_txt)
-        # compare
-        changed = []
-        unchanged = []
-        for item in l_dict:
-            if item not in r_dict:
-                changed.append([item, 'add'])
-            else:
-                if not r_dict[item] == l_dict[item]:
-                    changed.append([item, ' change from ' + r_dict[item] + " to " + l_dict[item]])
-                else:
-                    unchanged.append(item)
-        for item in r_dict:
-            if item not in l_dict:
-                changed.append([item, 'remove'])
-
-        # sizer
-        conf_sizer = wx.BoxSizer(wx.VERTICAL)
-        changed_list_l = wx.StaticText(self,  label="Changed;")
-        conf_sizer.Add(changed_list_l, 0, wx.LEFT, 50)
-        for item in changed:
-            changed_text = item[0] + " " + item[1]
-            changed_l = wx.StaticText(self,  label=changed_text)
-            conf_sizer.Add(changed_l, 0, wx.LEFT, 25)
-        # unchanged
-        unchanged_list_l = wx.StaticText(self,  label="Unchanged;")
-        conf_sizer.Add(unchanged_list_l, 0, wx.LEFT, 50)
-        for item in unchanged:
-            txt = item + " " + l_dict[item]
-            changed_l = wx.StaticText(self,  label=txt)
-            conf_sizer.Add(changed_l, 0, wx.LEFT, 25)
-
-        return conf_sizer
-
-    def read_conf_to_dict(self, conf):
-        conf = conf.splitlines()
-        conf_dict = {}
-        for line in conf:
-            place = line.find("=")
-            if not place == -1:
-                conf_dict[line[:place]] = line[place+1:]
-        return conf_dict
+        self.SetSizerAndFit(main_sizer)
 
     def OnClose(self, e):
         self.Destroy()
 
+    class scroll_section(scrolled.ScrolledPanel):
+        def __init__(self, parent):
+            self.parent = parent
+            scrolled.ScrolledPanel.__init__(self, parent, -1, size=(600,400))
+            vbox = wx.BoxSizer(wx.VERTICAL)
+            vbox.Add(self.make_com_sizer(), 0, wx.ALIGN_LEFT | wx.ALL, 5)
+            self.SetSizer(vbox)
+            self.SetupScrolling()
+
+        def make_com_sizer(self):
+            # create dicts from files
+            l_txt = self.parent.conf_l_txt
+            r_txt = self.parent.conf_r_txt
+            l_dict = self.read_conf_to_dict(l_txt)
+            r_dict = self.read_conf_to_dict(r_txt)
+            # compare
+            changed = []
+            unchanged = []
+            for item in l_dict:
+                if item not in r_dict:
+                    changed.append([item, 'NEW =' + l_dict[item]])
+                else:
+                    if not r_dict[item] == l_dict[item]:
+                        changed.append([item, ' change from ' + r_dict[item] + " to " + l_dict[item]])
+                    else:
+                        unchanged.append(item)
+            for item in r_dict:
+                if item not in l_dict:
+                    changed.append([item, 'REMOVED'])
+
+            # make and fill sizer
+            #  changed
+            conf_sizer = wx.BoxSizer(wx.VERTICAL)
+            changed_list_l = wx.StaticText(self,  label="Changed;")
+            conf_sizer.Add((10,10))
+            conf_sizer.Add(changed_list_l, 0, wx.LEFT, 50)
+            conf_sizer.Add((10,10))
+            for item in changed:
+                changed_text = item[0] + " " + item[1]
+                changed_l = wx.StaticText(self,  label=changed_text)
+                conf_sizer.Add(changed_l, 0, wx.LEFT, 25)
+            #  unchanged
+            unchanged_list_l = wx.StaticText(self,  label="Unchanged;")
+            conf_sizer.Add((10,10))
+            conf_sizer.Add(unchanged_list_l, 0, wx.LEFT, 50)
+            conf_sizer.Add((10,10))
+            for item in unchanged:
+                txt = item + " " + l_dict[item]
+                changed_l = wx.StaticText(self,  label=txt)
+                conf_sizer.Add(changed_l, 0, wx.LEFT, 25)
+
+            return conf_sizer
+
+        def read_conf_to_dict(self, conf):
+            conf = conf.splitlines()
+            conf_dict = {}
+            for line in conf:
+                place = line.find("=")
+                if not place == -1:
+                    conf_dict[line[:place]] = line[place+1:]
+
+            return conf_dict
 
 class file_upload_dialog(wx.Dialog):
     #Dialog box for downloding files from pi to local storage folder
