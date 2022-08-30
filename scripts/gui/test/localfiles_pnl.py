@@ -130,10 +130,9 @@ class ctrl_pnl(wx.Panel):
         if len(conf_folder) == 0:
             return None
         print("Selected ", conf_folder)
-        # show diff between current and selected config
+        # show diff between current and selected config dialog box
         self.compare_config_folders(conf_folder)
-        # remove prior config, copy stored config, restart pi
-        self.upload_cron()
+
 
     def compare_config_folders(self, conf_folder):
         print("A dialogue box will open here to show a comparison of the config folders")
@@ -142,20 +141,6 @@ class ctrl_pnl(wx.Panel):
         conf_dbox = config_compare_dialog(self, self.parent)
         conf_dbox.ShowModal()
         conf_dbox.Destroy()
-
-
-    def upload_cron(self):
-        print(" Not currently uploading cron - sorry")
-        # copied from old gui
-        #
-        #    temp_folder = "/home/" + pi_link_pnl.target_user + "/Pigrow/temp/"
-        #    cron_temp = temp_folder + "cron_store.txt"
-        #    if self.cb_cron.GetValue() == True:
-        #        print("including crontab file")
-        #        #upload cronfile to temp folder
-        #        sftp.put(localfiles_ctrl_pnl.cron_backup_file, cron_temp)
-        #        # install cron to pi
-        #        out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("crontab " + cron_temp)
 
     def connect_to_pigrow(self):
         self.read_click("e")
@@ -230,20 +215,6 @@ class config_compare_dialog(wx.Dialog):
         self.main_sizer.Add(buttons_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
         self.SetSizer(self.main_sizer)
 
-    # def compare_cron(self, e):
-    #     print("ONLY HALF comparing cron THIS FEATURE IS NOT CODED FULLY")
-    #     # load remote file
-    #     r_cron, error = self.parent.parent.link_pnl.run_on_pi("crontab -l ")
-    #
-    #     # load local file
-    #     local_file_path = os.path.join(self.conf_local, "cron_store.txt")
-    #     with open(local_file_path, "r") as l_cron_file:
-    #         l_cron = l_cron_file.read()
-    #     if not l_cron == r_cron:
-    #         print("The crons are the same")
-    #     else:
-    #         print("The crons are different but i'm not doing anything with that fact")
-
     def upload_click(self, e):
         ignore_files = self.scroll_box.ignore_files
         files_add = self.scroll_box.files_add
@@ -271,6 +242,44 @@ class config_compare_dialog(wx.Dialog):
                 print (cmd)
                 #out, error = self.parent.parent.link_pnl.run_on_pi(cmd)
 
+        # cron replacement
+        if 'Cron will be updated' in ignore_files:
+            print("ignoring cron when updating config")
+        else:
+            if self.scroll_box.cron_match == False:
+                self.upload_cron()
+
+    def upload_cron(self):
+        print(" Not currently actually updating cron, still in testing - sorry")
+        conf_local = self.parent.conf_local
+        local_cronstore_path = os.path.join(conf_local, 'cron_store.txt')
+
+        temp_cronstore_path = self.parent.parent.shared_data.remote_pigrow_path + "temp/cron_store.txt"
+        self.parent.parent.link_pnl.upload_files([[local_cronstore_path, temp_cronstore_path]])
+        # check they match
+        out, error = self.parent.parent.link_pnl.run_on_pi("cat " + temp_cronstore_path)
+
+        with open(local_cronstore_path, "r") as config_file:
+            l_c_file = config_file.read()
+        if out == l_c_file:
+            print(" The uploaded cron file is the same as the one we uploaded, no corruption here")
+            #out, error = self.parent.parent.link_pnl.run_on_pi("crontab " + temp_cronstore_path)
+            out, error = self.parent.parent.link_pnl.run_on_pi("crontab -l")
+            if out == l_c_file:
+                print(" Cron updated correctly.")
+            else:
+                print(" !!!! WARNING !!!!!!")
+                print("   Cron update has failed, your cron might be messed up!!!!")
+                print(" !!!! WARNING !!!!!! (it might just be an OS thing though, best check)")
+
+        else:
+            print(" !!! Something went wrong with the cron_store transfer, copied file arrived different - terminating action!")
+            return None
+
+
+
+
+
     def OnClose(self, e):
         self.Destroy()
 
@@ -288,8 +297,10 @@ class config_compare_dialog(wx.Dialog):
         def make_conf_sizer(self):
             print(" making a sizer for conf file comparison")
             # list files
-            confstore_files = self.list_confstore()
+            confstore_files, cron_exists = self.list_confstore()
             remote_conf = self.list_remote_conf()
+
+            # create settings sizers for config files (added, removed and modified)
             # create compare lists
             self.files_remove = []
             self.files_add = []
@@ -351,8 +362,13 @@ class config_compare_dialog(wx.Dialog):
             if len(self.files_replace) == 0:
                 rm_view.Hide()
 
+            # cron compare
+            cron_l_sizer, self.cron_sizer = self.make_cron_sizers(cron_exists)
+
             # final sizer
             self.conf_sizer = wx.BoxSizer(wx.VERTICAL)
+            self.conf_sizer.Add(cron_l_sizer, 0, wx.LEFT|wx.ALIGN_LEFT, 25)
+            self.conf_sizer.Add(self.cron_sizer, 0, wx.ALL|wx.EXPAND, 5)
             self.conf_sizer.Add(add_l_sizer, 0, wx.LEFT|wx.ALIGN_LEFT, 25)
             self.conf_sizer.Add(self.add_sizer, 0, wx.ALL|wx.EXPAND, 5)
             self.conf_sizer.Add(rm_l_sizer, 0, wx.LEFT|wx.ALIGN_LEFT, 25)
@@ -362,12 +378,81 @@ class config_compare_dialog(wx.Dialog):
 
             return self.conf_sizer
 
+        def make_cron_sizers(self, cron_exists):
+            # cron label
+            cron_l = wx.StaticText(self, label='Cron task schedular')
+        #    cron_view = wx.Button(self, label='Hide', size=(40, 20))
+        #    cron_view.Bind(wx.EVT_BUTTON, self.add_view_click)
+            cron_l_sizer = wx.BoxSizer(wx.HORIZONTAL)
+            cron_l_sizer.Add(cron_l, 0, wx.ALL|wx.EXPAND, 5)
+        #    cron_l_sizer.Add(cron_view, 0, wx.ALL|wx.EXPAND, 5)
+            # cron text
+            self.cron_match = True
+            if cron_exists:
+                if self.compare_cron():
+                    c_txt = "Both cron files are the same"
+                else:
+                    c_txt = "Cron will be updated"
+                    self.cron_match = False
+            else:
+                c_txt = "No saved cron, keeping original"
+
+            ###
+            if cron_exists:
+                # create button instead of label
+                status_c = wx.Button(self, label='view', size=(40, 20))
+                status_c.Bind(wx.EVT_BUTTON, self.view_cron_click)
+            else:
+                status_c = wx.StaticText(self,  label="")
+            ###
+            use_cb = wx.CheckBox(self, label='')
+            use_cb.SetValue(True)
+            use_cb.Bind(wx.EVT_CHECKBOX, self.checkbox_click)
+            name_l = wx.StaticText(self,  label=c_txt)
+
+            cron_sizer = wx.BoxSizer(wx.HORIZONTAL)
+            cron_sizer.Add(use_cb, 0, wx.ALL|wx.EXPAND, 5)
+            cron_sizer.Add(name_l, 0, wx.ALL|wx.EXPAND, 5)
+            cron_sizer.Add(status_c, 0, wx.ALL|wx.EXPAND, 5)
+            if self.cron_match == True:
+                use_cb.Hide()
+
+            return cron_l_sizer, cron_sizer
+
+        def view_cron_click(self, e):
+            # load local file
+            local_file_path = os.path.join(self.conf_local, "cron_store.txt")
+            with open(local_file_path, "r") as config_file:
+                l_c_file = config_file.read()
+            # show text
+            shared_data = self.parent.parent.parent.shared_data
+            dbox = shared_data.scroll_text_dialog(None, l_c_file, "Local Cron", cancel=False)
+            dbox.ShowModal()
+            dbox.Destroy()
+
+        def compare_cron(self):
+            # load remote file
+            r_cron, error = self.parent.parent.parent.link_pnl.run_on_pi("crontab -l ")
+            # load local file
+            local_file_path = os.path.join(self.conf_local, "cron_store.txt")
+            with open(local_file_path, "r") as l_cron_file:
+                l_cron = l_cron_file.read()
+            # compare
+            if l_cron == r_cron:
+                print("The crons are the same")
+                return True
+            else:
+                print("The crons are different")
+                return False
+
         def list_confstore(self):
             print("Listing local confstore")
             dir_list = os.listdir(path=self.conf_local)
+            cron_exists = False
             if 'cron_store.txt' in dir_list:
                 dir_list.remove('cron_store.txt')
-            return dir_list
+                cron_exists = True
+            return dir_list, cron_exists
 
         def list_remote_conf(self):
             print("listing remote conf")
@@ -393,7 +478,7 @@ class config_compare_dialog(wx.Dialog):
             else:
                 button.SetLabel("Hide")
                 self.conf_sizer.Show(self.rm_sizer)
-            self.main_sizer.Layout()
+            self.parent.Layout()
 
         def mod_view_click(self, e):
             button = e.GetEventObject()
@@ -403,7 +488,7 @@ class config_compare_dialog(wx.Dialog):
             else:
                 button.SetLabel("Hide")
                 self.conf_sizer.Show(self.mod_sizer)
-            self.main_sizer.Layout()
+            self.parent.Layout()
 
         def make_conf_element(self, name, status="--"):
             if status == 'Modify':
@@ -439,7 +524,6 @@ class config_compare_dialog(wx.Dialog):
                 if filename in self.ignore_files:
                     self.ignore_files.remove(filename)
 
-
         def dif_view_click(self, e):
             # get name of the file from sizer
             button = e.GetEventObject()
@@ -456,7 +540,6 @@ class config_compare_dialog(wx.Dialog):
             conf_dbox = compare_conf_file_dialog(self, self.parent)
             conf_dbox.ShowModal()
             conf_dbox.Destroy()
-
 
         def read_diff(self, filename, to_return="answer"):
             # load remote file
