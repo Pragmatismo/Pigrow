@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 import datetime
+import atexit
 import time
 import sys
 import os
@@ -9,6 +10,18 @@ import pigrow_defs
 script = 'timed_water.py'
 duration = None
 safety = "on"
+
+active = ""
+gpio_pin = None
+def exit_handler():
+    if active == "high":
+        GPIO.output(gpio_pin, GPIO.LOW)
+        print 'Pump has been teminated mid use.'
+    if active == "low":
+        GPIO.output(gpio_pin, GPIO.HIGH)
+        print 'Pump has been teminated mid use.'
+
+atexit.register(exit_handler)
 
 for argu in sys.argv[1:]:
     if argu == '-h' or argu == '--help':
@@ -58,7 +71,11 @@ def run_water(set_dic, switch_log, duration):
         GPIO.setmode(GPIO.BCM)
         GPIO.setwarnings(False)
         GPIO.setup(gpio_pin, GPIO.OUT)
+        global active
+        global GPIO
+        global gpio_pin
         if gpio_water_on == "low":
+            active = "low"
             print("      ##         Turning the Water - ON         ##\n")
             print("      ##            by switching GPIO "+str(gpio_pin)+" to "+gpio_water_on+"  ##\n")
             GPIO.output(gpio_pin, GPIO.LOW)
@@ -66,8 +83,10 @@ def run_water(set_dic, switch_log, duration):
             time.sleep(duration)
             print("      ##         Turning the Water - OFF         ##\n")
             GPIO.output(gpio_pin, GPIO.HIGH)
+            active = ""
             print ("      #############################################\n")
         elif gpio_water_on == "high":
+            active = "high"
             print("      ##         Turning the Water - ON         ##\n")
             print("      ##            by switching GPIO "+str(gpio_pin)+" to "+gpio_water_on+"  ##\n")
             GPIO.output(gpio_pin, GPIO.HIGH)
@@ -75,6 +94,7 @@ def run_water(set_dic, switch_log, duration):
             time.sleep(duration)
             print("      ##         Turning the Water - OFF         ##\n")
             GPIO.output(gpio_pin, GPIO.LOW)
+            active = ""
             print ("      #############################################\n")
         else:
             msg =("      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n")
