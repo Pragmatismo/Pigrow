@@ -9,6 +9,25 @@ sys.path.append(homedir + '/Pigrow/scripts/')
 import pigrow_defs
 script = 'TESTtimed_water.py'
 
+'''
+
+This require several settings to be in place
+
+         pigrow/config/pigrow_config.txt
+              gpio_PUMPNAME=GPIO PIN
+              gpio_PUMPNAME_on=relay dir
+              pump_PUMPNAME_mlps= flow rate in ml per second
+              wtank_TANKNAME_pumps=PUMPNAME
+              wtank_TANKNAME_vol=volume in ml
+
+    there should also be a file called
+                Pigrow/logs/tankstat_TANKNAME.txt
+                     current_ml= current ml volume
+                     last_watered= date of last watering
+                     active=true (anything but true and it won't work)
+
+'''
+
 # terminate activity on close
 active = ""
 gpio_pin = None
@@ -122,7 +141,102 @@ def read_conf(pumpname):
         pigrow_defs.write_log(script, "Failed - relay " + pumpname + " not set in config", loc_err_log)
         sys.exit()
 
-    return gpio_pin, gpio_dir, loc_switchlog, loc_err_log
+    # flow_rate
+    flow_key = "pump_" + pumpname + "_mlps"
+    try:
+        flow_rate = int(set_dic[flow_key])
+        print("Pump flow rate =", flow_rate)
+    except:
+        flow_rate = None
+        print("Pump flow rate not set, unable to calculate water used.")
+
+    return gpio_pin, gpio_dir, flow_rate, loc_switchlog, loc_err_log, set_dic
+
+def get_tank_link(pumpname, set_dic):
+    tankname = None
+    for item in set_dic:
+        if "wtank_" in item:
+            if "_pumps" in item:
+                tankname = item.split("_")[1]
+    if tankname == None:
+        print("pump " + pumpname + " is not linked to any water tanks, not doing volume calculations.")
+    else:
+        print("pump " + pumpname + " linked to water tank " + tankname)
+    # get tank size
+    try:
+        size_key = "wtank_" + tankname + "_vol"
+        tank_size = int(set_dic[size_key])
+    except:
+        print(" Can not determine tank size, ")
+        tank_size = None
+    return tankname, tank_size
+
+def read_tank_status(tank):
+    print("reading tank status right now, lol")
+    current_ml = None
+    tank_active = "false"
+    tank_s_dic = {}
+    # read logs/tankstat_TANKNAME.txt
+    t_stat_path = homedir + "/Pigrow/logs/tankstat_" + tank + ".txt"
+    if os.path.isfile(t_stat_path):
+        with open(t_stat_path, "r") as f:
+            t_stat_txt = f.read()
+        for line in t_stat_txt.splitlines():
+            pos = line.find("=")
+            if not pos == -1:
+                key = line[:pos]
+                value = line[pos+1:]
+                tank_s_dic[key] = value
+    # check if values present
+    if "current_ml" in tank_s_dic:
+        try:
+            current_ml = int(tank_s_dic["current_ml"])
+        except:
+            print(" Unable to read current_ml from ", t_stat_path, "continuing without")
+            current_ml = None
+        print (" Starting tank level =", str(current_ml))
+    if "active" in tank_s_dic:
+        tank_active = tank_s_dic['active']
+    # return values
+    return current_ml, tank_active
+
+def write_updated_tankstat(tank, tank_level):
+    # read fresh in case edited since we started running
+    # only change the lines we need to in case there's other info in the file
+    c_ml = False
+    l_w = False
+    t_stat_path = homedir + "/Pigrow/logs/tankstat_" + tank + ".txt"
+    if os.path.isfile(t_stat_path):
+        with open(t_stat_path, "r") as f:
+            t_stat_txt = f.read()
+        t_stat_txt = t_stat_txt.splitlines()
+        new_txt = []
+        for line in t_stat_txt:
+            if "current_ml=" in line:
+                line = "current_ml=" + str(tank_level)
+                c_ml = True
+            if "last_watered=" in line:
+                line = "last_watered=" + str(datetime.datetime.now())
+                l_w = True
+            new_txt.append(line)
+    # make text
+    if c_ml == False:
+        new_txt.append("current_ml=" + str(tank_level))
+    if l_w == False:
+        new_txt.append("last_watered=" + str(datetime.datetime.now()))
+
+    # write file
+    tankstat = ""
+    for line in new_txt:
+        if not line.strip() == "":
+            tankstat += line.strip() + "\n"
+    t_stat_path = homedir + "/Pigrow/logs/tankstat_" + tank + ".txt"
+    with open(t_stat_path, "w") as f:
+        f.write(tankstat)
+
+    print(" Written;")
+    print(tankstat)
+    #
 
 def run_pump(GPIO, gpio_pin, gpio_dir, duration):
     global active
@@ -161,9 +275,33 @@ def run_pump(GPIO, gpio_pin, gpio_dir, duration):
 if __name__ == '__main__':
 
     # read config
-    gpio_pin, gpio_dir, switch_log, err_log = read_conf(pumpname)
+    gpio_pin, gpio_dir, flow_rate, switch_log, err_log, set_dic = read_conf(pumpname)
     gpio_pin = int(gpio_pin)
+    # read tank config
+    tank, tank_size = get_tank_link(pumpname, set_dic)
+    if not tank == None:
+        tank_level, tank_active = read_tank_status(tank)
+        if not tank_active.lower() == 'true':
+            print("Tank is not set to active, pump will not be run at this time")
+            pigrow_defs.write_log(script, 'did not run - tank not set to active', err_log)
+            sys.exit()
     # initalise gpio as output
     GPIO = init_gpio(gpio_pin)
     # run pump for set duration
     run_pump(GPIO, gpio_pin, gpio_dir, duration)
+    # calculate water use and amend current level
+    time.sleep(2) #wait two seconds just to check the low level float sensor isn't taking over this job and killing the process
+    if not tank == None:
+        if not flow_rate == None:
+            used_water = flow_rate * duration
+            if not tank_level == None:
+                tank_level = tank_level - used_water
+                print("Used", used_water, "ml. Tank has", tank_level, "ml remaining")
+            else:
+                print("Tank level not set, assuming it's full")
+                if not tank_size == None:
+                    tank_level = tank_size - used_water
+                else:
+                    print(" Tank size not set, unable to approximate remaining water")
+                    tank_level = None
+            write_updated_tankstat(tank, tank_level)
