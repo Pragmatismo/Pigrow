@@ -687,6 +687,25 @@ class info_pnl(wx.Panel):
                         script_index_repeating = index
         return script_index_repeating
 
+    def list_repeat_by_key(self, script, key, val):
+        if script == "" or key == "" or val == "":
+            return []
+        # look for key=val in args
+        found_jobs = []
+        id_pair = key + "=" + val
+        for index in range(0, self.repeat_cron.GetItemCount()):
+            cmd_path = self.repeat_cron.GetItem(index, 3).GetText()
+            if script in cmd_path:
+                cmd_args = self.repeat_cron.GetItem(index, 4).GetText()
+                if  id_pair in cmd_args:
+                    enabled = self.repeat_cron.GetItem(index, 1).GetText()
+                    cron_time_string = self.repeat_cron.GetItem(index, 2).GetText()
+                    freq_num, freq_text = self.repeat_cron.parse_cron_string(cron_time_string)
+                    found_jobs.append([index, enabled, freq_num, freq_text, cmd_args])
+        return found_jobs            
+
+
+
     def edit_repeat_job_by_name(self, script_path, start_name, new_name, new_cron_time_txt, new_cron_time_num):
     #    script_path = shared_data.remote_pigrow_path + "scripts/sensors/log_sensor_module.py"
         script = os.path.split(script_path)[1]

@@ -113,6 +113,7 @@ class info_pnl(wx.Panel):
     #    pump_l.SetFont(shared_data.sub_title_font)
         self.wpump_lst = self.pump_list(self, 1)
         self.wpump_lst.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.wpump_lst.doubleclick)
+        self.wpump_lst.Bind(wx.EVT_LIST_ITEM_FOCUSED, self.wpump_select)
         self.tt_sizer = wx.BoxSizer(wx.VERTICAL)
         self.tt_sizer.Add(pump_l, 1, wx.ALL|wx.EXPAND, 3)
         self.tt_sizer.Add(self.wpump_lst, 0, wx.ALL|wx.EXPAND, 3)
@@ -130,6 +131,9 @@ class info_pnl(wx.Panel):
         tank_size_sizer.Add(tank_size_title, 1, wx.ALL|wx.EXPAND, 3)
         tank_size_sizer.Add(t_size_sizer, 1, wx.ALL, 3)
 
+        #pump timer sizer
+        self.pt_sizer = wx.BoxSizer(wx.VERTICAL)
+
         # Main Sizer
         main_sizer = wx.BoxSizer(wx.VERTICAL)
         main_sizer.Add(title_l, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
@@ -138,6 +142,7 @@ class info_pnl(wx.Panel):
         main_sizer.Add(tank_table_sizer, 0, wx.ALL|wx.EXPAND, 3)
         main_sizer.Add(self.swtinfo_sizer, 1, wx.ALL, 3)
         main_sizer.Add(self.tt_sizer, 1, wx.ALL, 3)
+        main_sizer.Add(self.pt_sizer, 1, wx.ALL, 3)
         main_sizer.AddStretchSpacer(1)
         main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.Add(tank_size_sizer, 1, wx.ALL, 3)
@@ -150,6 +155,45 @@ class info_pnl(wx.Panel):
         # make pump table
         self.wpump_lst.make_table()
 
+    def wpump_select(self, e):
+        selected_pump = self.wpump_lst.GetFocusedItem()
+        if selected_pump == -1:
+            print("No water pump currently selected, unable to list linked pumps")
+            pump_name = "None"
+        #
+        pump_name = self.wpump_lst.GetItem(selected_pump, 0).GetText()
+        print("Selected pump;", pump_name)
+        self.fill_pumptiming_sizer(pump_name)
+
+    def fill_pumptiming_sizer(self, pump_name):
+        label = "Pump timing; " + str(pump_name)
+        pumptime_l = wx.StaticText(self, label=label)
+        self.pt_sizer.Clear()
+        self.pt_sizer.Add(pumptime_l, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
+        # repeating cron only so far
+                       #############
+                      ###############
+                     #################
+        pump_time_rep_list = self.get_cron_pump_list(pump_name)
+        for item in pump_time_rep_list:
+            #pump time list each item has [index, enabled, freq_num, freq_text, cmd_args]
+            index, enabled, freq_num, freq_text, cmd_args = item
+            cmd_args = cmd_args.split(" ")
+            for arg in cmd_args:
+                if "duration" in arg:
+                    duration = arg.split("=")[1]
+            txt_line = "cron line" + str(index) + " watering for " + str(duration) + " seconds every " + str(freq_num) + " " + freq_text
+            self.pt_sizer.Add(wx.StaticText(self, label=txt_line), 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
+        self.Layout()
+
+    def get_cron_pump_list(self, pump_name):
+        print(" Checking cron for pump timing jobs")
+        script = "TESTtimed_water.py"
+        key = "pump"
+        cron_I = self.parent.dict_I_pnl['cron_pnl']
+        repeating_list = cron_I.list_repeat_by_key(script, key, pump_name)
+        return repeating_list
+
 
     class water_tank_list(wx.ListCtrl):
         def __init__(self, parent, id):
@@ -157,8 +201,10 @@ class info_pnl(wx.Panel):
             wx.ListCtrl.__init__(self, parent, id, style=wx.LC_REPORT)
             self.InsertColumn(0, 'Unique Name')
             self.InsertColumn(1, 'Size')
-            self.InsertColumn(2, 'Type')
-            self.InsertColumn(3, 'Status')
+            self.InsertColumn(2, 'Current ml')
+            self.InsertColumn(3, 'Last Watered')
+            self.InsertColumn(4, 'Enabled')
+            self.InsertColumn(5, 'Type')
             self.autosizeme()
 
         def make_table(self):
@@ -196,18 +242,24 @@ class info_pnl(wx.Panel):
                 self.SetColumnWidth(1, wx.LIST_AUTOSIZE_USEHEADER)
                 self.SetColumnWidth(2, wx.LIST_AUTOSIZE_USEHEADER)
                 self.SetColumnWidth(3, wx.LIST_AUTOSIZE_USEHEADER)
+                self.SetColumnWidth(4, wx.LIST_AUTOSIZE_USEHEADER)
+                self.SetColumnWidth(5, wx.LIST_AUTOSIZE_USEHEADER)
             else:
                 self.SetColumnWidth(0, wx.LIST_AUTOSIZE)
                 self.SetColumnWidth(1, wx.LIST_AUTOSIZE)
                 self.SetColumnWidth(2, wx.LIST_AUTOSIZE)
                 self.SetColumnWidth(3, wx.LIST_AUTOSIZE)
+                self.SetColumnWidth(4, wx.LIST_AUTOSIZE)
+                self.SetColumnWidth(5, wx.LIST_AUTOSIZE)
 
         def add_to_relay_table(self, name, size, type):
             self.InsertItem(0, str(name))
             self.SetItem(0, 1, str(size))
-            self.SetItem(0, 2, str(type))
-            tank_status = self.read_tank_state()
-            self.SetItem(0, 3, str(tank_status))
+            self.SetItem(0, 5, str(type))
+            tank_ml, tank_last, tank_active = self.read_tank_state(name)
+            self.SetItem(0, 2, str(tank_ml))
+            self.SetItem(0, 3, str(tank_last))
+            self.SetItem(0, 4, str(tank_active))
 
         def doubleclick(self, e):
             index =  e.GetIndex()
@@ -219,8 +271,27 @@ class info_pnl(wx.Panel):
             relay_box.ShowModal()
             self.parent.c_pnl.fill_table_click("e")
 
-        def read_tank_state(tank_name):
-            return "not coded"
+        def read_tank_state(self, tank_name):
+            tankstat_path = self.parent.parent.shared_data.remote_pigrow_path
+            tankstat_path += "logs/tankstat_" + tank_name + ".txt"
+            out, err = self.parent.parent.link_pnl.run_on_pi("cat " + tankstat_path)
+            current_ml = "not found"
+            last_water = "not_found"
+            active = "not found"
+            if "current_ml=" in out:
+                lines = out.splitlines()
+                for line in lines:
+                    if "=" in line:
+                        pos = line.find("=")
+                        key = line[:pos]
+                        value = line[pos+1:]
+                        if key == "current_ml":
+                            current_ml = value
+                        if key == "last_watered":
+                            last_water = value
+                        if key == "active":
+                            active = value
+            return current_ml, last_water, active
 
 
     class level_sensor_list(wx.ListCtrl):
