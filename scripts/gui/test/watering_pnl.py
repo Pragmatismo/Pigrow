@@ -160,31 +160,43 @@ class info_pnl(wx.Panel):
         if selected_pump == -1:
             print("No water pump currently selected, unable to list linked pumps")
             pump_name = "None"
-        #
-        pump_name = self.wpump_lst.GetItem(selected_pump, 0).GetText()
-        print("Selected pump;", pump_name)
-        self.fill_pumptiming_sizer(pump_name)
+        else:
+            pump_name = self.wpump_lst.GetItem(selected_pump, 0).GetText()
+            print("Selected pump;", pump_name)
+            self.fill_pumptiming_sizer(pump_name)
 
     def fill_pumptiming_sizer(self, pump_name):
         label = "Pump timing; " + str(pump_name)
         pumptime_l = wx.StaticText(self, label=label)
         self.pt_sizer.Clear()
         self.pt_sizer.Add(pumptime_l, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
-        # repeating cron only so far
-                       #############
-                      ###############
-                     #################
-        pump_time_rep_list = self.get_cron_pump_list(pump_name)
-        for item in pump_time_rep_list:
+        # repeating cron
+        pump_rep_list, pump_timed_list = self.get_cron_pump_list(pump_name)
+        for item in pump_rep_list:
             #pump time list each item has [index, enabled, freq_num, freq_text, cmd_args]
             index, enabled, freq_num, freq_text, cmd_args = item
-            cmd_args = cmd_args.split(" ")
-            for arg in cmd_args:
-                if "duration" in arg:
-                    duration = arg.split("=")[1]
-            txt_line = "cron line" + str(index) + " watering for " + str(duration) + " seconds every " + str(freq_num) + " " + freq_text
+            duration = self.get_duration(cmd_args)
+            txt_line = "cron line" + str(index) + " watering for " + str(duration)
+            txt_line += " seconds every " + str(freq_num) + " " + freq_text
             self.pt_sizer.Add(wx.StaticText(self, label=txt_line), 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
+        # timed cron
+        for item in pump_timed_list:
+            index, enabled, cron_time_string, cmd_args = item
+            duration = self.get_duration(cmd_args)
+            txt_line = "cron line" + str(index) + " watering for " + str(duration)
+            txt_line += " seconds, cron string " + cron_time_string
+            self.pt_sizer.Add(wx.StaticText(self, label=txt_line), 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
+
         self.Layout()
+
+
+    def get_duration(self, cmd_args):
+        duration = None
+        cmd_args = cmd_args.split(" ")
+        for arg in cmd_args:
+            if "duration" in arg:
+                duration = arg.split("=")[1]
+        return duration
 
     def get_cron_pump_list(self, pump_name):
         print(" Checking cron for pump timing jobs")
@@ -192,7 +204,8 @@ class info_pnl(wx.Panel):
         key = "pump"
         cron_I = self.parent.dict_I_pnl['cron_pnl']
         repeating_list = cron_I.list_repeat_by_key(script, key, pump_name)
-        return repeating_list
+        timed_list = cron_I.list_timed_by_key(script, key, pump_name)
+        return repeating_list, timed_list
 
 
     class water_tank_list(wx.ListCtrl):
