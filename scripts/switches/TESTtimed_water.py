@@ -267,9 +267,8 @@ def run_pump(GPIO, gpio_pin, gpio_dir, duration):
         pigrow_defs.write_log(script, 'Failed - no direction set in config', err_log)
 
     # finally
-    msg = "watered for " + str(duration) + " seconds."
-    pigrow_defs.write_log(script, msg, switch_log)
-    print(msg)
+    return "done"
+
 
 
 if __name__ == '__main__':
@@ -288,7 +287,7 @@ if __name__ == '__main__':
     # initalise gpio as output
     GPIO = init_gpio(gpio_pin)
     # run pump for set duration
-    run_pump(GPIO, gpio_pin, gpio_dir, duration)
+    done = run_pump(GPIO, gpio_pin, gpio_dir, duration)
     # calculate water use and amend current level
     time.sleep(2) #wait two seconds just to check the low level float sensor isn't taking over this job and killing the process
     if not tank == None:
@@ -305,3 +304,8 @@ if __name__ == '__main__':
                     print(" Tank size not set, unable to approximate remaining water")
                     tank_level = None
             write_updated_tankstat(tank, tank_level)
+    # write log
+    if done == "done":
+        msg = " watered for " + str(duration) + " seconds using " + pumpname + ", tank now " + str(tank_level)
+        pigrow_defs.write_log(script, msg, switch_log)
+        print(msg)

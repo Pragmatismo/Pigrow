@@ -1,4 +1,6 @@
+import os
 import wx
+import make_water_display
 
 
 class ctrl_pnl(wx.Panel):
@@ -120,16 +122,12 @@ class info_pnl(wx.Panel):
 
 
         # Tank Size Panel
-        tank_size_title =  wx.StaticText(self,  label='Tank Size Calculations')
-        self.tank_size_st = wx.StaticText(self, label='Tank Size in mL')
-        self.tank_size_tc = wx.TextCtrl(self)
-        t_size_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        t_size_sizer.Add(self.tank_size_st, 1, wx.ALL, 3)
-        t_size_sizer.Add(self.tank_size_tc, 1, wx.ALL, 3)
+        tank_size_title =  wx.StaticText(self,  label='Tank level past and future')
+        self.tank_pic = wx.StaticBitmap(self, -1, size=(800, 800))
 
-        tank_size_sizer = wx.BoxSizer(wx.VERTICAL)
-        tank_size_sizer.Add(tank_size_title, 1, wx.ALL|wx.EXPAND, 3)
-        tank_size_sizer.Add(t_size_sizer, 1, wx.ALL, 3)
+        tank_pic_sizer = wx.BoxSizer(wx.VERTICAL)
+        tank_pic_sizer.Add(tank_size_title, 1, wx.ALL|wx.EXPAND, 3)
+        tank_pic_sizer.Add(self.tank_pic, 1, wx.ALL, 3)
 
         #pump timer sizer
         self.pt_sizer = wx.BoxSizer(wx.VERTICAL)
@@ -145,7 +143,7 @@ class info_pnl(wx.Panel):
         main_sizer.Add(self.pt_sizer, 1, wx.ALL, 3)
         main_sizer.AddStretchSpacer(1)
         main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
-        main_sizer.Add(tank_size_sizer, 1, wx.ALL, 3)
+        main_sizer.Add(tank_pic_sizer, 1, wx.ALL, 3)
         main_sizer.AddStretchSpacer(1)
         self.SetSizer(main_sizer)
 
@@ -166,6 +164,10 @@ class info_pnl(wx.Panel):
             self.fill_pumptiming_sizer(pump_name)
 
     def fill_pumptiming_sizer(self, pump_name):
+        #
+        link_pnl    = self.parent.link_pnl
+        shared_data = self.parent.shared_data
+        #
         label = "Pump timing; " + str(pump_name)
         pumptime_l = wx.StaticText(self, label=label)
         self.pt_sizer.Clear()
@@ -188,6 +190,33 @@ class info_pnl(wx.Panel):
             self.pt_sizer.Add(wx.StaticText(self, label=txt_line), 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
 
         self.Layout()
+
+        # make graphic
+        tank_name = " NOT YET LINKED IN WATERING_PNL CODE"
+        tank_vol = 2000 # " NOT YET LINKED IN WATERING_PNL CODE"
+        current_vol = 1500 # "NOT YET LINKED"
+        # download most recent switch log
+        l_switch_log = os.path.join(shared_data.frompi_path, "logs/switch_log.txt")
+        download_log = False
+        if download_log == True:
+            try:
+                r_switch_log = shared_data.remote_pigrow_path + "logs/switch_log.txt"
+                link_pnl.download_file_to_folder(r_switch_log, l_switch_log)
+            except:
+                print(" Unable to download most recent switch_log.txt, using stored folder" )
+        #
+        graphic = make_water_display.make_display(tank_name,
+                                                  tank_vol,
+                                                  current_vol,
+                                                  switch_log_path=l_switch_log,
+                                                  repeat_pump_times=pump_rep_list,
+                                                  timed_pump_times=pump_timed_list,
+                                                  days_to_show=7)
+        # convert pill image to wx bitmap and show on screen
+        width, height = graphic.size
+        #pic = wx.BitmapFromBuffer(width, height, graphic.tobytes())
+        pic = wx.Bitmap.FromBuffer(width, height, graphic.convert("RGB").tobytes())
+        self.tank_pic.SetBitmap(pic)
 
 
     def get_duration(self, cmd_args):
