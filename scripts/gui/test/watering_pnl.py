@@ -148,10 +148,21 @@ class info_pnl(wx.Panel):
         self.SetSizer(main_sizer)
 
     def wtank_select(self, e):
+        #
+        selected_tank = self.wtank_lst.GetFocusedItem()
+        if not selected_tank == -1:
+            tank_name = self.wtank_lst.GetItem(selected_tank, 0).GetText()
+        else:
+            print("No water tank currently selected, unable to list linked pumps")
+            return None
+        #
         # make sensor table
         self.lev_s_lst.make_table()
         # make pump table
-        self.wpump_lst.make_table()
+        self.c_linked_pumps = []
+        self.wpump_lst.make_table(tank_name)
+        #
+        self.make_tank_graph_pic(self.c_linked_pumps, tank_name)
 
     def wpump_select(self, e):
         selected_pump = self.wpump_lst.GetFocusedItem()
@@ -164,9 +175,6 @@ class info_pnl(wx.Panel):
             self.fill_pumptiming_sizer(pump_name)
 
     def fill_pumptiming_sizer(self, pump_name):
-        #
-        link_pnl    = self.parent.link_pnl
-        shared_data = self.parent.shared_data
         #
         label = "Pump timing; " + str(pump_name)
         pumptime_l = wx.StaticText(self, label=label)
@@ -191,12 +199,30 @@ class info_pnl(wx.Panel):
 
         self.Layout()
 
+    def make_tank_graph_pic(self, linked_pump_list, tank_name):
+        #
+        link_pnl    = self.parent.link_pnl
+        shared_data = self.parent.shared_data
+
+        # Colect cron pump timings for each pump linked to the tank
+        #    creates a list of pump timings for each pump
+        #       [pumpname, [pump_rep_list, pump_timed-list]]
+        pump_timings = []
+        for pump_name in linked_pump_list:
+            pump_rep_list, pump_timed_list = self.get_cron_pump_list(pump_name)
+            pump_timing = [pump_name, pump_rep_list, pump_timed_list]
+            pump_timings.append(pump_timing)
+            print(" Sending cron info about pump;", pump_name)
+
         # make graphic
-        tank_name = " NOT YET LINKED IN WATERING_PNL CODE"
+        #
+
+        #
         tank_vol = 2000 # " NOT YET LINKED IN WATERING_PNL CODE"
         current_vol = 1500 # "NOT YET LINKED"
         # download most recent switch log
         l_switch_log = os.path.join(shared_data.frompi_path, "logs/switch_log.txt")
+        l_config_path = os.path.join(shared_data.frompi_path, "config/pigrow_config.txt")
         download_log = False
         if download_log == True:
             try:
@@ -209,8 +235,8 @@ class info_pnl(wx.Panel):
                                                   tank_vol,
                                                   current_vol,
                                                   switch_log_path=l_switch_log,
-                                                  repeat_pump_times=pump_rep_list,
-                                                  timed_pump_times=pump_timed_list,
+                                                  config_path=l_config_path,
+                                                  pump_timings = pump_timings,
                                                   days_to_show=7)
         # convert pill image to wx bitmap and show on screen
         width, height = graphic.size
@@ -414,14 +440,14 @@ class info_pnl(wx.Panel):
             self.InsertColumn(2, 'Type')
             self.autosizeme()
 
-        def make_table(self):
+        def make_table(self, tank_name):
             # Get tank name
-            selected_tank = self.parent.wtank_lst.GetFocusedItem()
-            if not selected_tank == -1:
-                tank_name = self.parent.wtank_lst.GetItem(selected_tank, 0).GetText()
-            else:
-                print("No water tank currently selected, unable to list linked pumps")
-                return None
+            # selected_tank = self.parent.wtank_lst.GetFocusedItem()
+            # if not selected_tank == -1:
+            #     tank_name = self.parent.wtank_lst.GetItem(selected_tank, 0).GetText()
+            # else:
+            #     print("No water tank currently selected, unable to list linked pumps")
+            #     return None
             #
 
             wpump_list = []
@@ -435,10 +461,17 @@ class info_pnl(wx.Panel):
                 linked_pumps = config_dict[lp_key].split(',')
             else:
                 linked_pumps = []
+            print (" LINKED PUMPS:", linked_pumps  )
+            self.parent.c_linked_pumps = linked_pumps
+            # cycle through and add to table
             for pump in linked_pumps:
                 pump = pump.strip()
                 rate, type = self.read_wpump_conf(pump, config_dict, "pump_")
                 self.add_to_pump_table(pump, rate, type)
+
+            # set size
+            self.autosizeme()
+            #self.parent.Layout()
 
         def read_wpump_conf(self, item_name, config_dict, prefix):
             # Extract sensor config info from config dictionary
@@ -461,15 +494,16 @@ class info_pnl(wx.Panel):
                 self.SetColumnWidth(2, wx.LIST_AUTOSIZE_USEHEADER)
                 self.SetMinSize((-1,50))
             else:
-                self.SetColumnWidth(0, wx.LIST_AUTOSIZE)
-                self.SetColumnWidth(1, wx.LIST_AUTOSIZE)
-                self.SetColumnWidth(2, wx.LIST_AUTOSIZE)
+                #self.SetColumnWidth(0, wx.LIST_AUTOSIZE)
+                #self.SetColumnWidth(1, wx.LIST_AUTOSIZE)
+                #self.SetColumnWidth(2, wx.LIST_AUTOSIZE)
                 height = 50 + (self.GetItemCount() * textsize)
                 self.SetMinSize((-1, height))
             #self.PostSizeEventToParent()
             self.parent.Layout()
 
         def add_to_pump_table(self, name, rate, type):
+            print("adding linked_pump ;", name, rate, type)
             self.InsertItem(0, str(name))
             self.SetItem(0, 1, str(rate))
             self.SetItem(0, 2, str(type))
