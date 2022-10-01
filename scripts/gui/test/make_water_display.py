@@ -280,14 +280,15 @@ def switch_times(water_times, days_to_show=30):
     sec_p = sec_count / 100
     with_xpos = []
     for item in in_range:
-        age = now - item[0]
-        age = age.total_seconds()
-        t_p = age / sec_count
-        t_p = abs(t_p - 1)
-        #print("graph pos; ", t_p, " Event was " + str(age) + " ago, ", item)
-        item.append(t_p)
-        with_xpos.append(item)
-        print(" adding xpos to;", item)
+        if not item == None:
+            age = now - item[0]
+            age = age.total_seconds()
+            t_p = age / sec_count
+            t_p = abs(t_p - 1)
+            #print("graph pos; ", t_p, " Event was " + str(age) + " ago, ", item)
+            item.append(t_p)
+            with_xpos.append(item)
+            print(" adding xpos to;", item)
     with_xpos[0][-1] = 0
     return with_xpos
 
