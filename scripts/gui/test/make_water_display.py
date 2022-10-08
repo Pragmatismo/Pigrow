@@ -49,7 +49,7 @@ def make_display(tank_name, tank_vol, current_vol, switch_log_path="", config_pa
 
 
     # mark previous watering
-    water_times = read_switch_log(switch_log_path, config_path, tank_name)
+    water_times, config_dict = read_switch_log(switch_log_path, config_path, tank_name)
           # water_times contains [[date, t_level, msg, pump_name], etc]
     with_xpos = switch_times(water_times, days_to_show)
           # water_times contains [[date, t_level, msg, pump_name, x_pos], etc]
@@ -100,6 +100,9 @@ def make_display(tank_name, tank_vol, current_vol, switch_log_path="", config_pa
         pump_name = bar[4]
         d.text((c_x, c_y), str(pump_name), font=font, fill=(0,0,0,255))
 
+    # add a bar for the current tank capacity as recorded in tanks file
+    print(" Should add a bar for the current volume, which is", current_vol)
+
     # make bar labels
     lab_list = make_bar_labels(bb_w, days_to_show)
     for item in lab_list:
@@ -117,14 +120,84 @@ def make_display(tank_name, tank_vol, current_vol, switch_log_path="", config_pa
         l_delta = datetime.datetime.now() - final_dt
         print(" Last entry was ", str(l_delta), "ago")
 
-    # mark predicted waterings
-       # read list of cron jobs into list with dates
-        c_time_list = make_c_times(pump_timings, days_to_show)
-       # creates bars for right side of graph (future)
+
+
+     # mark predicted waterings
+        # read list of cron jobs into list with dates
+        c_time_list = make_c_times(pump_timings, days_to_show, config_dict)
+            # [rep_time_list, water_used]
+            #     -which contains-
+            # [list of cron times between start and end of graph],
+            #    [True (found flow rate), used_water, flow_rate, duration, pump]
+        time_list = []
+        for item in c_time_list:
+            valid, used_water, flow_rate, duration, pump = item[1]
+            for item_date in item[0]:
+                list = [item_date, valid, used_water, flow_rate, duration, pump]
+                time_list.append(list)
+        ordered_time_list = sorted(time_list, key=lambda x: x[0])
+        #
+        new_vol_list = []
+        this_step_vol = current_vol
+        for item in ordered_time_list:
+            item_date, valid, used_water, flow_rate, duration, pump = item
+            if valid == True:
+                this_step_vol = this_step_vol - used_water
+                col = (100, 200, 180)
+            else:
+                this_step_vol = 0
+                col = (250, 100, 100)
+            new_vol_list.append([item_date, this_step_vol, pump, col])
+        #
+        # creates bars for right side of graph (future)
+        r_bars = []
+        prev_bar_end = 0
+        for item in new_vol_list:
+            #print(item)
+            pc_pos = get_r_percent_pos(days_to_show, item[0])
+            pc_of_tank = float(item[1]) / tank_vol
+            b_height = abs(bb_h - (pc_of_tank * bb_h))
+            print(pc_pos, pc_of_tank, b_height)
+            bar_pos = pc_pos * (bb_w / 2)
+            bar_box = (prev_bar_end, b_height, bar_pos, bb_h)
+            r_bars.append([bar_box, item[2], item[3]])
+            prev_bar_end = bar_pos
+
+        for bar_box in r_bars:
+            #print (bar_box)
+            start_x = (bb_w / 2) + bb_x
+            b_box, pump_name, col = bar_box
+            b_x, b_y, b_x2, b_y2 = b_box
+            b_x = b_x + start_x
+            b_y = b_y + bb_y
+            b_x2 += start_x
+            b_y2 += bb_y
+
+            cb_box = (b_x, b_y, b_x2, b_y2)
+            #print(cb_box, pump_name)
+            d.rectangle(cb_box, fill=col, outline=(50,50,240), width=1)
+            d.text((b_x, b_y), str(pump_name), font=font, fill=(0,0,0,255))
+
+
+
+
+
+
+
+
 
 
     # return the pill image
     return main_base
+
+def get_r_percent_pos(days_to_show, item_date):
+    sec_count = days_to_show * 24 * 60 * 60
+    sec_p = sec_count / 100
+    if not item_date == None:
+        age = item_date - datetime.datetime.now()
+        age = age.total_seconds()
+        t_p = age / sec_count
+    return t_p
 
 def make_col(pump_names, pump_name):
     index = pump_names.index(pump_name)
@@ -139,8 +212,76 @@ def make_col(pump_names, pump_name):
     return (r_val, g_val, b_val)
 
 
-def make_c_times(pump_timings, days_to_show):
+def make_c_times(pump_timings, days_to_show, config_dict):
+    if len(pump_timings) == 0:
+        return None
     print(" It would be super fun if i made a list of times to fill out the days to show from the two cron lists, i'm not going to though :P")
+    print ("Pump Timings;", pump_timings)
+    now = datetime.datetime.now()
+    toshow_delta = datetime.timedelta(days=days_to_show)
+    end = now + toshow_delta
+    rep_times_with = []
+    for pump_times in pump_timings:
+        pump, rep_times, time_times = pump_times
+        for item in rep_times:
+            try:
+                duration = get_duration(item[4])
+                water_used = calc_use(pump, duration, config_dict)
+                rep_num = int(item[2])
+                rep_word = item[3]
+                rep_time_list = make_time_list(now, end, rep_num, rep_word)
+                rep_times_with.append([rep_time_list, water_used])
+            except:
+                print(" Unable to comprehend pumps cron times, sorry - ", item)
+                raise
+
+    return rep_times_with
+
+def calc_use(pump, duration, config_dict):
+    conf_key = "pump_" + pump + "_mlps"
+    if conf_key in config_dict:
+        flow_rate = config_dict[conf_key]
+        used_water = float(duration) * float(flow_rate)
+        return [True, used_water, flow_rate, duration, pump]
+    else:
+        return [False, 0, 0]
+
+
+def get_duration(arg_string):
+    if " " in arg_string:
+        arg_list = arg_string.split()
+        for arg in arg_list:
+            if "=" in arg:
+                key,val = arg.split("=")
+                if key == "duration":
+                    return val.replace(",", "")
+
+def make_time_list(now, end, rep_num, rep_word):
+    # make a list of all the trigger times between now and end
+    if rep_word == 'min':
+        rep_step = datetime.timedelta(minutes=rep_num)
+        midnight = datetime.datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+    elif rep_word == 'hour':
+        rep_step = datetime.timedelta(hours=rep_num)
+        midnight = datetime.datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+    elif rep_word == "day":
+        rep_step = datetime.timedelta(days=rep_num)
+        midnight = datetime.datetime.utcnow().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    elif rep_word == "month":
+        rep_step = datetime.timedelta(days=rep_num * 30)
+        midnight = datetime.datetime.utcnow().replace(month=1, hour=0, minute=0, second=0, microsecond=0)
+    #
+    list_of_times = []
+    within = True
+    current_step = midnight + rep_step
+    while within == True:
+        if current_step > now and current_step < end:
+            list_of_times.append(current_step)
+        elif current_step > end:
+            within = False
+        current_step = current_step + rep_step
+    #
+    return list_of_times
 
 
 def make_bar_labels(bb_w, days_to_show):
@@ -254,7 +395,7 @@ def read_switch_log(switch_log_path, config_path, tank_name):
                 print("reading;", date, t_level, msg, pump_name)
                 water_times.append([date, t_level, msg, pump_name])
 
-    return water_times
+    return water_times, config_dict
 
 def switch_times(water_times, days_to_show=30):
     if len(water_times) == 0:

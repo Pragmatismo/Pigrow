@@ -237,7 +237,7 @@ class info_pnl(wx.Panel):
                                                   switch_log_path=l_switch_log,
                                                   config_path=l_config_path,
                                                   pump_timings = pump_timings,
-                                                  days_to_show=7)
+                                                  days_to_show=30)
         # convert pill image to wx bitmap and show on screen
         width, height = graphic.size
         #pic = wx.BitmapFromBuffer(width, height, graphic.tobytes())
