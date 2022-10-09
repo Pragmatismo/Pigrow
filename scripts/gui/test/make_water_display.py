@@ -13,15 +13,20 @@ font = ImageFont.truetype("../ui_images/datawall/Caslon.ttf", 35)
 ascent, descent = font.getmetrics()
 font_h = font.getmask("A").getbbox()[3] + descent
 font_w = font.getmask("A").getbbox()[2]
-print(font_h)
 
-def make_display(tank_name, tank_vol, current_vol, switch_log_path="", config_path="", pump_timings=[], days_to_show=7):
+def make_display(tank_name, tank_vol, current_vol="", tank_active="", switch_log_path="", config_path="", config_dict=None, pump_timings=[], days_to_show=7):
+    tank_vol = int(tank_vol)
+    try:
+        current_vol = int(current_vol)
+    except:
+        print(" Current tank volume not found, using -1 ")
+        current_vol = -1
     x = 1000
     y = 800
     print(" ---------------------------------------- ")
     print("        Making watering display ")
     print(" ---------------------------------------- ")
-    print(tank_name, tank_vol, pump_timings)
+    #print(tank_name, tank_vol, pump_timings)
 
     # make base
     bg_col = (240,255,240)
@@ -49,7 +54,7 @@ def make_display(tank_name, tank_vol, current_vol, switch_log_path="", config_pa
 
 
     # mark previous watering
-    water_times, config_dict = read_switch_log(switch_log_path, config_path, tank_name)
+    water_times, config_dict = read_switch_log(switch_log_path, config_path, config_dict, tank_name)
           # water_times contains [[date, t_level, msg, pump_name], etc]
     with_xpos = switch_times(water_times, days_to_show)
           # water_times contains [[date, t_level, msg, pump_name, x_pos], etc]
@@ -62,7 +67,7 @@ def make_display(tank_name, tank_vol, current_vol, switch_log_path="", config_pa
     p_pump = with_xpos[0][3]
     pump_names = []
     for item in with_xpos:
-        print("xpos item;", item)
+        #print("xpos item;", item)
         pump_name = item[3]
         if not pump_name in pump_names:
             pump_names.append(pump_name)
@@ -75,7 +80,7 @@ def make_display(tank_name, tank_vol, current_vol, switch_log_path="", config_pa
             # for error make a full sized red bar
             val = tank_vol
             col = (250,150,150)
-        print(p_pump, p_val, col)
+        #print(p_pump, p_val, col)
         l_bar_list.append([x_p, x2_p, p_val, col, p_pump])
         p_val = val
         p_pump = pump_name
@@ -87,7 +92,7 @@ def make_display(tank_name, tank_vol, current_vol, switch_log_path="", config_pa
     # create the co-ordinates for the bars relative, then shift them into the
     # bounding box, this allows them to overlap if desires (useful for markers)
     for bar in l_bar_list:
-        print(bar)
+        #print(bar)
         #print(bar)
         bar_x_p, bar_x2_p, val, col, pump_name = bar
         c_x, c_y, c_x2 = make_l_bar_box(bar_x_p, bar_x2_p, bb_w, bb_h, tank_vol, val)
@@ -102,6 +107,7 @@ def make_display(tank_name, tank_vol, current_vol, switch_log_path="", config_pa
 
     # add a bar for the current tank capacity as recorded in tanks file
     print(" Should add a bar for the current volume, which is", current_vol)
+    print(" and also active state which is", tank_active)
 
     # make bar labels
     lab_list = make_bar_labels(bb_w, days_to_show)
@@ -157,7 +163,7 @@ def make_display(tank_name, tank_vol, current_vol, switch_log_path="", config_pa
             pc_pos = get_r_percent_pos(days_to_show, item[0])
             pc_of_tank = float(item[1]) / tank_vol
             b_height = abs(bb_h - (pc_of_tank * bb_h))
-            print(pc_pos, pc_of_tank, b_height)
+            #print(pc_pos, pc_of_tank, b_height)
             bar_pos = pc_pos * (bb_w / 2)
             bar_box = (prev_bar_end, b_height, bar_pos, bb_h)
             r_bars.append([bar_box, item[2], item[3]])
@@ -177,15 +183,6 @@ def make_display(tank_name, tank_vol, current_vol, switch_log_path="", config_pa
             #print(cb_box, pump_name)
             d.rectangle(cb_box, fill=col, outline=(50,50,240), width=1)
             d.text((b_x, b_y), str(pump_name), font=font, fill=(0,0,0,255))
-
-
-
-
-
-
-
-
-
 
     # return the pill image
     return main_base
@@ -215,8 +212,7 @@ def make_col(pump_names, pump_name):
 def make_c_times(pump_timings, days_to_show, config_dict):
     if len(pump_timings) == 0:
         return None
-    print(" It would be super fun if i made a list of times to fill out the days to show from the two cron lists, i'm not going to though :P")
-    print ("Pump Timings;", pump_timings)
+    #print ("Pump Timings;", pump_timings)
     now = datetime.datetime.now()
     toshow_delta = datetime.timedelta(days=days_to_show)
     end = now + toshow_delta
@@ -355,7 +351,7 @@ def make_bar_box(bar_width, c_pos, bb_w, bb_h, tank_vol, b_vol):
     #print(bb_h, current_bar_x, c_vol_percent, current_b_h, current_bar_y)
     return (current_bar_x, current_bar_y, current_bar_x + bar_width)
 
-def read_switch_log(switch_log_path, config_path, tank_name):
+def read_switch_log(switch_log_path, config_path, config_dict, tank_name):
     if not os.path.isfile(switch_log_path):
         print(" Switch_log not found at ", switch_log_path, " not using one")
         return []
@@ -365,14 +361,15 @@ def read_switch_log(switch_log_path, config_path, tank_name):
     switch_log = switch_log.splitlines()
 
     # get list of linked pumps
-    config_dict = read_config(config_path)
+    if config_dict == None and config_path == "":
+        config_dict = read_config(config_path)
     lp_key = "wtank_" + tank_name + "_pumps"
-    print(lp_key)
+    #print(lp_key)
     if lp_key in config_dict:
         linked_pumps = config_dict[lp_key].split(',')
     else:
         linked_pumps = []
-    print(" LINKED PUMPS; ", linked_pumps)
+    print(" Linked Punps; ", linked_pumps)
 
     # make list of all the watering times for all linked pumps
     water_times = []
@@ -392,7 +389,7 @@ def read_switch_log(switch_log_path, config_path, tank_name):
                 t_level = "?"
 
             if pump_name in linked_pumps:
-                print("reading;", date, t_level, msg, pump_name)
+                #print("reading;", date, t_level, msg, pump_name)
                 water_times.append([date, t_level, msg, pump_name])
 
     return water_times, config_dict
@@ -429,7 +426,7 @@ def switch_times(water_times, days_to_show=30):
             #print("graph pos; ", t_p, " Event was " + str(age) + " ago, ", item)
             item.append(t_p)
             with_xpos.append(item)
-            print(" adding xpos to;", item)
+            #print(" adding xpos to;", item)
     with_xpos[0][-1] = 0
     return with_xpos
 
@@ -445,17 +442,18 @@ def read_config(config_path):
                 key = line[:e_pos]
                 value = line[e_pos + 1:]
                 conf_dict[key] = value
-                print(key, value)
+                #print(key, value)
     return conf_dict
 
 if __name__ == '__main__':
-    switch_log_path = "/home/pragmo/frompigrow/windowcill/logs/switch_log.txt"
-    config_path = "/home/pragmo/frompigrow/windowcill/config/pigrow_config.txt"
-    pump_timings = []
-    days_to_show = 7
+    print(" This script needs to be called by the gui or a datawall script.")
+    #switch_log_path = "/home/pragmo/frompigrow/windowcill/logs/switch_log.txt"
+    #config_path = "/home/pragmo/frompigrow/windowcill/config/pigrow_config.txt"
+    #pump_timings = []
+    #days_to_show = 7
     #self.conf_dict = read_config(config_path)
-    img = make_display("test_tank", 2000, 1950, switch_log_path, pump_timings, days_to_show)
+    #img = make_display("test_tank", 2000, 1950, switch_log_path, pump_timings, days_to_show)
     # save a copy for testing
-    main_base.save("test_water_display.png")
+    #main_base.save("test_water_display.png")
     # display on screen
-    img.show()
+    #img.show()

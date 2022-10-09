@@ -120,6 +120,13 @@ class info_pnl(wx.Panel):
         self.tt_sizer.Add(pump_l, 1, wx.ALL|wx.EXPAND, 3)
         self.tt_sizer.Add(self.wpump_lst, 0, wx.ALL|wx.EXPAND, 3)
 
+        #pump timer sizer
+        self.pt_sizer = wx.BoxSizer(wx.VERTICAL)
+
+        # pump pnls sizer
+        self.pump_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.pump_sizer.Add(self.tt_sizer, 0, wx.ALL|wx.EXPAND, 3)
+        self.pump_sizer.Add(self.pt_sizer, 0, wx.ALL|wx.EXPAND, 3)
 
         # Tank Size Panel
         tank_size_title =  wx.StaticText(self,  label='Tank level past and future')
@@ -129,8 +136,6 @@ class info_pnl(wx.Panel):
         tank_pic_sizer.Add(tank_size_title, 1, wx.ALL|wx.EXPAND, 3)
         tank_pic_sizer.Add(self.tank_pic, 1, wx.ALL, 3)
 
-        #pump timer sizer
-        self.pt_sizer = wx.BoxSizer(wx.VERTICAL)
 
         # Main Sizer
         main_sizer = wx.BoxSizer(wx.VERTICAL)
@@ -139,9 +144,7 @@ class info_pnl(wx.Panel):
         main_sizer.AddStretchSpacer(1)
         main_sizer.Add(tank_table_sizer, 0, wx.ALL|wx.EXPAND, 3)
         main_sizer.Add(self.swtinfo_sizer, 1, wx.ALL, 3)
-        main_sizer.Add(self.tt_sizer, 1, wx.ALL, 3)
-        main_sizer.Add(self.pt_sizer, 1, wx.ALL, 3)
-        main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(self.pump_sizer, 1, wx.ALL, 3)
         main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.Add(tank_pic_sizer, 1, wx.ALL, 3)
         main_sizer.AddStretchSpacer(1)
@@ -152,6 +155,7 @@ class info_pnl(wx.Panel):
         selected_tank = self.wtank_lst.GetFocusedItem()
         if not selected_tank == -1:
             tank_name = self.wtank_lst.GetItem(selected_tank, 0).GetText()
+            tank_vol = self.wtank_lst.GetItem(selected_tank, 1).GetText()
         else:
             print("No water tank currently selected, unable to list linked pumps")
             return None
@@ -162,7 +166,7 @@ class info_pnl(wx.Panel):
         self.c_linked_pumps = []
         self.wpump_lst.make_table(tank_name)
         #
-        self.make_tank_graph_pic(self.c_linked_pumps, tank_name)
+        self.make_tank_graph_pic(self.c_linked_pumps, tank_name, tank_vol)
 
     def wpump_select(self, e):
         selected_pump = self.wpump_lst.GetFocusedItem()
@@ -178,7 +182,7 @@ class info_pnl(wx.Panel):
         #
         label = "Pump timing; " + str(pump_name)
         pumptime_l = wx.StaticText(self, label=label)
-        self.pt_sizer.Clear()
+        self.pt_sizer.Clear(True)
         self.pt_sizer.Add(pumptime_l, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
         # repeating cron
         pump_rep_list, pump_timed_list = self.get_cron_pump_list(pump_name)
@@ -186,20 +190,20 @@ class info_pnl(wx.Panel):
             #pump time list each item has [index, enabled, freq_num, freq_text, cmd_args]
             index, enabled, freq_num, freq_text, cmd_args = item
             duration = self.get_duration(cmd_args)
-            txt_line = "cron line" + str(index) + " watering for " + str(duration)
+            txt_line = "Watering for " + str(duration)
             txt_line += " seconds every " + str(freq_num) + " " + freq_text
             self.pt_sizer.Add(wx.StaticText(self, label=txt_line), 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
         # timed cron
         for item in pump_timed_list:
             index, enabled, cron_time_string, cmd_args = item
             duration = self.get_duration(cmd_args)
-            txt_line = "cron line" + str(index) + " watering for " + str(duration)
+            txt_line = "Watering for " + str(duration)
             txt_line += " seconds, cron string " + cron_time_string
             self.pt_sizer.Add(wx.StaticText(self, label=txt_line), 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
 
         self.Layout()
 
-    def make_tank_graph_pic(self, linked_pump_list, tank_name):
+    def make_tank_graph_pic(self, linked_pump_list, tank_name, tank_vol):
         #
         link_pnl    = self.parent.link_pnl
         shared_data = self.parent.shared_data
@@ -214,12 +218,9 @@ class info_pnl(wx.Panel):
             pump_timings.append(pump_timing)
             print(" Sending cron info about pump;", pump_name)
 
-        # make graphic
-        #
+        # read tank state file from the pi
+        current_ml, last_water, active = self.wtank_lst.read_tank_state(tank_name)
 
-        #
-        tank_vol = 2000 # " NOT YET LINKED IN WATERING_PNL CODE"
-        current_vol = 1500 # "NOT YET LINKED"
         # download most recent switch log
         l_switch_log = os.path.join(shared_data.frompi_path, "logs/switch_log.txt")
         l_config_path = os.path.join(shared_data.frompi_path, "config/pigrow_config.txt")
@@ -230,12 +231,14 @@ class info_pnl(wx.Panel):
                 link_pnl.download_file_to_folder(r_switch_log, l_switch_log)
             except:
                 print(" Unable to download most recent switch_log.txt, using stored folder" )
-        #
+        # make graphic
+        config_dict = self.parent.shared_data.config_dict
         graphic = make_water_display.make_display(tank_name,
                                                   tank_vol,
-                                                  current_vol,
+                                                  current_ml,
+                                                  tank_active = active,
                                                   switch_log_path=l_switch_log,
-                                                  config_path=l_config_path,
+                                                  config_dict = config_dict,
                                                   pump_timings = pump_timings,
                                                   days_to_show=30)
         # convert pill image to wx bitmap and show on screen
@@ -434,7 +437,7 @@ class info_pnl(wx.Panel):
     class pump_list(wx.ListCtrl):
         def __init__(self, parent, id):
             self.parent = parent
-            wx.ListCtrl.__init__(self, parent, id, style=wx.LC_REPORT, size=(-1, 100))
+            wx.ListCtrl.__init__(self, parent, id, style=wx.LC_REPORT, size=(150, 100))
             self.InsertColumn(0, 'Unique Name')
             self.InsertColumn(1, 'ml per min')
             self.InsertColumn(2, 'Type')
