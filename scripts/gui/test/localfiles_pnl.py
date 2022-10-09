@@ -20,6 +20,7 @@ class ctrl_pnl(wx.Panel):
         self.clear_downed_btn = wx.Button(self, label='clear downloaded caps')
         self.clear_downed_btn.Bind(wx.EVT_BUTTON, self.clear_downed_click)
         # buttons to backup config, restore config, archive grow + start fresh with same or loaded config
+        archive_label =  wx.StaticText(self,  label=' Archive')
         self.saveconf_btn = wx.Button(self, label='Save Config')
         self.saveconf_btn.Bind(wx.EVT_BUTTON, self.saveconf_click)
         self.loadconf_btn = wx.Button(self, label='Load Config')
@@ -32,6 +33,8 @@ class ctrl_pnl(wx.Panel):
         main_sizer.Add(self.upload_btn, 0, wx.ALL, 0)
         main_sizer.Add(self.clear_downed_btn, 0, wx.ALL, 0)
         #
+        main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
+        main_sizer.Add(archive_label, 0, wx.ALL, 0)
         main_sizer.Add(self.saveconf_btn, 0, wx.ALL, 0)
         main_sizer.Add(self.loadconf_btn, 0, wx.ALL, 0)
         self.SetSizer(main_sizer)
@@ -222,8 +225,7 @@ class config_compare_dialog(wx.Dialog):
         files_remove = self.scroll_box.files_remove
         conf_remote = self.parent.conf_remote
         conf_local = self.parent.conf_local
-        print("Not uploading anything yet, sorry")
-        print(' but if i was i would ignore', ignore_files)
+        #print('ignoring;', ignore_files)
         # add and replace
         add_list = files_add + files_replace
         upload_list = []
@@ -232,15 +234,16 @@ class config_compare_dialog(wx.Dialog):
                 local_file_path = os.path.join(conf_local, filename)
                 remote_file_path = conf_remote + filename
                 upload_list.append([local_file_path, remote_file_path])
-        print(' I would copy', upload_list)
-        #self.parent.parent.link_pnl.upload_files(upload_list, overwr)
+        #print('copying;', upload_list)
+        if not len(upload_list) == 0:
+            self.parent.parent.link_pnl.upload_files(upload_list)
         # remove from pi
-        print("i would remove;")
+        #print("removing;")
         for filename in files_remove:
             if not filename in ignore_files:
                 cmd = 'rm ' + conf_remote + filename
                 print (cmd)
-                #out, error = self.parent.parent.link_pnl.run_on_pi(cmd)
+                out, error = self.parent.parent.link_pnl.run_on_pi(cmd)
 
         # cron replacement
         if 'Cron will be updated' in ignore_files:
@@ -248,6 +251,11 @@ class config_compare_dialog(wx.Dialog):
         else:
             if self.scroll_box.cron_match == False:
                 self.upload_cron()
+            #else:
+            #    print(" Cron's are the same, no need to update.")
+
+        # close dialog
+        self.Destroy()
 
     def upload_cron(self):
         print(" Not currently actually updating cron, still in testing - sorry")
@@ -262,8 +270,8 @@ class config_compare_dialog(wx.Dialog):
         with open(local_cronstore_path, "r") as config_file:
             l_c_file = config_file.read()
         if out == l_c_file:
-            print(" The uploaded cron file is the same as the one we uploaded, no corruption here")
-            #out, error = self.parent.parent.link_pnl.run_on_pi("crontab " + temp_cronstore_path)
+            #print(" The uploaded cron file is the same as the one we uploaded, no corruption here")
+            out, error = self.parent.parent.link_pnl.run_on_pi("crontab " + temp_cronstore_path)
             out, error = self.parent.parent.link_pnl.run_on_pi("crontab -l")
             if out == l_c_file:
                 print(" Cron updated correctly.")
@@ -275,9 +283,6 @@ class config_compare_dialog(wx.Dialog):
         else:
             print(" !!! Something went wrong with the cron_store transfer, copied file arrived different - terminating action!")
             return None
-
-
-
 
 
     def OnClose(self, e):
