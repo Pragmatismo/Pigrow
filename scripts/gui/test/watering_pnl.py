@@ -204,6 +204,10 @@ class info_pnl(wx.Panel):
         self.Layout()
 
     def make_tank_graph_pic(self, linked_pump_list, tank_name, tank_vol):
+        if linked_pump_list == ['']:
+            blankbmp = wx.Bitmap.FromRGBA(10, 10, alpha=255)
+            self.tank_pic.SetBitmap(blankbmp)
+            return None
         #
         link_pnl    = self.parent.link_pnl
         shared_data = self.parent.shared_data
