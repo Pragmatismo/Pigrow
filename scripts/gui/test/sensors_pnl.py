@@ -34,21 +34,23 @@ class info_pnl(scrolled.ScrolledPanel):
         wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, style = wx.TAB_TRAVERSAL )
         shared_data = parent.shared_data
         # Tab Title
-        title_l = wx.StaticText(self,  label='Sensor Control Panel', size=(500,40))
-        title_l.SetFont(shared_data.title_font)
-        page_sub_title =  wx.StaticText(self,  label='Link aditional sensors to the pigrow', size=(550,30))
-        page_sub_title.SetFont(shared_data.sub_title_font)
+        self.SetFont(shared_data.title_font)
+        title_l = wx.StaticText(self,  label='Sensor Control Panel')
+        self.SetFont(shared_data.sub_title_font)
+        page_sub_title =  wx.StaticText(self,  label='Link aditional sensors to the pigrow')
         # placing the information boxes
         # sensor table
+        self.SetFont(shared_data.info_font)
         self.sensor_list = self.sensor_table(self, 1)
         self.sensor_list.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.sensor_list.double_click)
         self.sensor_list.Bind(wx.EVT_LIST_KEY_DOWN, self.del_item)
         self.sensor_list.Bind(wx.EVT_LIST_ITEM_FOCUSED, self.sensor_got_focus)
         # trigger table
+        self.SetFont(shared_data.sub_title_font)
         trigger_sub_title =  wx.StaticText(self,  label='Log Triggers ')
-        trigger_sub_title.SetFont(shared_data.sub_title_font)
         self.trigger_script_activity_cron =  wx.StaticText(self,  label="")
         self.trigger_script_activity_live =  wx.StaticText(self,  label="")
+        self.SetFont(shared_data.info_font)
         self.trigger_list = self.trigger_table(self, 1)
         self.trigger_list.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.trigger_list.double_click)
         self.trigger_list.Bind(wx.EVT_LIST_ITEM_FOCUSED, self.trigger_got_focus)
@@ -111,15 +113,6 @@ class info_pnl(scrolled.ScrolledPanel):
                             if key in config_dict:
                                 del config_dict[key]
 
-                        #
-                        # if "sensor_" + name + "_type" in config_dict:
-                        #     del config_dict["sensor_" + name + "_type"]
-                        # if "sensor_" + name + "_log" in config_dict:
-                        #     del config_dict["sensor_" + name + "_log"]
-                        # if "sensor_" + name + "_loc" in config_dict:
-                        #     del config_dict["sensor_" + name + "_loc"]
-                        # if "sensor_" + name + "_extra" in config_dict:
-                        #     del config_dict["sensor_" + name + "_extra"]
                         self.parent.shared_data.update_pigrow_config_file_on_pi() #ask="no")
                     if trigger_list.GetSelectedItemCount() == 1:
                         # if deleted item from trigger list remove and save file
@@ -168,7 +161,7 @@ class info_pnl(scrolled.ScrolledPanel):
             self.InsertColumn(7, 'cmdU')
             self.InsertColumn(8, 'logtype')
             self.SetColumnWidth(0, 125)
-            self.SetColumnWidth(1, 75)
+            self.SetColumnWidth(1, 110)
             self.SetColumnWidth(2, 300)
             self.SetColumnWidth(3, 100)
             self.SetColumnWidth(4, 175)
@@ -295,7 +288,7 @@ class info_pnl(scrolled.ScrolledPanel):
             self.InsertColumn(7, 'Shell Command')
             self.SetColumnWidth(0, 125)
             self.SetColumnWidth(1, 125)
-            self.SetColumnWidth(2, 85)
+            self.SetColumnWidth(2, 75)
             self.SetColumnWidth(3, 90)
             self.SetColumnWidth(4, 140)
             self.SetColumnWidth(5, 100)

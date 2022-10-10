@@ -399,9 +399,10 @@ class info_pnl(wx.Panel):
         wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, style = wx.TAB_TRAVERSAL )
         ## Draw UI elements
         # Tab Title
+        self.SetFont(shared_data.title_font)
         title_l = wx.StaticText(self,  label="")
-        title_l.SetFont(shared_data.title_font)
         title_l.SetLabel('System Control Panel')
+        self.SetFont(shared_data.sub_title_font)
         page_sub_title =  wx.StaticText(self,  label='Configure the raspberry pi on which the pigrow code runs', size=(550,30))
         page_sub_title.SetFont(shared_data.sub_title_font)
         # read button

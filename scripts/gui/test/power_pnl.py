@@ -121,7 +121,9 @@ class info_pnl(wx.Panel):
         shared_data = parent.shared_data
         wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, style = wx.TAB_TRAVERSAL )
         #self.SetBackgroundColour((50,50,50))
+        self.SetFont(shared_data.title_font)
         self.title = wx.StaticText(self,  label=' Power Control Devices')
+        self.SetFont(shared_data.sub_title_font)
 
         # relay control
         self.relay_l = wx.StaticText(self,  label='Relay Control')

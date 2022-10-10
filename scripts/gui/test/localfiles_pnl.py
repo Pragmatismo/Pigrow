@@ -888,10 +888,10 @@ class info_pnl(scrolled.ScrolledPanel):
         w = 1000
         wx.Panel.__init__ (self, parent, id = wx.ID_ANY, style = wx.TAB_TRAVERSAL, size = (w,-1))
         # Title and Subtitle
+        self.SetFont(shared_data.title_font)
         page_title =  wx.StaticText(self,  label='Local Files')
+        self.SetFont(shared_data.sub_title_font)
         page_sub_title =  wx.StaticText(self,  label='Files downloaded from the pi and stored locally')
-        page_title.SetFont(shared_data.title_font)
-        page_sub_title.SetFont(shared_data.sub_title_font)
         title_sizer = wx.BoxSizer(wx.VERTICAL)
         title_sizer.Add(page_title, 1,wx.ALIGN_CENTER_HORIZONTAL, 5)
         title_sizer.Add(page_sub_title, 1, wx.ALIGN_CENTER_HORIZONTAL, 5)
@@ -903,7 +903,7 @@ class info_pnl(scrolled.ScrolledPanel):
         self.config_files.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.config_files.doubleclick_config)
         # Log Files
         log_l = wx.StaticText(self,  label='Log')
-        log_l.SetFont(shared_data.item_title_font)
+        log_l.SetFont(shared_data.info_font)
         self.log_files = self.log_file_list(self, 1)
         self.log_files.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.log_files.doubleclick_log)
 
@@ -917,9 +917,10 @@ class info_pnl(scrolled.ScrolledPanel):
 
         #photos
         #local photo storage info
-        photo_l = wx.StaticText(self,  label='Photos', size=(75,25))
-        photo_l.SetFont(shared_data.item_title_font)
+        self.SetFont(shared_data.item_title_font)
+        photo_l = wx.StaticText(self,  label='Photos')
         # local caps folder
+        self.SetFont(shared_data.info_font)
         caps_folder_l = wx.StaticText(self,  label='Local;')
         caps_folder = os.path.join(shared_data.frompi_path, 'caps')
         self.folder_text = wx.StaticText(self,  label=caps_folder)
@@ -981,6 +982,7 @@ class info_pnl(scrolled.ScrolledPanel):
         self.main_sizer = wx.BoxSizer(wx.VERTICAL)
         self.main_sizer.Add(title_sizer, 0, wx.ALL|wx.EXPAND, 5)
         self.main_sizer.Add(tables_sizer, 0, wx.ALL|wx.EXPAND, 5)
+        self.main_sizer.Add(photo_l, 0, wx.ALL|wx.EXPAND, 5)
         self.main_sizer.Add(photo_sizer, 0, wx.ALL|wx.EXPAND, 5)
         self.SetAutoLayout(1)
         self.SetupScrolling()
@@ -1111,6 +1113,7 @@ class info_pnl(scrolled.ScrolledPanel):
             self.InsertColumn(2, 'age')
             self.InsertColumn(3, 'updated?')
             self.autosizeme()
+            #self.SetHeaderAttr((240,240,240),(40, 60, 40), shared_data.sub_title_font)
 
         def autosizeme(self):
             if self.GetItemCount() == 0:
