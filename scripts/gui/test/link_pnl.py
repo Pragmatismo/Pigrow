@@ -46,7 +46,8 @@ class link_pnl(wx.Panel):
         self.l_ip = wx.StaticText(self,  label='address')
         self.l_ip.SetFont(shared_data.button_font)
         list_of_ips = ["000.000.00.000"] # self.discover_ip_list()
-        self.cb_ip = wx.ComboBox(self, choices = list_of_ips)
+        self.cb_ip = wx.ComboBox(self, choices = list_of_ips, style=wx.TE_PROCESS_ENTER)
+        self.cb_ip.Bind(wx.EVT_TEXT_ENTER, self.combo_return)
         self.cb_ip.SetFont(shared_data.button_font)
         # Username
         self.l_user = wx.StaticText(self,  label='Username')
@@ -57,7 +58,8 @@ class link_pnl(wx.Panel):
         # Password
         self.l_pass = wx.StaticText(self,  label='Password')
         self.l_pass.SetFont(shared_data.button_font)
-        self.tb_pass = wx.TextCtrl(self)
+        self.tb_pass = wx.TextCtrl(self, style=wx.TE_PROCESS_ENTER| wx.TE_PASSWORD)
+        self.tb_pass.Bind(wx.EVT_TEXT_ENTER, self.combo_return)
         self.tb_pass.SetValue(shared_data.gui_set_dict['password'])
         self.tb_pass.SetFont(shared_data.button_font)
         # link with pi button
@@ -96,6 +98,9 @@ class link_pnl(wx.Panel):
         size[0] = size[0]  * 1.2
         self.cb_ip.SetMinSize(size)
         self.cb_ip.SetValue(shared_data.gui_set_dict['default_address'])
+
+    def combo_return(self, e):
+        self.link_with_pi_btn_click(None)
 
     def discover_ip_list(self):
         default_ip = self.parent.shared_data.gui_set_dict['default_address']
@@ -146,6 +151,7 @@ class link_pnl(wx.Panel):
     #    print("psssst it did that thing, the _del_ one you like so much...")
     #    pass
 
+
     def link_with_pi_btn_click(self, e):
         log_on_test = False
         if self.link_with_pi_btn.GetLabel() == 'Disconnect':
@@ -182,6 +188,7 @@ class link_pnl(wx.Panel):
             # when connected
             if log_on_test == True:
                 box_name = self.get_box_name()
+                self.update_ip_store(self.target_ip)
             else:
                 box_name = None
             self.set_link_pi_text(log_on_test, box_name)
@@ -228,6 +235,13 @@ class link_pnl(wx.Panel):
         else:
             shared_data.frompi_path = ""
             shared_data.remote_pigrow_path = ""
+
+    def update_ip_store(self, ip):
+        if self.parent.shared_data.gui_set_dict['save_ip'] == "False":
+            return None
+
+        self.parent.shared_data.gui_set_dict['default_address'] = ip
+        self.parent.shared_data.save_gui_settings()
 
     # Commands for use by other sections of the gui
 

@@ -11,14 +11,19 @@ class shared_data:
         # Connection settings
         # defaults
         self.gui_set_dict = {}
+        # connection settigns
         self.gui_set_dict['ssh_port'] = "22"
         self.gui_set_dict['default_address'] = "192.168.1."
-        self.gui_set_dict['address_list'] = ["192.168.1.5", "192.168.1.10"]
+        self.gui_set_dict['address_list'] = []
         self.gui_set_dict['username'] = "pi"
         self.gui_set_dict['password'] = "raspberry"
+        self.gui_set_dict['save_ip'] = "True"
+        # scale and units
         self.gui_set_dict['font_scale'] = "1"
         self.gui_set_dict['volume_unit'] = "Litre"
         self.gui_set_dict['temp_unit'] = "c"
+
+
         # load from file
         self.load_gui_settings()
         #
@@ -110,6 +115,14 @@ class shared_data:
         else:
             print(" No gui settings file, using defaults")
 
+    def save_gui_settings(self):
+        gui_settings_path = "gui_settings.txt"
+        settings_file_text = ""
+        for key, value in self.gui_set_dict.items():
+            settings_file_text += str(key) + "=" + str(value) + "\n"
+        with open(gui_settings_path, "w") as gui_set_text:
+            gui_set_text.write(settings_file_text)
+
     def show_help(self, img_path):
         # load image
         guide_path = os.path.join(self.ui_img_path, img_path)
@@ -188,7 +201,6 @@ class shared_data:
         print("  - Shared_data.config_dict set from pigrow_config.txt")
 
     def update_pigrow_config_file_on_pi(self, ask="yes"):
-        print(" SAVING PIGROW_CONFIG.TXT")
         setting_file_path = self.remote_pigrow_path + "config/pigrow_config.txt"
 
         config_text = ""
@@ -207,12 +219,9 @@ class shared_data:
                 #print("User aborted")
                 return None
             else:
-                print(" ACTUALLY SAVING THE FILE AT THIS very MOMENT")
                 #self.parent.link_pnl.save_text_to_file_on_pi(setting_file_path, config_text)
                 self.parent.link_pnl.update_config_file_on_pi(config_text, setting_file_path)
                 self.parent.tell_pnls_updated_config()
-
-
 
 
     class settings_dialog(wx.Dialog):
@@ -226,6 +235,7 @@ class shared_data:
         '''
         def __init__(self, parent):
             self.gui_set_dict = parent.shared_data.gui_set_dict
+            self.parent = parent
             wx.Dialog.__init__(self, parent, title="Remote Gui Settings")
             # Default connection address
             self.default_address_l = wx.StaticText(self, label='Default Address')
@@ -238,6 +248,16 @@ class shared_data:
             # SSH Settings
             self.sshport_l = wx.StaticText(self, label='SSH Port')
             self.ssh_port_tc = wx.TextCtrl(self, -1, str(self.gui_set_dict['ssh_port']))
+            # save ip on connect
+            self.save_ip_l = wx.StaticText(self, label='Save on connect')
+            self.save_ip_cb = wx.CheckBox(self, -1)
+            if self.gui_set_dict['save_ip'] == "True":
+                self.save_ip_cb.SetValue(True)
+            else:
+                self.save_ip_cb.SetValue(False)
+            #list of stored ips
+
+
             # ui settings
             self.font_scale_l = wx.StaticText(self, label='Font Scale')
             self.font_scale = wx.TextCtrl(self, -1, str(self.gui_set_dict['font_scale']))
@@ -262,6 +282,8 @@ class shared_data:
                 (self.default_password_tc, 0, wx.ALIGN_RIGHT),
                 (self.sshport_l, 0, wx.ALIGN_RIGHT),
                 (self.ssh_port_tc, 0),
+                (self.save_ip_l, 0),
+                (self.save_ip_cb, 0),
                 (self.font_scale_l, 0),
                 (self.font_scale, 0),
                 (self.temp_unit_l, 0),
@@ -281,16 +303,12 @@ class shared_data:
             self.gui_set_dict['default_address'] = self.default_address_tc.GetValue()
             self.gui_set_dict['username'] = self.default_username_tc.GetValue()
             self.gui_set_dict['password'] = self.default_password_tc.GetValue()
+            self.gui_set_dict['save_ip'] = str(self.save_ip_cb.GetValue())
             self.gui_set_dict['font_scale'] = self.font_scale.GetValue()
             self.gui_set_dict['temp_unit'] = self.temp_unit_cb.GetValue()
             self.gui_set_dict['volume_unit'] = self.vol_unit_cb.GetValue()
             # save settings
-            gui_settings_path = "gui_settings.txt"
-            settings_file_text = ""
-            for key, value in self.gui_set_dict.items():
-                settings_file_text += str(key) + "=" + str(value) + "\n"
-            with open(gui_settings_path, "w") as gui_set_text:
-                gui_set_text.write(settings_file_text)
+            self.parent.shared_data.save_gui_settings()
             self.Destroy()
 
     class scroll_text_dialog(wx.Dialog):

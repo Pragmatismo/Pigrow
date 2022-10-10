@@ -1,5 +1,6 @@
 import os
 import wx
+import wx.lib.scrolledpanel as scrolled
 import make_water_display
 
 
@@ -75,40 +76,45 @@ class ctrl_pnl(wx.Panel):
         #self.tank_size_tc.SetValue(shared_data.gui_set_dict['---setting name goes here------'])
         pass
 
-class info_pnl(wx.Panel):
+class info_pnl(scrolled.ScrolledPanel):
     #
     #
     def __init__( self, parent ):
         self.parent = parent
         shared_data = parent.shared_data
         self.c_pnl = parent.dict_C_pnl['watering_pnl']
-        wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, style = wx.TAB_TRAVERSAL )
+        w = 1000
+        wx.Panel.__init__ ( self, parent, size = (w,-1), id = wx.ID_ANY, style = wx.TAB_TRAVERSAL )
         #self.SetBackgroundColour((50,50,50))
 
         # Tab Title
-        title_l = wx.StaticText(self,  label='Watering Control Panel', size=(500,40))
-        title_l.SetFont(shared_data.title_font)
-        page_sub_title =  wx.StaticText(self,  label='Self Watering System Control', size=(550,30))
-        page_sub_title.SetFont(shared_data.sub_title_font)
+        self.SetFont(shared_data.title_font)
+        title_l = wx.StaticText(self,  label='Watering Control Panel')
+        self.SetFont(shared_data.sub_title_font)
+        page_sub_title =  wx.StaticText(self,  label='Self Watering System Control')
 
         # water tank table
+        self.SetFont(shared_data.item_title_font)
         tank_l =  wx.StaticText(self,  label='Water Tank')
-        tank_l.SetFont(shared_data.sub_title_font)
         self.wtank_lst = self.water_tank_list(self, 1)
         self.wtank_lst.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.wtank_lst.doubleclick)
         self.wtank_lst.Bind(wx.EVT_LIST_ITEM_FOCUSED, self.wtank_select)
 
         tank_table_sizer = wx.BoxSizer(wx.VERTICAL)
-        tank_table_sizer.Add(tank_l, 1, wx.ALL|wx.EXPAND, 3)
-        tank_table_sizer.Add(self.wtank_lst, 0, wx.ALL|wx.EXPAND, 3)
+        tank_table_sizer.Add(tank_l, 1, wx.LEFT, 50)
+        tank_table_sizer.Add(self.wtank_lst, 0, wx.ALL, 3)
 
         # Selected Tank Info Sizer
-        swtinfo_title =  wx.StaticText(self,  label='Selected Water Tank Sensor and Info:')
+        self.SetFont(shared_data.sub_title_font)
+        swtinfo_title =  wx.StaticText(self,  label='Selected Water Tank Info:')
+        self.SetFont(shared_data.item_title_font)
+        linked_s_title =  wx.StaticText(self,  label='Linked level sensors')
         self.lev_s_lst = self.level_sensor_list(self, 1)
     #    self.lev_s_lst.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.level_sensor_list.doubleclick)
         self.swtinfo_sizer = wx.BoxSizer(wx.VERTICAL)
-        self.swtinfo_sizer.Add(swtinfo_title, 1, wx.ALL, 3)
-        self.swtinfo_sizer.Add(self.lev_s_lst, 0, wx.ALL|wx.EXPAND, 3)
+        self.swtinfo_sizer.Add(swtinfo_title, 0, wx.ALL, 3)
+        self.swtinfo_sizer.Add(linked_s_title, 0, wx.LEFT, 50)
+        self.swtinfo_sizer.Add(self.lev_s_lst, 0, wx.ALL, 3)
 
         # water pump table
         pump_l =  wx.StaticText(self,  label='Water Pumps and Pipes')
@@ -117,37 +123,43 @@ class info_pnl(wx.Panel):
         self.wpump_lst.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.wpump_lst.doubleclick)
         self.wpump_lst.Bind(wx.EVT_LIST_ITEM_FOCUSED, self.wpump_select)
         self.tt_sizer = wx.BoxSizer(wx.VERTICAL)
-        self.tt_sizer.Add(pump_l, 1, wx.ALL|wx.EXPAND, 3)
-        self.tt_sizer.Add(self.wpump_lst, 0, wx.ALL|wx.EXPAND, 3)
+        self.tt_sizer.Add(pump_l, 0, wx.LEFT, 50)
+        self.tt_sizer.Add(self.wpump_lst, 0, wx.ALL, 3)
 
         #pump timer sizer
         self.pt_sizer = wx.BoxSizer(wx.VERTICAL)
 
         # pump pnls sizer
         self.pump_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        self.pump_sizer.Add(self.tt_sizer, 0, wx.ALL|wx.EXPAND, 3)
-        self.pump_sizer.Add(self.pt_sizer, 0, wx.ALL|wx.EXPAND, 3)
+        self.pump_sizer.Add(self.tt_sizer, 0, wx.ALL, 3)
+        self.pump_sizer.Add(self.pt_sizer, 0, wx.ALL, 3)
 
         # Tank Size Panel
+
         tank_size_title =  wx.StaticText(self,  label='Tank level past and future')
-        self.tank_pic = wx.StaticBitmap(self, -1, size=(800, 800))
+        img_w = 1000
+        img_h = 800
+        self.tank_pic = wx.StaticBitmap(self, -1, size=(img_w, img_h))
 
         tank_pic_sizer = wx.BoxSizer(wx.VERTICAL)
-        tank_pic_sizer.Add(tank_size_title, 1, wx.ALL|wx.EXPAND, 3)
-        tank_pic_sizer.Add(self.tank_pic, 1, wx.ALL, 3)
-
+        tank_pic_sizer.Add(tank_size_title, 0, wx.ALL|wx.EXPAND, 3)
+        tank_pic_sizer.Add(self.tank_pic, 0, wx.ALL|wx.EXPAND, 3)
 
         # Main Sizer
         main_sizer = wx.BoxSizer(wx.VERTICAL)
         main_sizer.Add(title_l, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
         main_sizer.Add(page_sub_title, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
-        main_sizer.AddStretchSpacer(1)
-        main_sizer.Add(tank_table_sizer, 0, wx.ALL|wx.EXPAND, 3)
-        main_sizer.Add(self.swtinfo_sizer, 1, wx.ALL, 3)
-        main_sizer.Add(self.pump_sizer, 1, wx.ALL, 3)
+        #main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(tank_table_sizer, 0, wx.ALL, 3)
+        main_sizer.Add(self.swtinfo_sizer, 0, wx.ALL, 3)
+        main_sizer.Add(self.pump_sizer, 0, wx.ALL, 3)
         main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
-        main_sizer.Add(tank_pic_sizer, 1, wx.ALL, 3)
-        main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(tank_pic_sizer, 0, wx.ALL, 3)
+        main_sizer.SetItemMinSize(tank_pic_sizer, (img_w, img_h+ 50))
+        main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
+
+        self.SetAutoLayout(1)
+        self.SetupScrolling()
         self.SetSizer(main_sizer)
 
     def wtank_select(self, e):
@@ -167,6 +179,9 @@ class info_pnl(wx.Panel):
         self.wpump_lst.make_table(tank_name)
         #
         self.make_tank_graph_pic(self.c_linked_pumps, tank_name, tank_vol)
+        #
+        self.Layout()
+        self.SetupScrolling()
 
     def wpump_select(self, e):
         selected_pump = self.wpump_lst.GetFocusedItem()
@@ -180,26 +195,33 @@ class info_pnl(wx.Panel):
 
     def fill_pumptiming_sizer(self, pump_name):
         #
-        label = "Pump timing; " + str(pump_name)
+        label = "\n\nPump timing; " + str(pump_name)
+        self.SetFont(self.parent.shared_data.item_title_font)
         pumptime_l = wx.StaticText(self, label=label)
+
+
+        #pumptime_l.SetLabel(label)
         self.pt_sizer.Clear(True)
-        self.pt_sizer.Add(pumptime_l, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
+        self.pt_sizer.Add(pumptime_l, 1, wx.ALIGN_CENTER_HORIZONTAL, 5)
         # repeating cron
         pump_rep_list, pump_timed_list = self.get_cron_pump_list(pump_name)
+        self.SetFont(self.parent.shared_data.info_font)
         for item in pump_rep_list:
             #pump time list each item has [index, enabled, freq_num, freq_text, cmd_args]
             index, enabled, freq_num, freq_text, cmd_args = item
             duration = self.get_duration(cmd_args)
             txt_line = "Watering for " + str(duration)
             txt_line += " seconds every " + str(freq_num) + " " + freq_text
-            self.pt_sizer.Add(wx.StaticText(self, label=txt_line), 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
+            st = wx.StaticText(self, label=txt_line)
+            self.pt_sizer.Add(st, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
         # timed cron
         for item in pump_timed_list:
             index, enabled, cron_time_string, cmd_args = item
             duration = self.get_duration(cmd_args)
             txt_line = "Watering for " + str(duration)
             txt_line += " seconds, cron string " + cron_time_string
-            self.pt_sizer.Add(wx.StaticText(self, label=txt_line), 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
+            st = wx.StaticText(self, label=txt_line)
+            self.pt_sizer.Add(st, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
 
         self.Layout()
 
@@ -273,7 +295,7 @@ class info_pnl(wx.Panel):
     class water_tank_list(wx.ListCtrl):
         def __init__(self, parent, id):
             self.parent = parent
-            wx.ListCtrl.__init__(self, parent, id, style=wx.LC_REPORT)
+            wx.ListCtrl.__init__(self, parent, id, size=(800, 150), style=wx.LC_REPORT)
             self.InsertColumn(0, 'Unique Name')
             self.InsertColumn(1, 'Size')
             self.InsertColumn(2, 'Current ml')
@@ -372,7 +394,7 @@ class info_pnl(wx.Panel):
     class level_sensor_list(wx.ListCtrl):
         def __init__(self, parent, id):
             self.parent = parent
-            wx.ListCtrl.__init__(self, parent, id, style=wx.LC_REPORT, size=(-1,100))
+            wx.ListCtrl.__init__(self, parent, id, style=wx.LC_REPORT, size=(800,100))
             self.InsertColumn(0, 'Button Name')
             self.InsertColumn(1, 'Position %')
             self.InsertColumn(2, 'Status')
@@ -381,17 +403,17 @@ class info_pnl(wx.Panel):
             self.autosizeme()
 
         def autosizeme(self):
-            col_n = 4
+            col_n = 5
             textsize = 50
             if self.GetItemCount() == 0:
                 for i in range(0, col_n):
                     self.SetColumnWidth(i, wx.LIST_AUTOSIZE_USEHEADER)
-                self.SetMinSize((-1, 50))
+                self.SetMinSize((800, 50))
             else:
                 for i in range(0,col_n):
                     self.SetColumnWidth(i, wx.LIST_AUTOSIZE)
                 height = 50 + (self.GetItemCount() * textsize)
-                self.SetMinSize((-1, height))
+                self.SetMinSize((800, height))
 
         def make_table(self):
             config_dict = self.parent.parent.shared_data.config_dict
