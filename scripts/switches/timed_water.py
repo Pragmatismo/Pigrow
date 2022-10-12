@@ -16,10 +16,10 @@ gpio_pin = None
 def exit_handler():
     if active == "high":
         GPIO.output(gpio_pin, GPIO.LOW)
-        print 'Pump has been teminated mid use.'
+        print ('Pump has been teminated mid use.')
     if active == "low":
         GPIO.output(gpio_pin, GPIO.HIGH)
-        print 'Pump has been teminated mid use.'
+        print ('Pump has been teminated mid use.')
 
 atexit.register(exit_handler)
 
@@ -65,6 +65,7 @@ def run_water(set_dic, switch_log, duration):
     print ("      #############################################\n")
     print ("      ##        Preparing to Water Plants        ##\n")
     if 'gpio_water' in set_dic and not str(set_dic['gpio_water']).strip() == '':
+        global gpio_pin
         gpio_pin = int(set_dic['gpio_water'])
         gpio_water_on = set_dic['gpio_water_on']
         import RPi.GPIO as GPIO
@@ -73,7 +74,6 @@ def run_water(set_dic, switch_log, duration):
         GPIO.setup(gpio_pin, GPIO.OUT)
         global active
         global GPIO
-        global gpio_pin
         if gpio_water_on == "low":
             active = "low"
             print("      ##         Turning the Water - ON         ##\n")
