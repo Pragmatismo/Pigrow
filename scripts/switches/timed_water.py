@@ -68,12 +68,12 @@ def run_water(set_dic, switch_log, duration):
         global gpio_pin
         gpio_pin = int(set_dic['gpio_water'])
         gpio_water_on = set_dic['gpio_water_on']
+        global GPIO
         import RPi.GPIO as GPIO
         GPIO.setmode(GPIO.BCM)
         GPIO.setwarnings(False)
         GPIO.setup(gpio_pin, GPIO.OUT)
         global active
-        global GPIO
         if gpio_water_on == "low":
             active = "low"
             print("      ##         Turning the Water - ON         ##\n")
