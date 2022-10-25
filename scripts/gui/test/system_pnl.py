@@ -7,7 +7,6 @@ class ctrl_pnl(wx.Panel):
     def __init__( self, parent ):
         self.parent = parent
         shared_data = parent.shared_data
-        print(self, dir(parent), " <----")
         wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, style = wx.TAB_TRAVERSAL )
         self.tab_label = wx.StaticText(self,  label='System Config Menu')
         self.pigrow_side_label = wx.StaticText(self,  label='Pigrow Software')
