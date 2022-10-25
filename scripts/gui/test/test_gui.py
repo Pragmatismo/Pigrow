@@ -41,7 +41,7 @@ class MainFrame(wx.Frame):
     def __init__(self, parent):
         # Settings
         wx.Frame.__init__ ( self, parent, id = wx.ID_ANY, title = "Pigrow Remote Interface", pos = wx.DefaultPosition, style = wx.DEFAULT_FRAME_STYLE|wx.TAB_TRAVERSAL )
-        #self.Bind(wx.EVT_SIZE, self.resize_window)
+        self.Bind(wx.EVT_SIZE, self.resize_window)
 
         # load link panel
         self.link_pnl = link_pnl.link_pnl(self, MainApp.shared_data)
@@ -128,13 +128,13 @@ class MainFrame(wx.Frame):
                - not currently used
         '''
         left_bar_size = 100
-        status_bar_heigh = 175
+        status_bar_height = 175
         win_width = e.GetSize()[0]
         win_height = e.GetSize()[1]
         w_space_left = win_width - left_bar_size
-        size = wx.Size(win_width, win_height - status_bar_heigh)
-        for pnl in MainApp.list_of_C_pnl_obj:
-            pnl.SetMinSize(size)
+        size = wx.Size(win_width, win_height - status_bar_height)
+        for pnl in MainFrame.dict_I_pnl:
+            MainFrame.dict_I_pnl[pnl].SetMinSize(size)
             try:
                 pnl.SetupScrolling()
             except:
