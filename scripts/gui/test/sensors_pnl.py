@@ -160,15 +160,16 @@ class info_pnl(scrolled.ScrolledPanel):
             self.InsertColumn(6, 'cmdD')
             self.InsertColumn(7, 'cmdU')
             self.InsertColumn(8, 'logtype')
-            self.SetColumnWidth(0, 125)
-            self.SetColumnWidth(1, 110)
-            self.SetColumnWidth(2, 300)
-            self.SetColumnWidth(3, 100)
-            self.SetColumnWidth(4, 175)
-            self.SetColumnWidth(5, 100)
-            self.SetColumnWidth(6, 150)
-            self.SetColumnWidth(7, 150)
-            self.SetColumnWidth(8, 75)
+            self.autosizeme()
+
+        def autosizeme(self):
+            for i in range(0, self.GetColumnCount()):
+                self.SetColumnWidth(i, wx.LIST_AUTOSIZE)
+                l = self.GetColumnWidth(i)
+                self.SetColumnWidth(i, wx.LIST_AUTOSIZE_USEHEADER)
+                h = self.GetColumnWidth(i)
+                if l > h:
+                    self.SetColumnWidth(i, wx.LIST_AUTOSIZE)
 
         def read_sensor_conf(self, item_name, config_dict, prefix):
             # Extract sensor config info from config dictionary
@@ -213,6 +214,8 @@ class info_pnl(scrolled.ScrolledPanel):
                 log_freq = self.find_cron_freq(sensor_name, type, loc)
                 # get settings for buttons
                 self.add_to_sensor_list(sensor_name, type, log, loc, extra, log_freq)
+            # resize cols
+            self.autosizeme()
 
         def find_cron_freq(self, sensor_name, type, loc):
             '''
@@ -227,8 +230,6 @@ class info_pnl(scrolled.ScrolledPanel):
             # The prior version had special controlls for which will soon be
             # obsolete, so currently not including them here
             # "log_chirp.py", "log_ads1115.py"
-
-
 
         def add_to_sensor_list(self, sensor, type, log, loc, extra='', log_freq='', cmdD="", cmdU="", logtype=""):
             self.InsertItem(0, str(sensor))
@@ -286,14 +287,16 @@ class info_pnl(scrolled.ScrolledPanel):
             self.InsertColumn(5, 'Set')
             self.InsertColumn(6, 'lock (min)')
             self.InsertColumn(7, 'Shell Command')
-            self.SetColumnWidth(0, 125)
-            self.SetColumnWidth(1, 125)
-            self.SetColumnWidth(2, 75)
-            self.SetColumnWidth(3, 90)
-            self.SetColumnWidth(4, 140)
-            self.SetColumnWidth(5, 100)
-            self.SetColumnWidth(6, 120)
-            self.SetColumnWidth(7, 500)
+            self.autosizeme()
+
+        def autosizeme(self):
+            for i in range(0, self.GetColumnCount()):
+                self.SetColumnWidth(i, wx.LIST_AUTOSIZE)
+                l = self.GetColumnWidth(i)
+                self.SetColumnWidth(i, wx.LIST_AUTOSIZE_USEHEADER)
+                h = self.GetColumnWidth(i)
+                if l > h:
+                    self.SetColumnWidth(i, wx.LIST_AUTOSIZE)
 
         def make_trigger_table(self):
             self.DeleteAllItems()
@@ -319,6 +322,8 @@ class info_pnl(scrolled.ScrolledPanel):
                 trig_cooldown   = line[sixth_comma  +1 :seventh_comma].strip()
                 cmd            = line[seventh_comma+1:].strip()
                 self.add_to_trigger_list(log_name, value_label, trigger_type, trigger_value, condition_name, trig_direction, trig_cooldown, cmd)
+            # resize
+            self.autosizeme()    
 
         def add_to_trigger_list(self, log, label, type, value, name, set, cooldown, cmd):
             self.InsertItem(0, str(log))
