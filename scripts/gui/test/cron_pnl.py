@@ -75,7 +75,7 @@ class ctrl_pnl(wx.Panel):
             cron_line_dict[line_num] = cron_line
             # ask if unrunning scripts should be started
             if not no_starting == True:
-                is_running = self.test_if_script_running(self.startup_cron.GetItemText(num, 3))
+                is_running = self.test_if_script_running(self.startup_cron.GetItemText(num, 3), self.startup_cron.GetItemText(num, 4))
                 enabled = self.startup_cron.GetItemText(num, 1)
                 if is_running == False and enabled == 'True':
                     self.start_running_script_in_background_on_pi(script_cmd)
@@ -215,15 +215,25 @@ class ctrl_pnl(wx.Panel):
         repeat_list_instance.autosizeme()
         onetime_list_instance.autosizeme()
 
-    def test_if_script_running(self, script):
-        print(" --- Note: cron tab start-up scripts table currently only tests if a script is active and ignores name= arguments ")
+    def test_if_script_running(self, script, args):
         #cron_info_pnl.test_if_script_running(MainApp.cron_info_pannel, script)
-        script_text, error = self.parent.link_pnl.run_on_pi("pidof -x " + str(script))
-        if script_text == '':
+        pid_text, error = self.parent.link_pnl.run_on_pi("pidof -x " + str(script))
+        pid_text = pid_text.strip()
+        # return false if none are running
+        if pid_text == '':
             return False
+        # convert output into list of pids
+        if " " in pid_text:
+            pids = pid_text.split(" ")
         else:
-            #print ('pid of = ' + str(script_text)
-            return True
+            pids = [pid_text]
+        # cycle through and check for expected args
+        for pid in pids:
+            out, error = self.parent.link_pnl.run_on_pi("ps -fp " + pid)
+            if args in out:
+                return True
+        # if it didn't find it return false
+        return False
 
     def check_if_script_in_startup(self, script_name):
         print(" checking startup cron for " + script_name )
@@ -245,7 +255,7 @@ class ctrl_pnl(wx.Panel):
         return script_status
 
     def add_to_startup_list(self, startup_list_instance, line_number, job_enabled, cron_task, cron_extra_args=''):
-        is_running = self.test_if_script_running(cron_task)
+        is_running = self.test_if_script_running(cron_task, cron_extra_args)
         startup_list_instance.InsertItem(0, str(line_number))
         startup_list_instance.SetItem(0, 1, str(job_enabled))
         startup_list_instance.SetItem(0, 2, str(is_running))   #tests if script it currently running on pi
