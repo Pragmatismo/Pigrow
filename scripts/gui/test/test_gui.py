@@ -110,7 +110,7 @@ class MainFrame(wx.Frame):
                 value.connect_to_pigrow()
             except Exception as E:
                 print(key, "doesn't have connect_to_pigrow")
-                print(E)
+                #print(E)
 
     def tell_pnls_updated_config(self):
         print("       Telling all pnls that the config file has been updated")
@@ -118,14 +118,13 @@ class MainFrame(wx.Frame):
             try:
                 value.updated_config()
             except Exception as E:
-                print(key, "         - doesn't have updated_config function, no problem it probably doens't need it")
+                print(key, " - doesn't have updated_config function, no problem it probably doens't need it")
 
 
 
     def resize_window(self, e):
         '''
-        Imposes sizes on the panels - this is probably the worst way of doing it
-               - not currently used
+        Imposes sizes on the panels
         '''
         left_bar_size = 100
         status_bar_height = 175
@@ -159,8 +158,8 @@ class MainApp(MainFrame):
     def OnClose(self, e):
         #Closes SSH connection even on quit
         # need to add 'ya sure?' question if there's unsaved data
-        #print("Closing SSH connection")
-        #ssh.close()
+        print("Closing SSH connection")
+        self.link_pnl.ssh.close()
         sys.exit(0)
 
 def main():
