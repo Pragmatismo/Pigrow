@@ -1109,29 +1109,25 @@ class info_pnl(scrolled.ScrolledPanel):
             self.parent = parent
             wx.ListCtrl.__init__(self, parent, id, style=wx.LC_REPORT)
             self.InsertColumn(0, 'Filename')
-            self.InsertColumn(1, 'date modified')
-            self.InsertColumn(2, 'age')
-            self.InsertColumn(3, 'updated?')
+            self.InsertColumn(1, 'date modified', format=wx.LIST_FORMAT_CENTER)
+            self.InsertColumn(2, 'age', format=wx.LIST_FORMAT_CENTER)
             self.autosizeme()
-            #self.SetHeaderAttr((240,240,240),(40, 60, 40), shared_data.sub_title_font)
 
         def autosizeme(self):
-            if self.GetItemCount() == 0:
-                self.SetColumnWidth(0, wx.LIST_AUTOSIZE_USEHEADER)
-                self.SetColumnWidth(1, wx.LIST_AUTOSIZE_USEHEADER)
-                self.SetColumnWidth(2, wx.LIST_AUTOSIZE_USEHEADER)
-                self.SetColumnWidth(3, wx.LIST_AUTOSIZE_USEHEADER)
-            else:
-                self.SetColumnWidth(0, wx.LIST_AUTOSIZE)
-                self.SetColumnWidth(1, wx.LIST_AUTOSIZE)
-                self.SetColumnWidth(2, wx.LIST_AUTOSIZE)
-                self.SetColumnWidth(3, wx.LIST_AUTOSIZE)
+            for i in range(0, self.GetColumnCount()):
+                self.SetColumnWidth(i, wx.LIST_AUTOSIZE)
+                l = self.GetColumnWidth(i)
+                self.SetColumnWidth(i, wx.LIST_AUTOSIZE_USEHEADER)
+                h = self.GetColumnWidth(i)
+                if l > h:
+                    self.SetColumnWidth(i, l + 15)
+                else:
+                    self.SetColumnWidth(i, h + 15)
 
-        def add_to_config_list(self, name, mod_date, age, update_status):
+        def add_to_config_list(self, name, mod_date, age):
             self.InsertItem(0, str(name))
             self.SetItem(0, 1, str(mod_date))
             self.SetItem(0, 2, str(age))
-            self.SetItem(0, 3, str(update_status))
 
         def read_configs(self, folder_name):
             self.DeleteAllItems()
@@ -1149,8 +1145,7 @@ class info_pnl(scrolled.ScrolledPanel):
                     file_age = datetime.datetime.now() - modified
                     modified = modified.strftime("%Y-%m-%d %H:%M")
                     file_age = str(file_age).split(".")[0]
-                    update_status = "unchecked"
-                    self.add_to_config_list(file, modified, file_age, update_status)
+                    self.add_to_config_list(file, modified, file_age)
             self.autosizeme()
 
         def doubleclick_config(self, e):
@@ -1186,25 +1181,26 @@ class info_pnl(scrolled.ScrolledPanel):
             self.parent = parent
             wx.ListCtrl.__init__(self, parent, id, style=wx.LC_REPORT)
             self.InsertColumn(0, 'Filename')
-            self.InsertColumn(1, 'date modified')
-            self.InsertColumn(2, 'age')
+            self.InsertColumn(1, 'date modified', format=wx.LIST_FORMAT_CENTER)
+            self.InsertColumn(2, 'age', format=wx.LIST_FORMAT_CENTER)
             self.autosizeme()
+
+        def autosizeme(self):
+            for i in range(0, self.GetColumnCount()):
+                self.SetColumnWidth(i, wx.LIST_AUTOSIZE)
+                l = self.GetColumnWidth(i)
+                self.SetColumnWidth(i, wx.LIST_AUTOSIZE_USEHEADER)
+                h = self.GetColumnWidth(i)
+                if l > h:
+                    self.SetColumnWidth(i, l + 15)
+                else:
+                    self.SetColumnWidth(i, h + 15)
 
         def doubleclick_log(self, e):
             shared_data = self.parent.parent.shared_data
             index =  e.GetIndex()
             filename = self.GetItem(index, 0).GetText()
             print(" not doing anything with the log at this momement")
-
-        def autosizeme(self):
-            if self.GetItemCount() == 0:
-                self.SetColumnWidth(0, wx.LIST_AUTOSIZE_USEHEADER)
-                self.SetColumnWidth(1, wx.LIST_AUTOSIZE_USEHEADER)
-                self.SetColumnWidth(2, wx.LIST_AUTOSIZE_USEHEADER)
-            else:
-                self.SetColumnWidth(0, wx.LIST_AUTOSIZE)
-                self.SetColumnWidth(1, wx.LIST_AUTOSIZE)
-                self.SetColumnWidth(2, wx.LIST_AUTOSIZE)
 
         def add_to_logs_list(self, name, mod_date, age):
             self.InsertItem(0, str(name))
