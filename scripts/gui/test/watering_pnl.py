@@ -319,6 +319,7 @@ class info_pnl(scrolled.ScrolledPanel):
             for name in wtank_list:
                 size, type = self.read_wtank_conf(name, config_dict, "wtank_")
                 self.add_to_relay_table(name, size, type)
+            self.autosizeme()
 
         def read_wtank_conf(self, item_name, config_dict, prefix):
             # Extract sensor config info from config dictionary
@@ -334,20 +335,13 @@ class info_pnl(scrolled.ScrolledPanel):
             return info
 
         def autosizeme(self):
-            if self.GetItemCount() == 0:
-                self.SetColumnWidth(0, wx.LIST_AUTOSIZE_USEHEADER)
-                self.SetColumnWidth(1, wx.LIST_AUTOSIZE_USEHEADER)
-                self.SetColumnWidth(2, wx.LIST_AUTOSIZE_USEHEADER)
-                self.SetColumnWidth(3, wx.LIST_AUTOSIZE_USEHEADER)
-                self.SetColumnWidth(4, wx.LIST_AUTOSIZE_USEHEADER)
-                self.SetColumnWidth(5, wx.LIST_AUTOSIZE_USEHEADER)
-            else:
-                self.SetColumnWidth(0, wx.LIST_AUTOSIZE)
-                self.SetColumnWidth(1, wx.LIST_AUTOSIZE)
-                self.SetColumnWidth(2, wx.LIST_AUTOSIZE)
-                self.SetColumnWidth(3, wx.LIST_AUTOSIZE)
-                self.SetColumnWidth(4, wx.LIST_AUTOSIZE)
-                self.SetColumnWidth(5, wx.LIST_AUTOSIZE)
+            for i in range(0, self.GetColumnCount()):
+                self.SetColumnWidth(i, wx.LIST_AUTOSIZE)
+                l = self.GetColumnWidth(i)
+                self.SetColumnWidth(i, wx.LIST_AUTOSIZE_USEHEADER)
+                h = self.GetColumnWidth(i)
+                if l > h:
+                    self.SetColumnWidth(i, wx.LIST_AUTOSIZE)
 
         def add_to_relay_table(self, name, size, type):
             self.InsertItem(0, str(name))
@@ -403,17 +397,27 @@ class info_pnl(scrolled.ScrolledPanel):
             self.autosizeme()
 
         def autosizeme(self):
-            col_n = 5
-            textsize = 50
+            col_n = self.GetColumnCount()
             if self.GetItemCount() == 0:
                 for i in range(0, col_n):
                     self.SetColumnWidth(i, wx.LIST_AUTOSIZE_USEHEADER)
+                # decrease vertical height to just show header
                 self.SetMinSize((800, 50))
             else:
                 for i in range(0,col_n):
-                    self.SetColumnWidth(i, wx.LIST_AUTOSIZE)
+                    self.check_col_size(i)
+                # set vertical height
+                textsize = 50
                 height = 50 + (self.GetItemCount() * textsize)
                 self.SetMinSize((800, height))
+
+        def check_col_size(self, i):
+            self.SetColumnWidth(i, wx.LIST_AUTOSIZE)
+            l = self.GetColumnWidth(i)
+            self.SetColumnWidth(i, wx.LIST_AUTOSIZE_USEHEADER)
+            h = self.GetColumnWidth(i)
+            if l > h:
+                self.SetColumnWidth(i, wx.LIST_AUTOSIZE)
 
         def make_table(self):
             config_dict = self.parent.parent.shared_data.config_dict
@@ -516,19 +520,21 @@ class info_pnl(scrolled.ScrolledPanel):
             return info
 
         def autosizeme(self):
+            # set col width
+            for i in range(0, self.GetColumnCount()):
+                self.SetColumnWidth(i, wx.LIST_AUTOSIZE)
+                l = self.GetColumnWidth(i)
+                self.SetColumnWidth(i, wx.LIST_AUTOSIZE_USEHEADER)
+                h = self.GetColumnWidth(i)
+                if l > h:
+                    self.SetColumnWidth(i, wx.LIST_AUTOSIZE)
+            # set vertical
             textsize = 50
             if self.GetItemCount() == 0:
-                self.SetColumnWidth(0, wx.LIST_AUTOSIZE_USEHEADER)
-                self.SetColumnWidth(1, wx.LIST_AUTOSIZE_USEHEADER)
-                self.SetColumnWidth(2, wx.LIST_AUTOSIZE_USEHEADER)
                 self.SetMinSize((-1,50))
             else:
-                #self.SetColumnWidth(0, wx.LIST_AUTOSIZE)
-                #self.SetColumnWidth(1, wx.LIST_AUTOSIZE)
-                #self.SetColumnWidth(2, wx.LIST_AUTOSIZE)
                 height = 50 + (self.GetItemCount() * textsize)
                 self.SetMinSize((-1, height))
-            #self.PostSizeEventToParent()
             self.parent.Layout()
 
         def add_to_pump_table(self, name, rate, type):

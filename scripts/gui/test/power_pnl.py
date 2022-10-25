@@ -237,6 +237,7 @@ class info_pnl(wx.Panel):
                 gpio, wiring = self.read_relay_conf(relay_name, config_dict, "gpio_")
                 if not relay_name == "dht22sensor": #ignore
                     self.add_to_relay_table(relay_name, gpio, wiring)
+            self.autosizeme()
 
         def read_relay_conf(self, item_name, config_dict, prefix):
             # Extract sensor config info from config dictionary
@@ -252,16 +253,13 @@ class info_pnl(wx.Panel):
             return info
 
         def autosizeme(self):
-            if self.GetItemCount() == 0:
-                self.SetColumnWidth(0, wx.LIST_AUTOSIZE_USEHEADER)
-                self.SetColumnWidth(1, wx.LIST_AUTOSIZE_USEHEADER)
-                self.SetColumnWidth(2, wx.LIST_AUTOSIZE_USEHEADER)
-                self.SetColumnWidth(3, wx.LIST_AUTOSIZE_USEHEADER)
-            else:
-                self.SetColumnWidth(0, wx.LIST_AUTOSIZE)
-                self.SetColumnWidth(1, wx.LIST_AUTOSIZE)
-                self.SetColumnWidth(2, wx.LIST_AUTOSIZE)
-                self.SetColumnWidth(3, wx.LIST_AUTOSIZE)
+            for i in range(0, self.GetColumnCount()):
+                self.SetColumnWidth(i, wx.LIST_AUTOSIZE)
+                l = self.GetColumnWidth(i)
+                self.SetColumnWidth(i, wx.LIST_AUTOSIZE_USEHEADER)
+                h = self.GetColumnWidth(i)
+                if l > h:
+                    self.SetColumnWidth(i, wx.LIST_AUTOSIZE)
 
         def add_to_relay_table(self, name, gpio, wiring):
             self.InsertItem(0, str(name))
@@ -335,6 +333,7 @@ class info_pnl(wx.Panel):
             for motor_name in motor_list:
                 gpioA, gpioB, pwm = self.read_motor_conf(motor_name, config_dict, "hbridge_")
                 self.add_to_motor_table(motor_name, gpioA, gpioB, pwm)
+            self.autosizeme()
 
         def read_motor_conf(self, item_name, config_dict, prefix):
             # Extract sensor config info from config dictionary
@@ -351,16 +350,13 @@ class info_pnl(wx.Panel):
             return info
 
         def autosizeme(self):
-            if self.GetItemCount() == 0:
-                self.SetColumnWidth(0, wx.LIST_AUTOSIZE_USEHEADER)
-                self.SetColumnWidth(1, wx.LIST_AUTOSIZE_USEHEADER)
-                self.SetColumnWidth(2, wx.LIST_AUTOSIZE_USEHEADER)
-                self.SetColumnWidth(3, wx.LIST_AUTOSIZE_USEHEADER)
-            else:
-                self.SetColumnWidth(0, wx.LIST_AUTOSIZE)
-                self.SetColumnWidth(1, wx.LIST_AUTOSIZE)
-                self.SetColumnWidth(2, wx.LIST_AUTOSIZE)
-                self.SetColumnWidth(3, wx.LIST_AUTOSIZE)
+            for i in range(0, self.GetColumnCount()):
+                self.SetColumnWidth(i, wx.LIST_AUTOSIZE)
+                l = self.GetColumnWidth(i)
+                self.SetColumnWidth(i, wx.LIST_AUTOSIZE_USEHEADER)
+                h = self.GetColumnWidth(i)
+                if l > h:
+                    self.SetColumnWidth(i, wx.LIST_AUTOSIZE)
 
         def add_to_motor_table(self, name, gpioA, gpioB, pwm_ctrl):
             self.InsertItem(0, str(name))
@@ -413,6 +409,7 @@ class info_pnl(wx.Panel):
             for hwpwm_name in hwpwm_list:
                 gpio, freq = self.read_pwm_conf(hwpwm_name, config_dict, 'hwpwm_')
                 self.add_to_pwm_list(hwpwm_name, 'hwpwm',gpio, freq)
+            self.autosizeme()    
 
         def read_pwm_conf(self, item_name, config_dict, prefix):
             # Extract sensor config info from config dictionary
@@ -428,16 +425,13 @@ class info_pnl(wx.Panel):
             return info
 
         def autosizeme(self):
-            if self.GetItemCount() == 0:
-                self.SetColumnWidth(0, wx.LIST_AUTOSIZE_USEHEADER)
-                self.SetColumnWidth(1, wx.LIST_AUTOSIZE_USEHEADER)
-                self.SetColumnWidth(2, wx.LIST_AUTOSIZE_USEHEADER)
-                self.SetColumnWidth(3, wx.LIST_AUTOSIZE_USEHEADER)
-            else:
-                self.SetColumnWidth(0, wx.LIST_AUTOSIZE)
-                self.SetColumnWidth(1, wx.LIST_AUTOSIZE)
-                self.SetColumnWidth(2, wx.LIST_AUTOSIZE)
-                self.SetColumnWidth(3, wx.LIST_AUTOSIZE)
+            for i in range(0, self.GetColumnCount()):
+                self.SetColumnWidth(i, wx.LIST_AUTOSIZE)
+                l = self.GetColumnWidth(i)
+                self.SetColumnWidth(i, wx.LIST_AUTOSIZE_USEHEADER)
+                h = self.GetColumnWidth(i)
+                if l > h:
+                    self.SetColumnWidth(i, wx.LIST_AUTOSIZE)
 
         def add_to_pwm_list(self, name, type, i2c, freq):
             self.InsertItem(0, str(type))

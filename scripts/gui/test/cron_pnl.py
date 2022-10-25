@@ -210,6 +210,10 @@ class ctrl_pnl(wx.Panel):
             else:
                 self.cron_extra_lines[line_number]=cron_line
         print("cron information read and updated into tables.")
+        # update table layouts
+        startup_list_instance.autosizeme()
+        repeat_list_instance.autosizeme()
+        onetime_list_instance.autosizeme()
 
     def test_if_script_running(self, script):
         print(" --- Note: cron tab start-up scripts table currently only tests if a script is active and ignores name= arguments ")
@@ -525,11 +529,17 @@ class info_pnl(wx.Panel):
             self.InsertColumn(2, 'Active')
             self.InsertColumn(3, 'Task')
             self.InsertColumn(4, 'extra args')
-            self.SetColumnWidth(0, 55)
-            self.SetColumnWidth(1, 75)
-            self.SetColumnWidth(2, 75)
-            self.SetColumnWidth(3, 400)
-            self.SetColumnWidth(4, 300)
+            self.autosizeme()
+
+        def autosizeme(self):
+            for i in range(0, self.GetColumnCount()):
+                self.SetColumnWidth(i, wx.LIST_AUTOSIZE)
+                l = self.GetColumnWidth(i)
+                self.SetColumnWidth(i, wx.LIST_AUTOSIZE_USEHEADER)
+                h = self.GetColumnWidth(i)
+                if l > h:
+                    self.SetColumnWidth(i, wx.LIST_AUTOSIZE)
+
 
     class repeating_cron_list(wx.ListCtrl):
         def __init__(self, parent, id, pos=(5,245), size=(900,200)):
@@ -539,11 +549,16 @@ class info_pnl(wx.Panel):
             self.InsertColumn(2, 'every')
             self.InsertColumn(3, 'Task')
             self.InsertColumn(4, 'extra args')
-            self.SetColumnWidth(0, 55)
-            self.SetColumnWidth(1, 75)
-            self.SetColumnWidth(2, 100)
-            self.SetColumnWidth(3, 400)
-            self.SetColumnWidth(4, 300)
+            self.autosizeme()
+
+        def autosizeme(self):
+            for i in range(0, self.GetColumnCount()):
+                self.SetColumnWidth(i, wx.LIST_AUTOSIZE)
+                l = self.GetColumnWidth(i)
+                self.SetColumnWidth(i, wx.LIST_AUTOSIZE_USEHEADER)
+                h = self.GetColumnWidth(i)
+                if l > h:
+                    self.SetColumnWidth(i, wx.LIST_AUTOSIZE)
 
         def parse_cron_string(self, cron_rep_string):
             try:
@@ -578,11 +593,16 @@ class info_pnl(wx.Panel):
             self.InsertColumn(2, 'Time')
             self.InsertColumn(3, 'Task')
             self.InsertColumn(4, 'extra args')
-            self.SetColumnWidth(0, 55)
-            self.SetColumnWidth(1, 75)
-            self.SetColumnWidth(2, 100)
-            self.SetColumnWidth(3, 400)
-            self.SetColumnWidth(4, 300)
+            self.autosizeme()
+
+        def autosizeme(self):
+            for i in range(0, self.GetColumnCount()):
+                self.SetColumnWidth(i, wx.LIST_AUTOSIZE)
+                l = self.GetColumnWidth(i)
+                self.SetColumnWidth(i, wx.LIST_AUTOSIZE_USEHEADER)
+                h = self.GetColumnWidth(i)
+                if l > h:
+                    self.SetColumnWidth(i, wx.LIST_AUTOSIZE)
 
     def __init__( self, parent ):
         shared_data = parent.shared_data
@@ -625,6 +645,7 @@ class info_pnl(wx.Panel):
         main_sizer.Add(cron_timed_l, 0, wx.ALL, 3)
         main_sizer.Add(self.timed_cron, 1, wx.ALL|wx.EXPAND, 3)
         self.SetSizer(main_sizer)
+
 
     def startup_got_focus(self, e):
         timed_focus = self.timed_cron.GetFocusedItem()
@@ -740,8 +761,6 @@ class info_pnl(wx.Panel):
             return freq_num, freq_text
         else:
             return "not", "found"
-
-
 
     def del_item(self, e):
         keycode = e.GetKeyCode()
