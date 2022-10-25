@@ -226,7 +226,7 @@ class info_pnl(scrolled.ScrolledPanel):
         self.Layout()
 
     def make_tank_graph_pic(self, linked_pump_list, tank_name, tank_vol):
-        if linked_pump_list == ['']:
+        if linked_pump_list == [''] or len(linked_pump_list) == 0:
             blankbmp = wx.Bitmap.FromRGBA(10, 10, alpha=255)
             self.tank_pic.SetBitmap(blankbmp)
             return None
