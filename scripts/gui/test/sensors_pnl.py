@@ -138,7 +138,7 @@ class info_pnl(scrolled.ScrolledPanel):
             self.trigger_script_activity_cron.SetLabel("No trigger_watcher.py in startup cron, this is required.")
 
         # Check running
-        is_running = cron_C_pnl.test_if_script_running(script_path)
+        is_running = cron_C_pnl.test_if_script_running(script_path, "")
         if is_running == True:
             self.trigger_script_activity_live.SetLabel(" trigger_watcher.py currently running ")
             self.trigger_script_activity_live.SetForegroundColour((80,150,80))
@@ -323,7 +323,7 @@ class info_pnl(scrolled.ScrolledPanel):
                 cmd            = line[seventh_comma+1:].strip()
                 self.add_to_trigger_list(log_name, value_label, trigger_type, trigger_value, condition_name, trig_direction, trig_cooldown, cmd)
             # resize
-            self.autosizeme()    
+            self.autosizeme()
 
         def add_to_trigger_list(self, log, label, type, value, name, set, cooldown, cmd):
             self.InsertItem(0, str(log))
