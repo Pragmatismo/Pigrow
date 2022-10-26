@@ -42,17 +42,15 @@ class ctrl_pnl(wx.Panel):
         i_pnl.lev_s_lst.make_table()
 
     def add_tank_click(self, e):
-        #i_pnl = self.parent.dict_I_pnl['watering_pnl']
-        # load config from file and fill tables so there are no conflicts
-    #    self.fill_tables_click("e")
         # set blanks for dialog box
-        # call dialog box
         tank_dialog.s_name = ""
         tank_dialog.s_volume = ""
         tank_dialog.s_mode = ""
+        # call dialog box
         add_dlb = tank_dialog(self, self.parent)
         add_dlb.ShowModal()
-    #    self.fill_tables_click("e")
+        # fill table
+        self.fill_table_click("e")
 
     def link_pump_click(self, e):
         pump_dialog.s_name = ""
@@ -64,8 +62,11 @@ class ctrl_pnl(wx.Panel):
             pump_dialog.s_link = tank_table.GetItem(index, 0).GetText()
         pump_dialog.s_rate = ""
         pump_dialog.s_type = ""
+        # call dialog
         link_pump_dlb = pump_dialog(self, self.parent)
         link_pump_dlb.ShowModal()
+        # refresh waterpump table
+        self.parent.dict_I_pnl['watering_pnl'].wtank_lst.make_table()
 
     def connect_to_pigrow(self):
         '''
@@ -191,18 +192,31 @@ class info_pnl(scrolled.ScrolledPanel):
         else:
             pump_name = self.wpump_lst.GetItem(selected_pump, 0).GetText()
             print("Selected pump;", pump_name)
-            self.fill_pumptiming_sizer(pump_name)
+            pump_type = self.wpump_lst.GetItem(selected_pump, 2).GetText()
+            if "sensor" in pump_type:
+                self.pt_sizer.Clear(True)
+                txt = "\n\nMoisture sensor based watering"
+                txt+= "\n not yet supported in the gui."
+                print(txt)
+                st = wx.StaticText(self, label=txt)
+                self.pt_sizer.Add(st, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
+                self.Layout()
+            else:
+                self.fill_pumptiming_sizer(pump_name)
 
     def fill_pumptiming_sizer(self, pump_name):
         #
-        label = "\n\nPump timing; " + str(pump_name)
         self.SetFont(self.parent.shared_data.item_title_font)
+        label = "\n\nPump timing; " + str(pump_name)
         pumptime_l = wx.StaticText(self, label=label)
 
+        self.add_time_btn = wx.Button(self, label='Add pump\n timing')
+        self.add_time_btn.Bind(wx.EVT_BUTTON, self.add_time_click)
 
-        #pumptime_l.SetLabel(label)
+
         self.pt_sizer.Clear(True)
         self.pt_sizer.Add(pumptime_l, 1, wx.ALIGN_CENTER_HORIZONTAL, 5)
+        self.pt_sizer.Add(self.add_time_btn, 1, wx.ALIGN_CENTER_HORIZONTAL, 5)
         # repeating cron
         pump_rep_list, pump_timed_list = self.get_cron_pump_list(pump_name)
         self.SetFont(self.parent.shared_data.info_font)
@@ -224,6 +238,9 @@ class info_pnl(scrolled.ScrolledPanel):
             self.pt_sizer.Add(st, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
 
         self.Layout()
+
+    def add_time_click(self, e):
+        print("doesn't do anythign yet")
 
     def make_tank_graph_pic(self, linked_pump_list, tank_name, tank_vol):
         if linked_pump_list == [''] or len(linked_pump_list) == 0:
@@ -369,7 +386,7 @@ class info_pnl(scrolled.ScrolledPanel):
             current_ml = "not found"
             last_water = "not_found"
             active = "not found"
-            if "current_ml=" in out:
+            if "=" in out:
                 lines = out.splitlines()
                 for line in lines:
                     if "=" in line:
@@ -555,7 +572,7 @@ class info_pnl(scrolled.ScrolledPanel):
 
             pump_dialog.s_name = self.GetItem(index, 0).GetText()
             pump_dialog.s_rate = self.GetItem(index, 1).GetText()
-            pump_dialog.s_mode = self.GetItem(index, 2).GetText()
+            pump_dialog.s_type = self.GetItem(index, 2).GetText()
             pumpd_box = pump_dialog(self.parent.c_pnl, self.parent.c_pnl.parent)
             pumpd_box.ShowModal()
             self.parent.c_pnl.fill_table_click("e")
@@ -577,8 +594,9 @@ class tank_dialog(wx.Dialog):
         pnl = wx.Panel(self)
 
         # Header
+        self.SetFont(shared_data.title_font)
         box_label = wx.StaticText(self,  label='Water Tank Config')
-        box_label.SetFont(shared_data.title_font)
+        self.SetFont(shared_data.info_font)
         # Show guide button
         show_guide_btn = wx.Button(self, label='Guide', size=(175, 30))
         show_guide_btn.Bind(wx.EVT_BUTTON, self.show_guide_click)
@@ -646,15 +664,49 @@ class tank_dialog(wx.Dialog):
 
             # If name changed delete old entries
             if not n_name == self.s_name:
-                name_start = "wtank_" + self.s_name
-                possible_keys = [name_start + "_vol",
-                                 name_start + "_mode"]
-                for possible_key in possible_keys:
-                    if possible_key in shared_data.config_dict:
-                        del shared_data.config_dict[possible_key]
+                if not self.s_name == "":
+                    self.rename_tank_stat_file(self.s_name, n_name)
+                    name_start = "wtank_" + self.s_name
+                    possible_keys = [name_start + "_vol",
+                                     name_start + "_mode"]
+                    for possible_key in possible_keys:
+                        if possible_key in shared_data.config_dict:
+                            del shared_data.config_dict[possible_key]
 
             shared_data.update_pigrow_config_file_on_pi()
+            if self.s_name == "":
+                self.create_tank_stat_file(n_name)
         self.Destroy()
+
+    def create_tank_stat_file(self, tank_name):
+        print("--  Creating new tank stat file")
+        # set path for tankstate file
+        tankstat_path = self.parent.parent.shared_data.remote_pigrow_path
+        tankstat_path += "logs/tankstat_" + tank_name + ".txt"
+        # check for existing file
+        out, err = self.parent.parent.link_pnl.run_on_pi("ls " + tankstat_path)
+        if out.strip() == "":
+            print(" no tank state file")
+        else:
+            print(" tank file exists, should offer chance to overwrite")
+
+        file_txt = "active=True"
+        write_cmd = 'echo "' + file_txt + '" > ' + tankstat_path
+        out, err = self.parent.parent.link_pnl.run_on_pi(write_cmd)
+
+
+    def rename_tank_stat_file(self, s_name, n_name):
+        print("--  Renaming tank stat file")
+        rpp_path = self.parent.parent.shared_data.remote_pigrow_path
+        s_path = rpp_path +"logs/tankstat_" + s_name + ".txt"
+        out, err = self.parent.parent.link_pnl.run_on_pi("ls " + s_path)
+        if 'No such file or directory' in out.strip():
+            self.create_tank_stat_file(n_name)
+        else:
+            new_path = rpp_path +"logs/tankstat_" + n_name + ".txt"
+            cmd = "mv " + s_path + " " + new_path
+            out, err = self.parent.parent.link_pnl.run_on_pi(cmd)
+
 
     def OnClose(self, e):
         self.s_name  = ""
@@ -677,8 +729,9 @@ class pump_dialog(wx.Dialog):
         pnl = wx.Panel(self)
 
         # Header
+        self.SetFont(shared_data.title_font)
         box_label = wx.StaticText(self,  label='Pump Sensor Config')
-        box_label.SetFont(shared_data.title_font)
+        self.SetFont(shared_data.info_font)
         # Show guide button
         show_guide_btn = wx.Button(self, label='Guide', size=(175, 30))
         show_guide_btn.Bind(wx.EVT_BUTTON, self.show_guide_click)
@@ -704,6 +757,29 @@ class pump_dialog(wx.Dialog):
         link_sizer.Add(link_label, 0, wx.ALL|wx.EXPAND, 5)
         link_sizer.Add(self.link_cb, 0, wx.ALL|wx.EXPAND, 5)
 
+        ## type
+        if ":" in self.s_type:
+            s_a_type, s_l_type = self.s_type.split(":")
+        else:
+            s_a_type, s_l_type = "timed", "lost"
+        # activation mode
+        acti_txt = "How is the pump triggered?"
+        acti_l = wx.StaticText(self,  label=acti_txt)
+        acti_opts = ['timed', 'sensor']
+        self.acti_cb = wx.ComboBox(self, choices = acti_opts)
+        self.acti_cb.SetValue(s_a_type)
+        acti_sizer =  wx.BoxSizer(wx.HORIZONTAL)
+        acti_sizer.Add(acti_l, 0, wx.ALL|wx.EXPAND, 5)
+        acti_sizer.Add(self.acti_cb, 0, wx.ALL|wx.EXPAND, 5)
+        # water level control mode
+        lctrl_txt = "Does excess water\nreturn to the tank?"
+        lctrl_l = wx.StaticText(self,  label=lctrl_txt)
+        lctrl_opts = ['lost', 'return']
+        self.lctrl_cb = wx.ComboBox(self, choices = lctrl_opts)
+        self.lctrl_cb.SetValue(s_l_type)
+        lctlr_sizer =  wx.BoxSizer(wx.HORIZONTAL)
+        lctlr_sizer.Add(lctrl_l, 0, wx.ALL|wx.EXPAND, 5)
+        lctlr_sizer.Add(self.lctrl_cb, 0, wx.ALL|wx.EXPAND, 5)
 
         ## rate ml per min
         rate_label = wx.StaticText(self,  label='flow rate l per min')
@@ -732,6 +808,8 @@ class pump_dialog(wx.Dialog):
         main_sizer.AddStretchSpacer(1)
         main_sizer.Add(name_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
         main_sizer.Add(link_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
+        main_sizer.Add(acti_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
+        main_sizer.Add(lctlr_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
         main_sizer.Add(rate_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
         #main_sizer.Add(mode_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
         main_sizer.AddStretchSpacer(1)
@@ -751,7 +829,6 @@ class pump_dialog(wx.Dialog):
             relay_names.append(name)
         return relay_names
 
-
     def list_tanks(self):
         I_pnl = self.parent.parent.dict_I_pnl['watering_pnl']
         tank_table = I_pnl.wtank_lst
@@ -770,7 +847,9 @@ class pump_dialog(wx.Dialog):
 
         n_name  = self.name_cb.GetValue()
         n_rate = self.rate_tc.GetValue()
-        n_mode = "" # self.mode_combo.GetValue()
+        type_a = self.acti_cb.GetValue()
+        type_lc = self.lctrl_cb.GetValue()
+        n_mode = type_a + ":" + type_lc
         n_tank = self.link_cb.GetValue()
         changed = "yes"
         if self.s_name == n_name:
@@ -785,7 +864,6 @@ class pump_dialog(wx.Dialog):
             name_start = "pump_" + n_name
             shared_data.config_dict[name_start + "_mlps"] = n_rate
             shared_data.config_dict[name_start + "_type"] = n_mode
-            #shared_data.config_dict[name_start + "_pwm"] = n_pwm
 
             # If name changed delete old entries
             if not n_name == self.s_name and not self.s_name == "":
