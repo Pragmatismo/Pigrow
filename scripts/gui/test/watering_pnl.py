@@ -177,6 +177,7 @@ class info_pnl(scrolled.ScrolledPanel):
         self.lev_s_lst.make_table()
         # make pump table
         self.c_linked_pumps = []
+        self.pt_sizer.Clear(True)
         self.wpump_lst.make_table(tank_name)
         #
         self.make_tank_graph_pic(self.c_linked_pumps, tank_name, tank_vol)
@@ -205,6 +206,7 @@ class info_pnl(scrolled.ScrolledPanel):
                 self.fill_pumptiming_sizer(pump_name)
 
     def fill_pumptiming_sizer(self, pump_name):
+        print(" Setting pump timing sizer")
         #
         self.SetFont(self.parent.shared_data.item_title_font)
         label = "\n\nPump timing; " + str(pump_name)
@@ -485,7 +487,7 @@ class info_pnl(scrolled.ScrolledPanel):
         def __init__(self, parent, id):
             self.parent = parent
             wx.ListCtrl.__init__(self, parent, id, style=wx.LC_REPORT, size=(150, 100))
-            self.InsertColumn(0, 'Unique Name')
+            self.InsertColumn(0, 'Relay Name')
             self.InsertColumn(1, 'ml per min')
             self.InsertColumn(2, 'Type')
             self.autosizeme()
@@ -521,7 +523,12 @@ class info_pnl(scrolled.ScrolledPanel):
 
             # set size
             self.autosizeme()
-            #self.parent.Layout()
+            # select first item if there is one
+            if self.GetItemCount() > 0:
+                if self.GetSelectedItemCount() == 0:
+                    self.Select(0)
+                    self.parent.wpump_select(None)
+            self.parent.Layout()
 
         def read_wpump_conf(self, item_name, config_dict, prefix):
             # Extract sensor config info from config dictionary
