@@ -101,11 +101,20 @@ class info_pnl(scrolled.ScrolledPanel):
         self.wtank_lst.Bind(wx.EVT_LIST_ITEM_FOCUSED, self.wtank_select)
         self.del_tank_btn = wx.Button(self, label='Delete Tank')
         self.del_tank_btn.Bind(wx.EVT_BUTTON, self.del_tank_click)
+        self.full_tank_btn = wx.Button(self, label='Set Tank Full')
+        self.full_tank_btn.Bind(wx.EVT_BUTTON, self.full_tank_click)
+        self.enable_tank_btn = wx.Button(self, label='Enable Tank')
+        self.enable_tank_btn.Bind(wx.EVT_BUTTON, self.enable_tank_click)
+
+        tank_but_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        tank_but_sizer.Add(self.del_tank_btn, 1, wx.LEFT, 50)
+        tank_but_sizer.Add(self.full_tank_btn, 1, wx.LEFT, 50)
+        tank_but_sizer.Add(self.enable_tank_btn, 1, wx.LEFT, 50)
 
         tank_table_sizer = wx.BoxSizer(wx.VERTICAL)
         tank_table_sizer.Add(tank_l, 1, wx.LEFT, 50)
         tank_table_sizer.Add(self.wtank_lst, 0, wx.ALL, 3)
-        tank_table_sizer.Add(self.del_tank_btn, 0, wx.ALL, 3)
+        tank_table_sizer.Add(tank_but_sizer, 0, wx.ALL, 3)
 
         # Selected Tank Info Sizer
         self.SetFont(shared_data.sub_title_font)
@@ -121,15 +130,22 @@ class info_pnl(scrolled.ScrolledPanel):
 
         # water pump table
         pump_l =  wx.StaticText(self,  label='Water Pumps and Pipes')
-    #    pump_l.SetFont(shared_data.sub_title_font)
+        # buttons sizer
+        self.del_pump_link_btn = wx.Button(self, label='Delete Link')
+        self.del_pump_link_btn.Bind(wx.EVT_BUTTON, self.del_pump_link_click)
+        pump_but_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        pump_but_sizer.Add(self.del_pump_link_btn, 1, wx.LEFT, 50)
+        # table
         self.wpump_lst = self.pump_list(self, 1)
         self.wpump_lst.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.wpump_lst.doubleclick)
         self.wpump_lst.Bind(wx.EVT_LIST_ITEM_FOCUSED, self.wpump_select)
+        # table and buttons sizer
         self.tt_sizer = wx.BoxSizer(wx.VERTICAL)
         self.tt_sizer.Add(pump_l, 0, wx.LEFT, 50)
         self.tt_sizer.Add(self.wpump_lst, 0, wx.ALL, 3)
+        self.tt_sizer.Add(pump_but_sizer, 0, wx.ALL, 3)
 
-        #pump timer sizer
+        #pump timer sizer (filled when pump selected)
         self.pt_sizer = wx.BoxSizer(wx.VERTICAL)
 
         # pump pnls sizer
@@ -138,7 +154,6 @@ class info_pnl(scrolled.ScrolledPanel):
         self.pump_sizer.Add(self.pt_sizer, 0, wx.ALL, 3)
 
         # Tank Size Panel
-
         tank_size_title =  wx.StaticText(self,  label='Tank level past and future')
         img_w = 1000
         img_h = 800
@@ -165,13 +180,118 @@ class info_pnl(scrolled.ScrolledPanel):
         self.SetupScrolling()
         self.SetSizer(main_sizer)
 
+    def del_pump_link_click(self, e=""):
+        # get relay_name to clear from pump list
+        selected_pump = self.wpump_lst.GetFocusedItem()
+        if not selected_pump == -1:
+            relay_name = self.wpump_lst.GetItem(selected_pump, 0).GetText()
+        else:
+            return None
+        # get tank name for pump link field in config dict
+        selected_tank = self.wtank_lst.GetFocusedItem()
+        tank_name = self.wtank_lst.GetItem(selected_tank, 0).GetText()
+        print("Yeah, would be useful if you could remove pump link with", relay_name)
+        # remove the link
+        msg = "Unlink " + relay_name  + "?"
+        mbox = wx.MessageDialog(None, msg, "Are you sure?", wx.YES_NO|wx.ICON_QUESTION)
+        sure = mbox.ShowModal()
+        if sure == wx.ID_YES:
+            self.remove_from_linked_pumps(tank_name, relay_name)
+
+            # remove pump info
+            ## ask if they want to
+            config_dict = self.parent.shared_data.config_dict
+            mbox = wx.MessageDialog(None, "Delete pump calibration info for " + relay_name  + "?", "Are you sure?", wx.YES_NO|wx.ICON_QUESTION)
+            sure = mbox.ShowModal()
+            if sure == wx.ID_YES:
+                keys = ["pump_" + relay_name + "_mlps",
+                        "pump_" + relay_name + "_type"]
+                for key in keys:
+                    if key in config_dict:
+                        del config_dict[key]
+
+            # save updated config
+            self.parent.shared_data.update_pigrow_config_file_on_pi()
+            C_pnl = self.parent.dict_C_pnl['watering_pnl']
+            C_pnl.fill_table_click("e")
+
+    def remove_from_linked_pumps(self, tank_name, to_remove):
+        config_dict = self.parent.shared_data.config_dict
+        pump_list_key = "wtank_" + tank_name + "_pumps"
+        if pump_list_key in config_dict:
+            pump_list = config_dict[pump_list_key]
+            if to_remove in pump_list:
+                if "," in pump_list:
+                    list_list = pump_list.split(",")
+                    new_p_list = ""
+                    for item in list_list:
+                        if not item == to_remove:
+                            new_p_list += item + ","
+                    new_p_list = new_p_list[:-1]
+                    config_dict[pump_list_key] = new_p_list
+                else:
+                    del config_dict[pump_list_key]
+            else:
+                print("Not found in linked pumps")
+                return None
+
+    def full_tank_click(self, e=""):
+        selected_tank = self.wtank_lst.GetFocusedItem()
+        full_val = self.wtank_lst.GetItem(selected_tank, 1).GetText()
+        if not selected_tank == -1:
+            tank_name = self.wtank_lst.GetItem(selected_tank, 0).GetText()
+        else:
+            return None
+        try:
+            int(full_val)
+        except:
+            print(" Unable to convert level value to int, unable to continue")
+            return None
+        self.set_tankstat_setting(tank_name, "current_ml", full_val)
+
+    def enable_tank_click(self, e=""):
+        selected_tank = self.wtank_lst.GetFocusedItem()
+        if not selected_tank == -1:
+            tank_name = self.wtank_lst.GetItem(selected_tank, 0).GetText()
+        else:
+            return None
+        self.set_tankstat_setting(tank_name, "active", "true")
+
+    def set_tankstat_setting(self, tank_name, setting, value):
+        # check tankstate file eixsts
+        tankstat_path = self.parent.shared_data.remote_pigrow_path
+        tankstat_path += "logs/tankstat_" + tank_name + ".txt"
+        out, err = self.parent.link_pnl.run_on_pi("ls " + tankstat_path)
+        if out.strip() == "":
+            print(" no tank state file, creating one")
+            tank_state_txt = setting + "=" + value
+        else:
+            out, err = self.parent.link_pnl.run_on_pi("cat " + tankstat_path)
+            tank_state_txt = ""
+            found = False
+            for line in out.splitlines():
+                if "=" in line:
+                    e_pos = line.find("=")
+                    key,val = line[:e_pos], line[e_pos+1:]
+                    if key == setting:
+                        found = True
+                        if not value == val:
+                            line = key + "=" + val
+                tank_state_txt += line + "\n"
+        if not found:
+            tank_state_txt += setting + "=" + value
+        cmd = 'echo "' + tank_state_txt + '" > ' + tankstat_path
+        out, err = self.parent.link_pnl.run_on_pi(cmd)
+        print(" Tank state file updated ", tankstat_path)
+        C_pnl = self.parent.dict_C_pnl['watering_pnl']
+        C_pnl.fill_table_click("e")
+
     def del_tank_click(self, e):
         selected_tank = self.wtank_lst.GetFocusedItem()
         if not selected_tank == -1:
             tank_name = self.wtank_lst.GetItem(selected_tank, 0).GetText()
         else:
             return None
-        print ("Wants to delete " + tank_name)
         # confirm with user
         mbox = wx.MessageDialog(None, "Delete tank " + tank_name  + "?", "Are you sure?", wx.YES_NO|wx.ICON_QUESTION)
         sure = mbox.ShowModal()
@@ -194,14 +314,12 @@ class info_pnl(scrolled.ScrolledPanel):
         for field in field_list:
             field_key = "wtank_" + tank_name + field
             if field_key in config_dict:
-                print(" Should delete from config; " + field_key)
                 del config_dict[field_key]
 
         # offer to delete linked pump info or keep if moving pump
         #                  (warn moving pump physical loc may require recalibation)
 
-        # delete linked pumps / sensors
-
+        # delete linked pumps / sensors extra info
          # list pump info to remove
         field_list = ["_mlps",
                        "_type"]
@@ -213,7 +331,6 @@ class info_pnl(scrolled.ScrolledPanel):
                 for field in field_list:
                     field_key = "pump_" + pump_name + field
                     if field_key in config_dict:
-                        print(" Should delete from config;" + field_key)
                         del config_dict[field_key]
 
         # save updated config
@@ -225,9 +342,8 @@ class info_pnl(scrolled.ScrolledPanel):
         # clear tank status file
         tankstat_path = self.parent.shared_data.remote_pigrow_path
         tankstat_path += "logs/tankstat_" + tank_name + ".txt"
-        print(" Should remove from pi, " + tankstat_path)
-
-
+        print(" removing from pi, " + tankstat_path)
+        out, err = self.parent.link_pnl.run_on_pi("rm " + tankstat_path)
 
     def wtank_select(self, e):
         #
@@ -733,7 +849,6 @@ class tank_dialog(wx.Dialog):
             name_start = "wtank_" + n_name
             shared_data.config_dict[name_start + "_vol"] = n_vol
             shared_data.config_dict[name_start + "_mode"] = n_mode
-            #shared_data.config_dict[name_start + "_pwm"] = n_pwm
 
             # If name changed delete old entries
             if not n_name == self.s_name:
