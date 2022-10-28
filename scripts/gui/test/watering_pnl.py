@@ -190,7 +190,6 @@ class info_pnl(scrolled.ScrolledPanel):
         # get tank name for pump link field in config dict
         selected_tank = self.wtank_lst.GetFocusedItem()
         tank_name = self.wtank_lst.GetItem(selected_tank, 0).GetText()
-        print("Yeah, would be useful if you could remove pump link with", relay_name)
         # remove the link
         msg = "Unlink " + relay_name  + "?"
         mbox = wx.MessageDialog(None, msg, "Are you sure?", wx.YES_NO|wx.ICON_QUESTION)
@@ -427,7 +426,7 @@ class info_pnl(scrolled.ScrolledPanel):
         print("doesn't do anythign yet")
 
     def make_tank_graph_pic(self, linked_pump_list, tank_name, tank_vol):
-        if linked_pump_list == [''] or len(linked_pump_list):
+        if linked_pump_list == [''] or len(linked_pump_list) == 0:
             blankbmp = wx.Bitmap.FromRGBA(10, 10, alpha=255)
             self.tank_pic.SetBitmap(blankbmp)
             return None
