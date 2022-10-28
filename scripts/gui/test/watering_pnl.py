@@ -86,7 +86,6 @@ class info_pnl(scrolled.ScrolledPanel):
         self.c_pnl = parent.dict_C_pnl['watering_pnl']
         w = 1000
         wx.Panel.__init__ ( self, parent, size = (w,-1), id = wx.ID_ANY, style = wx.TAB_TRAVERSAL )
-        #self.SetBackgroundColour((50,50,50))
 
         # Tab Title
         self.SetFont(shared_data.title_font)
@@ -100,10 +99,13 @@ class info_pnl(scrolled.ScrolledPanel):
         self.wtank_lst = self.water_tank_list(self, 1)
         self.wtank_lst.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.wtank_lst.doubleclick)
         self.wtank_lst.Bind(wx.EVT_LIST_ITEM_FOCUSED, self.wtank_select)
+        self.del_tank_btn = wx.Button(self, label='Delete Tank')
+        self.del_tank_btn.Bind(wx.EVT_BUTTON, self.del_tank_click)
 
         tank_table_sizer = wx.BoxSizer(wx.VERTICAL)
         tank_table_sizer.Add(tank_l, 1, wx.LEFT, 50)
         tank_table_sizer.Add(self.wtank_lst, 0, wx.ALL, 3)
+        tank_table_sizer.Add(self.del_tank_btn, 0, wx.ALL, 3)
 
         # Selected Tank Info Sizer
         self.SetFont(shared_data.sub_title_font)
@@ -162,6 +164,70 @@ class info_pnl(scrolled.ScrolledPanel):
         self.SetAutoLayout(1)
         self.SetupScrolling()
         self.SetSizer(main_sizer)
+
+    def del_tank_click(self, e):
+        selected_tank = self.wtank_lst.GetFocusedItem()
+        if not selected_tank == -1:
+            tank_name = self.wtank_lst.GetItem(selected_tank, 0).GetText()
+        else:
+            return None
+        print ("Wants to delete " + tank_name)
+        # confirm with user
+        mbox = wx.MessageDialog(None, "Delete tank " + tank_name  + "?", "Are you sure?", wx.YES_NO|wx.ICON_QUESTION)
+        sure = mbox.ShowModal()
+        if not sure == wx.ID_YES:
+            print ("Delete aborted, nothing changed.")
+            return None
+
+        config_dict = self.parent.shared_data.config_dict
+         # list linked pumps
+        lp_key = "wtank_" + tank_name + "_pumps"
+        if lp_key in config_dict:
+            linked_pumps = config_dict[lp_key].split(',')
+        else:
+            linked_pumps = []
+
+        # clear in config
+        field_list = ["_vol",
+                      "_mode",
+                      "_pumps"]
+        for field in field_list:
+            field_key = "wtank_" + tank_name + field
+            if field_key in config_dict:
+                print(" Should delete from config; " + field_key)
+                del config_dict[field_key]
+
+        # offer to delete linked pump info or keep if moving pump
+        #                  (warn moving pump physical loc may require recalibation)
+
+        # delete linked pumps / sensors
+
+         # list pump info to remove
+        field_list = ["_mlps",
+                       "_type"]
+        for pump_name in linked_pumps:
+            # confirm with user
+            mbox = wx.MessageDialog(None, "Delete pump calibration info " + pump_name  + "?", "Are you sure?", wx.YES_NO|wx.ICON_QUESTION)
+            sure = mbox.ShowModal()
+            if sure == wx.ID_YES:
+                for field in field_list:
+                    field_key = "pump_" + pump_name + field
+                    if field_key in config_dict:
+                        print(" Should delete from config;" + field_key)
+                        del config_dict[field_key]
+
+        # save updated config
+        self.parent.shared_data.update_pigrow_config_file_on_pi()
+        C_pnl = self.parent.dict_C_pnl['watering_pnl']
+        C_pnl.fill_table_click("e")
+
+
+        # clear tank status file
+        tankstat_path = self.parent.shared_data.remote_pigrow_path
+        tankstat_path += "logs/tankstat_" + tank_name + ".txt"
+        print(" Should remove from pi, " + tankstat_path)
+
+
 
     def wtank_select(self, e):
         #
@@ -245,7 +311,7 @@ class info_pnl(scrolled.ScrolledPanel):
         print("doesn't do anythign yet")
 
     def make_tank_graph_pic(self, linked_pump_list, tank_name, tank_vol):
-        if linked_pump_list == [''] or len(linked_pump_list) == 0:
+        if linked_pump_list == [''] or len(linked_pump_list):
             blankbmp = wx.Bitmap.FromRGBA(10, 10, alpha=255)
             self.tank_pic.SetBitmap(blankbmp)
             return None
