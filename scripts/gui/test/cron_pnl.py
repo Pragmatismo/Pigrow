@@ -52,7 +52,7 @@ class ctrl_pnl(wx.Panel):
                                                 # doesn't ask for output and is non-blocking
                                                 # this is absolutely vital!
 
-    def update_cron_click(self, e, no_starting=False):
+    def update_cron_click(self, e="", no_starting=False):
         #
         self.startup_cron = self.parent.dict_I_pnl['cron_pnl'].startup_cron
         self.repeat_cron = self.parent.dict_I_pnl['cron_pnl'].repeat_cron
@@ -366,20 +366,37 @@ class ctrl_pnl(wx.Panel):
             timing_string += ' *'
         return timing_string
 
-    def new_cron_click(self, e):
+    def new_cron_click(self, e="", set_dict={}):
         #define blank fields and defaults for dialogue box to read
-        self.cron_path_toedit = "/home/" + self.parent.link_pnl.target_user + "/Pigrow/scripts/cron/"
-        self.cron_task_toedit = 'input cron task here'
-        self.cron_args_toedit = ''
-        self.cron_type_toedit = 'repeating'
-        self.cron_everystr_toedit = 'min'
-        self.cron_everynum_toedit = '5'
-        self.cron_min_toedit = '30'
-        self.cron_hour_toedit = '8'
-        self.cron_day_toedit = ''
-        self.cron_month_toedit = ''
-        self.cron_dow_toedit = ''
-        self.cron_enabled_toedit = True
+        pi_path = self.parent.shared_data.remote_pigrow_path + "scripts/cron/"
+        cron_set_dict = {"path":pi_path,
+                        "task":"input cron task here",
+                        "args":"",
+                        "type":"repeating",
+                        "everystr":"min",
+                        "everynum":"5",
+                        "min":"30",
+                        "hour":"8",
+                        "day":"",
+                        "month":"",
+                        "dow":"",
+                        "enabled":True}
+        for item in set_dict:
+            if item in cron_set_dict:
+                cron_set_dict[item] = set_dict[item]
+        # the following is until it gets updated to just pass the dict
+        self.cron_path_toedit     = cron_set_dict["path"]
+        self.cron_task_toedit     = cron_set_dict["task"]
+        self.cron_args_toedit     = cron_set_dict["args"]
+        self.cron_type_toedit     = cron_set_dict["type"]
+        self.cron_everystr_toedit = cron_set_dict["everystr"]
+        self.cron_everynum_toedit = cron_set_dict["everynum"]
+        self.cron_min_toedit      = cron_set_dict["min"]
+        self.cron_hour_toedit     = cron_set_dict["hour"]
+        self.cron_day_toedit      = cron_set_dict["day"]
+        self.cron_month_toedit    = cron_set_dict["month"]
+        self.cron_dow_toedit      = cron_set_dict["dow"]
+        self.cron_enabled_toedit  = cron_set_dict["enabled"]
         #make dialogue box
         cron_dbox = cron_job_dialog(self, self.parent)
         cron_dbox.ShowModal()
@@ -707,12 +724,13 @@ class info_pnl(wx.Panel):
             return []
         # look for key=val in args
         found_jobs = []
-        id_pair = key + "=" + val
+        id_pair = str(key) + "=" + str(val)
         for index in range(0, self.repeat_cron.GetItemCount()):
             cmd_path = self.repeat_cron.GetItem(index, 3).GetText()
             if script in cmd_path:
                 cmd_args = self.repeat_cron.GetItem(index, 4).GetText()
-                if  id_pair in cmd_args:
+                cmd_args_s = cmd_args.replace('"', "")
+                if  id_pair.replace('"', "") in cmd_args_s:
                     enabled = self.repeat_cron.GetItem(index, 1).GetText()
                     cron_time_string = self.repeat_cron.GetItem(index, 2).GetText()
                     freq_num, freq_text = self.repeat_cron.parse_cron_string(cron_time_string)
@@ -724,12 +742,13 @@ class info_pnl(wx.Panel):
             return []
         # look for key=val in args
         found_jobs = []
-        id_pair = key + "=" + val
+        id_pair = str(key) + "=" + str(val)
         for index in range(0, self.timed_cron.GetItemCount()):
             cmd_path = self.timed_cron.GetItem(index, 3).GetText()
             if script in cmd_path:
                 cmd_args = self.timed_cron.GetItem(index, 4).GetText()
-                if  id_pair in cmd_args:
+                cmd_args_s = cmd_args.replace('"', "")
+                if  id_pair.replace('"', "") in cmd_args_s:
                     enabled = self.timed_cron.GetItem(index, 1).GetText()
                     cron_time_string = self.timed_cron.GetItem(index, 2).GetText()
                     found_jobs.append([index, enabled, cron_time_string, cmd_args])

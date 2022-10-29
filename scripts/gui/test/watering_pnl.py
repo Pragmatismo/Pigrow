@@ -392,7 +392,10 @@ class info_pnl(scrolled.ScrolledPanel):
             else:
                 self.fill_pumptiming_sizer(pump_name)
 
-    def fill_pumptiming_sizer(self, pump_name):
+    def fill_pumptiming_sizer(self, pump_name=None):
+        if pump_name == None:
+            i = self.wpump_lst.GetFocusedItem()
+            pump_name = self.wpump_lst.GetItem(i, 0).GetText()
         print(" Setting pump timing sizer")
         #
         self.SetFont(self.parent.shared_data.item_title_font)
@@ -412,6 +415,7 @@ class info_pnl(scrolled.ScrolledPanel):
         for item in pump_rep_list:
             #pump time list each item has [index, enabled, freq_num, freq_text, cmd_args]
             index, enabled, freq_num, freq_text, cmd_args = item
+            cmd_args = cmd_args.replace('"', "").strip()
             duration = self.get_duration(cmd_args)
             txt_line = "Watering for " + str(duration)
             txt_line += " seconds every " + str(freq_num) + " " + freq_text
@@ -420,6 +424,7 @@ class info_pnl(scrolled.ScrolledPanel):
         # timed cron
         for item in pump_timed_list:
             index, enabled, cron_time_string, cmd_args = item
+            cmd_args = cmd_args.replace('"', "").strip()
             duration = self.get_duration(cmd_args)
             txt_line = "Watering for " + str(duration)
             txt_line += " seconds, cron string " + cron_time_string
@@ -432,6 +437,7 @@ class info_pnl(scrolled.ScrolledPanel):
         # call dialog box
         time_dlb = w_time_dialog(self, self.parent)
         time_dlb.ShowModal()
+        self.fill_pumptiming_sizer()
 
     def make_tank_graph_pic(self, linked_pump_list, tank_name, tank_vol):
         if linked_pump_list == [''] or len(linked_pump_list) == 0:
@@ -1222,8 +1228,7 @@ class w_time_dialog(wx.Dialog):
 
         # Header
         self.SetFont(shared_data.title_font)
-        msg = "\n FEATURE NOT FINISHED"
-        box_label = wx.StaticText(self,  label='Water Timing Cron Job' + msg)
+        box_label = wx.StaticText(self,  label='Water Timing Cron Job')
         self.SetFont(shared_data.info_font)
         # Show guide button
         show_guide_btn = wx.Button(self, label='Guide', size=(175, 30))
@@ -1243,6 +1248,7 @@ class w_time_dialog(wx.Dialog):
         ## watering info
         I_pnl = self.parent.parent.dict_I_pnl['watering_pnl']
         index = I_pnl.wpump_lst.GetFocusedItem()
+        self.pump_name = I_pnl.wpump_lst.GetItem(index, 0).GetText()
         self.flow_rate = I_pnl.wpump_lst.GetItem(index, 1).GetText()
         self.unknown_flow = False
         try:
@@ -1252,7 +1258,6 @@ class w_time_dialog(wx.Dialog):
             self.unknown_flow = True
             self.vol_tc.SetValue("Flowrate Unknown")
             self.vol_tc.Disable()
-            raise
         # duration
         dur_label = wx.StaticText(self,  label='watering duration')
         self.dur_tc = wx.TextCtrl(self, value="", size=(200,30))
@@ -1287,7 +1292,6 @@ class w_time_dialog(wx.Dialog):
         self.SetSizer(main_sizer)
 
     def change_vol(self, e):
-        print(" vol changed")
         if self.unknown_flow == True:
             return None
         vol = self.vol_tc.GetValue()
@@ -1300,7 +1304,6 @@ class w_time_dialog(wx.Dialog):
         self.dur_tc.ChangeValue(str(new_dur))
 
     def change_dur(self, e):
-        print(" dur changed")
         if self.unknown_flow == True:
             return None
         dur = self.dur_tc.GetValue()
@@ -1316,7 +1319,23 @@ class w_time_dialog(wx.Dialog):
         self.parent.parent.shared_data.show_help('pump_cron_help.png')
 
     def save_click(self, e):
-        print(" Sorry not yet doing anything")
+        duration = round(float(self.dur_tc.GetValue()), 2)
+        args = 'pump="' + self.pump_name + '" duration="' + str(duration) + '"'
+        print(" Args for cron job;", args)
+        cron_pnl = self.parent.parent.dict_C_pnl['cron_pnl']
+        # open cron dialog
+        pi_path = self.parent.parent.shared_data.remote_pigrow_path + "scripts/switches/"
+        cron_set_dict = {"path":pi_path,
+                        "task":"TESTtimed_water.py",
+                        "args":args,
+                        "type":"repeating",
+                        "everystr":"day",
+                        "everynum":"3",
+                        "min":"30",
+                        "hour":"8",}
+        cron_pnl.new_cron_click(set_dict=cron_set_dict)
+        cron_pnl.update_cron_click()
+        self.Destroy()
 
     def OnClose(self, e):
         self.Destroy()
