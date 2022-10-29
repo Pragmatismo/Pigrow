@@ -21,7 +21,7 @@ class ctrl_pnl(wx.Panel):
         self.add_tank_btn.Bind(wx.EVT_BUTTON, self.add_tank_click)
 
         self.link_sensor_btn = wx.Button(self, label='Link Level Sensor')
-        #self.link_sensor_btn.Bind(wx.EVT_BUTTON, self.link_sensor_click)
+        self.link_sensor_btn.Bind(wx.EVT_BUTTON, self.link_lvl_sensor_click)
 
         self.link_pump_btn = wx.Button(self, label='Link Pump')
         self.link_pump_btn.Bind(wx.EVT_BUTTON, self.link_pump_click)
@@ -51,6 +51,12 @@ class ctrl_pnl(wx.Panel):
         add_dlb.ShowModal()
         # fill table
         self.fill_table_click("e")
+
+    def link_lvl_sensor_click(self, e):
+        # call dialog box
+        lvl_sensor_dlb = lvl_sensor_dialog(self, self.parent)
+        lvl_sensor_dlb.ShowModal()
+
 
     def link_pump_click(self, e):
         pump_dialog.s_name = ""
@@ -423,7 +429,9 @@ class info_pnl(scrolled.ScrolledPanel):
         self.Layout()
 
     def add_time_click(self, e):
-        print("doesn't do anythign yet")
+        # call dialog box
+        time_dlb = w_time_dialog(self, self.parent)
+        time_dlb.ShowModal()
 
     def make_tank_graph_pic(self, linked_pump_list, tank_name, tank_vol):
         if linked_pump_list == [''] or len(linked_pump_list) == 0:
@@ -1197,3 +1205,181 @@ class calibrate_water_flow_rate_dialog(wx.Dialog):
             if sure == wx.ID_YES:
                 self.parent.rate_tc.SetValue(str(lpermin))
                 self.Destroy()
+
+class w_time_dialog(wx.Dialog):
+    def __init__(self, parent, *args, **kw):
+        self.parent = parent
+        super(w_time_dialog, self).__init__(*args, **kw)
+        self.InitUI()
+        self.SetSize((500, 450))
+        self.SetTitle("Water timing job")
+        self.Bind(wx.EVT_CLOSE, self.OnClose)
+
+    def InitUI(self):
+        shared_data = self.parent.parent.shared_data
+        # panel
+        pnl = wx.Panel(self)
+
+        # Header
+        self.SetFont(shared_data.title_font)
+        msg = "\n FEATURE NOT FINISHED"
+        box_label = wx.StaticText(self,  label='Water Timing Cron Job' + msg)
+        self.SetFont(shared_data.info_font)
+        # Show guide button
+        show_guide_btn = wx.Button(self, label='Guide', size=(175, 30))
+        show_guide_btn.Bind(wx.EVT_BUTTON, self.show_guide_click)
+        header_sizer =  wx.BoxSizer(wx.HORIZONTAL)
+        header_sizer.Add(box_label, 0, wx.ALL|wx.EXPAND, 5)
+        header_sizer.AddStretchSpacer(1)
+        header_sizer.Add(show_guide_btn, 0, wx.ALL, 5)
+
+        # total delivered
+        vol_label = wx.StaticText(self,  label='total water delivered')
+        self.vol_tc = wx.TextCtrl(self, value="", size=(200,30))
+        self.vol_tc.Bind(wx.EVT_TEXT, self.change_vol)
+        vol_sizer =  wx.BoxSizer(wx.HORIZONTAL)
+        vol_sizer.Add(vol_label, 0, wx.ALL|wx.EXPAND, 5)
+        vol_sizer.Add(self.vol_tc, 0, wx.ALL|wx.EXPAND, 5)
+        ## watering info
+        I_pnl = self.parent.parent.dict_I_pnl['watering_pnl']
+        index = I_pnl.wpump_lst.GetFocusedItem()
+        self.flow_rate = I_pnl.wpump_lst.GetItem(index, 1).GetText()
+        self.unknown_flow = False
+        try:
+            self.flow_rate = int(self.flow_rate)
+        except:
+            self.flow_rate = 1
+            self.unknown_flow = True
+            self.vol_tc.SetValue("Flowrate Unknown")
+            self.vol_tc.Disable()
+            raise
+        # duration
+        dur_label = wx.StaticText(self,  label='watering duration')
+        self.dur_tc = wx.TextCtrl(self, value="", size=(200,30))
+        self.dur_tc.Bind(wx.EVT_TEXT, self.change_dur)
+
+        dur_sizer =  wx.BoxSizer(wx.HORIZONTAL)
+        dur_sizer.Add(dur_label, 0, wx.ALL|wx.EXPAND, 5)
+        dur_sizer.Add(self.dur_tc, 0, wx.ALL|wx.EXPAND, 5)
+
+        ## timing info
+
+
+        # buttons_
+        self.save_btn = wx.Button(self, label='Save', size=(175, 30))
+        self.save_btn.Bind(wx.EVT_BUTTON, self.save_click)
+        self.cancel_btn = wx.Button(self, label='Cancel', size=(175, 30))
+        self.cancel_btn.Bind(wx.EVT_BUTTON, self.OnClose)
+        buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        buttons_sizer.AddStretchSpacer(1)
+        buttons_sizer.Add(self.save_btn, 0,  wx.ALL, 3)
+        buttons_sizer.AddStretchSpacer(1)
+        buttons_sizer.Add(self.cancel_btn, 0,  wx.ALL, 3)
+        buttons_sizer.AddStretchSpacer(1)
+
+        main_sizer =  wx.BoxSizer(wx.VERTICAL)
+        main_sizer.Add(header_sizer, 0, wx.ALL|wx.EXPAND, 5)
+        main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(vol_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
+        main_sizer.Add(dur_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
+        main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(buttons_sizer, 0, wx.ALL|wx.EXPAND, 5)
+        self.SetSizer(main_sizer)
+
+    def change_vol(self, e):
+        print(" vol changed")
+        if self.unknown_flow == True:
+            return None
+        vol = self.vol_tc.GetValue()
+        new_dur = ""
+        if not vol == "":
+            try:
+                new_dur = float(vol) / float(self.flow_rate)
+            except:
+                pass
+        self.dur_tc.ChangeValue(str(new_dur))
+
+    def change_dur(self, e):
+        print(" dur changed")
+        if self.unknown_flow == True:
+            return None
+        dur = self.dur_tc.GetValue()
+        new_vol = ""
+        if not dur == "":
+            try:
+                new_vol = float(dur) * float(self.flow_rate)
+            except:
+                pass
+        self.vol_tc.ChangeValue(str(new_vol))
+
+    def show_guide_click(self, e):
+        self.parent.parent.shared_data.show_help('pump_cron_help.png')
+
+    def save_click(self, e):
+        print(" Sorry not yet doing anything")
+
+    def OnClose(self, e):
+        self.Destroy()
+
+class lvl_sensor_dialog(wx.Dialog):
+    def __init__(self, parent, *args, **kw):
+        self.parent = parent
+        super(lvl_sensor_dialog, self).__init__(*args, **kw)
+        self.InitUI()
+        self.SetSize((500, 450))
+        self.SetTitle("Water Level Sensor")
+        self.Bind(wx.EVT_CLOSE, self.OnClose)
+
+    def InitUI(self):
+        shared_data = self.parent.parent.shared_data
+        # panel
+        pnl = wx.Panel(self)
+
+        # Header
+        self.SetFont(shared_data.title_font)
+        msg = "\n FEATURE NOT FINISHED"
+        box_label = wx.StaticText(self,  label='Tank Level Sensor' + msg)
+        self.SetFont(shared_data.info_font)
+        # Show guide button
+        show_guide_btn = wx.Button(self, label='Guide', size=(175, 30))
+        show_guide_btn.Bind(wx.EVT_BUTTON, self.show_guide_click)
+        header_sizer =  wx.BoxSizer(wx.HORIZONTAL)
+        header_sizer.Add(box_label, 0, wx.ALL|wx.EXPAND, 5)
+        header_sizer.AddStretchSpacer(1)
+        header_sizer.Add(show_guide_btn, 0, wx.ALL, 5)
+
+        ## unique name
+        name_label = wx.StaticText(self,  label='not coded')
+        self.name_tc = wx.TextCtrl(self, value="", size=(200,30))
+        name_sizer =  wx.BoxSizer(wx.HORIZONTAL)
+        name_sizer.Add(name_label, 0, wx.ALL|wx.EXPAND, 5)
+        name_sizer.Add(self.name_tc, 0, wx.ALL|wx.EXPAND, 5)
+
+        # buttons_
+        self.save_btn = wx.Button(self, label='Save', size=(175, 30))
+        self.save_btn.Bind(wx.EVT_BUTTON, self.save_click)
+        self.cancel_btn = wx.Button(self, label='Cancel', size=(175, 30))
+        self.cancel_btn.Bind(wx.EVT_BUTTON, self.OnClose)
+        buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        buttons_sizer.AddStretchSpacer(1)
+        buttons_sizer.Add(self.save_btn, 0,  wx.ALL, 3)
+        buttons_sizer.AddStretchSpacer(1)
+        buttons_sizer.Add(self.cancel_btn, 0,  wx.ALL, 3)
+        buttons_sizer.AddStretchSpacer(1)
+
+        main_sizer =  wx.BoxSizer(wx.VERTICAL)
+        main_sizer.Add(header_sizer, 0, wx.ALL|wx.EXPAND, 5)
+        main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(name_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
+        main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(buttons_sizer, 0, wx.ALL|wx.EXPAND, 5)
+        self.SetSizer(main_sizer)
+
+    def show_guide_click(self, e):
+        self.parent.parent.shared_data.show_help('lvl_sensor_help.png')
+
+    def save_click(self, e):
+        print(" Sorry not yet doing anything")
+
+    def OnClose(self, e):
+        self.Destroy()
