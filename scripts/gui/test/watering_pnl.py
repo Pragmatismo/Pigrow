@@ -137,7 +137,7 @@ class info_pnl(scrolled.ScrolledPanel):
         # water pump table
         pump_l =  wx.StaticText(self,  label='Water Pumps and Pipes')
         # buttons sizer
-        self.del_pump_link_btn = wx.Button(self, label='Delete Link')
+        self.del_pump_link_btn = wx.Button(self, label='unlink pump')
         self.del_pump_link_btn.Bind(wx.EVT_BUTTON, self.del_pump_link_click)
         pump_but_sizer = wx.BoxSizer(wx.HORIZONTAL)
         pump_but_sizer.Add(self.del_pump_link_btn, 1, wx.LEFT, 50)
@@ -255,25 +255,33 @@ class info_pnl(scrolled.ScrolledPanel):
         self.set_tankstat_setting(tank_name, "current_ml", full_val)
 
     def enable_tank_click(self, e=""):
+        label = self.enable_tank_btn.GetLabel()
         selected_tank = self.wtank_lst.GetFocusedItem()
         if not selected_tank == -1:
             tank_name = self.wtank_lst.GetItem(selected_tank, 0).GetText()
         else:
             return None
-        self.set_tankstat_setting(tank_name, "active", "true")
+        # set state depending on button text
+        if label == "Enable Tank":
+            self.set_tankstat_setting(tank_name, "active", "true")
+            self.enable_tank_btn.SetLabel("Disable Tank")
+        else:
+            self.set_tankstat_setting(tank_name, "active", "false")
+            self.enable_tank_btn.SetLabel("Enable Tank")
+
 
     def set_tankstat_setting(self, tank_name, setting, value):
         # check tankstate file eixsts
         tankstat_path = self.parent.shared_data.remote_pigrow_path
         tankstat_path += "logs/tankstat_" + tank_name + ".txt"
         out, err = self.parent.link_pnl.run_on_pi("ls " + tankstat_path)
+        found = False
         if out.strip() == "":
             print(" no tank state file, creating one")
-            tank_state_txt = setting + "=" + value
+            tank_state_txt = setting + "=" + value + "\n"
         else:
             out, err = self.parent.link_pnl.run_on_pi("cat " + tankstat_path)
             tank_state_txt = ""
-            found = False
             for line in out.splitlines():
                 if "=" in line:
                     e_pos = line.find("=")
@@ -281,10 +289,11 @@ class info_pnl(scrolled.ScrolledPanel):
                     if key == setting:
                         found = True
                         if not value == val:
-                            line = key + "=" + val
-                tank_state_txt += line + "\n"
-        if not found:
-            tank_state_txt += setting + "=" + value
+                            line = key + "=" + value
+                if not line.strip() == "":
+                    tank_state_txt += line + "\n"
+            if not found:
+                tank_state_txt += setting + "=" + value
         cmd = 'echo "' + tank_state_txt + '" > ' + tankstat_path
         out, err = self.parent.link_pnl.run_on_pi(cmd)
         print(" Tank state file updated ", tankstat_path)
@@ -359,7 +368,13 @@ class info_pnl(scrolled.ScrolledPanel):
         else:
             print("No water tank currently selected, unable to list linked pumps")
             return None
-        #
+        # set enable/disable button
+        tank_state = self.wtank_lst.GetItem(selected_tank, 4).GetText()
+        if tank_state.lower() == "true":
+            self.enable_tank_btn.SetLabel("Disable Tank")
+        else:
+            self.enable_tank_btn.SetLabel("Enable Tank")
+
         # make sensor table
         self.lev_s_lst.make_table()
         # make pump table
@@ -848,6 +863,7 @@ class tank_dialog(wx.Dialog):
     def save_click(self, e):
         shared_data = self.parent.parent.shared_data
         n_name  = self.name_tc.GetValue()
+        n_name = n_name.replace(" ", "").replace("_", "").strip()
         n_vol = self.vol_tc.GetValue()
         n_mode = "" #self.mode_combo.GetValue()
         changed = "yes"
