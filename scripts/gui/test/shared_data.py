@@ -20,7 +20,7 @@ class shared_data:
         self.gui_set_dict['save_ip'] = "True"
         # scale and units
         self.gui_set_dict['font_scale'] = "1"
-        self.gui_set_dict['volume_unit'] = "Litre"
+        self.gui_set_dict['volume_unit'] = "ml"
         self.gui_set_dict['temp_unit'] = "c"
 
 
