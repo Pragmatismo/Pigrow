@@ -699,24 +699,35 @@ class info_pnl(scrolled.ScrolledPanel):
                     for item in s_raw:
                         if ":" in item:
                             name, pos = item.split(":")
-                            trig_on, trig_off = self.read_switch_trigs(name)
-                            stls_list.append([name, pos, trig_on, trig_off])
+                            cmdD, cmdU = self.read_switch_trigs(name)
+                            stls_list.append([name, pos, cmdD, cmdU])
 
                     # add to relay table
                     for item in stls_list:
-                        name, pos, trig_on, trig_off = item
-                        self.add_to_relay_table(name, pos, trig_on, trig_off)
+                        name, pos, cmdD, cmdU = item
+                        self.add_to_relay_table(name, pos, cmdD, cmdU)
 
         def read_switch_trigs(self, name):
-            return "not coded", "NOT CODED!"
+            config_dict = self.parent.parent.shared_data.config_dict
+            pigrow_base = self.parent.parent.shared_data.remote_pigrow_path
+            cmdD_key = "button_" + name + "_cmdD"
+            cmdU_key = "button_" + name + "_cmdU"
+            cmdD, cmdU = "", ""
+            if cmdD_key in config_dict:
+                cmdD = config_dict[cmdD_key]
+                cmdD = cmdD.replace(pigrow_base, "...")
+            if cmdU_key in config_dict:
+                cmdU = config_dict[cmdU_key]
+                cmdU = cmdU.replace(pigrow_base, "...")
+            return cmdD, cmdU
 
-        def add_to_relay_table(self, name, pos, trig_on, trig_off):
+        def add_to_relay_table(self, name, pos, cmdD, cmdU):
             self.InsertItem(0, str(name))
             self.SetItem(0, 1, str(pos))
             s_status = self.read_switch_state(name)
             self.SetItem(0, 2, str(s_status))
-            self.SetItem(0, 3, str(trig_on))
-            self.SetItem(0, 4, str(trig_off))
+            self.SetItem(0, 3, str(cmdD))
+            self.SetItem(0, 4, str(cmdU))
 
         def read_switch_state(self, name):
             return "not coded"
