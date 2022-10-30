@@ -73,7 +73,7 @@ if __name__ == '__main__':
             if thearg == "type":
                 gpio_type = thevalue
             if thearg == "output":
-                output = "thevalue"
+                output = thevalue
         elif 'help' in argu or argu == '-h':
             print(" Returns the state of a switch")
             print(" ")
