@@ -53,9 +53,21 @@ class ctrl_pnl(wx.Panel):
         self.fill_table_click("e")
 
     def link_lvl_sensor_click(self, e):
+        tank_table = self.parent.dict_I_pnl['watering_pnl'].wtank_lst
+        index = tank_table.GetFocusedItem()
+        if index == -1:
+            lvl_sensor_dialog.s_tank = "no tanks to select from"
+
+            return None
+        else:
+            lvl_sensor_dialog.s_tank = tank_table.GetItem(index, 0).GetText()
+        lvl_sensor_dialog.s_name = ""
+        lvl_sensor_dialog.s_vol = "0"
         # call dialog box
         lvl_sensor_dlb = lvl_sensor_dialog(self, self.parent)
         lvl_sensor_dlb.ShowModal()
+        # refresh table
+        self.parent.dict_I_pnl['watering_pnl'].lev_s_lst.make_table()
 
 
     def link_pump_click(self, e):
@@ -64,6 +76,7 @@ class ctrl_pnl(wx.Panel):
         index = tank_table.GetFocusedItem()
         if index == -1:
             pump_dialog.s_link = "no tanks to select from"
+            return None
         else:
             pump_dialog.s_link = tank_table.GetItem(index, 0).GetText()
         pump_dialog.s_rate = ""
@@ -128,7 +141,7 @@ class info_pnl(scrolled.ScrolledPanel):
         self.SetFont(shared_data.item_title_font)
         linked_s_title =  wx.StaticText(self,  label='Linked level sensors')
         self.lev_s_lst = self.level_sensor_list(self, 1)
-    #    self.lev_s_lst.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.level_sensor_list.doubleclick)
+        self.lev_s_lst.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.lev_s_lst.doubleclick)
         self.swtinfo_sizer = wx.BoxSizer(wx.VERTICAL)
         self.swtinfo_sizer.Add(swtinfo_title, 0, wx.ALL, 3)
         self.swtinfo_sizer.Add(linked_s_title, 0, wx.LEFT, 50)
@@ -268,7 +281,6 @@ class info_pnl(scrolled.ScrolledPanel):
         else:
             self.set_tankstat_setting(tank_name, "active", "false")
             self.enable_tank_btn.SetLabel("Enable Tank")
-
 
     def set_tankstat_setting(self, tank_name, setting, value):
         # check tankstate file eixsts
@@ -640,6 +652,23 @@ class info_pnl(scrolled.ScrolledPanel):
                 height = 50 + (self.GetItemCount() * textsize)
                 self.SetMinSize((800, height))
 
+        def doubleclick(self, e):
+            index =  e.GetIndex()
+            #get info for dialogue box
+            tank_table = self.parent.parent.dict_I_pnl['watering_pnl'].wtank_lst
+            index = tank_table.GetFocusedItem()
+            if index == -1:
+                lvl_sensor_dialog.s_tank = ""
+                return None
+            else:
+                lvl_sensor_dialog.s_tank = tank_table.GetItem(index, 0).GetText()
+
+            lvl_sensor_dialog.s_name = self.GetItem(index, 0).GetText()
+            lvl_sensor_dialog.s_pos  = self.GetItem(index, 1).GetText()
+            dlb_box = lvl_sensor_dialog(self.parent.c_pnl, self.parent.c_pnl.parent)
+            dlb_box.ShowModal()
+            self.parent.c_pnl.fill_table_click("e")
+
         def check_col_size(self, i):
             self.SetColumnWidth(i, wx.LIST_AUTOSIZE)
             l = self.GetColumnWidth(i)
@@ -658,19 +687,19 @@ class info_pnl(scrolled.ScrolledPanel):
             if not selected_tank == -1:
                 tank_name = self.parent.wtank_lst.GetItem(selected_tank, 0).GetText()
 
-                setting_name = "wtank_" + tank_name + "_levsw"
+                setting_name = "wtank_" + tank_name + "_lvlsen"
                 if setting_name in config_dict:
                     s_raw = config_dict[setting_name]
                     if "," in s_raw:
-                        s_raw.split(",")
+                        s_raw = s_raw.split(",")
                     else:
                         s_raw = [s_raw]
                     # make list of sensors
                     stls_list = []
                     for item in s_raw:
-                        if ":" in s_raw:
+                        if ":" in item:
                             name, pos = item.split(":")
-                            trig_on, trig_off = self.read_switch_trigs(self, name)
+                            trig_on, trig_off = self.read_switch_trigs(name)
                             stls_list.append([name, pos, trig_on, trig_off])
 
                     # add to relay table
@@ -678,7 +707,7 @@ class info_pnl(scrolled.ScrolledPanel):
                         name, pos, trig_on, trig_off = item
                         self.add_to_relay_table(name, pos, trig_on, trig_off)
 
-        def read_switch_trigs(self):
+        def read_switch_trigs(self, name):
             return "not coded", "NOT CODED!"
 
         def add_to_relay_table(self, name, pos, trig_on, trig_off):
@@ -1383,12 +1412,28 @@ class lvl_sensor_dialog(wx.Dialog):
         header_sizer.AddStretchSpacer(1)
         header_sizer.Add(show_guide_btn, 0, wx.ALL, 5)
 
-        ## unique name
-        name_label = wx.StaticText(self,  label='not coded')
-        self.name_tc = wx.TextCtrl(self, value="", size=(200,30))
+        ## name
+        name_label = wx.StaticText(self,  label='Tank')
+        self.name_t = wx.StaticText(self, label=self.s_tank)
         name_sizer =  wx.BoxSizer(wx.HORIZONTAL)
         name_sizer.Add(name_label, 0, wx.ALL|wx.EXPAND, 5)
-        name_sizer.Add(self.name_tc, 0, wx.ALL|wx.EXPAND, 5)
+        name_sizer.Add(self.name_t, 0, wx.ALL|wx.EXPAND, 5)
+
+        # button-sensor select
+        senbut_label = wx.StaticText(self,  label='Button')
+        self.senbut_combo = wx.ComboBox(self, choices = self.get_senbut_opts())
+        self.senbut_combo.SetValue(self.s_name)
+        senbut_sizer =  wx.BoxSizer(wx.HORIZONTAL)
+        senbut_sizer.Add(senbut_label, 0, wx.ALL|wx.EXPAND, 5)
+        senbut_sizer.Add(self.senbut_combo, 0, wx.ALL|wx.EXPAND, 5)
+
+        # tank position as percentage select
+        pos_label = wx.StaticText(self,  label='Position')
+        self.pos_tc = wx.TextCtrl(self, value=self.s_pos, size=(200,30))
+        pos_sizer =  wx.BoxSizer(wx.HORIZONTAL)
+        pos_sizer.Add(pos_label, 0, wx.ALL|wx.EXPAND, 5)
+        pos_sizer.Add(self.pos_tc, 0, wx.ALL|wx.EXPAND, 5)
+
 
         # buttons_
         self.save_btn = wx.Button(self, label='Save', size=(175, 30))
@@ -1406,15 +1451,84 @@ class lvl_sensor_dialog(wx.Dialog):
         main_sizer.Add(header_sizer, 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.AddStretchSpacer(1)
         main_sizer.Add(name_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
+        main_sizer.Add(senbut_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
+        main_sizer.Add(pos_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
         main_sizer.AddStretchSpacer(1)
         main_sizer.Add(buttons_sizer, 0, wx.ALL|wx.EXPAND, 5)
         self.SetSizer(main_sizer)
+
+    def get_senbut_opts(self):
+        # cycle through config dict finding buttons
+        config_dict = self.parent.parent.shared_data.config_dict
+        button_name_list = []
+        for key in config_dict:
+            if "_type" in key:
+                if "button_" in key:
+                    button_name_list.append(key.split("_")[1])
+
+        return button_name_list
+
 
     def show_guide_click(self, e):
         self.parent.parent.shared_data.show_help('lvl_sensor_help.png')
 
     def save_click(self, e):
-        print(" Sorry not yet doing anything")
+        '''
+        tank name can't be changed, reads if there's any sensors in list
+        and alters to pos value if needed, then updates config
+        adds if not alraedy a link list.
+        # wtank_tupp_lvlsen=testuu:0, toplvl:100, midlvl:50
+        '''
+
+        config_dict = self.parent.parent.shared_data.config_dict
+        tank_name = self.name_t.GetLabel()
+        button_name = self.senbut_combo.GetValue()
+        position = self.pos_tc.GetValue()
+        if tank_name == "" or button_name == "" or position == "":
+            print("Values not set")
+            return None
+        try:
+            p = float(position)
+            if p > 100 or p < 0:
+                print(" Not a valid percentage ")
+                return None
+        except:
+            print("Position is not a number")
+            return None
+        new_but_tag = button_name + ":" + str(position)
+        tank_sen_key = "wtank_" + tank_name + "_lvlsen"
+        if tank_sen_key in config_dict:
+            s_list = config_dict[tank_sen_key]
+            if "," in s_list:
+                s_list = s_list.split(",")
+            else:
+                s_list = [s_list]
+        else:
+            s_list = []
+        # make a new list of buttons
+        new_list = ""
+        found = False
+        no_update = False
+        for item in s_list:
+            if ":" in item:
+                if item.split(":")[0] == button_name:
+                    if item == new_but_tag:
+                        no_update = True
+                    else:
+                        item = new_but_tag
+                    found = True
+            if not item.strip() == "":
+                new_list += item + ","
+        if found == False:
+            new_list += new_but_tag + ","
+        new_list = new_list[:-1]
+        config_dict[tank_sen_key] = new_list
+
+        # save config to pi
+        if no_update == False:
+            self.parent.parent.shared_data.update_pigrow_config_file_on_pi()
+        self.Destroy()
+
 
     def OnClose(self, e):
         self.Destroy()
