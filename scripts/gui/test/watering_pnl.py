@@ -730,7 +730,23 @@ class info_pnl(scrolled.ScrolledPanel):
             self.SetItem(0, 4, str(cmdU))
 
         def read_switch_state(self, name):
-            return "not coded"
+            cmd = self.parent.parent.shared_data.remote_pigrow_path
+            cmd += "scripts/triggers/read_switch.py "
+            cmd += "name=" + name + " "
+            out, error = self.parent.parent.link_pnl.run_on_pi(cmd)
+
+            return out
+
+
+            #### How button is read in sensors pnl
+            # gpio = self.gpio_tc.GetValue()
+            # type = "GND"
+            # if not gpio == "":
+            #     script = self.parent.parent.parent.shared_data.remote_pigrow_path + "scripts/triggers/read_switch.py"
+            #     cmd = script + " gpio=" + gpio + " type=" + type
+            #     out, error = self.parent.parent.parent.link_pnl.run_on_pi(cmd)
+            #     self.read_but_text.SetLabel(out)
+
 
 
     class pump_list(wx.ListCtrl):

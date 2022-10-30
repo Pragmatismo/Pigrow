@@ -44,7 +44,8 @@ def read_button_settings(pigrow_settings, button_name):
     return button_name, button_type, button_loc, button_log
 
 def read_switch_pos(name, type, loc):
-    print("Reading switch " + name)
+    if not output == "short":
+        print("Reading switch " + name)
     import RPi.GPIO as GPIO
     GPIO.setmode(GPIO.BCM)
     if type == "HIGH":
@@ -60,6 +61,7 @@ if __name__ == '__main__':
     switch_name = None
     gpio_pos = None
     gpio_type = None
+    output = "long"
     for argu in sys.argv[1:]:
         if "=" in argu:
             thearg = str(argu).split('=')[0]
@@ -70,16 +72,26 @@ if __name__ == '__main__':
                 gpio_pos = thevalue
             if thearg == "type":
                 gpio_type = thevalue
+            if thearg == "output":
+                output = "thevalue"
         elif 'help' in argu or argu == '-h':
-            print(" Script returns the state of a switch")
+            print(" Returns the state of a switch")
             print(" ")
             print(" This requres the switch to be configured in the remote gui.")
             print(" ")
             print(" name=switch unique name")
+            print("   or ")
+            print(" gpio=NUM")
+            print(" type=GND or HIGH")
+            print("")
+            print(" output=short   - return only on/off")
             print("")
             sys.exit(0)
         elif argu == "-flags":
             print("name=")
+            print("gpio=NUM")
+            print("type=[GND, HIGH]")
+            print("output=[short,long]")
             sys.exit(0)
 
     if switch_name == None and gpio_pos == None:
@@ -93,6 +105,12 @@ if __name__ == '__main__':
     else:
         name = "gpio " + str(gpio_pos)
         position = read_switch_pos(name, gpio_type, gpio_pos)
-    print(name + " is currently " + position)
-    if position == "1":
-        print("activate=True")
+    if output == "short":
+        if position == 0:
+            print("off")
+        else:
+            print("on")
+    else:
+        print(name + " is currently " + position)
+        if position == "1":
+            print("activate=True")
