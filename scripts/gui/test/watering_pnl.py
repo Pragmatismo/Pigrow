@@ -680,7 +680,6 @@ class info_pnl(scrolled.ScrolledPanel):
         def make_table(self):
             config_dict = self.parent.parent.shared_data.config_dict
             level_sensor_list = []
-            print(" LEVEL SENSOR LIST BEING MADE - kinda ")
             self.DeleteAllItems()
 
             selected_tank = self.parent.wtank_lst.GetFocusedItem()
@@ -733,19 +732,10 @@ class info_pnl(scrolled.ScrolledPanel):
             cmd = self.parent.parent.shared_data.remote_pigrow_path
             cmd += "scripts/triggers/read_switch.py "
             cmd += "name=" + name + " "
+            cmd += "output=short"
             out, error = self.parent.parent.link_pnl.run_on_pi(cmd)
 
             return out
-
-
-            #### How button is read in sensors pnl
-            # gpio = self.gpio_tc.GetValue()
-            # type = "GND"
-            # if not gpio == "":
-            #     script = self.parent.parent.parent.shared_data.remote_pigrow_path + "scripts/triggers/read_switch.py"
-            #     cmd = script + " gpio=" + gpio + " type=" + type
-            #     out, error = self.parent.parent.parent.link_pnl.run_on_pi(cmd)
-            #     self.read_but_text.SetLabel(out)
 
 
 
@@ -1417,7 +1407,7 @@ class lvl_sensor_dialog(wx.Dialog):
         self.parent = parent
         super(lvl_sensor_dialog, self).__init__(*args, **kw)
         self.InitUI()
-        self.SetSize((500, 450))
+        self.SetSize((500, 700))
         self.SetTitle("Water Level Sensor")
         self.Bind(wx.EVT_CLOSE, self.OnClose)
 
@@ -1455,12 +1445,61 @@ class lvl_sensor_dialog(wx.Dialog):
         senbut_sizer.Add(self.senbut_combo, 0, wx.ALL|wx.EXPAND, 5)
 
         # tank position as percentage select
-        pos_label = wx.StaticText(self,  label='Position')
+        pos_label = wx.StaticText(self,  label='tank vol ml')
         self.pos_tc = wx.TextCtrl(self, value=self.s_pos, size=(200,30))
         pos_sizer =  wx.BoxSizer(wx.HORIZONTAL)
         pos_sizer.Add(pos_label, 0, wx.ALL|wx.EXPAND, 5)
         pos_sizer.Add(self.pos_tc, 0, wx.ALL|wx.EXPAND, 5)
 
+        # cmdU / cmdD
+        self.use_tankstat = wx.CheckBox(self,  label="trigger edit tankstat")
+        self.use_tankstat.Bind(wx.EVT_CHECKBOX, self.tankstat_click)
+        cmdUD, cmdD_e_on, cmdD_e_off, cmdD_v, cmdU_e_on, cmdU_e_off, cmdU_v = self.check_cmdud(self.s_name)
+        if cmdUD == True:
+            cmd_v_opt = self.get_ud_opt(cmdD_v, cmdU_v)
+            cmd_a_on_opt = self.get_ud_opt(cmdD_e_on, cmdU_e_on)
+            cmd_a_off_opt = self.get_ud_opt(cmdD_e_off, cmdU_e_off)
+        else:
+            cmd_v_opt = "none"
+            cmd_a_on_opt = "none"
+            cmd_a_off_opt = "none"
+
+
+        self.use_tankstat.SetValue(cmdUD)
+
+        setlvl_label = wx.StaticText(self,  label='set tank level')
+        opts_b = ["down", "up", "both", "none"]
+        self.setlvl_cb = wx.ComboBox(self, choices = opts_b, size=(200, 40))
+        self.setlvl_cb.SetValue(cmd_v_opt)
+        setlvl_sizer =  wx.BoxSizer(wx.HORIZONTAL)
+        setlvl_sizer.Add(setlvl_label, 0, wx.ALL|wx.EXPAND, 5)
+        setlvl_sizer.Add(self.setlvl_cb, 0, wx.ALL|wx.EXPAND, 5)
+
+        seton_label = wx.StaticText(self,  label='enable tank')
+        opts = ["down", "up", "none"]
+        self.seton_cb = wx.ComboBox(self, choices = opts, size=(200, 40))
+        self.seton_cb.SetValue(cmd_a_on_opt)
+        seton_sizer =  wx.BoxSizer(wx.HORIZONTAL)
+        seton_sizer.Add(seton_label, 0, wx.ALL|wx.EXPAND, 5)
+        seton_sizer.Add(self.seton_cb, 0, wx.ALL|wx.EXPAND, 5)
+
+        setoff_label = wx.StaticText(self,  label='disable tank')
+        self.setoff_cb = wx.ComboBox(self, choices = opts, size=(200, 40))
+        self.setoff_cb.SetValue(cmd_a_off_opt)
+        setoff_sizer =  wx.BoxSizer(wx.HORIZONTAL)
+        setoff_sizer.Add(setoff_label, 0, wx.ALL|wx.EXPAND, 5)
+        setoff_sizer.Add(self.setoff_cb, 0, wx.ALL|wx.EXPAND, 5)
+
+        if cmdUD == False:
+            self.setlvl_cb.Disable()
+            self.seton_cb.Disable()
+            self.setoff_cb.Disable()
+
+        cmdud_sizer =  wx.BoxSizer(wx.VERTICAL)
+        cmdud_sizer.Add(self.use_tankstat, 0, wx.ALL|wx.EXPAND, 5)
+        cmdud_sizer.Add(setlvl_sizer, 0, wx.ALL|wx.EXPAND, 5)
+        cmdud_sizer.Add(seton_sizer, 0, wx.ALL|wx.EXPAND, 5)
+        cmdud_sizer.Add(setoff_sizer, 0, wx.ALL|wx.EXPAND, 5)
 
         # buttons_
         self.save_btn = wx.Button(self, label='Save', size=(175, 30))
@@ -1480,9 +1519,85 @@ class lvl_sensor_dialog(wx.Dialog):
         main_sizer.Add(name_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
         main_sizer.Add(senbut_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
         main_sizer.Add(pos_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
+        main_sizer.Add(cmdud_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
         main_sizer.AddStretchSpacer(1)
         main_sizer.Add(buttons_sizer, 0, wx.ALL|wx.EXPAND, 5)
         self.SetSizer(main_sizer)
+
+    def tankstat_click(self, e):
+        state = self.use_tankstat.GetValue()
+        if state == True:
+            self.setlvl_cb.Enable()
+            self.seton_cb.Enable()
+            self.setoff_cb.Enable()
+        else:
+            self.setlvl_cb.Disable()
+            self.seton_cb.Disable()
+            self.setoff_cb.Disable()
+
+    def get_ud_opt(self, cmdD, cmdU):
+        if not cmdD == "":
+            if not cmdU == "":
+                cmd_opt = "both"
+            else:
+                cmd_opt = "down"
+        else:
+            if not cmdU == "":
+                cmd_opt = "up"
+            else:
+                cmd_opt = "none"
+        return cmd_opt
+
+    def check_cmdud(self, button_name):
+        config_dict = self.parent.parent.shared_data.config_dict
+        pigrow_base = self.parent.parent.shared_data.remote_pigrow_path
+        cmdD_key = "button_" + button_name + "_cmdD"
+        cmdU_key = "button_" + button_name + "_cmdU"
+        cmdD, cmdU = "", ""
+        cmdD_a_on, cmdD_a_off, cmdD_v = "", "", ""
+        cmdU_a_on, cmdU_a_off, cmdU_v = "", "", ""
+        ts_script = "scripts/triggers/set_tankstat.py"
+        cmdUD = False
+
+        if cmdD_key in config_dict:
+            cmdD = config_dict[cmdD_key]
+            cmdD = cmdD.replace(pigrow_base, "")
+            if ts_script in cmdD:
+                cmdD = cmdD.replace(ts_script, "").strip()
+                cmdD_a_on, cmdD_a_off, cmdD_v = self.get_ev(cmdD)
+                cmdUD = True
+
+        if cmdU_key in config_dict:
+            cmdU = config_dict[cmdU_key]
+            cmdU = cmdU.replace(pigrow_base, "")
+            if ts_script in cmdU:
+                cmdU = cmdU.replace(ts_script, "").strip()
+                cmdU_a_on, cmdU_a_off, cmdU_v = self.get_ev(cmdU)
+                cmdUD = True
+
+        return cmdUD, cmdD_a_on, cmdD_a_off, cmdD_v, cmdU_a_on, cmdU_a_off, cmdU_v
+
+    def get_ev(self, txt):
+        # make list of args
+        if " " in txt:
+            arg_list = txt.split(" ")
+        else:
+            arg_list = [txt]
+        #
+        cmd_a_on  = ""
+        cmd_a_off = ""
+        cmd_v = ""
+        for item in arg_list:
+            if "=" in item:
+                key, val = item.split("=")
+                if key == "active":
+                    if val == "true":
+                        cmd_a_on = val
+                    elif val == "false":
+                        cmd_a_off = val
+                elif key == "vol" or key == "ml":
+                    cmd_v = val
+        return cmd_a_on, cmd_a_off, cmd_v
 
     def get_senbut_opts(self):
         # cycle through config dict finding buttons
@@ -1499,6 +1614,29 @@ class lvl_sensor_dialog(wx.Dialog):
     def show_guide_click(self, e):
         self.parent.parent.shared_data.show_help('lvl_sensor_help.png')
 
+    def make_cmdUD_args(self):
+        v_opt  = self.setlvl_cb.GetValue()
+        e_o_opt  = self.seton_cb.GetValue()
+        e_f_opt = self.setoff_cb.GetValue()
+        # if none selected
+        if v_opt == "none" and e_o_opt == "none" and e_f_opt == "none":
+            return "", ""
+        # make args
+        cmdU_args = self.make_cmd_arg("up", v_opt, e_o_opt, e_f_opt)
+        cmdD_args = self.make_cmd_arg("down", v_opt, e_o_opt, e_f_opt)
+        return cmdU_args, cmdD_args
+
+    def make_cmd_arg(self, match, v_opt, e_o_opt, e_f_opt):
+        args = ""
+        float_level = self.pos_tc.GetValue()
+        if v_opt == "both" or v_opt == match:
+            args += "vol=" + float_level + " "
+        if e_o_opt == "both" or e_o_opt == match:
+            args += "active=true"
+        elif e_f_opt == "both" or e_f_opt == match:
+            args += "active=false"
+        return args
+
     def save_click(self, e):
         '''
         tank name can't be changed, reads if there's any sensors in list
@@ -1506,22 +1644,56 @@ class lvl_sensor_dialog(wx.Dialog):
         adds if not alraedy a link list.
         # wtank_tupp_lvlsen=testuu:0, toplvl:100, midlvl:50
         '''
-
         config_dict = self.parent.parent.shared_data.config_dict
         tank_name = self.name_t.GetLabel()
         button_name = self.senbut_combo.GetValue()
         position = self.pos_tc.GetValue()
+        #
+        change_cmd = False
+        if self.use_tankstat.GetValue() == True:
+            pigrow_base = self.parent.parent.shared_data.remote_pigrow_path
+            ts_script = "scripts/triggers/set_tankstat.py "
+            cmdD_key = "button_" + button_name + "_cmdD"
+            cmdU_key = "button_" + button_name + "_cmdU"
+            #
+            cmdU_args, cmdD_args = self.make_cmdUD_args()
+
+            if cmdU_args == "":
+                if not config_dict[cmdU_key] == "":
+                    config_dict[cmdU_key] = ""
+                    change_cmd = True
+            else:
+                cmdU = pigrow_base + ts_script + cmdU_args
+                if not config_dict[cmdU_key] == cmdU:
+                    config_dict[cmdU_key] = cmdU
+                    change_cmd = True
+
+            if cmdD_args == "":
+                if not config_dict[cmdD_key] == "":
+                    config_dict[cmdD_key] = ""
+                    change_cmd = True
+            else:
+                cmdD = pigrow_base + ts_script + cmdD_args
+                if not config_dict[cmdD_key] == cmdD:
+                    config_dict[cmdD_key] = cmdD
+                    change_cmd = True
+
+
         if tank_name == "" or button_name == "" or position == "":
             print("Values not set")
             return None
-        try:
-            p = float(position)
-            if p > 100 or p < 0:
-                print(" Not a valid percentage ")
-                return None
-        except:
-            print("Position is not a number")
-            return None
+        #
+        #      converting p to ml, this will be removed
+        #
+        # try:
+        #     p = float(position)
+        #     if p > 100 or p < 0:
+        #         print(" Not a valid percentage ")
+        #         return None
+        # except:
+        #     print("Position is not a number")
+        #     return None
+
         new_but_tag = button_name + ":" + str(position)
         tank_sen_key = "wtank_" + tank_name + "_lvlsen"
         if tank_sen_key in config_dict:
@@ -1552,7 +1724,7 @@ class lvl_sensor_dialog(wx.Dialog):
         config_dict[tank_sen_key] = new_list
 
         # save config to pi
-        if no_update == False:
+        if no_update == False or change_cmd == True:
             self.parent.parent.shared_data.update_pigrow_config_file_on_pi()
         self.Destroy()
 
