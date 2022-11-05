@@ -259,17 +259,20 @@ class config_compare_dialog(wx.Dialog):
         self.Destroy()
 
     def upload_cron(self):
-        print(" Not currently actually updating cron, still in testing - sorry")
         conf_local = self.parent.conf_local
         local_cronstore_path = os.path.join(conf_local, 'cron_store.txt')
 
+        with open(local_cronstore_path, "r") as config_file:
+            l_c_file = config_file.read()
+        cron_text = l_c_file.rstrip('\r')
+
         temp_cronstore_path = self.parent.parent.shared_data.remote_pigrow_path + "temp/cron_store.txt"
-        self.parent.parent.link_pnl.upload_files([[local_cronstore_path, temp_cronstore_path]])
+        self.parent.parent.link_pnl.write_textfile_to_pi(cron_text, temp_cron_remote)
+
+        #self.parent.parent.link_pnl.upload_files([[local_cronstore_path, temp_cronstore_path]])
         # check they match
         out, error = self.parent.parent.link_pnl.run_on_pi("cat " + temp_cronstore_path)
 
-        with open(local_cronstore_path, "r") as config_file:
-            l_c_file = config_file.read()
         if out.rstrip('\r') == l_c_file:
             #print(" The uploaded cron file is the same as the one we uploaded, no corruption here")
             out, error = self.parent.parent.link_pnl.run_on_pi("crontab " + temp_cronstore_path)
