@@ -270,7 +270,7 @@ class config_compare_dialog(wx.Dialog):
 
         with open(local_cronstore_path, "r") as config_file:
             l_c_file = config_file.read()
-        if out == l_c_file:
+        if out.rstrip('\r') == l_c_file:
             #print(" The uploaded cron file is the same as the one we uploaded, no corruption here")
             out, error = self.parent.parent.link_pnl.run_on_pi("crontab " + temp_cronstore_path)
             out, error = self.parent.parent.link_pnl.run_on_pi("crontab -l")
