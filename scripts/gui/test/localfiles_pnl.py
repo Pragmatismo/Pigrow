@@ -119,7 +119,7 @@ class ctrl_pnl(wx.Panel):
         cron_save_path = os.path.join(confstore_dir, 'cron_store.txt')
         out, error = self.parent.link_pnl.run_on_pi("crontab -l ")
         with open(cron_save_path, "w") as cron_file:
-            cron_file.write(out)
+            cron_file.write(out.rstrip('\r'))
 
 
 
@@ -566,7 +566,6 @@ class config_compare_dialog(wx.Dialog):
                 else:
                     return False
 
-
 class compare_conf_file_dialog(wx.Dialog):
     #Dialog box for downloding files from pi to local storage folder
     def __init__(self, parent, *args, **kw):
@@ -880,7 +879,6 @@ class file_download_dialog(wx.Dialog):
         self.user_folders_to_download = []
         self.Destroy()
 
-#class info_pnl(wx.Panel):
 class info_pnl(scrolled.ScrolledPanel):
     def __init__(self, parent):
         shared_data = parent.shared_data
