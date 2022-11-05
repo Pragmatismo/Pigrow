@@ -434,7 +434,7 @@ class link_pnl(wx.Panel):
             self.sftp.put(local_path, remote_path)
         self.sftp.close()
         ssh_tran.close()
-        print(("    file copied to " + str(local_path)))
+        print(("    file copied to " + str(remote_path)))
 
 
 
