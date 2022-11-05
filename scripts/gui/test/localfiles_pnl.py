@@ -267,7 +267,7 @@ class config_compare_dialog(wx.Dialog):
         cron_text = l_c_file.rstrip('\r')
 
         temp_cronstore_path = self.parent.parent.shared_data.remote_pigrow_path + "temp/cron_store.txt"
-        self.parent.parent.link_pnl.write_textfile_to_pi(cron_text, temp_cron_remote)
+        self.parent.parent.link_pnl.write_textfile_to_pi(cron_text, temp_cronstore_path)
 
         #self.parent.parent.link_pnl.upload_files([[local_cronstore_path, temp_cronstore_path]])
         # check they match
