@@ -126,6 +126,7 @@ class ctrl_pnl(wx.Panel):
     def loadconf_click(self, e):
         print("loading config not written yet, save must come first obvs")
         # list saved configs - folder name; config_NAME
+        conf_folder = []
         defpath = self.parent.shared_data.frompi_path
         dialog = wx.DirDialog(self, "Select config folder", defaultPath=defpath, style=wx.DD_DIR_MUST_EXIST)
         if dialog.ShowModal() == wx.ID_OK:
