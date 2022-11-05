@@ -668,7 +668,7 @@ class files_download_dialog(wx.Dialog):
         self.cancel_btn.Bind(wx.EVT_BUTTON, self.OnClose)
 
         main_sizer = wx.BoxSizer(wx.VERTICAL)
-        main_sizer.Add(label, 0, wx.ALL|wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL, 5)
+        main_sizer.Add(label, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
         main_sizer.AddStretchSpacer(1)
         main_sizer.Add(self.current_file_txt, 0, wx.LEFT|wx.EXPAND, 25)
         main_sizer.Add(self.current_dest_txt, 0, wx.LEFT|wx.EXPAND, 25)
