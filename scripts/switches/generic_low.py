@@ -37,7 +37,12 @@ def check_command_line_args():
         elif argu == '-flags':
             print("GPIO=<num>")
             print("log=[none,dirlocs,<PATH>]")
-        return gpio_pin, log
+
+    if gpio_pin == "not set":
+        print("gpio pin must be supplied with gpio=PIN_NUM")
+        sys.exit()
+
+    return gpio_pin, log
 
 def generic_low(gpio_pin, switch_log):
     """
