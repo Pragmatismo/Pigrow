@@ -64,9 +64,15 @@ def read_button_settings(pigrow_settings, button_name):
     return butt_settings
 
 pigrow_settings = load_config()
-type, loc, log, log_type, cmdD, cmdU = read_button_settings(pigrow_settings, button_name)
-if log_type == "True":
-    log_type = "switch"
+type, loc, log, log_as_switch, cmdD, cmdU = read_button_settings(pigrow_settings, button_name)
+if log_as_switch == "True":
+    log_as_switch = "switch"
+
+def split_cmd_into_args(self, cmd):
+    if not " " in cmd:
+        return cmd
+
+
 
 def pressed():
     print( " Button Pressed " )
@@ -74,12 +80,12 @@ def pressed():
     if not listen.cmdD == None and not listen.cmdD == "":
         print(" RUNNING - " + cmdD)
         try:
-            cmdD_p = Popen(cmdD)
+            cmdD_p = Popen(cmdD, shell=True)
         except:
             pass
     # log
     if not listen.log == None:
-        if listen.log_type == "switch":
+        if listen.log_as_switch == "switch":
             # record each press individual from release
             log_switch(listen.log, "1")
         else:
@@ -92,31 +98,31 @@ def released():
     if not listen.cmdU == None  and not listen.cmdU == "":
         print(" RUNNING - " + cmdU)
         try:
-            cmdU_p = Popen(cmdU)
+            cmdU_p = Popen(cmdU, shell=True)
         except:
             pass
     # log
     if not listen.log == None:
-        if listen.log_type == "switch":
+        if listen.log_as_switch == "switch":
             # record each press and release
             log_switch(listen.log, "0")
         else:
             # record press duration
             listen.press_end = time.time()
 
-def listen(gpio_num, log, log_type, cmdD, cmdU, *args):
+def listen(gpio_num, log, log_as_switch, cmdD, cmdU, *args):
     button = Button(gpio_num)
     listen.cmdD = cmdD
     listen.cmdU = cmdU
     listen.log  = log
-    listen.log_type = log_type
+    listen.log_as_switch = log_as_switch
 
     button.wait_for_press()
     pressed()
     button.wait_for_release()
     released()
 
-    if not log == None and not log_type == "switch":
+    if not log == None and not log_as_switch == "switch":
         duration = listen.press_end - listen.press_start
         print("Pressed for", duration)
         log_button_presss(log, duration)
@@ -139,6 +145,6 @@ def log_button_presss(log_path, duration):
 
 if type == "GND":
     while True:
-        listen(loc, log, log_type, cmdD, cmdU)
+        listen(loc, log, log_as_switch, cmdD, cmdU)
 else:
     print("Sensor type not recognised, sorry currently only 'GND' is supported.")
