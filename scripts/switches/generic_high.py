@@ -10,6 +10,7 @@ def check_command_line_args():
     log = 'dirlocs'
     gpio_pin = "not set"
     for argu in sys.argv[1:]:
+        print (argu)
         if "=" in argu:
             val = argu.split("=")[0].lower()
             key = argu.split("=")[1].strip()
@@ -38,9 +39,10 @@ def check_command_line_args():
             print("GPIO=<num>")
             print("log=[none,dirlocs,<PATH>]")
             sys.exit()
-        if gpio_pin == "not set":
-            print("gpio pin must be supplied with gpio=PIN_NUM")
-            sys.exit()
+            
+    if gpio_pin == "not set":
+        print("gpio pin must be supplied with gpio=PIN_NUM")
+        sys.exit()
 
     return gpio_pin, log
 
