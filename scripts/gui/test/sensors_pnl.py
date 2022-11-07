@@ -1322,19 +1322,25 @@ class button_dialog(wx.Dialog):
         self.cmdD_tc = wx.TextCtrl(self, value=self.s_cmdD, size=(400,30))
         self.cmdD_btn = wx.Button(self, label='..', size=(75, 30))
         self.cmdD_btn.Bind(wx.EVT_BUTTON, self.cmdD_click)
+        self.cmdD_test_btn = wx.Button(self, label='test', size=(75, 30))
+        self.cmdD_test_btn.Bind(wx.EVT_BUTTON, self.cmdD_test_click)
         cmdD_sizer =  wx.BoxSizer(wx.HORIZONTAL)
         cmdD_sizer.Add(cmdD_label, 0, wx.ALL|wx.EXPAND, 5)
         cmdD_sizer.Add(self.cmdD_tc, 0, wx.ALL|wx.EXPAND, 5)
         cmdD_sizer.Add(self.cmdD_btn, 0, wx.ALL|wx.EXPAND, 5)
+        cmdD_sizer.Add(self.cmdD_test_btn, 0, wx.ALL|wx.EXPAND, 5)
         ## cmd_U - command to run when button released
         cmdU_label = wx.StaticText(self,  label='Run on Up')
         self.cmdU_tc = wx.TextCtrl(self, value=self.s_cmdU, size=(400,30))
         self.cmdU_btn = wx.Button(self, label='..', size=(75, 30))
         self.cmdU_btn.Bind(wx.EVT_BUTTON, self.cmdU_click)
+        self.cmdU_test_btn = wx.Button(self, label='test', size=(75, 30))
+        self.cmdU_test_btn.Bind(wx.EVT_BUTTON, self.cmdU_test_click)
         cmdU_sizer =  wx.BoxSizer(wx.HORIZONTAL)
         cmdU_sizer.Add(cmdU_label, 0, wx.ALL|wx.EXPAND, 5)
         cmdU_sizer.Add(self.cmdU_tc, 0, wx.ALL|wx.EXPAND, 5)
         cmdU_sizer.Add(self.cmdU_btn, 0, wx.ALL|wx.EXPAND, 5)
+        cmdU_sizer.Add(self.cmdU_test_btn, 0, wx.ALL|wx.EXPAND, 5)
 
         watcher_ctrl_sizer = wx.BoxSizer(wx.VERTICAL)
         watcher_ctrl_sizer.Add(watcher_label, 0, wx.ALL|wx.EXPAND, 3)
@@ -1388,9 +1394,48 @@ class button_dialog(wx.Dialog):
         scripts_path = self.parent.parent.parent.shared_data.remote_pigrow_path + "scripts/"
         self.select_file(self.cmdD_tc, scripts_path)
 
+    def cmdD_test_click(self, e):
+        print(" TESTING d")
+        cmd = self.cmdU_tc.GetValue()
+        self.run_test_cmd(cmd)
+
     def cmdU_click(self, e):
-        scripts_path = self.parent.parent.parent.shared_data.remote_pigrow_path + "scripts/"
+        shared_data = self.parent.parent.parent.shared_data
+        scripts_path = shared_data.remote_pigrow_path + "scripts/"
         self.select_file(self.cmdU_tc, scripts_path)
+
+    def cmdU_test_click(self, e):
+        print(" TESTING u")
+        cmd = self.cmdD_tc.GetValue()
+        self.run_test_cmd(cmd)
+
+    def run_test_cmd(self, cmd):
+        shared_data = self.parent.parent.parent.shared_data
+        # ask user if they're sure they want to run the script
+        q_text = "Are you sure you want to run the command; "
+        q_text += cmd
+        q_text += "\n\n Note: You will not be able to do anything until the script has finished running."
+        dbox = wx.MessageDialog(self, q_text, "Run on pi?", wx.OK | wx.CANCEL | wx.ICON_QUESTION)
+        answer = dbox.ShowModal()
+        if not answer == wx.ID_OK:
+            return None
+
+        # run the script
+        out, error = self.parent.parent.parent.link_pnl.run_on_pi(cmd)
+        # make output for user
+        out = out.strip()
+        error = error.strip()
+        txt = ""
+        if not out == "":
+            txt = "output:\n" + out + "\n\n"
+        if not error == "":
+            txt += "error:\n" + out
+        if out == "" and error == "":
+            txt = "Script finished without output"
+        # show the user the output
+        dbox = shared_data.scroll_text_dialog(None, txt, "cmd response from pi", cancel=False, readonly=True)
+        dbox.ShowModal()
+        dbox.Destroy()
 
     def save_click(self, e):
         i_pnl       = self.parent.parent.parent.dict_I_pnl['sensors_pnl']
