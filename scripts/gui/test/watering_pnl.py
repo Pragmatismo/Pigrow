@@ -664,7 +664,7 @@ class info_pnl(scrolled.ScrolledPanel):
                 lvl_sensor_dialog.s_tank = tank_table.GetItem(index, 0).GetText()
 
             lvl_sensor_dialog.s_name = self.GetItem(index, 0).GetText()
-            lvl_sensor_dialog.s_pos  = self.GetItem(index, 1).GetText()
+            lvl_sensor_dialog.s_vol  = self.GetItem(index, 1).GetText()
             dlb_box = lvl_sensor_dialog(self.parent.c_pnl, self.parent.c_pnl.parent)
             dlb_box.ShowModal()
             self.parent.c_pnl.fill_table_click("e")
@@ -705,6 +705,8 @@ class info_pnl(scrolled.ScrolledPanel):
                     for item in stls_list:
                         name, pos, cmdD, cmdU = item
                         self.add_to_relay_table(name, pos, cmdD, cmdU)
+
+                    self.autosizeme()  
 
         def read_switch_trigs(self, name):
             config_dict = self.parent.parent.shared_data.config_dict
@@ -1446,7 +1448,7 @@ class lvl_sensor_dialog(wx.Dialog):
 
         # tank position as percentage select
         pos_label = wx.StaticText(self,  label='tank vol ml')
-        self.pos_tc = wx.TextCtrl(self, value=self.s_pos, size=(200,30))
+        self.pos_tc = wx.TextCtrl(self, value=self.s_vol, size=(200,30))
         pos_sizer =  wx.BoxSizer(wx.HORIZONTAL)
         pos_sizer.Add(pos_label, 0, wx.ALL|wx.EXPAND, 5)
         pos_sizer.Add(self.pos_tc, 0, wx.ALL|wx.EXPAND, 5)
@@ -1657,24 +1659,40 @@ class lvl_sensor_dialog(wx.Dialog):
             cmdU_key = "button_" + button_name + "_cmdU"
             #
             cmdU_args, cmdD_args = self.make_cmdUD_args()
-
+            # make cmdU
             if cmdU_args == "":
-                if not config_dict[cmdU_key] == "":
+                if cmdU_key in config_dict:
+                    if not config_dict[cmdU_key] == "":
+                        config_dict[cmdU_key] = ""
+                        change_cmd = True
+                else:
                     config_dict[cmdU_key] = ""
                     change_cmd = True
             else:
                 cmdU = pigrow_base + ts_script + cmdU_args
-                if not config_dict[cmdU_key] == cmdU:
+                if cmdU_key in config_dict:
+                    if not config_dict[cmdU_key] == cmdU:
+                        config_dict[cmdU_key] = cmdU
+                        change_cmd = True
+                else:
                     config_dict[cmdU_key] = cmdU
                     change_cmd = True
-
+            # make cmdD
             if cmdD_args == "":
-                if not config_dict[cmdD_key] == "":
+                if cmdD_key in config_dict:
+                    if not config_dict[cmdD_key] == "":
+                        config_dict[cmdD_key] = ""
+                        change_cmd = True
+                else:
                     config_dict[cmdD_key] = ""
                     change_cmd = True
             else:
                 cmdD = pigrow_base + ts_script + cmdD_args
-                if not config_dict[cmdD_key] == cmdD:
+                if cmdD_key in config_dict:
+                    if not config_dict[cmdD_key] == cmdD:
+                        config_dict[cmdD_key] = cmdD
+                        change_cmd = True
+                else:
                     config_dict[cmdD_key] = cmdD
                     change_cmd = True
 
