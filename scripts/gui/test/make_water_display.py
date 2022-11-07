@@ -64,7 +64,8 @@ def make_display(tank_name, tank_vol, current_vol="", tank_active="", switch_log
     l_bar_list = []
     x2_p = 0  # the point at which the last bar ends becomes the start of the next one
     p_val = 0 # used to shift the values forward so bars relate to the new water level
-    p_pump = with_xpos[0][3]
+    if len(with_xpos) > 0:
+        p_pump = with_xpos[0][3]
     pump_names = []
     for item in with_xpos:
         #print("xpos item;", item)
