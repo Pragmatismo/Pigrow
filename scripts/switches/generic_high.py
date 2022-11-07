@@ -12,7 +12,7 @@ def check_command_line_args():
     for argu in sys.argv[1:]:
         if "=" in argu:
             val = argu.split("=")[0].lower()
-            key = argu.split("=")[1]
+            key = argu.split("=")[1].strip()
             if val == 'gpio':
                 if key.isdigit() == True:
                     gpio_pin = key
@@ -37,6 +37,9 @@ def check_command_line_args():
         elif argu == '-flags':
             print("GPIO=<num>")
             print("log=[none,dirlocs,<PATH>]")
+        if gpio_pin == "not set":
+            print("gpio pin must be supplied with gpio=PIN_NUM")
+
         return gpio_pin, log
 
 def generic_high(gpio_pin, switch_log):
