@@ -724,12 +724,12 @@ class info_pnl(wx.Panel):
             return []
         # look for key=val in args
         found_jobs = []
-        id_pair = str(key) + "=" + str(val)
+        id_pair = str(key) + "=" + str(val) + " "
         for index in range(0, self.repeat_cron.GetItemCount()):
             cmd_path = self.repeat_cron.GetItem(index, 3).GetText()
             if script in cmd_path:
                 cmd_args = self.repeat_cron.GetItem(index, 4).GetText()
-                cmd_args_s = cmd_args.replace('"', "")
+                cmd_args_s = cmd_args.replace('"', "") + " "
                 if  id_pair.replace('"', "") in cmd_args_s:
                     enabled = self.repeat_cron.GetItem(index, 1).GetText()
                     cron_time_string = self.repeat_cron.GetItem(index, 2).GetText()
@@ -742,12 +742,12 @@ class info_pnl(wx.Panel):
             return []
         # look for key=val in args
         found_jobs = []
-        id_pair = str(key) + "=" + str(val)
+        id_pair = str(key) + "=" + str(val) + " "
         for index in range(0, self.timed_cron.GetItemCount()):
             cmd_path = self.timed_cron.GetItem(index, 3).GetText()
             if script in cmd_path:
                 cmd_args = self.timed_cron.GetItem(index, 4).GetText()
-                cmd_args_s = cmd_args.replace('"', "")
+                cmd_args_s = cmd_args.replace('"', "") + " "
                 if  id_pair.replace('"', "") in cmd_args_s:
                     enabled = self.timed_cron.GetItem(index, 1).GetText()
                     cron_time_string = self.timed_cron.GetItem(index, 2).GetText()
