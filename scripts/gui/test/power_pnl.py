@@ -141,7 +141,6 @@ class info_pnl(wx.Panel):
         relay_sizer.Add(relay_l_sizer, 0, wx.ALL|wx.EXPAND, 3)
         relay_sizer.Add(self.relay_ctrl_lst, 0, wx.ALL|wx.EXPAND, 3)
 
-
         # motor control
         self.motor_l = wx.StaticText(self,  label='H-Bridge Motor Control')
         self.motor_help_btn = wx.Button(self, label='Guide', size=(75, 30))
@@ -409,7 +408,7 @@ class info_pnl(wx.Panel):
             for hwpwm_name in hwpwm_list:
                 gpio, freq = self.read_pwm_conf(hwpwm_name, config_dict, 'hwpwm_')
                 self.add_to_pwm_list(hwpwm_name, 'hwpwm',gpio, freq)
-            self.autosizeme()    
+            self.autosizeme()
 
         def read_pwm_conf(self, item_name, config_dict, prefix):
             # Extract sensor config info from config dictionary
@@ -609,36 +608,40 @@ class relay_dialog(wx.Dialog):
         msg += "Device = " + text
         self.read_m_label.SetLabel(msg)
 
-    def set_pin(self, pin, dir):
-        cmd = "gpio -g mode " + str(pin) + "out"
-        out, error = self.parent.parent.parent.link_pnl.run_on_pi(cmd)
-        cmd = "gpio -g write " + str(pin) + " " + str(dir)
-        out, error = self.parent.parent.parent.link_pnl.run_on_pi(cmd)
-
     def switch_relay_on(self, e):
+        shared_data = self.parent.parent.parent.shared_data
+        #
         gpio = self.gpio_tc.GetValue()
         wiring = self.wiring_combo.GetValue()
-        if wiring == "low":
-            set_to = 0
-        elif wiring == "high":
-            set_to = 1
-        else:
-            print ("Can't set relay if direction not set ")
-            return None
-        self.set_pin(gpio, set_to)
+        if not wiring == "low" and not wiring == "high":
+                return None
+        #
+        cmd = shared_data.remote_pigrow_path + "scripts/switches/generic_"
+        cmd += wiring + ".py log=none "
+        cmd += "gpio=" + gpio
+        print("running ",cmd)
+        out, error = self.parent.parent.parent.link_pnl.run_on_pi(cmd)
+        print(out,error)
+
         self.read_relay_directon("e")
 
     def switch_relay_off(self, e):
+        shared_data = self.parent.parent.parent.shared_data
         gpio = self.gpio_tc.GetValue()
         wiring = self.wiring_combo.GetValue()
+        if not wiring == "low" and not wiring == "high":
+                return None
         if wiring == "low":
-            set_to = 1
+            w_off = "high"
         elif wiring == "high":
-            set_to = 0
-        else:
-            print ("Can't set relay if direction not set ")
-            return None
-        self.set_pin(gpio, set_to)
+            w_off = "low"
+        #
+        cmd = shared_data.remote_pigrow_path + "scripts/switches/generic_"
+        cmd += w_off + ".py log=none "
+        cmd += "gpio=" + gpio
+        print("running ",cmd)
+        out, error = self.parent.parent.parent.link_pnl.run_on_pi(cmd)
+        print(out,error)
         self.read_relay_directon("e")
 
 class hbridge_dialog(wx.Dialog):
