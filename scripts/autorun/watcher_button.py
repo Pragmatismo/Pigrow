@@ -72,8 +72,6 @@ def split_cmd_into_args(self, cmd):
     if not " " in cmd:
         return cmd
 
-
-
 def pressed():
     print( " Button Pressed " )
     # run command

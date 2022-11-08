@@ -107,9 +107,9 @@ if __name__ == '__main__':
         position = read_switch_pos(name, gpio_type, gpio_pos)
     if output == "short":
         if position == 0:
-            print("off")
+            print("up")
         else:
-            print("on")
+            print("down")
     else:
         print(name + " is currently " + position)
         if position == "1":

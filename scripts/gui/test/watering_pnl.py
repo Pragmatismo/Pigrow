@@ -432,7 +432,6 @@ class info_pnl(scrolled.ScrolledPanel):
         self.add_time_btn = wx.Button(self, label='Add pump\n timing')
         self.add_time_btn.Bind(wx.EVT_BUTTON, self.add_time_click)
 
-
         self.pt_sizer.Clear(True)
         self.pt_sizer.Add(pumptime_l, 1, wx.ALIGN_CENTER_HORIZONTAL, 5)
         self.pt_sizer.Add(self.add_time_btn, 1, wx.ALIGN_CENTER_HORIZONTAL, 5)
@@ -633,8 +632,8 @@ class info_pnl(scrolled.ScrolledPanel):
             self.InsertColumn(0, 'Button Name')
             self.InsertColumn(1, 'Position %')
             self.InsertColumn(2, 'Status')
-            self.InsertColumn(3, 'Trigger On')
-            self.InsertColumn(4, 'Trigger Off')
+            self.InsertColumn(3, 'Trigger Down')
+            self.InsertColumn(4, 'Trigger Up')
             self.autosizeme()
 
         def autosizeme(self):
@@ -706,7 +705,7 @@ class info_pnl(scrolled.ScrolledPanel):
                         name, pos, cmdD, cmdU = item
                         self.add_to_relay_table(name, pos, cmdD, cmdU)
 
-                    self.autosizeme()  
+                    self.autosizeme()
 
         def read_switch_trigs(self, name):
             config_dict = self.parent.parent.shared_data.config_dict
@@ -1624,12 +1623,25 @@ class lvl_sensor_dialog(wx.Dialog):
         if v_opt == "none" and e_o_opt == "none" and e_f_opt == "none":
             return "", ""
         # make args
-        cmdU_args = self.make_cmd_arg("up", v_opt, e_o_opt, e_f_opt)
-        cmdD_args = self.make_cmd_arg("down", v_opt, e_o_opt, e_f_opt)
+        if self.args_needed("up", v_opt, e_o_opt, e_f_opt):
+            cmdU_args = self.make_cmd_arg("up", v_opt, e_o_opt, e_f_opt)
+        else:
+            cmdU_args = ""
+        if self.args_needed("down", v_opt, e_o_opt, e_f_opt):
+            cmdD_args = self.make_cmd_arg("down", v_opt, e_o_opt, e_f_opt)
+        else:
+            cmdD_args = ""
+
         return cmdU_args, cmdD_args
 
+    def args_needed(self, match, v_opt, e_o_opt, e_f_opt):
+        if not v_opt == "both" and not e_o_opt == "both" and not e_f_opt == "both":
+            if not v_opt == match and not e_o_opt == match and not e_f_opt == match:
+                return False
+        return True
+
     def make_cmd_arg(self, match, v_opt, e_o_opt, e_f_opt):
-        args = ""
+        args = "tank=" + self.s_tank + " "
         float_level = self.pos_tc.GetValue()
         if v_opt == "both" or v_opt == match:
             args += "vol=" + float_level + " "
