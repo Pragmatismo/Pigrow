@@ -560,6 +560,8 @@ class info_pnl(scrolled.ScrolledPanel):
                 size, type = self.read_wtank_conf(name, config_dict, "wtank_")
                 self.add_to_relay_table(name, size, type)
             self.autosizeme()
+            if len(wtank_list) > 0:
+                self.Select(0)
 
         def read_wtank_conf(self, item_name, config_dict, prefix):
             # Extract sensor config info from config dictionary
@@ -1214,7 +1216,7 @@ class calibrate_water_flow_rate_dialog(wx.Dialog):
         self.go_btn = wx.Button(self, label='Start', pos=(15, 450), size=(175, 30))
         self.go_btn.Bind(wx.EVT_BUTTON, self.go_click)
         self.cancel_btn = wx.Button(self, label='Cancel', pos=(250, 450), size=(175, 30))
-    #    self.cancel_btn.Bind(wx.EVT_BUTTON, self.OnClose)
+        self.cancel_btn.Bind(wx.EVT_BUTTON, self.OnClose)
 
         flow_rate_sizer = wx.BoxSizer(wx.HORIZONTAL)
         flow_rate_sizer.Add(self.container_size_l, 0, wx.ALL, 5)
@@ -1275,6 +1277,9 @@ class calibrate_water_flow_rate_dialog(wx.Dialog):
                 self.parent.rate_tc.SetValue(str(lpermin))
                 self.Destroy()
 
+    def OnClose(self, e):
+        self.Destroy()
+
 class w_time_dialog(wx.Dialog):
     def __init__(self, parent, *args, **kw):
         self.parent = parent
@@ -1334,7 +1339,7 @@ class w_time_dialog(wx.Dialog):
 
 
         # buttons_
-        self.save_btn = wx.Button(self, label='Save', size=(175, 30))
+        self.save_btn = wx.Button(self, label='Make Job', size=(175, 30))
         self.save_btn.Bind(wx.EVT_BUTTON, self.save_click)
         self.cancel_btn = wx.Button(self, label='Cancel', size=(175, 30))
         self.cancel_btn.Bind(wx.EVT_BUTTON, self.OnClose)
