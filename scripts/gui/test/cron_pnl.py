@@ -230,7 +230,7 @@ class ctrl_pnl(wx.Panel):
         # cycle through and check for expected args
         for pid in pids:
             out, error = self.parent.link_pnl.run_on_pi("ps -fp " + pid)
-            if args in out:
+            if args.strip() in out:
                 return True
         # if it didn't find it return false
         return False
