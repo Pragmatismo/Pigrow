@@ -11,8 +11,8 @@ def show_info():
         network_name = "Unable to read network."
 
     # read signal strength
-    out =  os.popen("iwconfig wlan0 | grep -i quality").read()
-    network_name += "\n" + out.strip()    
+    out =  os.popen("/sbin/iwconfig wlan0 | grep -i quality").read()
+    network_name += "\n" + out.strip()
 
     return network_name
 
