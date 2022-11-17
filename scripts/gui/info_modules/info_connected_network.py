@@ -7,9 +7,12 @@ def show_info():
     out =  os.popen("/sbin/iwgetid").read()
     try:
         network_name = out.split('"')[1]
-        return network_name
     except Exception as e:
-        return "Unable to read network."
+        network_name = "Unable to read network."
+
+    # read signal strength
+    out =  os.popen("iwconfig wlan0 | grep -i quality").read()
+    network_name += "\n" + out    
 
     return network_name
 
