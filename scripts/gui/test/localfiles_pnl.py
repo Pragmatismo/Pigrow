@@ -754,6 +754,7 @@ class file_download_dialog(wx.Dialog):
         self.SetSize((700, 400))
         self.SetTitle("Download files from Pigrow")
         self.Bind(wx.EVT_CLOSE, self.OnClose)
+
     def InitUI(self):
         # draw the pannel
         label = wx.StaticText(self,  label='Select elements to download to local storage')
@@ -942,6 +943,11 @@ class info_pnl(scrolled.ScrolledPanel):
         r_caps_folder_sizer.Add(r_caps_folder_l, 0, wx.ALL|wx.EXPAND, 5)
         r_caps_folder_sizer.Add(self.r_folder_text, 0, wx.ALL|wx.EXPAND, 5)
         r_caps_folder_sizer.Add(self.set_r_caps_folder_btn, 0, wx.ALL|wx.EXPAND, 5)
+        # download most recent pic buttons
+        get_newest_cap_btn = wx.Button(self, label='Get most recent cap')
+        get_newest_cap_btn.Bind(wx.EVT_BUTTON, self.get_newest_cap_click)
+        cap_but_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        cap_but_sizer.Add(get_newest_cap_btn, 0, wx.ALL, 5)
 
         self.photo_first_text = wx.StaticText(self, label='--')
         self.photo_mid_text   = wx.StaticText(self, label='--', style=wx.ALIGN_CENTRE_HORIZONTAL)
@@ -958,6 +964,7 @@ class info_pnl(scrolled.ScrolledPanel):
         photo_mid_sizer.Add(photo_dates_sizer, 0, wx.ALL|wx.EXPAND, 1)
         photo_mid_sizer.Add(self.photo_mid_text, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
         photo_mid_sizer.Add(self.r_mid_text, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
+        photo_mid_sizer.Add(cap_but_sizer, 0, wx.ALL|wx.EXPAND, 5)
 
         blank_img = wx.Bitmap(255, 255)
         self.first_photo_title = wx.StaticText(self,  label='first image')
@@ -979,6 +986,7 @@ class info_pnl(scrolled.ScrolledPanel):
         photo_sizer.Add(first_pic_sizer, 0, wx.ALL|wx.EXPAND, 5)
         photo_sizer.Add(photo_mid_sizer, 0, wx.ALL|wx.EXPAND, 5)
         photo_sizer.Add(last_pic_sizer, 0, wx.ALL|wx.EXPAND, 5)
+
 
 
         self.main_sizer = wx.BoxSizer(wx.VERTICAL)
@@ -1015,7 +1023,6 @@ class info_pnl(scrolled.ScrolledPanel):
                 text += "\nDuration " + str(time_delta)
 
         self.r_mid_text.SetLabel(text)
-
 
     def img_click(self, e):
         obj = e.GetEventObject()
@@ -1104,6 +1111,38 @@ class info_pnl(scrolled.ScrolledPanel):
 
         self.photo_mid_text.SetLabel(mid_text)
         self.Layout()
+
+    def get_newest_cap_click(self, e):
+        print("wants to download the newest cap")
+        r_path = self.r_folder_text.GetLabel()
+        out, error = self.parent.link_pnl.run_on_pi("ls " + r_path)
+        file_list = out.splitlines()
+        last_pic = self.get_last_pic(file_list)
+        print("newest cap is", last_pic)
+        #
+        remote_path = r_path + "/" + last_pic
+        local_path  = os.path.join(self.folder_text.GetLabel(), last_pic)
+        if not os.path.isfile(local_path):
+            print("copying", remote_path, "to", local_path)
+            self.parent.link_pnl.download_file_to_folder(remote_path, local_path)
+        else:
+            print("already downloaded most recent cap")
+        #
+        pic_date = self.parent.shared_data.date_from_fn(last_pic)
+        age = datetime.datetime.now() - pic_date
+        age = str(age).split(".")[0]
+        title = "Most recent image, age: " + str(age)
+        dbox = self.parent.shared_data.show_image_dialog(None, local_path, title)
+        dbox.ShowModal()
+        dbox.Destroy()
+
+
+
+    def get_last_pic(self, file_list):
+        file_list.reverse()
+        for file in file_list:
+            if ".jpg" in file or ".png" in file:
+                return file
 
 
     class config_file_list(wx.ListCtrl):

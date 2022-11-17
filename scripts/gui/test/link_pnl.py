@@ -322,7 +322,6 @@ class link_pnl(wx.Panel):
     '''
 
     # download files
-
     def download_file_to_folder(self, remote_file, local_name):
         '''
           Downloads a single file into the frompigrow local folder
@@ -331,13 +330,14 @@ class link_pnl(wx.Panel):
           local_path = link_pnl.download_file_to_folder(remote_file, local_name)
         '''
         local_base_path = self.parent.shared_data.frompi_path
-        if local_name[0] == "/":
-            local_name = local_name[1:]
-        #print (" -- local base path -- " + local_base_path)
-        local_path = os.path.join(local_base_path, local_name)
+        if not local_base_path in local_name:
+            if local_name[0] == "/":
+                local_name = local_name[1:]
+            local_path = os.path.join(local_base_path, local_name)
+        else:
+            local_path = local_name
         #print (" -- local path -- " + local_path)
         without_filename = os.path.split(local_path)[0]
-        #print (" -- without_filename -- " + str(without_filename))
         if not os.path.isdir(without_filename):
             os.makedirs(without_filename)
             #print("made folder " + str(without_filename))
