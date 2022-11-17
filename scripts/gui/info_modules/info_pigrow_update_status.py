@@ -56,7 +56,7 @@ def show_info():
 
     # construct output message.
     if update_needed == True:
-        msg = "update required, " + str(git_num) + " updates behind"
+        msg = "update available, " + str(git_num) + " updates behind"
         #update_type = "clean"
 
     elif update_needed == False:
