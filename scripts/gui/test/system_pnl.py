@@ -396,6 +396,7 @@ class info_pnl(wx.Panel):
         self.parent = parent
         shared_data = parent.shared_data
         wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, style = wx.TAB_TRAVERSAL )
+
         ## Draw UI elements
         # Tab Title
         self.SetFont(shared_data.title_font)
@@ -436,11 +437,14 @@ class info_pnl(wx.Panel):
             pnl_sizer = wx.BoxSizer(wx.VERTICAL)
             for item in info_list:
                 title_box = wx.StaticText(self, label=item.replace("_", " "))
+                # bind double click so user can refresh indivdual info boxes
+                title_box.Bind(wx.EVT_LEFT_DCLICK, self.doubleclick_pnl)
                 #title_box.SetFont(shared_data.item_title_font)
                 info_box = wx.StaticText(self, label=" -- ")
                 info_box.SetFont(shared_data.info_font)
+                #info_box.Bind(wx.EVT_LEFT_DCLICK, self.doubleclick_pnl)
                 self.info_box_dict[item] = info_box
-                pnl_sizer.Add(title_box, 0, wx.ALL, 7)
+                pnl_sizer.Add(title_box, 0, wx.ALL|wx.EXPAND, 7)
                 pnl_sizer.Add(info_box, 0, wx.LEFT, 35)
             big_pnl_sizer.Add(pnl_sizer, 0, wx.ALL, 3)
             big_pnl_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(5, -1), style=wx.LI_VERTICAL), 0, wx.ALL|wx.EXPAND, 5)
@@ -457,12 +461,36 @@ class info_pnl(wx.Panel):
 
     def read_info_boxes(self, e=""):
         for key, value in list(self.info_box_dict.items()):
-            info_cmd = "~/Pigrow/scripts/gui/info_modules/info_" + key + ".py"
-            #info_cmd = "ls"
-            out, error = self.parent.link_pnl.run_on_pi(info_cmd)
-            print(out, error, info_cmd, sep="\n")
-            value.SetLabel(out)
-            self.Layout()
+            self.read_and_update_info(key, value)
+
+    def read_and_update_info(self, title, textbox):
+        rpp = self.parent.shared_data.remote_pigrow_path
+        info_cmd = rpp + "scripts/gui/info_modules/info_" + title + ".py"
+        out, error = self.parent.link_pnl.run_on_pi(info_cmd)
+        print(info_cmd, out, error, sep="\n")
+        textbox.SetLabel(out)
+        self.Layout()
+
+    def doubleclick_pnl(self, e):
+        print("Double clicked, ")
+        label = e.GetEventObject().GetLabel()
+        label = label.strip().replace(" ", "_")
+        print(label)
+        if label in self.info_box_dict:
+            self.read_and_update_info(label, self.info_box_dict[label])
+
+        print(" ~~~~~~~~~~~~~~~")
+        #print(e.GetEventUserData())
+        print(" ~~~~~~~~~~~~~~~")
+        #print(e.GetEventType())
+#        '',
+
+# 'GetEventType',
+# 'GetId', 'GetLinesPerAction',
+
+ #'GetLogicalPosition',
+ #'GetModifiers',
+ #'GetPosition',
 
 
 # Dialogue boxs
