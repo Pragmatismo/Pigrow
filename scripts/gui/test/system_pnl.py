@@ -209,96 +209,9 @@ class ctrl_pnl(wx.Panel):
 
 
     # system checks
-
-    def check_pi_diskspace(self):
-        #
-        # #  This is now replicated in info_diskusage.py
-        #
-        #check pi for hdd/sd card space
-        out, error = self.link_pnl.run_on_pi("df -l /")
-        if len(out) > 1:
-            responce_list = []
-            for item in out.split(" "):
-                if len(item) > 0:
-                    responce_list.append(item)
-            hdd_total = responce_list[-5]
-            hdd_percent = responce_list[-2]
-            hdd_available = responce_list[-3]
-            hdd_used = responce_list[-4]
-            return hdd_total, hdd_percent, hdd_available, hdd_used
-        else:
-            return "Error", "Error", "Error", "Error"
-
-    def check_for_pigrow_folder(self, hdd_used="unknown"):
-        #
-        # #  This is now replicated in info_check_pigrow_folder.py
-        #
-        #check if pigrow folder exits and read size
-        out, error = self.link_pnl.run_on_pi("du -s ~/Pigrow/")
-        if not "No such file or directory" in error:
-            pigrow_size = out.split("\t")[0]
-            try:
-                folder_pcent = float(pigrow_size) / float(hdd_used) * 100
-                folder_pcent = format(folder_pcent, '.2f')
-            except: #mostly like due to not being a number
-                folder_pcent = "undetermined"
-        else: #i.e. when no such file or directory is the error
-            pigrow_size = "not found"
-            folder_pcent = "not found"
-        return pigrow_size, folder_pcent
-
-    def check_pi_power_warning(self):
-        '''
-        # # this is now replicated in info_camera.py
-        '''
-        #check for low power WARNING
-        # this only works on certain versions of the pi
-        # it checks the power led value
-        # it's normally turned off as a LOW POWER warning
-        display_message = "LED1: "
-        if not "pi 3" in MainApp.system_info_pannel.sys_pi_revision.GetLabel().lower():
-            out, error = self.link_pnl.run_on_pi("cat /sys/class/leds/led1/brightness")
-            out = out.strip()
-            if out == "255":
-                display_message = display_message + "No Warning"
-            elif out == "" or out == None:
-                display_message = display_message + "Not Supported"
-            else:
-                display_message = display_message + "Low power warning! (" + str(out).strip() + ")"
-        else:
-            display_message = display_message + "feature disabled on pi 3"
-        #
-        # New improved low power warning
-        #
-        out, error = self.link_pnl.run_on_pi("vcgencmd get_throttled")
-        out = out.strip().strip("throttled=")
-        display_message = display_message + "\nvcgencmd: " # + out
-        if out == "0x0":
-            display_message = display_message + " No Warning"
-        #
-        out_int = int(out, 16)
-        #display_message += "\nint-" + str(out_int)
-        bit_nums = [[0, "Under_Voltage detected"],
-                    [1, "Arm frequency capped"],
-                    [2, "Currently throttled"],
-                    [3, "Soft temperature limit active"],
-                    [16, "Under-voltage has occurred"],
-                    [17, "Arm frequency capping has occurred"],
-                    [18, "Throttling has occurred"],
-                    [19, "Soft temperature limit has occurred"]]
-        for x in range(0, len(bit_nums)):
-            bit_num  = bit_nums[x][0]
-            bit_text = bit_nums[x][1]
-            if (out_int & ( 1 << bit_num )):
-                display_message += "\n  - " + bit_text
-                #display_message += "\n(bit-" + str(bit_num) + ") " + bit_text
-
-        #
-        MainApp.system_info_pannel.sys_power_status.SetLabel(display_message)
-
     def find_added_wifi(self):
         '''
-        # # this is now replicated in info_camera.py
+        # # this is now replicated in info_
         '''
         # read /etc/wpa_supplicant/wpa_supplicant.conf for listed wifi networks
         out, error = self.link_pnl.run_on_pi("sudo cat /etc/wpa_supplicant/wpa_supplicant.conf")
@@ -347,12 +260,15 @@ class ctrl_pnl(wx.Panel):
         return local_time_text, pi_time
 
 
+
     # buttons
     def read_system_click(self, e):
         '''
-        THis is to be removed when the button is
+        Refreshes all info boxes
         '''
-        print(" THis is going to be removed and replaced")
+        I_pnl = self.parent.dict_I_pnl['system_pnl']
+        for key, value in list(I_pnl.info_box_dict.items()):
+            I_pnl.read_and_update_info(key, value)
 
     def install_click(self, e):
         print(" Install is not yet enabled in the test version, use original gui instead")
@@ -405,10 +321,6 @@ class info_pnl(wx.Panel):
         self.SetFont(shared_data.sub_title_font)
         page_sub_title =  wx.StaticText(self,  label='Configure the raspberry pi on which the pigrow code runs', size=(550,30))
         page_sub_title.SetFont(shared_data.sub_title_font)
-        # read button
-        self.refresh_btn = wx.Button(self, label='Read Info')
-        self.refresh_btn.SetFont(shared_data.button_font)
-        self.refresh_btn.Bind(wx.EVT_BUTTON, self.read_info_boxes)
 
         # Sizers
         title_sizer = wx.BoxSizer(wx.VERTICAL)
@@ -425,7 +337,6 @@ class info_pnl(wx.Panel):
         right_pnl_list = ['camera',
                           '1wire',
                           'i2c',
-                          'NOT CODED blank test',
                           'video']
 
         pnl_lists = [left_pnl_list, right_pnl_list, ['switch_position']]
@@ -436,12 +347,12 @@ class info_pnl(wx.Panel):
         for info_list in pnl_lists:
             pnl_sizer = wx.BoxSizer(wx.VERTICAL)
             for item in info_list:
+                self.SetFont(shared_data.item_title_font)
                 title_box = wx.StaticText(self, label=item.replace("_", " "))
                 # bind double click so user can refresh indivdual info boxes
                 title_box.Bind(wx.EVT_LEFT_DCLICK, self.doubleclick_pnl)
-                #title_box.SetFont(shared_data.item_title_font)
+                self.SetFont(shared_data.info_font)
                 info_box = wx.StaticText(self, label=" -- ")
-                info_box.SetFont(shared_data.info_font)
                 info_box.Bind(wx.EVT_LEFT_DCLICK, self.doubleclick_pnl)
                 self.info_box_dict[item] = info_box
                 pnl_sizer.Add(title_box, 0, wx.ALL|wx.EXPAND, 7)
@@ -451,11 +362,9 @@ class info_pnl(wx.Panel):
 
         main_sizer = wx.BoxSizer(wx.VERTICAL)
         main_sizer.Add(title_sizer, 0, wx.ALIGN_CENTER_HORIZONTAL, 0)
-        main_sizer.Add(self.refresh_btn, 0, wx.ALL, 5)
         main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.Add(big_pnl_sizer, 0, wx.ALIGN_CENTER_HORIZONTAL|wx.ALL, 3)
         main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
-        #main_sizer.Add(wifi_area_sizer, 0, wx.ALL, 7)
         self.SetSizer(main_sizer)
         self.Layout()
 
