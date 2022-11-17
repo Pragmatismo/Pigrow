@@ -11,6 +11,7 @@ def show_info():
         '''
         # check if 1wire is running
         out =  os.popen('lsmod').read()
+        w1_modules = []
         for line in out.splitlines():
             # read last element of 'wire' line and split into modules using it
             if line[0:4] == "wire":
