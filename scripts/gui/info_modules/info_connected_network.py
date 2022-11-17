@@ -12,7 +12,7 @@ def show_info():
 
     # read signal strength
     out =  os.popen("iwconfig wlan0 | grep -i quality").read()
-    network_name += "\n" + out    
+    network_name += "\n" + out.strip()    
 
     return network_name
 
