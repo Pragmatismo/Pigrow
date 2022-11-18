@@ -103,7 +103,12 @@ class info_pnl(scrolled.ScrolledPanel):
         self.parent.shared_data.show_help('datawall_display_help.png')
 
     def new_led_click(self, e):
-        print(" Sorry you can't add leds at this time")
+        led_dialog.s_name    = ""
+        led_dialog.s_loc     = ""
+        led_dialog.s_reboot = ""
+        led_box = led_dialog(self, self.parent)
+        led_box.ShowModal()
+        self.led_lst.make_table()
 
     def del_led_click(self, e):
         print(" Sorry, deleting LEDs isn't coded yet.")
@@ -163,18 +168,126 @@ class info_pnl(scrolled.ScrolledPanel):
             self.InsertItem(0, str(name))
             self.SetItem(0, 1, str(loc))
             self.SetItem(0, 2, str(reboot))
-            status = get_led_status(name, loc)
+            status = self.get_led_status(name, loc)
             self.SetItem(0, 3, str(status))
 
-        def get_led_status(self):
+        def get_led_status(self, name, loc):
             return "not coded"
 
         def doubleclick(self, e):
             index =  e.GetIndex()
             #get info for dialogue box
-            # tank_dialog.s_name  = self.GetItem(index, 0).GetText()
-            # tank_dialog.s_volume = self.GetItem(index, 1).GetText()
-            # tank_dialog.s_mode = self.GetItem(index, 2).GetText()
-            # relay_box = tank_dialog(self.parent.c_pnl, self.parent.c_pnl.parent)
-            # relay_box.ShowModal()
-            # self.parent.c_pnl.fill_table_click("e")
+            led_dialog.s_name    = self.GetItem(index, 0).GetText()
+            led_dialog.s_loc     = self.GetItem(index, 1).GetText()
+            led_dialog.s_reboot  = self.GetItem(index, 2).GetText()
+            led_box = led_dialog(self.parent, self.parent.parent)
+            led_box.ShowModal()
+            self.make_table()
+
+
+class led_dialog(wx.Dialog):
+    def __init__(self, parent, *args, **kw):
+        self.parent = parent
+        super(led_dialog, self).__init__(*args, **kw)
+        self.InitUI()
+        self.SetSize((500, 450))
+        self.SetTitle("LED Setup")
+        self.Bind(wx.EVT_CLOSE, self.OnClose)
+
+    def InitUI(self):
+        shared_data = self.parent.parent.shared_data
+        # panel
+        pnl = wx.Panel(self)
+
+        # Header
+        self.SetFont(shared_data.title_font)
+        box_label = wx.StaticText(self,  label='LED Config')
+        self.SetFont(shared_data.info_font)
+        # Show guide button
+        show_guide_btn = wx.Button(self, label='Guide', size=(175, 30))
+        show_guide_btn.Bind(wx.EVT_BUTTON, self.show_guide_click)
+        header_sizer =  wx.BoxSizer(wx.HORIZONTAL)
+        header_sizer.Add(box_label, 0, wx.ALL, 5)
+        header_sizer.AddStretchSpacer(1)
+        header_sizer.Add(show_guide_btn, 0, wx.ALL, 5)
+
+        ## unique name
+        name_label = wx.StaticText(self,  label='name')
+        self.name_tc = wx.TextCtrl(self, value=self.s_name, size=(200,30))
+        name_sizer =  wx.BoxSizer(wx.HORIZONTAL)
+        name_sizer.Add(name_label, 0, wx.ALL|wx.EXPAND, 5)
+        name_sizer.Add(self.name_tc, 0, wx.ALL|wx.EXPAND, 5)
+
+        ## gpio pin - location
+        loc_label = wx.StaticText(self,  label='gpio pin')
+        self.loc_tc = wx.TextCtrl(self, value=self.s_loc, size=(200,30))
+        loc_sizer =  wx.BoxSizer(wx.HORIZONTAL)
+        loc_sizer.Add(loc_label, 0, wx.ALL|wx.EXPAND, 5)
+        loc_sizer.Add(self.loc_tc, 0, wx.ALL|wx.EXPAND, 5)
+
+        ## persist on reboot
+        self.reboot_ckb = wx.CheckBox(self,  label="Persist on reboot")
+        if not self.s_reboot.lower() == "false":
+            self.reboot_ckb.SetValue(True)
+        reboot_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        reboot_sizer.Add(self.reboot_ckb, 0, wx.ALL|wx.EXPAND, 5)
+
+        # buttons_
+        self.save_btn = wx.Button(self, label='Save', size=(175, 30))
+        self.save_btn.Bind(wx.EVT_BUTTON, self.save_click)
+        self.cancel_btn = wx.Button(self, label='Cancel', size=(175, 30))
+        self.cancel_btn.Bind(wx.EVT_BUTTON, self.OnClose)
+        buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        buttons_sizer.AddStretchSpacer(1)
+        buttons_sizer.Add(self.save_btn, 0,  wx.ALL, 3)
+        buttons_sizer.AddStretchSpacer(1)
+        buttons_sizer.Add(self.cancel_btn, 0,  wx.ALL, 3)
+        buttons_sizer.AddStretchSpacer(1)
+
+        main_sizer =  wx.BoxSizer(wx.VERTICAL)
+        main_sizer.Add(header_sizer, 0, wx.ALL|wx.EXPAND, 5)
+        main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(name_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
+        main_sizer.Add(loc_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
+        main_sizer.Add(reboot_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
+        main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(buttons_sizer, 0, wx.ALL|wx.EXPAND, 5)
+        self.SetSizer(main_sizer)
+
+    def show_guide_click(self, e):
+        self.parent.parent.shared_data.show_help('led_help.png')
+
+    def save_click(self, e):
+        shared_data = self.parent.parent.shared_data
+
+        n_name   = self.name_tc.GetValue()
+        n_loc    = self.loc_tc.GetValue()
+        n_reboot = str(self.reboot_ckb.GetValue())
+
+        changed = "yes"
+        if self.s_name == n_name:
+            if self.s_loc == n_loc:
+                if self.s_reboot == n_reboot:
+                    changed = None
+
+        if not changed == None:
+            name_start = "led_" + n_name
+            shared_data.config_dict[name_start + "_loc"] = n_loc
+            shared_data.config_dict[name_start + "_reboot"] = n_reboot
+
+            # If name changed delete old entries
+            if not n_name == self.s_name and not self.s_name == "":
+                name_start = "led_" + self.s_name
+                possible_keys = [name_start + "_loc",
+                                 name_start + "_reboot"]
+                for possible_key in possible_keys:
+                    if possible_key in shared_data.config_dict:
+                        del shared_data.config_dict[possible_key]
+
+            # save config to pi
+            shared_data.update_pigrow_config_file_on_pi()
+        self.Destroy()
+
+
+    def OnClose(self, e):
+        self.Destroy()
