@@ -5,7 +5,7 @@ import wx
 import shared_data
 import link_pnl as link_pnl
 
-list_of_panels = ['start_pnl',  'system_pnl', 'cron_pnl', 'camera_pnl', 'localfiles_pnl', 'sensors_pnl', 'power_pnl', 'watering_pnl'] #, 'test_pnl', 'blue_pnl']
+list_of_panels = ['start_pnl',  'system_pnl', 'cron_pnl', 'camera_pnl', 'localfiles_pnl', 'sensors_pnl', 'power_pnl', 'watering_pnl', 'display_pnl']
 for x in list_of_panels:
     import_cmd = "import " + x
     exec(import_cmd)
