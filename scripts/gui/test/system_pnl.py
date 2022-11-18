@@ -2,28 +2,23 @@ import wx
 import wx.lib.scrolledpanel as scrolled
 
 class ctrl_pnl(wx.Panel):
-    #
-    #
     def __init__( self, parent ):
         self.parent = parent
         shared_data = parent.shared_data
         wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, style = wx.TAB_TRAVERSAL )
+
+        # labels
+        self.SetFont(shared_data.sub_title_font)
         self.tab_label = wx.StaticText(self,  label='System Config Menu')
         self.pigrow_side_label = wx.StaticText(self,  label='Pigrow Software')
         self.system_side_label = wx.StaticText(self,  label='System')
-        self.i2c_side_label = wx.StaticText(self,  label='I2C')
-        self.onewire_side_label = wx.StaticText(self,  label='1Wire')
+        self.boot_label = wx.StaticText(self,  label='Boot config')
         self.picam_label = wx.StaticText(self,  label='Picam')
-        self.tab_label.SetFont(shared_data.sub_title_font)
-        self.pigrow_side_label.SetFont(shared_data.sub_title_font)
-        self.system_side_label.SetFont(shared_data.sub_title_font)
-        self.i2c_side_label.SetFont(shared_data.sub_title_font)
-        self.onewire_side_label.SetFont(shared_data.sub_title_font)
-        self.picam_label.SetFont(shared_data.sub_title_font)
-        # Start drawing the UI elements
-        # tab info
-        self.read_system_btn = wx.Button(self, label='Read System Info')
+
+        #buttons
+        # info panel refresh info boxes
         self.SetFont(shared_data.button_font)
+        self.read_system_btn = wx.Button(self, label='Read System Info')
         self.read_system_btn.Bind(wx.EVT_BUTTON, self.read_system_click)
         # pigrow software install and upgrade buttons
         self.install_pigrow_btn = wx.Button(self, label='pigrow install')
@@ -35,22 +30,18 @@ class ctrl_pnl(wx.Panel):
         self.reboot_pigrow_btn.Bind(wx.EVT_BUTTON, self.reboot_pigrow_click)
         self.shutdown_pi_btn = wx.Button(self, label='shutdown pi')
         self.shutdown_pi_btn.Bind(wx.EVT_BUTTON, self.shutdown_pi_click)
-        # pi gpio overlay controlls
-        self.find_i2c_btn = wx.Button(self, label='i2c check')
-        self.find_i2c_btn.Bind(wx.EVT_BUTTON, self.find_i2c_devices)
-        self.i2c_baudrate_btn = wx.Button(self, label='baudrate')
-        self.i2c_baudrate_btn.Bind(wx.EVT_BUTTON, self.set_i2c_baudrate)
-        #self.i2c_baudrate_btn.Disable()
-        # w1
-        self.find_1wire_btn = wx.Button(self, label='1 wire check')
-        self.find_1wire_btn.Bind(wx.EVT_BUTTON, self.find_1wire_devices)
-        self.edit_1wire_btn = wx.Button(self, label='change')
-        self.edit_1wire_btn.Bind(wx.EVT_BUTTON, self.edit_1wire)
         # run command on pi button
         self.run_cmd_on_pi_btn = wx.Button(self, label='Run Command On Pi')
         self.run_cmd_on_pi_btn.Bind(wx.EVT_BUTTON, self.run_cmd_on_pi_click)
+        #edit boot conf file
         self.edit_boot_config_btn = wx.Button(self, label='Edit /boot/config.txt')
         self.edit_boot_config_btn.Bind(wx.EVT_BUTTON, self.edit_boot_config_click)
+        # pi gpio overlay control
+        self.i2c_baudrate_btn = wx.Button(self, label='i2c baudrate')
+        self.i2c_baudrate_btn.Bind(wx.EVT_BUTTON, self.set_i2c_baudrate)
+        # w1 config control
+        self.edit_1wire_btn = wx.Button(self, label='1wire config')
+        self.edit_1wire_btn.Bind(wx.EVT_BUTTON, self.edit_1wire)
         # Enable / Disable Camera
         self.enable_cam_btn = wx.Button(self, label='Enable')
         self.enable_cam_btn.Bind(wx.EVT_BUTTON, self.enable_cam_click)
@@ -66,16 +57,17 @@ class ctrl_pnl(wx.Panel):
         power_sizer = wx.BoxSizer(wx.HORIZONTAL)
         power_sizer.Add(self.reboot_pigrow_btn, 0, wx.ALL|wx.EXPAND, 3)
         power_sizer.Add(self.shutdown_pi_btn, 0, wx.ALL|wx.EXPAND, 3)
-        i2c_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        i2c_sizer.Add(self.find_i2c_btn, 0, wx.ALL|wx.EXPAND, 3)
-        i2c_sizer.Add(self.i2c_baudrate_btn, 0, wx.ALL|wx.EXPAND, 3)
-        onewire_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        onewire_sizer.Add(self.find_1wire_btn, 0, wx.ALL|wx.EXPAND, 3)
-        onewire_sizer.Add(self.edit_1wire_btn, 0, wx.ALL|wx.EXPAND, 3)
+
+        bootconf_sizer = wx.BoxSizer(wx.VERTICAL)
+        bootconf_sizer.Add(self.boot_label, 0, wx.ALL|wx.EXPAND, 3)
+        bootconf_sizer.Add(self.edit_boot_config_btn, 0, wx.ALL|wx.EXPAND, 3)
+        bootconf_sizer.Add(self.i2c_baudrate_btn, 0, wx.ALL|wx.EXPAND, 3)
+        bootconf_sizer.Add(self.edit_1wire_btn, 0, wx.ALL|wx.EXPAND, 3)
+
         picam_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        picam_sizer.Add(self.picam_label, 0, wx.ALL|wx.EXPAND, 3)
         picam_sizer.Add(self.enable_cam_btn, 0, wx.ALL|wx.EXPAND, 3)
         picam_sizer.Add(self.disable_cam_btn, 0, wx.ALL|wx.EXPAND, 3)
+
         main_sizer = wx.BoxSizer(wx.VERTICAL)
         main_sizer.Add(self.tab_label, 0, wx.ALL|wx.EXPAND, 3)
         main_sizer.Add(self.read_system_btn, 0, wx.ALL|wx.EXPAND, 3)
@@ -88,16 +80,13 @@ class ctrl_pnl(wx.Panel):
         main_sizer.AddStretchSpacer(1)
         main_sizer.Add(self.system_side_label, 0, wx.ALL|wx.EXPAND, 2)
         main_sizer.Add(self.run_cmd_on_pi_btn, 0, wx.ALL|wx.EXPAND, 3)
-        main_sizer.Add(self.edit_boot_config_btn, 0, wx.ALL|wx.EXPAND, 3)
         main_sizer.Add(power_sizer, 0, wx.ALL|wx.EXPAND, 3)
         main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.AddStretchSpacer(1)
-        main_sizer.Add(self.i2c_side_label, 0, wx.ALL|wx.EXPAND, 2)
-        main_sizer.Add(i2c_sizer, 0, wx.ALL|wx.EXPAND, 3)
-        main_sizer.Add(self.onewire_side_label, 0, wx.ALL|wx.EXPAND, 2)
-        main_sizer.Add(onewire_sizer, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.Add(bootconf_sizer, 0, wx.ALL|wx.EXPAND, 2)
         main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
-        main_sizer.Add(picam_sizer, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.Add(self.picam_label, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.Add(picam_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
         main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.AddStretchSpacer(1)
         main_sizer.Add(self.gui_settings_btn, 0, wx.ALL|wx.EXPAND, 3)
@@ -124,17 +113,9 @@ class ctrl_pnl(wx.Panel):
         print("Picam module disabled.")
 
     # 1Wire - ds18b20
-    def find_1wire_devices(self, e):
-        pigrow_path = "/home/" + self.parent.shared_data.gui_set_dict['username'] + "/Pigrow"
-        info_path = pigrow_path + "/scripts/gui/info_modules/info_1wire.py"
-        out, error = self.parent.link_pnl.run_on_pi(info_path)
-        self.parent.dict_I_pnl['system_pnl'].info_box_dict['1wire'].SetLabel(out + error)
-        self.parent.Layout()
-
     def edit_1wire(self, e):
         edit_1wire_dbox = one_wire_change_pin_dbox(self, self.parent)
         edit_1wire_dbox.ShowModal()
-        self.find_1wire_devices("e")
 
     def update_boot_config(self, config_text):
         question_text = "Are you sure you want to change the pi's /boot/config.txt file?"
@@ -173,17 +154,6 @@ class ctrl_pnl(wx.Panel):
             print("/boot/config.txt did not have 'dtparam=12c_baudrate=' so adding it")
             config_text = config_text + "dtparam=i2c_baudrate=" + new_i2c_baudrate + "\n"
         self.update_boot_config(config_text)
-        self.find_i2c_devices("e")
-
-    def find_i2c_devices(self, e):
-        '''
-           runs an info module
-        '''
-        pigrow_path = "/home/" + self.parent.shared_data.gui_set_dict['username'] + "/Pigrow"
-        info_path = pigrow_path + "/scripts/gui/info_modules/info_i2c.py"
-        out, error = self.parent.link_pnl.run_on_pi(info_path)
-        self.parent.dict_I_pnl['system_pnl'].info_box_dict['i2c'].SetLabel(out + error)
-        self.parent.Layout()
 
     # power controls
     def reboot_pigrow_click(self, e):
@@ -204,59 +174,17 @@ class ctrl_pnl(wx.Panel):
 
 
     # system checks
-    def find_added_wifi(self):
-        '''
-        # # this is now replicated in info_
-        '''
-        # read /etc/wpa_supplicant/wpa_supplicant.conf for listed wifi networks
-        out, error = self.link_pnl.run_on_pi("sudo cat /etc/wpa_supplicant/wpa_supplicant.conf")
-        out = out.splitlines()
-        in_a_list = False
-        network_items = []
-        network_list = []
-        for line in out:
-            if "}" in line:
-                in_a_list = False
-                # list finished sort into fields
-                ssid = ""
-                psk = ""
-                key_mgmt = ""
-                other = ""
-                for x in network_items:
-                    if "ssid=" in x:
-                        ssid = x[5:]
-                    elif "psk=" in x:
-                        psk = x[4:]
-                        psk = "(password hidden)"
-                    elif "key_mgmt=" in x:
-                        key_mgmt = x[9:]
-                    else:
-                        other = other + ", "
-                network_list.append([ssid, key_mgmt, psk, other])
-                network_items = []
-            if in_a_list == True:
-                network_items.append(line.strip())
-            if "network" in line:
-                in_a_list = True
-        network_text = ""
-        for item in network_list:
-            for thing in item:
-                network_text += thing + " "
-            network_text += "\n"
-        return network_text
-
-    def get_pi_time_diff(self):
-        # just asks the pi the data at the same time grabs local datetime
-        # returns to the user as strings
-        out, error = self.link_pnl.run_on_pi("date")
-        local_time = datetime.datetime.now()
-        local_time_text = local_time.strftime("%a %d %b %X") + " " + str(time.tzname[0]) + " " + local_time.strftime("%Y")
-        pi_time = out.strip()
-        return local_time_text, pi_time
+    #  -- currently not used but does something the info module can't --
+    #def get_pi_time_diff(self):
+    #    # just asks the pi the data at the same time grabs local datetime
+    #    # returns to the user as strings
+    #    out, error = self.link_pnl.run_on_pi("date")
+    #    local_time = datetime.datetime.now()
+    #    local_time_text = local_time.strftime("%a %d %b %X") + " " + str(time.tzname[0]) + " " + local_time.strftime("%Y")
+    #    pi_time = out.strip()
+    #    return local_time_text, pi_time
 
 
-
-    # buttons
     def read_system_click(self, e):
         '''
         Refreshes all info boxes
