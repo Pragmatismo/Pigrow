@@ -23,55 +23,44 @@ class ctrl_pnl(wx.Panel):
         # Start drawing the UI elements
         # tab info
         self.read_system_btn = wx.Button(self, label='Read System Info')
-        self.read_system_btn.SetFont(shared_data.button_font)
+        self.SetFont(shared_data.button_font)
         self.read_system_btn.Bind(wx.EVT_BUTTON, self.read_system_click)
         # pigrow software install and upgrade buttons
         self.install_pigrow_btn = wx.Button(self, label='pigrow install')
-        self.install_pigrow_btn.SetFont(shared_data.button_font)
         self.install_pigrow_btn.Bind(wx.EVT_BUTTON, self.install_click)
         self.update_pigrow_btn = wx.Button(self, label='update pigrow')
-        self.update_pigrow_btn.SetFont(shared_data.button_font)
         self.update_pigrow_btn.Bind(wx.EVT_BUTTON, self.update_pigrow_click)
         # pi power control
         self.reboot_pigrow_btn = wx.Button(self, label='reboot pi')
-        self.reboot_pigrow_btn.SetFont(shared_data.button_font)
         self.reboot_pigrow_btn.Bind(wx.EVT_BUTTON, self.reboot_pigrow_click)
         self.shutdown_pi_btn = wx.Button(self, label='shutdown pi')
-        self.shutdown_pi_btn.SetFont(shared_data.button_font)
         self.shutdown_pi_btn.Bind(wx.EVT_BUTTON, self.shutdown_pi_click)
         # pi gpio overlay controlls
         self.find_i2c_btn = wx.Button(self, label='i2c check')
-        self.find_i2c_btn.SetFont(shared_data.button_font)
         self.find_i2c_btn.Bind(wx.EVT_BUTTON, self.find_i2c_devices)
         self.i2c_baudrate_btn = wx.Button(self, label='baudrate')
-        self.i2c_baudrate_btn.SetFont(shared_data.button_font)
         self.i2c_baudrate_btn.Bind(wx.EVT_BUTTON, self.set_i2c_baudrate)
         #self.i2c_baudrate_btn.Disable()
         # w1
         self.find_1wire_btn = wx.Button(self, label='1 wire check')
-        self.find_1wire_btn.SetFont(shared_data.button_font)
         self.find_1wire_btn.Bind(wx.EVT_BUTTON, self.find_1wire_devices)
         self.edit_1wire_btn = wx.Button(self, label='change')
-        self.edit_1wire_btn.SetFont(shared_data.button_font)
         self.edit_1wire_btn.Bind(wx.EVT_BUTTON, self.edit_1wire)
         # run command on pi button
         self.run_cmd_on_pi_btn = wx.Button(self, label='Run Command On Pi')
-        self.run_cmd_on_pi_btn.SetFont(shared_data.button_font)
         self.run_cmd_on_pi_btn.Bind(wx.EVT_BUTTON, self.run_cmd_on_pi_click)
         self.edit_boot_config_btn = wx.Button(self, label='Edit /boot/config.txt')
-        self.edit_boot_config_btn.SetFont(shared_data.button_font)
         self.edit_boot_config_btn.Bind(wx.EVT_BUTTON, self.edit_boot_config_click)
         # Enable / Disable Camera
         self.enable_cam_btn = wx.Button(self, label='Enable')
-        self.enable_cam_btn.SetFont(shared_data.button_font)
         self.enable_cam_btn.Bind(wx.EVT_BUTTON, self.enable_cam_click)
         self.disable_cam_btn = wx.Button(self, label='Disable')
-        self.disable_cam_btn.SetFont(shared_data.button_font)
         self.disable_cam_btn.Bind(wx.EVT_BUTTON, self.disable_cam_click)
         # gui settings
         self.gui_settings_btn = wx.Button(self, label='GUI Settings')
-        self.gui_settings_btn.SetFont(shared_data.button_font)
         self.gui_settings_btn.Bind(wx.EVT_BUTTON, self.gui_settings_click)
+        self.info_layout_btn = wx.Button(self, label='Set info layout')
+        self.info_layout_btn.Bind(wx.EVT_BUTTON, self.info_layout_click)
 
         # Sizers
         power_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -112,10 +101,16 @@ class ctrl_pnl(wx.Panel):
         main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.AddStretchSpacer(1)
         main_sizer.Add(self.gui_settings_btn, 0, wx.ALL|wx.EXPAND, 3)
+        main_sizer.Add(self.info_layout_btn, 0, wx.ALL|wx.EXPAND, 3)
         self.SetSizer(main_sizer)
 
     def gui_settings_click(self, e):
         dbox = self.parent.shared_data.settings_dialog( self.parent )
+        dbox.ShowModal()
+        dbox.Destroy()
+
+    def info_layout_click(self, e):
+        dbox = info_layout_dialog(self, self.parent)
         dbox.ShowModal()
         dbox.Destroy()
 
@@ -747,6 +742,73 @@ class upgrade_pigrow_dialog(wx.Dialog):
 #                    MainApp.system_info_pannel.sys_pigrow_update.SetLabel("--UPDATED--")
                 self.Destroy()
 
+
+
+class info_layout_dialog(wx.Dialog):
+    #Dialog box for installing pigrow software on a raspberry pi remotely
+    def __init__(self, parent, *args, **kw):
+        super(info_layout_dialog, self).__init__(*args, **kw)
+        self.parent = parent
+        self.InitUI()
+        self.SetSize((600, 675))
+        self.SetTitle("Info Box Layout")
+    def InitUI(self):
+        shared_data = self.parent.parent.shared_data
+        # draw the pannel and text
+        pnl = wx.Panel(self)
+        self.SetFont(shared_data.title_font)
+        title = wx.StaticText(self,  label='Set up info layout')
+        self.SetFont(shared_data.sub_title_font)
+        sub_title = wx.StaticText(self,  label='Select which info boxes will be displayed')
+
+        # upgrade type
+        self.SetFont(shared_data.sub_title_font)
+        info_scripts_label = wx.StaticText(self,  label='Info script;')
+        opts = self.get_info_box_list()
+        self.info_script = wx.ComboBox(self, choices = opts)
+
+        info_scripts_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        info_scripts_sizer.Add(info_scripts_label, 0, wx.ALL, 4)
+        info_scripts_sizer.Add(self.info_script, 0, wx.ALL, 4)
+
+
+        # save and cancel buttons
+        self.SetFont(shared_data.button_font)
+        self.save_btn = wx.Button(self, label='Ok', size=(175, 30))
+        self.save_btn.Bind(wx.EVT_BUTTON, self.save_click)
+        self.cancel_btn = wx.Button(self, label='Cancel', size=(175, 30))
+        self.cancel_btn.Bind(wx.EVT_BUTTON, self.cancel_click)
+
+        buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        buttons_sizer.Add(self.save_btn, 0, wx.ALL, 2)
+        buttons_sizer.AddStretchSpacer(1)
+        buttons_sizer.Add(self.cancel_btn, 0, wx.ALL, 2)
+
+        main_sizer = wx.BoxSizer(wx.VERTICAL)
+        main_sizer.Add(title, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
+        main_sizer.Add(sub_title, 0, wx.ALIGN_CENTER_HORIZONTAL, 3)
+        main_sizer.Add(info_scripts_sizer, 0, wx.TOP, 15)
+        main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(buttons_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
+        self.SetSizer(main_sizer)
+
+    def get_info_box_list(self):
+        rpp = self.parent.parent.shared_data.remote_pigrow_path
+        cmd = "ls " + rpp + "scripts/gui/info_modules"
+        out, error = self.parent.parent.link_pnl.run_on_pi(cmd)
+        module_list = out.splitlines()
+        opts_list = []
+        for item in module_list:
+            if item[:5] == "info_":
+                if item[-3:] == ".py":
+                    opts_list.append(item[5:].replace(".py", ""))
+        return opts_list
+
+    def cancel_click(self, e):
+        self.Destroy()
+
+    def save_click(self, e):
+        print("This button does nothing at the moment, sorry.")
 
 class install_dialog(wx.Dialog):
     #Dialog box for installing pigrow software on a raspberry pi remotely
