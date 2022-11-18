@@ -45,17 +45,23 @@ class info_pnl(scrolled.ScrolledPanel):
 
         # LED
         led_title =  wx.StaticText(self,  label='LED')
+        led_guide_btn = wx.Button(self, label='Guide')
+        led_guide_btn.Bind(wx.EVT_BUTTON, self.led_guide_click)
         led_sizer = wx.BoxSizer(wx.VERTICAL)
         led_sizer.Add(led_title, 1,wx.ALL, 5)
+        led_sizer.Add(led_guide_btn, 1,wx.ALL|wx.ALIGN_RIGHT, 5)
 
 
         # Datawall
         datawall_title =  wx.StaticText(self,  label='Datawall')
+        datawall_guide_btn = wx.Button(self, label='Guide')
+        datawall_guide_btn.Bind(wx.EVT_BUTTON, self.datawall_guide_click)
         # datawall - hdmi
         # datawall - remote upload
         #                 - modular using script
         datawall_sizer = wx.BoxSizer(wx.VERTICAL)
         datawall_sizer.Add(datawall_title, 1,wx.ALL, 5)
+        datawall_sizer.Add(datawall_guide_btn, 1,wx.ALL|wx.ALIGN_RIGHT, 5)
 
 
         self.main_sizer = wx.BoxSizer(wx.VERTICAL)
@@ -65,3 +71,9 @@ class info_pnl(scrolled.ScrolledPanel):
         self.SetAutoLayout(1)
         self.SetupScrolling()
         self.SetSizer(self.main_sizer)
+
+    def led_guide_click(self, e):
+        self.parent.shared_data.show_help('led_help.png')
+
+    def datawall_guide_click(self, e):
+        self.parent.shared_data.show_help('datawall_display_help.png')
