@@ -761,19 +761,26 @@ class info_layout_dialog(wx.Dialog):
         self.SetFont(shared_data.sub_title_font)
         sub_title = wx.StaticText(self,  label='Select which info boxes will be displayed')
 
-        # upgrade type
+        # info script selection type
         self.SetFont(shared_data.sub_title_font)
         info_scripts_label = wx.StaticText(self,  label='Info script;')
         opts = self.get_info_box_list()
         self.info_script = wx.ComboBox(self, choices = opts)
-
-        info_scripts_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        info_scripts_sizer.Add(info_scripts_label, 0, wx.ALL, 4)
-        info_scripts_sizer.Add(self.info_script, 0, wx.ALL, 4)
+        info_cb_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        info_cb_sizer.Add(info_scripts_label, 0, wx.ALL, 4)
+        info_cb_sizer.Add(self.info_script, 0, wx.ALL, 4)
+        # info script test
+        self.SetFont(shared_data.button_font)
+        test_script_btn = wx.Button(self, label='read info', size=(175, 30))
+        test_script_btn.Bind(wx.EVT_BUTTON, self.test_script_click)
+        self.info_output = wx.StaticText(self,  label=' -- ')
+        info_scripts_sizer = wx.BoxSizer(wx.VERTICAL)
+        info_scripts_sizer.Add(info_cb_sizer, 0, wx.ALL, 4)
+        info_scripts_sizer.Add(test_script_btn, 0, wx.ALL|wx.ALIGN_RIGHT, 4)
+        info_scripts_sizer.Add(self.info_output, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 4)
 
 
         # save and cancel buttons
-        self.SetFont(shared_data.button_font)
         self.save_btn = wx.Button(self, label='Ok', size=(175, 30))
         self.save_btn.Bind(wx.EVT_BUTTON, self.save_click)
         self.cancel_btn = wx.Button(self, label='Cancel', size=(175, 30))
@@ -794,7 +801,8 @@ class info_layout_dialog(wx.Dialog):
 
     def get_info_box_list(self):
         rpp = self.parent.parent.shared_data.remote_pigrow_path
-        cmd = "ls " + rpp + "scripts/gui/info_modules"
+        info_mod_path = rpp + "scripts/gui/info_modules"
+        cmd = "ls " + info_mod_path
         out, error = self.parent.parent.link_pnl.run_on_pi(cmd)
         module_list = out.splitlines()
         opts_list = []
@@ -803,6 +811,20 @@ class info_layout_dialog(wx.Dialog):
                 if item[-3:] == ".py":
                     opts_list.append(item[5:].replace(".py", ""))
         return opts_list
+
+    def test_script_click(self, e):
+        label = self.info_script.GetValue()
+        if label == "":
+            return None
+        script = "info_" + label.strip() + ".py"
+        print("Reading info script;", script)
+        rpp = self.parent.parent.shared_data.remote_pigrow_path
+        script_path = rpp + "scripts/gui/info_modules/" + script
+        out, error = self.parent.parent.link_pnl.run_on_pi(script_path)
+        print(out)
+        self.info_output.SetLabel(out.strip())
+        self.Layout()
+
 
     def cancel_click(self, e):
         self.Destroy()
