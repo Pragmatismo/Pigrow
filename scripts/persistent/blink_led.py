@@ -89,7 +89,7 @@ def blink_led(gpio, on, off):
     # set up pin
     GPIO.setup(gpio, GPIO.OUT)
     # loop until someone kills the script
-    while true:
+    while True:
         GPIO.output(gpio, GPIO.HIGH)
         time.sleep(on)
         GPIO.output(gpio, GPIO.LOW)
