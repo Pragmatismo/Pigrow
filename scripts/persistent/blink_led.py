@@ -64,7 +64,6 @@ def kill_clones(name):
     pid_text = pid_text.stdout.strip()
     our_pid = str(os.getpid())
     if pid_text == our_pid:
-        print("only this one running")
         return None
     # make list of  pids
     if " " in pid_text:
