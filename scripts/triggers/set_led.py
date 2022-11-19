@@ -32,6 +32,28 @@ def read_config(name):
 
     return gpio, onboot
 
+def kill_blink(name):
+    script_path = homedir + "/Pigrow/scripts/persistent/blink_led.py"
+    cmd = "pidof -x " + str(script_path)
+    pid_text = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+    pid_text = pid_text.stdout.strip()
+    # make list of  pids
+    if " " in pid_text:
+        pids = pid_text.split(" ")
+    else:
+        pids = [pid_text]
+    # check list for name=NAME
+    named_list = []
+    for pid in pids:
+        cmd = "ps -fp " + pid
+        stdout = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+        if "name=" + name + " " in stdout.stdout + " ":
+            named_list.append(pid)
+    # kill processes
+    for pid in named_list:
+        cmd = "kill " + pid
+        subprocess.run(cmd, shell=True)
+
 def set_led_solid(mode, gpio):
     import RPi.GPIO as GPIO
     GPIO.setwarnings(False)
@@ -140,6 +162,7 @@ if __name__ == '__main__':
                 print("listed gpio pin is not a valid number, check pigrow_config.txt")
             # select mode
             if mode == 'on' or mode == 'off':
+                kill_blink(name)
                 set_led_solid(mode, gpio)
             else:
                 set_led_blink(name, mode, gpio)
