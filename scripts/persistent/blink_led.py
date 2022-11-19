@@ -31,7 +31,7 @@ def read_config(name):
         print(loc_key, "not set in pigrow_config.txt, this should be set to the gpio number")
         pigrow_defs.write_log(script, 'LED ' + name + "called but no gpio set in pigrow_setting.txt", loc_dic['err_log'])
         sys.exit()
-    return gpio
+    return int(gpio)
 
 def read_speed(speed):
     # break string into two values
