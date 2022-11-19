@@ -80,7 +80,7 @@ def set_led_blink(name, mode, gpio):
         print("     set=fast")
         sys.exit()
     cmd = homedir + "/Pigrow/scripts/persistent/blink_led.py name=" + name + " speed=" + speed
-    subprocess.Popen(cmd, shell=True)
+    subprocess.Popen(cmd, shell=True, start_new_session=True)
 
 def write_onboot(name, made):
     led_stat_path = homedir + "/Pigrow/logs/ledstat_" + name + ".txt"
