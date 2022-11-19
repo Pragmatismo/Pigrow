@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 import os
 import sys
+import subprocess
 homedir = os.getenv("HOME")
 sys.path.append(homedir + '/Pigrow/scripts/')
 import pigrow_defs
