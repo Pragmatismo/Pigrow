@@ -81,6 +81,8 @@ def set_led_blink(name, mode, gpio):
         sys.exit()
     cmd = [homedir + "/Pigrow/scripts/persistent/blink_led.py", "name=" + name, "speed=" + speed]
     subprocess.Popen(cmd)
+    import time
+    subprocess.Popen("ps -A -F |grep set_led", shell=True)
     time.wait(60)
 
 def write_onboot(name, made):
