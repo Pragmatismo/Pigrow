@@ -83,7 +83,7 @@ def set_led_blink(name, mode, gpio):
     subprocess.Popen(cmd)
     import time
     subprocess.Popen("ps -A -F |grep set_led", shell=True)
-    time.wait(60)
+    time.sleep(60)
 
 def write_onboot(name, made):
     led_stat_path = homedir + "/Pigrow/logs/ledstat_" + name + ".txt"
