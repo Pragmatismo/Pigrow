@@ -250,19 +250,7 @@ class info_pnl(wx.Panel):
         title_sizer.Add(title_l, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
         title_sizer.Add(page_sub_title, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
 
-        left_pnl_list = ['hardware_version',
-                         'os_version',
-                         'pigrow_update_status',
-                         'diskusage',
-                         'power_warnings',
-                         'datetime',
-                         'connected_network'] #, 'rofl', 'haha', 'hehe']
-        right_pnl_list = ['camera',
-                          '1wire',
-                          'i2c',
-                          'video']
-
-        pnl_lists = [left_pnl_list, right_pnl_list, ['switch_position']]
+        pnl_lists = shared_data.system_info_layout
 
         self.info_box_dict = {}
         big_pnl_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -678,7 +666,7 @@ class info_layout_dialog(wx.Dialog):
         super(info_layout_dialog, self).__init__(*args, **kw)
         self.parent = parent
         self.InitUI()
-        self.SetSize((600, 675))
+        self.SetSize((600, 800))
         self.SetTitle("Info Box Layout")
     def InitUI(self):
         shared_data = self.parent.parent.shared_data
@@ -690,7 +678,6 @@ class info_layout_dialog(wx.Dialog):
         sub_title = wx.StaticText(self,  label='Select which info boxes will be displayed')
 
         # info script selection type
-        self.SetFont(shared_data.sub_title_font)
         info_scripts_label = wx.StaticText(self,  label='Info script;')
         opts = self.get_info_box_list()
         self.info_script = wx.ComboBox(self, choices = opts)
@@ -699,14 +686,34 @@ class info_layout_dialog(wx.Dialog):
         info_cb_sizer.Add(self.info_script, 0, wx.ALL, 4)
         # info script test
         self.SetFont(shared_data.button_font)
-        test_script_btn = wx.Button(self, label='read info', size=(175, 30))
+
+        add_col_btn = wx.Button(self, label='Add Col')
+        add_col_btn.Bind(wx.EVT_BUTTON, self.add_col_click)
+        up_btn = wx.Button(self, label='Move Up')
+        up_btn.Bind(wx.EVT_BUTTON, self.move_up_click)
+        down_btn = wx.Button(self, label='Move Down')
+        down_btn.Bind(wx.EVT_BUTTON, self.move_down_click)
+        pos_butt_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        pos_butt_sizer.Add(add_col_btn, 0, wx.ALL, 4)
+        pos_butt_sizer.Add(up_btn, 0, wx.ALL, 4)
+        pos_butt_sizer.Add(down_btn, 0, wx.ALL, 4)
+
+        test_script_btn = wx.Button(self, label='Read info', size=(175, 30))
         test_script_btn.Bind(wx.EVT_BUTTON, self.test_script_click)
+        add_info_btn = wx.Button(self, label='Add', size=(175, 30))
+        add_info_btn.Bind(wx.EVT_BUTTON, self.add_click)
+        info_butt_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        info_butt_sizer.Add(test_script_btn, 0, wx.ALL, 4)
+        info_butt_sizer.Add(add_info_btn, 0, wx.ALL, 4)
+
         self.info_output = wx.StaticText(self,  label=' -- ')
         info_scripts_sizer = wx.BoxSizer(wx.VERTICAL)
         info_scripts_sizer.Add(info_cb_sizer, 0, wx.ALL, 4)
-        info_scripts_sizer.Add(test_script_btn, 0, wx.ALL|wx.ALIGN_RIGHT, 4)
+        info_scripts_sizer.Add(info_butt_sizer, 0, wx.ALL|wx.ALIGN_RIGHT, 4)
         info_scripts_sizer.Add(self.info_output, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 4)
 
+        # layout
+        self.scroll_box = self.scroll_area(self)
 
         # save and cancel buttons
         self.save_btn = wx.Button(self, label='Ok', size=(175, 30))
@@ -724,8 +731,45 @@ class info_layout_dialog(wx.Dialog):
         main_sizer.Add(sub_title, 0, wx.ALIGN_CENTER_HORIZONTAL, 3)
         main_sizer.Add(info_scripts_sizer, 0, wx.TOP, 15)
         main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(self.scroll_box, 0, wx.ALL|wx.EXPAND, 5)
+        main_sizer.Add(pos_butt_sizer, 0, wx.ALL|wx.EXPAND, 5)
+        main_sizer.AddStretchSpacer(1)
         main_sizer.Add(buttons_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
         self.SetSizer(main_sizer)
+
+    def add_col_click(self, e):
+        print("wants to add col")
+        col = ['-none-']
+        self.scroll_box.cols_sizer.Add(self.scroll_box.make_col(col), 0, wx.ALIGN_LEFT | wx.ALL, 5)
+        self.Layout()
+
+    def move_up_click(self, e):
+        info_box = self.info_script.GetValue()
+        item_list = self.scroll_box.cols_sizer.GetChildren()
+        for item in item_list:
+            item = item.GetWindow()
+            if item.GetSelectedItemCount() == 1:
+                s_index = item.GetFirstSelected()
+                item_label = item.GetItem(s_index, 0).GetText()
+                if not s_index == -1 and not s_index == 0:
+                    item.Select(s_index, on=0)
+                    item.InsertItem(s_index -1, item_label)
+                    item.Select(s_index - 1, on=1)
+                    item.DeleteItem(s_index + 1)
+
+    def move_down_click(self, e):
+        info_box = self.info_script.GetValue()
+        item_list = self.scroll_box.cols_sizer.GetChildren()
+        for item in item_list:
+            item = item.GetWindow()
+            if item.GetSelectedItemCount() == 1:
+                s_index = item.GetFirstSelected()
+                item_label = item.GetItem(s_index, 0).GetText()
+                if not s_index == -1 and not s_index == item.GetItemCount()-1:
+                    item.Select(s_index, on=0)
+                    item.InsertItem(s_index + 2, item_label)
+                    item.Select(s_index + 2, on=1)
+                    item.DeleteItem(s_index)
 
     def get_info_box_list(self):
         rpp = self.parent.parent.shared_data.remote_pigrow_path
@@ -753,12 +797,110 @@ class info_layout_dialog(wx.Dialog):
         self.info_output.SetLabel(out.strip())
         self.Layout()
 
+    def add_click(self, e):
+        info_box = self.info_script.GetValue()
+        item_list = self.scroll_box.cols_sizer.GetChildren()
+        for item in item_list:
+            item = item.GetWindow()
+            if item.GetSelectedItemCount() == 1:
+                s_index = item.GetFirstSelected()
+                if not s_index == -1:
+                    item.InsertItem(s_index+1, info_box)
+                    if item.GetItem(0, 0).GetText() == "-none-":
+                        item.DeleteItem(0)
+
 
     def cancel_click(self, e):
         self.Destroy()
 
     def save_click(self, e):
-        print("This button does nothing at the moment, sorry.")
+        print("This button is mid testing.")
+        #
+        info_box = self.info_script.GetValue()
+        item_list = self.scroll_box.cols_sizer.GetChildren()
+        cols = []
+        for item in item_list:
+            col = []
+            item = item.GetWindow()
+            count = item.GetItemCount()
+            for i in range(0, count):
+                name = item.GetItem(i, 0).GetText()
+                col.append(name)
+            cols.append(col)
+        #
+        i = 0
+        for col in cols:
+            pnl_key = "syspnl_col_" + str(i)
+            i += 1
+            txt = ""
+            for item in col:
+                txt += item + ","
+            if txt[-1:] == ",":
+                txt = txt[:-1]
+            self.parent.parent.shared_data.gui_set_dict[pnl_key] = txt
+        self.parent.parent.shared_data.save_gui_settings()
+        self.Destroy()
+
+    class scroll_area(scrolled.ScrolledPanel):
+        def __init__(self, parent):
+            self.parent = parent
+            scrolled.ScrolledPanel.__init__(self, parent, -1, size=(600,400))
+
+            layout_box_sizer = wx.BoxSizer(wx.VERTICAL)
+            self.cols_sizer = self.make_cols_sizer()
+            layout_box_sizer.Add(self.cols_sizer, 0, wx.ALIGN_LEFT | wx.ALL, 5)
+
+            self.SetSizer(layout_box_sizer)
+            self.SetupScrolling()
+
+        def make_cols_sizer(self):
+            print(" making a sizer for scroll box")
+            layout_list = self.parent.parent.parent.shared_data.system_info_layout
+
+            cols_box_sizer = wx.BoxSizer(wx.HORIZONTAL)
+            for col in layout_list:
+                cols_box_sizer.Add(self.make_col(col), 0, wx.ALIGN_LEFT | wx.ALL, 5)
+
+            return cols_box_sizer
+
+        def make_col(self, col):
+            self.SetFont(self.parent.parent.parent.shared_data.info_font)
+            col_lc = self.col_info_list(self, 1)
+            #col_lc.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.onDoubleClick_col)
+            col_lc.Bind(wx.EVT_LIST_KEY_DOWN, self.del_item)
+            col_lc.Bind(wx.EVT_LIST_ITEM_FOCUSED, self.col_got_focus)
+            col.reverse()
+            for item in col:
+                col_lc.InsertItem(0, str(item))
+            return col_lc
+
+        def del_item(self, e):
+            keycode = e.GetKeyCode()
+            if keycode == wx.WXK_DELETE:
+                item_list = self.cols_sizer.GetChildren()
+                for item in item_list:
+                    item = item.GetWindow()
+                    print(item.GetSelectedItemCount())
+                    if item.GetSelectedItemCount() == 1:
+                        focus_index = item.GetFirstSelected()
+                        if not focus_index == -1:
+                            item.DeleteItem(focus_index)
+
+
+        def col_got_focus(self, e):
+            event_object = e.GetEventObject()
+            item_list = self.cols_sizer.GetChildren()
+            for item in item_list:
+                item = item.GetWindow()
+                if not item == event_object:
+                    focus_index = item.GetFocusedItem()
+                    item.Select(focus_index, on=0)
+
+        class col_info_list(wx.ListCtrl):
+            def __init__(self, parent, id, pos=(5,10), size=(200,400)):
+                wx.ListCtrl.__init__(self, parent, id, size=size, style=wx.LC_REPORT, pos=pos)
+                self.InsertColumn(0, '')
+                self.SetColumnWidth(0, 200)
 
 class install_dialog(wx.Dialog):
     #Dialog box for installing pigrow software on a raspberry pi remotely
