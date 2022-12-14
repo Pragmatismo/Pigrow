@@ -825,8 +825,10 @@ class info_layout_dialog(wx.Dialog):
             count = item.GetItemCount()
             for i in range(0, count):
                 name = item.GetItem(i, 0).GetText()
-                col.append(name)
-            cols.append(col)
+                if not name == "-none-" and not name == "":
+                    col.append(name)
+            if not len(col) == 0:
+                cols.append(col)
         #
         i = 0
         for col in cols:
@@ -885,6 +887,8 @@ class info_layout_dialog(wx.Dialog):
                         focus_index = item.GetFirstSelected()
                         if not focus_index == -1:
                             item.DeleteItem(focus_index)
+                            if item.GetItemCount() == 0:
+                                item.InsertItem(0, "-none-")
 
 
         def col_got_focus(self, e):
