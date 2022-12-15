@@ -200,7 +200,7 @@ class ctrl_pnl(wx.Panel):
         install_dbox.Destroy()
 
     def update_pigrow_click(self, e):
-        update_dbox = upgrade_pigrow_dialog(self, self.parent, title='Update Pigrow to Raspberry Pi')
+        update_dbox = upgrade_pigrow_dialog(self, self.parent, title='Update Pigrow on Raspberry Pi')
         update_dbox.ShowModal()
         update_dbox.Destroy()
 
@@ -240,11 +240,9 @@ class info_pnl(wx.Panel):
         ## Draw UI elements
         # Tab Title
         self.SetFont(shared_data.title_font)
-        title_l = wx.StaticText(self,  label="")
-        title_l.SetLabel('System Control Panel')
+        title_l = wx.StaticText(self,  label='System Control Panel')
         self.SetFont(shared_data.sub_title_font)
-        page_sub_title =  wx.StaticText(self,  label='Configure the raspberry pi on which the pigrow code runs', size=(550,30))
-        page_sub_title.SetFont(shared_data.sub_title_font)
+        page_sub_title =  wx.StaticText(self,  label='Configure the raspberry pi on which the pigrow code runs')
 
         # Sizers
         title_sizer = wx.BoxSizer(wx.VERTICAL)
@@ -261,7 +259,6 @@ class info_pnl(wx.Panel):
             for item in info_list:
                 self.SetFont(shared_data.item_title_font)
                 title_box = wx.StaticText(self, label=item.replace("_", " "))
-                # bind double click so user can refresh indivdual info boxes
                 title_box.Bind(wx.EVT_LEFT_DCLICK, self.doubleclick_pnl)
                 self.SetFont(shared_data.info_font)
                 info_box = wx.StaticText(self, label=" -- ")
@@ -393,10 +390,10 @@ class one_wire_change_pin_dbox(wx.Dialog):
         # draw the pannel and text
         pnl = wx.Panel(self)
 
+        self.SetFont(shared_data.title_font)
         title = wx.StaticText(self,  label='Change 1wire Pin')
-        title.SetFont(shared_data.title_font)
-        sub_text = wx.StaticText(self,  label="Editing the /boot/config.txt file's \ndtoverlay=w1-gpio,gpiopin= lines")
-        sub_text.SetFont(shared_data.sub_title_font)
+        self.SetFont(shared_data.sub_title_font)
+        sub_text = wx.StaticText(self,  label="Editing the /boot/config.txt file's dtoverlay=w1-gpio,gpiopin= lines")
         # add drop down box with list of 1wire overlay gpio pins
         tochange_gpiopin_l = wx.StaticText(self, label='current 1wire gpio pin -')
 
@@ -406,30 +403,22 @@ class one_wire_change_pin_dbox(wx.Dialog):
             self.tochange_gpiopin_cb.SetValue(self.pin_list[0])
         #
         new_gpiopin_l = wx.StaticText(self, label='Change to GPIO pin -')
-        new_gpiopin_l.SetFont(shared_data.button_font)
+        self.SetFont(shared_data.button_font)
         self.new_gpiopin_tc = wx.TextCtrl(self, size=(110, 25)) # new number
-        self.new_gpiopin_tc.SetFont(shared_data.button_font)
         self.new_gpiopin_tc.Bind(wx.EVT_TEXT, self.make_config_line)
         line_l = wx.StaticText(self, label="/boot/config/txt line")
-        line_l.SetFont(shared_data.button_font)
         self.line_t = wx.StaticText(self, label="")
-        self.line_t.SetFont(shared_data.button_font)
         # add remove buttons
         self.add_btn = wx.Button(self, label='Add', size=(175, 30))
-        self.add_btn.SetFont(shared_data.button_font)
         self.add_btn.Bind(wx.EVT_BUTTON, self.add_click)
         self.rem_btn = wx.Button(self, label='Remove', size=(175, 30))
-        self.rem_btn.SetFont(shared_data.button_font)
         self.rem_btn.Bind(wx.EVT_BUTTON, self.rem_click)
         self.change_btn = wx.Button(self, label='Change', size=(175, 30))
-        self.change_btn.SetFont(shared_data.button_font)
         self.change_btn.Bind(wx.EVT_BUTTON, self.change_click)
         # ok and cancel Buttons
         self.ok_btn = wx.Button(self, label='OK', size=(175, 30))
-        self.ok_btn.SetFont(shared_data.button_font)
         self.ok_btn.Bind(wx.EVT_BUTTON, self.ok_click)
         self.cancel_btn = wx.Button(self, label='Cancel', size=(175, 30))
-        self.cancel_btn.SetFont(shared_data.button_font)
         self.cancel_btn.Bind(wx.EVT_BUTTON, self.OnClose)
         # sizers
         old_gpio_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -542,30 +531,26 @@ class upgrade_pigrow_dialog(wx.Dialog):
         shared_data = self.parent.parent.shared_data
         # draw the pannel and text
         pnl = wx.Panel(self)
+        self.SetFont(shared_data.title_font)
         title = wx.StaticText(self,  label='Upgrade Pigrow')
+        self.SetFont(shared_data.sub_title_font)
         sub_title = wx.StaticText(self,  label='Use Git to update the Pigrow to the newest version.')
-        title.SetFont(shared_data.title_font)
-        sub_title.SetFont(shared_data.sub_title_font)
+        local_l = wx.StaticText(self,  label='Local;')
+        repo_l = wx.StaticText(self,  label='Repo;')
+        pigrow_status = wx.StaticText(self,  label='Pigrow Status;')
 
+        self.SetFont(shared_data.info_font)
         # get info
         status_text, local_text, remote_text = self.read_changes()
-
         # changes which have been made locally to tracked files
-        local_l = wx.StaticText(self,  label='Local;')
-        local_l.SetFont(shared_data.sub_title_font)
         local_changes_tc = wx.TextCtrl(self, -1, local_text, size=(500,200), style=wx.TE_MULTILINE)
-
         # Changes which have been made on the remote repo (i.e. online repo)
-        repo_l = wx.StaticText(self,  label='Repo;')
-        repo_l.SetFont(shared_data.sub_title_font)
         remote_changes_tc = wx.TextCtrl(self, -1, remote_text, size=(500,200), style=wx.TE_MULTILINE)
 
         # upgrade type
-        pigrow_status = wx.StaticText(self,  label='Pigrow Status;')
-        pigrow_status.SetFont(shared_data.sub_title_font)
         upgrade_type_tb = wx.StaticText(self,  label=status_text)
 
-
+        self.SetFont(shared_data.button_font)
         # upgrade and cancel buttons
         self.upgrade_btn = wx.Button(self, label='Upgrade', size=(175, 30))
         self.upgrade_btn.Bind(wx.EVT_BUTTON, self.upgrade_click)
@@ -593,7 +578,7 @@ class upgrade_pigrow_dialog(wx.Dialog):
         main_sizer.Add(remote_sizer, 0, wx.TOP, 25)
         main_sizer.Add(local_sizer, 0, wx.TOP, 10)
         main_sizer.AddStretchSpacer(1)
-        main_sizer.Add(buttons_sizer, 0, wx.ALL, 3)
+        main_sizer.Add(buttons_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
         self.SetSizer(main_sizer)
 
     def read_changes(self):
@@ -658,8 +643,6 @@ class upgrade_pigrow_dialog(wx.Dialog):
 #                else:
 #                    MainApp.system_info_pannel.sys_pigrow_update.SetLabel("--UPDATED--")
                 self.Destroy()
-
-
 
 class info_layout_dialog(wx.Dialog):
     #Dialog box for installing pigrow software on a raspberry pi remotely
@@ -913,6 +896,7 @@ class info_layout_dialog(wx.Dialog):
                 self.InsertColumn(0, '')
                 self.SetColumnWidth(0, 200)
 
+
 class install_dialog(wx.Dialog):
     #Dialog box for installing pigrow software on a raspberry pi remotely
     def __init__(self, parent, *args, **kw):
@@ -958,7 +942,6 @@ class install_dialog(wx.Dialog):
 
     def cancel_click(self, e):
         self.Destroy()
-
 
 class old_install_dialog(wx.Dialog):
     #Dialog box for installing pigrow software on a raspberry pi remotely
