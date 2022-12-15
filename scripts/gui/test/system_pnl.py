@@ -195,8 +195,9 @@ class ctrl_pnl(wx.Panel):
 
     def install_click(self, e):
         print(" Install is not yet enabled in the test version, use original gui instead")
-        #install_dbox = install_dialog(None, title='Install Pigrow to Raspberry Pi')
-        #install_dbox.ShowModal()
+        install_dbox = install_dialog(self, self.parent)
+        install_dbox.ShowModal()
+        install_dbox.Destroy()
 
     def update_pigrow_click(self, e):
         update_dbox = upgrade_pigrow_dialog(self, self.parent, title='Update Pigrow to Raspberry Pi')
@@ -813,8 +814,6 @@ class info_layout_dialog(wx.Dialog):
         self.Destroy()
 
     def save_click(self, e):
-        print("This button is mid testing.")
-        #
         info_box = self.info_script.GetValue()
         item_list = self.scroll_box.cols_sizer.GetChildren()
         cols = []
@@ -828,7 +827,9 @@ class info_layout_dialog(wx.Dialog):
                     col.append(name)
             if not len(col) == 0:
                 cols.append(col)
-        #
+
+
+
         #clear existing from gui settings
         i = 0
         while True:
@@ -838,8 +839,7 @@ class info_layout_dialog(wx.Dialog):
                 i += 1
             else:
                 break
-
-        #
+        # make and store lists in gui_config
         i = 0
         for col in cols:
             pnl_key = "syspnl_col_" + str(i)
@@ -914,6 +914,53 @@ class info_layout_dialog(wx.Dialog):
                 self.SetColumnWidth(0, 200)
 
 class install_dialog(wx.Dialog):
+    #Dialog box for installing pigrow software on a raspberry pi remotely
+    def __init__(self, parent, *args, **kw):
+        super(install_dialog, self).__init__(*args, **kw)
+        self.parent = parent
+        self.InitUI()
+        self.SetSize((600, 800))
+        self.SetTitle("Install On Pi")
+    def InitUI(self):
+        shared_data = self.parent.parent.shared_data
+        # draw the pannel and text
+        pnl = wx.Panel(self)
+        self.SetFont(shared_data.title_font)
+        title = wx.StaticText(self,  label='Install Pigrow on Pi')
+        self.SetFont(shared_data.sub_title_font)
+        sub_title = wx.StaticText(self,  label='Remotely manage pigrow scripts and dependences')
+
+        #  note
+        note = wx.StaticText(self,  label='This feature is not yet coded')
+
+        # save and cancel buttons
+        self.install_btn = wx.Button(self, label='install', size=(175, 30))
+        self.install_btn.Bind(wx.EVT_BUTTON, self.install_click)
+        self.cancel_btn = wx.Button(self, label='Cancel', size=(175, 30))
+        self.cancel_btn.Bind(wx.EVT_BUTTON, self.cancel_click)
+
+        buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        buttons_sizer.Add(self.install_btn, 0, wx.ALL, 2)
+        buttons_sizer.AddStretchSpacer(1)
+        buttons_sizer.Add(self.cancel_btn, 0, wx.ALL, 2)
+
+        main_sizer = wx.BoxSizer(wx.VERTICAL)
+        main_sizer.Add(title, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
+        main_sizer.Add(sub_title, 0, wx.ALIGN_CENTER_HORIZONTAL, 3)
+        main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(note, 0, wx.ALL|wx.EXPAND, 5)
+        main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(buttons_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
+        self.SetSizer(main_sizer)
+
+    def install_click(self, e):
+        print("no")
+
+    def cancel_click(self, e):
+        self.Destroy()
+
+
+class old_install_dialog(wx.Dialog):
     #Dialog box for installing pigrow software on a raspberry pi remotely
     def __init__(self, *args, **kw):
         super(install_dialog, self).__init__(*args, **kw)
