@@ -809,7 +809,6 @@ class info_layout_dialog(wx.Dialog):
                     if item.GetItem(0, 0).GetText() == "-none-":
                         item.DeleteItem(0)
 
-
     def cancel_click(self, e):
         self.Destroy()
 
@@ -829,6 +828,17 @@ class info_layout_dialog(wx.Dialog):
                     col.append(name)
             if not len(col) == 0:
                 cols.append(col)
+        #
+        #clear existing from gui settings
+        i = 0
+        while True:
+            pnl_key = "syspnl_col_" + str(i)
+            if pnl_key in self.parent.parent.shared_data.gui_set_dict:
+                del self.parent.parent.shared_data.gui_set_dict[pnl_key]
+                i += 1
+            else:
+                break
+
         #
         i = 0
         for col in cols:
@@ -856,13 +866,10 @@ class info_layout_dialog(wx.Dialog):
             self.SetupScrolling()
 
         def make_cols_sizer(self):
-            print(" making a sizer for scroll box")
             layout_list = self.parent.parent.parent.shared_data.system_info_layout
-
             cols_box_sizer = wx.BoxSizer(wx.HORIZONTAL)
             for col in layout_list:
                 cols_box_sizer.Add(self.make_col(col), 0, wx.ALIGN_LEFT | wx.ALL, 5)
-
             return cols_box_sizer
 
         def make_col(self, col):
@@ -897,7 +904,7 @@ class info_layout_dialog(wx.Dialog):
             for item in item_list:
                 item = item.GetWindow()
                 if not item == event_object:
-                    focus_index = item.GetFocusedItem()
+                    focus_index = item.GetFirstSelected()
                     item.Select(focus_index, on=0)
 
         class col_info_list(wx.ListCtrl):
