@@ -278,64 +278,51 @@ class ctrl_pnl(wx.Panel):
         onetime_list_instance.SetItem(0, 3, cron_task)
         onetime_list_instance.SetItem(0, 4, cron_extra_args)
 
-    def make_repeating_cron_timestring(self, repeat, repeat_num):
-        #assembles timing sting for cron
-        # min (0 - 59) | hour (0 - 23) | day of month (1-31) | month (1 - 12) | day of week (0 - 6) (Sunday=0)
-        # 1st postion - Minute 0-59
-        if repeat == 'min':
+    def make_repeating_cron_timestring(self, repeat, repeat_num, cron_nums):
+        # first chr minuetes
+        if not repeat == "min":
+            if cron_nums[0].strip() == "" or cron_nums[0] == None:
+                cron_time_string = "*"
+            else:
+                cron_time_string = cron_nums[0]
+        else:
             if int(repeat_num) in range(0,59):
                 cron_time_string = '*/' + str(repeat_num)
             else:
-                print("Cron string min wrong, fix it before updating")
+                print("Cron string min not between 0-59, failed")
                 return 'fail'
+        # second chr hours
+        if not repeat == "hour":
+            if cron_nums[1].strip() == "" or cron_nums[1] == None:
+                cron_time_string += " *"
+            else:
+                cron_time_string += " " + cron_nums[1]
         else:
-            cron_time_string = '0'
-        # 2nd Position - Hour 0-23
-        if repeat == 'hour':
             if int(repeat_num) in range(0,23):
                 cron_time_string += ' */' + str(repeat_num)
             else:
-                print("Cron string hour wrong, fix it before updating")
+                print("Cron string hour not between 0-23, failed")
                 return 'fail'
+        # third chr day (of month)
+        if not repeat == "day":
+            if cron_nums[2].strip() == "" or cron_nums[2] == None:
+                cron_time_string += " *"
+            else:
+                cron_time_string += " " + cron_nums[2]
         else:
-            if not repeat == "min":
-                cron_time_string += ' 0'
+            cron_time_string += ' */' + str(repeat_num)
+        # forth chr month (of year)
+        if not repeat == "month":
+            if cron_nums[3].strip() == "" or cron_nums[3] == None:
+                cron_time_string += " *"
             else:
-                cron_time_string += ' *'
-        # 3rd Position - Day of Month 1-31
-        if repeat == 'day':
-            if int(repeat_num) in range(1,31):
-                cron_time_string += ' */' + str(repeat_num)
-            else:
-                print("Cron string day wrong, fix it before updating")
-                return 'fail'
+                cron_time_string += " " + cron_nums[3]
         else:
-            if not repeat in ['min', 'hour']:
-                cron_time_string += ' 1'
-            else:
-                cron_time_string += ' *'
-        # 4th Position - Month 1-12
-        if repeat == 'month':
-            if int(repeat_num) in range(1,12):
-                cron_time_string += ' */' + str(repeat_num)
-            else:
-                print("Cron sting month wrong, fix it before updating")
-                return 'fail'
-        else:
-            if not repeat in ['min', 'hour', 'day']:
-                cron_time_string += ' 1'
-            else:
-                cron_time_string += ' *'
-        # 5th Position - Day Of the Week 0-7 with 0&7 Sunday
-        if repeat == 'dow':
-            if int(repeat_num) in range(1,7):
-                cron_time_string = '0 0 * * */' + str(repeat_num)
-            else:
-                print("Cron string dow wrong, fix it before updating")
-                return 'fail'
-        else:
-            cron_time_string += ' *'
+            cron_time_string += ' */' + str(repeat_num)
+        # fifth chr dow
+        cron_time_string += " *"
         return cron_time_string
+
 
     def make_onetime_cron_timestring(self, job_min, job_hour, job_day, job_month, job_dow):
         # 1st postion - Minute 0-59
@@ -417,11 +404,12 @@ class ctrl_pnl(wx.Panel):
         job_dow = cron_dbox.job_dow
         # make timing_string from min:hour or repeat + repeat_num
         if cron_jobtype == 'repeating':
-            timing_string = self.make_repeating_cron_timestring(job_repeat, job_repnum)
+            cron_nums = [job_min, job_hour, job_day, job_month, job_dow]
+            timing_string = self.make_repeating_cron_timestring(job_repeat, job_repnum, cron_nums)
         elif cron_jobtype == 'one time':
             timing_string = self.make_onetime_cron_timestring(job_min, job_hour, job_day, job_month, job_dow)
         # sort into the correct table
-        if not job_script == None or not job_script == '':
+        if not job_script == None and not job_script == '':
             cron_task = job_path + job_script
             if cron_jobtype == 'startup':
                 self.add_to_startup_list(self.parent.dict_I_pnl['cron_pnl'].startup_cron ,'new', job_enabled, cron_task, cron_extra_args)
@@ -610,7 +598,12 @@ class info_pnl(wx.Panel):
                 else:
                     cron_rep = ""
                     cron_num = "fail"
-                return cron_num, cron_rep
+                cron_nums = [cron_stars[0],
+                             cron_stars[1],
+                             cron_stars[2],
+                             cron_stars[3],
+                             cron_stars[4]]
+                return cron_num, cron_rep, cron_stars
             except:
                 return "", ""
 
@@ -734,7 +727,7 @@ class info_pnl(wx.Panel):
                 if  id_pair.replace('"', "") in cmd_args_s:
                     enabled = self.repeat_cron.GetItem(index, 1).GetText()
                     cron_time_string = self.repeat_cron.GetItem(index, 2).GetText()
-                    freq_num, freq_text = self.repeat_cron.parse_cron_string(cron_time_string)
+                    freq_num, freq_text, cron_stars = self.repeat_cron.parse_cron_string(cron_time_string)
                     found_jobs.append([index, enabled, freq_num, freq_text, cmd_args])
         return found_jobs
 
@@ -776,7 +769,9 @@ class info_pnl(wx.Panel):
             cron_enabled  = "True"
             cron_args     = "name=" + new_name
 
-        timing_string = c_pnl.make_repeating_cron_timestring(new_cron_time_txt, new_cron_time_num)
+        cron_string = self.repeat_cron.GetItem(script_index_repeating, 2).GetText()
+        cron_nums = cron_string.strip().split(" ")
+        timing_string = c_pnl.make_repeating_cron_timestring(new_cron_time_txt, new_cron_time_num, cron_nums)
         print("   setting - Cron job; " + cron_enabled + " " + timing_string + " " + script_path + " " + cron_args)
         c_pnl.add_to_repeat_list(self.repeat_cron, 'new', cron_enabled, timing_string, script_path, cron_args)
 
@@ -787,7 +782,7 @@ class info_pnl(wx.Panel):
         script_index_repeating = self.find_repeat_pos_by_name(script, name)
         if not script_index_repeating == -1:
             cron_time_string = self.repeat_cron.GetItem(script_index_repeating, 2).GetText()
-            freq_num, freq_text = self.repeat_cron.parse_cron_string(cron_time_string)
+            freq_num, freq_text, cron_stars = self.repeat_cron.parse_cron_string(cron_time_string)
             return freq_num, freq_text
         else:
             return "not", "found"
@@ -855,14 +850,14 @@ class info_pnl(wx.Panel):
             self.cron_dow_toedit = '*'
         elif type == "repeating":
             timing_string = table.GetItem(index, 2).GetText()
-            cron_num, cron_rep = self.repeating_cron_list.parse_cron_string(self, timing_string)
+            cron_num, cron_rep, cron_stars = self.repeating_cron_list.parse_cron_string(self, timing_string)
             self.cron_everystr_toedit = cron_rep
             self.cron_everynum_toedit = cron_num
-            self.cron_min_toedit = '0'
-            self.cron_hour_toedit = '8'
-            self.cron_day_toedit = '*'
-            self.cron_month_toedit = '*'
-            self.cron_dow_toedit = '*'
+            self.cron_min_toedit   = cron_stars[0]
+            self.cron_hour_toedit  = cron_stars[1]
+            self.cron_day_toedit   = cron_stars[2]
+            self.cron_month_toedit = cron_stars[3]
+            self.cron_dow_toedit   = cron_stars[4]
         elif type == "one time":
             timing_string = table.GetItem(index, 2).GetText()
             cron_stars = timing_string.split(' ')
@@ -902,7 +897,8 @@ class info_pnl(wx.Panel):
         # make timing_string from min:hour or repeat + repeat_num
         c_pnl = self.parent.dict_C_pnl['cron_pnl']
         if cron_jobtype == 'repeating':
-            timing_string = c_pnl.make_repeating_cron_timestring(job_repeat, job_repnum)
+            cron_num = [job_min, job_hour, job_day, job_month, job_dow]
+            timing_string = c_pnl.make_repeating_cron_timestring(job_repeat, job_repnum, cron_num)
         elif cron_jobtype == 'one time':
             timing_string = c_pnl.make_onetime_cron_timestring(job_min, job_hour, job_day, job_month, job_dow)
         # sort into the correct table
@@ -939,7 +935,7 @@ class cron_job_dialog(wx.Dialog):
         self.parent = parent
         super(cron_job_dialog, self).__init__(*args, **kw)
         self.InitUI(parent)
-        self.SetSize((850, 430))
+        self.SetSize((850, 460))
         self.SetTitle("Cron Job Editor")
         self.Bind(wx.EVT_CLOSE, self.OnClose)
     def InitUI(self, parent):
@@ -953,10 +949,20 @@ class cron_job_dialog(wx.Dialog):
         cron_everynum = parent.cron_everynum_toedit
         cron_enabled  = parent.cron_enabled_toedit
         cron_min      = parent.cron_min_toedit
+        if "/" in cron_min:
+            cron_min = "0"
         cron_hour     = parent.cron_hour_toedit
+        if "/" in cron_hour:
+            cron_hour = "0"
         cron_day      = parent.cron_day_toedit
+        if "/" in cron_day:
+            cron_day = "1"
         cron_month    = parent.cron_month_toedit
+        if "/" in cron_month:
+            cron_month = "*"
         cron_dow      = parent.cron_dow_toedit
+        if "/" in cron_dow:
+            cron_dow = "*"
         #draw the pannel
         pnl = wx.Panel(self)
         ## universal controls
@@ -1018,14 +1024,14 @@ class cron_job_dialog(wx.Dialog):
         self.cron_script_cb.SetValue(cron_task)
         self.cron_enabled_cb.SetValue(cron_enabled)
 
-
         # draw and hide optional option controlls
         ## for repeating cron jobs
         self.cron_rep_every = wx.StaticText(self,  label='Every ')
-        self.cron_every_num_tc = wx.TextCtrl(self, size=(40, 30))  #box for number, name num only range set by repeat_opt
+        self.cron_every_num_tc = wx.TextCtrl(self, size=(65, 30))  #box for number, name num only range set by repeat_opt
         self.cron_every_num_tc.Bind(wx.EVT_CHAR, self.onChar)
         cron_repeat_opts = ['min', 'hour', 'day', 'month', 'dow']
         self.cron_repeat_opts_cb = wx.ComboBox(self, choices = cron_repeat_opts, size=(100, 30))
+        self.cron_repeat_opts_cb.Bind(wx.EVT_COMBOBOX, self.set_rep_opt)
         # set vals
         self.cron_rep_every.Hide()
         self.cron_every_num_tc.Hide()
@@ -1040,31 +1046,54 @@ class cron_job_dialog(wx.Dialog):
 
         ## for one time cron jobs
         self.timed_txt = wx.StaticText(self,  label='Time; ')
-        self.cron_timed_min_tc = wx.TextCtrl(self, size=(40, 30)) #limit to 0-23
+
+        self.cron_timed_min_tc = wx.TextCtrl(self, size=(40, 30))
+        self.min_l = wx.StaticText(self,  label='Min')
         self.cron_timed_min_tc.SetValue(cron_min)
         self.cron_timed_min_tc.Bind(wx.EVT_CHAR, self.onChar)
-        self.cron_timed_hour_tc = wx.TextCtrl(self, size=(40, 30)) #limit to 0-59
+        min_sizer = wx.BoxSizer(wx.VERTICAL)
+        min_sizer.Add(self.cron_timed_min_tc, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 2)
+        min_sizer.Add(self.min_l, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 2)
+
+        self.cron_timed_hour_tc = wx.TextCtrl(self, size=(40, 30))
+        self.hour_l = wx.StaticText(self,  label='Hour')
         self.cron_timed_hour_tc.SetValue(cron_hour)
         self.cron_timed_hour_tc.Bind(wx.EVT_CHAR, self.onChar)
-        self.cron_timed_day_tc = wx.TextCtrl(self, size=(40, 30)) #limit to 0-59
+        hour_sizer = wx.BoxSizer(wx.VERTICAL)
+        hour_sizer.Add(self.cron_timed_hour_tc, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 2)
+        hour_sizer.Add(self.hour_l, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 2)
+
+        self.cron_timed_day_tc = wx.TextCtrl(self, size=(40, 30))
+        self.day_l = wx.StaticText(self,  label='Day')
         self.cron_timed_day_tc.SetValue(cron_day)
         self.cron_timed_day_tc.Bind(wx.EVT_CHAR, self.onChar)
-        self.cron_timed_month_tc = wx.TextCtrl(self, size=(40, 30)) #limit to 0-59
+        day_sizer = wx.BoxSizer(wx.VERTICAL)
+        day_sizer.Add(self.cron_timed_day_tc, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 2)
+        day_sizer.Add(self.day_l, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 2)
+
+        self.cron_timed_month_tc = wx.TextCtrl(self, size=(40, 30))
+        self.month_l = wx.StaticText(self,  label='Month')
         self.cron_timed_month_tc.SetValue(cron_month)
         self.cron_timed_month_tc.Bind(wx.EVT_CHAR, self.onChar)
-        self.cron_timed_dow_tc = wx.TextCtrl(self, size=(40, 30)) #limit to 0-59
+        month_sizer = wx.BoxSizer(wx.VERTICAL)
+        month_sizer.Add(self.cron_timed_month_tc, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 2)
+        month_sizer.Add(self.month_l, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 2)
+
+        self.cron_timed_dow_tc = wx.TextCtrl(self, size=(40, 30))
+        self.dow_l = wx.StaticText(self,  label='DoW')
         self.cron_timed_dow_tc.SetValue(cron_dow)
         self.cron_timed_dow_tc.Bind(wx.EVT_CHAR, self.onChar)
+        dow_sizer = wx.BoxSizer(wx.VERTICAL)
+        dow_sizer.Add(self.cron_timed_dow_tc, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 2)
+        dow_sizer.Add(self.dow_l, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 2)
 
         time_sizer = wx.BoxSizer(wx.HORIZONTAL)
         time_sizer.Add(self.timed_txt, 0, wx.ALL, 2)
-        time_sizer.Add(self.cron_timed_min_tc, 0, wx.ALL, 2)
-        time_sizer.Add(self.cron_timed_hour_tc, 0, wx.ALL, 2)
-        time_sizer.Add(self.cron_timed_day_tc, 0, wx.ALL, 2)
-        time_sizer.Add(self.cron_timed_month_tc, 0, wx.ALL, 2)
-        time_sizer.Add(self.cron_timed_dow_tc, 0, wx.ALL, 2)
-
-        self.timed_txt2 = wx.StaticText(self,  label='[min : hour : day : month : day of the week]')
+        time_sizer.Add(min_sizer, 0, wx.ALL, 2)
+        time_sizer.Add(hour_sizer, 0, wx.ALL, 2)
+        time_sizer.Add(day_sizer, 0, wx.ALL, 2)
+        time_sizer.Add(month_sizer, 0, wx.ALL, 2)
+        time_sizer.Add(dow_sizer, 0, wx.ALL, 2)
 
                 #Bottom Row of Buttons
         self.SetFont(shared_data.button_font)
@@ -1089,7 +1118,6 @@ class cron_job_dialog(wx.Dialog):
         main_sizer.Add(timing_m_sizer, 0, wx.ALIGN_CENTER_HORIZONTAL, 3)
         main_sizer.Add(rep_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
         main_sizer.Add(time_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
-        main_sizer.Add(self.timed_txt2, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
         main_sizer.AddStretchSpacer(1)
         main_sizer.Add(buttons_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
         self.SetSizer(main_sizer)
@@ -1150,6 +1178,9 @@ class cron_job_dialog(wx.Dialog):
     def cron_type_combo_go(self, e):
         self.set_control_visi()
 
+    def set_rep_opt(self, e):
+        self.set_control_visi()
+
     def set_control_visi(self):
         #checks which type of cron job is set in combobox and shows or hides
         #which ever UI elemetns are required - doesn't lose or change the data.
@@ -1159,34 +1190,61 @@ class cron_job_dialog(wx.Dialog):
             self.cron_every_num_tc.Hide()
             self.cron_repeat_opts_cb.Hide()
             self.timed_txt.Show()
-            self.timed_txt2.Show()
             self.cron_timed_min_tc.Show()
+            self.min_l.Show()
             self.cron_timed_hour_tc.Show()
+            self.hour_l.Show()
             self.cron_timed_day_tc.Show()
+            self.day_l.Show()
             self.cron_timed_month_tc.Show()
+            self.month_l.Show()
             self.cron_timed_dow_tc.Show()
+            self.dow_l.Show()
         elif cron_type == 'repeating':
             self.cron_rep_every.Show()
             self.cron_every_num_tc.Show()
             self.cron_repeat_opts_cb.Show()
             self.timed_txt.Hide()
-            self.timed_txt2.Hide()
-            self.cron_timed_min_tc.Hide()
-            self.cron_timed_hour_tc.Hide()
-            self.cron_timed_day_tc.Hide()
-            self.cron_timed_month_tc.Hide()
+            #
+            self.cron_timed_min_tc.Show()
+            self.min_l.Show()
+            self.cron_timed_hour_tc.Show()
+            self.hour_l.Show()
+            self.cron_timed_day_tc.Show()
+            self.day_l.Show()
+            self.cron_timed_month_tc.Show()
+            self.month_l.Show()
+            #
+            rep_type = self.cron_repeat_opts_cb.GetValue()
+            if rep_type == 'min':
+                self.cron_timed_min_tc.Hide()
+                self.min_l.Hide()
+            if rep_type in ['min', 'hour']:
+                self.cron_timed_hour_tc.Hide()
+                self.hour_l.Hide()
+            if rep_type in ['min', 'hour', 'day']:
+                self.cron_timed_day_tc.Hide()
+                self.day_l.Hide()
+            if rep_type in ['min', 'hour', 'day', 'month']:
+                self.cron_timed_month_tc.Hide()
+                self.month_l.Hide()
             self.cron_timed_dow_tc.Hide()
+            self.dow_l.Hide()
         elif cron_type == 'startup':
             self.cron_rep_every.Hide()
             self.cron_every_num_tc.Hide()
             self.cron_repeat_opts_cb.Hide()
             self.timed_txt.Hide()
-            self.timed_txt2.Hide()
             self.cron_timed_min_tc.Hide()
             self.cron_timed_hour_tc.Hide()
             self.cron_timed_day_tc.Hide()
             self.cron_timed_month_tc.Hide()
             self.cron_timed_dow_tc.Hide()
+            self.min_l.Hide()
+            self.hour_l.Hide()
+            self.day_l.Hide()
+            self.month_l.Hide()
+            self.dow_l.Hide()
         self.Layout()
 
     def get_help_text(self, script_to_ask):
