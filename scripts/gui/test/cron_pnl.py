@@ -6,8 +6,11 @@ class ctrl_pnl(wx.Panel):
         shared_data = parent.shared_data
         self.parent = parent
         wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, style = wx.TAB_TRAVERSAL )
-
+        self.SetFont(shared_data.sub_title_font)
         self.cron_label = wx.StaticText(self,  label='Cron Config Menu')
+        self.cron_bkup_label = wx.StaticText(self,  label='backup;')
+        self.SetFont(shared_data.button_font)
+
         self.read_cron_btn = wx.Button(self, label='Read Crontab', size=(175, 30))
         self.read_cron_btn.Bind(wx.EVT_BUTTON, self.read_cron_click)
         self.new_cron_btn = wx.Button(self, label='Add new job', size=(175, 30))
@@ -17,7 +20,6 @@ class ctrl_pnl(wx.Panel):
         self.help_cron_btn = wx.Button(self, label='Cron Help', size=(175, 30))
         self.help_cron_btn.Bind(wx.EVT_BUTTON, self.help_cron_click)
 
-        self.cron_bkup_label = wx.StaticText(self,  label='backup;')
         self.cron_backup_btn = wx.Button(self, label='Backup Cron', size=(175, 30))
         self.cron_backup_btn.Bind(wx.EVT_BUTTON, self.cron_backup_click)
         self.cron_restore_btn = wx.Button(self, label='Restore backup', size=(175, 30))
@@ -25,15 +27,15 @@ class ctrl_pnl(wx.Panel):
 
         main_sizer = wx.BoxSizer(wx.VERTICAL)
         main_sizer.Add(self.cron_label, 0, wx.ALL, 5)
-        main_sizer.Add(self.read_cron_btn, 0, wx.ALL, 5)
-        main_sizer.Add(self.new_cron_btn, 0, wx.ALL, 5)
-        main_sizer.Add(self.update_cron_btn, 0, wx.ALL, 5)
+        main_sizer.Add(self.read_cron_btn, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
+        main_sizer.Add(self.new_cron_btn, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
+        main_sizer.Add(self.update_cron_btn, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
         #
         main_sizer.Add(self.cron_bkup_label, 0, wx.ALL, 5)
-        main_sizer.Add(self.cron_backup_btn, 0, wx.ALL, 5)
-        main_sizer.Add(self.cron_restore_btn, 0, wx.ALL, 5)
+        main_sizer.Add(self.cron_backup_btn, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
+        main_sizer.Add(self.cron_restore_btn, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
         main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
-        main_sizer.Add(self.help_cron_btn, 0, wx.ALL, 5)
+        main_sizer.Add(self.help_cron_btn, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
         self.SetSizer(main_sizer)
 
     def help_cron_click(self, e):
@@ -486,13 +488,15 @@ class restore_backup_dialog(wx.Dialog):
 
         # panel
         pnl = wx.Panel(self)
+        self.SetFont(shared_data.title_font)
         box_label = wx.StaticText(self,  label='Select backup to restore')
-        box_label.SetFont(shared_data.title_font)
+        self.SetFont(shared_data.info_font)
         self.logfile_cb = wx.ComboBox(self, choices = list_of_cron_bks, size=(265, 30))
         self.logfile_cb.Bind(wx.EVT_COMBOBOX, self.logfile_combo_go)
         self.crontext = wx.TextCtrl(self, -1, "", size=(700,500), style=wx.TE_MULTILINE)
 
         # ok and cancel Buttons
+        self.SetFont(shared_data.button_font)
         self.restore_btn = wx.Button(self, label='Restore', size=(175, 30))
         self.restore_btn.Bind(wx.EVT_BUTTON, self.restore_click)
         self.cancel_btn = wx.Button(self, label='Close', size=(175, 30))
@@ -520,7 +524,6 @@ class restore_backup_dialog(wx.Dialog):
         self.crontext.SetValue(cron_text)
 
     def restore_click(self, e):
-
         # copy backup file to pi
         cron_text = self.crontext.GetValue()
         if cron_text.strip() == "":
@@ -566,7 +569,6 @@ class info_pnl(wx.Panel):
                 h = self.GetColumnWidth(i)
                 if l > h:
                     self.SetColumnWidth(i, wx.LIST_AUTOSIZE)
-
 
     class repeating_cron_list(wx.ListCtrl):
         def __init__(self, parent, id, pos=(5,245), size=(900,200)):
@@ -672,7 +674,6 @@ class info_pnl(wx.Panel):
         main_sizer.Add(cron_timed_l, 0, wx.ALL, 3)
         main_sizer.Add(self.timed_cron, 1, wx.ALL|wx.EXPAND, 3)
         self.SetSizer(main_sizer)
-
 
     def startup_got_focus(self, e):
         timed_focus = self.timed_cron.GetFocusedItem()
@@ -938,10 +939,11 @@ class cron_job_dialog(wx.Dialog):
         self.parent = parent
         super(cron_job_dialog, self).__init__(*args, **kw)
         self.InitUI(parent)
-        self.SetSize((850, 400))
+        self.SetSize((850, 430))
         self.SetTitle("Cron Job Editor")
         self.Bind(wx.EVT_CLOSE, self.OnClose)
     def InitUI(self, parent):
+        shared_data = self.parent.parent.shared_data
         #these need to be set before the dialog is created
         cron_path     = parent.cron_path_toedit
         cron_task     = parent.cron_task_toedit
@@ -956,77 +958,142 @@ class cron_job_dialog(wx.Dialog):
         cron_month    = parent.cron_month_toedit
         cron_dow      = parent.cron_dow_toedit
         #draw the pannel
-         ## universal controls
         pnl = wx.Panel(self)
-        wx.StaticText(self,  label='Cron job editor', pos=(20, 10))
+        ## universal controls
+
+        self.SetFont(shared_data.title_font)
+        title = wx.StaticText(self,  label='Cron job editor')
+
+        self.SetFont(shared_data.info_font)
+        tm_label = wx.StaticText(self,  label='timing method;')
         cron_type_opts = ['startup', 'repeating', 'one time']
-        wx.StaticText(self,  label='timing method;', pos=(165, 10))
-        self.cron_type_combo = wx.ComboBox(self, choices = cron_type_opts, pos=(260,10), size=(125, 25))
+        self.cron_type_combo = wx.ComboBox(self, choices = cron_type_opts, size=(150, 30))
         self.cron_type_combo.Bind(wx.EVT_COMBOBOX, self.cron_type_combo_go)
-        wx.StaticText(self,  label='path;', pos=(10, 50))
-        script_path = "/home/" + self.parent.parent.link_pnl.target_user + "/Pigrow/scripts"
-        cron_path_opts = [script_path + "/cron/", script_path + "/autorun/", script_path + "/switches/", script_path + "/sensors/", script_path + "/visualisation/"]
-        self.cron_path_combo = wx.ComboBox(self, style=wx.TE_PROCESS_ENTER, choices = cron_path_opts, pos=(100,45), size=(525, 30))
+        timing_m_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        timing_m_sizer.Add(tm_label, 0, wx.ALL, 2)
+        timing_m_sizer.Add(self.cron_type_combo, 0, wx.ALL, 2)
+
+
+        # folder path
+        path_l = wx.StaticText(self,  label='path;')
+        script_path = shared_data.remote_pigrow_path + "scripts"
+        cron_path_opts = [script_path + "/cron/",
+                          script_path + "/autorun/",
+                          script_path + "/switches/",
+                          script_path + "/sensors/",
+                          script_path + "/visualisation/"]
+        self.cron_path_combo = wx.ComboBox(self, style=wx.TE_PROCESS_ENTER, choices=cron_path_opts, size=(525, 30))
         self.cron_path_combo.Bind(wx.EVT_TEXT_ENTER, self.cron_path_combo_go)
         self.cron_path_combo.Bind(wx.EVT_COMBOBOX, self.cron_path_combo_go)
-        show_cat_butt = wx.Button(self, label='view script', pos=(625, 75))
+        path_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        path_sizer.Add(path_l, 0, wx.ALL, 2)
+        path_sizer.Add(self.cron_path_combo, 0, wx.ALL, 2)
+
+        # script name
+        cron_script_opts = self.get_cronable_scripts(cron_path) #send the path of the folder get script list
+        self.cron_script_cb = wx.ComboBox(self, choices=cron_script_opts, size=(600, 30))
+        show_cat_butt = wx.Button(self, label='view script')
         show_cat_butt.Bind(wx.EVT_BUTTON, self.cat_script)
-        wx.StaticText(self,  label='Extra args;', pos=(10, 110))
-        self.cron_args_tc = wx.TextCtrl(self, pos=(100, 110), size=(525, 25))
+        script_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        script_sizer.Add(self.cron_script_cb, 0, wx.ALL, 2)
+        script_sizer.Add(show_cat_butt, 0, wx.ALL, 2)
+
+        # extra args
+        args_l = wx.StaticText(self,  label='Extra args;', pos=(10, 110))
+        self.cron_args_tc = wx.TextCtrl(self, pos=(100, 110), size=(525, 30))
         show_help_butt = wx.Button(self, label='show help', pos=(625, 110))
         show_help_butt.Bind(wx.EVT_BUTTON, self.show_help)
-        self.cron_enabled_cb = wx.CheckBox(self,  label='Enabled', pos=(400, 190))
+        args_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        args_sizer.Add(args_l, 0, wx.ALL, 2)
+        args_sizer.Add(self.cron_args_tc, 0, wx.ALL, 2)
+        args_sizer.Add(show_help_butt, 0, wx.ALL, 2)
+
+        # cron job enabled
+        self.cron_enabled_cb = wx.CheckBox(self,  label='Enabled')
+
         ### set universal controls data...
         self.cron_type_combo.SetValue(cron_type)
         self.cron_path_combo.SetValue(cron_path)
         self.cron_args_tc.SetValue(cron_args)
-        cron_script_opts = self.get_cronable_scripts(cron_path) #send the path of the folder get script list
-        self.cron_script_cb = wx.ComboBox(self, choices = cron_script_opts, pos=(25,80), size=(600, 25))
         self.cron_script_cb.SetValue(cron_task)
         self.cron_enabled_cb.SetValue(cron_enabled)
+
+
         # draw and hide optional option controlls
         ## for repeating cron jobs
-        self.cron_rep_every = wx.StaticText(self,  label='Every ', pos=(60, 190))
-        self.cron_every_num_tc = wx.TextCtrl(self, pos=(115, 190), size=(40, 25))  #box for number, name num only range set by repeat_opt
+        self.cron_rep_every = wx.StaticText(self,  label='Every ')
+        self.cron_every_num_tc = wx.TextCtrl(self, size=(40, 30))  #box for number, name num only range set by repeat_opt
         self.cron_every_num_tc.Bind(wx.EVT_CHAR, self.onChar)
         cron_repeat_opts = ['min', 'hour', 'day', 'month', 'dow']
-        self.cron_repeat_opts_cb = wx.ComboBox(self, choices = cron_repeat_opts, pos=(170,190), size=(100, 30))
+        self.cron_repeat_opts_cb = wx.ComboBox(self, choices = cron_repeat_opts, size=(100, 30))
+        # set vals
         self.cron_rep_every.Hide()
         self.cron_every_num_tc.Hide()
         self.cron_repeat_opts_cb.Hide()
         self.cron_repeat_opts_cb.SetValue(cron_everystr)
         self.cron_every_num_tc.SetValue(cron_everynum)
+        rep_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        rep_sizer.Add(self.cron_rep_every, 0, wx.ALL, 2)
+        rep_sizer.Add(self.cron_every_num_tc, 0, wx.ALL, 2)
+        rep_sizer.Add(self.cron_repeat_opts_cb, 0, wx.ALL, 2)
+
+
         ## for one time cron jobs
-        self.cron_switch = wx.StaticText(self,  label='Time; ', pos=(60, 190))
-        self.cron_switch2 = wx.StaticText(self,  label='[min : hour : day : month : day of the week]', pos=(110, 220))
-        self.cron_timed_min_tc = wx.TextCtrl(self, pos=(115, 190), size=(40, 25)) #limit to 0-23
+        self.timed_txt = wx.StaticText(self,  label='Time; ')
+        self.cron_timed_min_tc = wx.TextCtrl(self, size=(40, 30)) #limit to 0-23
         self.cron_timed_min_tc.SetValue(cron_min)
         self.cron_timed_min_tc.Bind(wx.EVT_CHAR, self.onChar)
-        self.cron_timed_hour_tc = wx.TextCtrl(self, pos=(160, 190), size=(40, 25)) #limit to 0-59
+        self.cron_timed_hour_tc = wx.TextCtrl(self, size=(40, 30)) #limit to 0-59
         self.cron_timed_hour_tc.SetValue(cron_hour)
         self.cron_timed_hour_tc.Bind(wx.EVT_CHAR, self.onChar)
-        self.cron_timed_day_tc = wx.TextCtrl(self, pos=(205, 190), size=(40, 25)) #limit to 0-59
+        self.cron_timed_day_tc = wx.TextCtrl(self, size=(40, 30)) #limit to 0-59
         self.cron_timed_day_tc.SetValue(cron_day)
         self.cron_timed_day_tc.Bind(wx.EVT_CHAR, self.onChar)
-        self.cron_timed_month_tc = wx.TextCtrl(self, pos=(250, 190), size=(40, 25)) #limit to 0-59
+        self.cron_timed_month_tc = wx.TextCtrl(self, size=(40, 30)) #limit to 0-59
         self.cron_timed_month_tc.SetValue(cron_month)
         self.cron_timed_month_tc.Bind(wx.EVT_CHAR, self.onChar)
-        self.cron_timed_dow_tc = wx.TextCtrl(self, pos=(295, 190), size=(40, 25)) #limit to 0-59
+        self.cron_timed_dow_tc = wx.TextCtrl(self, size=(40, 30)) #limit to 0-59
         self.cron_timed_dow_tc.SetValue(cron_dow)
         self.cron_timed_dow_tc.Bind(wx.EVT_CHAR, self.onChar)
-        self.cron_switch.Hide()
-        self.cron_switch2.Hide()
-        self.cron_timed_min_tc.Hide()
-        self.cron_timed_hour_tc.Hide()
-        self.cron_timed_day_tc.Hide()
-        self.cron_timed_month_tc.Hide()
-        self.cron_timed_dow_tc.Hide()
-        self.set_control_visi() #set's the visibility of optional controls
-        #Buttom Row of Buttons
-        okButton = wx.Button(self, label='Ok', pos=(200, 250))
-        closeButton = wx.Button(self, label='Cancel', pos=(300, 250))
+
+        time_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        time_sizer.Add(self.timed_txt, 0, wx.ALL, 2)
+        time_sizer.Add(self.cron_timed_min_tc, 0, wx.ALL, 2)
+        time_sizer.Add(self.cron_timed_hour_tc, 0, wx.ALL, 2)
+        time_sizer.Add(self.cron_timed_day_tc, 0, wx.ALL, 2)
+        time_sizer.Add(self.cron_timed_month_tc, 0, wx.ALL, 2)
+        time_sizer.Add(self.cron_timed_dow_tc, 0, wx.ALL, 2)
+
+        self.timed_txt2 = wx.StaticText(self,  label='[min : hour : day : month : day of the week]')
+
+                #Bottom Row of Buttons
+        self.SetFont(shared_data.button_font)
+        okButton = wx.Button(self, label='Save')
         okButton.Bind(wx.EVT_BUTTON, self.do_upload)
+        closeButton = wx.Button(self, label='Cancel')
         closeButton.Bind(wx.EVT_BUTTON, self.OnClose)
+        buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        buttons_sizer.AddStretchSpacer(1)
+        buttons_sizer.Add(okButton, 0, wx.ALL, 2)
+        buttons_sizer.AddStretchSpacer(1)
+        buttons_sizer.Add(closeButton, 0, wx.ALL, 2)
+        buttons_sizer.AddStretchSpacer(1)
+
+        main_sizer = wx.BoxSizer(wx.VERTICAL)
+        main_sizer.Add(title, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
+        #main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(path_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
+        main_sizer.Add(script_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
+        main_sizer.Add(args_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
+        main_sizer.Add(self.cron_enabled_cb, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
+        main_sizer.Add(timing_m_sizer, 0, wx.ALIGN_CENTER_HORIZONTAL, 3)
+        main_sizer.Add(rep_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
+        main_sizer.Add(time_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
+        main_sizer.Add(self.timed_txt2, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
+        main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(buttons_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
+        self.SetSizer(main_sizer)
+        self.set_control_visi()
 
     def onChar(self, event):
         #this inhibits any non-numeric keys
@@ -1091,8 +1158,8 @@ class cron_job_dialog(wx.Dialog):
             self.cron_rep_every.Hide()
             self.cron_every_num_tc.Hide()
             self.cron_repeat_opts_cb.Hide()
-            self.cron_switch.Show()
-            self.cron_switch2.Show()
+            self.timed_txt.Show()
+            self.timed_txt2.Show()
             self.cron_timed_min_tc.Show()
             self.cron_timed_hour_tc.Show()
             self.cron_timed_day_tc.Show()
@@ -1102,8 +1169,8 @@ class cron_job_dialog(wx.Dialog):
             self.cron_rep_every.Show()
             self.cron_every_num_tc.Show()
             self.cron_repeat_opts_cb.Show()
-            self.cron_switch.Hide()
-            self.cron_switch2.Hide()
+            self.timed_txt.Hide()
+            self.timed_txt2.Hide()
             self.cron_timed_min_tc.Hide()
             self.cron_timed_hour_tc.Hide()
             self.cron_timed_day_tc.Hide()
@@ -1113,13 +1180,14 @@ class cron_job_dialog(wx.Dialog):
             self.cron_rep_every.Hide()
             self.cron_every_num_tc.Hide()
             self.cron_repeat_opts_cb.Hide()
-            self.cron_switch.Hide()
-            self.cron_switch2.Hide()
+            self.timed_txt.Hide()
+            self.timed_txt2.Hide()
             self.cron_timed_min_tc.Hide()
             self.cron_timed_hour_tc.Hide()
             self.cron_timed_day_tc.Hide()
             self.cron_timed_month_tc.Hide()
             self.cron_timed_dow_tc.Hide()
+        self.Layout()
 
     def get_help_text(self, script_to_ask):
         #open an ssh pipe and runs the script with a -h argument
