@@ -1,7 +1,0 @@
-s_val=40
-c_val=50
-g_val=30
-b_val=80
-x_dim=1600
-y_dim=1200
-additonal_commands=-d/dev/video0 -w
