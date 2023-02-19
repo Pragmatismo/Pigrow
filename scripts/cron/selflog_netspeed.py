@@ -1,12 +1,18 @@
 #!/usr/bin/python3
 import datetime
-import os, sys
+import os
+import sys
 homedir = os.getenv("HOME")
 sys.path.append(homedir + '/Pigrow/scripts/')
 import pigrow_defs
-script = 'adv_selflog.py'
-loc_locs = homedir + '/Pigrow/config/dirlocs.txt'
-loc_dic = pigrow_defs.load_locs(loc_locs)
+script = 'selflog_netspeed.py'
+err_log = homedir + '/Pigrow/logs/err_log.txt'
+
+if not os.path.isfile("/usr/local/bin/speedtest-cli"):
+    print("speedtest-cli is not installed, install with")
+    print("sudo pip3 install speedtest-cli")
+    sys.exit()
+
 
 ##
 ## Raspberry Advanced Pi Self-Logger
@@ -25,6 +31,7 @@ for argu in sys.argv:
     if argu == '-flags':
         print("")
         sys.exit(0)
+
 def speed_test():
     speed_info = os.popen('/usr/local/bin/speedtest-cli --csv').read()
     speed_info = speed_info.split(',')
@@ -42,15 +49,18 @@ if __name__ == '__main__':
     print(" ######################################")
     print("######### Net Speed  LOGGER ############")
     line = "timenow=" + str(datetime.datetime.now()) + ">"
-    speed_data = speed_test()
+    try:
+        speed_data = speed_test()
+    except:
+        print["-LOG ERROR-"]
+        pigrow_defs.write_log(script, 'writing self log failed', err_log)
+        sys.exit()
+
     for key, value in sorted(speed_data.items()):
         line += str(key) + "=" + str(value) + ">"
     line = line[:-1] + "\n"
     # find the log and add a line to it
-    if 'netspeed_log' in loc_dic:
-        log_location = loc_dic['netspeed_log']
-    else:
-        log_location = homedir + '/Pigrow/logs/netspeed_log.txt'
+    log_location = homedir + '/Pigrow/logs/netspeed_log.txt'
     try:
         with open(log_location, "a") as f:
             f.write(line)
@@ -58,4 +68,4 @@ if __name__ == '__main__':
             print("----")
     except:
         print["-LOG ERROR-"]
-        pigrow_defs.write_log(script, 'writing self log failed', loc_dic['err_log'])
+        pigrow_defs.write_log(script, 'writing self log failed', err_log)
