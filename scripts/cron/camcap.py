@@ -35,6 +35,8 @@ for argu in sys.argv[1:]:
         print("")
         print(" set=<filepath>")
         print("     choosing which settings file to use")
+        print("     must be full path /home/<usernam>/Pigrow/config/camera_settings.txt")
+        print("     or the name of the file in the pigrow config folder set=camera_settings.txt")
         print(" caps=<folder path>")
         print("     choose where to save the captured image")
         print(" attempts=" + str(attempts))
@@ -53,7 +55,10 @@ for argu in sys.argv[1:]:
             thearg = str(argu).split('=')[0]
             theval = str(argu).split('=')[1]
             if thearg == 'settings_file' or thearg == 'set':
-                settings_file = theval
+                if "/" in theval:
+                    settings_file = theval
+                else:
+                    settings_file = homedir + "/Pigrow/config/" + theval
             elif thearg == 'caps_path' or thearg == 'caps':
                 caps_path = theval
             elif thearg == 'errlog':
@@ -250,7 +255,7 @@ def fs_sets_trim(sets_dict):
     if "b_val" in sets_dict:
         if not 'brightness' in sets_dict:
             sets_dict['brightness'] = sets_dict['b_val']
-    
+
     return sets_dict
 
 def take_with_fswebcam(sets_dict, caps_path=""):
@@ -264,7 +269,7 @@ def take_with_fswebcam(sets_dict, caps_path=""):
     cam_cmd += " -D " + sets_dict['fs_delay']     # the delay in seconds before taking photo
     cam_cmd += " -S " + sets_dict['fs_fskip']     # number of frames to skip before taking image
     if "fs_banner" in sets_dict:
-        if sets_dict["fs_banner"] == "False":
+        if sets_dict["fs_banner"].lower() == "false":
             cam_cmd += " --no-banner"
     ignore_list = ['resolution', 'cam_num', 'fs_delay', 'fs_fskip', 'fs_banner']
     for key, val in sets_dict.items():
