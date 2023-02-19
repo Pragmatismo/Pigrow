@@ -85,7 +85,7 @@ def get_vcgencmd_info():
     picam_supported, picam_detected = picams.strip().split(" ")
     vcgencmd_info['picam_supported'] = picam_supported.strip().split("=")[1]
     vcgencmd_info['picam_detected'] = picam_detected.strip().split("=")[1]
-    vcgencmd_info['libcam_interfaces'] = libcams.strip()
+    vcgencmd_info['libcam_interfaces'] = libcams.strip().split("=")[1]
     # get throttled has an awkward output
     vcgencmd_info['get_throttled'] = os.popen("vcgencmd get_throttled").read().strip().strip("throttled=")
     # clock speeds
