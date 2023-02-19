@@ -47,9 +47,16 @@ def gather_data(path="./"):
                 memavail = line.split(":")[1].strip()
             elif line.split(":")[0]=="MemFree":
                 memfree = line.split(":")[1].strip()
-    #check cpu temp with '/opt/vc/bin/vcgencmd measure_temp'
-    cpu_temp = os.popen('/opt/vc/bin/vcgencmd measure_temp').read().strip()
-    cpu_temp = cpu_temp.split('=')[1]
+    #check cpu temp with 'vcgencmd measure_temp'
+    # different versions of raspberry pi os have it in differnt locations and cron needs the full path
+    if os.path.isfile("/opt/vc/bin/vcgencmd"):
+        vpath = '/usr/bin/vcgencmd'
+    elif os.path.isfile("/opt/vc/bin/vcgencmd"):
+        vpath = '/opt/vc/bin/vcgencmd'
+    else:
+        vpath = 'vcgencmd'
+    cpu_temp = os.popen(vpath + ' measure_temp').read().strip()
+    cpu_temp = cpu_temp.split('=')[1].replace("'C", "")
     #send back data in a dictionary
     return {'disk_total':total,
             'disk_used':used,
