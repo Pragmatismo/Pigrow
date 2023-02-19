@@ -301,7 +301,7 @@ def check_disk_percentage(caps_path):
         percent = (float(used) / total) * 100
     except ZeroDivisionError:
         percent = 0
-    print("   Used " + str(percent) + "%, max limit " + str(max_disk_percent) + "%")
+    print("   Used " + str(round(percent,2)) + "%, max limit " + str(max_disk_percent) + "%")
     if percent > max_disk_percent:
         errmsg = "Not enough space on the drive to store more images, cancelling attempt."
         if log_error == True:
