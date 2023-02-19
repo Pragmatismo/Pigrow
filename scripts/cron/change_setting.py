@@ -1,44 +1,40 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 import os
 import sys
 #
 # setting defaults and blank variables
 #
-homedir = os.getenv("HOME") #discovers home directory location use in default path generation
-settings_file_path = homedir + "/Pigrow/config/camera_settings.txt" # this will get turned into a string containing the settings file path
+homedir = os.getenv("HOME")
 
-
-#
 # Handle command line arguments
-#
 setting_to_change = []
 for argu in sys.argv[1:]:
     if argu == '-h' or argu == '--help' or argu == "-help" or argu == "--h":
-        print("Change cam setting")
+        print("               Change setting")
         print("")
-        print("This tool allows you to change a camera setting in the camera confg file")
+        print("This tool allows you to change a value in a setting file")
+        print("")
         print("it's especially useful if you want to change brightness for night time")
         print("")
-        print(" usage: cam_change_setting.py conf=" + homedir + "/Pigrow/config/camera_settings.txt b_val=200")
+        print(" usage: ")
+        print("      change_setting.py conf=camera_settings.txt b_val=200")
         print("     ")
-        print(" use; cam_change_setting.py -flags")
-        print("                to see a list of settings")
+        print(" this changes the b_val in " + homedir + "/Pigrow/config/camera_settings.txt")
+        print(" to 200.")
         sys.exit(0)
     elif argu == '-flags':
         print("conf=" + homedir + "/Pigrow/config/camera_settings.txt")
-        print("b_val=0-255")
-        print("s_val=0-255")
-        print("c_val=0-255")
-        print("g_val=0-255")
-        print("x_dim=1920")
-        print("y_dim=1080")
-        print("cam_num=/dev/video0")
-        print("cam_opt=[fswebcam,uvccapture]")
-        print("fsw_extra=")
+        print("<setting_name>=<new value>")
         sys.exit()
     if "=" in argu:
-        if str(argu).split('=')[0] == 'conf':
-            settings_file_path = str(argu).split('=')[1]
+        epos = argu.find("=")
+        arg_key = argu[:epos]
+        arg_val = argu[epos+1:]
+        if arg_key == 'conf':
+            if not "/" in arg_val:
+                settings_file_path = homedir + "/Pigrow/config/" + arg_val
+            else:
+                settings_file_path = arg_val
         else:
             setting_to_change.append(argu)
 
@@ -65,7 +61,7 @@ with open(settings_file_path, "r") as file:
 for setting in setting_to_change:
     config_text = find_and_change(config_text, setting)
 
-print("config_text")
 with open(settings_file_path, "w") as file:
     file.write(config_text)
+print(config_text)
 print("Saved to " + settings_file_path)
