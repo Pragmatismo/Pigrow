@@ -38,8 +38,9 @@ for argu in sys.argv[1:]:
         sys.exit()
     if "=" in argu:
         epos = argu.find("=")
-        arg_val = argu[:epos]
-        arg_key = argu[epos+1:]
+        arg_key = argu[:epos]
+        arg_val = argu[epos+1:]
+        print(arg_key, arg_val)
         if arg_val == 'conf':
             if not "/" in arg_val:
                 settings_file_path = homedir + "/Pigrow/config/" + arg_val
