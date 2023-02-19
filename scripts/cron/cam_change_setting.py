@@ -37,8 +37,14 @@ for argu in sys.argv[1:]:
         print("fsw_extra=")
         sys.exit()
     if "=" in argu:
-        if str(argu).split('=')[0] == 'conf':
-            settings_file_path = str(argu).split('=')[1]
+        epos = argu.find("=")
+        arg_val = argu[epos:]
+        arg_key = argu[:epos+1]
+        if arg_val == 'conf':
+            if not "/" in arg_val:
+                settings_file_path = homedir + "/Pigrow/config/" + arg_val
+            else:    
+                settings_file_path = arg_val
         else:
             setting_to_change.append(argu)
 
