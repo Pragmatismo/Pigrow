@@ -5,8 +5,6 @@ import sys
 # setting defaults and blank variables
 #
 homedir = os.getenv("HOME") #discovers home directory location use in default path generation
-settings_file_path = homedir + "/Pigrow/config/camera_settings.txt" # this will get turned into a string containing the settings file path
-
 
 #
 # Handle command line arguments
@@ -41,7 +39,7 @@ for argu in sys.argv[1:]:
         arg_key = argu[:epos]
         arg_val = argu[epos+1:]
         print(arg_key, arg_val)
-        if arg_val == 'conf':
+        if arg_key == 'conf':
             if not "/" in arg_val:
                 settings_file_path = homedir + "/Pigrow/config/" + arg_val
             else:
