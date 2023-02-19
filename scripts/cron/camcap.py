@@ -16,7 +16,7 @@ attempts = 3         # number of extra attempts if image fails 0-999
 retry_delay = 2      #time in seconds to wait before trying to take another image when failed
 log_error = True     # set to False if you don't want to note failure in the error log.
 max_disk_percent = 95 # only fill 90% of the disk
-err_log = homedir + "Pigrow/logs/err_log.txt"
+err_log = homedir + "/Pigrow/logs/err_log.txt"
 script = 'camcap.py'  #used with logging module
 
 #when running as a script import pigrow_defs and find file path info
@@ -35,7 +35,7 @@ for argu in sys.argv[1:]:
         print("")
         print(" set=<filepath>")
         print("     choosing which settings file to use")
-        print("     must be full path /home/<usernam>/Pigrow/config/camera_settings.txt")
+        print("     must be full path /home/<username>/Pigrow/config/camera_settings.txt")
         print("     or the name of the file in the pigrow config folder set=camera_settings.txt")
         print(" caps=<folder path>")
         print("     choose where to save the captured image")
@@ -78,6 +78,9 @@ def set_caps_path(caps_path):
     # Select location to save images
     if caps_path == None:
         caps_path = homedir + '/Pigrow/caps/'
+    else:
+        if not caps_path[-1] == "/":
+            caps_path = caps_path + "/"
 
     # check it exists, if not try making it, on error tell user and
     # resort to using local folder.
@@ -89,6 +92,7 @@ def set_caps_path(caps_path):
             print("created caps_path")
         except Exception as e:
             print("Couldn't create " + str(caps_path) + " using local folder instead.")
+            print(" Error; " + str(e))
             caps_path = ""
     return caps_path
 
