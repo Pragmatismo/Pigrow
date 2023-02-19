@@ -10,7 +10,7 @@ homedir = os.getenv("HOME")
 setting_to_change = []
 for argu in sys.argv[1:]:
     if argu == '-h' or argu == '--help' or argu == "-help" or argu == "--h":
-        print("Change setting")
+        print("               Change setting")
         print("")
         print("This tool allows you to change a value in a setting file")
         print("")
