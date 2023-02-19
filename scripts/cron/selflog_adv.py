@@ -78,9 +78,15 @@ def psutil_info():
 
 def get_vcgencmd_info():
     vcgencmd_info = {}
-    picam_supported, picam_detected = os.popen("vcgencmd get_camera").read().split(" ")
+    get_cam = os.popen("vcgencmd get_camera").read()
+    if "," in get_cam:
+        picams, libcams = get_cam.split(",")
+    else:
+        picams = get_cam    
+    picam_supported, picam_detected = picams.strip().split(" ")
     vcgencmd_info['picam_supported'] = picam_supported.strip().split("=")[1]
     vcgencmd_info['picam_detected'] = picam_detected.strip().split("=")[1]
+    vcgencmd_info['libcam_interfaces'] = libcams.strip()
     # get throttled has an awkward output
     vcgencmd_info['get_throttled'] = os.popen("vcgencmd get_throttled").read().strip().strip("throttled=")
     # clock speeds
