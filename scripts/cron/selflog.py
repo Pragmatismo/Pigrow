@@ -108,13 +108,13 @@ if __name__ == '__main__':
     print("######### SELF CHECKING INFO LOGGER ############")
     info = gather_data(path)
     line = ''
-    for key, value in info.iteritems():
+    for key, value in info.items():
         line += str(key) + "=" + str(value) + ">"
 
     for script in scripts_to_check:
         script_status = check_script_running(script)
         #print("The script " + script + " has " + script_status['num_running'] + " instances running")
-        for key, value in script_status.iteritems():
+        for key, value in script_status.items():
            line += str(script + '_' + key) + "=" + str(value) + ">"
     line += '\n'
     print (line)
