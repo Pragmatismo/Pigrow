@@ -69,7 +69,7 @@ with open(settings_file_path, "r") as file:
 for setting in setting_to_change:
     config_text = find_and_change(config_text, setting)
 
-print("config_text")
+print(config_text)
 with open(settings_file_path, "w") as file:
     file.write(config_text)
 print("Saved to " + settings_file_path)
