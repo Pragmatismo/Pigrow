@@ -1,3 +1,8 @@
+This is the testing branch for the new changes to the pigrow code.
+
+If your raspberry pi  is currently working then as intended then don't switch to this branch yet.
+
+
 # Pigrow
 Raspberry Pi Grow Box Control Software
 

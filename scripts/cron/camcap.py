@@ -2,7 +2,7 @@
 import time
 import os
 import sys
-#
+
 # setting defaults and blank variables
 #
 homedir = os.getenv("HOME") #discovers home directory location use in default path generation
@@ -11,12 +11,20 @@ cam_opt = "uvccapture" # here in case it doesn't get set later.
 settings_file = None # this will get turned into a string containing the settings file path
 caps_path = None     # this likewise gets turned into a string containing the output path
                      # both start as None and if they aren't set by command line arguments
-                     # the program tries to locate or guess what they should be
-loc_dic = {}         # the blank location dictionary which contains settings file into and etc
+                     # defaults are used.
 attempts = 3         # number of extra attempts if image fails 0-999
 retry_delay = 2      #time in seconds to wait before trying to take another image when failed
 log_error = True     # set to False if you don't want to note failure in the error log.
 max_disk_percent = 95 # only fill 90% of the disk
+err_log = homedir + "/Pigrow/logs/err_log.txt"
+script = 'camcap.py'  #used with logging module
+
+#when running as a script import pigrow_defs and find file path info
+sys.path.append(homedir + '/Pigrow/scripts/')
+try:
+    import pigrow_defs
+except:
+    print("pigrow_defs module failed to initalize, unable to load settings")
 
 #
 # Handle command line arguments
@@ -27,68 +35,65 @@ for argu in sys.argv[1:]:
         print("")
         print(" set=<filepath>")
         print("     choosing which settings file to use")
+        print("     must be full path /home/<username>/Pigrow/config/camera_settings.txt")
+        print("     or the name of the file in the pigrow config folder set=camera_settings.txt")
         print(" caps=<folder path>")
         print("     choose where to save the captured image")
-        print(" attempts=3")
+        print(" attempts=" + str(attempts))
         print("     amount of tries before giving up")
+        print(" errlog=" + err_log)
+        print("     location of error log")
         sys.exit(0)
     elif argu == '-flags':
         print("settings_file=" + homedir + "/Pigrow/config/camera_settings.txt")
         print("caps_path=" + homedir + "/Pigrow/caps/")
         print("attempts=3")
+        print("errlog=" + err_log)
         sys.exit()
     if "=" in argu:
         try:
             thearg = str(argu).split('=')[0]
             theval = str(argu).split('=')[1]
             if thearg == 'settings_file' or thearg == 'set':
-                settings_file = theval
+                if "/" in theval:
+                    settings_file = theval
+                else:
+                    settings_file = homedir + "/Pigrow/config/" + theval
             elif thearg == 'caps_path' or thearg == 'caps':
                 caps_path = theval
+            elif thearg == 'errlog':
+                err_log = theval
             elif thearg == "attempts" or thearg == "tries":
                 try:
                     attempts = int(theval)
                     print("Will try " + str(attempts) + " addional times before giving up")
                 except:
-                    print("Attempts must be a number value, using defailt")
+                    print("Attempts must be a number value, using default of " + str(attempts))
         except:
             print("Didn't undertand " + str(argu))
 #
 # Set locations and load settings
 #
-def set_caps_path(loc_dic, caps_path):
+def set_caps_path(caps_path):
     # Select location to save images
     if caps_path == None:
-        #check for caps path in the loctions dictionary (of dirlocs.txt)
-        try:
-            caps_path = loc_dic['caps_path']
-        #if not then see if the default exists
-        except:
-            caps_path = homedir + '/Pigrow/caps/'
-            if os.path.exists(caps_path):
-                print("Using default folder; " + str(caps_path))
-            else:
-                # if not then try to create it
-                try:
-                    os.mkdir(caps_path)
-                    print("created default folder at " + str(caps_path))
-                except Exception as e:
-                    # if nothing works try using the local folder instead
-                    print("Couldn't create default folder at " + str(caps_path) + " resorting to local folder instead.")
-                    caps_path = ""
+        caps_path = homedir + '/Pigrow/caps/'
     else:
-        # i.e. if user has selected a caps path with a command line argument
-        # check it exists, if no try making it if not then tell them and
-        # resort to using local folder.
-        if os.path.exists(caps_path):
-            print("saving to; " + str(caps_path))
-        else:
-            try:
-                os.mkdir(caps_path)
-                print("created caps_path")
-            except Exception as e:
-                print("Couldn't create " + str(caps_path) + " using local folder instead.")
-                caps_path = ""
+        if not caps_path[-1] == "/":
+            caps_path = caps_path + "/"
+
+    # check it exists, if not try making it, on error tell user and
+    # resort to using local folder.
+    if os.path.exists(caps_path):
+        print("saving to; " + str(caps_path))
+    else:
+        try:
+            os.mkdir(caps_path)
+            print("created caps_path")
+        except Exception as e:
+            print("Couldn't create " + str(caps_path) + " using local folder instead.")
+            print(" Error; " + str(e))
+            caps_path = ""
     return caps_path
 
 def new_load_camera_settings(settings_file):
@@ -163,13 +168,12 @@ def load_camera_settings(settings_file):
             print("looked at " + settings_file)
             print("but couldn't load config data for camera, resorting to default values")
             print("  - Use the remote gui to create a new config file")
-            print("  or Run cam_config.py to create a new config file")
-            print("  or make sure you're pointing to the correct file in dirlocs.")
         # check to ensure a valid option is set, if not selects default
         if not cam_opt == 'fswebcam' and not cam_opt == 'uvccapture':
-            print("setting cam opt to uvccapture as unspecified")
+            print("cam_opt not set, using default of uvccapture")
             cam_opt = 'uvccapture'
     return (s_val, c_val, g_val, b_val, x_dim, y_dim, cam_num, cam_opt, fsw_extra, uvc_extra)
+
 #
 # take and save photo
 #
@@ -221,11 +225,13 @@ def fs_sets_trim(sets_dict):
                 if "=" in item:
                     key, val = item.replace('"', "").replace("'", "").split("=")
                     sets_dict[key.strip()] = val.strip()
+
     # remove unused opts
     to_remove = ['uvc_extra', 'fsw_extra', 'cam_opt']
     for key in to_remove:
         if key in sets_dict:
             del sets_dict[key]
+
     # add defaults
     if not 'resolution' in sets_dict:
         if 'x_dim' in sets_dict and 'y_dim' in sets_dict:
@@ -239,7 +245,8 @@ def fs_sets_trim(sets_dict):
         sets_dict['fs_fskip'] = '5'
     if not 'fs_jpg_q' in sets_dict:
         sets_dict['fs_jpg_q'] = '90'
-    # add legacy
+
+    # rename to new settings from legacy names
     if "s_val" in sets_dict:
         if not 'saturation' in sets_dict:
             sets_dict['saturation'] = sets_dict['s_val']
@@ -252,10 +259,10 @@ def fs_sets_trim(sets_dict):
     if "b_val" in sets_dict:
         if not 'brightness' in sets_dict:
             sets_dict['brightness'] = sets_dict['b_val']
-    #
+
     return sets_dict
 
-def new_take_with_fswebcam(sets_dict, caps_path=""):
+def take_with_fswebcam(sets_dict, caps_path=""):
     sets_dict = fs_sets_trim(sets_dict)
     timenow = time.time()
     timenow = str(timenow)[0:10]
@@ -266,7 +273,7 @@ def new_take_with_fswebcam(sets_dict, caps_path=""):
     cam_cmd += " -D " + sets_dict['fs_delay']     # the delay in seconds before taking photo
     cam_cmd += " -S " + sets_dict['fs_fskip']     # number of frames to skip before taking image
     if "fs_banner" in sets_dict:
-        if sets_dict["fs_banner"] == "False":
+        if sets_dict["fs_banner"].lower() == "false":
             cam_cmd += " --no-banner"
     ignore_list = ['resolution', 'cam_num', 'fs_delay', 'fs_fskip', 'fs_banner']
     for key, val in sets_dict.items():
@@ -294,33 +301,31 @@ def check_disk_percentage(caps_path):
         percent = (float(used) / total) * 100
     except ZeroDivisionError:
         percent = 0
-    print("   Used " + str(percent) + "%, max limit " + str(max_disk_percent) + "%")
+    print("   Used " + str(round(percent,2)) + "%, max limit " + str(max_disk_percent) + "%")
     if percent > max_disk_percent:
-        print(" - You do not have enough space on the drive to store more images, cancelling attempt.")
+        errmsg = "Not enough space on the drive to store more images, cancelling attempt."
+        if log_error == True:
+            try:
+                pigrow_defs.write_log(script, errmsg, err_log)
+            except Exception as e:
+                print("couldn't log error :( " + str(e))
+        else:
+            print(errmsg)
         sys.exit()
 
 #
 #
 # main program which runs unless we've imported this as a module via another script
 if __name__ == '__main__':
-    #when running as a script import pigrow_defs and find file path info
-    sys.path.append(homedir + '/Pigrow/scripts/')
-    try:
-        import pigrow_defs
-        script = 'camcap.py'  #used with logging module
-        loc_locs = homedir + '/Pigrow/config/dirlocs.txt'
-        loc_dic = pigrow_defs.load_locs(loc_locs)
-    except:
-        print("Pigrow localisation module failed to initalize, unable to load settings")
 
     #load setting from settings file
     if settings_file == None:
-        if "camera_settings" in loc_dic:
-            settings_file = loc_dic['camera_settings']
-            print("loading settings from settings file referenced in dirlocs ")
+        settings_file = homedir + '/Pigrow/config/camera_settings.txt'
+        if os.path.isfile(settings_file):
+            print("loading settings from default file, " + settings_file)
             s_val, c_val, g_val, b_val, x_dim, y_dim, cam_num, cam_opt, fsw_extra, uvc_extra, = load_camera_settings(settings_file)
         else:
-            #if dirlocs doesn't contain settings file info for the camera
+            #if default settings file doesn't exist
             print("Settings file not found, using default values instead")
             s_val, c_val, g_val, b_val, x_dim, y_dim, cam_num, cam_opt, fsw_extra, uvc_extra, = "", "", "", "", "100000", "100000", "", "uvccapture", "", ""
     else:
@@ -329,17 +334,19 @@ if __name__ == '__main__':
         s_val, c_val, g_val, b_val, x_dim, y_dim, cam_num, cam_opt, fsw_extra, uvc_extra, = load_camera_settings(settings_file)
 
     # set the destination path for photos
-    caps_path = set_caps_path(loc_dic, caps_path)
+    caps_path = set_caps_path(caps_path)
     check_disk_percentage(caps_path)
+
     #Taking the photo with the selected camera program
     #first attempt
     if cam_opt == "uvccapture":
         filename = take_with_uvccapture(s_val, c_val, g_val, b_val, x_dim, y_dim, cam_num, uvc_extra, caps_path)
     elif cam_opt ==  "fswebcam":
         settings_dict = new_load_camera_settings(settings_file)
-        filename = new_take_with_fswebcam(settings_dict, caps_path)
+        filename = take_with_fswebcam(settings_dict, caps_path)
     else:
         print("unknown capture option -" + str(cam_opt) + "- sorry")
+
     # testing if file was made
     if os.path.isfile(caps_path + filename):
         print("Done!")
@@ -360,10 +367,11 @@ if __name__ == '__main__':
                             sys.exit()
                     elif cam_opt ==  "fswebcam":
                         settings_dict = new_load_camera_settings(settings_file)
-                        filename = new_take_with_fswebcam(settings_dict, caps_path)
+                        filename = take_with_fswebcam(settings_dict, caps_path)
                         if os.path.isfile(caps_path + filename):
                             print("Done on try " + str(attempt))
                             sys.exit()
+
     #once all extra attempts have been made give it one last check then tell
     #the user we failed to create the file and try to write a error log entry
     if not os.path.isfile(caps_path + filename):
@@ -371,6 +379,6 @@ if __name__ == '__main__':
         errmsg = "Failed with " + str(attempts) + " extra attempts, no photo saved."
         if log_error == True:
             try:
-                pigrow_defs.write_log(script, errmsg, loc_dic['err_log'])
+                pigrow_defs.write_log(script, errmsg, err_log)
             except Exception as e:
                 print("couldn't log error :( " + str(e))

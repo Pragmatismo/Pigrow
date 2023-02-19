@@ -7,8 +7,7 @@ sys.path.append(homedir + '/Pigrow/scripts/')
 import pigrow_defs
 script = 'adv_selflog.py'
 loc_locs = homedir + '/Pigrow/config/dirlocs.txt'
-loc_dic = pigrow_defs.load_locs(loc_locs)
-path = loc_dic["path"]
+path = homedir + '/Pigrow/'
 
 ##
 ## Raspberry Advanced Pi Self-Logger
@@ -78,9 +77,15 @@ def psutil_info():
 
 def get_vcgencmd_info():
     vcgencmd_info = {}
-    picam_supported, picam_detected = os.popen("vcgencmd get_camera").read().split(" ")
+    get_cam = os.popen("vcgencmd get_camera").read()
+    if "," in get_cam:
+        picams, libcams = get_cam.split(",")
+    else:
+        picams = get_cam
+    picam_supported, picam_detected = picams.strip().split(" ")
     vcgencmd_info['picam_supported'] = picam_supported.strip().split("=")[1]
     vcgencmd_info['picam_detected'] = picam_detected.strip().split("=")[1]
+    vcgencmd_info['libcam_interfaces'] = libcams.strip().split("=")[1]
     # get throttled has an awkward output
     vcgencmd_info['get_throttled'] = os.popen("vcgencmd get_throttled").read().strip().strip("throttled=")
     # clock speeds
@@ -270,14 +275,12 @@ if __name__ == '__main__':
     #       line += str(script + '_' + key) + "=" + str(value) + ">"
     line = line[:-1] + '\n'
     # find the log and add a line to it
-    if 'adv_self_log' in loc_dic:
-        log_location = loc_dic['adv_self_log']
-    else:
-        log_location = homedir + '/Pigrow/logs/adv_selflog.txt'
+    log_location = homedir + '/Pigrow/logs/adv_selflog.txt'
     try:
         with open(log_location, "a") as f:
             f.write(line)
-            #print(" - log written - ", line)
+            print(" - log written - ", line)
     except:
         print["-LOG ERROR-"]
-        pigrow_defs.write_log('adv_selflog.py', 'writing self log failed', loc_dic['err_log'])
+        err_log = homedir + "/Pigrow/logs/err_log.txt"
+        pigrow_defs.write_log('adv_selflog.py', 'writing self log failed', err_log)
