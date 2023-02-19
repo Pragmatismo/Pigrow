@@ -6,30 +6,14 @@ homedir = os.getenv("HOME")
 sys.path.append(homedir + '/Pigrow/scripts/')
 import pigrow_defs
 script = 'selflog.py'
-loc_locs = homedir + '/Pigrow/config/dirlocs.txt'
-loc_dic = pigrow_defs.load_locs(loc_locs)
-path = loc_dic["path"]
+path = homedir + '/Pigrow/'
 
-##
-## Raspberry Pi Self-Logger
-##    This is designed to run independently or as a module called to gather current statistics
-##
-
-#   To be gathered;
-#      Timenow  (timestamp)
-#      Uptime   (duration since on)
-#      Diskfull (total, space remaining, percentage)
-#
-#
 for argu in sys.argv:
     if argu == '-h' or argu == '--help':
         print(" Pigrow Raspberry Pi Self-Logger")
         print(" ")
         print("Creates a log of several metrics that can be used to")
         print("monitor the pigrows health.")
-        print("")
-        print("The log created can be graphed with ")
-        print("    Pigrow/scripts/visualistion/selflog_graph.py")
         print("")
         print(" (minor update to add args coming soon)")
         sys.exit(0)
@@ -131,6 +115,7 @@ if __name__ == '__main__':
     line = ''
     for key, value in info.iteritems():
         line += str(key) + "=" + str(value) + ">"
+
     for script in scripts_to_check:
         script_status = check_script_running(script)
         #print("The script " + script + " has " + script_status['num_running'] + " instances running")
@@ -138,13 +123,12 @@ if __name__ == '__main__':
            line += str(script + '_' + key) + "=" + str(value) + ">"
     line += '\n'
     print line
-    if 'self_log' in loc_dic:
-        log_location = loc_dic['self_log']
-    else:
-        log_location = homedir + '/Pigrow/logs/selflog.txt'
+
+    log_location = homedir + '/Pigrow/logs/selflog.txt'
     try:
         with open(log_location, "a") as f:
             f.write(line)
     except:
         print["-LOG ERROR-"]
-        pigrow_defs.write_log('selflog.py', 'writing self log failed', loc_dic['err_log'])
+        err_log = homedir + "/Pigrow/logs/err_log.txt"
+        pigrow_defs.write_log('selflog.py', 'writing self log failed', err_log)
