@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 import datetime, time
 import os, sys
 from subprocess import check_output
@@ -73,38 +73,26 @@ def check_script_running(script):
     except:
         script_test = False
     if script_test == False:
-        #print(script + " not running!")
         return {'num_running':'0','script_status':'none','script_path':'none'}
     else:
         if len(script_test) > 1:
-            #print("There's more than one " + script + " running!")
             for pid in script_test:
-                #print "---"
-                #print pid
                 try:
                     script_test_path = open(os.path.join('/proc', str(pid), 'cmdline'), 'rb').read()
-                    #print script_test_path
                 except IOError:
-                    #print("I think it died when we looked at it...")
                     return {'num_running':'0','script_status':'died','script_path':'none'}
-                #print os.getpgid(pid) # Return the process group id
                 for line in open("/proc/"+ str(pid)  +"/status").readlines():
                     if line.split(':')[0] == "State":
                         script_test_status = line.split(':')[1].strip()
                 return {'num_running':str(len(script_test)),'script_status':script_test_status,'script_path':script_test_path}
-                #os.kill(pid, sig)
         else:
-            #print(script + " is running!")
             for line in open("/proc/"+ str(script_test[0])  +"/status").readlines():
                 if line.split(':')[0] == "State":
                     script_test_status = line.split(':')[1].strip()
             try:
                 script_test_path = open(os.path.join('/proc', str(script_test[0]), 'cmdline'), 'rb').read()
             except IOError:
-                #print("I think it died when we looked at it...")
                 return {'num_running':'0','script_status':'died','script_path':'none'}
-            #print script_test_path
-            #print script_test_status
             return {'num_running':'1','script_status':script_test_status,'script_path':script_test_path}
 
 if __name__ == '__main__':
@@ -122,7 +110,7 @@ if __name__ == '__main__':
         for key, value in script_status.iteritems():
            line += str(script + '_' + key) + "=" + str(value) + ">"
     line += '\n'
-    print line
+    print (line)
 
     log_location = homedir + '/Pigrow/logs/selflog.txt'
     try:
