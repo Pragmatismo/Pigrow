@@ -37,7 +37,10 @@ for argu in sys.argv[1:]:
             thearg = str(argu).split('=')[0]
             theval = str(argu).split('=')[1]
             if thearg == 'settings_file' or thearg == 'set':
-                settings_file = theval
+                if "/" in theval:
+                    settings_file = theval
+                else:
+                    settings_file = homedir + "/Pigrow/config/" + theval
             elif thearg == 'caps_path' or thearg == 'caps':
                 caps_path = theval
             elif thearg == 'filename':
@@ -201,20 +204,23 @@ def set_caps_path(caps_path):
     # Select location to save images
     if caps_path == None:
         caps_path = homedir + '/Pigrow/caps/'
-
     else:
-        # if user has selected a caps path with a command line argument
-        # check it exists, if not try making it, if can't then tell them and
-        # resort to using local folder.
-        if os.path.exists(caps_path):
-            print("saving to; " + str(caps_path))
-        else:
-            try:
-                os.mkdir(caps_path)
-                print("created caps_path")
-            except Exception as e:
-                print("Couldn't create " + str(caps_path) + " using local folder instead.")
-                caps_path = ""
+        if not caps_path[-1] == "/":
+            caps_path = caps_path + "/"
+
+    # if user has selected a caps path with a command line argument
+    # check it exists, if not try making it, if can't then tell them and
+    # resort to using local folder.
+    if os.path.exists(caps_path):
+        print("saving to; " + str(caps_path))
+    else:
+        try:
+            os.mkdir(caps_path)
+            print("created caps_path")
+        except Exception as e:
+            print("Couldn't create " + str(caps_path) + " using local folder instead.")
+            caps_path = ""
+
     return caps_path
 
 
