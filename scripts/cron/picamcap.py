@@ -25,7 +25,7 @@ for argu in sys.argv[1:]:
         print("     choose where to save the captured image")
         print(" filename=<file path>")
         print("     to set a spesific title, for testing without messing the caps folder")
-        print(" ")
+        print("")
         print(" -- this script is in the process of an update, don't expect perfection --")
         sys.exit(0)
     elif argu == "-flags":
@@ -246,7 +246,6 @@ if __name__ == '__main__':
     sys.path.append(homedir + '/Pigrow/scripts/')
     script = 'picamcap.py'
     import pigrow_defs
-    loc_locs = homedir + '/Pigrow/config/dirlocs.txt'
     caps_path = set_caps_path(caps_path)
     check_disk_percentage(caps_path)
     picam_dic = load_picam_set(setloc=settings_file)
