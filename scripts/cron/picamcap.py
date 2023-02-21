@@ -18,7 +18,6 @@ for argu in sys.argv[1:]:
     if argu == '-h' or argu == '--help':
         print(" Picam capture script")
         print(" ")
-        print(" this will be rewritten soon - you might need to manually edit the python code to make it do what you want")
         print("")
         print(" set=<filepath>")
         print("     choosing which settings file to use")
@@ -198,29 +197,14 @@ def take_picam_raspistill(picam_dic, caps_path):
         saved_filename = user_filename
     return saved_filename
 
-def set_caps_path(loc_dic, caps_path):
+def set_caps_path(caps_path):
     # Select location to save images
     if caps_path == None:
-        #check for caps path in the loctions dictionary (of dirlocs.txt)
-        try:
-            caps_path = loc_dic['caps_path']
-        #if not then see if the default exists
-        except:
-            caps_path = homedir + '/Pigrow/caps/'
-            if os.path.exists(caps_path):
-                print("Using default folder; " + str(caps_path))
-            else:
-                # if not then try to create it
-                try:
-                    os.mkdir(caps_path)
-                    print("created default folder at " + str(caps_path))
-                except Exception as e:
-                    # if nothing works try using the local folder instead
-                    print("Couldn't create default folder at " + str(caps_path) + " resorting to local folder instead.")
-                    caps_path = ""
+        caps_path = homedir + '/Pigrow/caps/'
+
     else:
-        # i.e. if user has selected a caps path with a command line argument
-        # check it exists, if no try making it if not then tell them and
+        # if user has selected a caps path with a command line argument
+        # check it exists, if not try making it, if can't then tell them and
         # resort to using local folder.
         if os.path.exists(caps_path):
             print("saving to; " + str(caps_path))
@@ -257,8 +241,7 @@ if __name__ == '__main__':
     script = 'picamcap.py'
     import pigrow_defs
     loc_locs = homedir + '/Pigrow/config/dirlocs.txt'
-    loc_dic = pigrow_defs.load_locs(loc_locs)
-    caps_path = set_caps_path(loc_dic, caps_path)
+    caps_path = set_caps_path(caps_path)
     check_disk_percentage(caps_path)
     picam_dic = load_picam_set(setloc=settings_file)
     filename = take_picam_py(picam_dic, caps_path)
