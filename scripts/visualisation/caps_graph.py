@@ -16,11 +16,10 @@ try:
     graph_path = loc_dic['graph_path']
 except:
     print("Pigrow config not detected, using defaults")
-    capsdir = "./"
-    graph_path = "./"
+    capsdir = homedir + '/Pigrow/caps/'
+    graph_path = homedir + '/Pigrow/graphs/'
 #user settings
 cap_type = "jpg"
-#graph_path = "/home/"
 
 for argu in sys.argv[1:]:
     if "=" in argu:

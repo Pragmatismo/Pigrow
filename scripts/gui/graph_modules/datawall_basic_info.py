@@ -10,10 +10,12 @@ def make_datawall(list_of_graphs, datawall_path="datawall_test.png", list_of_dat
     import os
     from PIL import Image
     from PIL import ImageDraw, ImageFont
-    homedir = os.getenv("HOME")
     bg_col = (240,255,240)
-    font_big = ImageFont.truetype(homedir + "/Pigrow/scripts/gui/ui_images/datawall/Caslon.ttf", 28)
-    font = ImageFont.truetype(homedir + "/Pigrow/scripts/gui/ui_images/datawall/Caslon.ttf", 22)
+    module_dir = os.path.dirname(os.path.abspath(__file__))
+    datawall_gfx_path = os.path.abspath(os.path.join(module_dir, '..', 'ui_images', 'datawall'))
+    font_path = os.path.join(datawall_gfx_path, 'Caslon.ttf')
+    font_big = ImageFont.truetype(font_path, 28)
+    font = ImageFont.truetype(font_path, 22)
 
     def create_current_info_panel():
         print(" creating info panel")
@@ -47,7 +49,6 @@ def make_datawall(list_of_graphs, datawall_path="datawall_test.png", list_of_dat
         #
         bar_dials_base = Image.new('RGBA', (h_size, line_count * 80), color=bg_col)
         r_h_pos = pad / 2
-        res_path = homedir + "/Pigrow/scripts/gui/ui_images/datawall/"
         bar_draw = ImageDraw.Draw(bar_dials_base)
         line_pos = 0
         col_count = 0
@@ -57,9 +58,9 @@ def make_datawall(list_of_graphs, datawall_path="datawall_test.png", list_of_dat
                 script = switch_pos[0].strip()
                 state = switch_pos[1]
                 if state == "ON":
-                    indicator_img = Image.open(res_path + "indicator_on.png")
+                    indicator_img = Image.open(datawall_gfx_path + "/indicator_on.png")
                 elif state == "OFF":
-                    indicator_img = Image.open(res_path + "indicator_off.png")
+                    indicator_img = Image.open(datawall_gfx_path + "/indicator_off.png")
                 # add to bar
                 col_count += 1
                 if col_count > max_col_count:
@@ -75,7 +76,6 @@ def make_datawall(list_of_graphs, datawall_path="datawall_test.png", list_of_dat
                 bar_draw.text(((r_h_pos-10) + (v_space/2), text_h), script, font=font, fill=(25,25,75,255))
                 r_h_pos = r_h_pos + 50 + pad
         return bar_dials_base
-
 
 
     def find_hi_lows(dataset):
@@ -185,11 +185,9 @@ def make_datawall(list_of_graphs, datawall_path="datawall_test.png", list_of_dat
         d.text((15, vert_pos6), infolist["power_warnings"], font=font, fill=(75,75,175,255))
 
 
-
-
         new_base.save(datawall_path)
 
-        print(" --- datawall_test.py done and saved to " + datawall_path)
+        print(" --- datawall_basic_info.py done and saved to " + datawall_path)
 
     def find_high_lows(list_of_values):
         high = list_of_values[0]
@@ -203,6 +201,3 @@ def make_datawall(list_of_graphs, datawall_path="datawall_test.png", list_of_dat
 
     #create_current_info_panel()
     create_main()
-
-
-    print(" --- datawall_test.py done and saved to " + datawall_path)

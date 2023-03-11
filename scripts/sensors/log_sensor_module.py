@@ -35,8 +35,11 @@ except:
     print("pigrow_defs.py not found, unable to continue.")
     print("make sure pigrow software is installed correctly")
     sys.exit()
-loc_dic = pigrow_defs.load_locs(homedir + '/Pigrow/config/dirlocs.txt')
-pigrow_settings = pigrow_defs.load_settings(loc_dic['loc_settings'])
+
+
+pigrow_config_path  = homedir + '/Pigrow/config/pigrow_config.txt'
+error_log           = homedir + '/Pigrow/logs/err_log.txt'
+pigrow_settings = pigrow_defs.load_settings(pigrow_config_path)
 
 # Read the sensor info from the settigns file
 sensor_type = None
@@ -55,9 +58,9 @@ for key, value in list(pigrow_settings.items()):
         elif "extra" in key:
             sensor_extra = value
 if sensor_type == None or sensor_log == None or sensor_loc == None:
-    err_msg = "Sensor settings not found in " + loc_dic['loc_settings']
+    err_msg = "Sensor settings not found in " + pigrow_config_path
     print(err_msg)
-    pigrow_defs.write_log('log_sensor_module.py', err_msg, loc_dic['err_log'])
+    pigrow_defs.write_log('log_sensor_module.py', err_msg, error_log)
     sys.exit()
 
 ### TESTING
@@ -70,7 +73,7 @@ try:
 except:
     err_msg = "Failed to add modules folder: " + sensor_modules_path
     print(err_msg)
-    pigrow_defs.write_log('log_sensor_module.py', err_msg, loc_dic['err_log'])
+    pigrow_defs.write_log('log_sensor_module.py', err_msg, error_log)
     sys.exit()
 
 # Import Sensor Module
@@ -80,7 +83,7 @@ try:
 except:
     err_msg = "Failed to import sensor module for " + sensor_type
     print(err_msg)
-    pigrow_defs.write_log('log_sensor_module.py', err_msg, loc_dic['err_log'])
+    pigrow_defs.write_log('log_sensor_module.py', err_msg, error_log)
     sys.exit()
 
 # Read Sensor
@@ -99,7 +102,7 @@ try:
 except:
     err_msg = "Error writing to log, " + sensor_log
     print[err_msg]
-    pigrow_defs.write_log('log_sensor_module.py', err_msg, loc_dic['err_log'])
+    pigrow_defs.write_log('log_sensor_module.py', err_msg, error_log)
     raise
 
 # Report to user
