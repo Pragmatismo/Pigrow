@@ -9,6 +9,7 @@ graph_modules_path = os.path.join(homedir, "Pigrow/scripts/gui/graph_modules/")
 info_modules_path = os.path.join(homedir, "Pigrow/scripts/gui/info_modules/")
 graph_presets_path = os.path.join(homedir, "Pigrow/scripts/gui/graph_presets/")
 datawall_presets_path = os.path.join(homedir, "Pigrow/scripts/gui/datawall_presets/")
+graph_base_save_path = os.path.join(homedir, "Pigrow/graphs/")
 sys.path.append(graph_modules_path)
 sys.path.append(info_modules_path)
 
@@ -187,7 +188,6 @@ def process_datawall(datawall_list):
     preset_name = ""
     graph_module = ''
     graphable_data = None # list of lists of lists of date,val,key
-    base_save_path = "/home/pragmo/frompigrow/bluebox/test_datawall_"
     made_graph_list  = []
     info_text_dict = {}
 
@@ -200,7 +200,7 @@ def process_datawall(datawall_list):
             graphable_data = parse_log(log_to_parse, preset_settings)
 
         if line == "make_graph":
-            save_path = base_save_path + str(len(made_graph_list)) + ".png"
+            save_path = os.path.join(graph_base_save_path, "datawall_graph_" + str(len(made_graph_list)) + ".png")
             build_graph(graph_module, graphable_data, save_path, graph_options)
             made_graph_list.append(save_path)
 
