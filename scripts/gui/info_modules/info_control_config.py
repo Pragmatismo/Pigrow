@@ -8,8 +8,9 @@ import pigrow_defs
 
 def show_info():
     # Read config
-    loc_dic = pigrow_defs.load_locs(homedir + "/Pigrow/config/dirlocs.txt")
-    set_dic = pigrow_defs.load_settings(loc_dic['loc_settings'], err_log=loc_dic['err_log'])
+    config_path  = homedir + '/Pigrow/config/pigrow_config.txt'
+    error_log    = homedir + '/Pigrow/logs/err_log.txt'
+    set_dic = pigrow_defs.load_settings(config_path, err_log=error_log)
 
     text_out = ""
     checkdht_start = False

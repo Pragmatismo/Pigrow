@@ -8,7 +8,7 @@ def show_info():
     if out == "0":
         power_message = "Video power off"
     else:
-        out =  os.popen("tvservice -s").read()
+        tv_out =  os.popen("tvservice -s").read()
         power_message = "Video power on\n" + tv_out.strip()
 
     # Screen res and colour pallet
