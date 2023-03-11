@@ -17,7 +17,7 @@ def show_info():
 
         info  = "Total     = " + hdd_total + " KB\n"
         info += "Available = " + hdd_available + " KB\n"
-        info += "Used      = " + hdd_available + " KB ("+ hdd_percent +")\n"
+        info += "Used      = " + hdd_used + " KB ("+ hdd_percent +")\n"
 
     return info
 
