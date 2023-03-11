@@ -2,9 +2,6 @@
 import time
 import os, sys
 
-with open("/home/pi/piclog.txt", "a") as f:
-    f.write("running at " + str(time.time()))
-
 dangermode = False
 
 # default settings
@@ -127,26 +124,21 @@ def take_libcamera(libcam_dic, caps_path):
     # return filename of saved file
     return save_filename
 
-def set_caps_path(loc_dic, caps_path):
+def set_caps_path(caps_path):
     # Select location to save images
     if caps_path == None:
-        #check for caps path in the loctions dictionary (of dirlocs.txt)
-        try:
-            caps_path = loc_dic['caps_path']
-        #if not then see if the default exists
-        except:
-            caps_path = homedir + '/Pigrow/caps/'
-            if os.path.exists(caps_path):
-                print("Using default folder; " + str(caps_path))
-            else:
-                # if not then try to create it
-                try:
-                    os.mkdir(caps_path)
-                    print("created default folder at " + str(caps_path))
-                except Exception as e:
-                    # if nothing works try using the local folder instead
-                    print("Couldn't create default folder at " + str(caps_path) + " resorting to local folder instead.")
-                    caps_path = ""
+        caps_path = homedir + '/Pigrow/caps/'
+        if os.path.exists(caps_path):
+            print("Using default folder; " + str(caps_path))
+        else:
+            # if not then try to create it
+            try:
+                os.mkdir(caps_path)
+                print("created default folder at " + str(caps_path))
+            except Exception as e:
+                # if nothing works try using the local folder instead
+                print("Couldn't create default folder at " + str(caps_path) + " resorting to local folder instead.")
+                caps_path = ""
     else:
         # i.e. if user has selected a caps path with a command line argument
         # check it exists, if no try making it if not then tell them and
@@ -184,10 +176,7 @@ def check_disk_percentage(caps_path):
 if __name__ == '__main__':
     sys.path.append(homedir + '/Pigrow/scripts/')
     script = 'libcam_cap.py'
-    import pigrow_defs
-    loc_locs = homedir + '/Pigrow/config/dirlocs.txt'
-    loc_dic = pigrow_defs.load_locs(loc_locs)
-    caps_path = set_caps_path(loc_dic, caps_path)
+    caps_path = set_caps_path(caps_path)
     check_disk_percentage(caps_path)
     libcam_dic = load_libcam_set(setloc=settings_file)
     libcam_dic = create_set_string(libcam_dic)
