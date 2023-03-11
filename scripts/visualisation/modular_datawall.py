@@ -103,7 +103,7 @@ def parse_log(log_to_parse, preset_settings):
                     date = date.split(".")[0]
                 # Check date is valid and ignore if not
                 try:
-                    date = datetime.datetime.strptime(date, '%Y-%m-%d %H:%M:%S.%f')
+                    date = datetime.datetime.strptime(date, '%Y-%m-%d %H:%M:%S')
                     if limit_by_date == True:
                         if date > last_datetime or date < first_datetime:
                             date = ""
@@ -255,7 +255,7 @@ def process_datawall(datawall_list):
                     if key_job == "read":
                         print(" - Info module reading " + value)
                         info_tu = read_info_module(value)
-                        info_text_dict[info_tu[0]] = info_tu[1].strip())
+                        info_text_dict[info_tu[0]] = info_tu[1].strip()
 
     return made_graph_list, info_text_dict
 
@@ -305,6 +305,7 @@ if __name__ == '__main__':
             print("module=")
             print("out=~/Pigrow/graphs/datawall.png")
             sys.exit()
+
     # Preset graph list
     if datawall_preset_name == "":
         print("  !!! select a datawall preset using preset=")
@@ -314,8 +315,10 @@ if __name__ == '__main__':
                 print ("    - " + item.replace("datawall_", "").replace(".txt", ""))
     elif not "datawall_" in datawall_preset_name:
         datawall_preset_name = "datawall_" + datawall_preset_name
+
     if not datawall_preset_name == "" and not ".txt" in datawall_preset_name:
         datawall_preset_name = datawall_preset_name + ".txt"
+
     # Module
     if datawall_module_name == "":
         print("  !!! select a datawall module using module= ")
@@ -326,6 +329,7 @@ if __name__ == '__main__':
     elif not "datawall_" in datawall_module_name:
         datawall_module_name = "datawall_" + datawall_module_name
     datawall_module_name = datawall_module_name.replace(".py", "")
+
     # check save path folder exists
     without_filename = os.path.split(datawall_save_path)[0]
     if not os.path.isdir(without_filename):
