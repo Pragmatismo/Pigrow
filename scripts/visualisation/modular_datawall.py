@@ -347,4 +347,4 @@ if __name__ == '__main__':
     # create datawall
     if not datawall_module_name == "":
         exec("from " + datawall_module_name + " import make_datawall", globals())
-        make_datawall(list_of_graphs_made, datawall_save_path, [], infolist=info_text_list)
+        make_datawall(list_of_graphs_made, datawall_save_path, [], infolist=info_text_dict)
