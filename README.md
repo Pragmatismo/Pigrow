@@ -2,23 +2,30 @@
 # Pigrow
 Raspberry Pi Grow Box Control Software
 
-The Pigrow is an automation devices designed to help gardeners monitor, log, graph and control their grow space using a raspberry Pi, various sensor and a few relay modules. All software, designs and content are shared with open-source licenses, it's free to make and cheap to buy the parts.
+The Pigrow is a garden automation suite designed to help gardeners monitor, log, graph and control their grow space using a raspberry Pi, various sensor and a few relay modules. All software, designs and content are shared with open-source licenses, it's free to make and cheap to buy the parts.
 
 For more information visit;
 
-     https://github.com/Pragmatismo/Pigrow/wiki
+     Guide         -  https://github.com/Pragmatismo/Pigrow/wiki
 
-     https://www.patreon.com/Pigrow
+     video guides  - https://www.youtube.com/channel/UCIk00FJuYjqmJmfLuS5XKAw 
 
-     https://www.reddit.com/r/Pigrow/
+     Support       -  https://www.patreon.com/Pigrow
+
+     Community     - https://www.reddit.com/r/Pigrow/
+     
 
 # Work in Progress
 
 The pigrow is a constantly growing project, be aware that some features may not be fully implemented yet. 
 
-#How to Pigrow...
 
-First you need the hardware, follow the build guide available on the www.reddit.com/r/Pigrow/wiki/index for the most recent instructions. 
+# How to Pigrow...
+
+First you need the hardware, follow the hardware build guide available on the www.reddit.com/r/Pigrow/wiki/index for the most recent instructions, also see videos on https://www.youtube.com/channel/UCIk00FJuYjqmJmfLuS5XKAw.
+
+New hardware guides and full build and install instructions will be written when the software guide is finished (currently in progress)
+
 
 # First Steps 
 
