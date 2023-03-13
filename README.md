@@ -12,7 +12,7 @@ For more information visit;
 
      https://www.reddit.com/r/Pigrow/
 
-#Work in Progress
+# Work in Progress
 
 The pigrow is a constantly growing project, be aware that some features may not be fully implemented yet. 
 
@@ -20,7 +20,7 @@ The pigrow is a constantly growing project, be aware that some features may not 
 
 First you need the hardware, follow the build guide available on the www.reddit.com/r/Pigrow/wiki/index for the most recent instructions. 
 
-#First Steps 
+# First Steps 
 
 When you have a working raspberry pi connected to your network and the appropriate sensors and relays connected you're ready to install the software
   
