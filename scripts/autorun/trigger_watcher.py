@@ -202,8 +202,8 @@ def check_value(log_path):
                         elif trigger == "frame":
                             if ":" in value:
                                 val_min, val_max = value.split(":")
-                                if float(line_value) < float(val_min) and float(line_value) > float(val_max):
-                                    print_limit("Value less than " + val_min + " and greater than " + val_max + ", running " + cmd, 1)
+                                if not (float(line_value) > float(val_min) and float(line_value) < float(val_max)):
+                                    print_limit("Value less than " + val_min + " or greater than " + val_max + ", running " + cmd, 1)
                                     os.system(cmd + " &")
                                     pigrow_defs.set_condition(condition_name, trig_direction, trig_cooldown)
                                 else:
