@@ -4,11 +4,16 @@ import datetime
 import os
 import sys
 import subprocess
-from watchdog.observers import Observer
-from watchdog.events import PatternMatchingEventHandler
 homedir = os.getenv("HOME")
 sys.path.append(homedir + '/Pigrow/scripts/')
 import pigrow_defs
+try:
+    from watchdog.observers import Observer
+    from watchdog.events import PatternMatchingEventHandler
+except:
+    err_log = homedir + "/Pigrow/logs/err_log.txt")
+    err_msg = "Watchdog is not installed, trigger_log unable to run"
+    pigrow_defs.write_log('trigger_log.py', err_msg, err_log)
 
 trigger_events_path     = homedir + "/Pigrow/config/trigger_events.txt"
 trigger_conditions_path = homedir + "/Pigrow/logs/trigger_conditions.txt"
