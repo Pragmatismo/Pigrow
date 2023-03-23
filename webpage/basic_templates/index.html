@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Pigrow</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: auto;
+        }
+        form {
+            text-align: center;
+            margin-top: 20px;
+        }
+        input[type="text"] {
+            width: 80%;
+            padding: 8px;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Pigrow hosted webpage</h1>
+    <h2>How to Host a Webpage on the Pigrow</h2>
+    <p>
+        To host a webpage using the Pigrow, you need to point the <code>host_webpage.py</code> script to the appropriate folder containing your HTML, CSS, and JavaScript files. By default, Flask serves HTML files from a folder named 'templates' and static files, such as CSS and JavaScript, from a folder named 'static'. To display your own pages, create an 'index.html' file in the 'templates' folder and place your CSS and JavaScript files in the 'static' folder.
+    </p>
+    <p>
+        It is possible to use CSS and JavaScript in your webpages. Simply include the appropriate link and script tags in your HTML file. You can use the <code>{{ url_for('static', filename='<your_css_or_js_file>') }}</code> template function to refer to the static files in your HTML.
+    </p>
+    <h3>Important things to be aware of:</h3>
+    <ul>
+        <li>Ensure that your HTML files are placed in the 'templates' folder and your CSS, JavaScript, and other static files are placed in the 'static' folder.</li>
+        <li>Include the correct paths to your CSS and JavaScript files using the <code>{{ url_for() }}</code> template function.</li>
+        <li>For any changes to take effect, you may need to restart the Flask server by stopping and starting the <code>host_webpage.py</code> script.</li>
+    </ul>
+    <img src="{{ url_for('static', filename='pic.jpg') }}" alt="Test image">
+    <form method="POST" action="/submit">
+        <input type="text" name="user_input" placeholder="Enter text">
+        <br>
+        <input type="submit" value="Submit">
+    </form>
+</body>
+</html>
