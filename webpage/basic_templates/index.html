@@ -31,9 +31,10 @@
     <h3>Important things to be aware of:</h3>
     <ul>
         <li>Ensure that your HTML files are placed in the 'templates' folder and your CSS, JavaScript, and other static files are placed in the 'static' folder.</li>
-        <li>Include the correct paths to your CSS and JavaScript files using the <code>{{ url_for() }}</code> template function.</li>
+        <li>Include the correct paths to your CSS and JavaScript files using the <code>&#123;&#123; url_for('static', filename='<your_css_or_js_file>') &#125;&#125;</code> template function.</li>
         <li>For any changes to take effect, you may need to restart the Flask server by stopping and starting the <code>host_webpage.py</code> script.</li>
     </ul>
+
     <img src="{{ url_for('static', filename='pic.jpg') }}" alt="Test image">
     <form method="POST" action="/submit">
         <input type="text" name="user_input" placeholder="Enter text">
