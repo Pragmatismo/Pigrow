@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import os
+import sys
 from flask import Flask, render_template, request, redirect
 
 home_directory = os.path.expanduser('~')
