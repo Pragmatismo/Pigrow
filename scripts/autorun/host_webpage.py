@@ -79,7 +79,7 @@ if autoreload:
     app.config['TEMPLATES_AUTO_RELOAD'] = True
     template_files = [os.path.join(template_folder, f) for f in os.listdir(template_folder)]
     static_files = [os.path.join(static_folder, f) for f in os.listdir(static_folder)]
-    extra_files = template_files + tatic_files
+    extra_files = template_files + static_files
 else:
     extra_files = []
 
