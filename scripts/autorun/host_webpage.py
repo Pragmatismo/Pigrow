@@ -11,11 +11,11 @@ def set_folders(main_folder):
     template_folder = os.path.join(main_folder, 'templates')
     static_folder = os.path.join(main_folder, 'static')
     handler_folder = os.path.join(main_folder, 'handler')
-    index_file = os.path.join(template_folder, 'index.htlm')
+    index_file = os.path.join(template_folder, 'index.html')
     if not os.path.isfile(index_file):
         print("File not found:" + index_file)
         exit()
-    return template_folder, static_folder, handler_folder   
+    return template_folder, static_folder, handler_folder
 
 # defaults
 port = 8080
