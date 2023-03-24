@@ -5,14 +5,22 @@ import sys
 from flask import Flask, render_template, request, redirect
 import importlib
 
-home_directory = os.path.expanduser('~')
-template_subfolder = 'Pigrow/webpage/basic_templates'
-static_subfolder   = 'Pigrow/webpage/basic_static'
-handler_subfolder  = 'Pigrow/webpage/basic_handler'
+homedir = os.getenv("HOME")
+
+def set_folders(main_folder):
+    template_folder = os.path.join(main_folder, 'templates')
+    static_folder = os.path.join(main_folder, 'static')
+    handler_folder = os.path.join(main_folder, 'handler')
+    index_file = os.path.join(template_folder, 'index.htlm')
+    if not os.path.isfile(index_file):
+        print("File not found:" + index_file)
+        exit()
+    return template_folder, static_folder, handler_folder   
+
+# defaults
 port = 8080
-template_folder = os.path.join(home_directory, template_subfolder)
-static_folder = os.path.join(home_directory, static_subfolder)
-handler_folder = os.path.join(home_directory, handler_subfolder)
+autoreload = True
+template_folder, static_folder, handler_folder = set_folders(homedir + "/Pigrow/webpage/basic")
 
 for argu in sys.argv:
     if "=" in argu:
@@ -20,25 +28,37 @@ for argu in sys.argv:
         theval = str(argu).split('=')[1]
         if  thearg == 'index':
             template_folder = theval
+        elif thearg == 'folder':
+            template_folder, static_folder, handler_folder = set_folders(theval)
         elif thearg == 'static':
             static_folder = theval
         elif thearg == 'handler':
             handler_folder = theval
         elif thearg == 'port':
             port = int(theval)
+        elif thearg == "reload":
+            if theval.strip().lower() == "true":
+                autoreload = True
+            else:
+                autoreload = False
     elif argu == "-h" or "help" in argu:
         print("Host's a webpage on the local network")
         print("")
+        print("folder= path to folder contaning subfolders")
+        print("                   templates, static, handler")
         print("index= path to the folder containing index.html")
         print("static= path to the folder containing images, etc")
         print("handler= path to folder containing handler.py")
         print("port=8080")
+        print("reload=True  updates hosted page when file changes ")
         sys.exit()
     elif argu == "-flags":
-        print("index=" + homedir + "/Pigrow/webpage/basic_templates")
-        print("static=" + homedir + "/Pigrow/webpage/basic_static")
-        print("handler="+ homedir + "/Pigrow/webpage/basic_handler")
+        print("folder=" + homedir + "/Pigrow/webpage/basic")
+        print("index=" + homedir + "/Pigrow/webpage/basic/templates")
+        print("static=" + homedir + "/Pigrow/webpage/basic/static")
+        print("handler="+ homedir + "/Pigrow/webpage/basic/handler")
         print("port=8080")
+        print("reload=True")
         sys.exit()
 
 def import_handler(folder_path):
@@ -55,6 +75,13 @@ def import_handler(folder_path):
         return None
 
 app = Flask(__name__, template_folder=template_folder, static_folder=static_folder)
+if autoreload:
+    app.config['TEMPLATES_AUTO_RELOAD'] = True
+    template_files = [os.path.join(template_folder, f) for f in os.listdir(template_folder)]
+    static_files = [os.path.join(static_folder, f) for f in os.listdir(static_folder)]
+    extra_files = template_files + tatic_files
+else:
+    extra_files = []
 
 @app.route('/')
 def index():
@@ -67,9 +94,12 @@ def process_text():
     return response
 
 def main():
-    app.run(host='0.0.0.0', port=port)
+
+    print("Tracking;" + str(extra_files))
+    app.run(host='0.0.0.0', port=port, extra_files=extra_files)
 
 if __name__ == '__main__':
+
     handler_module = import_handler(handler_folder)
     if not handler_module == None:
         Handler = handler_module.Handler()

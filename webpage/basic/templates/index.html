@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Basic Example Pigrow Hosted Webpage</title>
+    <script>
+        function setCommand(command) {
+            document.getElementById('text-input').value = command;
+        }
+    </script>
+</head>
+<body>
+    <h1>Basic Example Pigrow Hosted Webpage</h1>
+    <p>This webpage is hosted using the host_webpage.py script and Flask. The handler.py script is imported into host_webpage.py to handle and process user commands.</p>
+    <p>Available commands:</p>
+    <ul>
+        <li>info: followed by the name of an info module</li>
+        <li>log: followed by the name of a log file</li>
+    </ul>
+    <p>Click the buttons below to set the command in the text input box:</p>
+    <button onclick="setCommand('info:')">Set 'info:'</button>
+    <button onclick="setCommand('log:')">Set 'log:'</button>
+    <form id="text-form" onsubmit="event.preventDefault(); sendText(document.getElementById('text-input').value)">
+        <input type="text" name="text_input" id="text-input" placeholder="Enter command">
+        <button type="submit">Send</button>
+    </form>
+    <pre id="response"></pre>
+    <script>
+        async function sendText(text) {
+            const response = await fetch('/process_text', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({text: text}),
+            });
+
+            const result = await response.text();
+            document.getElementById('response').innerText = result;
+        }
+    </script>
+</body>
+</html>
