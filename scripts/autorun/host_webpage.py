@@ -7,11 +7,12 @@ import importlib
 
 home_directory = os.path.expanduser('~')
 template_subfolder = 'Pigrow/webpage/basic_templates'
-static_subfolder = 'Pigrow/webpage/basic_static'
-handler_subfolder = 'Pigrow/webpage/basic_handler'
+static_subfolder   = 'Pigrow/webpage/basic_static'
+handler_subfolder  = 'Pigrow/webpage/basic_handler'
 port = 8080
 template_folder = os.path.join(home_directory, template_subfolder)
 static_folder = os.path.join(home_directory, static_subfolder)
+handler_folder = os.path.join(home_directory, handler_subfolder)
 
 for argu in sys.argv:
     if "=" in argu:
@@ -22,7 +23,7 @@ for argu in sys.argv:
         elif thearg == 'static':
             static_folder = theval
         elif thearg == 'handler':
-            handler_subfolder = theval
+            handler_folder = theval
         elif thearg == 'port':
             port = int(theval)
     elif argu == "-h" or "help" in argu:
@@ -69,7 +70,8 @@ def main():
     app.run(host='0.0.0.0', port=port)
 
 if __name__ == '__main__':
-    handler_module = import_handler(handler_subfolder)
-    Handler = handler_module.Handler()
+    handler_module = import_handler(handler_folder)
+    if not handler_module == None:
+        Handler = handler_module.Handler()
 
     main()
