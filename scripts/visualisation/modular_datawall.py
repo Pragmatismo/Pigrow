@@ -5,6 +5,7 @@ import datetime
 import time
 import os
 import io
+import subprocess
 homedir = os.getenv("HOME")
 graph_modules_path = os.path.join(homedir, "Pigrow/scripts/gui/graph_modules/")
 info_modules_path = os.path.join(homedir, "Pigrow/scripts/gui/info_modules/")
