@@ -304,7 +304,7 @@ def process_datawall(datawall_list):
     #preset_settings = {}
     preset_name = ""
     graph_module = ''
-    graphable_data = None # list of lists of lists of date,val,key
+    graphable_data = [] # list of lists of lists of date,val,key
     made_graph_list  = []
     info_text_dict = {}
 
@@ -314,9 +314,11 @@ def process_datawall(datawall_list):
     for line in datawall_list:
         if line == "load_log":
             log_to_parse = load_log(preset_settings)
-            graphable_data = parse_log(log_to_parse, preset_settings)
+            log = parse_log(log_to_parse, preset_settings)
+            graphable_data.append(log)
         if line == "load_log_back":
-            graphable_data = load_log_backwards(preset_settings)
+            log = load_log_backwards(preset_settings)
+            graphable_data.append(log)
 
         if line == "make_graph":
             save_path = os.path.join(graph_base_save_path, "datawall_graph_" + str(len(made_graph_list)) + ".png")
@@ -482,7 +484,8 @@ if __name__ == '__main__':
     list_of_graphs_made, info_text_dict, graphable_data = process_datawall(datawall_list)
     print(" ")
     print(" - Created " + str(len(list_of_graphs_made)) + " graphs")
-    print(" - read " + str(len(info_text_dict)) + " pieces of information")
+    print(" - read " + str(len(info_text_dict)) + " info modules")
+    print(" - passing " + str(len(graphable_data)) + " loaded logs")
     # create datawall
     if not datawall_module_name == "":
         exec("from " + datawall_module_name + " import make_datawall", globals())
