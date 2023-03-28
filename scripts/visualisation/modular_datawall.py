@@ -13,7 +13,7 @@ graph_presets_path = os.path.join(homedir, "Pigrow/scripts/gui/graph_presets/")
 datawall_presets_path = os.path.join(homedir, "Pigrow/scripts/gui/datawall_presets/")
 graph_base_save_path = os.path.join(homedir, "Pigrow/graphs/")
 sys.path.append(graph_modules_path)
-sys.path.append(info_modules_path)
+#sys.path.append(info_modules_path)
 
 
 def read_graph_preset(preset_name):
@@ -396,7 +396,8 @@ def read_info_module(info_module_name, prefix="info_"):
     if not ".py" in info_module_name:
         info_module_name += ".py"
 
-    info_text = subprocess.check_output(info_module_name + " " + args, shell=True).decode(sys.stdout.encoding)
+    cmd = info_modules_path + info_module_name + " " + args
+    info_text = subprocess.check_output(cmd, shell=True).decode(sys.stdout.encoding).strip()
 
     # import and run module
     #exec("from " + info_module_name + " import show_info", globals())
