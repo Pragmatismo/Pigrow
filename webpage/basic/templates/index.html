@@ -45,10 +45,10 @@
               displayImage(result);
           }
       }
-
       function displayImage(imagePath) {
           const imageElement = document.getElementById('generated-image');
-          imageElement.src = `/graphs/${imagePath}`;
+          const imageUrl = `/graphs/${imagePath}?timestamp=${new Date().getTime()}`;
+          imageElement.src = imageUrl;
           imageElement.style.display = 'block';
       }
   </script>
