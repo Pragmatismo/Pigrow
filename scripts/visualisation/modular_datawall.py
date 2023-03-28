@@ -4,6 +4,7 @@ import sys
 import datetime
 import time
 import os
+import io
 homedir = os.getenv("HOME")
 graph_modules_path = os.path.join(homedir, "Pigrow/scripts/gui/graph_modules/")
 info_modules_path = os.path.join(homedir, "Pigrow/scripts/gui/info_modules/")
@@ -34,6 +35,121 @@ def read_graph_preset(preset_name):
             preset_settings[set_key] = set_val
     return preset_settings
 
+def load_log_backwards(preset_settings):
+    # create path to log
+    log_base_path = os.path.join(homedir, "Pigrow/logs/")
+    log_to_load = os.path.join(log_base_path, preset_settings['log_path'])
+    # settings
+    if "end_time" in preset_settings:
+        last_datetime = read_date(preset_settings["end_time"])
+    if "start_time" in preset_settings:
+        first_datetime = read_date(preset_settings["start_time"])
+    else:
+        first_datetime = False
+    # define empty list
+    loaded_dvks = []
+    # read through the file line by line backwards
+    with open(log_to_load, 'r') as file:
+        file.seek(0, 2)  # Move the file pointer to the end of the file
+        position = file.tell()  # Get the current position of the file pointer
+        line = ''
+        while position >= 0:
+            file.seek(position)
+            char = file.read(1)
+            if char == '\n' or position == 0:
+                if position != 0:
+                    line = line[::-1]
+                else:
+                    line = char + line[::-1]
+                line_date,line_value,line_key = parse_line(line.strip(), preset_settings)
+                if first_datetime:
+                    if line_date < first_datetime:
+                        print("stopped at " + str(line_date))
+                        break
+                    else:
+                        if not line_date == None:
+                            loaded_dvks.append([line_date, line_value, line_key])
+                else:
+                    if not line_date == None:
+                        loaded_dvks.append([line_date, line_value, line_key])
+                line = ''
+            else:
+                line += char
+            position -= 1
+    print(" - Found " + str(len(loaded_dvks[0])) + " graphable values.")
+    return loaded_dvks
+
+def parse_line(line, preset_settings):
+    if line.strip() == "":
+        return None, None, None
+    try:
+        line_items = line.split(preset_settings["split_chr"])
+        # date
+        date_item  = line_items[int(preset_settings["date_pos"])]
+        date_val   = date_item.split(preset_settings["date_split"])[int(preset_settings["date_split_pos"])]
+        date = read_date(date_val)
+        # key
+        key_text = preset_settings["key_pos"]
+        #value
+        value_split    = preset_settings["value_split"]
+        value_split_pos = int(preset_settings["value_split_pos"])
+        if value_split_pos == 0:
+            t_value_pos = 1
+            t_key_pos = 0
+        else:
+            t_value_pos = 0
+            t_key_pos = 1
+        if 'rem_from_val' in preset_settings:
+            rem_from_val = preset_settings['rem_from_val']
+        else:
+            rem_from_val = ""
+
+        for item in line_items:
+            if value_split in item:
+                item_items = item.split(value_split)
+                if item_items[t_key_pos] == key_text:
+                    value = item_items[t_value_pos]
+                    key = item_items[t_key_pos]
+                    # remove from value
+                    if not rem_from_val == "":
+                        value = value.replace(rem_from_val, "")
+                    # check it's a number by converting type to float
+                    value = float(value)
+
+        if "key_manual" in preset_settings:
+            if not preset_settings["key_manual"] == "":
+                key_text = preset_settings["key_manual"]
+        return date, value, key_text
+    except:
+        raise
+        return None, None, None
+
+def read_date(date_str):
+    formats = [
+        '%Y-%m-%d %H:%M:%S',
+        '%Y-%m-%d %H:%M:%S.%f',
+        '%Y-%m-%d %H:%M',
+        '%Y-%m-%d',
+    ]
+
+    for date_format in formats:
+        try:
+            return datetime.datetime.strptime(date_str, date_format)
+        except ValueError:
+            continue
+    # Check if the input is a timestamp
+    if len(date_str) == 10
+        try:
+            timestamp = float(date_str)
+            return dateteime.datetime.fromtimestamp(timestamp)
+        except ValueError:
+            print("Invalid date format.")
+            return None
+
+
+#####  below is code i didn't write today
+
+
 def load_log(preset_settings):
     print(" - Reading log " + preset_settings['log_path'])
     # Load data from the log
@@ -48,7 +164,7 @@ def load_log(preset_settings):
 
 def parse_log(log_to_parse, preset_settings):
     print(" - Extracting data from log " + preset_settings['log_path'])
-    # data positions
+    # date positions
     split_chr      = preset_settings["split_chr"]
     date_pos       = int(preset_settings["date_pos"])
     date_split     = preset_settings["date_split"]
@@ -198,6 +314,8 @@ def process_datawall(datawall_list):
         if line == "load_log":
             log_to_parse = load_log(preset_settings)
             graphable_data = parse_log(log_to_parse, preset_settings)
+        if line == "load_log_back":
+            graphable_data = load_log_backwards(preset_settings)
 
         if line == "make_graph":
             save_path = os.path.join(graph_base_save_path, "datawall_graph_" + str(len(made_graph_list)) + ".png")
@@ -256,18 +374,35 @@ def process_datawall(datawall_list):
                         print(" - Info module reading " + value)
                         info_tu = read_info_module(value)
                         info_text_dict[info_tu[0]] = info_tu[1].strip()
+                # picture loading preset
+                if key_type == "picture":
+                    if key_job == "path":
+                        info_tu = self.read_info_module(value, "picture_")
 
     return made_graph_list, info_text_dict
 
-def read_info_module(info_module_name):
+def read_info_module(info_module_name, prefix="info_"):
+    # get args
+    args = ""
+    if " " in info_module_name:
+        e_pos = info_module_name.find(" ")
+        args = info_module_name[e_pos:]
+        info_module_name = info_module_name[:e_pos]
+
     # check name is in module format
-    if not "info_" in info_module_name:
-        info_module_name = "info_" + info_module_name
-    info_module_name = info_module_name.replace(".py", "")
+    if not prefix in info_module_name:
+        info_module_name = prefix + info_module_name
+    if not ".py" in info_module_name:
+        info_module_name += ".py"
+
+    info_text = subprocess.check_output(info_module, shell=True, text=True).decode(sys.stdout.encoding)    
+
     # import and run module
-    exec("from " + info_module_name + " import show_info", globals())
-    info_text = show_info()
-    info_module_name = info_module_name.replace("info_", "").replace(".py", "").strip()
+    #exec("from " + info_module_name + " import show_info", globals())
+    #info_text = show_info()
+
+
+    info_module_name = info_module_name.replace(prefix, "").replace(".py", "").strip()
     return [info_module_name, info_text]
 
 if __name__ == '__main__':
