@@ -1,5 +1,6 @@
 import os
 import subprocess
+homedir = os.getenv("HOME")
 
 class Handler:
     def __init__(self):
@@ -19,6 +20,7 @@ class Handler:
         commands = {
             "info": self.info_function,
             "log": self.showlog_function,
+            "datawall": self.create_datawall
         }
 
         if self.key in commands:
@@ -33,7 +35,6 @@ class Handler:
                 info_module_name = "info_" + info_module_name
             if not info_module_name[:3] == ".py":
                 info_module_name = info_module_name + ".py"
-            homedir = os.getenv("HOME")
             im_path = os.path.join(homedir, "Pigrow/scripts/gui/info_modules")
             info_module_path = os.path.join(im_path, info_module_name)
 
@@ -46,13 +47,38 @@ class Handler:
         if not "/" in value:
             if not "." in value:
                 value = value + ".txt"
-            homedir = os.getenv("HOME")
             log_base_path = os.path.join(homedir, "Pigrow/logs/")
             log_to_load = os.path.join(log_base_path, value)
         else:
             log_to_load = value
         cmd = "tail -n 5 " + log_to_load
         return self.run_local(cmd)
+
+    def create_datawall(self, value):
+        if "+" in value:
+            vsplit = value.split("+")
+            preset = vsplit[0]
+            module = vsplit[1]
+        else:
+            preset = value
+            module = None
+        # make cmd
+        outpath = os.path.join(homedir, "Pigrow/graphs/webdatawall.png")
+        cmd_path = os.path.join(homedir, "Pigrow/scripts/visualisation/modular_datawall.py")
+        cmd = cmd_path +  " out=" + outpath + " preset=" + preset
+        if not module == None:
+            cmd += " module=" + module
+        # make datawall
+        output = self.run_local(cmd)
+        if not module == None:
+            #return outpath
+            return "webdatawall.png"
+        else:
+            #graph_base_save_path = os.path.join(homedir, "Pigrow/graphs/")
+            #return os.path.join(graph_base_save_path, "datawall_graph_1.png")
+            return "datawall_graph_1.png"
+        #print(cmd)
+
 
     def run_local(self, cmd, timeout=30):
         try:
