@@ -138,7 +138,7 @@ def read_date(date_str):
         except ValueError:
             continue
     # Check if the input is a timestamp
-    if len(date_str) == 10
+    if len(date_str) == 10:
         try:
             timestamp = float(date_str)
             return dateteime.datetime.fromtimestamp(timestamp)
@@ -395,7 +395,7 @@ def read_info_module(info_module_name, prefix="info_"):
     if not ".py" in info_module_name:
         info_module_name += ".py"
 
-    info_text = subprocess.check_output(info_module, shell=True, text=True).decode(sys.stdout.encoding)    
+    info_text = subprocess.check_output(info_module, shell=True, text=True).decode(sys.stdout.encoding)
 
     # import and run module
     #exec("from " + info_module_name + " import show_info", globals())
