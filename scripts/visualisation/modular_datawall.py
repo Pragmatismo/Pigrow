@@ -379,6 +379,7 @@ def process_datawall(datawall_list):
                 if key_type == "picture":
                     if key_job == "path":
                         info_tu = read_info_module(value, "picture_")
+                        info_text_dict[info_tu[0]] = info_tu[1].strip()
 
     return made_graph_list, info_text_dict
 
