@@ -15,28 +15,42 @@
     <ul>
         <li>info: followed by the name of an info module</li>
         <li>log: followed by the name of a log file</li>
+        <li>datawall: followed by the name of a datawall preset + datawall module</li>
+        <p>           e.g. datawall:basic_daily+basic_info</p>
     </ul>
     <p>Click the buttons below to set the command in the text input box:</p>
     <button onclick="setCommand('info:')">Set 'info:'</button>
     <button onclick="setCommand('log:')">Set 'log:'</button>
+    <button onclick="setCommand('datawall:')">Set 'datawall:'</button>
     <form id="text-form" onsubmit="event.preventDefault(); sendText(document.getElementById('text-input').value)">
-        <input type="text" name="text_input" id="text-input" placeholder="Enter command">
-        <button type="submit">Send</button>
-    </form>
-    <pre id="response"></pre>
-    <script>
-        async function sendText(text) {
-            const response = await fetch('/process_text', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({text: text}),
-            });
+      <input type="text" name="text_input" id="text-input" placeholder="Enter command">
+      <button type="submit">Send</button>
+  </form>
+  <pre id="response"></pre>
+  <img id="generated-image" alt="Generated Image" style="display:none;"/>
+  <script>
+      async function sendText(text) {
+          const response = await fetch('/process_text', {
+              method: 'POST',
+              headers: {
+                  'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({text: text}),
+          });
 
-            const result = await response.text();
-            document.getElementById('response').innerText = result;
-        }
-    </script>
+          const result = await response.text();
+          document.getElementById('response').innerText = result;
+
+          if (text.startsWith('datawall:')) {
+              displayImage(result);
+          }
+      }
+
+      function displayImage(imagePath) {
+          const imageElement = document.getElementById('generated-image');
+          imageElement.src = `/graphs/${imagePath}`;
+          imageElement.style.display = 'block';
+      }
+  </script>
 </body>
 </html>

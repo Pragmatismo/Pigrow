@@ -2,7 +2,7 @@
 
 import os
 import sys
-from flask import Flask, render_template, request, redirect
+from flask import Flask, render_template, request, redirect, send_from_directory
 import importlib
 
 homedir = os.getenv("HOME")
@@ -92,6 +92,12 @@ def process_text():
     text = request.json['text']
     response = Handler.call_command(text)
     return response
+
+@app.route('/graphs/<filename>')
+def graphs_image(filename):
+    graphs_folder = os.path.join(os.path.expanduser('~'), 'Pigrow/graphs/')
+    return send_from_directory(graphs_folder, filename)
+
 
 def main():
 
