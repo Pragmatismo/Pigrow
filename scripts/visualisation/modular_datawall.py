@@ -381,7 +381,7 @@ def process_datawall(datawall_list):
                         info_tu = read_info_module(value, "picture_")
                         info_text_dict[info_tu[0]] = info_tu[1].strip()
 
-    return made_graph_list, info_text_dict
+    return made_graph_list, info_text_dict, graphable_data
 
 def read_info_module(info_module_name, prefix="info_"):
     # get args
@@ -479,10 +479,11 @@ if __name__ == '__main__':
     print ("-----------------------------------")
     # test graph making
     datawall_list = read_datawall_preset(datawall_preset_name)
-    list_of_graphs_made, info_text_dict = process_datawall(datawall_list)
+    list_of_graphs_made, info_text_dict, graphable_data = process_datawall(datawall_list)
+    print(" ")
     print(" - Created " + str(len(list_of_graphs_made)) + " graphs")
     print(" - read " + str(len(info_text_dict)) + " pieces of information")
     # create datawall
     if not datawall_module_name == "":
         exec("from " + datawall_module_name + " import make_datawall", globals())
-        make_datawall(list_of_graphs_made, datawall_save_path, [], infolist=info_text_dict)
+        make_datawall(list_of_graphs_made, datawall_save_path, graphable_data, infolist=info_text_dict)
