@@ -378,7 +378,7 @@ def process_datawall(datawall_list):
                 # picture loading preset
                 if key_type == "picture":
                     if key_job == "path":
-                        info_tu = self.read_info_module(value, "picture_")
+                        info_tu = read_info_module(value, "picture_")
 
     return made_graph_list, info_text_dict
 
