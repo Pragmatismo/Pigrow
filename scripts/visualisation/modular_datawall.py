@@ -396,7 +396,7 @@ def read_info_module(info_module_name, prefix="info_"):
     if not ".py" in info_module_name:
         info_module_name += ".py"
 
-    info_text = subprocess.check_output(info_module, shell=True, text=True).decode(sys.stdout.encoding)
+    info_text = subprocess.check_output(info_module_name + " " + args, shell=True, text=True).decode(sys.stdout.encoding)
 
     # import and run module
     #exec("from " + info_module_name + " import show_info", globals())
