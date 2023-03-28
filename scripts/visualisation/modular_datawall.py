@@ -253,7 +253,7 @@ def parse_log(log_to_parse, preset_settings):
             value_list.append(value)
             key_list.append(key)
     print(" - Found " + str(len(date_list)) + " graphable values.")
-    return [[date_list, value_list, key_list]]
+    return [date_list, value_list, key_list]
 
 def build_graph(graph_module, log_lists, save_path, graph_settings):
     print(" - Making log using " + graph_module)
