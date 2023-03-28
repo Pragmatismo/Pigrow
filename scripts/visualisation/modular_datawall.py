@@ -404,7 +404,7 @@ def read_info_module(info_module_name, prefix="info_"):
     #info_text = show_info()
 
 
-    info_module_name = info_module_name.replace(prefix, "").replace(".py", "").strip()
+    info_module_name = info_module_name.replace("info_", "").replace(".py", "").strip()
     return [info_module_name, info_text]
 
 if __name__ == '__main__':
