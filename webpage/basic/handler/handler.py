@@ -71,13 +71,9 @@ class Handler:
         # make datawall
         output = self.run_local(cmd)
         if not module == None:
-            #return outpath
             return "webdatawall.png"
         else:
-            #graph_base_save_path = os.path.join(homedir, "Pigrow/graphs/")
-            #return os.path.join(graph_base_save_path, "datawall_graph_1.png")
-            return "datawall_graph_1.png"
-        #print(cmd)
+            return "datawall_graph_0.png"
 
 
     def run_local(self, cmd, timeout=30):
