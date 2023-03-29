@@ -70,13 +70,14 @@ class Handler:
             cmd += " module=" + module
         # make datawall
         output = self.run_local(cmd)
+        return output
         if not module == None:
             #return outpath
             return "webdatawall.png"
         else:
             #graph_base_save_path = os.path.join(homedir, "Pigrow/graphs/")
             #return os.path.join(graph_base_save_path, "datawall_graph_1.png")
-            return "datawall_graph_1.png"
+            return "datawall_graph_0.png"
         #print(cmd)
 
 
