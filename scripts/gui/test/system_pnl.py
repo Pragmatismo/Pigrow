@@ -997,11 +997,23 @@ class install_dialog(wx.Dialog):
             return "error, not a git repository"
         return True
 
+    def is_py3_installed(self, import_n):
+        cmd = self.parent.parent.shared_data.gui_set_dict[remote_pigrow_path]
+        cmd += "/scripts/build_test/test_py3_module.py module=" + import_n
+
+        out, error = self.parent.parent.link_pnl.run_on_pi(cmd)
+        if "True" in out:
+            return True
+        elif if out.strip == "False":
+            return False
+        else:
+            return "error; " + out + error
+
     def check_installed(self, name, method, package, import_n, opt=False):
         if method == 'git':
             is_repo = self.is_git_repository_installed(name, package)
         elif method == "pip3":
-            is_repo = "not yet coded"
+            is_repo = self.is_py3_installed(import_n)
         elif method == "wget":
             is_repo = "also not coded"
         elif method == "apt":
