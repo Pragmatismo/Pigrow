@@ -998,10 +998,14 @@ class install_dialog(wx.Dialog):
         return True
 
     def is_py3_installed(self, import_n):
-        cmd = self.parent.parent.shared_data.gui_set_dict[remote_pigrow_path]
+        if import_n == None:
+            return "no install"
+        cmd = self.parent.parent.shared_data.remote_pigrow_path
         cmd += "/scripts/build_test/test_py3_module.py module=" + import_n
+        print (cmd)
 
         out, error = self.parent.parent.link_pnl.run_on_pi(cmd)
+        print(out, error)
         if "True" in out:
             return True
         elif out.strip == "False":
