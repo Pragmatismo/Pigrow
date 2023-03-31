@@ -95,7 +95,7 @@ class link_pnl(wx.Panel):
         # This code to get around the fontsize being ignored, possibly unneeded on win
         size = self.cb_ip.GetSize()
         self.cb_ip.Clear()
-        size[0] = size[0]  * 1.2
+        size[0] = int(size[0]  * 1.2)
         self.cb_ip.SetMinSize(size)
         self.cb_ip.SetValue(shared_data.gui_set_dict['default_address'])
 

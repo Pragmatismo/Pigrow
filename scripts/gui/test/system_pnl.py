@@ -1,5 +1,6 @@
 import wx
 import wx.lib.scrolledpanel as scrolled
+import os
 
 class ctrl_pnl(wx.Panel):
     def __init__( self, parent ):
@@ -913,9 +914,30 @@ class install_dialog(wx.Dialog):
         title = wx.StaticText(self,  label='Install Pigrow on Pi')
         self.SetFont(shared_data.sub_title_font)
         sub_title = wx.StaticText(self,  label='Remotely manage pigrow scripts and dependences')
+        core_l = wx.StaticText(self,  label='Core Dependencies')
+        opti_l = wx.StaticText(self,  label='Optional Dependencies')
 
         #  note
         note = wx.StaticText(self,  label='This feature is not yet coded')
+
+        self.core_list = self.core_listctrl(self)
+        self.core_list.add_core()
+
+        # optional install catagory text & drop down
+        self.filter_txt = wx.TextCtrl(self, size=(265, 30))
+        self.filter_txt.Bind(wx.EVT_TEXT, self.update_filter)
+
+        cat_opts = ['camera', 'sensor', 'visualisation']
+        self.cat_cb = wx.ComboBox(self, choices = cat_opts, size=(265, 30))
+        self.cat_cb.Bind(wx.EVT_COMBOBOX, self.cat_combo_go)
+
+        cat_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        cat_sizer.Add(self.filter_txt, 0, wx.ALL, 2)
+        cat_sizer.Add(self.cat_cb, 0, wx.ALL, 2)
+
+        # optional install list ctrl
+        self.opti_list = self.opti_listctrl(self)
+        self.opti_list.set_opts()
 
         # save and cancel buttons
         self.install_btn = wx.Button(self, label='install', size=(175, 30))
@@ -934,14 +956,213 @@ class install_dialog(wx.Dialog):
         main_sizer.AddStretchSpacer(1)
         main_sizer.Add(note, 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(core_l, 0, wx.ALL|wx.EXPAND, 5)
+        main_sizer.Add(self.core_list, 0, wx.ALL|wx.EXPAND, 5)
+        main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(cat_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
+        main_sizer.Add(opti_l, 0, wx.ALL|wx.EXPAND, 5)
+        main_sizer.Add(self.opti_list, 0, wx.ALL|wx.EXPAND, 5)
+        main_sizer.AddStretchSpacer(1)
         main_sizer.Add(buttons_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
         self.SetSizer(main_sizer)
+
+    def update_filter(self, event):
+        filter_text = self.filter_txt.GetValue()
+        self.opti_list.set_filter(filter_text)
+
+    def cat_combo_go(self, e):
+        selection = self.cat_cb.GetValue()
+        self.opti_list.set_opts(cat=selection)
+
 
     def install_click(self, e):
         print("no")
 
     def cancel_click(self, e):
         self.Destroy()
+
+    def is_git_repository_installed(self, repo_name):
+        username = self.parent.parent.shared_data.gui_set_dict['username']
+        path = "/home/" + username + "/" + repo_name + "/"
+        # check if path existst on remote pi
+        cmd = "ls " + path
+        out, error = self.parent.parent.link_pnl.run_on_pi(cmd)
+        print(out, error)
+        if "No such file or directory" in out + error:
+            return False
+
+        cmd = "git --git-dir " + path + ".git/ log"
+        out, error = self.parent.parent.link_pnl.run_on_pi(cmd)
+        if "Not a git repository" in out + error:
+            return "error"
+        return True
+
+
+    def is_python_package_installed(self, package_name):
+        try:
+            __import__(package_name)
+            return True
+        except ImportError:
+            return False
+
+    def check_installed(self, item):
+        if item[1] == 'git':
+            is_repo = self.is_git_repository_installed(item[2])
+            if is_repo == True:
+                to_install = ""
+                status = "Installed"
+            elif is_repo == False:
+                to_install = "Y"
+                status = "Not Present"
+            else:
+                to_install = ""
+                status = is_repo
+
+        else:
+            to_install = "not coded"
+            status = "not coded"
+        return [to_install, status]
+
+
+    class core_listctrl(wx.ListCtrl):
+        def __init__(self, parent):
+            self.parent = parent
+            wx.ListCtrl.__init__(self, parent, -1, size=(-1,150), style=wx.LC_REPORT | wx.SUNKEN_BORDER)
+            self.InsertColumn(0, "Install", width=100,  format=wx.LIST_FORMAT_CENTER)
+            self.InsertColumn(1, "Name",    width=200, format=wx.LIST_FORMAT_CENTER)
+            self.InsertColumn(2, "Status",  width=150, format=wx.LIST_FORMAT_CENTER)
+            self.InsertColumn(3, "Method",  width=150, format=wx.LIST_FORMAT_CENTER)
+            self.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.OnCheckBox)
+
+        def add_core(self):
+            core_items = [["Pigrow Base", "git", "Pigrow"],
+                          ["test bad", "git", "testbadfolder"]]
+
+            core_items.reverse()
+            for item in core_items:
+                installed = self.parent.check_installed(item)
+                self.InsertItem(0, installed[0])
+                self.SetItem(0, 1, item[0])
+                self.SetItem(0, 2, installed[1])
+                self.SetItem(0, 3, item[1])
+
+        def OnCheckBox(self, event):
+            index = event.GetIndex()
+            checked = self.IsChecked(index)
+            self.CheckItem(index, not checked)
+
+        def IsChecked(self, index):
+            return self.GetItem(index, 0).GetText() == "Y"
+
+        def CheckItem(self, index, check):
+            if check:
+                self.SetItem(index, 0, "Y")
+            else:
+                self.SetItem(index, 0, "")
+
+    class opti_listctrl(wx.ListCtrl):
+        def __init__(self, parent):
+            wx.ListCtrl.__init__(self, parent, -1, style=wx.LC_REPORT | wx.SUNKEN_BORDER)
+            self.InsertColumn(0, "Install", width=75,  format=wx.LIST_FORMAT_CENTER)
+            self.InsertColumn(1, "Name",    width=200, format=wx.LIST_FORMAT_CENTER)
+            self.InsertColumn(2, "Group",   width=125, format=wx.LIST_FORMAT_CENTER)
+            self.InsertColumn(3, "Status",  width=100, format=wx.LIST_FORMAT_CENTER)
+            self.InsertColumn(4, "Method",  width=100, format=wx.LIST_FORMAT_CENTER)
+            self.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.OnCheckBox)
+
+            #self.full_list = [["test", "sensor", "Git"],
+            #                 ["example", "camera", "pip"],
+            #                 ["test2", "message","apt"]]
+
+            self.full_list, cats = self.find_install_files()
+            self.Parent.cat_cb.Set(cats)
+
+
+        def find_install_files(self):
+            folder_path = "installer"
+            found_install_files = []
+            sub_folders = []
+            for subdir, dirs, files in os.walk(folder_path):
+                for file in files:
+                    if file.endswith('_install.txt'):
+                        file_prefix = file[:-12]
+                        with open(os.path.join(subdir, file), 'r') as f:
+                            file_content = f.read()
+
+                        # read from lines
+                        lines = file_content.splitlines()
+                        install_method = package_name = import_val = None
+                        for line in lines:
+                            if line.startswith('install_method='):
+                                install_method = line.split('=', 1)[1].strip()
+                            elif line.startswith('package_name='):
+                                package_name = line.split('=', 1)[1].strip()
+                            elif line.startswith('import='):
+                                import_val = line.split('=', 1)[1].strip()
+                        # Create a list with the required information
+                        tidy_subdir = subdir.replace(folder_path, "").replace("/", "").strip()
+                        if not tidy_subdir in sub_folders and not tidy_subdir == "":
+                            sub_folders.append(tidy_subdir)
+                        install_file_info = [file_prefix, tidy_subdir, install_method, package_name, import_val]
+                        # Append the list to the found_install_files list
+                        found_install_files.append(install_file_info)
+
+            return found_install_files, sub_folders
+
+        def set_filter(self, o_filter):
+            self.DeleteAllItems()
+            unfiltered = self.opts_items
+
+            if o_filter == "":
+                filtered = unfiltered
+            else:
+                filtered = []
+                for item in unfiltered:
+                    if o_filter in item[0]:
+                        filtered.append(item)
+
+            self.fill_table(filtered)
+
+
+        def set_opts(self, cat='all'):
+            self.opts_items = []
+            if cat == 'all':
+                self.opts_items = self.full_list
+            else:
+                for item in self.full_list:
+                    if item[1] == cat:
+                        self.opts_items.append(item)
+
+            self.opts_items.reverse()
+            self.set_filter(self.Parent.filter_txt.GetValue())
+
+        def fill_table(self, items):
+            for item in items:
+                installed = self.check_installed(item)
+                self.InsertItem(0, installed[0])
+                self.SetItem(0, 1, item[0])
+                self.SetItem(0, 2, item[1])
+                self.SetItem(0, 3, installed[1])
+                self.SetItem(0, 4, item[2])
+
+        def check_installed(self, item):
+            to_install = "not coded"
+            status = "not coded"
+            return [to_install, status]
+
+        def OnCheckBox(self, event):
+            index = event.GetIndex()
+            checked = self.IsChecked(index)
+            self.CheckItem(index, not checked)
+
+        def IsChecked(self, index):
+            return self.GetItem(index, 0).GetText() == "X"
+
+        def CheckItem(self, index, check):
+            if check:
+                self.SetItem(index, 0, "X")
+            else:
+                self.SetItem(index, 0, "")
 
 class old_install_dialog(wx.Dialog):
     #Dialog box for installing pigrow software on a raspberry pi remotely
