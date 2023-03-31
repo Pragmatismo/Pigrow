@@ -1004,7 +1004,7 @@ class install_dialog(wx.Dialog):
         out, error = self.parent.parent.link_pnl.run_on_pi(cmd)
         if "True" in out:
             return True
-        elif if out.strip == "False":
+        elif out.strip == "False":
             return False
         else:
             return "error; " + out + error
