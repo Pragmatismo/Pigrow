@@ -1070,12 +1070,46 @@ class install_dialog(wx.Dialog):
             self.InsertColumn(4, "Method",  width=100, format=wx.LIST_FORMAT_CENTER)
             self.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.OnCheckBox)
 
-            self.full_list = [["test", "sensor", "Git"],
-                             ["example", "camera", "pip"],
-                             ["test2", "message","apt"]]
+            #self.full_list = [["test", "sensor", "Git"],
+            #                 ["example", "camera", "pip"],
+            #                 ["test2", "message","apt"]]
+
+            self.full_list, cats = self.find_install_files()
+            self.Parent.cat_cb.Set(cats)
+
+
+        def find_install_files(self):
+            folder_path = "installer"
+            found_install_files = []
+            sub_folders = []
+            for subdir, dirs, files in os.walk(folder_path):
+                for file in files:
+                    if file.endswith('_install.txt'):
+                        file_prefix = file[:-12]
+                        with open(os.path.join(subdir, file), 'r') as f:
+                            file_content = f.read()
+
+                        # read from lines
+                        lines = file_content.splitlines()
+                        install_method = package_name = import_val = None
+                        for line in lines:
+                            if line.startswith('install_method='):
+                                install_method = line.split('=', 1)[1].strip()
+                            elif line.startswith('package_name='):
+                                package_name = line.split('=', 1)[1].strip()
+                            elif line.startswith('import='):
+                                import_val = line.split('=', 1)[1].strip()
+                        # Create a list with the required information
+                        tidy_subdir = subdir.replace(folder_path, "").replace("/", "").strip()
+                        if not tidy_subdir in sub_folders and not tidy_subdir == "":
+                            sub_folders.append(tidy_subdir)
+                        install_file_info = [file_prefix, tidy_subdir, install_method, package_name, import_val]
+                        # Append the list to the found_install_files list
+                        found_install_files.append(install_file_info)
+
+            return found_install_files, sub_folders
 
         def set_filter(self, o_filter):
-            print(o_filter)
             self.DeleteAllItems()
             unfiltered = self.opts_items
 

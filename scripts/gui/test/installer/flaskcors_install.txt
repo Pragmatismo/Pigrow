@@ -1,0 +1,3 @@
+install_method=pip3
+package_name=flask_cors
+import=flask_cors
