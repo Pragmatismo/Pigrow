@@ -927,7 +927,7 @@ class install_dialog(wx.Dialog):
         self.filter_txt = wx.TextCtrl(self, size=(265, 30))
         self.filter_txt.Bind(wx.EVT_TEXT, self.update_filter)
 
-        cat_opts = ['camera', 'sensor', 'visualisation']
+        cat_opts = []
         self.cat_cb = wx.ComboBox(self, choices = cat_opts, size=(265, 30))
         self.cat_cb.Bind(wx.EVT_COMBOBOX, self.cat_combo_go)
 
@@ -981,47 +981,52 @@ class install_dialog(wx.Dialog):
     def cancel_click(self, e):
         self.Destroy()
 
-    def is_git_repository_installed(self, repo_name):
+    def is_git_repository_installed(self, name, package):
         username = self.parent.parent.shared_data.gui_set_dict['username']
-        path = "/home/" + username + "/" + repo_name + "/"
+        path = "/home/" + username + "/" + name + "/"
         # check if path existst on remote pi
         cmd = "ls " + path
         out, error = self.parent.parent.link_pnl.run_on_pi(cmd)
-        print(out, error)
+        print(cmd, ":", out, error)
         if "No such file or directory" in out + error:
             return False
 
         cmd = "git --git-dir " + path + ".git/ log"
         out, error = self.parent.parent.link_pnl.run_on_pi(cmd)
         if "Not a git repository" in out + error:
-            return "error"
+            return "error, not a git repository"
         return True
 
-
-    def is_python_package_installed(self, package_name):
-        try:
-            __import__(package_name)
-            return True
-        except ImportError:
-            return False
-
-    def check_installed(self, item):
-        if item[1] == 'git':
-            is_repo = self.is_git_repository_installed(item[2])
-            if is_repo == True:
-                to_install = ""
-                status = "Installed"
-            elif is_repo == False:
-                to_install = "Y"
-                status = "Not Present"
-            else:
-                to_install = ""
-                status = is_repo
+    def check_installed(self, name, method, package, import_n, opt=False):
+        if method == 'git':
+            is_repo = self.is_git_repository_installed(name, package)
+        elif method == "pip3":
+            is_repo = "not yet coded"
+        elif method == "wget":
+            is_repo = "also not coded"
+        elif method == "apt":
+            is_repo = "again, not coded"
 
         else:
             to_install = "not coded"
             status = "not coded"
-        return [to_install, status]
+            return to_install, status
+
+        # set status labels
+        if is_repo == True:
+            to_install = ""
+            status = "Installed"
+        elif is_repo == False:
+            if opt == False:
+                to_install = "Y"
+            else:
+                to_install = ""
+            status = "Not Present"
+        else:
+            to_install = "---"
+            status = is_repo
+
+        return to_install, status
 
 
     class core_listctrl(wx.ListCtrl):
@@ -1035,29 +1040,26 @@ class install_dialog(wx.Dialog):
             self.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.OnCheckBox)
 
         def add_core(self):
-            core_items = [["Pigrow Base", "git", "Pigrow"],
-                          ["test bad", "git", "testbadfolder"]]
+            core_items = [["Pigrow Base", "git", "Pigrow", "it's path", "None"],
+                          ["test bad", "git", "testbadfolder", "the path", "None"]]
 
             core_items.reverse()
             for item in core_items:
-                installed = self.parent.check_installed(item)
-                self.InsertItem(0, installed[0])
+                to_install, status = self.parent.check_installed(item[3], item[1], item[2], item[3])
+                self.InsertItem(0, to_install)
                 self.SetItem(0, 1, item[0])
-                self.SetItem(0, 2, installed[1])
+                self.SetItem(0, 2, status)
                 self.SetItem(0, 3, item[1])
 
         def OnCheckBox(self, event):
             index = event.GetIndex()
-            checked = self.IsChecked(index)
-            self.CheckItem(index, not checked)
+            self.CheckItem(index)
 
-        def IsChecked(self, index):
-            return self.GetItem(index, 0).GetText() == "Y"
-
-        def CheckItem(self, index, check):
-            if check:
+        def CheckItem(self, index):
+            check = self.GetItem(index, 0).GetText()
+            if check == "":
                 self.SetItem(index, 0, "Y")
-            else:
+            elif check == "Y":
                 self.SetItem(index, 0, "")
 
     class opti_listctrl(wx.ListCtrl):
@@ -1070,15 +1072,19 @@ class install_dialog(wx.Dialog):
             self.InsertColumn(4, "Method",  width=100, format=wx.LIST_FORMAT_CENTER)
             self.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.OnCheckBox)
 
-            #self.full_list = [["test", "sensor", "Git"],
-            #                 ["example", "camera", "pip"],
-            #                 ["test2", "message","apt"]]
-
             self.full_list, cats = self.find_install_files()
             self.Parent.cat_cb.Set(cats)
 
-
         def find_install_files(self):
+            '''
+            This function searches for and processes '_install.txt' files in the 'installer'
+            folder and its subdirectories. For each '_install.txt' file, it extracts the file
+            prefix (text before '_install.txt'), the install_method, package_name, and import
+            values from the file content. It also keeps track of the unique subdirectories
+            encountered. The function returns a list of found_install_files, where each entry
+            is a list containing the file prefix, subdirectory, install_method, package_name,
+            and import value. It also returns a list of unique sub_folders found during the search.
+            '''
             folder_path = "installer"
             found_install_files = []
             sub_folders = []
@@ -1091,23 +1097,24 @@ class install_dialog(wx.Dialog):
 
                         # read from lines
                         lines = file_content.splitlines()
-                        install_method = package_name = import_val = None
+                        install_method = package_name = import_name = None
                         for line in lines:
                             if line.startswith('install_method='):
                                 install_method = line.split('=', 1)[1].strip()
                             elif line.startswith('package_name='):
                                 package_name = line.split('=', 1)[1].strip()
                             elif line.startswith('import='):
-                                import_val = line.split('=', 1)[1].strip()
+                                import_name = line.split('=', 1)[1].strip()
                         # Create a list with the required information
                         tidy_subdir = subdir.replace(folder_path, "").replace("/", "").strip()
                         if not tidy_subdir in sub_folders and not tidy_subdir == "":
                             sub_folders.append(tidy_subdir)
-                        install_file_info = [file_prefix, tidy_subdir, install_method, package_name, import_val]
+                        install_file_info = [file_prefix, tidy_subdir, install_method, package_name, import_name]
                         # Append the list to the found_install_files list
                         found_install_files.append(install_file_info)
 
-            return found_install_files, sub_folders
+            checked_install_files = self.check_list_installed(found_install_files)
+            return checked_install_files, sub_folders
 
         def set_filter(self, o_filter):
             self.DeleteAllItems()
@@ -1118,11 +1125,9 @@ class install_dialog(wx.Dialog):
             else:
                 filtered = []
                 for item in unfiltered:
-                    if o_filter in item[0]:
+                    if o_filter in item[1]:
                         filtered.append(item)
-
             self.fill_table(filtered)
-
 
         def set_opts(self, cat='all'):
             self.opts_items = []
@@ -1130,7 +1135,7 @@ class install_dialog(wx.Dialog):
                 self.opts_items = self.full_list
             else:
                 for item in self.full_list:
-                    if item[1] == cat:
+                    if item[2] == cat:
                         self.opts_items.append(item)
 
             self.opts_items.reverse()
@@ -1138,31 +1143,42 @@ class install_dialog(wx.Dialog):
 
         def fill_table(self, items):
             for item in items:
-                installed = self.check_installed(item)
-                self.InsertItem(0, installed[0])
-                self.SetItem(0, 1, item[0])
-                self.SetItem(0, 2, item[1])
-                self.SetItem(0, 3, installed[1])
-                self.SetItem(0, 4, item[2])
 
-        def check_installed(self, item):
-            to_install = "not coded"
-            status = "not coded"
-            return [to_install, status]
+                self.InsertItem(0, item[0]) # Install y/n
+                self.SetItem(0, 1, item[1]) # Name
+                self.SetItem(0, 2, item[2]) # Group
+                self.SetItem(0, 3, item[3]) # Status
+                self.SetItem(0, 4, item[4]) # Method
+
+        def check_list_installed(self, found_list):
+            checked = []
+            for item in found_list:
+                name     = item[0]
+                group    = item[1]
+                method   = item[2]
+                package  = item[3]
+                import_n = item[4]
+                to_install, status = self.Parent.check_installed(name, method, package, import_n, opt=True)
+                checked.append([to_install, name, group, status, method])
+            return checked
+
 
         def OnCheckBox(self, event):
             index = event.GetIndex()
-            checked = self.IsChecked(index)
-            self.CheckItem(index, not checked)
+            self.CheckItem(index)
 
-        def IsChecked(self, index):
-            return self.GetItem(index, 0).GetText() == "X"
+        def CheckItem(self, index):
+            check = self.GetItem(index, 0).GetText()
+            name = self.GetItem(index, 1).GetText()
+            for item in self.full_list:
+                if item[1] == name:
+                    if check == "":
+                        item[0] = "Y"
+                        self.SetItem(index, 0, "Y")
 
-        def CheckItem(self, index, check):
-            if check:
-                self.SetItem(index, 0, "X")
-            else:
-                self.SetItem(index, 0, "")
+                    elif check == "Y":
+                        item[0] = ""
+                        self.SetItem(index, 0, "")
 
 class old_install_dialog(wx.Dialog):
     #Dialog box for installing pigrow software on a raspberry pi remotely
