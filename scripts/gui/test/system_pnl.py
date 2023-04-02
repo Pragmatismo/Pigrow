@@ -976,7 +976,15 @@ class install_dialog(wx.Dialog):
 
 
     def install_click(self, e):
-        print("no")
+        to_install = []
+        core_items = 'not coded core item selection for install list'
+        for item in self.opti_list.full_list:
+            if item[0] == "Y":
+                to_install.append(item)
+        print("INSTALL IS CURRENTLY NOT CODED FOR THE TEST GUI")
+        print(" Want's to install;")
+        for item in to_install:
+            print(item[1])
 
     def cancel_click(self, e):
         self.Destroy()
@@ -1006,9 +1014,9 @@ class install_dialog(wx.Dialog):
 
         out, error = self.parent.parent.link_pnl.run_on_pi(cmd)
         print(out, error)
-        if "True" in out:
+        if out.strip() == "True":
             return True
-        elif out.strip == "False":
+        elif out.strip() == "False":
             return False
         else:
             return "error; " + out + error
