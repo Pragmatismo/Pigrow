@@ -1035,7 +1035,7 @@ class install_dialog(wx.Dialog):
         if "No such file or directory" in out + error:
             return False
         else:
-            return True 
+            return True
 
 
     def check_installed(self, name, method, package, test, import_n, opt=False):
@@ -1044,13 +1044,12 @@ class install_dialog(wx.Dialog):
         elif test == "import":
             installed = self.is_py3_installed(import_n)
         elif test == "file":
-            installed = "also not coded"
+            installed = self.is_file_installed(import_n)
         elif test == "apt":
             installed = self.is_apt_installed(import_n)
-
         else:
             to_install = ""
-            status = "not coded"
+            status = "no test"
             return to_install, status
 
         # set status labels
@@ -1066,7 +1065,6 @@ class install_dialog(wx.Dialog):
         else:
             to_install = "---"
             status = installed
-
         return to_install, status
 
 
