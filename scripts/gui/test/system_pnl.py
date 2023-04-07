@@ -1029,6 +1029,14 @@ class install_dialog(wx.Dialog):
         else:
             return False
 
+    def is_file_installed(self, import_n):
+        cmd = "ls " + import_n
+        out, error = self.parent.parent.link_pnl.run_on_pi(cmd)
+        if "No such file or directory" in out + error:
+            return False
+        else:
+            return True 
+
 
     def check_installed(self, name, method, package, test, import_n, opt=False):
         if test == 'git':
