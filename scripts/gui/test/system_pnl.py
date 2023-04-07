@@ -1021,26 +1021,35 @@ class install_dialog(wx.Dialog):
         else:
             return "error; " + out + error
 
-    def check_installed(self, name, method, package, import_n, opt=False):
-        if method == 'git':
-            is_repo = self.is_git_repository_installed(name, package)
-        elif method == "pip3":
-            is_repo = self.is_py3_installed(import_n)
-        elif method == "wget":
-            is_repo = "also not coded"
-        elif method == "apt":
-            is_repo = "again, not coded"
+    def is_apt_installed(self, import_n):
+        cmd = "which " + import_n
+        out, error = self.parent.parent.link_pnl.run_on_pi(cmd)
+        if import_n in out:
+            return True
+        else:
+            return False
+
+
+    def check_installed(self, name, method, package, test, import_n, opt=False):
+        if test == 'git':
+            installed = self.is_git_repository_installed(name, package)
+        elif test == "import":
+            installed = self.is_py3_installed(import_n)
+        elif test == "file":
+            installed = "also not coded"
+        elif test == "apt":
+            installed = self.is_apt_installed(import_n)
 
         else:
-            to_install = "not coded"
+            to_install = ""
             status = "not coded"
             return to_install, status
 
         # set status labels
-        if is_repo == True:
+        if installed == True:
             to_install = ""
             status = "Installed"
-        elif is_repo == False:
+        elif installed == False:
             if opt == False:
                 to_install = "Y"
             else:
@@ -1048,7 +1057,7 @@ class install_dialog(wx.Dialog):
             status = "Not Present"
         else:
             to_install = "---"
-            status = is_repo
+            status = installed
 
         return to_install, status
 
@@ -1064,12 +1073,12 @@ class install_dialog(wx.Dialog):
             self.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.OnCheckBox)
 
         def add_core(self):
-            core_items = [["Pigrow Base", "git", "Pigrow", "it's path", "None"],
-                          ["test bad", "git", "testbadfolder", "the path", "None"]]
+            core_items = [["Pigrow Base", "git", "Pigrow", "it's path", "git", "None"],
+                          ["test bad", "git", "testbadfolder", "the path", "git", "None"]]
 
             core_items.reverse()
             for item in core_items:
-                to_install, status = self.parent.check_installed(item[3], item[1], item[2], item[3])
+                to_install, status = self.parent.check_installed(item[3], item[1], item[2], item[4], item[3])
                 self.InsertItem(0, to_install)
                 self.SetItem(0, 1, item[0])
                 self.SetItem(0, 2, status)
@@ -1121,19 +1130,21 @@ class install_dialog(wx.Dialog):
 
                         # read from lines
                         lines = file_content.splitlines()
-                        install_method = package_name = import_name = None
+                        install_method = package_name = test_method = import_name= None
                         for line in lines:
                             if line.startswith('install_method='):
                                 install_method = line.split('=', 1)[1].strip()
                             elif line.startswith('package_name='):
                                 package_name = line.split('=', 1)[1].strip()
+                            elif line.startswith('test='):
+                                test_method = line.split('=', 1)[1].strip()
                             elif line.startswith('import='):
                                 import_name = line.split('=', 1)[1].strip()
                         # Create a list with the required information
                         tidy_subdir = subdir.replace(folder_path, "").replace("/", "").strip()
                         if not tidy_subdir in sub_folders and not tidy_subdir == "":
                             sub_folders.append(tidy_subdir)
-                        install_file_info = [file_prefix, tidy_subdir, install_method, package_name, import_name]
+                        install_file_info = [file_prefix, tidy_subdir, install_method, package_name, test_method, import_name]
                         # Append the list to the found_install_files list
                         found_install_files.append(install_file_info)
 
@@ -1181,8 +1192,9 @@ class install_dialog(wx.Dialog):
                 group    = item[1]
                 method   = item[2]
                 package  = item[3]
-                import_n = item[4]
-                to_install, status = self.Parent.check_installed(name, method, package, import_n, opt=True)
+                test     = item[4]
+                import_n = item[5]
+                to_install, status = self.Parent.check_installed(name, method, package, test, import_n, opt=True)
                 checked.append([to_install, name, group, status, method])
             return checked
 
