@@ -1,5 +1,5 @@
 install_method=pip
-package_name=psutil
+package_name=python-crontab
 test=import
-import=psutil
+import=crontab
 
