@@ -1,3 +1,4 @@
-install_method=pip3
+install_method=pip
 package_name=adafruit-circuitpython-veml7700
 import=adafruit_veml7700
+test=import
