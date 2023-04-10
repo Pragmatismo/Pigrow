@@ -1,0 +1,5 @@
+install_method=pip
+package_name=watchdog
+test=import
+import=watchdog
+
