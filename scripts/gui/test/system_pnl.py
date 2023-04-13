@@ -1,6 +1,8 @@
 import wx
 import wx.lib.scrolledpanel as scrolled
 import os
+import time
+import threading
 
 class ctrl_pnl(wx.Panel):
     def __init__( self, parent ):
@@ -985,6 +987,12 @@ class install_dialog(wx.Dialog):
         print(" Want's to install;")
         for item in to_install:
             print(item[1])
+        #
+        test_list = ["test of dialog box", "test 1", "test 2", "test 3", "test 4", "test 5"]
+        dlg = InstallProgressDialog(self, test_list)
+        if dlg.ShowModal() == wx.ID_CANCEL:
+            print("Cancelled by user")
+        dlg.Destroy()
 
     def cancel_click(self, e):
         self.Destroy()
@@ -1221,6 +1229,64 @@ class install_dialog(wx.Dialog):
                     elif check == "Y":
                         item[0] = ""
                         self.SetItem(index, 0, "")
+
+class InstallProgressDialog(wx.Dialog):
+    def __init__(self, parent, install_list):
+        super().__init__(parent, title="Install Progress", size=(300, 200))
+
+        self.install_list = install_list
+
+        main_sizer = wx.BoxSizer(wx.VERTICAL)
+
+        self.static_text = wx.StaticText(self, label=self.install_list[0])
+        main_sizer.Add(self.static_text, 0, wx.ALL | wx.EXPAND | wx.ALIGN_CENTER, 10)
+
+        self.progress_bar = wx.Gauge(self, range=len(install_list), size=(-1, 25))
+        main_sizer.Add(self.progress_bar, 0, wx.ALL | wx.EXPAND, 10)
+
+        self.cancel_button = wx.Button(self, label="Cancel")
+        self.cancel_button.Bind(wx.EVT_BUTTON, self.on_cancel)
+        main_sizer.Add(self.cancel_button, 0, wx.ALL | wx.ALIGN_CENTER, 10)
+
+        self.SetSizer(main_sizer)
+
+        self.should_continue = True
+        self.run_process()
+
+    def process_item(self, item):
+        time.sleep(2)
+
+    def on_cancel(self, event):
+        if self.cancel_button.GetLabel() == "Close":
+            self.Destroy()
+        self.should_continue = False
+        print("Cancelling")
+        self.cancel_button.Disable()
+
+    def update_static_text(self, label):
+        self.static_text.SetLabel(label)
+
+    def increment_progress_bar(self):
+        value = self.progress_bar.GetValue()
+        self.progress_bar.SetValue(value + 1)
+
+    def run_process(self):
+        def process_items():
+            for item in self.install_list:
+                if not self.should_continue:
+                    #self.Destroy()
+                    break
+
+                self.process_item(item)
+                wx.CallAfter(self.update_static_text, item)
+                wx.CallAfter(self.increment_progress_bar)
+
+            wx.CallAfter(self.cancel_button.SetLabel, "Close")
+            wx.CallAfter(self.cancel_button.Enable)
+        threading.Thread(target=process_items).start()
+
+
+#######
 
 class old_install_dialog(wx.Dialog):
     #Dialog box for installing pigrow software on a raspberry pi remotely
