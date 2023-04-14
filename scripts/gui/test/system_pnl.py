@@ -1283,7 +1283,22 @@ class InstallProgressDialog(wx.Dialog):
 
     def process_item(self, item):
         time.sleep(2)
-        print("Pretending to install", item)
+        set_up_actions = {'pip':self.setup_pip,
+                          'apt':self.setup_apt}
+
+        if isinstance(item[1], str):
+            if item[1] in set_up_actions:
+                set_up_actions[item[1]]()
+        else:
+            print("Pretending to install", item)
+
+    def setup_pip(self):
+        print("setting up pip (not really)")
+        cmd = "pip install -U pip"
+
+    def setup_apt(self):
+        print("setting up apt (not really)")
+        cmd = "sudo apt update"
 
     def on_cancel(self, event):
         if self.cancel_button.GetLabel() == "Close":
