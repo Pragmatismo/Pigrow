@@ -1,4 +1,4 @@
-install_method=pip3
+install_method=pip
 package_name=flask_cors
 import=flask_cors
 test=import
