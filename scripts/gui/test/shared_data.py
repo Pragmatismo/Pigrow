@@ -23,6 +23,8 @@ class shared_data:
         self.gui_set_dict['volume_unit'] = "ml"
         self.gui_set_dict['temp_unit'] = "c"
 
+        self.system_info_layout = []
+
 
         # load from file
         self.load_gui_settings()

@@ -1,0 +1,4 @@
+install_method=apt
+package_name=mpv
+test=apt
+import=mpv

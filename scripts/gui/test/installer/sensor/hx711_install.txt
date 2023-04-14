@@ -1,0 +1,4 @@
+install_method=pip
+package_name=HX711
+test=import
+import=HX711

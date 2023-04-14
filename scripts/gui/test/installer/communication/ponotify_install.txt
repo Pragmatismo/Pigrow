@@ -1,3 +1,4 @@
-install_method=pip3
+install_method=pip
 package_name=python-pushover
 import=pushover
+test=import

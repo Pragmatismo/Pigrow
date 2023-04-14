@@ -1,6 +1,8 @@
 import wx
 import wx.lib.scrolledpanel as scrolled
 import os
+import time
+import threading
 
 class ctrl_pnl(wx.Panel):
     def __init__( self, parent ):
@@ -976,7 +978,22 @@ class install_dialog(wx.Dialog):
 
 
     def install_click(self, e):
-        print("no")
+        to_install = []
+        core_items = 'not coded core item selection for install list'
+        for item in self.opti_list.full_list:
+            if item[0] == "Y":
+                to_install.append(item)
+        #
+        #print(" Want's to install;")
+        #for item in to_install:
+        #    print(item[1])
+        print("CORE ITEMS INSTALL IS CURRENTLY NOT CODED FOR THE TEST GUI")
+        #
+        dlg = InstallProgressDialog(self, to_install)
+        if dlg.ShowModal() == wx.ID_CANCEL:
+            print("Install finished")
+        dlg.Destroy()
+        self.Destroy()
 
     def cancel_click(self, e):
         self.Destroy()
@@ -1006,33 +1023,49 @@ class install_dialog(wx.Dialog):
 
         out, error = self.parent.parent.link_pnl.run_on_pi(cmd)
         print(out, error)
-        if "True" in out:
+        if out.strip() == "True":
             return True
-        elif out.strip == "False":
+        elif out.strip() == "False":
             return False
         else:
             return "error; " + out + error
 
-    def check_installed(self, name, method, package, import_n, opt=False):
-        if method == 'git':
-            is_repo = self.is_git_repository_installed(name, package)
-        elif method == "pip3":
-            is_repo = self.is_py3_installed(import_n)
-        elif method == "wget":
-            is_repo = "also not coded"
-        elif method == "apt":
-            is_repo = "again, not coded"
-
+    def is_apt_installed(self, import_n):
+        cmd = "which " + import_n
+        out, error = self.parent.parent.link_pnl.run_on_pi(cmd)
+        if import_n in out:
+            return True
         else:
-            to_install = "not coded"
-            status = "not coded"
+            return False
+
+    def is_file_installed(self, import_n):
+        cmd = "ls " + import_n
+        out, error = self.parent.parent.link_pnl.run_on_pi(cmd)
+        if "No such file or directory" in out + error:
+            return False
+        else:
+            return True
+
+
+    def check_installed(self, name, method, package, test, import_n, opt=False):
+        if test == 'git':
+            installed = self.is_git_repository_installed(name, package)
+        elif test == "import":
+            installed = self.is_py3_installed(import_n)
+        elif test == "file":
+            installed = self.is_file_installed(import_n)
+        elif test == "apt":
+            installed = self.is_apt_installed(import_n)
+        else:
+            to_install = ""
+            status = "no test"
             return to_install, status
 
         # set status labels
-        if is_repo == True:
+        if installed == True:
             to_install = ""
             status = "Installed"
-        elif is_repo == False:
+        elif installed == False:
             if opt == False:
                 to_install = "Y"
             else:
@@ -1040,8 +1073,7 @@ class install_dialog(wx.Dialog):
             status = "Not Present"
         else:
             to_install = "---"
-            status = is_repo
-
+            status = installed
         return to_install, status
 
 
@@ -1056,12 +1088,12 @@ class install_dialog(wx.Dialog):
             self.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.OnCheckBox)
 
         def add_core(self):
-            core_items = [["Pigrow Base", "git", "Pigrow", "it's path", "None"],
-                          ["test bad", "git", "testbadfolder", "the path", "None"]]
+            core_items = [["Pigrow Base", "git", "Pigrow", "it's path", "git", "None"],
+                          ["test bad", "git", "testbadfolder", "the path", "git", "None"]]
 
             core_items.reverse()
             for item in core_items:
-                to_install, status = self.parent.check_installed(item[3], item[1], item[2], item[3])
+                to_install, status = self.parent.check_installed(item[3], item[1], item[2], item[4], item[3])
                 self.InsertItem(0, to_install)
                 self.SetItem(0, 1, item[0])
                 self.SetItem(0, 2, status)
@@ -1113,19 +1145,21 @@ class install_dialog(wx.Dialog):
 
                         # read from lines
                         lines = file_content.splitlines()
-                        install_method = package_name = import_name = None
+                        install_method = package_name = test_method = import_name= None
                         for line in lines:
                             if line.startswith('install_method='):
                                 install_method = line.split('=', 1)[1].strip()
                             elif line.startswith('package_name='):
                                 package_name = line.split('=', 1)[1].strip()
+                            elif line.startswith('test='):
+                                test_method = line.split('=', 1)[1].strip()
                             elif line.startswith('import='):
                                 import_name = line.split('=', 1)[1].strip()
                         # Create a list with the required information
                         tidy_subdir = subdir.replace(folder_path, "").replace("/", "").strip()
                         if not tidy_subdir in sub_folders and not tidy_subdir == "":
                             sub_folders.append(tidy_subdir)
-                        install_file_info = [file_prefix, tidy_subdir, install_method, package_name, import_name]
+                        install_file_info = [file_prefix, tidy_subdir, install_method, package_name, test_method, import_name]
                         # Append the list to the found_install_files list
                         found_install_files.append(install_file_info)
 
@@ -1173,9 +1207,10 @@ class install_dialog(wx.Dialog):
                 group    = item[1]
                 method   = item[2]
                 package  = item[3]
-                import_n = item[4]
-                to_install, status = self.Parent.check_installed(name, method, package, import_n, opt=True)
-                checked.append([to_install, name, group, status, method])
+                test     = item[4]
+                import_n = item[5]
+                to_install, status = self.Parent.check_installed(name, method, package, test, import_n, opt=True)
+                checked.append([to_install, name, group, status, method, package])
             return checked
 
 
@@ -1195,6 +1230,93 @@ class install_dialog(wx.Dialog):
                     elif check == "Y":
                         item[0] = ""
                         self.SetItem(index, 0, "")
+
+class InstallProgressDialog(wx.Dialog):
+    '''
+    Get's handed a list with [to_install, name, group, status, method, package]
+    '''
+    def __init__(self, parent, item_list):
+        super().__init__(parent, title="Install Progress", size=(500, 350))
+        self.parent = parent
+        shared_data = self.parent.parent.parent.shared_data
+
+        self.SetFont(shared_data.title_font)
+        title = wx.StaticText(self,  label='Installing')
+        self.SetFont(shared_data.sub_title_font)
+
+        self.action_list = self.make_action_list(item_list)
+
+        self.static_text = wx.StaticText(self, label="--")
+
+        self.progress_bar = wx.Gauge(self, range=len(self.action_list), size=(-1, 25))
+
+        self.cancel_button = wx.Button(self, label="Cancel")
+        self.cancel_button.Bind(wx.EVT_BUTTON, self.on_cancel)
+
+        main_sizer = wx.BoxSizer(wx.VERTICAL)
+        main_sizer.Add(title, 0, wx.ALL | wx.EXPAND | wx.ALIGN_CENTER, 10)
+        main_sizer.Add(self.static_text, 0, wx.ALL | wx.EXPAND | wx.ALIGN_CENTER, 10)
+        main_sizer.Add(self.progress_bar, 0, wx.ALL | wx.EXPAND, 10)
+        main_sizer.Add(self.cancel_button, 0, wx.ALL | wx.ALIGN_CENTER, 10)
+        self.SetSizer(main_sizer)
+
+        self.should_continue = True
+        self.run_process()
+
+    def make_action_list(self, item_list):
+        install_dict = {}
+        for item in item_list:
+            install_info = [item[1], item[5]]
+            if not item[4] in install_dict:
+                install_dict[item[4]] = [install_info]
+            else:
+                install_dict[item[4]].append(install_info)
+
+        action_list = []
+        for item in install_dict:
+            action_list.append(["Preparing " + item, item])
+            for install_item in install_dict[item]:
+                action_list.append(["Installing " + install_item[0], install_item])
+
+        return action_list
+
+
+    def process_item(self, item):
+        time.sleep(2)
+        print("Pretending to install", item)
+
+    def on_cancel(self, event):
+        if self.cancel_button.GetLabel() == "Close":
+            self.Destroy()
+        else:
+            self.should_continue = False
+            print("Cancelling")
+            self.cancel_button.Disable()
+
+    def update_action_text(self, label):
+        self.static_text.SetLabel(label)
+
+    def increment_progress_bar(self):
+        value = self.progress_bar.GetValue()
+        self.progress_bar.SetValue(value + 1)
+
+    def run_process(self):
+        def process_items():
+            for item in self.action_list:
+                if not self.should_continue:
+                    #self.Destroy()
+                    break
+
+                self.process_item(item)
+                wx.CallAfter(self.update_action_text, item[0])
+                wx.CallAfter(self.increment_progress_bar)
+
+            wx.CallAfter(self.cancel_button.SetLabel, "Close")
+            wx.CallAfter(self.cancel_button.Enable)
+        threading.Thread(target=process_items).start()
+
+
+#######
 
 class old_install_dialog(wx.Dialog):
     #Dialog box for installing pigrow software on a raspberry pi remotely
