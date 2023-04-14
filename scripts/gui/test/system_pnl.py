@@ -983,16 +983,17 @@ class install_dialog(wx.Dialog):
         for item in self.opti_list.full_list:
             if item[0] == "Y":
                 to_install.append(item)
-        print("INSTALL IS CURRENTLY NOT CODED FOR THE TEST GUI")
-        print(" Want's to install;")
-        for item in to_install:
-            print(item[1])
         #
-        test_list = ["test of dialog box", "test 1", "test 2", "test 3", "test 4", "test 5"]
-        dlg = InstallProgressDialog(self, test_list)
+        #print(" Want's to install;")
+        #for item in to_install:
+        #    print(item[1])
+        print("CORE ITEMS INSTALL IS CURRENTLY NOT CODED FOR THE TEST GUI")
+        #
+        dlg = InstallProgressDialog(self, to_install)
         if dlg.ShowModal() == wx.ID_CANCEL:
-            print("Cancelled by user")
+            print("Install finished")
         dlg.Destroy()
+        self.Destroy()
 
     def cancel_click(self, e):
         self.Destroy()
@@ -1209,7 +1210,7 @@ class install_dialog(wx.Dialog):
                 test     = item[4]
                 import_n = item[5]
                 to_install, status = self.Parent.check_installed(name, method, package, test, import_n, opt=True)
-                checked.append([to_install, name, group, status, method])
+                checked.append([to_install, name, group, status, method, package])
             return checked
 
 
@@ -1231,39 +1232,68 @@ class install_dialog(wx.Dialog):
                         self.SetItem(index, 0, "")
 
 class InstallProgressDialog(wx.Dialog):
-    def __init__(self, parent, install_list):
-        super().__init__(parent, title="Install Progress", size=(300, 200))
+    '''
+    Get's handed a list with [to_install, name, group, status, method, package]
+    '''
+    def __init__(self, parent, item_list):
+        super().__init__(parent, title="Install Progress", size=(500, 350))
+        self.parent = parent
+        shared_data = self.parent.parent.parent.shared_data
 
-        self.install_list = install_list
+        self.SetFont(shared_data.title_font)
+        title = wx.StaticText(self,  label='Installing')
+        self.SetFont(shared_data.sub_title_font)
 
-        main_sizer = wx.BoxSizer(wx.VERTICAL)
+        self.action_list = self.make_action_list(item_list)
 
-        self.static_text = wx.StaticText(self, label=self.install_list[0])
-        main_sizer.Add(self.static_text, 0, wx.ALL | wx.EXPAND | wx.ALIGN_CENTER, 10)
+        self.static_text = wx.StaticText(self, label="--")
 
-        self.progress_bar = wx.Gauge(self, range=len(install_list), size=(-1, 25))
-        main_sizer.Add(self.progress_bar, 0, wx.ALL | wx.EXPAND, 10)
+        self.progress_bar = wx.Gauge(self, range=len(self.action_list), size=(-1, 25))
 
         self.cancel_button = wx.Button(self, label="Cancel")
         self.cancel_button.Bind(wx.EVT_BUTTON, self.on_cancel)
-        main_sizer.Add(self.cancel_button, 0, wx.ALL | wx.ALIGN_CENTER, 10)
 
+        main_sizer = wx.BoxSizer(wx.VERTICAL)
+        main_sizer.Add(title, 0, wx.ALL | wx.EXPAND | wx.ALIGN_CENTER, 10)
+        main_sizer.Add(self.static_text, 0, wx.ALL | wx.EXPAND | wx.ALIGN_CENTER, 10)
+        main_sizer.Add(self.progress_bar, 0, wx.ALL | wx.EXPAND, 10)
+        main_sizer.Add(self.cancel_button, 0, wx.ALL | wx.ALIGN_CENTER, 10)
         self.SetSizer(main_sizer)
 
         self.should_continue = True
         self.run_process()
 
+    def make_action_list(self, item_list):
+        install_dict = {}
+        for item in item_list:
+            install_info = [item[1], item[5]]
+            if not item[4] in install_dict:
+                install_dict[item[4]] = [install_info]
+            else:
+                install_dict[item[4]].append(install_info)
+
+        action_list = []
+        for item in install_dict:
+            action_list.append(["Preparing " + item, item])
+            for install_item in install_dict[item]:
+                action_list.append(["Installing " + install_item[0], install_item])
+
+        return action_list
+
+
     def process_item(self, item):
         time.sleep(2)
+        print("Pretending to install", item)
 
     def on_cancel(self, event):
         if self.cancel_button.GetLabel() == "Close":
             self.Destroy()
-        self.should_continue = False
-        print("Cancelling")
-        self.cancel_button.Disable()
+        else:
+            self.should_continue = False
+            print("Cancelling")
+            self.cancel_button.Disable()
 
-    def update_static_text(self, label):
+    def update_action_text(self, label):
         self.static_text.SetLabel(label)
 
     def increment_progress_bar(self):
@@ -1272,13 +1302,13 @@ class InstallProgressDialog(wx.Dialog):
 
     def run_process(self):
         def process_items():
-            for item in self.install_list:
+            for item in self.action_list:
                 if not self.should_continue:
                     #self.Destroy()
                     break
 
                 self.process_item(item)
-                wx.CallAfter(self.update_static_text, item)
+                wx.CallAfter(self.update_action_text, item[0])
                 wx.CallAfter(self.increment_progress_bar)
 
             wx.CallAfter(self.cancel_button.SetLabel, "Close")
