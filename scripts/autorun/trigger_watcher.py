@@ -11,7 +11,7 @@ try:
     from watchdog.observers import Observer
     from watchdog.events import PatternMatchingEventHandler
 except:
-    err_log = homedir + "/Pigrow/logs/err_log.txt")
+    err_log = homedir + "/Pigrow/logs/err_log.txt"
     err_msg = "Watchdog is not installed, trigger_log unable to run"
     pigrow_defs.write_log('trigger_log.py', err_msg, err_log)
 
