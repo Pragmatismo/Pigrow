@@ -1295,10 +1295,15 @@ class InstallProgressDialog(wx.Dialog):
     def setup_pip(self):
         print("setting up pip (not really)")
         cmd = "pip install -U pip"
+        out, error = self.parent.parent.parent.link_pnl.run_on_pi(cmd)
+        print(out,error)
+
 
     def setup_apt(self):
         print("setting up apt (not really)")
         cmd = "sudo apt update"
+        out, error = self.parent.parent.parent.link_pnl.run_on_pi(cmd)
+        print(out,error)
 
     def on_cancel(self, event):
         if self.cancel_button.GetLabel() == "Close":
@@ -1322,10 +1327,11 @@ class InstallProgressDialog(wx.Dialog):
                     #self.Destroy()
                     break
 
-                self.process_item(item)
                 wx.CallAfter(self.update_action_text, item[0])
+                self.process_item(item)
                 wx.CallAfter(self.increment_progress_bar)
 
+            wx.CallAfter(self.update_action_text, "Done")
             wx.CallAfter(self.cancel_button.SetLabel, "Close")
             wx.CallAfter(self.cancel_button.Enable)
         threading.Thread(target=process_items).start()
