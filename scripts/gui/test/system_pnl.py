@@ -1145,12 +1145,14 @@ class install_dialog(wx.Dialog):
 
                         # read from lines
                         lines = file_content.splitlines()
-                        install_method = package_name = test_method = import_name= None
+                        install_method = package_name = install_path = test_method = import_name = None
                         for line in lines:
                             if line.startswith('install_method='):
                                 install_method = line.split('=', 1)[1].strip()
                             elif line.startswith('package_name='):
                                 package_name = line.split('=', 1)[1].strip()
+                            elif line.startswith('install_path='):
+                                install_path = line.split('=', 1)[1].strip()
                             elif line.startswith('test='):
                                 test_method = line.split('=', 1)[1].strip()
                             elif line.startswith('import='):
@@ -1159,7 +1161,7 @@ class install_dialog(wx.Dialog):
                         tidy_subdir = subdir.replace(folder_path, "").replace("/", "").strip()
                         if not tidy_subdir in sub_folders and not tidy_subdir == "":
                             sub_folders.append(tidy_subdir)
-                        install_file_info = [file_prefix, tidy_subdir, install_method, package_name, test_method, import_name]
+                        install_file_info = [file_prefix, tidy_subdir, install_method, package_name, install_path, test_method, import_name]
                         # Append the list to the found_install_files list
                         found_install_files.append(install_file_info)
 
@@ -1207,10 +1209,11 @@ class install_dialog(wx.Dialog):
                 group    = item[1]
                 method   = item[2]
                 package  = item[3]
-                test     = item[4]
-                import_n = item[5]
+                i_path   = item[4]
+                test     = item[5]
+                import_n = item[6]
                 to_install, status = self.Parent.check_installed(name, method, package, test, import_n, opt=True)
-                checked.append([to_install, name, group, status, method, package])
+                checked.append([to_install, name, group, status, method, package, import_n, i_path])
             return checked
 
 
@@ -1264,9 +1267,13 @@ class InstallProgressDialog(wx.Dialog):
         self.run_process()
 
     def make_action_list(self, item_list):
+        '''
+        item_list contans a list of [to_install, name, group, status, method, package, import_n, i_path]
+        '''
         install_dict = {}
         for item in item_list:
-            install_info = [item[1], item[5]]
+            install_info = [item[1], item[5], item[7], item[4]]
+            #              name, package, install_path, method
             if not item[4] in install_dict:
                 install_dict[item[4]] = [install_info]
             else:
@@ -1286,11 +1293,58 @@ class InstallProgressDialog(wx.Dialog):
         set_up_actions = {'pip':self.setup_pip,
                           'apt':self.setup_apt}
 
+        install_actions = {'pip':self.install_pip,
+                           'apt':self.install_apt,
+                           'wget':self.install_wget,
+                           'git':self.install_git}
+
         if isinstance(item[1], str):
             if item[1] in set_up_actions:
                 set_up_actions[item[1]]()
         else:
-            print("Pretending to install", item)
+            if item[1][3] in install_actions:
+                print("Pretending to install", item)
+                install_actions[item[1][3]](item[1])
+
+    def install_pip(self, item):
+        cmd = "pip install " + item[1]
+        print("not actually running;", cmd)
+        #out, error = self.parent.parent.parent.link_pnl.run_on_pi(cmd)
+
+    def install_apt(self, item):
+        cmd = "sudo apt --yes install " + item[1]
+        print("not actually running;", cmd)
+        #out, error = self.parent.parent.parent.link_pnl.run_on_pi(cmd)
+
+    def install_wget(self, item):
+        package_name = item[1]
+        install_path = item[2]
+        print("install path;", install_path)
+
+        print(" wget only installs into sensor module folder at the moment ")
+        home_dir = self.parent.parent.parent.shared_data.remote_pigrow_path
+        sensor_module_folder = home_dir + "/scripts/gui/sensor_modules/"
+        install_file_name = os.path.split(item[1])[1]
+        install_p = sensor_module_folder + install_file_name
+        cmd = "wget " + package_name + " -O " + install_p
+        print("not actually running;", cmd)
+        #out, error = self.parent.parent.parent.link_pnl.run_on_pi(cmd)
+
+    def install_git(self, item):
+        package_name = item[1]
+        install_path = item[2]
+        print("install path;", install_path)
+
+        print(" git only installs into sensor module folder at the moment ")
+        home_dir = self.parent.parent.parent.shared_data.remote_pigrow_path
+        sensor_module_folder = home_dir + "/scripts/gui/sensor_modules/"
+        install_folder = os.path.split(package_name)[1].replace(".git", "")
+        install_p = sensor_module_folder + install_folder
+
+        cmd = "git clone " + package_name + " " + install_p
+        print("not actually running;", cmd)
+        #out, error = self.parent.parent.parent.link_pnl.run_on_pi(cmd)
+
 
     def setup_pip(self):
         print("setting up pip (not really)")
