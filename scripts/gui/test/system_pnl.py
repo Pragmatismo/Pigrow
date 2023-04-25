@@ -998,9 +998,21 @@ class install_dialog(wx.Dialog):
     def cancel_click(self, e):
         self.Destroy()
 
-    def is_git_repository_installed(self, name, package):
-        username = self.parent.parent.shared_data.gui_set_dict['username']
-        path = "/home/" + username + "/" + name + "/"
+    def is_git_repository_installed(self, name, package, i_path):
+        home_dir = self.parent.parent.shared_data.remote_pigrow_path
+        home_dir = home_dir.replace("Pigrow/", "")
+
+        if i_path == None or i_path == "":
+            print("No install path, installing to home directory")
+            i_path = home_dir
+
+        else:
+            i_path = home_dir + i_path
+        print("install path;", i_path)
+
+        install_folder = os.path.split(package)[1].replace(".git", "")
+        path = i_path + install_folder
+
         # check if path existst on remote pi
         cmd = "ls " + path
         out, error = self.parent.parent.link_pnl.run_on_pi(cmd)
@@ -1047,9 +1059,9 @@ class install_dialog(wx.Dialog):
             return True
 
 
-    def check_installed(self, name, method, package, test, import_n, opt=False):
+    def check_installed(self, name, method, package, i_path, test, import_n, opt=False):
         if test == 'git':
-            installed = self.is_git_repository_installed(name, package)
+            installed = self.is_git_repository_installed(name, package, i_path)
         elif test == "import":
             installed = self.is_py3_installed(import_n)
         elif test == "file":
@@ -1088,12 +1100,13 @@ class install_dialog(wx.Dialog):
             self.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.OnCheckBox)
 
         def add_core(self):
-            core_items = [["Pigrow Base", "git", "Pigrow", "it's path", "git", "None"],
-                          ["test bad", "git", "testbadfolder", "the path", "git", "None"]]
+            core_items = [["Pigrow Base", "git", "https://github.com/Pragmatismo/Pigrow.git", None, "git", ""],
+                          ["test bad", "git", "testbadfolder", None, "git", None]]
 
             core_items.reverse()
             for item in core_items:
-                to_install, status = self.parent.check_installed(item[3], item[1], item[2], item[4], item[3])
+                #name, method, package, i_path, test, import_n, opt=False
+                to_install, status = self.parent.check_installed(item[0], item[1], item[2], item[3], item[4], item[5])
                 self.InsertItem(0, to_install)
                 self.SetItem(0, 1, item[0])
                 self.SetItem(0, 2, status)
@@ -1212,7 +1225,7 @@ class install_dialog(wx.Dialog):
                 i_path   = item[4]
                 test     = item[5]
                 import_n = item[6]
-                to_install, status = self.Parent.check_installed(name, method, package, test, import_n, opt=True)
+                to_install, status = self.Parent.check_installed(name, method, package, i_path, test, import_n, opt=True)
                 checked.append([to_install, name, group, status, method, package, import_n, i_path])
             return checked
 
@@ -1268,7 +1281,7 @@ class InstallProgressDialog(wx.Dialog):
 
     def make_action_list(self, item_list):
         '''
-        item_list contans a list of [to_install, name, group, status, method, package, import_n, i_path]
+        item_list contans a list of [to_install,path name, group, status, method, package, import_n, i_path]
         '''
         install_dict = {}
         for item in item_list:
@@ -1286,7 +1299,6 @@ class InstallProgressDialog(wx.Dialog):
                 action_list.append(["Installing " + install_item[0], install_item])
 
         return action_list
-
 
     def process_item(self, item):
         time.sleep(2)
@@ -1326,6 +1338,7 @@ class InstallProgressDialog(wx.Dialog):
         sensor_module_folder = home_dir + "/scripts/gui/sensor_modules/"
         install_file_name = os.path.split(item[1])[1]
         install_p = sensor_module_folder + install_file_name
+
         cmd = "wget " + package_name + " -O " + install_p
         print("not actually running;", cmd)
         #out, error = self.parent.parent.parent.link_pnl.run_on_pi(cmd)
@@ -1333,17 +1346,21 @@ class InstallProgressDialog(wx.Dialog):
     def install_git(self, item):
         package_name = item[1]
         install_path = item[2]
-        print("install path;", install_path)
-
-        print(" git only installs into sensor module folder at the moment ")
         home_dir = self.parent.parent.parent.shared_data.remote_pigrow_path
-        sensor_module_folder = home_dir + "/scripts/gui/sensor_modules/"
+        home_dir = home_dir.replace("Pigrow/", "")
+
+        if install_path == None:
+            print("No install path, installing to home directory")
+            install_path = home_dir
+        else:
+            install_path = home_dir + install_path
+
         install_folder = os.path.split(package_name)[1].replace(".git", "")
-        install_p = sensor_module_folder + install_folder
+        install_p = install_path + install_folder
+        print("install path;", install_p)
 
         cmd = "git clone " + package_name + " " + install_p
-        print("not actually running;", cmd)
-        #out, error = self.parent.parent.parent.link_pnl.run_on_pi(cmd)
+        out, error = self.parent.parent.parent.link_pnl.run_on_pi(cmd)
 
 
     def setup_pip(self):
@@ -1389,7 +1406,6 @@ class InstallProgressDialog(wx.Dialog):
             wx.CallAfter(self.cancel_button.SetLabel, "Close")
             wx.CallAfter(self.cancel_button.Enable)
         threading.Thread(target=process_items).start()
-
 
 #######
 
