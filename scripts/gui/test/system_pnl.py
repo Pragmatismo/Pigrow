@@ -1320,13 +1320,13 @@ class InstallProgressDialog(wx.Dialog):
 
     def install_pip(self, item):
         cmd = "pip install " + item[1]
-        print("not actually running;", cmd)
-        #out, error = self.parent.parent.parent.link_pnl.run_on_pi(cmd)
+        print("running;", cmd)
+        out, error = self.parent.parent.parent.link_pnl.run_on_pi(cmd)
 
     def install_apt(self, item):
         cmd = "sudo apt --yes install " + item[1]
-        print("not actually running;", cmd)
-        #out, error = self.parent.parent.parent.link_pnl.run_on_pi(cmd)
+        print("running;", cmd)
+        out, error = self.parent.parent.parent.link_pnl.run_on_pi(cmd)
 
     def install_wget(self, item):
         package_name = item[1]
@@ -1364,14 +1364,14 @@ class InstallProgressDialog(wx.Dialog):
 
 
     def setup_pip(self):
-        print("setting up pip (not really)")
+        print("setting up pip")
         cmd = "pip install -U pip"
         out, error = self.parent.parent.parent.link_pnl.run_on_pi(cmd)
         print(out,error)
 
 
     def setup_apt(self):
-        print("setting up apt (not really)")
+        print("setting up apt")
         cmd = "sudo apt update"
         out, error = self.parent.parent.parent.link_pnl.run_on_pi(cmd)
         print(out,error)
