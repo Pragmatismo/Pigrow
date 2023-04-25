@@ -1051,7 +1051,10 @@ class install_dialog(wx.Dialog):
             return False
 
     def is_file_installed(self, import_n):
-        cmd = "ls " + import_n
+        home_dir = self.parent.parent.shared_data.remote_pigrow_path
+        home_dir = home_dir.replace("Pigrow/", "")
+
+        cmd = "ls " + home_dir + import_n
         out, error = self.parent.parent.link_pnl.run_on_pi(cmd)
         if "No such file or directory" in out + error:
             return False
@@ -1331,17 +1334,23 @@ class InstallProgressDialog(wx.Dialog):
     def install_wget(self, item):
         package_name = item[1]
         install_path = item[2]
+
+        home_dir = self.parent.parent.parent.shared_data.remote_pigrow_path
+        home_dir = home_dir.replace("Pigrow/", "")
+
+        if install_path == None:
+            print("No install path, installing to home directory")
+            install_path = home_dir
+        else:
+            install_path = home_dir + install_path
         print("install path;", install_path)
 
-        print(" wget only installs into sensor module folder at the moment ")
-        home_dir = self.parent.parent.parent.shared_data.remote_pigrow_path
-        sensor_module_folder = home_dir + "/scripts/gui/sensor_modules/"
         install_file_name = os.path.split(item[1])[1]
-        install_p = sensor_module_folder + install_file_name
+        install_p = install_path + install_file_name
 
         cmd = "wget " + package_name + " -O " + install_p
-        print("not actually running;", cmd)
-        #out, error = self.parent.parent.parent.link_pnl.run_on_pi(cmd)
+        print("running;", cmd)
+        out, error = self.parent.parent.parent.link_pnl.run_on_pi(cmd)
 
     def install_git(self, item):
         package_name = item[1]
