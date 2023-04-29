@@ -985,9 +985,9 @@ class install_dialog(wx.Dialog):
     #    dlg.Destroy()
 
         # make folders
-        #out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("mkdir ~/Pigrow/caps/")
-        #out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("mkdir ~/Pigrow/graphs/")
-        #out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("mkdir ~/Pigrow/logs/")
+        make_folders = ['~/Pigrow/caps/', '~/Pigrow/graphs/', '~/Pigrow/logs/']
+        for folder in make_folders:
+            out, error = self.parent.parent.link_pnl.run_on_pi("mkdir " + folder)
 
         #self.parent.parent.shared_data.read_pigrow_settings_file()
         self.config_dict = {}
@@ -1028,9 +1028,46 @@ class install_dialog(wx.Dialog):
         print("control script wizard not writted")
 
     def enable_selflog_script(self):
+        selflog_exists     = False
+        selflog_adv_exists = False
+
         # check_for_selflog_script
+        cmd = "crontab -l |grep selflog.py"
+        out, error = self.parent.parent.link_pnl.run_on_pi(cmd)
+        if "selflog.py" in out:
+            if not out.strip().startswith("#"):
+                selflog_exists = True
+            else:
+                selflog_exists = "disabled"
+
+        cmd = "crontab -l |grep selflog_adv.py"
+        out, error = self.parent.parent.link_pnl.run_on_pi(cmd)
+        if "selflog_adv.py" in out:
+            if not out.strip().startswith("#"):
+                selflog_adv_exists = False
+            else:
+                selflog_adv_exists = "disabled"
+
+        if selflog_exists and selflog_adv_exists:
+            print("- warning - selflog and selflog_adv both in cron")
+            if selflog_exists == "disabled" and selflog_adv_exists == "disabled":
+                print("but both are disabled")
+            elif selflog_exists == "disabled":
+                print("but only selflog_adv is active")
+            elif selflog_adv_exists == "disabled":
+                print("but only selflog is active")
+
+        if selflog_exists or selflog_adv_exists:
+            print("self logging found in cron")
+        else:
+            print("no self logging in cron")
+
         # if not self_log_script add selflog dialogue
-        print("selflog script wizard not set")
+        dialog = SelfLogDialog(None, "Selflog")
+        dialog.ShowModal()
+        dialog.Destroy()
+
+        print("selflog script wizard not written")
 
     def update_filter(self, event):
         filter_text = self.filter_txt.GetValue()
@@ -1286,6 +1323,63 @@ class install_dialog(wx.Dialog):
                     elif check == "Y":
                         item[0] = ""
                         self.SetItem(index, 0, "")
+
+class SelfLogDialog(wx.Dialog):
+    def __init__(self, parent, title):
+        super(SelfLogDialog, self).__init__(parent, title=title, size=(500, 350))
+
+        self.InitUI()
+
+    def InitUI(self):
+
+        text = ("The selflog is a simple python script which is called periodically by cron to log "
+                "various system conditions including the Raspberry Pi's cpu temperature, it's available "
+                "memory and disk space. These logs can be graphed, incorporated into datawalls, "
+                "or used to trigger system warnings such a low storage capacity.\n\n"
+                "There's also a more detailed version selflog_adv which collects more information, "
+                "this can be useful to developers but is probably excessive for general users.")
+        label = wx.StaticText(self, label=text, size=(500, 200))
+
+        choices = ['15 min', '30 min', '1 hour', '3 hour']
+        self.dropdown = wx.Choice(self, choices=choices)
+        self.dropdown.SetSelection(0)
+
+        enable_selflog_button = wx.Button(self, label='Enable selflog')
+        enable_selflog_button.Bind(wx.EVT_BUTTON, self.on_enable_selflog)
+        enable_selflog_adv_button = wx.Button(self, label='Enable selflog_adv')
+        enable_selflog_adv_button.Bind(wx.EVT_BUTTON, self.on_enable_selflog_adv)
+        none_button = wx.Button(self, label='None')
+        none_button.Bind(wx.EVT_BUTTON, self.on_none)
+
+        # sizers
+
+        time_select = wx.BoxSizer(wx.HORIZONTAL)
+        time_select.Add(wx.StaticText(self, label="Record log every:"), flag=wx.RIGHT, border=10)
+        time_select.Add(self.dropdown)
+
+        hbox_buttons = wx.BoxSizer(wx.HORIZONTAL)
+        hbox_buttons.Add(enable_selflog_button)
+        hbox_buttons.Add(enable_selflog_adv_button)
+        hbox_buttons.Add(none_button)
+
+        main_sizer = wx.BoxSizer(wx.VERTICAL)
+        main_sizer.Add(label, flag=wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, border=10)
+        main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(time_select, flag=wx.ALIGN_CENTER | wx.LEFT | wx.RIGHT | wx.TOP, border=10)
+        main_sizer.Add(hbox_buttons, flag=wx.ALIGN_CENTER | wx.TOP | wx.BOTTOM, border=10)
+
+        self.SetSizer(main_sizer)
+
+    def on_enable_selflog(self, event):
+        interval = self.dropdown.GetString(self.dropdown.GetSelection())
+        print(f"Enabling selflog every {interval}")
+
+    def on_enable_selflog_adv(self, event):
+        interval = self.dropdown.GetString(self.dropdown.GetSelection())
+        print(f"Enabling the adv self log every {interval}")
+
+    def on_none(self, event):
+        self.Close()
 
 class InstallProgressDialog(wx.Dialog):
     def __init__(self, parent, item_list):
