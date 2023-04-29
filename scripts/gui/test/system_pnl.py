@@ -990,7 +990,7 @@ class install_dialog(wx.Dialog):
             out, error = self.parent.parent.link_pnl.run_on_pi("mkdir " + folder)
 
         #self.parent.parent.shared_data.read_pigrow_settings_file()
-        self.config_dict = {}
+        #self.parent.parent.shared_data.config_dict = {}
 
         # wizard
         self.name_pigrow()
@@ -998,6 +998,7 @@ class install_dialog(wx.Dialog):
         self.enable_selflog_script()
 
     def name_pigrow(self):
+        box_name = self.parent.parent.shared_data.config_dict["box_name"]
         valid_name = False
         while valid_name == False:
             msg = "Select a name for your pigrow."
@@ -1021,6 +1022,9 @@ class install_dialog(wx.Dialog):
             else:
                 print ("User decided not to set the box name")
                 valid_name = True
+
+        self.parent.parent.link_pnl.set_link_pi_text(True, box_name)
+        self.parent.parent.link_pnl.set_shared_info_on_connect(box_name)
 
     def enable_control_scripts(self):
         # check_for_control_scripts
@@ -1063,7 +1067,7 @@ class install_dialog(wx.Dialog):
             print("no self logging in cron")
 
         # if not self_log_script add selflog dialogue
-        dialog = SelfLogDialog(None, "Selflog")
+        dialog = SelfLogDialog(self, "Selflog")
         dialog.ShowModal()
         dialog.Destroy()
 
@@ -1327,6 +1331,7 @@ class install_dialog(wx.Dialog):
 class SelfLogDialog(wx.Dialog):
     def __init__(self, parent, title):
         super(SelfLogDialog, self).__init__(parent, title=title, size=(500, 350))
+        self.parent = parent
 
         self.InitUI()
 
@@ -1372,11 +1377,23 @@ class SelfLogDialog(wx.Dialog):
 
     def on_enable_selflog(self, event):
         interval = self.dropdown.GetString(self.dropdown.GetSelection())
+        new_cron_num, new_cron_txt = interval.split(" ")
+        shared_data = self.parent.parent.parent.shared_data
+        script_path = shared_data.remote_pigrow_path + "scripts/cron/selflog.py"
         print(f"Enabling selflog every {interval}")
+        cron_i_pnl  = self.parent.parent.parent.dict_I_pnl['cron_pnl']
+        cron_i_pnl.edit_repeat_job_by_name(script_path, None, None, new_cron_txt, new_cron_num, use_name=False)
+        self.Destroy()
 
     def on_enable_selflog_adv(self, event):
         interval = self.dropdown.GetString(self.dropdown.GetSelection())
-        print(f"Enabling the adv self log every {interval}")
+        new_cron_num, new_cron_txt = interval.split(" ")
+        shared_data = self.parent.parent.parent.shared_data
+        script_path = shared_data.remote_pigrow_path + "scripts/cron/selflog_adv.py"
+        print(f"Enabling the adv selflog every {interval}")
+        cron_i_pnl  = self.parent.parent.parent.dict_I_pnl['cron_pnl']
+        cron_i_pnl.edit_repeat_job_by_name(script_path, None, None, new_cron_txt, new_cron_num, use_name=False)
+        self.Destroy()
 
     def on_none(self, event):
         self.Close()

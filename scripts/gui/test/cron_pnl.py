@@ -278,7 +278,9 @@ class ctrl_pnl(wx.Panel):
         onetime_list_instance.SetItem(0, 3, cron_task)
         onetime_list_instance.SetItem(0, 4, cron_extra_args)
 
-    def make_repeating_cron_timestring(self, repeat, repeat_num, cron_nums):
+    def make_repeating_cron_timestring(self, repeat, repeat_num, cron_nums=None):
+        if cron_nums == None:
+            cron_nums = ["", "", "", "", ""]
         # first chr minuetes
         if not repeat == "min":
             if cron_nums[0].strip() == "" or cron_nums[0] == None:
@@ -702,14 +704,17 @@ class info_pnl(wx.Panel):
                         c_pnl.update_cron_click("e")
                         return "removed"
 
-    def find_repeat_pos_by_name(self, script, name):
+    def find_repeat_pos_by_name(self, script, name, use_name=True):
         script_index_repeating = -1
         if not name == "":
             for index in range(0, self.repeat_cron.GetItemCount()):
                 cmd_path = self.repeat_cron.GetItem(index, 3).GetText()
                 if script in cmd_path:
                     cmd_args = self.repeat_cron.GetItem(index, 4).GetText()
-                    if  "name=" + name in cmd_args:
+                    if use_name == True:
+                        if  "name=" + name in cmd_args:
+                            script_index_repeating = index
+                    else:
                         script_index_repeating = index
         return script_index_repeating
 
@@ -748,35 +753,43 @@ class info_pnl(wx.Panel):
                     found_jobs.append([index, enabled, cron_time_string, cmd_args])
         return found_jobs
 
-    def edit_repeat_job_by_name(self, script_path, start_name, new_name, new_cron_time_txt, new_cron_time_num):
-    #    script_path = shared_data.remote_pigrow_path + "scripts/sensors/log_sensor_module.py"
+    def edit_repeat_job_by_name(self, script_path, start_name, new_name, new_cron_time_txt, new_cron_time_num, use_name=True):
+        # script_path = shared_data.remote_pigrow_path + "scripts/sensors/log_sensor_module.py"
         script = os.path.split(script_path)[1]
-        print("Changing " + script + " with name " + start_name)
         c_pnl = self.parent.dict_C_pnl['cron_pnl']
 
         # check to find cron job for script and name=start_name
-        script_index_repeating = self.find_repeat_pos_by_name(script, start_name)
+        print("Changing " + script + " with name " + str(start_name))
+        script_index_repeating = self.find_repeat_pos_by_name(script, start_name, use_name)
 
         if not script_index_repeating == -1:
             print("    - found in cron, editing it...")
             cron_enabled  = self.repeat_cron.GetItem(script_index_repeating, 1).GetText()
+            cron_string   = self.repeat_cron.GetItem(script_index_repeating, 2).GetText()
+            cron_nums = cron_string.strip().split(" ")
             cron_args     = self.repeat_cron.GetItem(script_index_repeating, 4).GetText()
-            cron_args = cron_args.replace("name=" + start_name, "name=" + new_name)
+            if use_name == True:
+                cron_args = cron_args.replace("name=" + start_name, "name=" + new_name)
             # clear job ready to add new one using the same info
             self.repeat_cron.DeleteItem(script_index_repeating)
         else:
             print("    - Job not currently in cron, adding it...")
             cron_enabled  = "True"
-            cron_args     = "name=" + new_name
+            cron_nums = None
+            if use_name == True:
+                cron_args     = "name=" + new_name
+            else:
+                cron_args = ""
 
-        cron_string = self.repeat_cron.GetItem(script_index_repeating, 2).GetText()
-        cron_nums = cron_string.strip().split(" ")
+
         timing_string = c_pnl.make_repeating_cron_timestring(new_cron_time_txt, new_cron_time_num, cron_nums)
+
         print("   setting - Cron job; " + cron_enabled + " " + timing_string + " " + script_path + " " + cron_args)
         c_pnl.add_to_repeat_list(self.repeat_cron, 'new', cron_enabled, timing_string, script_path, cron_args)
 
         # offer to write cron to pi
         c_pnl.update_cron_click("e", no_starting=True)
+
 
     def time_text_from_name(self, script, name):
         script_index_repeating = self.find_repeat_pos_by_name(script, name)
