@@ -1065,11 +1065,10 @@ class install_dialog(wx.Dialog):
             print("self logging found in cron")
         else:
             print("no self logging in cron")
-
-        # if not self_log_script add selflog dialogue
-        dialog = SelfLogDialog(self, "Selflog")
-        dialog.ShowModal()
-        dialog.Destroy()
+            # if not self_log_script add selflog dialogue
+            dialog = SelfLogDialog(self, "Selflog")
+            dialog.ShowModal()
+            dialog.Destroy()
 
         print("selflog script wizard not written")
 
