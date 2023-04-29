@@ -1,0 +1,5 @@
+install_method=git
+package_name=https://github.com/Pragmatismo/Pigrow.git
+install_path=
+import=
+test=git

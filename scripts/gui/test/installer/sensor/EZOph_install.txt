@@ -1,3 +1,5 @@
 install_method=wget
 package_name=https://raw.githubusercontent.com/Atlas-Scientific/Raspberry-Pi-sample-code/master/AtlasI2C.py
+install_path=Pigrow/scripts/gui/sensor_modules/
+test=import
 import=AtlasI2C
