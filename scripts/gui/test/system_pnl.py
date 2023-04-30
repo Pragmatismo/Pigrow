@@ -916,11 +916,10 @@ class install_dialog(wx.Dialog):
         title = wx.StaticText(self,  label='Install Pigrow on Pi')
         self.SetFont(shared_data.sub_title_font)
         sub_title = wx.StaticText(self,  label='Remotely manage pigrow scripts and dependences')
-        core_l = wx.StaticText(self,  label=' -')
         opti_l = wx.StaticText(self,  label='Install Selection')
 
         #  note
-        note = wx.StaticText(self,  label='This feature is not yet coded')
+        note = wx.StaticText(self,  label='This feature is not yet fully tested')
 
         # initial install buttons
         self.wizard_btn = wx.Button(self, label='Set-up Wizard', size=(175, 30))
@@ -959,7 +958,6 @@ class install_dialog(wx.Dialog):
         main_sizer.AddStretchSpacer(1)
         main_sizer.Add(note, 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.AddStretchSpacer(1)
-        main_sizer.Add(core_l, 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.Add(self.wizard_btn, 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.AddStretchSpacer(1)
         main_sizer.Add(cat_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
@@ -973,9 +971,12 @@ class install_dialog(wx.Dialog):
         print("wizard not written")
         # install core components
         to_install = []
+        new_install = False
         for item in self.opti_list.full_list:
             if item[2] == "core" and item[3] == "Not Found":
                 to_install.append(item)
+                if "Pigrow" in item[1]:
+                    new_install = True
         print(to_install)
 
         print(" wizard install is disabled while coding")
@@ -989,12 +990,27 @@ class install_dialog(wx.Dialog):
         for folder in make_folders:
             out, error = self.parent.parent.link_pnl.run_on_pi("mkdir " + folder)
 
-        #self.parent.parent.shared_data.read_pigrow_settings_file()
-        #self.parent.parent.shared_data.config_dict = {}
+        # clear config dict
+        if new_install == True:
+            self.parent.parent.shared_data.config_dict = {}
+        else:
+            message = ("Do you want to clear pigrow_config.txt and start with a fresh setup?\n\n"
+                   "Warning - this will remove any sensors, gpio devices or similar that have "
+                   "already been configured, ensure you have backups of any config files you "
+                   "may want to keep.")
+            dlg = wx.MessageDialog(self, message, "Clear Config?", wx.YES_NO | wx.ICON_WARNING)
+            result = dlg.ShowModal()
+            if result == wx.ID_YES:
+                print("Wants to clear config")
+                self.parent.parent.shared_data.config_dict = {}
+            else:
+                print("Keep existing")
+                self.parent.parent.shared_data.read_pigrow_settings_file()
+            dlg.Destroy()
 
         # wizard
         self.name_pigrow()
-        self.enable_control_scripts()
+        self.enable_trigger_watcher()
         self.enable_selflog_script()
 
     def name_pigrow(self):
@@ -1026,10 +1042,33 @@ class install_dialog(wx.Dialog):
         self.parent.parent.link_pnl.set_link_pi_text(True, box_name)
         self.parent.parent.link_pnl.set_shared_info_on_connect(box_name)
 
-    def enable_control_scripts(self):
+    def enable_trigger_watcher(self):
+        cron_i_pnl  = self.parent.parent.dict_I_pnl['cron_pnl']
+        cron_c_pnl  = self.parent.parent.dict_C_pnl['cron_pnl']
+        shared_data = self.parent.parent.shared_data
         # check_for_control_scripts
-        # if needed offer to add control scripts to cron
-        print("control script wizard not writted")
+        control_script = "trigger_watcher.py"
+        full_cs_path   = shared_data.remote_pigrow_path + "scripts/autorun/" + control_script
+
+        control_script_exists = cron_c_pnl.check_if_script_in_startup(control_script)
+
+        message = ("trigger_watcher.py\n\n"
+                   "When using the pigrow to control devices the script trigger_watcher.py "
+                   "must be enabled on boot, this enables the log based triggers and ensures gpio "
+                   "devices (such as relay controlled lamps) are reset after a reboot. ")
+        dlg = wx.MessageDialog(self, message, "Enable trigger_watcher?", wx.YES_NO | wx.ICON_WARNING)
+        result = dlg.ShowModal()
+        if result == wx.ID_YES:
+            print("Adding trigger_watcher.py to cron")
+            script_path = shared_data.remote_pigrow_path + "scripts/autorun/trigger_watcher.py"
+            startup_list_instance = cron_i_pnl.startup_cron
+            cron_c_pnl.add_to_startup_list(startup_list_instance, "new", "True", full_cs_path, cron_extra_args='')
+            cron_c_pnl.update_cron_click()
+
+            # test if it's running (it won't be because there's no trigger_watcher)
+        else:
+            print("not enabling trigger_watcher")
+        dlg.Destroy()
 
     def enable_selflog_script(self):
         selflog_exists     = False
@@ -1048,7 +1087,7 @@ class install_dialog(wx.Dialog):
         out, error = self.parent.parent.link_pnl.run_on_pi(cmd)
         if "selflog_adv.py" in out:
             if not out.strip().startswith("#"):
-                selflog_adv_exists = False
+                selflog_adv_exists = True
             else:
                 selflog_adv_exists = "disabled"
 
