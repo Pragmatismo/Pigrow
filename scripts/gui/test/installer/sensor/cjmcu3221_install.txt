@@ -1,3 +1,5 @@
 install_method=wget
 package_name=https://raw.githubusercontent.com/switchdoclabs/SDL_Pi_INA3221/master/SDL_Pi_INA3221.py
-import=SDL_Pi_INA3221
+install_path=Pigrow/scripts/gui/sensor_modules/
+test=file
+import=Pigrow/scripts/gui/sensor_modules/SDL_Pi_INA3221.py

@@ -1,4 +1,5 @@
 install_method=git
 package_name=https://github.com/ageir/chirp-rpi.git
-import=chirp-rpi/chirp.py
+install_path=Pigrow/scripts/gui/sensor_modules/
+import=Pigrow/scripts/gui/sensor_modules/chirp-rpi/chirp.py
 test=git

@@ -30,8 +30,9 @@ class config_data:
     def load_trigger_events(trigger_file):
         print_limit(" - Loading trigger events", 1)
         if not os.path.isfile(trigger_file):
-            print_limit(" - Trigger file not fonnd, nothing to monitor - exiting.",0 )
-            sys.exit()
+            with open(trigger_file, "w") as file:
+                pass
+            print_limit(" - Trigger file not fonnd, creating blank.", 0)
         with open(trigger_file) as f:
             lines = f.read().splitlines()
         trigger_conditions = []

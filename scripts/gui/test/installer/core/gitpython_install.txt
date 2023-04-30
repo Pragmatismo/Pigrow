@@ -1,0 +1,4 @@
+install_method=pip
+package_name=GitPython
+test=import
+import=git
