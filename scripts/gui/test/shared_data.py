@@ -23,13 +23,17 @@ class shared_data:
         self.gui_set_dict['volume_unit'] = "ml"
         self.gui_set_dict['temp_unit'] = "c"
 
-        self.system_info_layout = []
 
 
         # load from file
         self.load_gui_settings()
         #
         ## settings
+        # system tab layout
+        self.system_info_layout = self.load_sys_layout_info()
+        if self.system_info_layout == []:
+            self.system_info_layout = [['boxname','check_pigrow_folder','os_version','hardware_version','power_warnings','w1_therm','diskusage'],
+                                       ['camera','i2c','error_log','connected_network','datetime']]
         # setiings related to current connection
         self.frompi_base_path = self.set_local_path() # base path without box_name folder
         self.frompi_path = ""
@@ -85,6 +89,22 @@ class shared_data:
         self.info_font       = wx.Font(int(14 * font_scale), wx.MODERN, wx.ITALIC, wx.NORMAL)
         self.large_info_font = wx.Font(int(16 * font_scale), wx.MODERN, wx.ITALIC, wx.NORMAL)
         self.button_font       = wx.Font(int(14 * font_scale), wx.MODERN, wx.ITALIC, wx.NORMAL)
+
+    def load_sys_layout_info(self):
+        i = 0
+        system_info_layout = []
+        while True:
+            pnl_key = "syspnl_col_" + str(i)
+            if pnl_key in self.gui_set_dict:
+                item_list = self.gui_set_dict[pnl_key]
+                if "," in item_list:
+                    item_list = item_list.split(",")
+                else:
+                    item_list = [item_list]
+                system_info_layout.append(item_list)
+                i += 1
+            else:
+                return system_info_layout
 
     def set_local_path(self):
         try:
