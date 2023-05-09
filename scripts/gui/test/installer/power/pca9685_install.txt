@@ -1,5 +1,5 @@
 install_method=pip
 package_name=adafruit-circuitpython-pca9685
 test=import
-import=PCA9685
+import=adafruit_pca9685
 
