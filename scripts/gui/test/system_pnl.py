@@ -1010,6 +1010,8 @@ class install_dialog(wx.Dialog):
         self.enable_selflog_script()
 
     def name_pigrow(self):
+        if not 'box_name' in self.parent.parent.shared_data.config_dict:
+            self.parent.parent.shared_data.config_dict["box_name"] = "new"
         box_name = self.parent.parent.shared_data.config_dict["box_name"]
         valid_name = False
         while valid_name == False:
