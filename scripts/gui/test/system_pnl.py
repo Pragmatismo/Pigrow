@@ -906,7 +906,7 @@ class install_dialog(wx.Dialog):
         super(install_dialog, self).__init__(*args, **kw)
         self.parent = parent
         self.InitUI()
-        self.SetSize((600, 800))
+        self.SetSize((650, 800))
         self.SetTitle("Install On Pi")
     def InitUI(self):
         shared_data = self.parent.parent.shared_data
@@ -918,8 +918,8 @@ class install_dialog(wx.Dialog):
         sub_title = wx.StaticText(self,  label='Remotely manage pigrow scripts and dependences')
         opti_l = wx.StaticText(self,  label='Install Selection')
 
-        #  note
-        note = wx.StaticText(self,  label='This feature is not yet fully tested')
+        ##  note
+        #note = wx.StaticText(self,  label='')
 
         # initial install buttons
         self.wizard_btn = wx.Button(self, label='Set-up Wizard', size=(175, 30))
@@ -955,8 +955,8 @@ class install_dialog(wx.Dialog):
         main_sizer = wx.BoxSizer(wx.VERTICAL)
         main_sizer.Add(title, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
         main_sizer.Add(sub_title, 0, wx.ALIGN_CENTER_HORIZONTAL, 3)
-        main_sizer.AddStretchSpacer(1)
-        main_sizer.Add(note, 0, wx.ALL|wx.EXPAND, 5)
+        #main_sizer.AddStretchSpacer(1)
+        #main_sizer.Add(note, 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.AddStretchSpacer(1)
         main_sizer.Add(self.wizard_btn, 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.AddStretchSpacer(1)
@@ -968,7 +968,6 @@ class install_dialog(wx.Dialog):
         self.SetSizer(main_sizer)
 
     def wizard_click(self, e):
-        print("wizard not written")
         # install core components
         to_install = []
         new_install = False
@@ -977,7 +976,7 @@ class install_dialog(wx.Dialog):
                 to_install.append(item)
                 if "Pigrow" in item[1]:
                     new_install = True
-        print(to_install)
+        print("core dependencies to install;", to_install)
 
         print(" wizard install is disabled while coding")
     #    dlg = InstallProgressDialog(self, to_install)
@@ -1147,7 +1146,8 @@ class install_dialog(wx.Dialog):
             i_path = home_dir + i_path
         print("install path;", i_path)
 
-        install_folder = os.path.split(package)[1].replace(".git", "")
+        #install_folder = os.path.split(package)[1].replace(".git", "")
+        install_folder = package.split("/")[-1].replace(".git", "")
         path = i_path + install_folder
 
         # check if path existst on remote pi
@@ -1291,7 +1291,7 @@ class install_dialog(wx.Dialog):
                             elif line.startswith('import='):
                                 import_name = line.split('=', 1)[1].strip()
                         # Create a list with the required information
-                        tidy_subdir = subdir.replace(folder_path, "").replace("/", "").strip()
+                        tidy_subdir = subdir.replace(folder_path, "").replace("/", "").replace("\\", "").strip()
                         if not tidy_subdir in sub_folders and not tidy_subdir == "":
                             sub_folders.append(tidy_subdir)
                         install_file_info = [file_prefix, tidy_subdir, install_method, package_name, install_path, test_method, import_name]
