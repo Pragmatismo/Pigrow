@@ -970,7 +970,7 @@ class install_dialog(wx.Dialog):
         to_install = []
         new_install = False
         for item in self.opti_list.full_list:
-            if item[2] == "core" and item[3] == "Not Found":
+            if item[2] == "core" and not item[3] == "Installed":
                 to_install.append(item)
                 if "Pigrow" in item[1]:
                     new_install = True
@@ -1049,6 +1049,9 @@ class install_dialog(wx.Dialog):
         full_cs_path   = shared_data.remote_pigrow_path + "scripts/autorun/" + control_script
 
         control_script_exists = cron_c_pnl.check_if_script_in_startup(control_script)
+        if control_script_exists:
+            print("trigger_watcher.py already in startup")
+            return None
 
         message = ("trigger_watcher.py\n\n"
                    "When using the pigrow to control devices the script trigger_watcher.py "
