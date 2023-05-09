@@ -14,6 +14,7 @@ except:
     err_log = homedir + "/Pigrow/logs/err_log.txt"
     err_msg = "Watchdog is not installed, trigger_log unable to run"
     pigrow_defs.write_log('trigger_log.py', err_msg, err_log)
+    sys.exit()
 
 trigger_events_path     = homedir + "/Pigrow/config/trigger_events.txt"
 trigger_conditions_path = homedir + "/Pigrow/logs/trigger_conditions.txt"

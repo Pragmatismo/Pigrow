@@ -1049,7 +1049,7 @@ class install_dialog(wx.Dialog):
         full_cs_path   = shared_data.remote_pigrow_path + "scripts/autorun/" + control_script
 
         control_script_exists = cron_c_pnl.check_if_script_in_startup(control_script)
-        if control_script_exists:
+        if not control_script_exists == "none":
             print("trigger_watcher.py already in startup")
             return None
 
