@@ -814,8 +814,6 @@ class info_layout_dialog(wx.Dialog):
             if not len(col) == 0:
                 cols.append(col)
 
-
-
         #clear existing from gui settings
         i = 0
         while True:
@@ -837,6 +835,7 @@ class info_layout_dialog(wx.Dialog):
                 txt = txt[:-1]
             self.parent.parent.shared_data.gui_set_dict[pnl_key] = txt
         self.parent.parent.shared_data.save_gui_settings()
+        print(" NOTE: pigrow gui needs to be restarted for layout changes to take effect")
         self.Destroy()
 
     class scroll_area(scrolled.ScrolledPanel):
@@ -882,7 +881,6 @@ class info_layout_dialog(wx.Dialog):
                             item.DeleteItem(focus_index)
                             if item.GetItemCount() == 0:
                                 item.InsertItem(0, "-none-")
-
 
         def col_got_focus(self, e):
             event_object = e.GetEventObject()
