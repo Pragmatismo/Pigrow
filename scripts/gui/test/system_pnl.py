@@ -976,10 +976,11 @@ class install_dialog(wx.Dialog):
                     new_install = True
         print("core dependencies to install;", to_install)
 
-        dlg = InstallProgressDialog(self, to_install)
-        if dlg.ShowModal() == wx.ID_CANCEL:
-            print("Core components installed")
-        dlg.Destroy()
+        if not len(to_install) == 0:
+            dlg = InstallProgressDialog(self, to_install)
+            if dlg.ShowModal() == wx.ID_CANCEL:
+                print("Core components installed")
+            dlg.Destroy()
 
         # make folders
         make_folders = ['~/Pigrow/caps/', '~/Pigrow/graphs/', '~/Pigrow/logs/']
@@ -997,10 +998,10 @@ class install_dialog(wx.Dialog):
             dlg = wx.MessageDialog(self, message, "Clear Config?", wx.YES_NO | wx.ICON_WARNING)
             result = dlg.ShowModal()
             if result == wx.ID_YES:
-                print("Wants to clear config")
+                #print("Wants to clear config")
                 self.parent.parent.shared_data.config_dict = {}
             else:
-                print("Keep existing")
+                #print("Keep existing")
                 self.parent.parent.shared_data.read_pigrow_settings_file()
             dlg.Destroy()
 
@@ -1008,6 +1009,11 @@ class install_dialog(wx.Dialog):
         self.name_pigrow()
         self.enable_trigger_watcher()
         self.enable_selflog_script()
+
+        message = "Install wizard completed"
+        title = "Installation Complete"
+        wx.MessageBox(message, title, wx.OK | wx.ICON_INFORMATION)
+
 
     def name_pigrow(self):
         if not 'box_name' in self.parent.parent.shared_data.config_dict:
@@ -1024,7 +1030,6 @@ class install_dialog(wx.Dialog):
                 box_name = name_box_dbox.GetValue()
                 if not box_name == "":
                     box_name = box_name.strip().replace(" ", "_")
-                    print("not actually setting box name at this time", box_name)
                     self.parent.parent.shared_data.config_dict["box_name"] = box_name
                     self.parent.parent.shared_data.update_pigrow_config_file_on_pi()
                     valid_name = True
