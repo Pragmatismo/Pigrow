@@ -1456,12 +1456,11 @@ class InstallProgressDialog(wx.Dialog):
         self.cancel_button.Bind(wx.EVT_BUTTON, self.on_cancel)
 
         main_sizer = wx.BoxSizer(wx.VERTICAL)
-        main_sizer.Add(title, 0, wx.ALL | wx.EXPAND | wx.ALIGN_CENTER, 10)
-        main_sizer.Add(self.static_text, 0, wx.ALL | wx.EXPAND | wx.ALIGN_CENTER, 10)
+        main_sizer.Add(title, 0, wx.ALL | wx.ALIGN_CENTER, 10)
+        main_sizer.Add(self.static_text, 0, wx.ALL | wx.ALIGN_CENTER, 10)
         main_sizer.Add(self.progress_bar, 0, wx.ALL | wx.EXPAND, 10)
         main_sizer.Add(self.cancel_button, 0, wx.ALL | wx.ALIGN_CENTER, 10)
         self.SetSizer(main_sizer)
-
         self.should_continue = True
         self.run_process()
 
