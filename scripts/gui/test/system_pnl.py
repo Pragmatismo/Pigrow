@@ -978,11 +978,10 @@ class install_dialog(wx.Dialog):
                     new_install = True
         print("core dependencies to install;", to_install)
 
-        print(" wizard install is disabled while coding")
-    #    dlg = InstallProgressDialog(self, to_install)
-    #    if dlg.ShowModal() == wx.ID_CANCEL:
-    #        print("Core components installed")
-    #    dlg.Destroy()
+        dlg = InstallProgressDialog(self, to_install)
+        if dlg.ShowModal() == wx.ID_CANCEL:
+            print("Core components installed")
+        dlg.Destroy()
 
         # make folders
         make_folders = ['~/Pigrow/caps/', '~/Pigrow/graphs/', '~/Pigrow/logs/']
@@ -1019,7 +1018,7 @@ class install_dialog(wx.Dialog):
             msg = "Select a name for your pigrow."
             msg += "\n\n This will be used to identify your pigrow and to name the local folder in which\n "
             msg += "files from or associated with the pigrow will be stored. \n\n "
-            msg += "Ideally choose a simple and descriptive name, like Veg, Flowering, Bedroom, or Greenhouse"
+            msg += "Ideally choose a simple and descriptive name, like Veg, Flower, Bedroom, or Greenhouse"
             name_box_dbox = wx.TextEntryDialog(self, msg, "Name your Pigrow")
             if name_box_dbox.ShowModal() == wx.ID_OK:
                 box_name = name_box_dbox.GetValue()
@@ -1157,7 +1156,7 @@ class install_dialog(wx.Dialog):
         if "No such file or directory" in out + error:
             return False
 
-        cmd = "git --git-dir " + path + ".git/ log"
+        cmd = "git --git-dir " + path + "/.git/ log"
         out, error = self.parent.parent.link_pnl.run_on_pi(cmd)
         if "Not a git repository" in out + error:
             return "error, not a git repository"
