@@ -155,7 +155,6 @@ if __name__ == '__main__':
         elif argu == "-flags":
             print("name=LED NAME")
             print("set=['on', 'off', 'slow', 'blink', 'fast', 'dash', 'time:ON:OFF']")
-            print("active=[true,false]")
             sys.exit(0)
 
     if not name=="":
