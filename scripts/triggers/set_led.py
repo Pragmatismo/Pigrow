@@ -6,14 +6,14 @@ homedir = os.getenv("HOME")
 sys.path.append(homedir + '/Pigrow/scripts/')
 import pigrow_defs
 script = "set_led.py"
-dirlocs_path = homedir + "/Pigrow/config/dirlocs.txt"
+config_path = homedir + "/Pigrow/config/pigrow_config.txt"
+err_path    = homedir + "/Pigrow/logs/err_log.txt"
 
 def read_config(name):
-    if os.path.isfile(dirlocs_path):
-        loc_dic = pigrow_defs.load_locs(dirlocs_path)
-        set_dic = pigrow_defs.load_settings(loc_dic['loc_settings'], err_log=loc_dic['err_log'])
+    if os.path.isfile(config_path):
+        set_dic = pigrow_defs.load_settings(config_path, err_log=err_path)
     else:
-        print("Unable to read config details,dirlocs or pigrow_config may not exist or be corrupt")
+        print("Unable to read config details, pigrow_config may not exist or be corrupt")
         sys.exit()
 
     loc_key = "led_" + name + "_loc"
@@ -21,7 +21,7 @@ def read_config(name):
         gpio = set_dic["led_" + name + "_loc"]
     else:
         print(loc_key, "not set in pigrow_config.txt, this should be set to the gpio number")
-        pigrow_defs.write_log(script, 'LED ' + name + "called but no gpio set in pigrow_setting.txt", loc_dic['err_log'])
+        pigrow_defs.write_log(script, 'LED ' + name + "called but no gpio set in pigrow_setting.txt", err_path)
         sys.exit()
 
     onboot_key = "led_" + name + "_reboot"
@@ -79,12 +79,13 @@ def set_led_blink(name, mode, gpio):
         print("     set=blink")
         print("     set=fast")
         sys.exit()
-    cmd = [homedir + "/Pigrow/scripts/persistent/blink_led.py", "name=" + name, "speed=" + speed]
+    #cmd = [homedir + "/Pigrow/scripts/persistent/blink_led.py", "name=" + name, "speed=" + speed]
     cmd = homedir + "/Pigrow/scripts/persistent/blink_led.py" + " name=" + name + " speed=" + speed + " &"
     subprocess.Popen(cmd, shell=True)
-    import time
-    subprocess.Popen("ps -A -F |grep set_led", shell=True)
-    time.sleep(60)
+
+    #import time
+    #subprocess.Popen("ps -A -F |grep set_led", shell=True)
+    #time.sleep(60)
 
 def write_onboot(name, made):
     led_stat_path = homedir + "/Pigrow/logs/ledstat_" + name + ".txt"
@@ -104,8 +105,8 @@ def remove_state_file(name):
         print("Removed obsolete", led_stat_path)
 
 def list_leds():
-    loc_dic = pigrow_defs.load_locs(dirlocs_path)
-    set_dic = pigrow_defs.load_settings(loc_dic['loc_settings'], err_log=loc_dic['err_log'])
+    config_path = homedir + "/Pigrow/config/pigrow_config.txt"
+    set_dic = pigrow_defs.load_settings(config_path, err_log=err_path)
     led_list = []
     for item in set_dic:
         if "led_" in item:
@@ -165,6 +166,7 @@ if __name__ == '__main__':
                 gpio = int(gpio)
             except:
                 print("listed gpio pin is not a valid number, check pigrow_config.txt")
+                sys.exit()
             # select mode
             if mode == 'on' or mode == 'off':
                 kill_blink(name)
