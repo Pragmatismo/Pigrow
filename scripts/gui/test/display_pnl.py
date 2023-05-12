@@ -135,9 +135,10 @@ class info_pnl(scrolled.ScrolledPanel):
                     if not name in led_list:
                         led_list.append(name)
 
+            blinking = self.find_running_blink()
             for name in led_list:
                 loc, reboot = self.read_conf(name, config_dict, "led_")
-                self.add_to_relay_table(name, loc, reboot)
+                self.add_to_relay_table(name, loc, reboot, blinking)
 
             self.autosizeme()
 
@@ -154,7 +155,6 @@ class info_pnl(scrolled.ScrolledPanel):
                     info.append("")
             return info
 
-
         def autosizeme(self):
             for i in range(0, self.GetColumnCount()):
                 self.SetColumnWidth(i, wx.LIST_AUTOSIZE)
@@ -164,15 +164,56 @@ class info_pnl(scrolled.ScrolledPanel):
                 if l > h:
                     self.SetColumnWidth(i, wx.LIST_AUTOSIZE)
 
-        def add_to_relay_table(self, name, loc, reboot):
+        def add_to_relay_table(self, name, loc, reboot, blinking):
             self.InsertItem(0, str(name))
             self.SetItem(0, 1, str(loc))
             self.SetItem(0, 2, str(reboot))
-            status = self.get_led_status(name, loc)
+            status = self.get_led_status(name, blinking)
             self.SetItem(0, 3, str(status))
 
-        def get_led_status(self, name, loc):
-            return "not coded"
+        def get_led_status(self, name, blinking):
+            modes = {'500':'blink',
+                     '1000':'slow',
+                     '100':'fast',
+                     '250:1000':'dash'}
+            for item in blinking:
+                if item[0] == name:
+                    if item[1] in modes:
+                        return modes[item[1]]
+                    else:
+                        return item[1]
+
+            return "not blinking"
+
+
+        def find_running_blink(self):
+            # find running blink scripts
+            blink_path = self.parent.parent.shared_data.remote_pigrow_path + "scripts/persistent/blink_led.py"
+            cmd = "pidof -x " + str(blink_path)
+            out, error = self.parent.parent.link_pnl.run_on_pi(cmd)
+            if " " in out:
+                pids = out.split(" ")
+            else:
+                pids = [out]
+
+            # get command strings
+            blink_names = []
+            for pid in pids:
+                cmd = "ps -fp " + pid
+                out, error = self.parent.parent.link_pnl.run_on_pi(cmd)
+                out = out.strip() + " "
+
+                if "name=" in out:
+                    name = out.split("name=")[1].split(" ")[0]
+                    if "speed=" in out:
+                        sett = out.split("speed=")[1].split(" ")[0]
+                        blink_names.append([name, sett])
+
+            print (blink_names)
+
+            return blink_names
+
+
 
         def doubleclick(self, e):
             index =  e.GetIndex()
@@ -277,7 +318,6 @@ class led_dialog(wx.Dialog):
                 self.blink_button.Enable()
         else:
             self.blink_button.Disable()
-
 
     def show_guide_click(self, e):
         self.parent.parent.shared_data.show_help('led_help.png')
