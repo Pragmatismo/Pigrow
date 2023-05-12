@@ -9,17 +9,15 @@ homedir = os.getenv("HOME")
 sys.path.append(homedir + '/Pigrow/scripts/')
 import pigrow_defs
 script = "blink_led.py"
-dirlocs_path = homedir + "/Pigrow/config/dirlocs.txt"
-loc_dic = pigrow_defs.load_locs(dirlocs_path)
+
+
+config_path = homedir + "/Pigrow/config/pigrow_config.txt"
+err_log = homedir + "/Pigrow/logs/err_log.txt"
 
 def read_config(name):
-    '''
-      to make this more efficent and as i only need one line i should probably
-      just use grep instead of importing pigrow_defs, though error logging is important i guess?
-    '''
     # load settings dict
     if os.path.isfile(dirlocs_path):
-        set_dic = pigrow_defs.load_settings(loc_dic['loc_settings'], err_log=loc_dic['err_log'])
+        set_dic = pigrow_defs.load_settings(config_path, err_log=err_log)
     else:
         print("Unable to read config details, dirlocs or pigrow_config may not exist or be corrupt")
         sys.exit()
@@ -29,7 +27,7 @@ def read_config(name):
         gpio = set_dic["led_" + name + "_loc"]
     else:
         print(loc_key, "not set in pigrow_config.txt, this should be set to the gpio number")
-        pigrow_defs.write_log(script, 'LED ' + name + "called but no gpio set in pigrow_setting.txt", loc_dic['err_log'])
+        pigrow_defs.write_log(script, 'LED ' + name + "called but no gpio set in pigrow_setting.txt", err_log)
         sys.exit()
     return int(gpio)
 
@@ -54,7 +52,7 @@ def fail_speed():
     print("Speed setting was not valid numbers, e.g.")
     print("           speed=500")
     print("           speed=500:1000")
-    pigrow_defs.write_log(script, 'unable to understand speed=' + str(speed), loc_dic['err_log'])
+    pigrow_defs.write_log(script, 'unable to understand speed=' + str(speed), err_log)
     sys.exit()
 
 def kill_clones(name):
