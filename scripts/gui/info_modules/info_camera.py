@@ -23,7 +23,7 @@ def show_info():
         elif out == "2":
             picam_text = "Dual Picams\n"
         else:
-            picam_text = 'Multipul Picams'
+            picam_text = 'Multipul Picams\n'
     else:
         picam_text = " Command line output did not match expected format, possibly because vcgencmd is not installed"
         picam_text += " or possibly because your language is set to something other than english."
