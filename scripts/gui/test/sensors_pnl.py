@@ -661,8 +661,14 @@ class set_trigger_dialog(wx.Dialog):
         lock_l = wx.StaticText(self,  label='Cooldown Lock')
         self.lock_tc = wx.TextCtrl(self, value=trigger_list.initial_lock, size=(400,30))
 
+        # shell comand
         cmd_l = wx.StaticText(self,  label='Shell Command')
         self.cmd_tc = wx.TextCtrl(self, value=trigger_list.initial_cmd, size=(500,30))
+        self.find_cmd_btn = wx.Button(self, label='...', size=(50, 30))
+        self.find_cmd_btn.Bind(wx.EVT_BUTTON, self.find_cmd_click)
+
+        self.test_cmd_btn = wx.Button(self, label='Test', size=(100, 30))
+        self.test_cmd_btn.Bind(wx.EVT_BUTTON, self.testcmd)
 
 
         # Read trigger conditions
@@ -678,24 +684,28 @@ class set_trigger_dialog(wx.Dialog):
             mirror_label = "Change Mirror"
         self.mirror_l = wx.CheckBox(self,  label=mirror_label)
 
-        # Sizers
-        trig_options_sizer = wx.FlexGridSizer(8, 2, 1, 4)
-        trig_options_sizer.AddMany([ (log_l, 0, wx.EXPAND),
-            (self.log_cb, 0, wx.EXPAND),
-            (val_label_l, 0, wx.EXPAND),
-            (self.val_label_cb, 0, wx.EXPAND),
-            (type_l, 0, wx.EXPAND),
-            (self.type_cb, 0, wx.EXPAND),
-            (value_l, 0, wx.EXPAND),
-            (self.value_tc, 0, wx.EXPAND),
-            (cond_name_l, 0, wx.EXPAND),
-            (self.cond_name_tc, 0, wx.EXPAND),
-            (set_l, 0, wx.EXPAND),
-            (self.set_cb, 0, wx.EXPAND),
-            (lock_l, 0, wx.EXPAND),
-            (self.lock_tc, 0, wx.EXPAND),
-            (cmd_l, 0, wx.EXPAND),
-            (self.cmd_tc, 0, wx.EXPAND) ])
+        trig_options_sizer = wx.GridBagSizer(8, 4)
+        trig_options_sizer.AddMany([
+            (log_l, (0, 0), (1, 1), wx.EXPAND),
+            (self.log_cb, (0, 1), (1, 1), wx.EXPAND),
+            (val_label_l, (1, 0), (1, 1), wx.EXPAND),
+            (self.val_label_cb, (1, 1), (1, 1), wx.EXPAND),
+            (type_l, (2, 0), (1, 1), wx.EXPAND),
+            (self.type_cb, (2, 1), (1, 1), wx.EXPAND),
+            (value_l, (3, 0), (1, 1), wx.EXPAND),
+            (self.value_tc, (3, 1), (1, 1), wx.EXPAND),
+            (cond_name_l, (4, 0), (1, 1), wx.EXPAND),
+            (self.cond_name_tc, (4, 1), (1, 1), wx.EXPAND),
+            (set_l, (5, 0), (1, 1), wx.EXPAND),
+            (self.set_cb, (5, 1), (1, 1), wx.EXPAND),
+            (lock_l, (6, 0), (1, 1), wx.EXPAND),
+            (self.lock_tc, (6, 1), (1, 1), wx.EXPAND),
+            (cmd_l, (7, 0), (1, 1), wx.EXPAND),
+            (self.cmd_tc, (7, 1), (1, 1), wx.EXPAND),
+            (self.find_cmd_btn, (7, 2), (1, 1), wx.EXPAND),
+            (self.test_cmd_btn, (7, 3), (1, 1), wx.EXPAND)
+        ])
+
         trigger_conditions_sizer = wx.BoxSizer(wx.VERTICAL)
         trigger_conditions_sizer.Add(triggger_cond_l, 0, wx.EXPAND, 3)
         trigger_conditions_sizer.Add(self.read_trig_cond_btn, 0, wx.ALIGN_CENTER_HORIZONTAL, 3)
@@ -724,6 +734,22 @@ class set_trigger_dialog(wx.Dialog):
         else:
             self.mirror_l.SetForegroundColour((75,190,75))
             self.mirror_l.SetValue(True)
+
+    def find_cmd_click(self, e=""):
+        print("yeah that would be a useful function, maybe i'll code it one day...") #fuck
+
+    def testcmd(self, e=""):
+        link_pnl = self.parent.parent.parent.link_pnl
+        shared_data = self.parent.parent.parent.shared_data
+        cmd = self.cmd_tc.GetValue()
+        if not cmd == "":
+            print("Testing " + cmd)
+            out, err = link_pnl.run_on_pi(cmd)
+
+            dbox = shared_data.scroll_text_dialog(None, out, "cmd response from pi", cancel=False, readonly=True)
+            dbox.ShowModal()
+            dbox.Destroy()
+
 
 
     def find_mirror(self):
