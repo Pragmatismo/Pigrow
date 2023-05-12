@@ -32,7 +32,7 @@ class shared_data:
         # system tab layout
         self.system_info_layout = self.load_sys_layout_info()
         if self.system_info_layout == []:
-            self.system_info_layout = [['boxname','check_pigrow_folder','os_version','hardware_version','power_warnings','w1_therm','diskusage'],
+            self.system_info_layout = [['boxname','check_pigrow_folder','os_version','hardware_version','power_warnings','cpu_temp','diskusage'],
                                        ['camera','i2c','error_log','connected_network','datetime']]
         # setiings related to current connection
         self.frompi_base_path = self.set_local_path() # base path without box_name folder
