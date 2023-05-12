@@ -10,16 +10,15 @@ sys.path.append(homedir + '/Pigrow/scripts/')
 import pigrow_defs
 script = "blink_led.py"
 
-
 config_path = homedir + "/Pigrow/config/pigrow_config.txt"
 err_log = homedir + "/Pigrow/logs/err_log.txt"
 
 def read_config(name):
     # load settings dict
-    if os.path.isfile(dirlocs_path):
+    if os.path.isfile(config_path):
         set_dic = pigrow_defs.load_settings(config_path, err_log=err_log)
     else:
-        print("Unable to read config details, dirlocs or pigrow_config may not exist or be corrupt")
+        print("Unable to read config details, pigrow_config may not exist or be corrupt")
         sys.exit()
     # find gpio number
     loc_key = "led_" + name + "_loc"
