@@ -8,6 +8,8 @@ def show_info():
     for folder in w1_bus_folders:
         if folder[0:3] == "28-":
             temp_sensor_list += folder + "\n"
+    if temp_sensor_list.strip() == "":
+        return "No w1 ds18b temp sensors found"
     return temp_sensor_list.strip()
 
 if __name__ == '__main__':
