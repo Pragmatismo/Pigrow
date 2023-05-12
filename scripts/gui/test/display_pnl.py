@@ -221,6 +221,7 @@ class led_dialog(wx.Dialog):
         ## gpio pin - location
         loc_label = wx.StaticText(self,  label='gpio pin')
         self.loc_tc = wx.TextCtrl(self, value=self.s_loc, size=(200,30))
+        self.loc_tc.Bind(wx.EVT_TEXT, self.on_loc_text_changed)
         loc_sizer =  wx.BoxSizer(wx.HORIZONTAL)
         loc_sizer.Add(loc_label, 0, wx.ALL|wx.EXPAND, 5)
         loc_sizer.Add(self.loc_tc, 0, wx.ALL|wx.EXPAND, 5)
@@ -231,6 +232,20 @@ class led_dialog(wx.Dialog):
             self.reboot_ckb.SetValue(True)
         reboot_sizer = wx.BoxSizer(wx.HORIZONTAL)
         reboot_sizer.Add(self.reboot_ckb, 0, wx.ALL|wx.EXPAND, 5)
+
+        ## Test a blink patten
+        opts = ["on", "off", "slow", "blink", "fast", "dash", "time:500:250"]
+        self.blink_combo = wx.ComboBox(self, choices=opts, style=wx.CB_DROPDOWN)
+        # Create the button
+        self.blink_button = wx.Button(self, label="Test")
+        self.blink_button.Bind(wx.EVT_BUTTON, self.on_blink_button)
+        if self.s_name == "":
+            self.blink_button.Disable()
+
+        test_blink_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        test_blink_sizer.Add(self.blink_combo, flag=wx.EXPAND|wx.ALL, border=5)
+        test_blink_sizer.Add(self.blink_button, flag=wx.EXPAND|wx.ALL, border=5)
+
 
         # buttons_
         self.save_btn = wx.Button(self, label='Save', size=(175, 30))
@@ -251,11 +266,30 @@ class led_dialog(wx.Dialog):
         main_sizer.Add(loc_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
         main_sizer.Add(reboot_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
         main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(test_blink_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
+        main_sizer.AddStretchSpacer(1)
         main_sizer.Add(buttons_sizer, 0, wx.ALL|wx.EXPAND, 5)
         self.SetSizer(main_sizer)
 
+    def on_loc_text_changed(self, event):
+        if self.loc_tc.GetValue() == self.s_loc:
+            if not self.s_name == "":
+                self.blink_button.Enable()
+        else:
+            self.blink_button.Disable()
+
+
     def show_guide_click(self, e):
         self.parent.parent.shared_data.show_help('led_help.png')
+
+    def on_blink_button(self, event):
+        name = self.s_name
+        pattern = self.blink_combo.GetValue()
+        set_led_path = self.parent.parent.shared_data.remote_pigrow_path + "scripts/triggers/set_led.py"
+        cmd = set_led_path + " name=" + name + " set=" + pattern
+        print("Testing LED blink pattern: " + cmd)
+        self.parent.parent.link_pnl.run_on_pi(cmd, in_background=True)
+
 
     def save_click(self, e):
         shared_data = self.parent.parent.shared_data
