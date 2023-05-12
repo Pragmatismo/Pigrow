@@ -49,10 +49,7 @@ class ctrl_pnl(wx.Panel):
         dbox.Destroy()
         if (answer == wx.ID_YES):
             print(("Running " + str(script_cmd)))
-            self.parent.link_pnl.run_on_pi(script_cmd + " &")
-                                                # the & at the end is so that it
-                                                # doesn't ask for output and is non-blocking
-                                                # this is absolutely vital!
+            self.parent.link_pnl.run_on_pi(script_cmd, in_background=True)
 
     def update_cron_click(self, e="", no_starting=False):
         #

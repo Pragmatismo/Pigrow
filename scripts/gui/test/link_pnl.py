@@ -245,26 +245,42 @@ class link_pnl(wx.Panel):
 
     # Commands for use by other sections of the gui
 
-    def run_on_pi(self, command, write_status=True):
-        #Runs a command on the pigrow and returns output and error
-        #  out, error = .run_on_pi("ls /home/" + pi_link_pnl.target_user + "/Pigrow/")
-        #if write_status == True:
-            #MainApp.status.write_blue_bar("Running; " + command)
+    # def run_on_pi(self, command, write_status=True):
+    #     #Runs a command on the pigrow and returns output and error
+    #     #  out, error = .run_on_pi("ls /home/" + pi_link_pnl.target_user + "/Pigrow/")
+    #     #if write_status == True:
+    #         #MainApp.status.write_blue_bar("Running; " + command)
+    #     try:
+    #         stdin, stdout, stderr = self.ssh.exec_command(command)
+    #         out = stdout.read()
+    #         error = stderr.read()
+    #         out = out.decode()
+    #         error = error.decode()
+    #         #if write_status == True:
+    #         #    MainApp.status.write_bar("ready...")
+    #     except Exception as e:
+    #         error = "failed running command;" + str(command) + " with error - " + str(e)
+    #         print(error)
+    #         #if write_status == True:
+    #         #    MainApp.status.write_warning("FAILED: Check your connection")
+    #         return "", error
+    #     return out, error
+
+    def run_on_pi(self, command, write_status=True, in_background=False):
+        '''Runs a command on the pigrow and returns the output and error'''
         try:
+            if in_background:
+                command = 'nohup ' + command + ' > /dev/null 2>&1 &'
+
             stdin, stdout, stderr = self.ssh.exec_command(command)
-            out = stdout.read()
-            error = stderr.read()
-            out = out.decode()
-            error = error.decode()
-            #if write_status == True:
-            #    MainApp.status.write_bar("ready...")
+            out = stdout.read().decode()
+            error = stderr.read().decode()
         except Exception as e:
             error = "failed running command;" + str(command) + " with error - " + str(e)
             print(error)
-            #if write_status == True:
-            #    MainApp.status.write_warning("FAILED: Check your connection")
             return "", error
         return out, error
+
 
     def write_textfile_to_pi(self, text, location):
         '''
