@@ -972,7 +972,7 @@ class install_dialog(wx.Dialog):
         for item in self.opti_list.full_list:
             if item[2] == "core" and not item[3] == "Installed":
                 to_install.append(item)
-                if "Pigrow" in item[1]:
+                if "pigrow" in item[1].lower():
                     new_install = True
         print("core dependencies to install;", to_install)
 
@@ -988,9 +988,7 @@ class install_dialog(wx.Dialog):
             out, error = self.parent.parent.link_pnl.run_on_pi("mkdir " + folder)
 
         # clear config dict
-        if new_install == True:
-            self.parent.parent.shared_data.config_dict = {}
-        else:
+        if not new_install == True:
             message = ("Do you want to clear pigrow_config.txt and start with a fresh setup?\n\n"
                    "Warning - this will remove any sensors, gpio devices or similar that have "
                    "already been configured, ensure you have backups of any config files you "
@@ -1005,6 +1003,12 @@ class install_dialog(wx.Dialog):
                 self.parent.parent.shared_data.read_pigrow_settings_file()
             dlg.Destroy()
 
+        if new_install == True:
+            box_name = "new"
+            self.parent.parent.link_pnl.set_link_pi_text(True, box_name)
+            self.parent.parent.link_pnl.set_shared_info_on_connect(box_name)
+            self.parent.parent.shared_data.config_dict = {}
+
         # wizard
         self.name_pigrow()
         self.enable_trigger_watcher()
@@ -1013,6 +1017,7 @@ class install_dialog(wx.Dialog):
         message = "Install wizard completed"
         title = "Installation Complete"
         wx.MessageBox(message, title, wx.OK | wx.ICON_INFORMATION)
+        self.Destroy()
 
 
     def name_pigrow(self):
