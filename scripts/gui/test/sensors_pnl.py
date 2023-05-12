@@ -147,6 +147,7 @@ class info_pnl(scrolled.ScrolledPanel):
             self.trigger_script_activity_live.SetForegroundColour((200,75,75))
         #self.Layout()
 
+
     class sensor_table(wx.ListCtrl):
         def __init__(self, parent, id):
             self.parent = parent
@@ -599,6 +600,50 @@ class ctrl_pnl(wx.Panel):
         trigger_edit_box = set_trigger_dialog(trigger_list, trigger_list.parent)
         trigger_edit_box.ShowModal()
 
+    def run_test_cmd(self, cmd):
+        shared_data = self.parent.shared_data
+        # ask user if they're sure they want to run the script
+        q_text = "Are you sure you want to run the command; "
+        q_text += cmd
+        q_text += "\n\n Note: You will not be able to do anything until the script has finished running."
+        dbox = wx.MessageDialog(self, q_text, "Run on pi?", wx.OK | wx.CANCEL | wx.ICON_QUESTION)
+        answer = dbox.ShowModal()
+        if not answer == wx.ID_OK:
+            return None
+
+        # run the script
+        out, error = self.parent.link_pnl.run_on_pi(cmd)
+        # make output for user
+        out = out.strip()
+        error = error.strip()
+        txt = ""
+        if not out == "":
+            txt = "output:\n" + out + "\n\n"
+        if not error == "":
+            txt += "error:\n" + out
+        if out == "" and error == "":
+            txt = "Script finished without output"
+        # show the user the output
+        dbox = shared_data.scroll_text_dialog(None, txt, "cmd response from pi", cancel=False, readonly=True)
+        dbox.ShowModal()
+        dbox.Destroy()
+
+    def select_file(self, text_control, default_path=""):
+        set_path = text_control.GetValue()
+        if default_path == "":
+            default_path = self.parent.shared_data.remote_pigrow_path
+        if set_path == "":
+            set_path = default_path
+        self.parent.link_pnl.select_files_on_pi(create_file=True, default_path=set_path)
+        selected_files = self.parent.link_pnl.selected_files
+        selected_folders = self.parent.link_pnl.selected_folders
+        if len(selected_files) == 0 and len(selected_folders) == 0:
+            return None
+        else:
+            text_control.SetValue(selected_files[0])
+
+
+
 class set_trigger_dialog(wx.Dialog):
     def __init__(self, parent, *args, **kw):
         self.parent = parent
@@ -736,20 +781,17 @@ class set_trigger_dialog(wx.Dialog):
             self.mirror_l.SetValue(True)
 
     def find_cmd_click(self, e=""):
-        print("yeah that would be a useful function, maybe i'll code it one day...") #fuck
+        shared_data = self.parent.parent.parent.shared_data
+        scripts_path = shared_data.remote_pigrow_path + "scripts/"
+        c_pnl = self.parent.parent.parent.dict_C_pnl['sensors_pnl']
+        c_pnl.select_file(self.cmd_tc, scripts_path)
+
 
     def testcmd(self, e=""):
-        link_pnl = self.parent.parent.parent.link_pnl
-        shared_data = self.parent.parent.parent.shared_data
         cmd = self.cmd_tc.GetValue()
         if not cmd == "":
-            print("Testing " + cmd)
-            out, err = link_pnl.run_on_pi(cmd)
-
-            dbox = shared_data.scroll_text_dialog(None, out, "cmd response from pi", cancel=False, readonly=True)
-            dbox.ShowModal()
-            dbox.Destroy()
-
+            c_pnl = self.parent.parent.parent.dict_C_pnl['sensors_pnl']
+            c_pnl.run_test_cmd(cmd)
 
 
     def find_mirror(self):
@@ -1397,71 +1439,34 @@ class button_dialog(wx.Dialog):
         main_sizer.Add(buttons_sizer, 0, wx.ALL|wx.EXPAND, 5)
         self.SetSizer(main_sizer)
 
-    def select_file(self, text_control, default_path=""):
-        set_path = text_control.GetValue()
-        if default_path == "":
-            default_path = self.parent.parent.parent.shared_data.remote_pigrow_path
-        if set_path == "":
-            set_path = default_path
-        self.parent.parent.parent.link_pnl.select_files_on_pi(create_file=True, default_path=set_path)
-        selected_files = self.parent.parent.parent.link_pnl.selected_files
-        selected_folders = self.parent.parent.parent.link_pnl.selected_folders
-        if len(selected_files) == 0 and len(selected_folders) == 0:
-            return None
-        else:
-            text_control.SetValue(selected_files[0])
-
     def log_click(self, e):
         pigrow_log_path = self.parent.parent.parent.shared_data.remote_pigrow_path
         log_path = pigrow_log_path + "logs/button_" + self.name_tc.GetValue() + ".txt"
-        self.select_file(self.log_tc, log_path)
+        c_pnl = self.parent.parent.parent.dict_C_pnl['sensors_pnl']
+        c_pnl.select_file(self.log_tc, log_path)
 
     def cmdD_click(self, e):
         scripts_path = self.parent.parent.parent.shared_data.remote_pigrow_path + "scripts/"
-        self.select_file(self.cmdD_tc, scripts_path)
+        c_pnl = self.parent.parent.parent.dict_C_pnl['sensors_pnl']
+        c_pnl.select_file(self.cmdD_tc, scripts_path)
 
     def cmdD_test_click(self, e):
         print(" TESTING d")
-        cmd = self.cmdU_tc.GetValue()
-        self.run_test_cmd(cmd)
+        cmd = self.cmdD_tc.GetValue()
+        c_pnl = self.parent.parent.parent.dict_C_pnl['sensors_pnl']
+        c_pnl.run_test_cmd(cmd)
 
     def cmdU_click(self, e):
         shared_data = self.parent.parent.parent.shared_data
         scripts_path = shared_data.remote_pigrow_path + "scripts/"
-        self.select_file(self.cmdU_tc, scripts_path)
+        c_pnl = self.parent.parent.parent.dict_C_pnl['sensors_pnl']
+        c_pnl.select_file(self.cmdU_tc, scripts_path)
 
     def cmdU_test_click(self, e):
         print(" TESTING u")
-        cmd = self.cmdD_tc.GetValue()
-        self.run_test_cmd(cmd)
-
-    def run_test_cmd(self, cmd):
-        shared_data = self.parent.parent.parent.shared_data
-        # ask user if they're sure they want to run the script
-        q_text = "Are you sure you want to run the command; "
-        q_text += cmd
-        q_text += "\n\n Note: You will not be able to do anything until the script has finished running."
-        dbox = wx.MessageDialog(self, q_text, "Run on pi?", wx.OK | wx.CANCEL | wx.ICON_QUESTION)
-        answer = dbox.ShowModal()
-        if not answer == wx.ID_OK:
-            return None
-
-        # run the script
-        out, error = self.parent.parent.parent.link_pnl.run_on_pi(cmd)
-        # make output for user
-        out = out.strip()
-        error = error.strip()
-        txt = ""
-        if not out == "":
-            txt = "output:\n" + out + "\n\n"
-        if not error == "":
-            txt += "error:\n" + out
-        if out == "" and error == "":
-            txt = "Script finished without output"
-        # show the user the output
-        dbox = shared_data.scroll_text_dialog(None, txt, "cmd response from pi", cancel=False, readonly=True)
-        dbox.ShowModal()
-        dbox.Destroy()
+        cmd = self.cmdU_tc.GetValue()
+        c_pnl = self.parent.parent.parent.dict_C_pnl['sensors_pnl']
+        c_pnl.run_test_cmd(cmd)
 
     def save_click(self, e):
         i_pnl       = self.parent.parent.parent.dict_I_pnl['sensors_pnl']
