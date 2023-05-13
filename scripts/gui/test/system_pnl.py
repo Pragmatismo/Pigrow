@@ -1010,6 +1010,7 @@ class install_dialog(wx.Dialog):
             self.parent.parent.shared_data.config_dict = {}
 
         # wizard
+        self.create_dirlocs_from_template()
         self.name_pigrow()
         self.enable_trigger_watcher()
         self.enable_selflog_script()
@@ -1018,6 +1019,20 @@ class install_dialog(wx.Dialog):
         title = "Installation Complete"
         wx.MessageBox(message, title, wx.OK | wx.ICON_INFORMATION)
         self.Destroy()
+
+    def create_dirlocs_from_template(self):
+        shared_data = self.parent.parent.shared_data
+        print("Creting dirlocs.txt from template")
+
+        # grab template from pi and swap wildcards for username
+        dirlocs_template_path = shared_data.remote_pigrow_path + 'config/templates/dirlocs_temp.txt'
+        dirlocs_template, error = self.parent.parent.link_pnl.run_on_pi("cat " + dirlocs_template_path)
+        dirlocs_text = dirlocs_template.replace("**", str("/home/" + shared_data.gui_set_dict['username']))
+
+        # save to pi
+        dirlocs_path = shared_data.remote_pigrow_path + 'config/dirlocs.txt'
+        cmd = 'echo -e "' + dirlocs_text + '" > ' + dirlocs_path
+        out, error = self.parent.parent.link_pnl.run_on_pi(cmd)
 
 
     def name_pigrow(self):
