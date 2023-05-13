@@ -255,6 +255,7 @@ class led_dialog(wx.Dialog):
         ## unique name
         name_label = wx.StaticText(self,  label='name')
         self.name_tc = wx.TextCtrl(self, value=self.s_name, size=(200,30))
+        self.name_tc.Bind(wx.EVT_TEXT, self.set_blink_cmd)
         name_sizer =  wx.BoxSizer(wx.HORIZONTAL)
         name_sizer.Add(name_label, 0, wx.ALL|wx.EXPAND, 5)
         name_sizer.Add(self.name_tc, 0, wx.ALL|wx.EXPAND, 5)
@@ -269,6 +270,8 @@ class led_dialog(wx.Dialog):
 
         ## persist on reboot
         self.reboot_ckb = wx.CheckBox(self,  label="Persist on reboot")
+        self.reboot_ckb.Bind(wx.EVT_CHECKBOX, self.set_save_but)
+
         if not self.s_reboot.lower() == "false":
             self.reboot_ckb.SetValue(True)
         reboot_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -277,6 +280,8 @@ class led_dialog(wx.Dialog):
         ## Test a blink patten
         opts = ["on", "off", "slow", "blink", "fast", "dash", "time:500:250"]
         self.blink_combo = wx.ComboBox(self, choices=opts, style=wx.CB_DROPDOWN)
+        self.blink_combo.Bind(wx.EVT_COMBOBOX, self.set_blink_cmd)
+
         # Create the button
         self.blink_button = wx.Button(self, label="Test")
         self.blink_button.Bind(wx.EVT_BUTTON, self.on_blink_button)
@@ -287,11 +292,12 @@ class led_dialog(wx.Dialog):
         test_blink_sizer.Add(self.blink_combo, flag=wx.EXPAND|wx.ALL, border=5)
         test_blink_sizer.Add(self.blink_button, flag=wx.EXPAND|wx.ALL, border=5)
 
+        self.blink_cmd_tc = wx.TextCtrl(self, value="--")
 
         # buttons_
         self.save_btn = wx.Button(self, label='Save', size=(175, 30))
         self.save_btn.Bind(wx.EVT_BUTTON, self.save_click)
-        self.cancel_btn = wx.Button(self, label='Cancel', size=(175, 30))
+        self.cancel_btn = wx.Button(self, label='Done', size=(175, 30))
         self.cancel_btn.Bind(wx.EVT_BUTTON, self.OnClose)
         buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
         buttons_sizer.AddStretchSpacer(1)
@@ -299,6 +305,8 @@ class led_dialog(wx.Dialog):
         buttons_sizer.AddStretchSpacer(1)
         buttons_sizer.Add(self.cancel_btn, 0,  wx.ALL, 3)
         buttons_sizer.AddStretchSpacer(1)
+
+        self.set_blink_cmd()
 
         main_sizer =  wx.BoxSizer(wx.VERTICAL)
         main_sizer.Add(header_sizer, 0, wx.ALL|wx.EXPAND, 5)
@@ -308,9 +316,21 @@ class led_dialog(wx.Dialog):
         main_sizer.Add(reboot_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
         main_sizer.AddStretchSpacer(1)
         main_sizer.Add(test_blink_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
+        main_sizer.Add(self.blink_cmd_tc, 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.AddStretchSpacer(1)
         main_sizer.Add(buttons_sizer, 0, wx.ALL|wx.EXPAND, 5)
         self.SetSizer(main_sizer)
+
+    def set_blink_cmd(self, e=""):
+        self.set_save_but()
+        name = self.name_tc.GetValue()
+        mode = self.blink_combo.GetValue()
+        if name == "" or mode == "":
+            return None
+
+        set_led_path = self.parent.parent.shared_data.remote_pigrow_path + "scripts/triggers/set_led.py"
+        cmd = set_led_path + " name=" + name + " set=" + mode
+        self.blink_cmd_tc.SetValue(cmd)
 
     def on_loc_text_changed(self, event):
         if self.loc_tc.GetValue() == self.s_loc:
@@ -319,14 +339,24 @@ class led_dialog(wx.Dialog):
         else:
             self.blink_button.Disable()
 
+        self.set_save_but()
+
+    def set_save_but(self, e=""):
+        if self.loc_tc.GetValue() == self.s_loc:
+            if self.name_tc.GetValue() == self.s_name:
+                if str(self.reboot_ckb.GetValue()) == self.s_reboot:
+                    self.save_btn.Disable()
+                    return None
+        self.save_btn.Enable()
+
     def show_guide_click(self, e):
         self.parent.parent.shared_data.show_help('led_help.png')
 
     def on_blink_button(self, event):
         name = self.s_name
-        pattern = self.blink_combo.GetValue()
+        mode = self.blink_combo.GetValue()
         set_led_path = self.parent.parent.shared_data.remote_pigrow_path + "scripts/triggers/set_led.py"
-        cmd = set_led_path + " name=" + name + " set=" + pattern
+        cmd = set_led_path + " name=" + name + " set=" + mode
         print("Testing LED blink pattern: " + cmd)
         self.parent.parent.link_pnl.run_on_pi(cmd, in_background=True)
 
@@ -360,8 +390,20 @@ class led_dialog(wx.Dialog):
 
             # save config to pi
             shared_data.update_pigrow_config_file_on_pi()
-        self.Destroy()
+            self.blink_button.Enable()
+            self.s_name = n_name
+            self.s_loc = n_loc
+            self.s_reboot = n_reboot
+            self.save_btn.Disable()
 
+    def OnClose(self, event):
+        if self.save_btn.IsEnabled():
+            dlg = wx.MessageDialog(self, "Do you want to save the changes before closing?",
+                                   "Confirm Exit", wx.YES_NO | wx.ICON_QUESTION)
+            result = dlg.ShowModal()
+            dlg.Destroy()
 
-    def OnClose(self, e):
+            if result == wx.ID_YES:
+                self.save_click(None)
+
         self.Destroy()
