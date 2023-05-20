@@ -60,16 +60,16 @@ def read_button_settings(pigrow_settings, button_name):
         err_msg = button_name + " location not found in settings file."
         print(err_msg)
         sys.exit()
+
     return butt_settings
 
 pigrow_settings = load_config()
-type, loc, log, log_as_switch, cmdD, cmdU = read_button_settings(pigrow_settings, button_name)
+b_type, loc, log, log_as_switch, cmdD, cmdU = read_button_settings(pigrow_settings, button_name)
 if log_as_switch == "True":
     log_as_switch = "switch"
+if log == "" or log.lower() == "false":
+    log = None
 
-def split_cmd_into_args(self, cmd):
-    if not " " in cmd:
-        return cmd
 
 def pressed():
     print( " Button Pressed " )
@@ -89,8 +89,6 @@ def pressed():
         else:
             # record press duration
             listen.press_start = time.time()
-
-
 
 def released():
     print( " Button released " )
@@ -120,8 +118,10 @@ def listen(gpio_num, log, log_as_switch, cmdD, cmdU, *args):
 
     button.wait_for_press()
     pressed()
+    time.sleep(0.1)
     button.wait_for_release()
     released()
+    time.sleep(0.1)
 
     if not log == None and not log_as_switch == "switch":
         duration = listen.press_end - listen.press_start
@@ -144,7 +144,7 @@ def log_button_presss(log_path, duration):
         f.write(line)
     print("Written; " +  line)
 
-if type == "GND":
+if b_type == "GND":
     while True:
         listen(loc, log, log_as_switch, cmdD, cmdU)
 else:
