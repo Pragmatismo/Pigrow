@@ -74,12 +74,13 @@ def split_cmd_into_args(self, cmd):
 def pressed():
     print( " Button Pressed " )
     # run command
-    if not listen.cmdD == None and not listen.cmdD == "":
-        print(" RUNNING - " + cmdD)
+    if listen.cmdD is not None and listen.cmdD != "":
+        print(" RUNNING - " + listen.cmdD)
         try:
-            cmdD_p = Popen(cmdD, shell=True)
-        except:
-            pass
+            subprocess.run(listen.cmdD, shell=True, check=True)
+        except subprocess.CalledProcessError:
+            print("Failed to run command: " + listen.cmdD)
+
     # log
     if not listen.log == None:
         if listen.log_as_switch == "switch":
@@ -89,15 +90,18 @@ def pressed():
             # record press duration
             listen.press_start = time.time()
 
+
+
 def released():
     print( " Button released " )
     # run command
-    if not listen.cmdU == None  and not listen.cmdU == "":
-        print(" RUNNING - " + cmdU)
+    if listen.cmdU is not None and listen.cmdU != "":
+        print(" RUNNING - " + listen.cmdU)
         try:
-            cmdU_p = Popen(cmdU, shell=True)
-        except:
-            pass
+            subprocess.run(listen.cmdU, shell=True, check=True)
+        except subprocess.CalledProcessError:
+            print("Failed to run command: " + listen.cmdU)
+        
     # log
     if not listen.log == None:
         if listen.log_as_switch == "switch":
