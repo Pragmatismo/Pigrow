@@ -37,8 +37,8 @@ def load_config():
         print("pigrow_defs.py not found, unable to continue.")
         print("make sure pigrow software is installed correctly")
         sys.exit()
-    loc_dic = pigrow_defs.load_locs(homedir + '/Pigrow/config/dirlocs.txt')
-    pigrow_settings = pigrow_defs.load_settings(loc_dic['loc_settings'])
+    setting_path = homedir + '/Pigrow/config/pigrow_config.txt')
+    pigrow_settings = pigrow_defs.load_settings(setting_path)
     return pigrow_settings
 
 def read_button_settings(pigrow_settings, button_name):
@@ -59,7 +59,6 @@ def read_button_settings(pigrow_settings, button_name):
     if butt_settings[1] == None:
         err_msg = button_name + " location not found in settings file."
         print(err_msg)
-    #    pigrow_defs.write_log('log_sensor_module.py', err_msg, loc_dic['err_log'])
         sys.exit()
     return butt_settings
 

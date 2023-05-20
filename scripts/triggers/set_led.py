@@ -77,10 +77,10 @@ def set_led_blink(name, mode, gpio):
     else:
         print("set= is not a valid option")
         print("     set=blink")
-        print("     set=fast")
+        print("     blink, slow, fast, dash, time:500:2000")
         sys.exit()
     #cmd = [homedir + "/Pigrow/scripts/persistent/blink_led.py", "name=" + name, "speed=" + speed]
-    cmd = homedir + "/Pigrow/scripts/persistent/blink_led.py" + " name=" + name + " speed=" + speed + " &"
+    cmd = "nohup " + homedir + "/Pigrow/scripts/persistent/blink_led.py" + " name=" + name + " speed=" + speed + " > /dev/null 2>&1 &"
     subprocess.Popen(cmd, shell=True)
 
     #import time
