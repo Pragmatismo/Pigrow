@@ -37,7 +37,7 @@ def load_config():
         print("pigrow_defs.py not found, unable to continue.")
         print("make sure pigrow software is installed correctly")
         sys.exit()
-    setting_path = homedir + '/Pigrow/config/pigrow_config.txt')
+    setting_path = homedir + '/Pigrow/config/pigrow_config.txt'
     pigrow_settings = pigrow_defs.load_settings(setting_path)
     return pigrow_settings
 
