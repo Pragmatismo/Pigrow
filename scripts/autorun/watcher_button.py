@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 import os, sys, time, datetime
 from gpiozero import Button
-from subprocess import Popen
+import subprocess
 
 button_name = None
 for argu in sys.argv[1:]:
@@ -101,7 +101,7 @@ def released():
             subprocess.run(listen.cmdU, shell=True, check=True)
         except subprocess.CalledProcessError:
             print("Failed to run command: " + listen.cmdU)
-        
+
     # log
     if not listen.log == None:
         if listen.log_as_switch == "switch":
