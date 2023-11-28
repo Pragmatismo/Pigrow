@@ -25,6 +25,9 @@ class ctrl_pnl(wx.Panel):
         self.saveconf_btn.Bind(wx.EVT_BUTTON, self.saveconf_click)
         self.loadconf_btn = wx.Button(self, label='Load Config')
         self.loadconf_btn.Bind(wx.EVT_BUTTON, self.loadconf_click)
+        self.endgrow_btn = wx.Button(self, label='End Current Grow')
+        self.endgrow_btn.Bind(wx.EVT_BUTTON, self.endcurrentgrow_click)
+
 
         main_sizer = wx.BoxSizer(wx.VERTICAL)
         main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
@@ -37,6 +40,7 @@ class ctrl_pnl(wx.Panel):
         main_sizer.Add(archive_label, 0, wx.ALL, 0)
         main_sizer.Add(self.saveconf_btn, 0, wx.ALL, 0)
         main_sizer.Add(self.loadconf_btn, 0, wx.ALL, 0)
+        main_sizer.Add(self.endgrow_btn, 0, wx.ALL, 0)
         self.SetSizer(main_sizer)
 
     def read_click(self, e):
@@ -121,10 +125,7 @@ class ctrl_pnl(wx.Panel):
         with open(cron_save_path, "w") as cron_file:
             cron_file.write(out.rstrip('\r'))
 
-
-
     def loadconf_click(self, e):
-        print("loading config not written yet, save must come first obvs")
         # list saved configs - folder name; config_NAME
         conf_folder = []
         defpath = self.parent.shared_data.frompi_path
@@ -137,14 +138,18 @@ class ctrl_pnl(wx.Panel):
         # show diff between current and selected config dialog box
         self.compare_config_folders(conf_folder)
 
-
     def compare_config_folders(self, conf_folder):
-        print("A dialogue box will open here to show a comparison of the config folders")
         self.conf_local = conf_folder
         self.conf_remote = self.parent.shared_data.remote_pigrow_path + "config/"
         conf_dbox = config_compare_dialog(self, self.parent)
         conf_dbox.ShowModal()
         conf_dbox.Destroy()
+
+    def endcurrentgrow_click(self, e):
+        endgrow_dbox = endgrow_dialog(self, self.parent)
+        endgrow_dbox.ShowModal()
+        endgrow_dbox.Destroy()
+
 
     def connect_to_pigrow(self):
         self.read_click("e")
@@ -185,6 +190,44 @@ class ctrl_pnl(wx.Panel):
             print("Cleared " + str(count) + " files from the pigrow")
         # when done refreh the file info
         self.parent.dict_I_pnl['localfiles_pnl'].set_r_caps_text()
+
+class endgrow_dialog(wx.Dialog):
+    #Dialog box for downloding files from pi to local storage folder
+    def __init__(self, parent, *args, **kw):
+        self.parent = parent
+        super(endgrow_dialog, self).__init__(*args, **kw)
+        self.InitUI()
+        self.SetSize((500, 600))
+        self.SetTitle("Start New Grow")
+        self.Bind(wx.EVT_CLOSE, self.OnClose)
+
+    def InitUI(self):
+        # draw the pannel
+        label = wx.StaticText(self,  label='Archive and Start New Grow')
+
+        #buttons
+        self.go_btn = wx.Button(self, label='Start New Grow', size=(175, 50))
+        self.go_btn.Bind(wx.EVT_BUTTON, self.go_click)
+        self.cancel_btn = wx.Button(self, label='Cancel', size=(175, 50))
+        self.cancel_btn.Bind(wx.EVT_BUTTON, self.OnClose)
+        buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        buttons_sizer.Add(self.go_btn, 0,  wx.ALL, 3)
+        buttons_sizer.AddStretchSpacer(1)
+        buttons_sizer.Add(self.cancel_btn, 0,  wx.ALL, 3)
+        # main sizer
+        self.main_sizer = wx.BoxSizer(wx.VERTICAL)
+        self.main_sizer.Add(label, 0, wx.ALL|wx.EXPAND, 5)
+        self.main_sizer.AddStretchSpacer(1)
+        self.main_sizer.AddStretchSpacer(1)
+        self.main_sizer.Add(buttons_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
+        self.SetSizer(self.main_sizer)
+
+
+    def go_click(self, e):
+        print("sorry this button does nothing.")
+
+    def OnClose(self, e):
+        self.Destroy()
 
 class config_compare_dialog(wx.Dialog):
     #Dialog box for downloding files from pi to local storage folder
