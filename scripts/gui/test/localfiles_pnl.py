@@ -351,7 +351,8 @@ class endgrow_dialog(wx.Dialog):
 
         # clear log files from pi
         if self.cb_rcaps.GetValue() == True:
-            print(" REMOVING CAPS IS NOT YET WRITTEN - USE THE OTHER TOOL FOR IT BEFORE THIS POINT")
+            self.parent.clear_downed_click(None)
+            #print(" REMOVING CAPS IS NOT YET WRITTEN - USE THE OTHER TOOL FOR IT BEFORE THIS POINT")
         if self.cb_rlogs.GetValue() == True:
             for filename in filelist:
                 path = remote_logs + "/" + filename
