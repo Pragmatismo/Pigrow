@@ -1,5 +1,6 @@
 import os
 import datetime
+import shutil
 import wx
 import wx.lib.scrolledpanel as scrolled
 
@@ -197,13 +198,16 @@ class endgrow_dialog(wx.Dialog):
         self.parent = parent
         super(endgrow_dialog, self).__init__(*args, **kw)
         self.InitUI()
-        self.SetSize((500, 600))
+        self.SetSize((500, 500))
         self.SetTitle("Start New Grow")
         self.Bind(wx.EVT_CLOSE, self.OnClose)
 
     def InitUI(self):
         # draw the pannel
-        label = wx.StaticText(self,  label='Archive and Start New Grow')
+        title = wx.StaticText(self,  label='Archive and Start New Grow')
+        sub_msg = "To create a fresh grow this tool updates the local files and copies them "
+        sub_msg += "to a subfolder in the archive folder then clears the log files on the pi."
+        sub_label = wx.StaticText(self,  label=sub_msg, size=(400, 90))
 
         # archive
         n_label = wx.StaticText(self,  label='Archive name')
@@ -214,7 +218,7 @@ class endgrow_dialog(wx.Dialog):
 
 
 
-        a_label = wx.StaticText(self,  label='Copy to archive;')
+        a_label = wx.StaticText(self,  label='Download from Pi;')
         self.cb_caps = wx.CheckBox(self, label='caps')
         self.cb_logs = wx.CheckBox(self, label='Logs')
         self.cb_conf = wx.CheckBox(self, label='Config')
@@ -226,6 +230,16 @@ class endgrow_dialog(wx.Dialog):
         arc_sizer.Add(self.cb_caps, 0,  wx.LEFT, 50)
         arc_sizer.Add(self.cb_logs, 0,  wx.LEFT, 50)
         arc_sizer.Add(self.cb_conf, 0,  wx.LEFT, 50)
+
+        r_label = wx.StaticText(self,  label='Remove from Pi;')
+        self.cb_rcaps = wx.CheckBox(self, label='caps')
+        self.cb_rlogs = wx.CheckBox(self, label='Logs')
+        self.cb_rcaps.SetValue(True)
+        self.cb_rlogs.SetValue(True)
+        rem_sizer = wx.BoxSizer(wx.VERTICAL)
+        rem_sizer.Add(r_label, 0,  wx.ALL, 3)
+        rem_sizer.Add(self.cb_rcaps, 0,  wx.LEFT, 50)
+        rem_sizer.Add(self.cb_rlogs, 0,  wx.LEFT, 50)
 
 
         #buttons
@@ -239,10 +253,13 @@ class endgrow_dialog(wx.Dialog):
         buttons_sizer.Add(self.cancel_btn, 0,  wx.ALL, 3)
         # main sizer
         self.main_sizer = wx.BoxSizer(wx.VERTICAL)
-        self.main_sizer.Add(label, 0, wx.ALL|wx.EXPAND, 5)
+        self.main_sizer.Add(title, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
+        self.main_sizer.Add(sub_label, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
         self.main_sizer.AddStretchSpacer(1)
         self.main_sizer.Add(n_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
         self.main_sizer.Add(arc_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
+        self.main_sizer.AddStretchSpacer(1)
+        self.main_sizer.Add(rem_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
         self.main_sizer.AddStretchSpacer(1)
         self.main_sizer.Add(buttons_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
         self.SetSizer(self.main_sizer)
@@ -254,15 +271,145 @@ class endgrow_dialog(wx.Dialog):
 
 
     def go_click(self, e):
-        print("sorry this button does nothing.")
-        # copy files to archive
-        arccaps = self.cb_caps.GetValue()
-        arclogs = self.cb_logs.GetValue()
+        remote_path = self.parent.parent.shared_data.remote_pigrow_path
+        frompi_path = self.parent.parent.shared_data.frompi_path
         arcconf = self.cb_conf.GetValue()
-        if arccaps == True or arclogs == True or arcconf == True:
-            arc_name = self.name_tc.GetValue()
-        # clear files from pi and local storage
-        # tell user the out come
+        remote_conf = remote_path + "config"
+        arclogs = self.cb_logs.GetValue()
+        remote_logs = remote_path + "logs"
+        arccaps = self.cb_caps.GetValue()
+        remote_caps = remote_path + "caps"
+        arc_name = self.name_tc.GetValue()
+        arc_path = output_path = os.path.join(frompi_path, "archive/" + arc_name + "/")
+
+        # make archive folder
+        if arcconf or arclogs or arccaps:
+            if not os.path.exists(arc_path):
+                try:
+                    os.makedirs(arc_path)
+                except OSError as e:
+                    print("Error creating folder at " + arc_path)
+            else:
+                err_msg = "An archive of that name already exists, "
+                err_msg += "please pick a new name or delete the existing archive."
+                print(err_msg)
+                dialog = wx.MessageDialog(None, err_msg, "Error", wx.OK | wx.ICON_ERROR)
+                result = dialog.ShowModal()
+                dialog.Destroy()
+                return None
+
+
+        # update local files
+        folders_overwrite = []
+        folders_newonly = []
+        log_sizes = []
+        out, error = self.parent.parent.link_pnl.run_on_pi("ls " + remote_logs)
+        filelist = out.splitlines()
+        filelist = [item for item in filelist if item != 'trigger_conditions.txt']
+        if arclogs == True:
+            folders_overwrite.append(remote_logs)
+            # get file sizes to check download worked
+            for filename in filelist:
+                path = remote_logs + "/" + filename
+                cmd = "ls -l --block-size=1 " + path + " | awk '{print $5}'"
+                r_size, error = self.parent.parent.link_pnl.run_on_pi(cmd)
+                r_size = r_size.strip()
+                l_path = os.path.join(frompi_path, 'logs', filename)
+                log_sizes.append([filename, path, r_size, l_path])
+                print("remote file size: ", filename, r_size)
+        if arcconf == True:
+            folders_overwrite.append(remote_conf)
+        if arccaps == True:
+            folders_newonly.append(remote_caps)
+
+        if not len(folders_newonly) == 0:
+            self.parent.parent.link_pnl.download_folder(folders_newonly, overwrite=False)
+        if not len(folders_overwrite) == 0:
+            self.parent.parent.link_pnl.download_folder(folders_overwrite, overwrite=True)
+
+        # verify copy worked
+        errors = []
+        for log in log_sizes:
+            filename, path, r_size, l_path = log[0], log[1], log[2], log[3]
+            l_size = str(os.path.getsize(l_path)).strip()
+            if not r_size == l_size:
+                print("file sizes do not match" + filename)
+                errors.append([filename, path, r_size, l_path, l_size])
+            else:
+                print("file sizes match - " + filename)
+
+        if not len(errors) == 0:
+            err_msg = "file not downloaded;"
+            for err in errors:
+                err_msg += "\n     " + err[0]
+            err_msg += "continue anyway? \n\n This will remove the log files on the pi"
+            err_d = wx.MessageDialog(None, err_msg, "Error", wx.YES_NO | wx.ICON_ERROR)
+            result = dialog.ShowModal()
+            dialog.Destroy()
+            if not result == wx.ID_YES:
+                return None
+
+        # clear log files from pi
+        if self.cb_rcaps.GetValue() == True:
+            print(" REMOVING CAPS IS NOT YET WRITTEN - USE THE OTHER TOOL FOR IT BEFORE THIS POINT")
+        if self.cb_rlogs.GetValue() == True:
+            for filename in filelist:
+                path = remote_logs + "/" + filename
+                out, error = self.parent.parent.link_pnl.run_on_pi("rm " + path)
+                print("Removed " + path)
+
+        # copy local files to archive
+        c_result = self.copy_to_arc(frompi_path, arc_name)
+        if c_result == "fail":
+            err_msg = "Moving some or all local files into the archive has failed, there may be a system lock or resource error - try moving them manually into the created folder."
+            print(err_msg)
+            dialog = wx.MessageDialog(None, err_msg, "Error", wx.OK | wx.ICON_ERROR)
+            result = dialog.ShowModal()
+            dialog.Destroy()
+
+        # tell user the results
+        print(" - Archive crated; " + arc_name)
+        self.Destroy()
+
+    def copy_to_arc(self, folder_path, archive_name):
+        # Ensure folder_path is a valid directory
+        if not os.path.isdir(folder_path):
+            print(f"Error: {folder_path} is not a valid directory.")
+            return "fail"
+
+        # Create the 'archive' folder if it doesn't exist
+        archive_folder = os.path.join(folder_path, 'archive')
+        if not os.path.exists(archive_folder):
+            os.makedirs(archive_folder)
+
+        # Create a subfolder within 'archive' using the provided archive_name
+        archive_subfolder = os.path.join(archive_folder, archive_name)
+        if not os.path.exists(archive_subfolder):
+            os.makedirs(archive_subfolder)
+
+        # Copy everything from folder_path to the 'archive' folder
+        for root, dirs, files in os.walk(folder_path):
+            # Skip the 'archive' folder and its subfolders
+            print(os.path.basename(root))
+            if os.path.basename(root) == 'archive':
+                dirs.clear()
+                continue
+
+            # Calculate the relative path within the 'archive' folder
+            relative_path = os.path.relpath(root, folder_path)
+            destination_path = os.path.join(archive_subfolder, relative_path)
+
+            # Create the destination folder if it doesn't exist
+            if not os.path.exists(destination_path):
+                os.makedirs(destination_path)
+
+            # Copy files to the destination folder
+            for file in files:
+                source_file_path = os.path.join(root, file)
+                destination_file_path = os.path.join(destination_path, file)
+                shutil.move(source_file_path, destination_file_path)
+        print(f"Contents of {folder_path} moved to {archive_subfolder}")
+
 
     def OnClose(self, e):
         self.Destroy()
@@ -932,20 +1079,20 @@ class file_download_dialog(wx.Dialog):
             folders_overwrite.append(remote_path + "graphs")
         # set if overwrite is ticked
         if self.cb_overwrite.GetValue() == True:
-            print(" OVERWRITING FILES")
+            #print(" OVERWRITING FILES")
             folders_overwrite = folders_overwrite + self.user_folders_to_download
             extra_files_over = []
             extra_files = self.user_files_to_download
         else:
-            print(" NOT OVERWRITING FILES")
+            #print(" NOT OVERWRITING FILES")
             folders_newonly = folders_newonly + self.user_folders_to_download
             extra_files_over = self.user_files_to_download
             extra_files = []
         #
-        if len(extra_files) > 0 or len(extra_files_over) > 0:
-            print(" HAS USER FILES TO DOWNLOAD!!!! ")
-        if len(self.user_folders_to_download) > 0:
-            print(" HAS USER FOLDERS TO DOWNLOAD!!!! ")
+        #if len(extra_files) > 0 or len(extra_files_over) > 0:
+        #    print(" HAS USER FILES TO DOWNLOAD!!!! ")
+        #if len(self.user_folders_to_download) > 0:
+        #    print(" HAS USER FOLDERS TO DOWNLOAD!!!! ")
 
         # only run if something to download
         if not len(folders_overwrite) == 0 or not len(extra_files_over) == 0:
