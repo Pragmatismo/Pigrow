@@ -205,6 +205,29 @@ class endgrow_dialog(wx.Dialog):
         # draw the pannel
         label = wx.StaticText(self,  label='Archive and Start New Grow')
 
+        # archive
+        n_label = wx.StaticText(self,  label='Archive name')
+        self.name_tc = wx.TextCtrl(self, value=self.get_name(), size=(200,30))
+        n_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        n_sizer.Add(n_label, 0,  wx.ALL, 3)
+        n_sizer.Add(self.name_tc, 0,  wx.ALL, 3)
+
+
+
+        a_label = wx.StaticText(self,  label='Copy to archive;')
+        self.cb_caps = wx.CheckBox(self, label='caps')
+        self.cb_logs = wx.CheckBox(self, label='Logs')
+        self.cb_conf = wx.CheckBox(self, label='Config')
+        self.cb_caps.SetValue(True)
+        self.cb_logs.SetValue(True)
+        self.cb_conf.SetValue(True)
+        arc_sizer = wx.BoxSizer(wx.VERTICAL)
+        arc_sizer.Add(a_label, 0,  wx.ALL, 3)
+        arc_sizer.Add(self.cb_caps, 0,  wx.LEFT, 50)
+        arc_sizer.Add(self.cb_logs, 0,  wx.LEFT, 50)
+        arc_sizer.Add(self.cb_conf, 0,  wx.LEFT, 50)
+
+
         #buttons
         self.go_btn = wx.Button(self, label='Start New Grow', size=(175, 50))
         self.go_btn.Bind(wx.EVT_BUTTON, self.go_click)
@@ -218,13 +241,28 @@ class endgrow_dialog(wx.Dialog):
         self.main_sizer = wx.BoxSizer(wx.VERTICAL)
         self.main_sizer.Add(label, 0, wx.ALL|wx.EXPAND, 5)
         self.main_sizer.AddStretchSpacer(1)
+        self.main_sizer.Add(n_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
+        self.main_sizer.Add(arc_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
         self.main_sizer.AddStretchSpacer(1)
         self.main_sizer.Add(buttons_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
         self.SetSizer(self.main_sizer)
 
+    def get_name(self):
+        current_date = datetime.datetime.now()
+        name = 'ending-' + str(current_date.year) + current_date.strftime('%b').lower() + str(current_date.day)
+        return name
+
 
     def go_click(self, e):
         print("sorry this button does nothing.")
+        # copy files to archive
+        arccaps = self.cb_caps.GetValue()
+        arclogs = self.cb_logs.GetValue()
+        arcconf = self.cb_conf.GetValue()
+        if arccaps == True or arclogs == True or arcconf == True:
+            arc_name = self.name_tc.GetValue()
+        # clear files from pi and local storage
+        # tell user the out come
 
     def OnClose(self, e):
         self.Destroy()
