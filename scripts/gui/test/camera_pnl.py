@@ -182,8 +182,9 @@ class ctrl_pnl(scrolled.ScrolledPanel):
         self.parent.link_pnl.update_config_file_on_pi(conf_text, c_save_path)
         print(" Saved ", c_save_path, " to pi")
 
-    def read_cam_config_click(self, e):
-        self.seek_cam_configs()
+    def read_cam_config_click(self, e, select=False):
+        if select==False:
+            self.seek_cam_configs()
         conf_path = self.parent.dict_I_pnl['camera_pnl'].camconf_path_tc.GetValue()
         if conf_path == "":
             print(" - No camera config file selected")
@@ -281,11 +282,11 @@ class ctrl_pnl(scrolled.ScrolledPanel):
      # Image Area Display
      #     now in I_pnl
 
-#    def clear_picture_area(self):
-#        children = MainApp.camconf_info_pannel.picture_sizer.GetChildren()
-#        for child in children:
-#            item = child.GetWindow()
-#            item.Destroy()
+    #def clear_picture_area(self):
+    #    children = MainApp.camconf_info_pannel.picture_sizer.GetChildren()
+    #    for child in children:
+    #        item = child.GetWindow()
+    #        item.Destroy()
 
     # Take Image
 
@@ -511,7 +512,7 @@ class info_pnl(scrolled.ScrolledPanel):
 
     def camconf_select(self, e):
         c_pnl = self.parent.dict_C_pnl['camera_pnl']
-        c_pnl.read_cam_config_click(None)
+        c_pnl.read_cam_config_click(None, select=True)
 
     def show_image_onscreen(self, img_path, label):
         #
