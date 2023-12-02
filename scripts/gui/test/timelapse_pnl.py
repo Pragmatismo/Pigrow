@@ -15,9 +15,9 @@ class ctrl_pnl(wx.Panel):
         open_caps_folder_btn = wx.Button(self, label='Open Caps Folder')
         open_caps_folder_btn.Bind(wx.EVT_BUTTON, self.open_caps_folder_click)
         select_set_btn = wx.Button(self, label='Select\nCaps Set')
-        select_set_btn.Bind(wx.EVT_BUTTON, self.select_new_caps_set_click)
+        select_set_btn.Bind(wx.EVT_BUTTON, self.select_caps_set_click)
         select_folder_btn = wx.Button(self, label='Select\nCaps Folder')
-        select_folder_btn.Bind(wx.EVT_BUTTON, self.select_new_caps_folder_click)
+        select_folder_btn.Bind(wx.EVT_BUTTON, self.select_caps_folder_click)
         p_sel_sizer = wx.BoxSizer(wx.HORIZONTAL)
         p_sel_sizer.Add(select_set_btn, 0, wx.ALL, 3)
         p_sel_sizer.Add(select_folder_btn, 0, wx.ALL, 3)
@@ -65,11 +65,34 @@ class ctrl_pnl(wx.Panel):
         # MainApp.timelapse_info_pannel.set_last_image(filename)
         # MainApp.timelapse_ctrl_pannel.calculate_frames_click("e")
 
-    def select_new_caps_set_click(self, e):
-        print("does nothing")
+    def select_caps_set_click(self, e):
+        new_cap_path = self.caps_file_dialog()
 
-    def select_new_caps_folder_click(self, e):
-        print("does nothing")
+        cap_dir = os.path.split(new_cap_path)
+        cap_set = cap_dir[1].split("_")[0]  # Used to select set if more than one are present
+        cap_type = cap_dir[1].split('.')[1]
+        cap_dir = cap_dir[0]
+        print(" Selected " + cap_dir + " with capset; " + cap_set + " filetype; " + cap_type)
+        self.open_caps_folder(cap_dir, cap_type, cap_set)
+
+    def select_caps_folder_click(self, e):
+        new_cap_path = self.caps_file_dialog()
+        
+        cap_dir = os.path.split(new_cap_path)
+        cap_type = cap_dir[1].split('.')[1]
+        cap_dir = cap_dir[0]
+        print(" Selected " + cap_dir + " filetype; " + cap_type)
+        self.open_caps_folder(cap_dir, cap_type, cap_set=None)
+
+    def caps_file_dialog(self):
+        wildcard = "JPG and PNG files (*.jpg;*.png)|*.jpg;*.png|GIF files (*.gif)|*.gif"
+        defdir = self.parent.shared_data.frompi_path
+        openFileDialog = wx.FileDialog(self, "Select caps folder", defaultDir=defdir, wildcard=wildcard, style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST)
+        openFileDialog.SetMessage("Select an image from the set you want to import")
+        if openFileDialog.ShowModal() == wx.ID_CANCEL:
+            return 'none'
+        new_cap_path = openFileDialog.GetPath()
+        return new_cap_path
 
 class info_pnl(wx.Panel):
     #
