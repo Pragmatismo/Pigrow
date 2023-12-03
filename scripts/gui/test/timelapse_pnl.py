@@ -1,9 +1,9 @@
 import wx
 import os
+import datetime
 
 
 class ctrl_pnl(wx.Panel):
-    #
     #
     def __init__( self, parent ):
         self.parent = parent
@@ -32,7 +32,6 @@ class ctrl_pnl(wx.Panel):
         self.SetSizer(main_sizer)
 
     def open_caps_folder_click(self, e):
-        print("does nothing")
         # opens the caps folder and finds all images
         frompi_path = self.parent.shared_data.frompi_path
         cap_dir = os.path.join(frompi_path, 'caps')
@@ -49,21 +48,30 @@ class ctrl_pnl(wx.Panel):
                 else: #when using all images in the folder regardless of the set
                     self.cap_file_paths.append(file_path)
         self.cap_file_paths.sort()
-        if len(self.cap_file_paths) > 0:
-            print("Found; ", len(self.cap_file_paths), " image files, starting at ", self.cap_file_paths[0])
-        else:
+        if not len(self.cap_file_paths) > 0:
             print("No caps files found in ", cap_dir)
+        else:
+            print("Found; ", len(self.cap_file_paths), " image files, starting at ", self.cap_file_paths[0])
 
-        # # fill the infomation boxes
-        # MainApp.timelapse_info_pannel.images_found_info.SetLabel(str(len(MainApp.timelapse_ctrl_pannel.cap_file_paths)))
-        # # set first and last images
-        # MainApp.timelapse_info_pannel.first_frame_no.ChangeValue("1")
-        # MainApp.timelapse_info_pannel.last_frame_no.ChangeValue(str(len(MainApp.timelapse_ctrl_pannel.cap_file_paths)))
+            # # fill the infomation boxes
+            i_pnl = self.parent.dict_I_pnl['timelapse_pnl']
+
+            # # set first and last images
+            i_pnl.first_frame_no.ChangeValue("1")
+            i_pnl.set_first_image(1)
+
+            l_img_num = len(self.cap_file_paths) - 1
+            i_pnl.last_frame_no.ChangeValue(str(l_img_num))
+            i_pnl.set_last_image(l_img_num)
+
         # filename = MainApp.timelapse_ctrl_pannel.cap_file_paths[0]
         # MainApp.timelapse_info_pannel.set_first_image(filename)
         # filename = MainApp.timelapse_ctrl_pannel.cap_file_paths[-1]
         # MainApp.timelapse_info_pannel.set_last_image(filename)
         # MainApp.timelapse_ctrl_pannel.calculate_frames_click("e")
+
+
+        # MainApp.timelapse_info_pannel.images_found_info.SetLabel(str(len(MainApp.timelapse_ctrl_pannel.cap_file_paths)))
 
     def select_caps_set_click(self, e):
         new_cap_path = self.caps_file_dialog()
@@ -120,10 +128,9 @@ class info_pnl(wx.Panel):
             self.SetSizer(main_sizer)
 
         def make_image_box_sizer(self):
-
             blank_img = wx.Bitmap(400, 400)
             # first image box
-            self.first_img_l = wx.StaticText(self,  label='-first image- (date)')
+            self.first_img_l = wx.StaticText(self,  label='-first image- \n(date)')
             self.first_image = wx.BitmapButton(self, -1, blank_img, size=(400, 400))
             self.first_image.Bind(wx.EVT_BUTTON, self.first_image_click)
             first_prev_btn = wx.Button(self, label='<')
@@ -144,7 +151,7 @@ class info_pnl(wx.Panel):
             first_img_sizer.Add(first_ctrl_sizer, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
 
             # last image box
-            self.last_img_l = wx.StaticText(self,  label='-last image- (date)')
+            self.last_img_l = wx.StaticText(self,  label='-last image- \n(date)')
             self.last_image = wx.BitmapButton(self, -1, blank_img, size=(400, 400))
             self.last_image.Bind(wx.EVT_BUTTON, self.last_image_click)
             last_prev_btn = wx.Button(self, label='<')
@@ -170,6 +177,13 @@ class info_pnl(wx.Panel):
             img_box_sizer.Add(last_img_sizer, 0, wx.ALL, 5)
             return img_box_sizer
 
+        def set_first_image(self, frame):
+            image_path = self.c_pnl.cap_file_paths[frame]
+            filename, date = self.date_from_filename(image_path)
+            image_title = filename + "\n" + date.strftime('%Y-%m-%d %H:%M:%S')
+            self.first_img_l.SetLabel(image_title)
+
+
         def first_image_click(self, e):
             print("not coded to load image yet so will fail with unable to open")
             title = self.first_img_l.GetLabel()
@@ -185,6 +199,12 @@ class info_pnl(wx.Panel):
         def first_frame_change(self, e):
             print("does nothing")
 
+        def set_last_image(self, frame):
+            image_path = self.c_pnl.cap_file_paths[frame]
+            filename, date = self.date_from_filename(image_path)
+            image_title = filename + "\n" + date.strftime('%Y-%m-%d %H:%M:%S')
+            self.last_img_l.SetLabel(image_title)
+
         def last_image_click(self, e):
             print("not coded to load image yet so will fail with unable to open")
             title = self.last_img_l.GetLabel()
@@ -199,3 +219,30 @@ class info_pnl(wx.Panel):
 
         def last_frame_change(self, e):
             print("does nothing")
+
+        def date_from_filename(self, image_path):
+            # Extract the file name without extension and folders
+            s_file_name, file_extension = os.path.splitext(os.path.basename(image_path))
+            file_name = s_file_name + "." + file_extension
+
+            # Check if the file name contains an underscore
+            if '_' in file_name:
+                # Extract the last section after the final underscore
+                last_section = s_file_name.rsplit('_', 1)[-1]
+
+                # Try to parse the last section as a Linux epoch
+                try:
+                    epoch_time = int(last_section)
+                    date = datetime.datetime.utcfromtimestamp(epoch_time)
+                    return file_name, date
+                except ValueError:
+                    pass
+
+                # Try to parse the last section as a common date string
+                try:
+                    date = datetime.datetime.strptime(last_section, '%Y%m%d%H%M%S')
+                    return file_name, date
+                except ValueError:
+                    pass
+
+            return file_name, 'undetermined'
