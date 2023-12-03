@@ -77,7 +77,7 @@ class ctrl_pnl(wx.Panel):
 
     def select_caps_folder_click(self, e):
         new_cap_path = self.caps_file_dialog()
-        
+
         cap_dir = os.path.split(new_cap_path)
         cap_type = cap_dir[1].split('.')[1]
         cap_dir = cap_dir[0]
@@ -107,11 +107,95 @@ class info_pnl(wx.Panel):
             self.SetFont(shared_data.title_font)
             title_l = wx.StaticText(self,  label='Timelapse')
             self.SetFont(shared_data.sub_title_font)
-            page_sub_title =  wx.StaticText(self,  label='Assemble timelapse from captured images \n coming soon - use the one in the old gui for now')
+            page_sub_title = wx.StaticText(self,  label='Assemble timelapse from captured images \n coming soon - use the one in the old gui for now')
 
+            image_box_sizer = self.make_image_box_sizer()
             # Main Sizer
             main_sizer = wx.BoxSizer(wx.VERTICAL)
             main_sizer.Add(title_l, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
             main_sizer.Add(page_sub_title, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
-            #main_sizer.AddStretchSpacer(1)
+            main_sizer.AddStretchSpacer(1)
+            main_sizer.Add(image_box_sizer, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
+            main_sizer.AddStretchSpacer(1)
             self.SetSizer(main_sizer)
+
+        def make_image_box_sizer(self):
+
+            blank_img = wx.Bitmap(400, 400)
+            # first image box
+            self.first_img_l = wx.StaticText(self,  label='-first image- (date)')
+            self.first_image = wx.BitmapButton(self, -1, blank_img, size=(400, 400))
+            self.first_image.Bind(wx.EVT_BUTTON, self.first_image_click)
+            first_prev_btn = wx.Button(self, label='<')
+            first_prev_btn.Bind(wx.EVT_BUTTON, self.first_prev_click)
+            self.first_frame_no = wx.TextCtrl(self, style=wx.TE_CENTRE)
+            self.first_frame_no.Bind(wx.EVT_TEXT, self.first_frame_change)
+            first_next_btn = wx.Button(self, label='>')
+            first_next_btn.Bind(wx.EVT_BUTTON, self.first_next_click)
+
+            first_ctrl_sizer = wx.BoxSizer(wx.HORIZONTAL)
+            first_ctrl_sizer.Add(first_prev_btn, 0, wx.ALL, 5)
+            first_ctrl_sizer.Add(self.first_frame_no, 0, wx.ALL, 5)
+            first_ctrl_sizer.Add(first_next_btn, 0, wx.ALL, 5)
+
+            first_img_sizer = wx.BoxSizer(wx.VERTICAL)
+            first_img_sizer.Add(self.first_img_l, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
+            first_img_sizer.Add(self.first_image, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
+            first_img_sizer.Add(first_ctrl_sizer, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
+
+            # last image box
+            self.last_img_l = wx.StaticText(self,  label='-last image- (date)')
+            self.last_image = wx.BitmapButton(self, -1, blank_img, size=(400, 400))
+            self.last_image.Bind(wx.EVT_BUTTON, self.last_image_click)
+            last_prev_btn = wx.Button(self, label='<')
+            last_prev_btn.Bind(wx.EVT_BUTTON, self.last_prev_click)
+            self.last_frame_no = wx.TextCtrl(self, style=wx.TE_CENTRE)
+            self.last_frame_no.Bind(wx.EVT_TEXT, self.last_frame_change)
+            last_next_btn = wx.Button(self, label='>')
+            last_next_btn.Bind(wx.EVT_BUTTON, self.last_next_click)
+
+            last_ctrl_sizer = wx.BoxSizer(wx.HORIZONTAL)
+            last_ctrl_sizer.Add(last_prev_btn, 0, wx.ALL, 5)
+            last_ctrl_sizer.Add(self.last_frame_no, 0, wx.ALL, 5)
+            last_ctrl_sizer.Add(last_next_btn, 0, wx.ALL, 5)
+
+            last_img_sizer = wx.BoxSizer(wx.VERTICAL)
+            last_img_sizer.Add(self.last_img_l, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
+            last_img_sizer.Add(self.last_image, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
+            last_img_sizer.Add(last_ctrl_sizer, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
+
+            # image box sizer
+            img_box_sizer = wx.BoxSizer(wx.HORIZONTAL)
+            img_box_sizer.Add(first_img_sizer, 0, wx.ALL, 5)
+            img_box_sizer.Add(last_img_sizer, 0, wx.ALL, 5)
+            return img_box_sizer
+
+        def first_image_click(self, e):
+            print("not coded to load image yet so will fail with unable to open")
+            title = self.first_img_l.GetLabel()
+            image_to_show = ""
+            self.parent.shared_data.show_image_dialog(self, image_to_show, title)
+
+        def first_prev_click(self, e):
+            print("does nothing")
+
+        def first_next_click(self, e):
+            print("does nothing")
+
+        def first_frame_change(self, e):
+            print("does nothing")
+
+        def last_image_click(self, e):
+            print("not coded to load image yet so will fail with unable to open")
+            title = self.last_img_l.GetLabel()
+            image_to_show = ""
+            self.parent.shared_data.show_image_dialog(self, image_to_show, title)
+
+        def last_prev_click(self, e):
+            print("does nothing")
+
+        def last_next_click(self, e):
+            print("does nothing")
+
+        def last_frame_change(self, e):
+            print("does nothing")
