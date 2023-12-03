@@ -57,21 +57,17 @@ class ctrl_pnl(wx.Panel):
             i_pnl = self.parent.dict_I_pnl['timelapse_pnl']
 
             # # set first and last images
-            i_pnl.first_frame_no.ChangeValue("1")
-            i_pnl.set_first_image(1)
+            i_pnl.first_frame_no.ChangeValue("0")
+            i_pnl.set_first_image(0)
 
             l_img_num = len(self.cap_file_paths) - 1
             i_pnl.last_frame_no.ChangeValue(str(l_img_num))
             i_pnl.set_last_image(l_img_num)
 
-        # filename = MainApp.timelapse_ctrl_pannel.cap_file_paths[0]
-        # MainApp.timelapse_info_pannel.set_first_image(filename)
-        # filename = MainApp.timelapse_ctrl_pannel.cap_file_paths[-1]
-        # MainApp.timelapse_info_pannel.set_last_image(filename)
-        # MainApp.timelapse_ctrl_pannel.calculate_frames_click("e")
+
+        ### info box and frame calculation
 
 
-        # MainApp.timelapse_info_pannel.images_found_info.SetLabel(str(len(MainApp.timelapse_ctrl_pannel.cap_file_paths)))
 
     def select_caps_set_click(self, e):
         new_cap_path = self.caps_file_dialog()
@@ -176,7 +172,7 @@ class info_pnl(wx.Panel):
             img_box_sizer.Add(first_img_sizer, 0, wx.ALL, 5)
             img_box_sizer.Add(last_img_sizer, 0, wx.ALL, 5)
             return img_box_sizer
-
+        # first image box controls
         def set_first_image(self, frame):
             image_path = self.c_pnl.cap_file_paths[frame]
             filename, date = self.date_from_filename(image_path)
@@ -191,14 +187,33 @@ class info_pnl(wx.Panel):
             self.parent.shared_data.show_image_dialog(self, image_to_show, title)
 
         def first_prev_click(self, e):
-            print("does nothing")
+            number = int(self.first_frame_no.GetValue())
+            if number > 0:
+                number = number - 1
+            self.first_frame_no.SetValue(str(number))
 
         def first_next_click(self, e):
-            print("does nothing")
+            number = int(self.first_frame_no.GetValue())
+            total_images = len(self.c_pnl.cap_file_paths) - 1
+            if number < total_images:
+                number = number + 1
+            self.first_frame_no.SetValue(str(number))
 
         def first_frame_change(self, e):
-            print("does nothing")
+            frame_num = self.first_frame_no.GetValue()
+            try:
+                frame_num = int(frame_num)
+            except:
+                return None
 
+            max_num = len(self.c_pnl.cap_file_paths) - 1
+            if frame_num > max_num:
+                self.first_frame_no.SetValue(str(max_num))
+                frame_num = max_num
+            self.set_first_image(frame_num)
+
+
+        # last image box controls
         def set_last_image(self, frame):
             image_path = self.c_pnl.cap_file_paths[frame]
             filename, date = self.date_from_filename(image_path)
@@ -212,14 +227,35 @@ class info_pnl(wx.Panel):
             self.parent.shared_data.show_image_dialog(self, image_to_show, title)
 
         def last_prev_click(self, e):
-            print("does nothing")
+            number = int(self.last_frame_no.GetValue())
+            if number > 0:
+                number = number - 1
+            self.last_frame_no.SetValue(str(number))
 
         def last_next_click(self, e):
-            print("does nothing")
+            try:
+                number = int(self.last_frame_no.GetValue())
+            except:
+                return None
+            total_images = len(self.c_pnl.cap_file_paths) - 1
+            if number < total_images:
+                number = number + 1
+            self.last_frame_no.SetValue(str(number))
 
         def last_frame_change(self, e):
-            print("does nothing")
+            frame_num = self.last_frame_no.GetValue()
+            try:
+                frame_num = int(frame_num)
+            except:
+                return None
+            
+            max_num = len(self.c_pnl.cap_file_paths) - 1
+            if frame_num > max_num:
+                self.last_frame_no.SetValue(str(max_num))
+                frame_num = max_num
+            self.set_last_image(frame_num)
 
+        # filename tools
         def date_from_filename(self, image_path):
             # Extract the file name without extension and folders
             s_file_name, file_extension = os.path.splitext(os.path.basename(image_path))
