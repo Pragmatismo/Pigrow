@@ -102,15 +102,16 @@ class info_pnl(wx.Panel):
     #
         def __init__( self, parent ):
             self.parent = parent
-            shared_data = parent.shared_data
+            self.shared_data = parent.shared_data
             self.c_pnl = parent.dict_C_pnl['timelapse_pnl']
             w = 1000
+            self.pic_size = 500
             wx.Panel.__init__ ( self, parent, size = (w,-1), id = wx.ID_ANY, style = wx.TAB_TRAVERSAL )
 
             # Tab Title
-            self.SetFont(shared_data.title_font)
+            self.SetFont(self.shared_data.title_font)
             title_l = wx.StaticText(self,  label='Timelapse')
-            self.SetFont(shared_data.sub_title_font)
+            self.SetFont(self.shared_data.sub_title_font)
             page_sub_title = wx.StaticText(self,  label='Assemble timelapse from captured images \n coming soon - use the one in the old gui for now')
 
             image_box_sizer = self.make_image_box_sizer()
@@ -124,10 +125,10 @@ class info_pnl(wx.Panel):
             self.SetSizer(main_sizer)
 
         def make_image_box_sizer(self):
-            blank_img = wx.Bitmap(400, 400)
+            blank_img = wx.Bitmap(self.pic_size, self.pic_size)
             # first image box
             self.first_img_l = wx.StaticText(self,  label='-first image- \n(date)')
-            self.first_image = wx.BitmapButton(self, -1, blank_img, size=(400, 400))
+            self.first_image = wx.BitmapButton(self, -1, blank_img, size=(self.pic_size, self.pic_size))
             self.first_image.Bind(wx.EVT_BUTTON, self.first_image_click)
             first_prev_btn = wx.Button(self, label='<')
             first_prev_btn.Bind(wx.EVT_BUTTON, self.first_prev_click)
@@ -148,7 +149,7 @@ class info_pnl(wx.Panel):
 
             # last image box
             self.last_img_l = wx.StaticText(self,  label='-last image- \n(date)')
-            self.last_image = wx.BitmapButton(self, -1, blank_img, size=(400, 400))
+            self.last_image = wx.BitmapButton(self, -1, blank_img, size=(self.pic_size, self.pic_size))
             self.last_image.Bind(wx.EVT_BUTTON, self.last_image_click)
             last_prev_btn = wx.Button(self, label='<')
             last_prev_btn.Bind(wx.EVT_BUTTON, self.last_prev_click)
@@ -179,12 +180,27 @@ class info_pnl(wx.Panel):
             image_title = filename + "\n" + date.strftime('%Y-%m-%d %H:%M:%S')
             self.first_img_l.SetLabel(image_title)
 
+            try:
+                self.first_ani_pic = wx.Image(image_path, wx.BITMAP_TYPE_ANY)
+                first = self.shared_data.scale_pic(self.first_ani_pic, self.pic_size)
+                first = first.ConvertToBitmap()
+                self.first_image.SetBitmap(first)
+            except:
+                print("!! First frame didn't work for timelapse tab.", filename)
+
 
         def first_image_click(self, e):
-            print("not coded to load image yet so will fail with unable to open")
+            frame_num = self.first_frame_no.GetValue()
+            try:
+                frame_num = int(frame_num)
+            except:
+                return None
+
+            image_path = self.c_pnl.cap_file_paths[frame_num]
             title = self.first_img_l.GetLabel()
-            image_to_show = ""
-            self.parent.shared_data.show_image_dialog(self, image_to_show, title)
+            dbox = self.shared_data.show_image_dialog(None, image_path, title)
+            dbox.ShowModal()
+            dbox.Destroy()
 
         def first_prev_click(self, e):
             number = int(self.first_frame_no.GetValue())
@@ -220,11 +236,26 @@ class info_pnl(wx.Panel):
             image_title = filename + "\n" + date.strftime('%Y-%m-%d %H:%M:%S')
             self.last_img_l.SetLabel(image_title)
 
+            try:
+                self.last_ani_pic = wx.Image(image_path, wx.BITMAP_TYPE_ANY)
+                first = self.shared_data.scale_pic(self.last_ani_pic, self.pic_size)
+                first = first.ConvertToBitmap()
+                self.last_image.SetBitmap(first)
+            except:
+                print("!! Last frame didn't work for timelapse tab.", filename)
+
         def last_image_click(self, e):
-            print("not coded to load image yet so will fail with unable to open")
-            title = self.last_img_l.GetLabel()
-            image_to_show = ""
-            self.parent.shared_data.show_image_dialog(self, image_to_show, title)
+            frame_num = self.last_frame_no.GetValue()
+            try:
+                frame_num = int(frame_num)
+            except:
+                return None
+
+            image_path = self.c_pnl.cap_file_paths[frame_num]
+            title = self.first_img_l.GetLabel()
+            dbox = self.shared_data.show_image_dialog(None, image_path, title)
+            dbox.ShowModal()
+            dbox.Destroy()
 
         def last_prev_click(self, e):
             number = int(self.last_frame_no.GetValue())
@@ -248,7 +279,7 @@ class info_pnl(wx.Panel):
                 frame_num = int(frame_num)
             except:
                 return None
-            
+
             max_num = len(self.c_pnl.cap_file_paths) - 1
             if frame_num > max_num:
                 self.last_frame_no.SetValue(str(max_num))
@@ -259,7 +290,7 @@ class info_pnl(wx.Panel):
         def date_from_filename(self, image_path):
             # Extract the file name without extension and folders
             s_file_name, file_extension = os.path.splitext(os.path.basename(image_path))
-            file_name = s_file_name + "." + file_extension
+            file_name = s_file_name + file_extension
 
             # Check if the file name contains an underscore
             if '_' in file_name:
