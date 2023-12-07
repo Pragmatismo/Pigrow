@@ -66,6 +66,7 @@ class ctrl_pnl(wx.Panel):
 
 
         ### info box and frame calculation
+        i_pnl.set_img_box()
 
 
 
@@ -115,6 +116,16 @@ class info_pnl(wx.Panel):
             page_sub_title = wx.StaticText(self,  label='Assemble timelapse from captured images \n coming soon - use the one in the old gui for now')
 
             image_box_sizer = self.make_image_box_sizer()
+            info_sizer = self.make_info_sizer()
+            graph_sizer = self.make_graph_sizer()
+
+            lower_sizer = wx.BoxSizer(wx.HORIZONTAL)
+            lower_sizer.AddStretchSpacer(1)
+            lower_sizer.Add(info_sizer, 0, wx.ALL| wx.ALIGN_CENTER_VERTICAL, 5)
+            lower_sizer.AddStretchSpacer(1)
+            lower_sizer.Add(graph_sizer, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
+            lower_sizer.AddStretchSpacer(1)
+
             # Main Sizer
             main_sizer = wx.BoxSizer(wx.VERTICAL)
             main_sizer.Add(title_l, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
@@ -122,7 +133,58 @@ class info_pnl(wx.Panel):
             main_sizer.AddStretchSpacer(1)
             main_sizer.Add(image_box_sizer, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
             main_sizer.AddStretchSpacer(1)
+            main_sizer.Add(lower_sizer, 0, wx.EXPAND, 5)
+            main_sizer.AddStretchSpacer(1)
             self.SetSizer(main_sizer)
+
+        def make_graph_sizer(self):
+            self.SetFont(self.shared_data.sub_title_font)
+            graph_l = wx.StaticText(self,  label='Graph goes here')
+
+            graph_sizer = wx.BoxSizer(wx.VERTICAL)
+            graph_sizer.Add(graph_l, 0, wx.ALL |  wx.ALIGN_CENTER_HORIZONTAL, 5)
+            return graph_sizer
+
+
+        def make_info_sizer(self):
+            # image set info
+            self.SetFont(self.shared_data.sub_title_font)
+            img_set_l = wx.StaticText(self,  label='Image Set Info')
+
+            self.SetFont(self.shared_data.item_title_font)
+            set_count_l = wx.StaticText(self,  label='Images found ')
+            self.SetFont(self.shared_data.info_font)
+            self.set_count_t = wx.StaticText(self,  label='')
+            set_panel_sizer = wx.GridSizer(2, 2, 2, 2)
+            set_panel_sizer.AddMany([(set_count_l, 0, wx.ALL),
+                (self.set_count_t, 0, wx.EXPAND)])
+
+            # animation info
+            ani_info_l = wx.StaticText(self,  label='Animation Info')
+            self.SetFont(self.shared_data.item_title_font)
+            frame_count_l = wx.StaticText(self,  label='Frame Count  ')
+            self.SetFont(self.shared_data.info_font)
+            self.frame_count_t = wx.StaticText(self,  label='')
+            self.SetFont(self.shared_data.item_title_font)
+            duration_l = wx.StaticText(self,  label='Duration  ')
+            self.SetFont(self.shared_data.info_font)
+            self.duration_t = wx.StaticText(self,  label='')
+
+            ani_panel_sizer = wx.GridSizer(3, 2, 2, 2)
+            ani_panel_sizer.AddMany([(frame_count_l, 0, wx.ALL),
+                (self.frame_count_t, 0, wx.EXPAND),
+                (duration_l, 0, wx.ALL),
+                (self.duration_t, 0, wx.EXPAND),])
+
+            info_sizer = wx.BoxSizer(wx.VERTICAL)
+            info_sizer.AddStretchSpacer(1)
+            info_sizer.Add(img_set_l, 0, wx.BOTTOM, 10)
+            info_sizer.Add(set_panel_sizer, 0, wx.LEFT | wx.EXPAND, 25)
+            info_sizer.AddStretchSpacer(1)
+            info_sizer.Add(ani_info_l, 0, wx.BOTTOM, 10)
+            info_sizer.Add(ani_panel_sizer, 0, wx.LEFT | wx.EXPAND, 25)
+            info_sizer.AddStretchSpacer(1)
+            return info_sizer
 
         def make_image_box_sizer(self):
             blank_img = wx.Bitmap(self.pic_size, self.pic_size)
@@ -173,6 +235,22 @@ class info_pnl(wx.Panel):
             img_box_sizer.Add(first_img_sizer, 0, wx.ALL, 5)
             img_box_sizer.Add(last_img_sizer, 0, wx.ALL, 5)
             return img_box_sizer
+
+        # info box controls
+        def set_img_box(self):
+            # image set info
+            set_count = len(self.c_pnl.cap_file_paths)
+            self.set_count_t.SetLabel(str(set_count))
+
+            #ani info
+            ani_frame_count = "not coded"
+            duration = "not coded"
+            self.frame_count_t.SetLabel(str(ani_frame_count))
+            self.duration_t.SetLabel(str(duration))
+
+            self.Layout()
+
+
         # first image box controls
         def set_first_image(self, frame):
             image_path = self.c_pnl.cap_file_paths[frame]
@@ -187,7 +265,6 @@ class info_pnl(wx.Panel):
                 self.first_image.SetBitmap(first)
             except:
                 print("!! First frame didn't work for timelapse tab.", filename)
-
 
         def first_image_click(self, e):
             frame_num = self.first_frame_no.GetValue()
