@@ -49,8 +49,10 @@ class shared_data:
         self.ui_img_path = os.path.join(self.cwd, "ui_images")
         self.graph_modules_path = os.path.join(self.cwd, "graph_modules")
         self.sensor_modules_path = os.path.join(self.cwd, "sensor_modules")
+        self.timelapse_modules_path = os.path.join(self.cwd, "timelapse_modules")
         sys.path.append(self.graph_modules_path)
         sys.path.append(self.sensor_modules_path)
+        sys.path.append(self.timelapse_modules_path)
         self.graph_presets_path = os.path.join(self.cwd, "graph_presets")
         self.datawall_presets_path = os.path.join(self.cwd, "datawall_presets")
         #

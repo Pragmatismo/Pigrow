@@ -1,0 +1,12 @@
+
+Frame selection mode 
+------------------------------------ 
+
+this is supplied a list of file paths and the number of frames to pick from (e.g. use every 2nd, 3rd, 4th frame) the frame selection mode determines how the image is picked so as to avoid flickering or bad images. The basic modes in the prior gui do this using filesize, selecting the closest to the average, closest to a rolling average, and picking the largest file. Having modular tools here will allow us to experiment with new methods easily and try out things like actual image analysis. 
+
+Modes will be detected automatically by the GUI if they follow the this naming pattern; 
+     selmode_<NAME>.py 
+     
+They should include a function called trim_list which accepts a list of file paths and a number then returns a trimmed list. 
+
+

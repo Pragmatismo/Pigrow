@@ -1,5 +1,6 @@
 import wx
 import os
+import sys
 import datetime
 
 
@@ -22,15 +23,86 @@ class ctrl_pnl(wx.Panel):
         p_sel_sizer.Add(select_set_btn, 0, wx.ALL, 3)
         p_sel_sizer.Add(select_folder_btn, 0, wx.ALL, 3)
         ##
-
+        framese_l = wx.StaticText(self,  label='Frame Select')
+        frame_sel_sizer = self.make_frame_select_sizer()
+        vid_set_sizer   = self.make_vid_set_sizer()
         ## Main Sizer
         main_sizer = wx.BoxSizer(wx.VERTICAL)
+        #main_sizer.AddStretchSpacer(1)
         main_sizer.Add(path_l, 0, wx.ALL, 5)
         main_sizer.Add(open_caps_folder_btn, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
         main_sizer.Add(p_sel_sizer, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
-        #main_sizer.AddStretchSpacer(1)
+        main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(framese_l, 0, wx.ALL, 5)
+        main_sizer.Add(frame_sel_sizer, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
+        main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(vid_set_sizer, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
+        main_sizer.AddStretchSpacer(1)
         self.SetSizer(main_sizer)
 
+    def make_frame_select_sizer(self):
+        # use every nth frame
+        use_every_l = wx.StaticText(self,  label='Use every')
+        self.use_every_tc = wx.TextCtrl(self)
+        use_e_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        use_e_sizer.Add(use_every_l, 0, wx.ALL, 5)
+        use_e_sizer.Add(self.use_every_tc, 0, wx.ALL, 5)
+        # selection method
+        sel_mode_opts = self.get_sel_mode_opts()
+        self.sel_mode_cb = wx.ComboBox(self, choices = sel_mode_opts)
+        self.sel_mode_cb.SetValue("strict")
+        #self.sel_mode_cb.Bind(wx.EVT_COMBOBOX, self.)
+        # last n time period selection
+        time_lim_l = wx.StaticText(self,  label='laat')
+        self.time_lim_tc = wx.TextCtrl(self)
+        time_limit_opts = ["all", "hours", "days", "weeks", "months" ]
+        self.time_lim_cb = wx.ComboBox(self, choices = time_limit_opts)
+        time_lim_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        time_lim_sizer.Add(time_lim_l, 0, wx.ALL, 5)
+        time_lim_sizer.Add(self.time_lim_tc, 0, wx.ALL, 5)
+        time_lim_sizer.Add(self.time_lim_cb, 0, wx.ALL, 5)
+        # min file size
+        min_size_l = wx.StaticText(self,  label='Min file size')
+        self.min_size_tc = wx.TextCtrl(self)
+        min_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        min_sizer.Add(min_size_l, 0, wx.ALL, 5)
+        min_sizer.Add(self.min_size_tc, 0, wx.ALL, 5)
+
+        max_size_l = wx.StaticText(self,  label='Max file size')
+        self.max_size_tc = wx.TextCtrl(self)
+        max_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        max_sizer.Add(max_size_l, 0, wx.ALL, 5)
+        max_sizer.Add(self.max_size_tc, 0, wx.ALL, 5)
+        # calc frames button
+        calc_frames_btn = wx.Button(self, label='Calculate Frames')
+        calc_frames_btn.Bind(wx.EVT_BUTTON, self.calc_frames_click)
+
+        # frame select sizer
+        frame_sel_sizer = wx.BoxSizer(wx.VERTICAL)
+        frame_sel_sizer.Add(use_e_sizer, 0, wx.ALL, 5)
+        frame_sel_sizer.Add(self.sel_mode_cb, 0, wx.ALIGN_RIGHT, 5)
+        frame_sel_sizer.Add(time_lim_sizer, 0, wx.ALL, 5)
+        frame_sel_sizer.Add(min_sizer, 0, wx.ALL, 1)
+        frame_sel_sizer.Add(max_sizer, 0, wx.ALL, 1)
+        frame_sel_sizer.Add(calc_frames_btn, 0, wx.ALIGN_RIGHT, 5)
+
+        return frame_sel_sizer
+
+    def get_sel_mode_opts(self):
+        sel_mode_opts = self.parent.shared_data.get_module_options("selmode_", "timelapse_modules")
+        return sel_mode_opts
+
+    def make_vid_set_sizer(self):
+        vid_set_l = wx.StaticText(self,  label='Video Settings')
+        # audio
+        # credits
+
+        vid_set_sizer = wx.BoxSizer(wx.VERTICAL)
+        vid_set_sizer.Add(vid_set_l, 0, wx.ALL, 5)
+
+        return vid_set_sizer
+
+    # caps folder
     def open_caps_folder_click(self, e):
         # opens the caps folder and finds all images
         frompi_path = self.parent.shared_data.frompi_path
@@ -68,8 +140,6 @@ class ctrl_pnl(wx.Panel):
         ### info box and frame calculation
         i_pnl.set_img_box()
 
-
-
     def select_caps_set_click(self, e):
         new_cap_path = self.caps_file_dialog()
 
@@ -99,6 +169,37 @@ class ctrl_pnl(wx.Panel):
         new_cap_path = openFileDialog.GetPath()
         return new_cap_path
 
+    # frame select
+
+    def calc_frames_click(self, e):
+        new_list = self.cap_file_paths.copy()
+
+        new_list = self.trim_nth(new_list)
+        print("new frame list length;", len(new_list))
+
+
+    def trim_nth(self, cap_list):
+        use_every = self.use_every_tc.GetValue()
+        try:
+            use_every = int(use_every)
+        except:
+            if not use_every == "":
+                print("Frame selection - Use Every value must be a number")
+            return cap_list
+        sel_mode = self.sel_mode_cb.GetValue()
+        module_name = "selmode_" + sel_mode
+        self.import_module(module_name, "selmode_tool")
+        new_list = selmode_tool.trim_list(cap_list, use_every)
+        return new_list
+
+
+    # module tools
+    def import_module(self, module_name, import_name):
+        print(" Importing module; " + module_name)
+        if module_name in sys.modules:
+            del sys.modules[module_name]
+        exec('import ' + module_name + ' as ' + import_name, globals())
+
 class info_pnl(wx.Panel):
     #
         def __init__( self, parent ):
@@ -111,9 +212,9 @@ class info_pnl(wx.Panel):
 
             # Tab Title
             self.SetFont(self.shared_data.title_font)
-            title_l = wx.StaticText(self,  label='Timelapse')
+            title_l = wx.StaticText(self,  label='Timelapse \n coming soon - use the one in the old gui for now')
             self.SetFont(self.shared_data.sub_title_font)
-            page_sub_title = wx.StaticText(self,  label='Assemble timelapse from captured images \n coming soon - use the one in the old gui for now')
+            page_sub_title = wx.StaticText(self,  label='Assemble timelapse from captured images')
 
             image_box_sizer = self.make_image_box_sizer()
             info_sizer = self.make_info_sizer()
