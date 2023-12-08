@@ -53,10 +53,11 @@ class ctrl_pnl(wx.Panel):
         self.sel_mode_cb.SetValue("strict")
         #self.sel_mode_cb.Bind(wx.EVT_COMBOBOX, self.)
         # last n time period selection
-        time_lim_l = wx.StaticText(self,  label='laat')
+        time_lim_l = wx.StaticText(self,  label='last')
         self.time_lim_tc = wx.TextCtrl(self)
-        time_limit_opts = ["all", "hours", "days", "weeks", "months" ]
+        time_limit_opts = ["all", "hours", "days", "weeks", "months"]
         self.time_lim_cb = wx.ComboBox(self, choices = time_limit_opts)
+        self.time_lim_cb.SetValue("all")
         time_lim_sizer = wx.BoxSizer(wx.HORIZONTAL)
         time_lim_sizer.Add(time_lim_l, 0, wx.ALL, 5)
         time_lim_sizer.Add(self.time_lim_tc, 0, wx.ALL, 5)
@@ -174,6 +175,7 @@ class ctrl_pnl(wx.Panel):
     def calc_frames_click(self, e):
         new_list = self.cap_file_paths.copy()
 
+        new_list = self.limit_to_date(new_list)
         new_list = self.trim_nth(new_list)
         print("new frame list length;", len(new_list))
 
@@ -191,6 +193,46 @@ class ctrl_pnl(wx.Panel):
         self.import_module(module_name, "selmode_tool")
         new_list = selmode_tool.trim_list(cap_list, use_every)
         return new_list
+
+    def limit_to_date(self, cap_list):
+        lim_num = self.time_lim_tc.GetValue()
+        lim_txt = self.time_lim_cb.GetValue()
+        if lim_txt == "all":
+            return cap_list
+        if lim_num == "":
+            lim_num = 1
+            self.time_lim_tc.SetValue("1")
+
+        try:
+            lim_num = int(lim_num)
+        except:
+            return cap_list
+
+        # Set cutoff datetime
+        if lim_txt == "days":
+            datecheck = datetime.timedelta(days=lim_num)
+        elif lim_txt == "hours":
+            datecheck=datetime.timedelta(hours=lim_num)
+        elif lim_txt == "weeks":
+            datecheck=datetime.timedelta(weeks=lim_num)
+        elif lim_txt == "months":
+            datecheck=datetime.timedelta(weeks=lim_num*4)
+        else:
+            print(" !!!! Error in trim list by date checkbox, unknown value selected")
+            return cap_list
+        start_point_cutoff = datetime.datetime.now() - datecheck
+        print("Cut off time for animation set to -", start_point_cutoff)
+
+        # trim list to after start point
+        i_pnl = self.parent.dict_I_pnl['timelapse_pnl']
+        list_trimmed_by_startpoint = []
+        for item in cap_list:
+            filename, pic_time = i_pnl.date_from_filename(item)
+            if pic_time >= start_point_cutoff:
+                list_trimmed_by_startpoint.append(item)
+
+        print("date trimmed list; list now " + str(len(list_trimmed_by_startpoint)) + " frames long")
+        return list_trimmed_by_startpoint
 
 
     # module tools
