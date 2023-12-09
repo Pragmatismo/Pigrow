@@ -69,11 +69,6 @@ class ctrl_pnl(wx.Panel):
         min_sizer.Add(min_size_l, 0, wx.ALL, 5)
         min_sizer.Add(self.min_size_tc, 0, wx.ALL, 5)
 
-        max_size_l = wx.StaticText(self,  label='Max file size')
-        self.max_size_tc = wx.TextCtrl(self)
-        max_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        max_sizer.Add(max_size_l, 0, wx.ALL, 5)
-        max_sizer.Add(self.max_size_tc, 0, wx.ALL, 5)
         # calc frames button
         calc_frames_btn = wx.Button(self, label='Calculate Frames')
         calc_frames_btn.Bind(wx.EVT_BUTTON, self.calc_frames_click)
@@ -84,7 +79,6 @@ class ctrl_pnl(wx.Panel):
         frame_sel_sizer.Add(self.sel_mode_cb, 0, wx.ALIGN_RIGHT, 5)
         frame_sel_sizer.Add(time_lim_sizer, 0, wx.ALL, 5)
         frame_sel_sizer.Add(min_sizer, 0, wx.ALL, 1)
-        frame_sel_sizer.Add(max_sizer, 0, wx.ALL, 1)
         frame_sel_sizer.Add(calc_frames_btn, 0, wx.ALIGN_RIGHT, 5)
 
         return frame_sel_sizer
@@ -176,6 +170,7 @@ class ctrl_pnl(wx.Panel):
         new_list = self.cap_file_paths.copy()
 
         new_list = self.limit_to_date(new_list)
+        new_list = self.limit_to_size(new_list)
         new_list = self.trim_nth(new_list)
         print("new frame list length;", len(new_list))
 
@@ -233,6 +228,23 @@ class ctrl_pnl(wx.Panel):
 
         print("date trimmed list; list now " + str(len(list_trimmed_by_startpoint)) + " frames long")
         return list_trimmed_by_startpoint
+
+    def limit_to_size(self, cap_list):
+        min_size = self.min_size_tc.GetValue()
+        try:
+            min_size = int(min_size)
+        except:
+            if not min_size == "":
+                print("Frame selection - Min Size value must be a number")
+            return cap_list
+
+        newly_trimmed_list = []
+        for file in cap_list:
+            filesize = os.path.getsize(file)
+            if filesize > int(min_size):
+                newly_trimmed_list.append(file)
+        print("Timelapse min filesize trimmed list to:", len(newly_trimmed_list))
+        return newly_trimmed_list
 
 
     # module tools
