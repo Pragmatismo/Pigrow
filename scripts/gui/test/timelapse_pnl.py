@@ -26,6 +26,8 @@ class ctrl_pnl(wx.Panel):
         framese_l = wx.StaticText(self,  label='Frame Select')
         frame_sel_sizer = self.make_frame_select_sizer()
         vid_set_sizer   = self.make_vid_set_sizer()
+        render_l = wx.StaticText(self,  label='Render')
+        render_sizer    = self.make_render_sizer()
         ## Main Sizer
         main_sizer = wx.BoxSizer(wx.VERTICAL)
         #main_sizer.AddStretchSpacer(1)
@@ -38,7 +40,40 @@ class ctrl_pnl(wx.Panel):
         main_sizer.AddStretchSpacer(1)
         main_sizer.Add(vid_set_sizer, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
         main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(render_l, 0, wx.ALL, 5)
+        main_sizer.Add(render_sizer, 0, wx.EXPAND, 5)
+        main_sizer.AddStretchSpacer(1)
         self.SetSizer(main_sizer)
+
+    def make_render_sizer(self):
+        fps_l = wx.StaticText(self,  label='FPS')
+        self.fps_tc = wx.TextCtrl(self)
+        self.fps_tc.SetValue("25")
+        fps_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        fps_sizer.Add(fps_l, 0, wx.ALL, 2)
+        fps_sizer.Add(self.fps_tc, 0, wx.ALL, 2)
+
+        outfile_l = wx.StaticText(self,  label='Outfile')
+        default_path = os.path.join(self.parent.shared_data.frompi_base_path, "timelapse.mp4")
+        self.outfile_tc = wx.TextCtrl(self)
+        self.outfile_tc.SetValue(default_path)
+        set_outfile_btn = wx.Button(self, label='...', size=(35,29))
+        set_outfile_btn.Bind(wx.EVT_BUTTON, self.set_outfile_click)
+        outfile_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        outfile_sizer.Add(outfile_l, 0, wx.ALL, 2)
+        outfile_sizer.Add(self.outfile_tc, 40, wx.EXPAND, 2)
+        outfile_sizer.Add(set_outfile_btn, 0, wx.ALL, 2)
+
+        render_btn = wx.Button(self, label='Render')
+        render_btn.Bind(wx.EVT_BUTTON, self.render_click)
+
+        render_sizer = wx.BoxSizer(wx.VERTICAL)
+        render_sizer.Add(fps_sizer, 0, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 2)
+        render_sizer.Add(outfile_sizer, 0, wx.ALL | wx.EXPAND, 2)
+        render_sizer.Add(render_btn, 0, wx.ALL | wx.EXPAND, 2)
+
+        return render_sizer
+
 
     def make_frame_select_sizer(self):
         # use every nth frame
@@ -157,6 +192,8 @@ class ctrl_pnl(wx.Panel):
     def caps_file_dialog(self):
         wildcard = "JPG and PNG files (*.jpg;*.png)|*.jpg;*.png|GIF files (*.gif)|*.gif"
         defdir = self.parent.shared_data.frompi_path
+        if defdir == "":
+            defdir = self.parent.shared_data.frompi_base_path
         openFileDialog = wx.FileDialog(self, "Select caps folder", defaultDir=defdir, wildcard=wildcard, style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST)
         openFileDialog.SetMessage("Select an image from the set you want to import")
         if openFileDialog.ShowModal() == wx.ID_CANCEL:
@@ -172,8 +209,7 @@ class ctrl_pnl(wx.Panel):
         new_list = self.limit_to_date(new_list)
         new_list = self.limit_to_size(new_list)
         new_list = self.trim_nth(new_list)
-        print("new frame list length;", len(new_list))
-
+        print("New frame list length;", len(new_list))
 
     def trim_nth(self, cap_list):
         use_every = self.use_every_tc.GetValue()
@@ -226,7 +262,7 @@ class ctrl_pnl(wx.Panel):
             if pic_time >= start_point_cutoff:
                 list_trimmed_by_startpoint.append(item)
 
-        print("date trimmed list; list now " + str(len(list_trimmed_by_startpoint)) + " frames long")
+        #print("date trimmed list; list now " + str(len(list_trimmed_by_startpoint)) + " frames long")
         return list_trimmed_by_startpoint
 
     def limit_to_size(self, cap_list):
@@ -243,8 +279,31 @@ class ctrl_pnl(wx.Panel):
             filesize = os.path.getsize(file)
             if filesize > int(min_size):
                 newly_trimmed_list.append(file)
-        print("Timelapse min filesize trimmed list to:", len(newly_trimmed_list))
+        #print("Timelapse min filesize trimmed list to:", len(newly_trimmed_list))
         return newly_trimmed_list
+
+    # renderer
+
+    def set_outfile_click(self, e):
+        outfile = self.select_outfile()
+        if not outfile == "none":
+            self.outfile_tc.SetValue(outfile)
+
+    def select_outfile(self):
+        wildcard = "Video files (*.mp4;*.avi;*.mkv;*.flv;*.mov;*.webm)|*.mp4;*.avi;*.mkv;*.flv;*.mov;*.webm|All files (*.*)|*.*"
+        local_path = self.parent.shared_data.frompi_path
+        if local_path == "":
+            local_path = self.parent.shared_data.frompi_base_path
+        default_path = os.path.join(local_path, "timelapse.mp4")
+        openFileDialog = wx.FileDialog(self, "Select output file", "", default_path, wildcard, wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT)
+        openFileDialog.SetMessage("Select the outfile for the video file")
+        if openFileDialog.ShowModal() == wx.ID_CANCEL:
+            return 'none'
+        outfile = openFileDialog.GetPath()
+        return outfile
+
+    def render_click(self, e):
+        print("not rendering anything for anyone, sorry, sucks if you set it all up :( use the old gui")
 
 
     # module tools
