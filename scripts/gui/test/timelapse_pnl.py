@@ -25,6 +25,7 @@ class ctrl_pnl(wx.Panel):
         ##
         framese_l = wx.StaticText(self,  label='Frame Select')
         frame_sel_sizer = self.make_frame_select_sizer()
+        vid_set_l = wx.StaticText(self,  label='Video Settings')
         vid_set_sizer   = self.make_vid_set_sizer()
         render_l = wx.StaticText(self,  label='Render')
         render_sizer    = self.make_render_sizer()
@@ -38,7 +39,8 @@ class ctrl_pnl(wx.Panel):
         main_sizer.Add(framese_l, 0, wx.ALL, 5)
         main_sizer.Add(frame_sel_sizer, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
         main_sizer.AddStretchSpacer(1)
-        main_sizer.Add(vid_set_sizer, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
+        main_sizer.Add(vid_set_l, 0, wx.ALL, 5)
+        main_sizer.Add(vid_set_sizer, 0, wx.EXPAND, 5)
         main_sizer.AddStretchSpacer(1)
         main_sizer.Add(render_l, 0, wx.ALL, 5)
         main_sizer.Add(render_sizer, 0, wx.EXPAND, 5)
@@ -78,7 +80,6 @@ class ctrl_pnl(wx.Panel):
         render_sizer.Add(butts_sizer, 0, wx.ALL | wx.EXPAND, 2)
 
         return render_sizer
-
 
     def make_frame_select_sizer(self):
         # use every nth frame
@@ -128,12 +129,30 @@ class ctrl_pnl(wx.Panel):
         return sel_mode_opts
 
     def make_vid_set_sizer(self):
-        vid_set_l = wx.StaticText(self,  label='Video Settings')
-        # audio
-        # credits
 
+        # audio
+        audio_l = wx.StaticText(self,  label='Audio')
+        self.audio_tc = wx.TextCtrl(self)
+        audio_btn = wx.Button(self, label='...', size=(35,29))
+        audio_btn.Bind(wx.EVT_BUTTON, self.audio_click)
+        audio_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        audio_sizer.Add(audio_l, 0, wx.ALL, 2)
+        audio_sizer.Add(self.audio_tc, 40, wx.EXPAND, 2)
+        audio_sizer.Add(audio_btn, 0, wx.ALL, 2)
+
+        # credits
+        credits_l = wx.StaticText(self,  label='Credits')
+        credits_opts = ["none", "freeze_2"]
+        self.credits_cb = wx.ComboBox(self, choices = credits_opts)
+        self.credits_cb.SetValue("all")
+        credits_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        credits_sizer.Add(credits_l, 0, wx.ALL, 5)
+        credits_sizer.Add(self.credits_cb, 0, wx.ALL, 5)
+
+        # sizer
         vid_set_sizer = wx.BoxSizer(wx.VERTICAL)
-        vid_set_sizer.Add(vid_set_l, 0, wx.ALL, 5)
+        vid_set_sizer.Add(audio_sizer, 0, wx.EXPAND, 5)
+        vid_set_sizer.Add(credits_sizer, 0, wx.ALL, 5)
 
         return vid_set_sizer
 
@@ -209,11 +228,21 @@ class ctrl_pnl(wx.Panel):
     # frame select
 
     def calc_frames_click(self, e):
-        new_list = self.cap_file_paths.copy()
+        i_pnl = self.parent.dict_I_pnl['timelapse_pnl']
+        try:
+            start = int(i_pnl.first_frame_no.GetValue())
+            stop = int(i_pnl.last_frame_no.GetValue())
+        except:
+            print("Error - Timelapse - First and Last frame numbers not numbers!")
+            raise
+            return None
+
+        new_list = self.cap_file_paths[start:stop].copy()
 
         new_list = self.limit_to_date(new_list)
         new_list = self.limit_to_size(new_list)
         new_list = self.trim_nth(new_list)
+        self.trimmed_frame_list = new_list
         print("New frame list length;", len(new_list))
 
     def trim_nth(self, cap_list):
@@ -287,6 +316,30 @@ class ctrl_pnl(wx.Panel):
         #print("Timelapse min filesize trimmed list to:", len(newly_trimmed_list))
         return newly_trimmed_list
 
+    # video options
+
+    def audio_click(self, e):
+        audiofile = self.select_audiofile()
+        if not audiofile == "none":
+            self.audio_tc.SetValue(audiofile)
+
+    def select_audiofile(self):
+        audio_formats = "*.mp3;*.ogg;*.aac;*.flac;*.wav"
+        wildcard = f"Audio files ({audio_formats})|{audio_formats}|All files (*.*)|*.*"
+
+        local_path = self.parent.shared_data.frompi_path
+        if local_path == "":
+            local_path = self.parent.shared_data.frompi_base_path
+
+        openFileDialog = wx.FileDialog(self, "Select audio file", "", "", wildcard, wx.FD_OPEN | wx.FD_FILE_MUST_EXIST)
+        openFileDialog.SetMessage("Select the audio file for the video")
+
+        if openFileDialog.ShowModal() == wx.ID_CANCEL:
+            return 'none'
+        outfile = openFileDialog.GetPath()
+        return outfile
+
+
     # renderer
 
     def set_outfile_click(self, e):
@@ -308,7 +361,60 @@ class ctrl_pnl(wx.Panel):
         return outfile
 
     def render_click(self, e):
+        fps = self.fps_tc.GetValue()
+        outfile = self.outfile_tc.GetValue()
+        audiofile = self.audio_tc.GetValue()
         print("not rendering anything for anyone, sorry, sucks if you set it all up :( use the old gui")
+
+        listfile, frame_count = self.make_frame_list()
+        print("Created", listfile)
+
+        extra_commands = ""
+        if not audiofile == "":
+            #frame_count = len(self.trimmed_frame_list) + freeze_num
+            extra_commands += " --audiofile=\"" + audiofile + "\" --frames=" + str(frame_count)
+
+        print (" Making timelapse video...")
+        cmd = "mpv mf://@"+listfile+" --mf-fps="+str(fps)
+        cmd += " -o "+outfile+" " + extra_commands
+
+        print(" Running - " + cmd)
+        os.system(cmd)
+        print(" --- "+ outfile +" Done ---")
+
+    def make_frame_list(self, credit_style=""):
+        ''' write text file with a list of frames to use '''
+        credit_style = self.credits_cb.GetValue()
+        fps = self.fps_tc.GetValue()
+        local_path = self.parent.shared_data.frompi_path
+        if local_path == "":
+            local_path = self.parent.shared_data.frompi_base_path
+
+        temp_folder = os.path.join(local_path, "temp")
+        if not os.path.isdir(temp_folder):
+            os.makedirs(temp_folder)
+
+        frame_count = 0
+        listfile = os.path.join(temp_folder, "frame_list.txt")
+        frame_list_text_file = open(listfile, "w")
+        for cap_file in self.trimmed_frame_list:
+            frame_list_text_file.write(cap_file + "\n")
+            frame_count += 1
+
+        # credits
+        if "_" in credit_style:
+            credit_s = credit_style.split("_")
+            credit_style = credit_s[0]
+            credit_num   = credit_s[1]
+
+        if credit_style == "freeze":
+            freeze_num = int(fps) * int(credit_num)
+            for x in range(0, freeze_num):
+                frame_list_text_file.write(self.trimmed_frame_list[-1] + "\n")
+                frame_count += 1
+        frame_list_text_file.close()
+
+        return listfile, frame_count
 
     def play_click(self, e):
         outfile = self.outfile_tc.GetValue()
@@ -370,7 +476,6 @@ class info_pnl(wx.Panel):
             graph_sizer = wx.BoxSizer(wx.VERTICAL)
             graph_sizer.Add(graph_l, 0, wx.ALL |  wx.ALIGN_CENTER_HORIZONTAL, 5)
             return graph_sizer
-
 
         def make_info_sizer(self):
             # image set info
