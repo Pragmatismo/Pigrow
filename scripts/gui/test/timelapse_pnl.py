@@ -66,11 +66,16 @@ class ctrl_pnl(wx.Panel):
 
         render_btn = wx.Button(self, label='Render')
         render_btn.Bind(wx.EVT_BUTTON, self.render_click)
+        play_btn = wx.Button(self, label='Play')
+        play_btn.Bind(wx.EVT_BUTTON, self.play_click)
+        butts_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        butts_sizer.Add(render_btn, 4, wx.EXPAND, 2)
+        butts_sizer.Add(play_btn, 0, wx.ALL, 2)
 
         render_sizer = wx.BoxSizer(wx.VERTICAL)
         render_sizer.Add(fps_sizer, 0, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 2)
         render_sizer.Add(outfile_sizer, 0, wx.ALL | wx.EXPAND, 2)
-        render_sizer.Add(render_btn, 0, wx.ALL | wx.EXPAND, 2)
+        render_sizer.Add(butts_sizer, 0, wx.ALL | wx.EXPAND, 2)
 
         return render_sizer
 
@@ -305,6 +310,13 @@ class ctrl_pnl(wx.Panel):
     def render_click(self, e):
         print("not rendering anything for anyone, sorry, sucks if you set it all up :( use the old gui")
 
+    def play_click(self, e):
+        outfile = self.outfile_tc.GetValue()
+        if not os.path.isfile(outfile):
+            print("File ", outfile, "not found.")
+            return None
+        cmd = "mpv " + outfile
+        os.system(cmd)
 
     # module tools
     def import_module(self, module_name, import_name):
