@@ -443,7 +443,7 @@ class info_pnl(wx.Panel):
 
             # Tab Title
             self.SetFont(self.shared_data.title_font)
-            title_l = wx.StaticText(self,  label='Timelapse \n coming soon - use the one in the old gui for now')
+            title_l = wx.StaticText(self,  label='Timelapse')
             self.SetFont(self.shared_data.sub_title_font)
             page_sub_title = wx.StaticText(self,  label='Assemble timelapse from captured images')
 
@@ -493,19 +493,42 @@ class info_pnl(wx.Panel):
             # animation info
             ani_info_l = wx.StaticText(self,  label='Animation Info')
             self.SetFont(self.shared_data.item_title_font)
+            # frame count
             frame_count_l = wx.StaticText(self,  label='Frame Count  ')
             self.SetFont(self.shared_data.info_font)
             self.frame_count_t = wx.StaticText(self,  label='')
+            # duration
             self.SetFont(self.shared_data.item_title_font)
             duration_l = wx.StaticText(self,  label='Duration  ')
             self.SetFont(self.shared_data.info_font)
             self.duration_t = wx.StaticText(self,  label='')
+            # time period
+            self.SetFont(self.shared_data.item_title_font)
+            period_l = wx.StaticText(self,  label='Time period  ')
+            self.SetFont(self.shared_data.info_font)
+            self.period_t = wx.StaticText(self,  label='')
+            # ave interval
+            self.SetFont(self.shared_data.item_title_font)
+            interval_l = wx.StaticText(self,  label='Ave Interval  ')
+            self.SetFont(self.shared_data.info_font)
+            self.interval_t = wx.StaticText(self,  label='')
+            # speed factor
+            self.SetFont(self.shared_data.item_title_font)
+            speed_l = wx.StaticText(self,  label='Speed X  ')
+            self.SetFont(self.shared_data.info_font)
+            self.speed_t = wx.StaticText(self,  label='')
 
-            ani_panel_sizer = wx.GridSizer(3, 2, 2, 2)
+            ani_panel_sizer = wx.GridSizer(5, 2, 2, 2)
             ani_panel_sizer.AddMany([(frame_count_l, 0, wx.ALL),
                 (self.frame_count_t, 0, wx.EXPAND),
                 (duration_l, 0, wx.ALL),
-                (self.duration_t, 0, wx.EXPAND),])
+                (self.duration_t, 0, wx.EXPAND),
+                (period_l, 0, wx.ALL),
+                (self.period_t, 0, wx.EXPAND),
+                (interval_l, 0, wx.ALL),
+                (self.interval_t, 0, wx.EXPAND),
+                (speed_l, 0, wx.ALL),
+                (self.speed_t, 0, wx.EXPAND),])
 
             info_sizer = wx.BoxSizer(wx.VERTICAL)
             info_sizer.AddStretchSpacer(1)
@@ -573,8 +596,7 @@ class info_pnl(wx.Panel):
             set_count = len(self.c_pnl.cap_file_paths)
             self.set_count_t.SetLabel(str(set_count))
 
-            #ani info
-
+            # ani info
             trimmed_count = len(self.c_pnl.trimmed_frame_list)
             credit_style = self.c_pnl.credits_cb.GetValue()
             fps = self.c_pnl.fps_tc.GetValue()
@@ -595,9 +617,10 @@ class info_pnl(wx.Panel):
                     credit_num = 0
             else:
                 credit_num = 0
-
             credit_frame_count = (fps * credit_num)
             full_frame_count = trimmed_count + credit_frame_count
+
+            # set duration label
             if full_frame_count == 0 or fps == 0:
                 ani_length_sec = 0
             else:
@@ -607,11 +630,48 @@ class info_pnl(wx.Panel):
                 duration = duration.split(".")[0]
             self.duration_t.SetLabel(duration)
 
+            # set frame count
             frame_count_str = str(trimmed_count)
             if credit_frame_count > 0:
                 frame_count_str += "  +" + str(credit_frame_count)
             self.frame_count_t.SetLabel(frame_count_str)
 
+            # set time period of trimmed caps
+            if len(self.c_pnl.trimmed_frame_list) > 1:
+                f_image_path = self.c_pnl.trimmed_frame_list[0]
+                f_filename, f_date = self.date_from_filename(f_image_path)
+
+                l_image_path = self.c_pnl.trimmed_frame_list[-1]
+                l_filename, l_date = self.date_from_filename(l_image_path)
+
+                if not l_date == 'undetermined' and not f_date == 'undetermined':
+                    period_d = l_date - f_date
+                    period = str(period_d)
+                else:
+                    period = 'undetermined'
+                if "." in period:
+                    period = period.split(".")[0]
+            else:
+                period = "0"
+
+            self.period_t.SetLabel(str(period))
+
+            # average Interval lengh
+            t_period = l_date - f_date
+            t_per = t_period.total_seconds() / trimmed_count
+            t_per = str(datetime.timedelta(seconds=t_per))
+            if "." in t_per:
+                duration = t_per.split(".")[0]
+            self.interval_t.SetLabel(t_per)
+
+            # playback rate
+            real_capture_seconds     = period_d.total_seconds()
+            playback_outfile_seconds = ani_length_sec
+
+            playback_rate = round(real_capture_seconds / playback_outfile_seconds, 3)
+            self.speed_t.SetLabel(str(playback_rate))
+
+            # refresh layout
             self.Layout()
 
 
