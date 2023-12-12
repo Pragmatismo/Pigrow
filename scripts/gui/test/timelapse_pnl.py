@@ -192,7 +192,7 @@ class ctrl_pnl(wx.Panel):
 
 
         ### info box and frame calculation
-        i_pnl.set_img_box()
+        self.calc_frames_click(None)
 
     def select_caps_set_click(self, e):
         new_cap_path = self.caps_file_dialog()
@@ -243,7 +243,7 @@ class ctrl_pnl(wx.Panel):
         new_list = self.limit_to_size(new_list)
         new_list = self.trim_nth(new_list)
         self.trimmed_frame_list = new_list
-        print("New frame list length;", len(new_list))
+        i_pnl.set_img_box()
 
     def trim_nth(self, cap_list):
         use_every = self.use_every_tc.GetValue()
@@ -574,10 +574,40 @@ class info_pnl(wx.Panel):
             self.set_count_t.SetLabel(str(set_count))
 
             #ani info
-            ani_frame_count = "not coded"
-            duration = "not coded"
-            self.frame_count_t.SetLabel(str(ani_frame_count))
-            self.duration_t.SetLabel(str(duration))
+
+            trimmed_count = len(self.c_pnl.trimmed_frame_list)
+            credit_style = self.c_pnl.credits_cb.GetValue()
+            fps = self.c_pnl.fps_tc.GetValue()
+            try:
+                fps = int(fps)
+            except:
+                print("FPS not set, can't calcuate video length")
+                credit_style = ""
+                fps = 0
+
+            # add credit length to duration
+            if "_" in credit_style:
+                credit_s = credit_style.split("_")
+                credit_num = credit_s[1]
+                try:
+                    credit_num = int(credit_num)
+                except:
+                    credit_num = 0
+            else:
+                credit_num = 0
+
+            credit_frame_count = (fps * credit_num)
+            full_frame_count = trimmed_count + credit_frame_count
+            if full_frame_count == 0 or fps == 0:
+                ani_length_sec = 0
+            else:
+                ani_length_sec = full_frame_count / fps
+            self.duration_t.SetLabel(str(ani_length_sec) + " seconds")
+
+            frame_count_str = str(trimmed_count)
+            if credit_frame_count > 0:
+                frame_count_str += "  +" + str(credit_frame_count)
+            self.frame_count_t.SetLabel(frame_count_str)
 
             self.Layout()
 
