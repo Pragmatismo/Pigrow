@@ -602,7 +602,10 @@ class info_pnl(wx.Panel):
                 ani_length_sec = 0
             else:
                 ani_length_sec = full_frame_count / fps
-            self.duration_t.SetLabel(str(ani_length_sec) + " seconds")
+            duration = str(datetime.timedelta(seconds=ani_length_sec))
+            if "." in duration:
+                duration = duration.split(".")[0]
+            self.duration_t.SetLabel(duration)
 
             frame_count_str = str(trimmed_count)
             if credit_frame_count > 0:
