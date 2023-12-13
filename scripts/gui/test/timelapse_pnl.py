@@ -184,11 +184,11 @@ class ctrl_pnl(wx.Panel):
 
             # # set first and last images
             i_pnl.first_frame_no.ChangeValue("0")
-            i_pnl.set_first_image(0)
+            i_pnl.set_first_image(0, resize=True)
 
             l_img_num = len(self.cap_file_paths) - 1
             i_pnl.last_frame_no.ChangeValue(str(l_img_num))
-            i_pnl.set_last_image(l_img_num)
+            i_pnl.set_last_image(l_img_num, resize=True)
 
 
         ### info box and frame calculation
@@ -676,7 +676,7 @@ class info_pnl(wx.Panel):
 
 
         # first image box controls
-        def set_first_image(self, frame):
+        def set_first_image(self, frame, resize=False):
             image_path = self.c_pnl.cap_file_paths[frame]
             filename, date = self.date_from_filename(image_path)
             image_title = filename + "\n" + date.strftime('%Y-%m-%d %H:%M:%S')
@@ -689,6 +689,10 @@ class info_pnl(wx.Panel):
                 self.first_image.SetBitmap(first)
             except:
                 print("!! First frame didn't work for timelapse tab.", filename)
+
+            if resize == True:
+                self.first_image.SetMinSize(first.GetSize())
+                self.first_image.Layout()
 
         def first_image_click(self, e):
             frame_num = self.first_frame_no.GetValue()
@@ -731,7 +735,7 @@ class info_pnl(wx.Panel):
 
 
         # last image box controls
-        def set_last_image(self, frame):
+        def set_last_image(self, frame, resize=False):
             image_path = self.c_pnl.cap_file_paths[frame]
             filename, date = self.date_from_filename(image_path)
             image_title = filename + "\n" + date.strftime('%Y-%m-%d %H:%M:%S')
@@ -739,11 +743,15 @@ class info_pnl(wx.Panel):
 
             try:
                 self.last_ani_pic = wx.Image(image_path, wx.BITMAP_TYPE_ANY)
-                first = self.shared_data.scale_pic(self.last_ani_pic, self.pic_size)
-                first = first.ConvertToBitmap()
-                self.last_image.SetBitmap(first)
+                last = self.shared_data.scale_pic(self.last_ani_pic, self.pic_size)
+                last = last.ConvertToBitmap()
+                self.last_image.SetBitmap(last)
             except:
                 print("!! Last frame didn't work for timelapse tab.", filename)
+
+            if resize == True:
+                self.last_image.SetMinSize(last.GetSize())
+                self.last_image.Layout()
 
         def last_image_click(self, e):
             frame_num = self.last_frame_no.GetValue()
