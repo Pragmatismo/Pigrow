@@ -52,7 +52,7 @@ class ctrl_pnl(wx.Panel):
         self.fps_tc = wx.TextCtrl(self)
         self.fps_tc.SetValue("25")
         fps_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        fps_sizer.Add(fps_l, 0, wx.ALL, 2)
+        fps_sizer.Add(fps_l, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 2)
         fps_sizer.Add(self.fps_tc, 0, wx.ALL, 2)
 
         outfile_l = wx.StaticText(self,  label='Outfile')
@@ -62,9 +62,9 @@ class ctrl_pnl(wx.Panel):
         set_outfile_btn = wx.Button(self, label='...', size=(35,29))
         set_outfile_btn.Bind(wx.EVT_BUTTON, self.set_outfile_click)
         outfile_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        outfile_sizer.Add(outfile_l, 0, wx.ALL, 2)
+        outfile_sizer.Add(outfile_l, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 2)
         outfile_sizer.Add(self.outfile_tc, 40, wx.EXPAND, 2)
-        outfile_sizer.Add(set_outfile_btn, 0, wx.ALL, 2)
+        outfile_sizer.Add(set_outfile_btn, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 2)
 
         render_btn = wx.Button(self, label='Render')
         render_btn.Bind(wx.EVT_BUTTON, self.render_click)
@@ -86,8 +86,8 @@ class ctrl_pnl(wx.Panel):
         use_every_l = wx.StaticText(self,  label='Use every')
         self.use_every_tc = wx.TextCtrl(self)
         use_e_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        use_e_sizer.Add(use_every_l, 0, wx.ALL, 5)
-        use_e_sizer.Add(self.use_every_tc, 0, wx.ALL, 5)
+        use_e_sizer.Add(use_every_l, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
+        use_e_sizer.Add(self.use_every_tc, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
         # selection method
         sel_mode_opts = self.get_sel_mode_opts()
         self.sel_mode_cb = wx.ComboBox(self, choices = sel_mode_opts)
@@ -100,19 +100,24 @@ class ctrl_pnl(wx.Panel):
         self.time_lim_cb = wx.ComboBox(self, choices = time_limit_opts)
         self.time_lim_cb.SetValue("all")
         time_lim_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        time_lim_sizer.Add(time_lim_l, 0, wx.ALL, 5)
+        time_lim_sizer.Add(time_lim_l, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
         time_lim_sizer.Add(self.time_lim_tc, 0, wx.ALL, 5)
         time_lim_sizer.Add(self.time_lim_cb, 0, wx.ALL, 5)
         # min file size
         min_size_l = wx.StaticText(self,  label='Min file size')
         self.min_size_tc = wx.TextCtrl(self)
         min_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        min_sizer.Add(min_size_l, 0, wx.ALL, 5)
+        min_sizer.Add(min_size_l, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
         min_sizer.Add(self.min_size_tc, 0, wx.ALL, 5)
 
         # calc frames button
         calc_frames_btn = wx.Button(self, label='Calculate Frames')
         calc_frames_btn.Bind(wx.EVT_BUTTON, self.calc_frames_click)
+        self.calc_cb = wx.CheckBox(self, label='')
+        self.calc_cb.SetValue(True)
+        calc_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        calc_sizer.Add(calc_frames_btn, 0, wx.ALL, 2)
+        calc_sizer.Add(self.calc_cb, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 2)
 
         # frame select sizer
         frame_sel_sizer = wx.BoxSizer(wx.VERTICAL)
@@ -120,7 +125,7 @@ class ctrl_pnl(wx.Panel):
         frame_sel_sizer.Add(self.sel_mode_cb, 0, wx.ALIGN_RIGHT, 5)
         frame_sel_sizer.Add(time_lim_sizer, 0, wx.ALL, 5)
         frame_sel_sizer.Add(min_sizer, 0, wx.ALL, 1)
-        frame_sel_sizer.Add(calc_frames_btn, 0, wx.ALIGN_RIGHT, 5)
+        frame_sel_sizer.Add(calc_sizer, 0, wx.ALIGN_RIGHT, 5)
 
         return frame_sel_sizer
 
@@ -136,7 +141,7 @@ class ctrl_pnl(wx.Panel):
         audio_btn = wx.Button(self, label='...', size=(35,29))
         audio_btn.Bind(wx.EVT_BUTTON, self.audio_click)
         audio_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        audio_sizer.Add(audio_l, 0, wx.ALL, 2)
+        audio_sizer.Add(audio_l, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 2)
         audio_sizer.Add(self.audio_tc, 40, wx.EXPAND, 2)
         audio_sizer.Add(audio_btn, 0, wx.ALL, 2)
 
@@ -146,7 +151,7 @@ class ctrl_pnl(wx.Panel):
         self.credits_cb = wx.ComboBox(self, choices = credits_opts)
         self.credits_cb.SetValue("all")
         credits_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        credits_sizer.Add(credits_l, 0, wx.ALL, 5)
+        credits_sizer.Add(credits_l, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
         credits_sizer.Add(self.credits_cb, 0, wx.ALL, 5)
 
         # sizer
