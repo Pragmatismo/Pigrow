@@ -145,6 +145,11 @@ class ctrl_pnl(wx.Panel):
         sel_mode_opts = self.parent.shared_data.get_module_options("selmode_", "timelapse_modules")
         return sel_mode_opts
 
+    def get_credit_opts(self):
+        sel_credit_opts = self.parent.shared_data.get_module_options("credits_", "timelapse_modules")
+
+        return sel_credit_opts
+
     def make_vid_set_sizer(self):
 
         # audio
@@ -159,12 +164,17 @@ class ctrl_pnl(wx.Panel):
 
         # credits
         credits_l = wx.StaticText(self,  label='Credits')
-        credits_opts = ["none", "freeze_2"]
+        credits_opts = ["none", "freeze"] + self.get_credit_opts()
         self.credits_cb = wx.ComboBox(self, choices = credits_opts)
-        self.credits_cb.SetValue("all")
+        self.credits_cb.SetValue("none")
+        self.Bind(wx.EVT_COMBOBOX, self.list_val_changed, self.credits_cb)
+        self.credit_num_cb = wx.TextCtrl(self, size=(50, 29))
+        self.credit_num_cb.SetValue("2")
+        self.Bind(wx.EVT_TEXT, self.list_val_changed, self.credit_num_cb)
         credits_sizer = wx.BoxSizer(wx.HORIZONTAL)
         credits_sizer.Add(credits_l, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
-        credits_sizer.Add(self.credits_cb, 0, wx.ALL, 5)
+        credits_sizer.Add(self.credits_cb, 0, wx.ALL | wx.EXPAND, 5)
+        credits_sizer.Add(self.credit_num_cb, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
 
         # sizer
         vid_set_sizer = wx.BoxSizer(wx.VERTICAL)
@@ -385,7 +395,6 @@ class ctrl_pnl(wx.Panel):
         fps = self.fps_tc.GetValue()
         outfile = self.outfile_tc.GetValue()
         audiofile = self.audio_tc.GetValue()
-        print("not rendering anything for anyone, sorry, sucks if you set it all up :( use the old gui")
 
         listfile, frame_count = self.make_frame_list()
         print("Created", listfile)
@@ -406,6 +415,7 @@ class ctrl_pnl(wx.Panel):
     def make_frame_list(self, credit_style=""):
         ''' write text file with a list of frames to use '''
         credit_style = self.credits_cb.GetValue()
+        credit_num = int(self.credit_num_cb.GetValue())
         fps = self.fps_tc.GetValue()
         local_path = self.parent.shared_data.frompi_path
         if local_path == "":
@@ -423,19 +433,28 @@ class ctrl_pnl(wx.Panel):
             frame_count += 1
 
         # credits
-        if "_" in credit_style:
-            credit_s = credit_style.split("_")
-            credit_style = credit_s[0]
-            credit_num   = credit_s[1]
-
         if credit_style == "freeze":
             freeze_num = int(fps) * int(credit_num)
             for x in range(0, freeze_num):
                 frame_list_text_file.write(self.trimmed_frame_list[-1] + "\n")
                 frame_count += 1
+        elif not credit_style == "none":
+            credits_path_list = self.make_credits_from_module(credit_style, credit_num, self.trimmed_frame_list, fps, temp_folder)
+            for frame_path in credits_path_list:
+                frame_list_text_file.write(frame_path + "\n")
+                frame_count += 1
+
         frame_list_text_file.close()
 
         return listfile, frame_count
+
+    def make_credits_from_module(self, credit_style, credit_num, ani_frame_list, fps, temp_folder):
+        #credit_style, credit_num, self.trimmed_frame_list, fps, temp_folder
+        module_name = "credits_" + credit_style
+        self.import_module(module_name, "credits_tool")
+        credits_path_list = credits_tool.make_credits(credit_num, ani_frame_list, fps, temp_folder)
+        return credits_path_list
+
 
     def play_click(self, e):
         outfile = self.outfile_tc.GetValue()
@@ -649,15 +668,17 @@ class info_pnl(wx.Panel):
                 fps = 0
 
             # add credit length to duration
-            if "_" in credit_style:
-                credit_s = credit_style.split("_")
-                credit_num = credit_s[1]
+
+            credit_style = self.c_pnl.credits_cb.GetValue()
+            if credit_style == "none" or credit_style == "":
+                credit_num = 0
+            else:
+                credit_num = self.c_pnl.credit_num_cb.GetValue()
                 try:
                     credit_num = int(credit_num)
                 except:
                     credit_num = 0
-            else:
-                credit_num = 0
+
             credit_frame_count = (fps * credit_num)
             full_frame_count = trimmed_count + credit_frame_count
 
@@ -706,9 +727,12 @@ class info_pnl(wx.Panel):
             self.interval_t.SetLabel(t_per)
 
             # playback rate
+            if trimmed_count == 0 or fps == 0:
+                trim_length_sec = 0
+            else:
+                trim_length_sec = trimmed_count / fps
             real_capture_seconds     = period_d.total_seconds()
-            playback_outfile_seconds = ani_length_sec
-
+            playback_outfile_seconds = trim_length_sec
             playback_rate = round(real_capture_seconds / playback_outfile_seconds, 3)
             self.speed_t.SetLabel(str(playback_rate))
 
