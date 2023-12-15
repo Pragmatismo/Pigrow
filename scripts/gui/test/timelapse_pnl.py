@@ -107,7 +107,7 @@ class ctrl_pnl(wx.Panel):
         self.time_lim_cb.SetValue("all")
         time_lim_sizer = wx.BoxSizer(wx.HORIZONTAL)
         time_lim_sizer.Add(time_lim_l, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
-        time_lim_sizer.Add(self.time_lim_tc, 0, wx.ALL, 5)
+        time_lim_sizer.Add(self.time_lim_tc, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
         time_lim_sizer.Add(self.time_lim_cb, 0, wx.ALL, 5)
         # min file size
         min_size_l = wx.StaticText(self,  label='Min file size')
@@ -461,7 +461,7 @@ class info_pnl(wx.Panel):
             w = 1000
             self.pic_size = 500
             wx.Panel.__init__ ( self, parent, size = (w,-1), id = wx.ID_ANY, style = wx.TAB_TRAVERSAL )
-
+            self.Bind(wx.EVT_SIZE, self.on_size)
             # Tab Title
             self.SetFont(self.shared_data.title_font)
             title_l = wx.StaticText(self,  label='Timelapse')
@@ -489,6 +489,26 @@ class info_pnl(wx.Panel):
             main_sizer.Add(lower_sizer, 0, wx.EXPAND, 5)
             main_sizer.AddStretchSpacer(1)
             self.SetSizer(main_sizer)
+
+        def on_size(self, e):
+            new_size = self.GetSize()
+            self.pic_size = int((new_size[0] / 2))
+
+            f_frame = self.first_frame_no.GetValue()
+            try:
+                f_frame = int(f_frame)
+                self.set_first_image(f_frame, resize=True)
+            except:
+                pass
+
+            l_frame = self.last_frame_no.GetValue()
+            try:
+                l_frame = int(l_frame)
+                self.set_last_image(l_frame, resize=True)
+            except:
+                pass
+
+            e.Skip()  # Allow the event to propagate
 
         def make_graph_sizer(self):
             self.SetFont(self.shared_data.sub_title_font)
