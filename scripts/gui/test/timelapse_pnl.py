@@ -84,20 +84,25 @@ class ctrl_pnl(wx.Panel):
     def make_frame_select_sizer(self):
         # use every nth frame
         use_every_l = wx.StaticText(self,  label='Use every')
+
         self.use_every_tc = wx.TextCtrl(self)
+        self.Bind(wx.EVT_TEXT, self.list_val_changed, self.use_every_tc)
         use_e_sizer = wx.BoxSizer(wx.HORIZONTAL)
         use_e_sizer.Add(use_every_l, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
         use_e_sizer.Add(self.use_every_tc, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
         # selection method
         sel_mode_opts = self.get_sel_mode_opts()
         self.sel_mode_cb = wx.ComboBox(self, choices = sel_mode_opts)
+        self.Bind(wx.EVT_COMBOBOX, self.list_val_changed, self.sel_mode_cb)
         self.sel_mode_cb.SetValue("strict")
         #self.sel_mode_cb.Bind(wx.EVT_COMBOBOX, self.)
         # last n time period selection
         time_lim_l = wx.StaticText(self,  label='last')
         self.time_lim_tc = wx.TextCtrl(self)
+        self.Bind(wx.EVT_TEXT, self.list_val_changed, self.time_lim_tc)
         time_limit_opts = ["all", "hours", "days", "weeks", "months"]
         self.time_lim_cb = wx.ComboBox(self, choices = time_limit_opts)
+        self.Bind(wx.EVT_COMBOBOX, self.list_val_changed, self.time_lim_cb)
         self.time_lim_cb.SetValue("all")
         time_lim_sizer = wx.BoxSizer(wx.HORIZONTAL)
         time_lim_sizer.Add(time_lim_l, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
@@ -106,6 +111,7 @@ class ctrl_pnl(wx.Panel):
         # min file size
         min_size_l = wx.StaticText(self,  label='Min file size')
         self.min_size_tc = wx.TextCtrl(self)
+        self.Bind(wx.EVT_TEXT, self.list_val_changed, self.min_size_tc)
         min_sizer = wx.BoxSizer(wx.HORIZONTAL)
         min_sizer.Add(min_size_l, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
         min_sizer.Add(self.min_size_tc, 0, wx.ALL, 5)
@@ -128,6 +134,11 @@ class ctrl_pnl(wx.Panel):
         frame_sel_sizer.Add(calc_sizer, 0, wx.ALIGN_RIGHT, 5)
 
         return frame_sel_sizer
+
+    def list_val_changed(self, e):
+        # Debounce the function by delaying its execution
+        if self.calc_cb.GetValue() == True:
+            wx.CallAfter(self.calc_frames_click)
 
     def get_sel_mode_opts(self):
         sel_mode_opts = self.parent.shared_data.get_module_options("selmode_", "timelapse_modules")
@@ -197,7 +208,8 @@ class ctrl_pnl(wx.Panel):
 
 
         ### info box and frame calculation
-        self.calc_frames_click(None)
+        if self.calc_cb.GetValue() == True:
+            self.calc_frames_click(None)
 
     def select_caps_set_click(self, e):
         new_cap_path = self.caps_file_dialog()
@@ -232,7 +244,7 @@ class ctrl_pnl(wx.Panel):
 
     # frame select
 
-    def calc_frames_click(self, e):
+    def calc_frames_click(self, e=None):
         i_pnl = self.parent.dict_I_pnl['timelapse_pnl']
         try:
             start = int(i_pnl.first_frame_no.GetValue())
