@@ -51,6 +51,7 @@ class ctrl_pnl(wx.Panel):
         fps_l = wx.StaticText(self,  label='FPS')
         self.fps_tc = wx.TextCtrl(self)
         self.fps_tc.SetValue("25")
+        self.Bind(wx.EVT_TEXT, self.list_val_changed, self.fps_tc)
         fps_sizer = wx.BoxSizer(wx.HORIZONTAL)
         fps_sizer.Add(fps_l, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 2)
         fps_sizer.Add(self.fps_tc, 0, wx.ALL, 2)
@@ -135,7 +136,7 @@ class ctrl_pnl(wx.Panel):
 
         return frame_sel_sizer
 
-    def list_val_changed(self, e):
+    def list_val_changed(self, e=None):
         # Debounce the function by delaying its execution
         if self.calc_cb.GetValue() == True:
             wx.CallAfter(self.calc_frames_click)
@@ -378,6 +379,9 @@ class ctrl_pnl(wx.Panel):
         return outfile
 
     def render_click(self, e):
+        if self.calc_cb.GetValue() == True:
+            self.calc_frames_click
+
         fps = self.fps_tc.GetValue()
         outfile = self.outfile_tc.GetValue()
         audiofile = self.audio_tc.GetValue()
@@ -730,12 +734,16 @@ class info_pnl(wx.Panel):
                 number = number - 1
             self.first_frame_no.SetValue(str(number))
 
+            self.c_pnl.list_val_changed()
+
         def first_next_click(self, e):
             number = int(self.first_frame_no.GetValue())
             total_images = len(self.c_pnl.cap_file_paths) - 1
             if number < total_images:
                 number = number + 1
             self.first_frame_no.SetValue(str(number))
+
+            self.c_pnl.list_val_changed()
 
         def first_frame_change(self, e):
             frame_num = self.first_frame_no.GetValue()
@@ -749,6 +757,8 @@ class info_pnl(wx.Panel):
                 self.first_frame_no.SetValue(str(max_num))
                 frame_num = max_num
             self.set_first_image(frame_num)
+
+            self.c_pnl.list_val_changed()
 
 
         # last image box controls
@@ -789,6 +799,8 @@ class info_pnl(wx.Panel):
                 number = number - 1
             self.last_frame_no.SetValue(str(number))
 
+            self.c_pnl.list_val_changed()
+
         def last_next_click(self, e):
             try:
                 number = int(self.last_frame_no.GetValue())
@@ -798,6 +810,8 @@ class info_pnl(wx.Panel):
             if number < total_images:
                 number = number + 1
             self.last_frame_no.SetValue(str(number))
+
+            self.c_pnl.list_val_changed()
 
         def last_frame_change(self, e):
             frame_num = self.last_frame_no.GetValue()
@@ -811,6 +825,8 @@ class info_pnl(wx.Panel):
                 self.last_frame_no.SetValue(str(max_num))
                 frame_num = max_num
             self.set_last_image(frame_num)
+
+            self.c_pnl.list_val_changed()
 
         # filename tools
         def date_from_filename(self, image_path):
