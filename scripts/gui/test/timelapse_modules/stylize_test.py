@@ -4,7 +4,8 @@ import os
 import math
 
 
-def stylize_set(ani_frame_list, out_folder):
+def stylize_set(ani_frame_list, out_folder, set_name, img_type="png"):
+    img_type = "png"
     image = Image.open(ani_frame_list[0])
     width, height = image.size
     carry_image = Image.new("RGBA", (width, height), (0, 0, 0, 0))
@@ -17,13 +18,13 @@ def stylize_set(ani_frame_list, out_folder):
         result_image = create_clock_slice(start_time, end_time, image_path)
 
         epoch_time = int(start_time.timestamp())
-        output_path = os.path.join(out_folder, f"clock_{epoch_time}.png")
+        output_path = os.path.join(out_folder, f"{set_name}_{epoch_time}.{img_type}")
 
 
         carry_image.paste(result_image, (0, 0), mask=result_image)
         carry_image.save(output_path)
 
-    return "Created set"
+    return "Created set", out_folder, set_name, img_type
 
 def create_clock_slice(start_time, end_time, image_path):
     # Load the image

@@ -991,6 +991,15 @@ class stylized_dialog(wx.Dialog):
         outfolder_sizer.Add(self.outfolder_tc, 40, wx.EXPAND, 2)
         outfolder_sizer.Add(self.set_outfolder_btn, 1, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 2)
 
+        # set name
+        self.setname_l = wx.StaticText(self,  label='Output folder')
+        self.setname_tc = wx.TextCtrl(self)
+        self.setname_tc.SetValue('stylized')
+        setname_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        setname_sizer.Add(self.setname_l, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 2)
+        setname_sizer.Add(self.setname_tc, 40, wx.EXPAND, 2)
+
+        # message while creating files
         self.create_l = wx.StaticText(self,  label='Creating Image Set in Progress...\nThis may take some time, please wait')
         self.create_l.Hide()
 
@@ -1011,6 +1020,7 @@ class stylized_dialog(wx.Dialog):
         self.main_sizer.Add(self.create_l, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 6)
         self.main_sizer.Add(module_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 6)
         self.main_sizer.Add(outfolder_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 6)
+        self.main_sizer.Add(setname_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 6)
         self.main_sizer.AddStretchSpacer(1)
         self.main_sizer.Add(buttons_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
         self.SetSizer(self.main_sizer)
@@ -1059,6 +1069,11 @@ class stylized_dialog(wx.Dialog):
                 print(f"Error creating folder '{out_folder}': {e}")
                 return None
 
+        set_name = self.setname_tc.GetValue()
+        if set_name == "":
+            return None
+        set_name = set_name.replace("_", "")
+
         self.outfolder_l.Hide()
         self.outfolder_tc.Hide()
         self.set_outfolder_btn.Hide()
@@ -1069,37 +1084,40 @@ class stylized_dialog(wx.Dialog):
         self.create_l.Show()
         self.Layout()
 
+        set_type = "jpg"
         delayedresult.startWorker(stylize_class._on_result,
                             self._run_stylize_set,
-                            wargs=(ani_frame_list, out_folder),
+                            wargs=(ani_frame_list, out_folder, set_name, set_type),
                             jobID=0)
 
 
-    def _run_stylize_set(self, ani_frame_list, out_folder):
-        stylize_class.out_folder = out_folder
-        stylize_output = stylize_tool.stylize_set(ani_frame_list, out_folder)
+    def _run_stylize_set(self, ani_frame_list, out_folder, set_name, img_type):
+        stylize_output, out_folder, set_name, img_type = stylize_tool.stylize_set(ani_frame_list, out_folder, set_name, img_type)
         print(stylize_output)
-        return [stylize_output, self]
+        return [stylize_output, out_folder, set_name, img_type, self]
 
     def _on_cancel(self):
-        print("CAAANNCCCEELLL REQUEST !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+        print("CAAANNCCCEELLL REQUEST !!!!!!!!!!!!!!!!!!!!!!!!!!(does nothing)!!!!!!!!!!!!!!!!!!!!!!!!!")
 
     def OnClose(self, e):
         self.Destroy()
 
 class stylize_class:
-    def __init__(self, parent, *args, **kw):
-        self.out_folder = ''
 
     def _on_result(result):
         '''Triggers once the stylized output tool is done'''
-        output, dlbox = result.get()
+        output, out_folder, set_name, img_type, dlbox = result.get()
 
-        dlog_msg = "Image set creation complete in folder\n" + str(stylize_class.out_folder)
-        dlog_msg += "\nDo you want to switch to the new set?"
+        set_o_name = set_name + "_<DATE>." + img_type
+        set_o_name = os.path.join(out_folder, set_o_name)
+
+        dlog_msg = "Image set creation completed\n\n" + str(set_o_name)
+        dlog_msg += "\n\nDo you want to switch to the new set?"
         confirm_dialog = wx.MessageDialog(None, dlog_msg, "Confirmation", wx.YES_NO | wx.ICON_QUESTION)
         if confirm_dialog.ShowModal() == wx.ID_YES:
             print("ha i'm not switching to the new image set lol LOL sorry")
+            c_pnl = dlbox.parent.parent.dict_C_pnl['timelapse_pnl']
+            c_pnl.open_caps_folder(out_folder, img_type, set_name)
         confirm_dialog.Destroy()
 
         if dlbox:
