@@ -1,5 +1,6 @@
 import wx
 import os
+import re
 import sys
 import datetime
 import wx.lib.delayedresult as delayedresult
@@ -992,7 +993,7 @@ class stylized_dialog(wx.Dialog):
         outfolder_sizer.Add(self.set_outfolder_btn, 1, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 2)
 
         # set name
-        self.setname_l = wx.StaticText(self,  label='Output folder')
+        self.setname_l = wx.StaticText(self,  label='img set name  ')
         self.setname_tc = wx.TextCtrl(self)
         self.setname_tc.SetValue('stylized')
         setname_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -1072,6 +1073,7 @@ class stylized_dialog(wx.Dialog):
         set_name = self.setname_tc.GetValue()
         if set_name == "":
             return None
+        set_name = re.sub(r'\W+', '', set_name)
         set_name = set_name.replace("_", "")
 
         self.outfolder_l.Hide()
@@ -1079,15 +1081,17 @@ class stylized_dialog(wx.Dialog):
         self.set_outfolder_btn.Hide()
         self.module_l.Hide()
         self.module_cb.Hide()
+        self.setname_l.Hide()
+        self.setname_tc.Hide()
         self.go_btn.Hide()
         self.cancel_btn.SetLabel("Run In Background")
         self.create_l.Show()
         self.Layout()
 
-        set_type = "jpg"
+        file_name, file_extension = os.path.splitext(ani_frame_list[0])
         delayedresult.startWorker(stylize_class._on_result,
                             self._run_stylize_set,
-                            wargs=(ani_frame_list, out_folder, set_name, set_type),
+                            wargs=(ani_frame_list, out_folder, set_name, file_extension),
                             jobID=0)
 
 
@@ -1115,7 +1119,6 @@ class stylize_class:
         dlog_msg += "\n\nDo you want to switch to the new set?"
         confirm_dialog = wx.MessageDialog(None, dlog_msg, "Confirmation", wx.YES_NO | wx.ICON_QUESTION)
         if confirm_dialog.ShowModal() == wx.ID_YES:
-            print("ha i'm not switching to the new image set lol LOL sorry")
             c_pnl = dlbox.parent.parent.dict_C_pnl['timelapse_pnl']
             c_pnl.open_caps_folder(out_folder, img_type, set_name)
         confirm_dialog.Destroy()
