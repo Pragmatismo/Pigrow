@@ -9,6 +9,7 @@ class ctrl_pnl(wx.Panel):
     def __init__( self, parent ):
         self.parent = parent
         shared_data = parent.shared_data
+        self.trimmed_frame_list = []
         wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, style = wx.TAB_TRAVERSAL )
         ## image set
         path_l = wx.StaticText(self,  label='Image Path')
@@ -29,6 +30,8 @@ class ctrl_pnl(wx.Panel):
         vid_set_sizer   = self.make_vid_set_sizer()
         render_l = wx.StaticText(self,  label='Render')
         render_sizer    = self.make_render_sizer()
+        imgset_l = wx.StaticText(self,  label='Create Image Set')
+        imgset_sizer    = self.make_imgset_sizer()
         ## Main Sizer
         main_sizer = wx.BoxSizer(wx.VERTICAL)
         #main_sizer.AddStretchSpacer(1)
@@ -44,6 +47,9 @@ class ctrl_pnl(wx.Panel):
         main_sizer.AddStretchSpacer(1)
         main_sizer.Add(render_l, 0, wx.ALL, 5)
         main_sizer.Add(render_sizer, 0, wx.EXPAND, 5)
+        main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(imgset_l, 0, wx.ALL, 5)
+        main_sizer.Add(imgset_sizer, 0, wx.EXPAND, 5)
         main_sizer.AddStretchSpacer(1)
         self.SetSizer(main_sizer)
 
@@ -151,7 +157,6 @@ class ctrl_pnl(wx.Panel):
         return sel_credit_opts
 
     def make_vid_set_sizer(self):
-
         # audio
         audio_l = wx.StaticText(self,  label='Audio')
         self.audio_tc = wx.TextCtrl(self)
@@ -182,6 +187,26 @@ class ctrl_pnl(wx.Panel):
         vid_set_sizer.Add(credits_sizer, 0, wx.ALL, 5)
 
         return vid_set_sizer
+
+    def make_imgset_sizer(self):
+
+        log_overlay_btn = wx.Button(self, label='Overlay Log')
+        log_overlay_btn.Bind(wx.EVT_BUTTON, self.log_overlay_click)
+
+        graph_overlay_btn = wx.Button(self, label='Overlay Graph')
+        graph_overlay_btn.Bind(wx.EVT_BUTTON, self.graph_overlay_click)
+
+        stylized_btn = wx.Button(self, label='Stylized Set')
+        stylized_btn.Bind(wx.EVT_BUTTON, self.stylized_click)
+
+        # sizer
+        imgset_sizer = wx.BoxSizer(wx.VERTICAL)
+        imgset_sizer.Add(log_overlay_btn, 0, wx.EXPAND, 5)
+        imgset_sizer.Add(graph_overlay_btn, 0, wx.EXPAND, 5)
+        imgset_sizer.Add(stylized_btn, 0, wx.EXPAND, 5)
+
+        return imgset_sizer
+
 
     # caps folder
     def open_caps_folder_click(self, e):
@@ -455,7 +480,6 @@ class ctrl_pnl(wx.Panel):
         credits_path_list = credits_tool.make_credits(credit_num, ani_frame_list, fps, temp_folder)
         return credits_path_list
 
-
     def play_click(self, e):
         outfile = self.outfile_tc.GetValue()
         if not os.path.isfile(outfile):
@@ -463,6 +487,20 @@ class ctrl_pnl(wx.Panel):
             return None
         cmd = "mpv " + outfile
         os.system(cmd)
+
+    # overlay
+
+    def log_overlay_click(self, e):
+        print("LOG OVERLAY DOES NOT EXIST YET")
+
+    def graph_overlay_click(self, e):
+        print("GRAPH OVERLAY CODE NOT WRITTEN YET")
+
+    def stylized_click(self, e):
+        if len(self.trimmed_frame_list) > 0:
+            style_dbox = stylized_dialog(self, self.parent)
+            style_dbox.ShowModal()
+            style_dbox.Destroy()
 
     # module tools
     def import_module(self, module_name, import_name):
@@ -486,6 +524,7 @@ class info_pnl(wx.Panel):
             title_l = wx.StaticText(self,  label='Timelapse')
             self.SetFont(self.shared_data.sub_title_font)
             page_sub_title = wx.StaticText(self,  label='Assemble timelapse from captured images')
+
 
             image_box_sizer = self.make_image_box_sizer()
             info_sizer = self.make_info_sizer()
@@ -899,3 +938,100 @@ class info_pnl(wx.Panel):
                     pass
 
             return file_name, 'undetermined'
+
+class stylized_dialog(wx.Dialog):
+    def __init__(self, parent, *args, **kw):
+        self.parent = parent
+        super(stylized_dialog, self).__init__(*args, **kw)
+        self.InitUI()
+        self.SetSize((600, 400))
+        self.SetTitle("Create Stylized Set")
+        self.Bind(wx.EVT_CLOSE, self.OnClose)
+
+    def InitUI(self):
+        # draw the pannel
+        self.SetFont(self.parent.parent.shared_data.title_font)
+        title = wx.StaticText(self,  label='Create Stylized Image Set')
+        self.SetFont(self.parent.parent.shared_data.sub_title_font)
+        sub_msg = "This will create a new image set\nby modifying the selected images"
+        sub_label = wx.StaticText(self,  label=sub_msg)
+
+        # module select
+        self.SetFont(self.parent.parent.shared_data.item_title_font)
+        module_l = wx.StaticText(self,  label='Stylizer Module')
+        module_opts = self.get_module_opts()
+        self.module_cb = wx.ComboBox(self, choices = module_opts)
+        self.module_cb.SetValue(module_opts[0])
+        module_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        module_sizer.Add(module_l, 1, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 2)
+        module_sizer.Add(self.module_cb, 2, wx.EXPAND, 2)
+
+        # out folder select
+        outfolder_l = wx.StaticText(self,  label='Output folder')
+        default_path = os.path.join(self.parent.parent.shared_data.frompi_base_path, "newset/")
+        self.outfolder_tc = wx.TextCtrl(self)
+        self.outfolder_tc.SetValue(default_path)
+        set_outfolder_btn = wx.Button(self, label='...', size=(35,29))
+        set_outfolder_btn.Bind(wx.EVT_BUTTON, self.set_outfolder_click)
+        outfolder_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        outfolder_sizer.Add(outfolder_l, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 2)
+        outfolder_sizer.Add(self.outfolder_tc, 40, wx.EXPAND, 2)
+        outfolder_sizer.Add(set_outfolder_btn, 1, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 2)
+
+        #buttons
+        self.go_btn = wx.Button(self, label='Create', size=(175, 50))
+        self.go_btn.Bind(wx.EVT_BUTTON, self.go_click)
+        self.cancel_btn = wx.Button(self, label='Cancel', size=(175, 50))
+        self.cancel_btn.Bind(wx.EVT_BUTTON, self.OnClose)
+        buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        buttons_sizer.Add(self.go_btn, 0,  wx.ALL, 3)
+        buttons_sizer.AddStretchSpacer(1)
+        buttons_sizer.Add(self.cancel_btn, 0,  wx.ALL, 3)
+        # main sizer
+        self.main_sizer = wx.BoxSizer(wx.VERTICAL)
+        self.main_sizer.Add(title, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
+        self.main_sizer.Add(sub_label, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
+        self.main_sizer.AddStretchSpacer(1)
+        self.main_sizer.Add(module_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 6)
+        self.main_sizer.Add(outfolder_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 6)
+        self.main_sizer.AddStretchSpacer(1)
+        self.main_sizer.Add(buttons_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
+        self.SetSizer(self.main_sizer)
+
+    def get_module_opts(self):
+        module_opts = self.parent.parent.shared_data.get_module_options("stylize_", "timelapse_modules")
+        return module_opts
+
+    def set_outfolder_click(self, e):
+        outfolder = self.select_image_folder()
+        if not outfolder == "none":
+            self.outfolder_tc.SetValue(outfolder)
+
+    def select_image_folder(self):
+        default_folder = self.parent.parent.shared_data.frompi_path
+        if default_folder == "":
+            default_folder = self.parent.parent.shared_data.frompi_base_path
+
+        dirDialog = wx.DirDialog(self, "Select image folder", defaultPath=default_folder, style=wx.DD_DEFAULT_STYLE | wx.DD_NEW_DIR_BUTTON)
+
+        if dirDialog.ShowModal() == wx.ID_CANCEL:
+            dirDialog.Destroy()
+            return 'none'
+
+        selected_folder = dirDialog.GetPath()
+        dirDialog.Destroy()
+        return selected_folder
+
+    def go_click(self, e):
+        ani_frame_list = self.parent.trimmed_frame_list
+        out_folder = self.outfolder_tc.GetValue()
+
+        module_name = self.module_cb.GetValue()
+        module_name = "stylize_" + module_name
+
+        self.parent.import_module(module_name, "stylize_tool")
+        stylize_output = stylize_tool.stylize_set(ani_frame_list, out_folder)
+        print(stylize_output)
+
+    def OnClose(self, e):
+        self.Destroy()
