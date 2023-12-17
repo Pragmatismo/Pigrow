@@ -2,7 +2,7 @@ import wx
 import os
 import sys
 import datetime
-
+import wx.lib.delayedresult as delayedresult
 
 class ctrl_pnl(wx.Panel):
     #
@@ -52,6 +52,12 @@ class ctrl_pnl(wx.Panel):
         main_sizer.Add(imgset_sizer, 0, wx.EXPAND, 5)
         main_sizer.AddStretchSpacer(1)
         self.SetSizer(main_sizer)
+
+    def style_set_go(self, e):
+        print("style set event triggered mean the style set creation is complete")
+        print("created set in", e.out_folder)
+        print("result output =". e.msg)
+
 
     def make_render_sizer(self):
         fps_l = wx.StaticText(self,  label='FPS')
@@ -498,9 +504,11 @@ class ctrl_pnl(wx.Panel):
 
     def stylized_click(self, e):
         if len(self.trimmed_frame_list) > 0:
-            style_dbox = stylized_dialog(self, self.parent)
-            style_dbox.ShowModal()
-            style_dbox.Destroy()
+            self.style_dbox = stylized_dialog(self, self.parent)
+            self.style_dbox.ShowModal()
+            if self.style_dbox:
+                if not self.style_dbox.IsBeingDeleted():
+                    self.style_dbox.Destroy()
 
     # module tools
     def import_module(self, module_name, import_name):
@@ -758,21 +766,26 @@ class info_pnl(wx.Panel):
             self.period_t.SetLabel(str(period))
 
             # average Interval lengh
-            t_period = l_date - f_date
-            t_per = t_period.total_seconds() / trimmed_count
-            t_per = str(datetime.timedelta(seconds=t_per))
-            if "." in t_per:
-                duration = t_per.split(".")[0]
-            self.interval_t.SetLabel(t_per)
+            if len(self.c_pnl.trimmed_frame_list) > 1:
+                t_period = l_date - f_date
+                t_per = t_period.total_seconds() / trimmed_count
+                t_per = str(datetime.timedelta(seconds=t_per))
+                if "." in t_per:
+                    duration = t_per.split(".")[0]
 
-            # playback rate
-            if trimmed_count == 0 or fps == 0:
-                trim_length_sec = 0
+                # playback rate
+                if trimmed_count == 0 or fps == 0:
+                    trim_length_sec = 0
+                else:
+                    trim_length_sec = trimmed_count / fps
+                real_capture_seconds     = period_d.total_seconds()
+                playback_outfile_seconds = trim_length_sec
+                playback_rate = round(real_capture_seconds / playback_outfile_seconds, 3)
             else:
-                trim_length_sec = trimmed_count / fps
-            real_capture_seconds     = period_d.total_seconds()
-            playback_outfile_seconds = trim_length_sec
-            playback_rate = round(real_capture_seconds / playback_outfile_seconds, 3)
+                playback_rate = "0"
+                t_per = "0"
+
+            self.interval_t.SetLabel(t_per)
             self.speed_t.SetLabel(str(playback_rate))
 
             # refresh layout
@@ -958,30 +971,33 @@ class stylized_dialog(wx.Dialog):
 
         # module select
         self.SetFont(self.parent.parent.shared_data.item_title_font)
-        module_l = wx.StaticText(self,  label='Stylizer Module')
+        self.module_l = wx.StaticText(self,  label='Stylizer Module')
         module_opts = self.get_module_opts()
         self.module_cb = wx.ComboBox(self, choices = module_opts)
         self.module_cb.SetValue(module_opts[0])
         module_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        module_sizer.Add(module_l, 1, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 2)
+        module_sizer.Add(self.module_l, 1, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 2)
         module_sizer.Add(self.module_cb, 2, wx.EXPAND, 2)
 
         # out folder select
-        outfolder_l = wx.StaticText(self,  label='Output folder')
+        self.outfolder_l = wx.StaticText(self,  label='Output folder')
         default_path = os.path.join(self.parent.parent.shared_data.frompi_base_path, "newset/")
         self.outfolder_tc = wx.TextCtrl(self)
         self.outfolder_tc.SetValue(default_path)
-        set_outfolder_btn = wx.Button(self, label='...', size=(35,29))
-        set_outfolder_btn.Bind(wx.EVT_BUTTON, self.set_outfolder_click)
+        self.set_outfolder_btn = wx.Button(self, label='...', size=(35,29))
+        self.set_outfolder_btn.Bind(wx.EVT_BUTTON, self.set_outfolder_click)
         outfolder_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        outfolder_sizer.Add(outfolder_l, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 2)
+        outfolder_sizer.Add(self.outfolder_l, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 2)
         outfolder_sizer.Add(self.outfolder_tc, 40, wx.EXPAND, 2)
-        outfolder_sizer.Add(set_outfolder_btn, 1, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 2)
+        outfolder_sizer.Add(self.set_outfolder_btn, 1, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 2)
+
+        self.create_l = wx.StaticText(self,  label='Creating Image Set in Progress...\nThis may take some time, please wait')
+        self.create_l.Hide()
 
         #buttons
-        self.go_btn = wx.Button(self, label='Create', size=(175, 50))
+        self.go_btn = wx.Button(self, label='Create') #, size=(175, 50))
         self.go_btn.Bind(wx.EVT_BUTTON, self.go_click)
-        self.cancel_btn = wx.Button(self, label='Cancel', size=(175, 50))
+        self.cancel_btn = wx.Button(self, label='Cancel') #, size=(175, 50))
         self.cancel_btn.Bind(wx.EVT_BUTTON, self.OnClose)
         buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
         buttons_sizer.Add(self.go_btn, 0,  wx.ALL, 3)
@@ -992,6 +1008,7 @@ class stylized_dialog(wx.Dialog):
         self.main_sizer.Add(title, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
         self.main_sizer.Add(sub_label, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
         self.main_sizer.AddStretchSpacer(1)
+        self.main_sizer.Add(self.create_l, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 6)
         self.main_sizer.Add(module_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 6)
         self.main_sizer.Add(outfolder_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 6)
         self.main_sizer.AddStretchSpacer(1)
@@ -1023,15 +1040,68 @@ class stylized_dialog(wx.Dialog):
         return selected_folder
 
     def go_click(self, e):
+        module_name = self.module_cb.GetValue()
+        module_name = "stylize_" + module_name
+        try:
+            self.parent.import_module(module_name, "stylize_tool")
+        except Exception as e:
+            print("Failed to import module", module_name, "because", e)
+            return None
+
         ani_frame_list = self.parent.trimmed_frame_list
         out_folder = self.outfolder_tc.GetValue()
 
-        module_name = self.module_cb.GetValue()
-        module_name = "stylize_" + module_name
+        if not os.path.exists(out_folder):
+            try:
+                os.makedirs(out_folder)
+                print(f"Folder '{out_folder}' not found, created.")
+            except OSError as e:
+                print(f"Error creating folder '{out_folder}': {e}")
+                return None
 
-        self.parent.import_module(module_name, "stylize_tool")
+        self.outfolder_l.Hide()
+        self.outfolder_tc.Hide()
+        self.set_outfolder_btn.Hide()
+        self.module_l.Hide()
+        self.module_cb.Hide()
+        self.go_btn.Hide()
+        self.cancel_btn.SetLabel("Run In Background")
+        self.create_l.Show()
+        self.Layout()
+
+        delayedresult.startWorker(stylize_class._on_result,
+                            self._run_stylize_set,
+                            wargs=(ani_frame_list, out_folder),
+                            jobID=0)
+
+
+    def _run_stylize_set(self, ani_frame_list, out_folder):
+        stylize_class.out_folder = out_folder
         stylize_output = stylize_tool.stylize_set(ani_frame_list, out_folder)
         print(stylize_output)
+        return [stylize_output, self]
+
+    def _on_cancel(self):
+        print("CAAANNCCCEELLL REQUEST !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
 
     def OnClose(self, e):
         self.Destroy()
+
+class stylize_class:
+    def __init__(self, parent, *args, **kw):
+        self.out_folder = ''
+
+    def _on_result(result):
+        '''Triggers once the stylized output tool is done'''
+        output, dlbox = result.get()
+
+        dlog_msg = "Image set creation complete in folder\n" + str(stylize_class.out_folder)
+        dlog_msg += "\nDo you want to switch to the new set?"
+        confirm_dialog = wx.MessageDialog(None, dlog_msg, "Confirmation", wx.YES_NO | wx.ICON_QUESTION)
+        if confirm_dialog.ShowModal() == wx.ID_YES:
+            print("ha i'm not switching to the new image set lol LOL sorry")
+        confirm_dialog.Destroy()
+
+        if dlbox:
+            if not dlbox.IsBeingDeleted():
+                dlbox.Destroy()
