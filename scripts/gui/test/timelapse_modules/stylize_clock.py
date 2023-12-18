@@ -6,9 +6,14 @@ import math
 
 def stylize_set(ani_frame_list, out_folder, set_name, img_type="png"):
     img_type = "png"
+    show_clockface = False
     image = Image.open(ani_frame_list[0])
     width, height = image.size
-    carry_image = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+    if show_clockface == True:
+        carry_image = Image.new("RGBA", (width, height), (255, 255, 255, 255))
+    else:
+        carry_image = Image.new("RGBA", (width, height), (0, 0, 0, 255))
+    clock_face = draw_clock_face(ani_frame_list[0])
 
     for x in range(0, len(ani_frame_list) - 1):
         _, start_time = date_from_filename(ani_frame_list[x])
@@ -20,8 +25,9 @@ def stylize_set(ani_frame_list, out_folder, set_name, img_type="png"):
         epoch_time = int(start_time.timestamp())
         output_path = os.path.join(out_folder, f"{set_name}_{epoch_time}.{img_type}")
 
-
         carry_image.paste(result_image, (0, 0), mask=result_image)
+        if show_clockface == True:
+            carry_image.paste(clock_face, (0, 0), mask=clock_face)
         carry_image.save(output_path)
 
     return "Created set", out_folder, set_name, img_type
@@ -63,6 +69,44 @@ def create_clock_slice(start_time, end_time, image_path):
 
     # Paste the source image onto the clock slice
     result_image.paste(image, (0, 0), mask=clock_slice)
+
+    return result_image
+
+def draw_clock_face(image_path):
+    # Load the image
+    image = Image.open(image_path)
+    width, height = image.size
+
+    # Create a transparent image for the clock face
+    clock_face = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(clock_face)
+
+    # Calculate the center of the image
+    center = (width // 2, height // 2)
+
+    # Calculate the radius based on the half of the image size
+    radius = min(width, height) // 2
+
+    # Draw a circle on the clock face
+    draw.ellipse([(center[0] - radius, center[1] - radius),
+                  (center[0] + radius, center[1] + radius)],
+                 outline=(0, 0, 0, 255))
+
+    # Label each hour from 0 to 23
+    for hour in range(24):
+        angle = -90 + (hour % 24) * (360 / 24)
+        hour_point = (
+            center[0] + int(radius * math.cos(math.radians(angle))),
+            center[1] + int(radius * math.sin(math.radians(angle)))
+        )
+        draw.text(hour_point, str(hour), fill=(0, 0, 0, 255))
+
+    # Paste the clock face onto the original image
+    result_image = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+    result_image.paste(clock_face, (0, 0), mask=clock_face)
+
+    # Paste the source image onto the clock face
+    result_image.paste(image, (0, 0), mask=clock_face)
 
     return result_image
 
