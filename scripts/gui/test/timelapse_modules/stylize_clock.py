@@ -6,7 +6,7 @@ import math
 
 def stylize_set(ani_frame_list, out_folder, set_name, img_type="png"):
     img_type = "png"
-    show_clockface = False
+    show_clockface = True
     image = Image.open(ani_frame_list[0])
     width, height = image.size
     if show_clockface == True:
