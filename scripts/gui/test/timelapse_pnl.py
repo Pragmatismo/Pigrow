@@ -59,7 +59,6 @@ class ctrl_pnl(wx.Panel):
         print("created set in", e.out_folder)
         print("result output =". e.msg)
 
-
     def make_render_sizer(self):
         fps_l = wx.StaticText(self,  label='FPS')
         self.fps_tc = wx.TextCtrl(self)
@@ -579,10 +578,21 @@ class info_pnl(wx.Panel):
 
         def make_graph_sizer(self):
             self.SetFont(self.shared_data.sub_title_font)
-            graph_l = wx.StaticText(self,  label='Graph goes here')
+            graph_l = wx.StaticText(self,  label='Image Set Analyse')
+
+            analyse_opts = self.get_analyse_opts()
+            self.analyse_cb = wx.ComboBox(self, choices = analyse_opts)
+            self.analyse_cb.SetValue(analyse_opts[0])
+            do_analyse_btn = wx.Button(self, label='Go')
+            do_analyse_btn.Bind(wx.EVT_BUTTON, self.do_analyse_click)
+
+            analyse_select_sizer = wx.BoxSizer(wx.HORIZONTAL)
+            analyse_select_sizer.Add(self.analyse_cb, 0, wx.ALL |  wx.ALIGN_CENTER_VERTICAL, 5)
+            analyse_select_sizer.Add(do_analyse_btn, 0, wx.ALL |  wx.ALIGN_CENTER_VERTICAL, 5)
 
             graph_sizer = wx.BoxSizer(wx.VERTICAL)
             graph_sizer.Add(graph_l, 0, wx.ALL |  wx.ALIGN_CENTER_HORIZONTAL, 5)
+            graph_sizer.Add(analyse_select_sizer, 0, wx.ALL |  wx.ALIGN_CENTER_HORIZONTAL, 5)
             return graph_sizer
 
         def make_info_sizer(self):
@@ -698,6 +708,34 @@ class info_pnl(wx.Panel):
             img_box_sizer.Add(last_img_sizer, 0, wx.ALL, 5)
             return img_box_sizer
 
+        # graph sizer
+
+        def get_analyse_opts(self):
+            analyse_opts = self.parent.shared_data.get_module_options("analyse_", "timelapse_modules")
+
+            return analyse_opts
+
+        def do_analyse_click(self, e):
+            module_opt = self.analyse_cb.GetValue()
+            if module_opt == "" or module_opt == "none":
+                return None
+
+            local_path = self.parent.shared_data.frompi_path
+            if local_path == "":
+                local_path = self.parent.shared_data.frompi_base_path
+
+            temp_folder = os.path.join(local_path, "temp")
+            if not os.path.isdir(temp_folder):
+                os.makedirs(temp_folder)
+
+            ani_frame_list = self.c_pnl.trimmed_frame_list
+
+            module_name = "analyse_" + module_opt
+            self.c_pnl.import_module(module_name, "analyse_tool")
+            analysis_img_path = analyse_tool.analyse_set(ani_frame_list, temp_folder)
+            print("analysis output;", analysis_img_path)
+            return analysis_img_path
+
         # info box controls
         def set_img_box(self):
             # image set info
@@ -792,7 +830,6 @@ class info_pnl(wx.Panel):
             # refresh layout
             self.Layout()
 
-
         # first image box controls
         def set_first_image(self, frame, resize=False):
             image_path = self.c_pnl.cap_file_paths[frame]
@@ -856,7 +893,6 @@ class info_pnl(wx.Panel):
             self.set_first_image(frame_num)
 
             self.c_pnl.list_val_changed()
-
 
         # last image box controls
         def set_last_image(self, frame, resize=False):
