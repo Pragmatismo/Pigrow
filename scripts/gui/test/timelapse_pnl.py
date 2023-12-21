@@ -199,8 +199,8 @@ class ctrl_pnl(wx.Panel):
         log_overlay_btn = wx.Button(self, label='Overlay Log')
         log_overlay_btn.Bind(wx.EVT_BUTTON, self.log_overlay_click)
 
-        graph_overlay_btn = wx.Button(self, label='Overlay Graph')
-        graph_overlay_btn.Bind(wx.EVT_BUTTON, self.graph_overlay_click)
+        imgset_overlay_btn = wx.Button(self, label='Overlay Image Set')
+        imgset_overlay_btn.Bind(wx.EVT_BUTTON, self.imgset_overlay_click)
 
         stylized_btn = wx.Button(self, label='Stylized Set')
         stylized_btn.Bind(wx.EVT_BUTTON, self.stylized_click)
@@ -208,7 +208,7 @@ class ctrl_pnl(wx.Panel):
         # sizer
         imgset_sizer = wx.BoxSizer(wx.VERTICAL)
         imgset_sizer.Add(log_overlay_btn, 0, wx.EXPAND, 5)
-        imgset_sizer.Add(graph_overlay_btn, 0, wx.EXPAND, 5)
+        imgset_sizer.Add(imgset_overlay_btn, 0, wx.EXPAND, 5)
         imgset_sizer.Add(stylized_btn, 0, wx.EXPAND, 5)
 
         return imgset_sizer
@@ -499,8 +499,15 @@ class ctrl_pnl(wx.Panel):
     def log_overlay_click(self, e):
         print("LOG OVERLAY DOES NOT EXIST YET")
 
-    def graph_overlay_click(self, e):
-        print("GRAPH OVERLAY CODE NOT WRITTEN YET")
+    def imgset_overlay_click(self, e):
+        if len(self.trimmed_frame_list) > 0:
+            self.imgset_dbox = imgset_overlay_dialog(self, self.parent)
+            self.imgset_dbox.ShowModal()
+            if self.imgset_dbox:
+                if not self.imgset_dbox.IsBeingDeleted():
+                    self.imgset_dbox.Destroy()
+        else:
+            print("Image set has zero length, can't overlay on nothing")
 
     def stylized_click(self, e):
         if len(self.trimmed_frame_list) > 0:
@@ -509,6 +516,8 @@ class ctrl_pnl(wx.Panel):
             if self.style_dbox:
                 if not self.style_dbox.IsBeingDeleted():
                     self.style_dbox.Destroy()
+        else:
+            print("Image set has zero length, can't overlay on nothing")
 
     # module tools
     def import_module(self, module_name, import_name):
@@ -1162,3 +1171,106 @@ class stylize_class:
         if dlbox:
             if not dlbox.IsBeingDeleted():
                 dlbox.Destroy()
+
+class imgset_overlay_dialog(wx.Dialog):
+    def __init__(self, parent, *args, **kw):
+        self.parent = parent
+        super(imgset_overlay_dialog, self).__init__(*args, **kw)
+        self.InitUI()
+        self.SetSize((600, 400))
+        self.SetTitle("Create Stylized Set")
+        self.Bind(wx.EVT_CLOSE, self.OnClose)
+
+    def InitUI(self):
+        # draw the pannel
+        self.SetFont(self.parent.parent.shared_data.title_font)
+        title = wx.StaticText(self,  label='Overlay Image Set')
+        self.SetFont(self.parent.parent.shared_data.sub_title_font)
+        sub_msg = "This will create a new picture in picture image set"
+        sub_msg += "\nOverlay graphs, dials, or other camera views."
+        sub_msg += "\nAdded set will be synced using filename timestamps."
+        sub_label = wx.StaticText(self,  label=sub_msg, style=wx.ALIGN_CENTRE_HORIZONTAL)
+
+        # log select
+        self.SetFont(self.parent.parent.shared_data.item_title_font)
+        self.imgset_btn = wx.Button(self, label='Select Image Set')
+        self.imgset_btn.Bind(wx.EVT_BUTTON, self.imgset_click)
+        self.SetFont(self.parent.parent.shared_data.info_font)
+        self.imgset_l = wx.StaticText(self,  label='none')
+        imgset_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        imgset_sizer.Add(self.imgset_btn, 0,  wx.LEFT|wx.ALIGN_CENTER_VERTICAL, 7)
+        imgset_sizer.Add(self.imgset_l, 0,  wx.ALL|wx.ALIGN_CENTER_VERTICAL, 3)
+
+        # placement
+        self.SetFont(self.parent.parent.shared_data.item_title_font)
+        pos_x_l = wx.StaticText(self,  label='X')
+        pos_y_l = wx.StaticText(self,  label='Y')
+        self.SetFont(self.parent.parent.shared_data.button_font)
+        self.setpos_btn = wx.Button(self, label='Set Position')
+        self.setpos_btn.Bind(wx.EVT_BUTTON, self.setpos_click)
+        self.SetFont(self.parent.parent.shared_data.info_font)
+        self.pos_x_tc = wx.TextCtrl(self)
+        self.pos_x_tc.SetValue('10')
+        self.pos_y_tc = wx.TextCtrl(self)
+        self.pos_y_tc.SetValue('10')
+        setpos_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        setpos_sizer.Add(self.setpos_btn, 0,  wx.ALL|wx.ALIGN_CENTER_VERTICAL, 3)
+        setpos_sizer.Add(pos_x_l, 0,  wx.LEFT|wx.ALIGN_CENTER_VERTICAL, 7)
+        setpos_sizer.Add(self.pos_x_tc, 0,  wx.ALL|wx.ALIGN_CENTER_VERTICAL, 3)
+        setpos_sizer.Add(pos_y_l, 0,  wx.LEFT|wx.ALIGN_CENTER_VERTICAL, 7)
+        setpos_sizer.Add(self.pos_y_tc, 0,  wx.ALL|wx.ALIGN_CENTER_VERTICAL, 3)
+
+        # scale & opacity
+        self.SetFont(self.parent.parent.shared_data.item_title_font)
+        scale_l = wx.StaticText(self,  label='Scale %')
+        opacity_l = wx.StaticText(self,  label='Opacity %')
+        self.SetFont(self.parent.parent.shared_data.info_font)
+        self.scale_tc = wx.TextCtrl(self)
+        self.scale_tc.SetValue('100')
+        self.opacity_tc = wx.TextCtrl(self)
+        self.opacity_tc.SetValue('100')
+        scale_opacity_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        scale_opacity_sizer.Add(scale_l, 0,  wx.ALL|wx.ALIGN_CENTER_VERTICAL, 3)
+        scale_opacity_sizer.Add(self.scale_tc, 0,  wx.LEFT|wx.ALIGN_CENTER_VERTICAL, 3)
+        scale_opacity_sizer.Add(opacity_l, 0,  wx.LEFT|wx.ALIGN_CENTER_VERTICAL, 15)
+        scale_opacity_sizer.Add(self.opacity_tc, 0,  wx.ALL|wx.ALIGN_CENTER_VERTICAL, 3)
+
+        # chromakey - select colour and tollerance to turn that color transparent
+
+        #scaled img display
+        #representative frame number (sets above image, not used in calculations)
+
+
+        #buttons
+        self.go_btn = wx.Button(self, label='Create') #, size=(175, 50))
+        self.go_btn.Bind(wx.EVT_BUTTON, self.go_click)
+        self.cancel_btn = wx.Button(self, label='Cancel') #, size=(175, 50))
+        self.cancel_btn.Bind(wx.EVT_BUTTON, self.OnClose)
+        buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        buttons_sizer.Add(self.go_btn, 0,  wx.ALL, 3)
+        buttons_sizer.AddStretchSpacer(1)
+        buttons_sizer.Add(self.cancel_btn, 0,  wx.ALL, 3)
+        # main sizer
+        self.main_sizer = wx.BoxSizer(wx.VERTICAL)
+        self.main_sizer.Add(title, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 2)
+        self.main_sizer.Add(sub_label, 0, wx.BOTTOM|wx.ALIGN_CENTER_HORIZONTAL, 4)
+        self.main_sizer.AddStretchSpacer(1)
+        self.main_sizer.Add(imgset_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
+        self.main_sizer.Add(setpos_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
+        self.main_sizer.Add(scale_opacity_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
+
+        self.main_sizer.AddStretchSpacer(1)
+        self.main_sizer.Add(buttons_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
+        self.SetSizer(self.main_sizer)
+
+    def go_click(self, e):
+        print("GO!!!!!!!!!!!!!!!!!!!! (thats all you get for pressing go)")
+
+    def imgset_click(self, e):
+        print("you clicked the select log button, hope you're proud of yourself.")
+
+    def setpos_click(self, e):
+        print("no one is setting the position of the text for you lol")
+
+    def OnClose(self, e):
+        self.Destroy()
