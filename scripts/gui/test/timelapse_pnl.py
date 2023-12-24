@@ -1370,7 +1370,6 @@ class PreviewPanel(wx.Panel):
         self.ref_background_image = wx.Image(ref_background_image, wx.BITMAP_TYPE_ANY)
         self.ref_overlay_image = ref_overlay_image
         self.static_bitmap = wx.StaticBitmap(self, wx.ID_ANY, wx.Bitmap())
-        self.Bind(wx.EVT_PAINT, self.on_paint)
 
         # Schedule the initial update after the layout is complete
         wx.CallAfter(self.update_preview, ref_background_image, ref_overlay_image)
@@ -1409,9 +1408,6 @@ class PreviewPanel(wx.Panel):
             result_wx = result_wx.ConvertToImage()
             # display to screen
             self.draw_scaled_image(result_wx)
-
-    def on_paint(self, event):
-        pass  # No need for painting, as the image is drawn using wx.StaticBitmap
 
     def draw_scaled_image(self, bg_img):
         # Determine the maximum available screen space
