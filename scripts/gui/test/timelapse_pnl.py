@@ -1333,7 +1333,6 @@ class imgset_overlay_dialog(wx.Dialog):
             if 0 <= index < len(self.image_list):
                 self.current_image_index = index
                 self.update_image_display()
-                print("updated image diplay using image ", index)
         except ValueError:
             pass
 
@@ -1371,8 +1370,8 @@ class PreviewPanel(wx.Panel):
                 scale = float(self.parent.scale_tc.GetValue()) / 100.0  # Convert to a scale factor (0-1)
                 opacity = float(self.parent.opacity_tc.GetValue()) / 100.0  # Convert to an opacity factor (0-1)
             except:
-                print("Scale and Opacity must be numbers")
-                return None     
+                print("Timelapse Img Overlay - Scale and Opacity must be numbers")
+                return None
 
             # Load background image
             bg_img = Image.open(ref_background_image).convert("RGBA")
@@ -1392,8 +1391,6 @@ class PreviewPanel(wx.Panel):
             result_wx = result_wx.ConvertToImage()
             # display to screen
             self.draw_scaled_image(result_wx)
-            print("SCALED IMAGE DRAWN REMOVE THIS POINTLES OUTPUT LOL")
-
 
     def on_paint(self, event):
         pass  # No need for painting, as the image is drawn using wx.StaticBitmap
