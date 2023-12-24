@@ -1213,9 +1213,11 @@ class imgset_overlay_dialog(wx.Dialog):
         self.setpos_btn = wx.Button(self, label='Set Position')
         self.setpos_btn.Bind(wx.EVT_BUTTON, self.setpos_click)
         self.SetFont(self.parent.parent.shared_data.info_font)
-        self.pos_x_tc = wx.TextCtrl(self)
+        self.pos_x_tc = wx.TextCtrl(self, style=wx.TE_PROCESS_ENTER)
+        self.pos_x_tc.Bind(wx.EVT_TEXT_ENTER, self.ref_frame_tc_enter)
         self.pos_x_tc.SetValue('10')
-        self.pos_y_tc = wx.TextCtrl(self)
+        self.pos_y_tc = wx.TextCtrl(self, style=wx.TE_PROCESS_ENTER)
+        self.pos_y_tc.Bind(wx.EVT_TEXT_ENTER, self.ref_frame_tc_enter)
         self.pos_y_tc.SetValue('10')
         setpos_sizer = wx.BoxSizer(wx.HORIZONTAL)
         setpos_sizer.Add(self.setpos_btn, 0,  wx.ALL|wx.ALIGN_CENTER_VERTICAL, 3)
@@ -1229,10 +1231,12 @@ class imgset_overlay_dialog(wx.Dialog):
         scale_l = wx.StaticText(self,  label='Scale %')
         opacity_l = wx.StaticText(self,  label='Opacity %')
         self.SetFont(self.parent.parent.shared_data.info_font)
-        self.scale_tc = wx.TextCtrl(self)
+        self.scale_tc = wx.TextCtrl(self, style=wx.TE_PROCESS_ENTER)
         self.scale_tc.SetValue('100')
-        self.opacity_tc = wx.TextCtrl(self)
+        self.scale_tc.Bind(wx.EVT_TEXT_ENTER, self.ref_frame_tc_enter)
+        self.opacity_tc = wx.TextCtrl(self, style=wx.TE_PROCESS_ENTER)
         self.opacity_tc.SetValue('100')
+        self.opacity_tc.Bind(wx.EVT_TEXT_ENTER, self.ref_frame_tc_enter)
         scale_opacity_sizer = wx.BoxSizer(wx.HORIZONTAL)
         scale_opacity_sizer.Add(scale_l, 0,  wx.ALL|wx.ALIGN_CENTER_VERTICAL, 3)
         scale_opacity_sizer.Add(self.scale_tc, 0,  wx.LEFT|wx.ALIGN_CENTER_VERTICAL, 3)
@@ -1280,6 +1284,17 @@ class imgset_overlay_dialog(wx.Dialog):
 
     def go_click(self, e):
         print("GO!!!!!!!!!!!!!!!!!!!! (thats all you get for pressing go)")
+        # get control values
+        pos_x = int(self.pos_x_tc.GetValue())
+        pos_y = int(self.pos_y_tc.GetValue())
+        try:
+            scale = float(self.scale_tc.GetValue()) / 100.0
+            opacity = float(self.opacity_tc.GetValue()) / 100.0
+        except:
+            print("Timelapse Img Overlay - Scale and Opacity must be numbers")
+            return None
+        #
+
 
     def imgset_click(self, e):
         # select folder
@@ -1300,6 +1315,10 @@ class imgset_overlay_dialog(wx.Dialog):
         cap_dir = cap_dir[0]
         print(" Selected " + cap_dir + " with capset; " + cap_set + " filetype; " + cap_type)
         self.open_imgset(cap_dir, cap_type, cap_set)
+
+        imgset_str = os.path.basename(cap_dir) + "/" + cap_set + "_..."
+        self.imgset_l.SetLabel(imgset_str)
+        self.ref_frame_tc_enter()
 
     def open_imgset(self, cap_dir, cap_type="jpg", cap_set=None):
         self.overlay_img_set = []
@@ -1327,7 +1346,7 @@ class imgset_overlay_dialog(wx.Dialog):
         self.Destroy()
 
 
-    def ref_frame_tc_enter(self, event):
+    def ref_frame_tc_enter(self, event=None):
         try:
             index = int(self.ref_frame_tc.GetValue())
             if 0 <= index < len(self.image_list):
@@ -1360,8 +1379,8 @@ class PreviewPanel(wx.Panel):
     def update_preview(self, ref_background_image, ref_overlay_image):
         #print(ref_background_image, ref_overlay_image)
         if ref_overlay_image is None:
-            self.ref_background_image = wx.Image(ref_background_image, wx.BITMAP_TYPE_ANY)
-            self.draw_scaled_image()
+            bg_image = wx.Image(ref_background_image, wx.BITMAP_TYPE_ANY)
+            self.draw_scaled_image(bg_image)
         else:
             # Draw the overlay on top of the background image
             pos_x = int(self.parent.pos_x_tc.GetValue())
@@ -1373,10 +1392,8 @@ class PreviewPanel(wx.Panel):
                 print("Timelapse Img Overlay - Scale and Opacity must be numbers")
                 return None
 
-            # Load background image
+            # Load images
             bg_img = Image.open(ref_background_image).convert("RGBA")
-            bg_img = bg_img.resize((self.GetSize().width, self.GetSize().height))
-            # Load overlay image
             overlay_image = Image.open(ref_overlay_image).convert("RGBA")
 
             # Resize overlay image
@@ -1386,6 +1403,7 @@ class PreviewPanel(wx.Panel):
             overlay_image.putalpha(int(opacity * 255))
             # overlay onto background
             bg_img.alpha_composite(overlay_image, (pos_x, pos_y))
+
             # convert to wx image
             result_wx = wx.Bitmap.FromBufferRGBA(bg_img.width, bg_img.height, bg_img.tobytes())
             result_wx = result_wx.ConvertToImage()
@@ -1395,9 +1413,7 @@ class PreviewPanel(wx.Panel):
     def on_paint(self, event):
         pass  # No need for painting, as the image is drawn using wx.StaticBitmap
 
-    def draw_scaled_image(self, bg_img=None):
-        if bg_img == None:
-            bg_img = self.ref_background_image
+    def draw_scaled_image(self, bg_img):
         # Determine the maximum available screen space
         #max_width, max_height = wx.GetDisplaySize()
 
