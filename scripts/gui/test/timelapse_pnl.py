@@ -4,6 +4,7 @@ import re
 import sys
 import datetime
 import wx.lib.delayedresult as delayedresult
+from PIL import Image, ImageDraw, ImageEnhance
 
 class ctrl_pnl(wx.Panel):
     #
@@ -1177,11 +1178,14 @@ class imgset_overlay_dialog(wx.Dialog):
         self.parent = parent
         super(imgset_overlay_dialog, self).__init__(*args, **kw)
         self.InitUI()
-        self.SetSize((600, 400))
+        self.SetSize((800, 850))
         self.SetTitle("Create Stylized Set")
         self.Bind(wx.EVT_CLOSE, self.OnClose)
 
     def InitUI(self):
+        self.image_list = self.parent.trimmed_frame_list
+        self.ref_overlay_image = None
+        self.overlay_img_set = []
         # draw the pannel
         self.SetFont(self.parent.parent.shared_data.title_font)
         title = wx.StaticText(self,  label='Overlay Image Set')
@@ -1237,9 +1241,19 @@ class imgset_overlay_dialog(wx.Dialog):
 
         # chromakey - select colour and tollerance to turn that color transparent
 
-        #scaled img display
-        #representative frame number (sets above image, not used in calculations)
+        # scaled img display
+        #representative frame number (sets reference image, not used in calculations)
+        self.current_image_index = 0
+        ref_background_image = self.image_list[0]
+        self.preview_panel = PreviewPanel(self, ref_background_image, self.ref_overlay_image)
 
+        self.ref_frame_tc = wx.TextCtrl(self, style=wx.TE_PROCESS_ENTER)
+        self.ref_frame_tc.SetValue(str(self.current_image_index))
+        self.ref_frame_tc.Bind(wx.EVT_TEXT_ENTER, self.ref_frame_tc_enter)
+
+        image_box_sizer = wx.BoxSizer(wx.VERTICAL)
+        image_box_sizer.Add(self.preview_panel, 1, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 5)
+        image_box_sizer.Add(self.ref_frame_tc, 0, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 5)
 
         #buttons
         self.go_btn = wx.Button(self, label='Create') #, size=(175, 50))
@@ -1258,19 +1272,167 @@ class imgset_overlay_dialog(wx.Dialog):
         self.main_sizer.Add(imgset_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
         self.main_sizer.Add(setpos_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
         self.main_sizer.Add(scale_opacity_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
-
+        self.main_sizer.Add(image_box_sizer, 0, wx.ALIGN_CENTER_HORIZONTAL |wx.ALL, 5)
         self.main_sizer.AddStretchSpacer(1)
         self.main_sizer.Add(buttons_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
         self.SetSizer(self.main_sizer)
+
 
     def go_click(self, e):
         print("GO!!!!!!!!!!!!!!!!!!!! (thats all you get for pressing go)")
 
     def imgset_click(self, e):
-        print("you clicked the select log button, hope you're proud of yourself.")
+        # select folder
+        wildcard = "JPG and PNG files (*.jpg;*.png)|*.jpg;*.png|GIF files (*.gif)|*.gif"
+        defdir = self.parent.parent.shared_data.frompi_path
+        if defdir == "":
+            defdir = self.parent.parent.shared_data.frompi_base_path
+        openFileDialog = wx.FileDialog(self, "Select image set", defaultDir=defdir, wildcard=wildcard, style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST)
+        openFileDialog.SetMessage("Select an image from the set you want to import")
+        if openFileDialog.ShowModal() == wx.ID_CANCEL:
+            return 'none'
+        new_cap_path = openFileDialog.GetPath()
+
+        #
+        cap_dir = os.path.split(new_cap_path)
+        cap_set = cap_dir[1].split("_")[0]  # Used to select set if more than one are present
+        cap_type = cap_dir[1].split('.')[1]
+        cap_dir = cap_dir[0]
+        print(" Selected " + cap_dir + " with capset; " + cap_set + " filetype; " + cap_type)
+        self.open_imgset(cap_dir, cap_type, cap_set)
+
+    def open_imgset(self, cap_dir, cap_type="jpg", cap_set=None):
+        self.overlay_img_set = []
+        for filefound in os.listdir(cap_dir):
+            if filefound.endswith(cap_type):
+                file_path = os.path.join(cap_dir, filefound)
+                if not cap_set == None:
+                    if filefound.split("_")[0] == cap_set:
+                        self.overlay_img_set.append(file_path)
+                else: #when using all images in the folder regardless of the set
+                    self.overlay_img_set.append(file_path)
+        self.overlay_img_set.sort()
+        if not len(self.overlay_img_set) > 0:
+            print("No images found in ", cap_dir)
+        else:
+            print("Found; ", len(self.overlay_img_set), " image files, starting at ", self.overlay_img_set[0])
+
+        self.ref_overlay_image = self.overlay_img_set[0]
+
 
     def setpos_click(self, e):
         print("no one is setting the position of the text for you lol")
 
     def OnClose(self, e):
         self.Destroy()
+
+
+    def ref_frame_tc_enter(self, event):
+        try:
+            index = int(self.ref_frame_tc.GetValue())
+            if 0 <= index < len(self.image_list):
+                self.current_image_index = index
+                self.update_image_display()
+                print("updated image diplay using image ", index)
+        except ValueError:
+            pass
+
+    def update_image_display(self):
+        ref_background_image = self.image_list[self.current_image_index]
+        #ref_overlay_image = self.parent.ref_overlay_image
+
+        self.preview_panel.update_preview(ref_background_image, self.ref_overlay_image)
+
+
+class PreviewPanel(wx.Panel):
+    def __init__(self, parent, ref_background_image, ref_overlay_image):
+        wx.Panel.__init__(self, parent)
+        self.parent = parent
+        self.SetMinSize(wx.Size(790, 400))  # Set a minimum size
+        self.ref_background_image = wx.Image(ref_background_image, wx.BITMAP_TYPE_ANY)
+        self.ref_overlay_image = ref_overlay_image
+        self.static_bitmap = wx.StaticBitmap(self, wx.ID_ANY, wx.Bitmap())
+        self.Bind(wx.EVT_PAINT, self.on_paint)
+
+        # Schedule the initial update after the layout is complete
+        wx.CallAfter(self.update_preview, ref_background_image, ref_overlay_image)
+
+
+    def update_preview(self, ref_background_image, ref_overlay_image):
+        #print(ref_background_image, ref_overlay_image)
+        if ref_overlay_image is None:
+            self.ref_background_image = wx.Image(ref_background_image, wx.BITMAP_TYPE_ANY)
+            self.draw_scaled_image()
+        else:
+            # Draw the overlay on top of the background image
+            pos_x = int(self.parent.pos_x_tc.GetValue())
+            pos_y = int(self.parent.pos_y_tc.GetValue())
+            try:
+                scale = float(self.parent.scale_tc.GetValue()) / 100.0  # Convert to a scale factor (0-1)
+                opacity = float(self.parent.opacity_tc.GetValue()) / 100.0  # Convert to an opacity factor (0-1)
+            except:
+                print("Scale and Opacity must be numbers")
+                return None     
+
+            # Load background image
+            bg_img = Image.open(ref_background_image).convert("RGBA")
+            bg_img = bg_img.resize((self.GetSize().width, self.GetSize().height))
+            # Load overlay image
+            overlay_image = Image.open(ref_overlay_image).convert("RGBA")
+
+            # Resize overlay image
+            overlay_image = overlay_image.resize(
+                (int(overlay_image.width * scale), int(overlay_image.height * scale)))
+            # set transparency
+            overlay_image.putalpha(int(opacity * 255))
+            # overlay onto background
+            bg_img.alpha_composite(overlay_image, (pos_x, pos_y))
+            # convert to wx image
+            result_wx = wx.Bitmap.FromBufferRGBA(bg_img.width, bg_img.height, bg_img.tobytes())
+            result_wx = result_wx.ConvertToImage()
+            # display to screen
+            self.draw_scaled_image(result_wx)
+            print("SCALED IMAGE DRAWN REMOVE THIS POINTLES OUTPUT LOL")
+
+
+    def on_paint(self, event):
+        pass  # No need for painting, as the image is drawn using wx.StaticBitmap
+
+    def draw_scaled_image(self, bg_img=None):
+        if bg_img == None:
+            bg_img = self.ref_background_image
+        # Determine the maximum available screen space
+        #max_width, max_height = wx.GetDisplaySize()
+
+        # Assuming self.GetParent() returns the parent panel
+        #max_width, max_height = self.GetParent()
+        max_width, max_height = self.GetSize()
+
+        # Get the aspect ratio of the original image
+        aspect_ratio = bg_img.GetWidth() / bg_img.GetHeight()
+
+        # Calculate the maximum size that fits the screen, maintaining the aspect ratio
+        new_width = min(bg_img.GetWidth(), max_width)
+        new_height = int(new_width / aspect_ratio)
+
+        if new_height > max_height:
+            new_height = max_height
+            new_width = int(new_height * aspect_ratio)
+
+        # Resize the image
+        resized_image = bg_img.Scale(new_width, new_height, wx.IMAGE_QUALITY_HIGH)
+
+        # Set the resized image to the StaticBitmap
+        self.static_bitmap.SetBitmap(wx.Bitmap(resized_image))
+        #self.static_bitmap
+
+        # Resize the panel to match the resized image
+        self.SetSize((new_width, new_height))
+
+            # Get the parent sizer
+        parent_sizer = self.GetContainingSizer()
+
+        # Update the size and layout of the parent sizer
+        if parent_sizer:
+            parent_sizer.SetItemMinSize(self, (new_width, new_height))
+            parent_sizer.Layout()
