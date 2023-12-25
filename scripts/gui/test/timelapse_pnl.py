@@ -1248,16 +1248,29 @@ class imgset_overlay_dialog(wx.Dialog):
         # scaled img display
         #representative frame number (sets reference image, not used in calculations)
         self.current_image_index = 0
+        self.overlay_image_index = 0
         ref_background_image = self.image_list[0]
         self.preview_panel = PreviewPanel(self, ref_background_image, self.ref_overlay_image)
 
+        bg_select_l = wx.StaticText(self,  label='Background')
         self.ref_frame_tc = wx.TextCtrl(self, style=wx.TE_PROCESS_ENTER)
         self.ref_frame_tc.SetValue(str(self.current_image_index))
         self.ref_frame_tc.Bind(wx.EVT_TEXT_ENTER, self.ref_frame_tc_enter)
+        ol_select_l = wx.StaticText(self,  label='Overlay')
+        self.ol_frame_tc = wx.TextCtrl(self, style=wx.TE_PROCESS_ENTER)
+        self.ol_frame_tc.SetValue(str(self.overlay_image_index))
+        self.ol_frame_tc.Bind(wx.EVT_TEXT_ENTER, self.ol_frame_tc_enter)
+
+        controls_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        controls_sizer.Add(bg_select_l, 1, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
+        controls_sizer.Add(self.ref_frame_tc, 1, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
+        controls_sizer.Add(ol_select_l, 1, wx.ALIGN_CENTER_VERTICAL | wx.LEFT, 25)
+        controls_sizer.Add(self.ol_frame_tc, 1, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
+
 
         image_box_sizer = wx.BoxSizer(wx.VERTICAL)
         image_box_sizer.Add(self.preview_panel, 1, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 5)
-        image_box_sizer.Add(self.ref_frame_tc, 0, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 5)
+        image_box_sizer.Add(controls_sizer, 0, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 5)
 
         #buttons
         self.go_btn = wx.Button(self, label='Create') #, size=(175, 50))
@@ -1306,14 +1319,13 @@ class imgset_overlay_dialog(wx.Dialog):
         openFileDialog.SetMessage("Select an image from the set you want to import")
         if openFileDialog.ShowModal() == wx.ID_CANCEL:
             return 'none'
-        new_cap_path = openFileDialog.GetPath()
 
-        #
+        # extract path and set information
+        new_cap_path = openFileDialog.GetPath()
         cap_dir = os.path.split(new_cap_path)
         cap_set = cap_dir[1].split("_")[0]  # Used to select set if more than one are present
         cap_type = cap_dir[1].split('.')[1]
         cap_dir = cap_dir[0]
-        print(" Selected " + cap_dir + " with capset; " + cap_set + " filetype; " + cap_type)
         self.open_imgset(cap_dir, cap_type, cap_set)
 
         imgset_str = os.path.basename(cap_dir) + "/" + cap_set + "_..."
@@ -1332,7 +1344,7 @@ class imgset_overlay_dialog(wx.Dialog):
                     self.overlay_img_set.append(file_path)
         self.overlay_img_set.sort()
         if not len(self.overlay_img_set) > 0:
-            print("No images found in ", cap_dir)
+            print("No valid images found in ", cap_dir)
         else:
             print("Found; ", len(self.overlay_img_set), " image files, starting at ", self.overlay_img_set[0])
 
@@ -1355,9 +1367,11 @@ class imgset_overlay_dialog(wx.Dialog):
         except ValueError:
             pass
 
+    def ol_frame_tc_enter(self, event=None):
+        print("not wired in yet")    
+
     def update_image_display(self):
         ref_background_image = self.image_list[self.current_image_index]
-        #ref_overlay_image = self.parent.ref_overlay_image
 
         self.preview_panel.update_preview(ref_background_image, self.ref_overlay_image)
 
