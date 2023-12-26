@@ -1368,12 +1368,18 @@ class imgset_overlay_dialog(wx.Dialog):
             pass
 
     def ol_frame_tc_enter(self, event=None):
-        print("not wired in yet")    
+        try:
+            index = int(self.ol_frame_tc.GetValue())
+            if 0 <= index < len(self.overlay_img_set):
+                self.overlay_image_index = index
+                self.update_image_display()
+        except ValueError:
+            pass
 
     def update_image_display(self):
         ref_background_image = self.image_list[self.current_image_index]
-
-        self.preview_panel.update_preview(ref_background_image, self.ref_overlay_image)
+        ref_overlay_image = self.overlay_img_set[self.overlay_image_index]
+        self.preview_panel.update_preview(ref_background_image, ref_overlay_image)
 
 
 class PreviewPanel(wx.Panel):
