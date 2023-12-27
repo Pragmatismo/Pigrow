@@ -1228,17 +1228,24 @@ class cron_job_dialog(wx.Dialog):
             rep_type = self.cron_repeat_opts_cb.GetValue()
             if rep_type == 'min':
                 self.cron_timed_min_tc.Hide()
+                self.cron_timed_hour_tc.SetValue("*")
+                self.cron_timed_day_tc.SetValue("*")
+                self.cron_timed_month_tc.SetValue("*")
                 self.min_l.Hide()
             if rep_type in ['min', 'hour']:
                 self.cron_timed_hour_tc.Hide()
+                self.cron_timed_day_tc.SetValue("*")
+                self.cron_timed_month_tc.SetValue("*")
                 self.hour_l.Hide()
             if rep_type in ['min', 'hour', 'day']:
                 self.cron_timed_day_tc.Hide()
+                self.cron_timed_month_tc.SetValue("*")
                 self.day_l.Hide()
             if rep_type in ['min', 'hour', 'day', 'month']:
                 self.cron_timed_month_tc.Hide()
                 self.month_l.Hide()
             self.cron_timed_dow_tc.Hide()
+            self.cron_timed_dow_tc.SetValue("*")
             self.dow_l.Hide()
         elif cron_type == 'startup':
             self.cron_rep_every.Hide()
@@ -1287,6 +1294,7 @@ class cron_job_dialog(wx.Dialog):
         self.job_enabled = self.cron_enabled_cb.GetValue()
         self.job_repeat = self.cron_repeat_opts_cb.GetValue()
         self.job_repnum = self.cron_every_num_tc.GetValue()
+        
         self.job_min = self.cron_timed_min_tc.GetValue()
         self.job_hour = self.cron_timed_hour_tc.GetValue()
         self.job_day = self.cron_timed_day_tc.GetValue()
