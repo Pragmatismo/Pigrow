@@ -1296,7 +1296,6 @@ class imgset_overlay_dialog(wx.Dialog):
 
 
     def go_click(self, e):
-        print("GO!!!!!!!!!!!!!!!!!!!! (thats all you get for pressing go)")
         # get control values
         pos_x = int(self.pos_x_tc.GetValue())
         pos_y = int(self.pos_y_tc.GetValue())
@@ -1307,6 +1306,62 @@ class imgset_overlay_dialog(wx.Dialog):
             print("Timelapse Img Overlay - Scale and Opacity must be numbers")
             return None
         #
+        combine_mode = 'closest'
+        dif_timelimit = None #60 * 20
+        date_from_filename = i_pnl = self.parent.parent.dict_I_pnl['timelapse_pnl'].date_from_filename
+
+        for bg_img in self.image_list:
+            bg_date = date_from_filename(bg_img)[1]
+
+            closest_overlay = None
+            min_time_difference = float('inf')
+
+            for overlay_img in self.overlay_img_set:
+                overlay_date = date_from_filename(overlay_img)[1]
+
+                time_difference = abs((overlay_date - bg_date).total_seconds())
+                # before
+                if combine_mode == 'before':
+                    if overlay_date < bg_date and time_difference < min_time_difference:
+                        if dif_timelimit:
+                            if time_difference < dif_timelimit:
+                                closest_overlay = overlay_img
+                                min_time_difference = time_difference
+                        else:
+                                closest_overlay = overlay_img
+                                min_time_difference = time_difference
+                # after
+                elif combine_mode == 'after':
+                    if overlay_date > bg_date and time_difference < min_time_difference:
+                        if dif_timelimit:
+                            if time_difference < dif_timelimit:
+                                closest_overlay = overlay_img
+                                min_time_difference = time_difference
+                        else:
+                                closest_overlay = overlay_img
+                                min_time_difference = time_difference
+                # closest
+                elif combine_mode == 'closest':
+                    if time_difference < min_time_difference:
+                        if dif_timelimit:
+                            if time_difference < dif_timelimit:
+                                closest_overlay = overlay_img
+                                min_time_difference = time_difference
+                        else:
+                                closest_overlay = overlay_img
+                                min_time_difference = time_difference
+
+            if closest_overlay:
+                time_dif = datetime.timedelta(seconds=min_time_difference)
+                print(f'{bg_img} closest overlay is {closest_overlay} with a time difference of {time_dif}')
+                self.overlay_image_to_frame(bg_img, closest_overlay, time_dif)
+            else:
+                print(f'{bg_img} has no overlay within {dif_timelimit}')
+                self.overlay_image_to_frame(bg_img, None, None)
+
+    def overlay_image_to_frame(self, bg_img, closest_overlay, time_dif):
+        print('overlay image to frame has not been written yet')
+
 
 
     def imgset_click(self, e):
