@@ -1146,9 +1146,6 @@ class stylized_dialog(wx.Dialog):
         print(stylize_output)
         return [stylize_output, out_folder, set_name, img_type, self]
 
-    def _on_cancel(self):
-        print("CAAANNCCCEELLL REQUEST !!!!!!!!!!!!!!!!!!!!!!!!!!(does nothing)!!!!!!!!!!!!!!!!!!!!!!!!!")
-
     def OnClose(self, e):
         self.Destroy()
 
@@ -1178,7 +1175,7 @@ class imgset_overlay_dialog(wx.Dialog):
         self.parent = parent
         super(imgset_overlay_dialog, self).__init__(*args, **kw)
         self.InitUI()
-        self.SetSize((800, 850))
+        self.SetSize((800, 900))
         self.SetTitle("Create Stylized Set")
         self.Bind(wx.EVT_CLOSE, self.OnClose)
 
@@ -1267,10 +1264,27 @@ class imgset_overlay_dialog(wx.Dialog):
         controls_sizer.Add(ol_select_l, 1, wx.ALIGN_CENTER_VERTICAL | wx.LEFT, 25)
         controls_sizer.Add(self.ol_frame_tc, 1, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
 
-
+        # img box
         image_box_sizer = wx.BoxSizer(wx.VERTICAL)
         image_box_sizer.Add(self.preview_panel, 1, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 5)
         image_box_sizer.Add(controls_sizer, 0, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 5)
+
+        # output set details
+        set_path_l = wx.StaticText(self,  label='Path')
+        default_path = os.path.join(self.parent.parent.shared_data.frompi_base_path, "newset/")
+        self.set_path_tc = wx.TextCtrl(self)
+        self.set_path_tc.SetValue(default_path)
+        self.set_path_btn = wx.Button(self, label='...', size=(35,29))
+        self.set_path_btn.Bind(wx.EVT_BUTTON, self.set_path_click)
+        set_name_l = wx.StaticText(self,  label='Set Name')
+        self.set_name_tc = wx.TextCtrl(self)
+        self.set_name_tc.SetValue("overlay")
+        path_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        path_sizer.Add(set_path_l,        0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 3)
+        path_sizer.Add(self.set_path_tc,  3, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 2)
+        path_sizer.Add(self.set_path_btn, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 2)
+        path_sizer.Add(set_name_l,        0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT, 15)
+        path_sizer.Add(self.set_name_tc,  1, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 3)
 
         #buttons
         self.go_btn = wx.Button(self, label='Create') #, size=(175, 50))
@@ -1291,11 +1305,33 @@ class imgset_overlay_dialog(wx.Dialog):
         self.main_sizer.Add(scale_opacity_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
         self.main_sizer.Add(image_box_sizer, 0, wx.ALIGN_CENTER_HORIZONTAL |wx.ALL, 5)
         self.main_sizer.AddStretchSpacer(1)
+        self.main_sizer.Add(path_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
         self.main_sizer.Add(buttons_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
         self.SetSizer(self.main_sizer)
 
+    def set_path_click(self, e):
+            outfolder = self.select_image_folder()
+            if not outfolder == "none":
+                self.set_path_tc.SetValue(outfolder)
+
+    def select_image_folder(self):
+        default_folder = self.parent.parent.shared_data.frompi_path
+        if default_folder == "":
+            default_folder = self.parent.parent.shared_data.frompi_base_path
+
+        dirDialog = wx.DirDialog(self, "Select output folder", defaultPath=default_folder, style=wx.DD_DEFAULT_STYLE | wx.DD_NEW_DIR_BUTTON)
+        if dirDialog.ShowModal() == wx.ID_CANCEL:
+            dirDialog.Destroy()
+            return 'none'
+
+        selected_folder = dirDialog.GetPath()
+        dirDialog.Destroy()
+        return selected_folder
+
 
     def go_click(self, e):
+        set_path = self.set_path_tc.GetValue()
+        set_name = self.set_name_tc.GetValue()
         # get control values
         pos_x = int(self.pos_x_tc.GetValue())
         pos_y = int(self.pos_y_tc.GetValue())
@@ -1305,6 +1341,7 @@ class imgset_overlay_dialog(wx.Dialog):
         except:
             print("Timelapse Img Overlay - Scale and Opacity must be numbers")
             return None
+        constructor_info = [set_path, set_name, pos_x, pos_y, scale, opacity]
         #
         combine_mode = 'closest'
         dif_timelimit = None #60 * 20
@@ -1353,14 +1390,56 @@ class imgset_overlay_dialog(wx.Dialog):
 
             if closest_overlay:
                 time_dif = datetime.timedelta(seconds=min_time_difference)
-                print(f'{bg_img} closest overlay is {closest_overlay} with a time difference of {time_dif}')
-                self.overlay_image_to_frame(bg_img, closest_overlay, time_dif)
+                #print(f'{bg_img} closest overlay is {closest_overlay} with a time difference of {time_dif}')
+                self.overlay_image_to_frame(bg_img, closest_overlay, time_dif, constructor_info)
             else:
-                print(f'{bg_img} has no overlay within {dif_timelimit}')
-                self.overlay_image_to_frame(bg_img, None, None)
+                #print(f'{bg_img} has no overlay within {dif_timelimit}')
+                self.overlay_image_to_frame(bg_img, None, None, constructor_info)
 
-    def overlay_image_to_frame(self, bg_img, closest_overlay, time_dif):
-        print('overlay image to frame has not been written yet')
+        # ask to switch to new set
+        filename, img_type = os.path.splitext(os.path.basename(bg_img))
+        self.switch_to_set(set_path, img_type, set_name)
+
+    def switch_to_set(self, out_folder, img_type, set_name):
+        '''ask user if they want to switch to the new set'''
+        set_o_name = os.path.join(out_folder, f"{set_name}_<DATE>{img_type}")
+        dlog_msg = "Image set creation completed\n\n" + str(set_o_name)
+        dlog_msg += "\n\nDo you want to switch to the new set?"
+        confirm_dialog = wx.MessageDialog(None, dlog_msg, "Confirmation", wx.YES_NO | wx.ICON_QUESTION)
+        if confirm_dialog.ShowModal() == wx.ID_YES:
+            c_pnl = self.parent.parent.dict_C_pnl['timelapse_pnl']
+            c_pnl.open_caps_folder(out_folder, img_type, set_name)
+        confirm_dialog.Destroy()
+        self.Destroy()
+
+
+    def overlay_image_to_frame(self, bg_img, closest_overlay, time_dif, constructor_info):
+        set_path, set_name, pos_x, pos_y, scale, opacity = constructor_info
+        # make name of new frame
+        filename, img_type = os.path.splitext(os.path.basename(bg_img))
+        epoch_time = filename.split("_")[-1]
+        output_path = os.path.join(set_path, f"{set_name}_{epoch_time}{img_type}")
+        print('Creating - ', output_path)
+        # construct frame
+
+        # Load images
+        if closest_overlay == None:
+            bg_img = Image.open(bg_img)
+            bg_img.save(output_path)
+            return None
+        bg_img = Image.open(bg_img).convert("RGBA")
+        overlay_image = Image.open(closest_overlay).convert("RGBA")
+
+        # Resize overlay image
+        overlay_image = overlay_image.resize(
+            (int(overlay_image.width * scale), int(overlay_image.height * scale)))
+        # set transparency
+        overlay_image.putalpha(int(opacity * 255))
+        # overlay onto background
+        bg_img.alpha_composite(overlay_image, (pos_x, pos_y))
+        # save
+        bg_img = bg_img.convert("RGB")
+        bg_img.save(output_path)
 
 
 
