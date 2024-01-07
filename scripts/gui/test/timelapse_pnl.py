@@ -596,6 +596,11 @@ class info_pnl(wx.Panel):
             do_analyse_btn = wx.Button(self, label='Go')
             do_analyse_btn.Bind(wx.EVT_BUTTON, self.do_analyse_click)
 
+            # Image box initialization with a blank image
+            self.graph_image_path = ""
+            self.graph_image_box = wx.StaticBitmap(self, wx.ID_ANY, wx.Bitmap(400, 400))
+            self.graph_image_box.Bind(wx.EVT_LEFT_DOWN, self.on_image_click)
+
             analyse_select_sizer = wx.BoxSizer(wx.HORIZONTAL)
             analyse_select_sizer.Add(self.analyse_cb, 0, wx.ALL |  wx.ALIGN_CENTER_VERTICAL, 5)
             analyse_select_sizer.Add(do_analyse_btn, 0, wx.ALL |  wx.ALIGN_CENTER_VERTICAL, 5)
@@ -603,7 +608,32 @@ class info_pnl(wx.Panel):
             graph_sizer = wx.BoxSizer(wx.VERTICAL)
             graph_sizer.Add(graph_l, 0, wx.ALL |  wx.ALIGN_CENTER_HORIZONTAL, 5)
             graph_sizer.Add(analyse_select_sizer, 0, wx.ALL |  wx.ALIGN_CENTER_HORIZONTAL, 5)
+            graph_sizer.Add(self.graph_image_box, 1, wx.ALL | wx.EXPAND, 5)
             return graph_sizer
+
+        def on_image_click(self, event):
+            if self.graph_image_path:
+                title = "Analyse " + self.analyse_cb.GetValue()
+                dbox = self.shared_data.show_image_dialog(None, self.graph_image_path, title)
+                dbox.ShowModal()
+                dbox.Destroy()
+
+        def set_graph_image(self, img_path):
+            print("Setting graph", img_path)
+            self.graph_image_path = img_path
+            self.graph_size = 400
+
+            try:
+                img = wx.Image(img_path, wx.BITMAP_TYPE_ANY)
+                graph = self.shared_data.scale_pic(img, self.graph_size)
+                graph = graph.ConvertToBitmap()
+                self.graph_image_box.SetBitmap(graph)
+            except:
+                print("!! Graph didn't work for timelapse tab.", img_path)
+
+            self.graph_image_box.Layout()
+            self.Layout()
+
 
         def make_info_sizer(self):
             # image set info
@@ -743,9 +773,10 @@ class info_pnl(wx.Panel):
             module_name = "analyse_" + module_opt
             self.c_pnl.import_module(module_name, "analyse_tool")
             out_file = os.path.join(temp_folder, "result_image.png")
-            analysis_img_path = analyse_tool.analyse_set(ani_frame_list, out_file)
-            print("analysis output;", analysis_img_path)
-            return analysis_img_path
+            anal_test = analyse_tool.analyse_set(ani_frame_list, out_file)
+            print("analysis complete;", anal_test)
+
+            self.set_graph_image(out_file)
 
         # info box controls
         def set_img_box(self):
@@ -765,7 +796,6 @@ class info_pnl(wx.Panel):
                 fps = 0
 
             # add credit length to duration
-
             credit_style = self.c_pnl.credits_cb.GetValue()
             if credit_style == "none" or credit_style == "":
                 credit_num = 0
