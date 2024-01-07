@@ -49,7 +49,7 @@ def label_day_bar(top_img, day, x_pos, bar_width, bar_height):
 
     return top_img
 
-def analyse_set(ani_frame_list, temp_folder):
+def analyse_set(ani_frame_list, out_file):
     bar_width = 100
     bar_height = 25
     left_section_width = 30
@@ -58,7 +58,7 @@ def analyse_set(ani_frame_list, temp_folder):
     # Ensure there are images in the list
     if not ani_frame_list:
         print("No images in the list.")
-        return
+        return False
 
     # Iterate through the image list and organize images into dict by day
     day_images = defaultdict(list)
@@ -111,9 +111,9 @@ def analyse_set(ani_frame_list, temp_folder):
     final_image.paste(label_image, (0, top_section))
 
     # Save or display the result image as needed
-    final_image.save(temp_folder + "/result_image.png")
-    print(f"Analysis complete. Result saved to {temp_folder}/result_image.png")
-    return temp_folder + "/result_image.png"
+    final_image.save(out_file)
+    print(f"Analysis complete. Result saved to {out_file}")
+    return True
 
 # def analyse_set(ani_frame_list, temp_folder):
 #     bar_width=100

@@ -742,7 +742,8 @@ class info_pnl(wx.Panel):
 
             module_name = "analyse_" + module_opt
             self.c_pnl.import_module(module_name, "analyse_tool")
-            analysis_img_path = analyse_tool.analyse_set(ani_frame_list, temp_folder)
+            out_file = os.path.join(temp_folder, "result_image.png")
+            analysis_img_path = analyse_tool.analyse_set(ani_frame_list, out_file)
             print("analysis output;", analysis_img_path)
             return analysis_img_path
 
@@ -1411,7 +1412,6 @@ class imgset_overlay_dialog(wx.Dialog):
             c_pnl.open_caps_folder(out_folder, img_type, set_name)
         confirm_dialog.Destroy()
         self.Destroy()
-
 
     def overlay_image_to_frame(self, bg_img, closest_overlay, time_dif, constructor_info):
         set_path, set_name, pos_x, pos_y, scale, opacity = constructor_info
