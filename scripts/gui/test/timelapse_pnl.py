@@ -1,4 +1,5 @@
 import wx
+import wx.adv
 import os
 import re
 import sys
@@ -130,12 +131,62 @@ class ctrl_pnl(wx.Panel):
         min_sizer.Add(min_size_l, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
         min_sizer.Add(self.min_size_tc, 0, wx.ALL, 5)
 
+        #         # Clip Before
+        # clip_before_l = wx.StaticText(self, label='Clip Before')
+        # self.hour_before_tc = wx.TextCtrl(self, size=(35, -1))
+        # self.hour_before_tc.SetValue("0")
+        # cb_colon = wx.StaticText(self, label=':')
+        # self.minute_before_tc = wx.TextCtrl(self, size=(35, -1))
+        # self.minute_before_tc.SetValue("00")
+        #
+        # clip_before_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        # clip_before_sizer.Add(clip_before_l, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 3)
+        # clip_before_sizer.Add(self.hour_before_tc, 0, wx.ALL, 2)
+        # clip_before_sizer.Add(cb_colon, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 1)
+        # clip_before_sizer.Add(self.minute_before_tc, 0, wx.ALL, 2)
+        #
+        # # Clip After
+        # clip_after_label = wx.StaticText(self, label='Clip After')
+        # self.hour_after_tc = wx.TextCtrl(self, size=(35, -1))
+        # self.hour_after_tc.SetValue("23")
+        # ca_colon = wx.StaticText(self, label=':')
+        # self.minute_after_tc = wx.TextCtrl(self, size=(35, -1))
+        # self.minute_after_tc.SetValue("59")
+        #
+        # clip_after_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        # clip_after_sizer.Add(clip_after_label, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 16)
+        # clip_after_sizer.Add(self.hour_after_tc, 0, wx.ALL, 2)
+        # clip_after_sizer.Add(ca_colon, 0, wx.ALL, 2)
+        # clip_after_sizer.Add(self.minute_after_tc, 0, wx.ALL, 2)
+
+
+        # Clip Before
+        clip_before_label = wx.StaticText(self, label='Clip Before')
+        self.time_picker_before = wx.adv.TimePickerCtrl(self, style=wx.adv.TP_DEFAULT)
+        self.time_picker_before.SetTime(0, 0, 0)
+        self.time_picker_before.Bind(wx.adv.EVT_TIME_CHANGED, self.calc_frames_click)
+        clip_before_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        clip_before_sizer.Add(clip_before_label, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 1)
+        clip_before_sizer.Add(self.time_picker_before, 0, wx.LEFT, 3)
+        # Clip After
+        clip_after_label = wx.StaticText(self, label='Clip After  ')
+        self.time_picker_after = wx.adv.TimePickerCtrl(self, style=wx.adv.TP_DEFAULT)
+        self.time_picker_after.SetTime(23, 59, 59)
+        self.time_picker_after.Bind(wx.adv.EVT_TIME_CHANGED, self.calc_frames_click)
+        clip_after_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        clip_after_sizer.Add(clip_after_label, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 1)
+        clip_after_sizer.Add(self.time_picker_after, 0, wx.LEFT, 5)
+
+
         # calc frames button
+        clear_btn = wx.Button(self, label='clear', size=(45,-1))
+        clear_btn.Bind(wx.EVT_BUTTON, self.clear_click)
         calc_frames_btn = wx.Button(self, label='Calculate Frames')
         calc_frames_btn.Bind(wx.EVT_BUTTON, self.calc_frames_click)
         self.calc_cb = wx.CheckBox(self, label='')
         self.calc_cb.SetValue(True)
         calc_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        calc_sizer.Add(clear_btn, 0, wx.ALL, 2)
         calc_sizer.Add(calc_frames_btn, 0, wx.ALL, 2)
         calc_sizer.Add(self.calc_cb, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 2)
 
@@ -145,9 +196,21 @@ class ctrl_pnl(wx.Panel):
         frame_sel_sizer.Add(self.sel_mode_cb, 0, wx.ALIGN_RIGHT, 5)
         frame_sel_sizer.Add(time_lim_sizer, 0, wx.ALL, 5)
         frame_sel_sizer.Add(min_sizer, 0, wx.ALL, 1)
+        frame_sel_sizer.Add(clip_before_sizer, 0, wx.ALL, 1)
+        frame_sel_sizer.Add(clip_after_sizer, 0, wx.ALL, 1)
         frame_sel_sizer.Add(calc_sizer, 0, wx.ALIGN_RIGHT, 5)
 
         return frame_sel_sizer
+
+    def clear_click(self, e):
+        self.use_every_tc.SetValue("")
+        self.sel_mode_cb.SetValue("strict")
+        self.time_lim_tc.SetValue("")
+        self.time_lim_cb.SetValue("all")
+        self.min_size_tc.SetValue("")
+        self.time_picker_before.SetTime(0, 0, 0)
+        self.time_picker_after.SetTime(23, 59, 59)
+
 
     def list_val_changed(self, e=None):
         # Debounce the function by delaying its execution
@@ -300,6 +363,7 @@ class ctrl_pnl(wx.Panel):
         new_list = self.cap_file_paths[start:stop].copy()
 
         new_list = self.limit_to_date(new_list)
+        new_list = self.limit_by_time_cutoff(new_list)
         new_list = self.limit_to_size(new_list)
         new_list = self.trim_nth(new_list)
         self.trimmed_frame_list = new_list
@@ -358,6 +422,29 @@ class ctrl_pnl(wx.Panel):
 
         #print("date trimmed list; list now " + str(len(list_trimmed_by_startpoint)) + " frames long")
         return list_trimmed_by_startpoint
+
+    def limit_by_time_cutoff(self, cap_list):
+        clip_before = self.time_picker_before.GetTime()
+        clip_before_total_minutes = (clip_before[0] * 60) + clip_before[1]
+        clip_after  = self.time_picker_after.GetTime()
+        clip_after_total_minutes = (clip_after[0] * 60) + clip_after[1]
+        if clip_before == (0, 0, 0) and clip_after == (23, 59, 59):
+            return cap_list
+
+        i_pnl = self.parent.dict_I_pnl['timelapse_pnl']
+        list_trimmed = []
+        for item in cap_list:
+            filename, pic_time = i_pnl.date_from_filename(item)
+
+            hour   = pic_time.hour
+            mins = pic_time.minute
+            frame_total_minutes = (hour * 60) + mins
+
+            # Check if frame time is within the specified range
+            if clip_before_total_minutes <= frame_total_minutes <= clip_after_total_minutes:
+                list_trimmed.append(item)
+
+        return list_trimmed
 
     def limit_to_size(self, cap_list):
         min_size = self.min_size_tc.GetValue()
@@ -535,6 +622,7 @@ class info_pnl(wx.Panel):
             self.c_pnl = parent.dict_C_pnl['timelapse_pnl']
             w = 1000
             self.pic_size = 500
+            self.graph_size = 400
             wx.Panel.__init__ ( self, parent, size = (w,-1), id = wx.ID_ANY, style = wx.TAB_TRAVERSAL )
             self.Bind(wx.EVT_SIZE, self.on_size)
             # Tab Title
@@ -593,47 +681,27 @@ class info_pnl(wx.Panel):
             analyse_opts = self.get_analyse_opts()
             self.analyse_cb = wx.ComboBox(self, choices = analyse_opts)
             self.analyse_cb.SetValue(analyse_opts[0])
-            do_analyse_btn = wx.Button(self, label='Go')
-            do_analyse_btn.Bind(wx.EVT_BUTTON, self.do_analyse_click)
+            self.do_analyse_btn = wx.Button(self, label='Go')
+            self.do_analyse_btn.Bind(wx.EVT_BUTTON, self.do_analyse_click)
 
             # Image box initialization with a blank image
             self.graph_image_path = ""
             self.graph_image_box = wx.StaticBitmap(self, wx.ID_ANY, wx.Bitmap(400, 400))
             self.graph_image_box.Bind(wx.EVT_LEFT_DOWN, self.on_image_click)
+            progress_msg = "Processing Image Set"
+            self.graph_progress_l = wx.StaticText(self,  label=progress_msg)
+            self.graph_progress_l.Hide()
 
             analyse_select_sizer = wx.BoxSizer(wx.HORIZONTAL)
             analyse_select_sizer.Add(self.analyse_cb, 0, wx.ALL |  wx.ALIGN_CENTER_VERTICAL, 5)
-            analyse_select_sizer.Add(do_analyse_btn, 0, wx.ALL |  wx.ALIGN_CENTER_VERTICAL, 5)
+            analyse_select_sizer.Add(self.do_analyse_btn, 0, wx.ALL |  wx.ALIGN_CENTER_VERTICAL, 5)
 
             graph_sizer = wx.BoxSizer(wx.VERTICAL)
             graph_sizer.Add(graph_l, 0, wx.ALL |  wx.ALIGN_CENTER_HORIZONTAL, 5)
             graph_sizer.Add(analyse_select_sizer, 0, wx.ALL |  wx.ALIGN_CENTER_HORIZONTAL, 5)
+            graph_sizer.Add(self.graph_progress_l, 0, wx.ALL |  wx.ALIGN_CENTER_HORIZONTAL, 5)
             graph_sizer.Add(self.graph_image_box, 1, wx.ALL | wx.EXPAND, 5)
             return graph_sizer
-
-        def on_image_click(self, event):
-            if self.graph_image_path:
-                title = "Analyse " + self.analyse_cb.GetValue()
-                dbox = self.shared_data.show_image_dialog(None, self.graph_image_path, title)
-                dbox.ShowModal()
-                dbox.Destroy()
-
-        def set_graph_image(self, img_path):
-            print("Setting graph", img_path)
-            self.graph_image_path = img_path
-            self.graph_size = 400
-
-            try:
-                img = wx.Image(img_path, wx.BITMAP_TYPE_ANY)
-                graph = self.shared_data.scale_pic(img, self.graph_size)
-                graph = graph.ConvertToBitmap()
-                self.graph_image_box.SetBitmap(graph)
-            except:
-                print("!! Graph didn't work for timelapse tab.", img_path)
-
-            self.graph_image_box.Layout()
-            self.Layout()
-
 
         def make_info_sizer(self):
             # image set info
@@ -748,7 +816,34 @@ class info_pnl(wx.Panel):
             img_box_sizer.Add(last_img_sizer, 0, wx.ALL, 5)
             return img_box_sizer
 
-        # graph sizer
+        # graph sizer controls
+        def on_image_click(self, event):
+            if self.graph_image_path:
+                title = "Analyse " + self.analyse_cb.GetValue()
+                dbox = self.shared_data.show_image_dialog(None, self.graph_image_path, title)
+                dbox.ShowModal()
+                dbox.Destroy()
+
+        def set_graph_image(self, img_path):
+            # set for later use by on_image_click
+            self.graph_image_path = img_path
+            # load image and display in box
+            try:
+                img = wx.Image(img_path, wx.BITMAP_TYPE_ANY)
+                graph = self.shared_data.scale_pic(img, self.graph_size)
+                graph = graph.ConvertToBitmap()
+                self.graph_image_box.SetBitmap(graph)
+            except:
+                print("!! Graph didn't work for timelapse tab.", img_path)
+
+            self.graph_image_box.Layout()
+            self.Layout()
+
+        def graph_image_in_process(self):
+            self.graph_image_box.Hide()
+            self.graph_progress_l.Show()
+            self.do_analyse_btn.Disable()
+            self.Layout()
 
         def get_analyse_opts(self):
             analyse_opts = self.parent.shared_data.get_module_options("analyse_", "timelapse_modules")
@@ -773,10 +868,31 @@ class info_pnl(wx.Panel):
             module_name = "analyse_" + module_opt
             self.c_pnl.import_module(module_name, "analyse_tool")
             out_file = os.path.join(temp_folder, "result_image.png")
+
+            # run test tool
+            self.graph_image_in_process()
+
+            delayedresult.startWorker(self._on_analyse_result,
+                                self._run_analyse_set,
+                                wargs=(ani_frame_list, out_file),
+                                jobID=1)
+
+
+        def _run_analyse_set(self, ani_frame_list, out_file):
+            print("doing anal")
             anal_test = analyse_tool.analyse_set(ani_frame_list, out_file)
             print("analysis complete;", anal_test)
+            return out_file
 
+
+        def _on_analyse_result(self, result):
+            out_file = result.get()
+            print("got anal ", out_file)
+            self.graph_image_box.Show()
+            self.graph_progress_l.Hide()
+            self.do_analyse_btn.Enable()
             self.set_graph_image(out_file)
+            self.Layout()
 
         # info box controls
         def set_img_box(self):
@@ -1029,6 +1145,7 @@ class info_pnl(wx.Panel):
                     pass
 
             return file_name, 'undetermined'
+
 
 class stylized_dialog(wx.Dialog):
     def __init__(self, parent, *args, **kw):
@@ -1544,7 +1661,6 @@ class imgset_overlay_dialog(wx.Dialog):
         ref_background_image = self.image_list[self.current_image_index]
         ref_overlay_image = self.overlay_img_set[self.overlay_image_index]
         self.preview_panel.update_preview(ref_background_image, ref_overlay_image)
-
 
 class PreviewPanel(wx.Panel):
     def __init__(self, parent, ref_background_image, ref_overlay_image):
