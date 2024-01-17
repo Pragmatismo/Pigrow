@@ -50,6 +50,7 @@ def label_day_bar(top_img, day, x_pos, bar_width, bar_height):
     return top_img
 
 def analyse_set(ani_frame_list, out_file):
+    show_labels = True
     bar_width = 100
     bar_height = 25
     left_section_width = 30
@@ -75,18 +76,19 @@ def analyse_set(ani_frame_list, out_file):
     max_images_per_day = max(len(images) for images in day_images.values())
     img_height = max_images_per_day * bar_height
     result_image = Image.new("RGBA", (img_width, img_height), (255, 105, 180, 255))
-    draw = ImageDraw.Draw(result_image)
+    #draw = ImageDraw.Draw(result_image)
 
-    # create background for left section with hour labels and 5min markers
-    left_section = Image.new("RGBA", (left_section_width, img_height), (255, 255, 255, 255))
-    left_draw = ImageDraw.Draw(left_section)
-    # Draw hour labels and markers
-    draw_labels_and_markers(left_draw, left_section_width, img_height)
+    if show_labels == True:
+        # create background for left section with hour labels and 5min markers
+        left_section = Image.new("RGBA", (left_section_width, img_height), (255, 255, 255, 255))
+        left_draw = ImageDraw.Draw(left_section)
+        # Draw hour labels and markers
+        draw_labels_and_markers(left_draw, left_section_width, img_height)
 
-    # create background for top section with day labels
-    full_width = left_section_width + img_width
-    full_heigh = top_section + img_height
-    final_image = Image.new("RGBA", (full_width, full_heigh), (255, 255, 255, 255))
+        # create background for top section with day labels
+        full_width = left_section_width + img_width
+        full_heigh = top_section + img_height
+        final_image = Image.new("RGBA", (full_width, full_heigh), (255, 255, 255, 255))
 
 
     # create display area
@@ -94,7 +96,8 @@ def analyse_set(ani_frame_list, out_file):
     for i, (day, images) in enumerate(sorted(day_images.items())):
         print("Processing", day)
         x_pos = (i * bar_width)
-        label_day_bar(final_image, day, x_pos+left_section_width, bar_width, bar_height)
+        if show_labels == True:
+            label_day_bar(final_image, day, x_pos+left_section_width, bar_width, bar_height)
 
         for time, image_path in images:
             # Calculate the position based on the time
@@ -103,15 +106,19 @@ def analyse_set(ani_frame_list, out_file):
             shrunk_image = shrink_image(image_path, bar_width, bar_height)
             result_image.paste(shrunk_image, (x_pos, time_position))
 
-    # Concatenate left section with the result image
-    label_image = Image.new("RGBA", (img_width + left_section_width, img_height), (255, 255, 255, 255))
-    label_image.paste(left_section, (0, 0))
-    label_image.paste(result_image, (left_section_width, 0))
+    if show_labels == True:
+        # add left section to the result image
+        label_image = Image.new("RGBA", (img_width + left_section_width, img_height), (255, 255, 255, 255))
+        label_image.paste(left_section, (0, 0))
+        label_image.paste(result_image, (left_section_width, 0))
+        # add top bar to image
+        final_image.paste(label_image, (0, top_section))
 
-    final_image.paste(label_image, (0, top_section))
+        # Save or display the result image as needed
+        final_image.save(out_file)
+    else:
+        result_image.save(out_file)
 
-    # Save or display the result image as needed
-    final_image.save(out_file)
     print(f"Analysis complete. Result saved to {out_file}")
     return True
 
