@@ -131,35 +131,6 @@ class ctrl_pnl(wx.Panel):
         min_sizer.Add(min_size_l, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
         min_sizer.Add(self.min_size_tc, 0, wx.ALL, 5)
 
-        #         # Clip Before
-        # clip_before_l = wx.StaticText(self, label='Clip Before')
-        # self.hour_before_tc = wx.TextCtrl(self, size=(35, -1))
-        # self.hour_before_tc.SetValue("0")
-        # cb_colon = wx.StaticText(self, label=':')
-        # self.minute_before_tc = wx.TextCtrl(self, size=(35, -1))
-        # self.minute_before_tc.SetValue("00")
-        #
-        # clip_before_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        # clip_before_sizer.Add(clip_before_l, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 3)
-        # clip_before_sizer.Add(self.hour_before_tc, 0, wx.ALL, 2)
-        # clip_before_sizer.Add(cb_colon, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 1)
-        # clip_before_sizer.Add(self.minute_before_tc, 0, wx.ALL, 2)
-        #
-        # # Clip After
-        # clip_after_label = wx.StaticText(self, label='Clip After')
-        # self.hour_after_tc = wx.TextCtrl(self, size=(35, -1))
-        # self.hour_after_tc.SetValue("23")
-        # ca_colon = wx.StaticText(self, label=':')
-        # self.minute_after_tc = wx.TextCtrl(self, size=(35, -1))
-        # self.minute_after_tc.SetValue("59")
-        #
-        # clip_after_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        # clip_after_sizer.Add(clip_after_label, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 16)
-        # clip_after_sizer.Add(self.hour_after_tc, 0, wx.ALL, 2)
-        # clip_after_sizer.Add(ca_colon, 0, wx.ALL, 2)
-        # clip_after_sizer.Add(self.minute_after_tc, 0, wx.ALL, 2)
-
-
         # Clip Before
         clip_before_label = wx.StaticText(self, label='Clip Before')
         self.time_picker_before = wx.adv.TimePickerCtrl(self, style=wx.adv.TP_DEFAULT)
@@ -262,6 +233,7 @@ class ctrl_pnl(wx.Panel):
 
         log_overlay_btn = wx.Button(self, label='Overlay Log')
         log_overlay_btn.Bind(wx.EVT_BUTTON, self.log_overlay_click)
+        log_overlay_btn.Hide()
 
         imgset_overlay_btn = wx.Button(self, label='Overlay Image Set')
         imgset_overlay_btn.Bind(wx.EVT_BUTTON, self.imgset_overlay_click)
