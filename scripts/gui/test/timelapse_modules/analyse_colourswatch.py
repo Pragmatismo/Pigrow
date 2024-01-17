@@ -1,11 +1,11 @@
 
 from PIL import Image
 
-def analyse_set(ani_frame_list, temp_folder):
+def analyse_set(ani_frame_list, out_file):
     # Ensure there are images in the list
     if not ani_frame_list:
         print("No images in the list.")
-        return
+        return False
 
     # Open the first image to get dimensions
     first_image = Image.open(ani_frame_list[0])
@@ -41,6 +41,6 @@ def analyse_set(ani_frame_list, temp_folder):
         result_image.paste(strip, (i * bar_size, 0))
 
     # Save or display the result image as needed
-    result_image.save(temp_folder + "/result_image.png")
-    print(f"Analysis complete. Result saved to {temp_folder}/result_image.png")
-    return temp_folder + "/result_image.png"
+    result_image.save(out_file)
+    print(f"Analysis complete. Result saved to {out_file}")
+    return True

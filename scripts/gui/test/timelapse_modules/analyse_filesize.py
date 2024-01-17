@@ -2,11 +2,11 @@
 import matplotlib.pyplot as plt
 import os
 
-def analyse_set(ani_frame_list, temp_folder):
+def analyse_set(ani_frame_list, out_file):
     # Ensure there are images in the list
     if not ani_frame_list:
         print("No images in the list.")
-        return
+        return False
 
     # Get file sizes for each image
     file_sizes = [os.path.getsize(image_path) for image_path in ani_frame_list]
@@ -33,7 +33,7 @@ def analyse_set(ani_frame_list, temp_folder):
     # Adjust the layout to reduce empty space
     plt.subplots_adjust(left=0.005, right=0.99, top=0.9, bottom=0.1)
 
-    plt.savefig(temp_folder + "/file_size_graph.png")
+    plt.savefig(out_file)
     plt.close()
-    print(f"Analysis complete. Result saved to {temp_folder}/file_size_graph.png")
-    return temp_folder + "/file_size_graph.png"
+    print(f"Analysis complete. Result saved to {out_file}")
+    return True
