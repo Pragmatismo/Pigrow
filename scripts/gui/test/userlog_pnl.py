@@ -34,7 +34,8 @@ class ctrl_pnl(wx.Panel):
         selected_item = self.log_cb.GetValue()
         usrlog = "userlog_" + selected_item + ".txt"
         I_pnl = self.parent.dict_I_pnl['userlog_pnl']
-        I_pnl.log_path.SetLabel(usrlog)
+        I_pnl.log_name.SetLabel(usrlog)
+        I_pnl.fill_log_display_sizer(usrlog)
         I_pnl.Layout()
 
     def refresh_list_click(self, e):
@@ -54,7 +55,6 @@ class ctrl_pnl(wx.Panel):
 
     def new_log_click(self, e):
         print("-- new log click, does nothing.")
-
 
 
 class info_pnl(wx.Panel):
@@ -81,6 +81,8 @@ class info_pnl(wx.Panel):
         main_sizer.AddStretchSpacer(1)
         main_sizer.Add(self.make_log_tool_sizer(), 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
         main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(self.make_empty_log_display_sizer(), 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
+        main_sizer.AddStretchSpacer(1)
         self.SetSizer(main_sizer)
 
     def make_log_tool_sizer(self):
@@ -88,11 +90,11 @@ class info_pnl(wx.Panel):
         log_title_l = wx.StaticText(self,  label='Log Tools')
         # log path label
         self.SetFont(self.shared_data.info_font)
-        log_path_l = wx.StaticText(self,  label='Log Path')
-        self.log_path = wx.StaticText(self,  label='')
-        log_path_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        log_path_sizer.Add(log_path_l, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 15)
-        log_path_sizer.Add(self.log_path, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 15)
+        log_name_l = wx.StaticText(self,  label='Log Path')
+        self.log_name = wx.StaticText(self,  label='')
+        log_name_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        log_name_sizer.Add(log_name_l, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 15)
+        log_name_sizer.Add(self.log_name, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 15)
 
         # field edit buttons
         add_field_btn = wx.Button(self, label='Add field')
@@ -109,10 +111,30 @@ class info_pnl(wx.Panel):
         # log sizer
         log_sizer = wx.BoxSizer(wx.VERTICAL)
         log_sizer.Add(log_title_l, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
-        log_sizer.Add(log_path_sizer, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
+        log_sizer.Add(log_name_sizer, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
         log_sizer.Add(field_but_sizer, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
 
         return log_sizer
+
+    def make_empty_log_display_sizer(self):
+        # init log display class
+        self.log_data = self.LogData(self)
+        # label
+        self.SetFont(self.shared_data.item_title_font)
+        display_title_l = wx.StaticText(self,  label='Log;')
+        # empty display area
+        #self.log_info_sizer = wx.BoxSizer(wx.VERTICAL)
+        #self.log_info_sizer.Add(, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
+        # sizer
+        log_display_sizer = wx.BoxSizer(wx.VERTICAL)
+        log_display_sizer.Add(display_title_l, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
+        log_display_sizer.Add(self.log_data.log_info_sizer, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
+
+        return log_display_sizer
+
+    def fill_log_display_sizer(self, log_name):
+        self.log_data.fill_sizer(log_name)
+
 
     def add_field_click(self, e):
         print("Sorry no new fields for you :P")
@@ -122,3 +144,42 @@ class info_pnl(wx.Panel):
 
     def del_field_click(self, e):
         print("sorry I refuse to remove any fields")
+
+    class LogData():
+        def __init__(self, parent):
+            self.parent = parent
+            self.log_field_list = []
+            self.log_info_sizer = wx.BoxSizer(wx.VERTICAL)
+            #blank_l = wx.StaticText(self,  label='--no log loaded--')
+            #self.log_display_sizer.Add(display_title_l, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
+
+        def fill_sizer(self, log_name):
+            log_text = self.read_log(log_name)
+            self.log_info_sizer.Clear(delete_windows=True)
+            test_l = wx.StaticText(self.parent,  label=log_text)
+
+            self.log_info_sizer.Add(test_l, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
+
+            self.parent.Layout()
+
+        def read_log(self, log_name):
+            log_path = self.parent.parent.shared_data.remote_pigrow_path + "logs/" + log_name
+            out, error = self.parent.parent.link_pnl.run_on_pi("cat " + log_path)
+            return out.strip()
+
+
+
+        # def field_text_box(self, label, value):
+        #     text_label = wx.StaticText(self.panel, label=label)
+        #     text_ctrl = wx.TextCtrl(self.panel, value=value)
+        #     return wx.BoxSizer(wx.HORIZONTAL)
+        #
+        # def field_int_value(self, label, value):
+        #     int_label = wx.StaticText(self.panel, label=label)
+        #     int_ctrl = wx.SpinCtrl(self.panel, value=str(value))
+        #     return wx.BoxSizer(wx.HORIZONTAL)
+        #
+        # def field_date_picker(self, label, value):
+        #     date_label = wx.StaticText(self.panel, label=label)
+        #     date_ctrl = wx.DatePickerCtrl(self.panel)
+        #     return wx.BoxSizer(wx.HORIZONTAL)
