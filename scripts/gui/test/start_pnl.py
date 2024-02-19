@@ -1,3 +1,4 @@
+from pathlib import Path
 import wx
 
 
@@ -29,5 +30,6 @@ class info_pnl(wx.Panel):
             rect = self.GetUpdateRegion().GetBox()
             dc.SetClippingRect(rect)
         dc.Clear()
-        bmp = wx.Bitmap("./ui_images/splash.png")
+        p = Path.cwd().parent / "splash.png"
+        bmp = wx.Bitmap(str(p))
         dc.DrawBitmap(bmp, 0, 0)

@@ -5,6 +5,11 @@ import time
 from getmac import get_mac_address
 import wx.lib.delayedresult as delayedresult
 import  wx.lib.newevent
+from scripts.mock_raspberry import MockRaspberry
+
+
+MOCK_RASPBERRY_IP_ADDRESS = "192.168.0.100"
+
 
 FileDownloadEvent, EVT_FILE_DOWNLOAD = wx.lib.newevent.NewEvent()
 #SomeNewCommandEvent, EVT_SOME_NEW_COMMAND_EVENT = wx.lib.newevent.NewCommandEvent()
@@ -176,6 +181,10 @@ class link_pnl(wx.Panel):
             self.target_ip = self.cb_ip.GetValue()
             self.target_user = self.tb_user.GetValue()
             self.target_pass = self.tb_pass.GetValue()
+            if self.target_ip == MOCK_RASPBERRY_IP_ADDRESS:
+                self.ssh.close()
+                self.ssh = MockRaspberry()
+
             try:
                 port = int(self.shared_data.gui_set_dict['ssh_port'])
                 self.ssh.connect(self.target_ip, port=port, username=self.target_user, password=self.target_pass, timeout=3)

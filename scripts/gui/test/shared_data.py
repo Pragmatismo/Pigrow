@@ -1,5 +1,6 @@
 import wx
 import os
+from pathlib import Path
 import sys
 import platform
 import datetime
@@ -46,7 +47,7 @@ class shared_data:
         #
         # gui system paths
         self.cwd = os.getcwd()
-        self.ui_img_path = os.path.join(self.cwd, "ui_images")
+        self.ui_img_path = Path.cwd().parent / "ui_images"
         self.graph_modules_path = os.path.join(self.cwd, "graph_modules")
         self.sensor_modules_path = os.path.join(self.cwd, "sensor_modules")
         self.timelapse_modules_path = os.path.join(self.cwd, "timelapse_modules")
@@ -73,14 +74,14 @@ class shared_data:
         #
         ## Icon images
         #
-        no_log_img_path = os.path.join(self.ui_img_path, "log_loaded_none.png")
-        yes_log_img_path = os.path.join(self.ui_img_path, "log_loaded_true.png")
-        warn_log_img_path = os.path.join(self.ui_img_path, "log_loaded_none.png")
-        self.no_log_image = wx.Image(no_log_img_path, wx.BITMAP_TYPE_ANY).ConvertToBitmap()
-        self.yes_log_image = wx.Image(yes_log_img_path, wx.BITMAP_TYPE_ANY).ConvertToBitmap()
-        self.warn_log_image = wx.Image(warn_log_img_path, wx.BITMAP_TYPE_ANY).ConvertToBitmap()
-        infobtn_img_path = os.path.join(self.ui_img_path, "Info_button.png")
-        self.infobtn_image = wx.Image(infobtn_img_path, wx.BITMAP_TYPE_ANY).ConvertToBitmap()
+        no_log_img_path = self.ui_img_path / "log_loaded_none.png"
+        yes_log_img_path = self.ui_img_path / "log_loaded_true.png"
+        warn_log_img_path = self.ui_img_path / "log_loaded_none.png"
+        self.no_log_image = wx.Image(str(no_log_img_path), wx.BITMAP_TYPE_ANY).ConvertToBitmap()
+        self.yes_log_image = wx.Image(str(yes_log_img_path), wx.BITMAP_TYPE_ANY).ConvertToBitmap()
+        self.warn_log_image = wx.Image(str(warn_log_img_path), wx.BITMAP_TYPE_ANY).ConvertToBitmap()
+        infobtn_img_path = self.ui_img_path / "Info_button.png"
+        self.infobtn_image = wx.Image(str(infobtn_img_path), wx.BITMAP_TYPE_ANY).ConvertToBitmap()
         #
         ## Fonts
         #

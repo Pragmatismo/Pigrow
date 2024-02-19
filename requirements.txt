@@ -1,0 +1,4 @@
+# python 3.11
+wxPython==4.2.1
+getmac==0.9.4
+paramiko==3.4.0

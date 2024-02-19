@@ -1,7 +1,7 @@
 import os
 import wx
 import wx.lib.scrolledpanel as scrolled
-import image_combine
+import scripts.gui.image_combine as image_combine
 import shutil
 from picam_set_pnl import picam_sets_pnl
 from fswebcam_set_pnl import fs_sets_pnl
