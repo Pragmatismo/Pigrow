@@ -34,7 +34,8 @@ def set_for_with_fswebcam():
         if 'x_dim' in sets_dict and 'y_dim' in sets_dict:
             sets_dict['resolution'] = sets_dict['x_dim'] + "x" + sets_dict['y_dim']
         else:
-            print(" Resolution not set, using default 1920x1080")
+            print(" Resolution not set, using default 1920x1080\n")
+            sys.stdout.flush()
             sets_dict['resolution'] = '1920x1080'
     if not 'fs_delay' in sets_dict:
         sets_dict['fs_delay'] = '2'
@@ -57,7 +58,8 @@ def set_for_with_fswebcam():
             cam_cmd += ' --set "' + key + '"="' + val + '"'
     cam_cmd += " --jpeg " + sets_dict['fs_jpg_q'] # jpeg quality
 
-    print("Base cmd set to - ", cam_cmd)
+    print("Base cmd set to - ", cam_cmd + "\n")
+    sys.stdout.flush()
     return cam_cmd
 
 def take_with_fswebcam(cam_cmd):
@@ -66,7 +68,8 @@ def take_with_fswebcam(cam_cmd):
     cam_cmd += " " + filepath
 
     os.system(cam_cmd)
-    print("Capture Finished:" + filepath)
+    print("Capture Finished:" + filepath + "\n")
+    sys.stdout.flush()
 
 def new_load_camera_settings(settings_file):
     sets_dict = {}
@@ -79,8 +82,6 @@ def new_load_camera_settings(settings_file):
                     val = line[e_pos+1:].strip()
                     sets_dict[key] = val
     settings.sdict = sets_dict
-    #print(settings.sdict)
-
 
 # Capture Thread
 class FswCaptureThread(threading.Thread):
@@ -94,7 +95,8 @@ class FswCaptureThread(threading.Thread):
             time.sleep(settings.delay)
 
 def start_capture_loop(received_input):
-    print("Starting capture loop.")
+    print("Starting capture loop.\n")
+    sys.stdout.flush()
     settings.active = True
     new_load_camera_settings(settings.camera_settings)
 
@@ -102,54 +104,66 @@ def start_capture_loop(received_input):
         capture_thread = FswCaptureThread()
         capture_thread.start()
     elif settings.camera_opt == "picam":
-        print("Sorry picam capture is not yet written")
+        print("Sorry picam capture is not yet written\n")
+        sys.stdout.flush()
 
 def stop_capture_loop(received_input):
-    print("Stopping capture loop.")
     settings.active = False
+    print("Stopping capture loop.\n")
+    sys.stdout.flush()
 
 
 # Settings
 def use_picam(received_input):
     settings.camera_opt = "picam"
-    print("Camera Set to Picam")
+    print("Camera Set to Picam\n")
+    sys.stdout.flush()
 
 def use_fsw(received_input):
     settings.camera_opt = "fsw"
-    print("Camera Set to FSWebcam")
+    print("Camera Set to FSWebcam\n")
+    sys.stdout.flush()
 
 def set_outfolder(received_input):
     settings.out_folder = received_input[1]
-    print("Outfolder Set to", received_input[1])
+    print("Outfolder Set to", received_input[1] + "\n")
+    sys.stdout.flush()
 
 def set_setname(received_input):
     settings.set_name = received_input[1]
-    print("set_name Set to", received_input[1])
+    print("set_name Set to", received_input[1] + "\n")
+    sys.stdout.flush()
 
 def set_camset(received_input):
     settings.camera_settings = received_input[1]
-    print("camera_settings Set to", received_input[1])
+    print("camera_settings Set to", received_input[1] + "\n")
+    sys.stdout.flush()
 
 def set_delay(received_input):
     try:
         settings.delay = float(received_input[1])
-        print("set delay of " + received_input[1])
+        print("set delay of " + received_input[1] + "\n")
+        sys.stdout.flush()
     except:
-        print("delay value '" + received_input[1] + "' invalid")
+        print("delay value '" + received_input[1] + "' invalid\n")
+        sys.stdout.flush()
 
 def set_flimit(received_input):
     try:
         settings.frame_limit = int(received_input[1])
-        print("set frame_limit of " + received_input[1])
+        print("set frame_limit of " + received_input[1] + "\n")
+        sys.stdout.flush()
     except:
-        print("frame_limit value '" + received_input[1] + "' invalid")
+        print("frame_limit value '" + received_input[1] + "' invalid\n")
+        sys.stdout.flush()
 
 def show_help(received_input):
     help_text =  "Camera Timelapse Quick Capture Tool\n"
     help_text += "A remote trigger for making short timelapse sets\n\n"
-    help_text += "Commands; "
+    help_text += "Commands; \n"
     #help_text += str(commands)
     print(help_text)
+    sys.stdout.flush()
 
 
 # Main Loop
@@ -172,11 +186,13 @@ try:
             received_input = received_input.split(" ", 1)
         else:
             received_input = [received_input, ""]
+
         # Run command from input
         if received_input[0] in commands:
             commands[received_input[0]](received_input)
         else:
-            print("Command", received_input[0], "not recognised, use help to get a list of commands")
+            print("Command", received_input[0], "not recognised, use help to get a list of commands\n")
+            sys.stdout.flush()
 
         # Confirm input recieved, only needed for testing
         # output = f"recieved input {received_input[0]}"
