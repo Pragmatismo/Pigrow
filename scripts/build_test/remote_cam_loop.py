@@ -133,16 +133,16 @@ def set_camset(received_input):
 def set_delay(received_input):
     try:
         settings.delay = float(received_input[1])
-        print(f"set delay of {received_input[1]}")
+        print("set delay of " + received_input[1])
     except:
-        print(f"delay value '{received_input[1]}' invalid")
+        print("delay value '" + received_input[1] + "' invalid")
 
 def set_flimit(received_input):
     try:
         settings.frame_limit = int(received_input[1])
-        print(f"set frame_limit of {received_input[1]}")
+        print("set frame_limit of " + received_input[1])
     except:
-        print(f"frame_limit value '{received_input[1]}' invalid")
+        print("frame_limit value '" + received_input[1] + "' invalid")
 
 def show_help(received_input):
     help_text =  "Camera Timelapse Quick Capture Tool\n"
