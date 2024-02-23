@@ -90,7 +90,11 @@ class FswCaptureThread(threading.Thread):
 
     def run(self):
         base_cmd = set_for_with_fswebcam()
+        count = 0
         while settings.active == True:
+            count += 1
+            if count > settings.frame_limit and not settings.frame_limit == -1:
+                settings.active = False
             take_with_fswebcam(base_cmd)
             time.sleep(settings.delay)
 
