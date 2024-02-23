@@ -90,7 +90,7 @@ class FswCaptureThread(threading.Thread):
 
     def run(self):
         base_cmd = set_for_with_fswebcam()
-        count = 0
+        count = 1
         while settings.active == True:
             count += 1
             if count > settings.frame_limit and not settings.frame_limit == -1:
@@ -195,8 +195,9 @@ try:
         if received_input[0] in commands:
             commands[received_input[0]](received_input)
         else:
-            print("Command", received_input[0], "not recognised, use help to get a list of commands\n")
-            sys.stdout.flush()
+            if not received_input[0].strip() == "":
+                print("Command", received_input[0], "not recognised, use help to get a list of commands\n")
+                sys.stdout.flush()
 
         # Confirm input recieved, only needed for testing
         # output = f"recieved input {received_input[0]}"
