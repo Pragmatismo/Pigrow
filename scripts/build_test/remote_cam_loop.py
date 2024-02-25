@@ -62,13 +62,13 @@ def set_for_with_fswebcam():
     sys.stdout.flush()
     return cam_cmd
 
-def take_with_fswebcam(cam_cmd):
+def take_with_fswebcam(cam_cmd, count):
     timenow  = str(time.time())[0:10]
     filepath = settings.out_folder + settings.set_name + "_" + str(timenow) + ".jpg"
     cam_cmd += " " + filepath
 
     os.system(cam_cmd)
-    print("Capture Finished:" + filepath + "\n")
+    print("Capture " + str(count) + " Finished:" + filepath + "\n")
     sys.stdout.flush()
 
 def new_load_camera_settings(settings_file):
@@ -92,10 +92,10 @@ class FswCaptureThread(threading.Thread):
         base_cmd = set_for_with_fswebcam()
         count = 1
         while settings.active == True:
+            take_with_fswebcam(base_cmd, count)
             count += 1
             if count > settings.frame_limit and not settings.frame_limit == -1:
                 settings.active = False
-            take_with_fswebcam(base_cmd)
             time.sleep(settings.delay)
 
 def start_capture_loop(received_input):
@@ -120,12 +120,12 @@ def stop_capture_loop(received_input):
 # Settings
 def use_picam(received_input):
     settings.camera_opt = "picam"
-    print("Camera Set to Picam\n")
+    print("Camera Set to Picam")
     sys.stdout.flush()
 
 def use_fsw(received_input):
     settings.camera_opt = "fsw"
-    print("Camera Set to FSWebcam\n")
+    print("Camera Set to FSWebcam")
     sys.stdout.flush()
 
 def set_outfolder(received_input):
