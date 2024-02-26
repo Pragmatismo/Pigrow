@@ -32,16 +32,16 @@ class ctrl_pnl(wx.Panel):
 
         main_sizer = wx.BoxSizer(wx.VERTICAL)
         main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
-        main_sizer.Add(self.read_btn, 0, wx.ALL, 0)
-        main_sizer.Add(self.download_btn, 0, wx.ALL, 0)
-        main_sizer.Add(self.upload_btn, 0, wx.ALL, 0)
-        main_sizer.Add(self.clear_downed_btn, 0, wx.ALL, 0)
+        main_sizer.Add(self.read_btn, 0, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 5)
+        main_sizer.Add(self.download_btn, 0, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 5)
+        main_sizer.Add(self.upload_btn, 0, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 5)
+        main_sizer.Add(self.clear_downed_btn, 0, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 5)
         #
         main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
-        main_sizer.Add(archive_label, 0, wx.ALL, 0)
-        main_sizer.Add(self.saveconf_btn, 0, wx.ALL, 0)
-        main_sizer.Add(self.loadconf_btn, 0, wx.ALL, 0)
-        main_sizer.Add(self.endgrow_btn, 0, wx.ALL, 0)
+        main_sizer.Add(archive_label, 0, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 5)
+        main_sizer.Add(self.saveconf_btn, 0, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 5)
+        main_sizer.Add(self.loadconf_btn, 0, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 5)
+        main_sizer.Add(self.endgrow_btn, 0, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 5)
         self.SetSizer(main_sizer)
 
     def read_click(self, e):
@@ -1113,15 +1113,15 @@ class file_download_dialog(wx.Dialog):
 
 class info_pnl(scrolled.ScrolledPanel):
     def __init__(self, parent):
-        shared_data = parent.shared_data
+        self.shared_data = parent.shared_data
         self.parent = parent
         c_pnl = parent.dict_C_pnl['localfiles_pnl']
         w = 1000
         wx.Panel.__init__ (self, parent, id = wx.ID_ANY, style = wx.TAB_TRAVERSAL, size = (w,-1))
         # Title and Subtitle
-        self.SetFont(shared_data.title_font)
+        self.SetFont(self.shared_data.title_font)
         page_title =  wx.StaticText(self,  label='Local Files')
-        self.SetFont(shared_data.sub_title_font)
+        self.SetFont(self.shared_data.sub_title_font)
         page_sub_title =  wx.StaticText(self,  label='Files downloaded from the pi and stored locally')
         title_sizer = wx.BoxSizer(wx.VERTICAL)
         title_sizer.Add(page_title, 1,wx.ALIGN_CENTER_HORIZONTAL, 5)
@@ -1129,12 +1129,12 @@ class info_pnl(scrolled.ScrolledPanel):
 
         # Config Files
         config_l = wx.StaticText(self,  label='Config')
-        config_l.SetFont(shared_data.item_title_font)
+        config_l.SetFont(self.shared_data.item_title_font)
         self.config_files = self.config_file_list(self, 1)
         self.config_files.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.config_files.doubleclick_config)
         # Log Files
         log_l = wx.StaticText(self,  label='Log')
-        log_l.SetFont(shared_data.info_font)
+        log_l.SetFont(self.shared_data.info_font)
         self.log_files = self.log_file_list(self, 1)
         self.log_files.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.log_files.doubleclick_log)
 
@@ -1146,14 +1146,25 @@ class info_pnl(scrolled.ScrolledPanel):
         tables_sizer.SetItemMinSize(self.config_files, (w, -1))
         tables_sizer.SetItemMinSize(self.log_files, (w, -1))
 
-        #photos
-        #local photo storage info
-        self.SetFont(shared_data.item_title_font)
+        # Photo sizer and label
+        self.SetFont(self.shared_data.item_title_font)
         photo_l = wx.StaticText(self,  label='Photos')
+        photo_sizer = self.make_photo_sizer()
+
+        self.main_sizer = wx.BoxSizer(wx.VERTICAL)
+        self.main_sizer.Add(title_sizer, 0, wx.ALL|wx.EXPAND, 5)
+        self.main_sizer.Add(tables_sizer, 0, wx.ALL|wx.EXPAND, 5)
+        self.main_sizer.Add(photo_l, 0, wx.ALL|wx.EXPAND, 5)
+        self.main_sizer.Add(photo_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
+        self.SetAutoLayout(1)
+        self.SetupScrolling()
+        self.SetSizer(self.main_sizer)
+
+    def make_photo_sizer(self):
         # local caps folder
-        self.SetFont(shared_data.info_font)
+        self.SetFont(self.shared_data.info_font)
         caps_folder_l = wx.StaticText(self,  label='Local;')
-        caps_folder = os.path.join(shared_data.frompi_path, 'caps')
+        caps_folder = os.path.join(self.shared_data.frompi_path, 'caps')
         self.folder_text = wx.StaticText(self,  label=caps_folder)
         self.set_caps_folder_btn = wx.Button(self, label='...')
         self.set_caps_folder_btn.Bind(wx.EVT_BUTTON, self.set_caps_folder_click)
@@ -1161,9 +1172,10 @@ class info_pnl(scrolled.ScrolledPanel):
         caps_folder_sizer.Add(caps_folder_l, 0, wx.ALL|wx.EXPAND, 5)
         caps_folder_sizer.Add(self.folder_text, 0, wx.ALL|wx.EXPAND, 5)
         caps_folder_sizer.Add(self.set_caps_folder_btn, 0, wx.ALL|wx.EXPAND, 5)
+
         # remote caps folder
         r_caps_folder_l = wx.StaticText(self,  label='Remote;')
-        r_caps_folder = shared_data.remote_pigrow_path + 'caps'
+        r_caps_folder = self.shared_data.remote_pigrow_path + 'caps'
         self.r_folder_text = wx.StaticText(self,  label=r_caps_folder)
         self.set_r_caps_folder_btn = wx.Button(self, label='...')
         self.set_r_caps_folder_btn.Bind(wx.EVT_BUTTON, self.set_r_caps_folder_click)
@@ -1171,6 +1183,7 @@ class info_pnl(scrolled.ScrolledPanel):
         r_caps_folder_sizer.Add(r_caps_folder_l, 0, wx.ALL|wx.EXPAND, 5)
         r_caps_folder_sizer.Add(self.r_folder_text, 0, wx.ALL|wx.EXPAND, 5)
         r_caps_folder_sizer.Add(self.set_r_caps_folder_btn, 0, wx.ALL|wx.EXPAND, 5)
+
         # download most recent pic buttons
         get_newest_cap_btn = wx.Button(self, label='Get most recent cap')
         get_newest_cap_btn.Bind(wx.EVT_BUTTON, self.get_newest_cap_click)
@@ -1215,16 +1228,7 @@ class info_pnl(scrolled.ScrolledPanel):
         photo_sizer.Add(photo_mid_sizer, 0, wx.ALL|wx.EXPAND, 5)
         photo_sizer.Add(last_pic_sizer, 0, wx.ALL|wx.EXPAND, 5)
 
-
-
-        self.main_sizer = wx.BoxSizer(wx.VERTICAL)
-        self.main_sizer.Add(title_sizer, 0, wx.ALL|wx.EXPAND, 5)
-        self.main_sizer.Add(tables_sizer, 0, wx.ALL|wx.EXPAND, 5)
-        self.main_sizer.Add(photo_l, 0, wx.ALL|wx.EXPAND, 5)
-        self.main_sizer.Add(photo_sizer, 0, wx.ALL|wx.EXPAND, 5)
-        self.SetAutoLayout(1)
-        self.SetupScrolling()
-        self.SetSizer(self.main_sizer)
+        return photo_sizer
 
     def set_r_caps_folder_click(self, e):
         self.parent.link_pnl.select_files_on_pi(single_folder=True)
@@ -1243,7 +1247,6 @@ class info_pnl(scrolled.ScrolledPanel):
             l_pic_date = self.parent.shared_data.date_from_fn(r_file_list[-1])
             if f_pic_date == None or l_pic_date == None:
                 text += "\nfilename dates not readable"
-
             else:
                 time_delta = l_pic_date - f_pic_date
                 text += "\n" + str(f_pic_date) + " - " + str(l_pic_date)
@@ -1340,20 +1343,20 @@ class info_pnl(scrolled.ScrolledPanel):
         self.Layout()
 
     def get_newest_cap_click(self, e):
-        print("wants to download the newest cap")
+        #print("wants to download the newest cap")
         r_path = self.r_folder_text.GetLabel()
         out, error = self.parent.link_pnl.run_on_pi("ls " + r_path)
         file_list = out.splitlines()
         last_pic = self.get_last_pic(file_list)
-        print("newest cap is", last_pic)
+        print("Newest cap is", last_pic)
         #
         remote_path = r_path + "/" + last_pic
         local_path  = os.path.join(self.folder_text.GetLabel(), last_pic)
         if not os.path.isfile(local_path):
-            print("copying", remote_path, "to", local_path)
+            print("Copying", remote_path, "to", local_path)
             self.parent.link_pnl.download_file_to_folder(remote_path, local_path)
         else:
-            print("already downloaded most recent cap")
+            print("Already downloaded most recent cap")
         #
         pic_date = self.parent.shared_data.date_from_fn(last_pic)
         age = datetime.datetime.now() - pic_date
@@ -1363,14 +1366,11 @@ class info_pnl(scrolled.ScrolledPanel):
         dbox.ShowModal()
         dbox.Destroy()
 
-
-
     def get_last_pic(self, file_list):
         file_list.reverse()
         for file in file_list:
             if ".jpg" in file or ".png" in file:
                 return file
-
 
     class config_file_list(wx.ListCtrl):
         def __init__(self, parent, id):
