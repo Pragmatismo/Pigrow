@@ -5,9 +5,9 @@ import time
 from getmac import get_mac_address
 import wx.lib.delayedresult as delayedresult
 import  wx.lib.newevent
+import threading
 
 FileDownloadEvent, EVT_FILE_DOWNLOAD = wx.lib.newevent.NewEvent()
-#SomeNewCommandEvent, EVT_SOME_NEW_COMMAND_EVENT = wx.lib.newevent.NewCommandEvent()
 
 try:
     import paramiko
@@ -165,11 +165,7 @@ class link_pnl(wx.Panel):
             self.tb_pass.Enable()
             self.link_status_text.SetLabel("-- Disconnected --")
             self.seek_for_pigrows_btn.Enable()
-    #        self.blank_settings()
-            #MainApp.welcome_pannel.Show()
-            #Mainapp..view_cb.SetValue("")
-            #MainApp.view_pnl.view_combo_go("e")
-            #MainApp.window_self.Layout()
+            #self.blank_settings()
             self.set_shared_info_on_connect("")
         else:
             #clear_temp_folder()
@@ -205,21 +201,11 @@ class link_pnl(wx.Panel):
             self.tb_user.Disable()
             self.tb_pass.Disable()
             self.seek_for_pigrows_btn.Disable()
-            # Run the functions to fill the pages
-            #MainApp.cron_info_pannel.read_cron_click("event")
-            # MainApp.system_ctrl_pannel.read_system_click("event")
-            #MainApp.config_ctrl_pannel.update_pigrow_setup_pannel_information_click("event")
-            #MainApp.localfiles_ctrl_pannel.update_local_filelist_click("event")
-            # camera config
-            #MainApp.camconf_info_pannel.seek_cam_configs()
         elif log_on_test == False:
             self.link_status_text.SetLabel("unable to connect")
             self.ssh.close()
         if log_on_test == True and box_name == None:
             self.link_status_text.SetLabel("No Pigrow config file")
-            #self.view_cb.SetValue("System Config")
-            #self.view_combo_go("e")
-            #MainApp.system_ctrl_pannel.read_system_click("event")
             self.link_with_pi_btn.SetLabel('Disconnect')
             self.cb_ip.Disable()
             self.tb_user.Disable()
@@ -244,27 +230,6 @@ class link_pnl(wx.Panel):
         self.parent.shared_data.save_gui_settings()
 
     # Commands for use by other sections of the gui
-
-    # def run_on_pi(self, command, write_status=True):
-    #     #Runs a command on the pigrow and returns output and error
-    #     #  out, error = .run_on_pi("ls /home/" + pi_link_pnl.target_user + "/Pigrow/")
-    #     #if write_status == True:
-    #         #MainApp.status.write_blue_bar("Running; " + command)
-    #     try:
-    #         stdin, stdout, stderr = self.ssh.exec_command(command)
-    #         out = stdout.read()
-    #         error = stderr.read()
-    #         out = out.decode()
-    #         error = error.decode()
-    #         #if write_status == True:
-    #         #    MainApp.status.write_bar("ready...")
-    #     except Exception as e:
-    #         error = "failed running command;" + str(command) + " with error - " + str(e)
-    #         print(error)
-    #         #if write_status == True:
-    #         #    MainApp.status.write_warning("FAILED: Check your connection")
-    #         return "", error
-    #     return out, error
 
     def run_on_pi(self, command, write_status=True, in_background=False):
         '''Runs a command on the pigrow and returns the output and error'''
@@ -308,14 +273,14 @@ class link_pnl(wx.Panel):
         f = sftp.open(full_path, 'w')
         f.write(text)
         f.close()
-    # add verification step
+        # add verification step
         # copy temp file into position
         copy_cmd = "sudo cp --no-preserve=mode,ownership " + full_path + " " + config_file
         out, error = self.run_on_pi(copy_cmd)
-    #    if not error.strip() == "":
+        #    if not error.strip() == "":
         print("Pi's " + config_file + " updated")
-    #    else:
-    #        print("Error writing " + config_file + " ; " + error )
+        #    else:
+        #        print("Error writing " + config_file + " ; " + error )
 
     '''
     # write text file to pi
@@ -451,6 +416,56 @@ class link_pnl(wx.Panel):
         self.sftp.close()
         ssh_tran.close()
         print(("    file copied to " + str(remote_path)))
+
+
+     # Run on pi with input and output pipes
+    class RemoteScriptPipes(wx.EvtHandler):
+        def __init__(self, parent, script_path, the_link_pnl):
+            super().__init__()
+            self.id = wx.NewId()
+            self.script_path = script_path
+            self.active_ssh = the_link_pnl.ssh
+            self.parent = parent
+            self.channel = None
+            self.connected = False
+            self.connect()
+
+        def connect(self):
+            self.channel = self.active_ssh.get_transport().open_session()
+            self.channel.exec_command(self.script_path)
+            print("- Connected transport pipes for", self.script_path)
+            self.connected = True
+            threading.Thread(target=self._receive_output, daemon=True).start()
+
+        def _receive_output(self):
+            print("- Started listening for pipe output")
+            while self.connected:
+                if self.channel.recv_ready():
+                    output = self.channel.recv(1024).decode('utf-8').strip()
+                    if not output == "":
+                        #print("- Received from pipe:", output)
+                        self.parent.post_output_event(output)
+                time.sleep(0.1)
+
+        def send(self, command):
+            print("- Sending through pipe:", command)
+            if not command[:-1] == "\n":
+                command += "\n"
+            if self.connected and self.channel.active:
+                self.channel.send(command)
+            else:
+                print("- Can't send; pipe is not connected.")
+                self.parent.post_output_event("Error - not connected")
+
+        def close_pipe(self):
+            print("- Closing transport pipe for", self.script_path)
+            self.channel.close()
+            kill_command = f"pkill -f {self.script_path}"
+            stdin, stdout, stderr = self.active_ssh.exec_command(kill_command)
+            self.connected = False
+
+        def GetId(self):
+            return self.id
 
 
 
@@ -725,3 +740,46 @@ class files_download_dialog(wx.Dialog):
         wx.PostEvent(self,FileDownloadEvent(from_p="Done", to_p="Done"))
         print("Download completed")
         return jobID
+
+# class PipesToScript:
+#     def __init__(self, file_path):
+#         self.file_path = file_path
+#         self.name = "pi" + "@" + "192.168.1.28"
+#         self.password = "raspberry"
+#         self.ssh = None
+#         self.input_thread = None
+#         self.output_thread = None
+#
+#     def start(self):
+#         self.ssh = subprocess.Popen(["sshpass", "-p", self.password, "ssh", self.name, self.file_path],
+#                                     shell=False,
+#                                     stdout=subprocess.PIPE,
+#                                     stderr=subprocess.PIPE,
+#                                     stdin=subprocess.PIPE)
+#
+#         self.output_thread = threading.Thread(target=self._receive_output_from_pi)
+#         self.output_thread.start()
+#
+#     def _receive_output_from_pi(self):
+#         while True:
+#             output = self.ssh.stdout.readline().decode().strip()
+#             if output:
+#                 print(output)
+#                 wx.PostEvent(self, CallOutputEvent(data=output))  # Post event to update GUI
+#                 sys.stdout.flush()  # Flush stdout
+#
+#
+#     def send(self, command):
+#         self.ssh.stdin.write(command.encode() + b'\n')
+#         self.ssh.stdin.flush()
+#
+#     def close(self):
+#         if self.ssh:
+#             self.ssh.terminate()
+
+
+
+    #def close(self):
+    #    if self.connected:
+    #        self.connected = False
+    #        self.client.close()

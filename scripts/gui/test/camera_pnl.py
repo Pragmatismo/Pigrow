@@ -7,6 +7,9 @@ from picam_set_pnl import picam_sets_pnl
 from fswebcam_set_pnl import fs_sets_pnl
 from motion_set_pnl import motion_sets_pnl
 from libcam_set_pnl import libcam_sets_pnl
+import wx.lib.delayedresult as delayedresult
+
+import time
 
 class ctrl_pnl(scrolled.ScrolledPanel):
     def __init__( self, parent ):
@@ -70,6 +73,9 @@ class ctrl_pnl(scrolled.ScrolledPanel):
         combine_opts = image_combine.config.combine_styles
         self.set_style_cb = wx.ComboBox(self, choices = combine_opts, value=combine_opts[0], size=(265, 30))
 
+        # record timelapse button
+        quick_timelapse_btn = wx.Button(self, label='Quick Timelapse')
+        quick_timelapse_btn.Bind(wx.EVT_BUTTON, self.quick_timelapse_click)
 
         # Sizers
         load_save_btn_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -110,21 +116,23 @@ class ctrl_pnl(scrolled.ScrolledPanel):
         # main sizer
         main_sizer = wx.BoxSizer(wx.VERTICAL)
         main_sizer.Add(load_save_btn_sizer, 0, wx.ALL|wx.EXPAND, 0)
-        main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
+        main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 10)
         main_sizer.Add(self.cam_select_l, 0, wx.ALL, 0)
         main_sizer.Add(find_select_cam_sizer, 0, wx.ALL, 0)
         main_sizer.Add(self.cap_tool_l, 0, wx.ALL, 0)
         main_sizer.Add(self.captool_cb, 0, wx.ALL|wx.EXPAND, 0)
-        main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
+        main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 10)
         main_sizer.Add(self.take_set_btn, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 0)
         main_sizer.Add(take_single_photo_btns_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 0)
-        main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
+        main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 10)
         main_sizer.Add(range_sizer, 0, wx.ALL, 0)
         main_sizer.Add(self.use_range_combine, 0, wx.ALL|wx.EXPAND, 0)
-        main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
+        main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 10)
         main_sizer.Add(compare_sizer, 0, wx.ALL, 0)
-        main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
+        main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 10)
         main_sizer.Add(anal_sizer, 0, wx.ALL, 0)
+        main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 10)
+        main_sizer.Add(quick_timelapse_btn, 0, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 5)
         self.SetAutoLayout(1)
         self.SetupScrolling()
         self.SetSizer(main_sizer)
@@ -281,14 +289,6 @@ class ctrl_pnl(scrolled.ScrolledPanel):
 
      # Image Area Display
      #     now in I_pnl
-
-    #def clear_picture_area(self):
-    #    children = MainApp.camconf_info_pannel.picture_sizer.GetChildren()
-    #    for child in children:
-    #        item = child.GetWindow()
-    #        item.Destroy()
-
-    # Take Image
 
     def download_and_show_picture(self, path, label, combine=False):
         I_pnl = self.parent.dict_I_pnl['camera_pnl']
@@ -456,9 +456,15 @@ class ctrl_pnl(scrolled.ScrolledPanel):
         shutil.copy(file_to_set, compare_path)
         self.parent.shared_data.camcomf_compare_image = compare_path
 
+    # Quick Timelapse
+    def quick_timelapse_click(self, e):
+        self.style_dbox = quicktl_dialog(self, self.parent)
+        self.style_dbox.ShowModal()
+        if self.style_dbox:
+            if not self.style_dbox.IsBeingDeleted():
+                self.style_dbox.Destroy()
 
 
-#class info_pnl(wx.Panel):
 class info_pnl(scrolled.ScrolledPanel):
     def __init__(self, parent):
         shared_data = parent.shared_data
@@ -608,3 +614,228 @@ class info_pnl(scrolled.ScrolledPanel):
         self.sets_pnl = None
         # self.fs_set_pnl.Show()
         self.Layout()
+
+
+class quicktl_dialog(wx.Dialog):
+    def __init__(self, parent, *args, **kw):
+        super(quicktl_dialog, self).__init__(*args, **kw)
+        self.parent = parent
+        self.link_pnl = self.parent.parent.link_pnl
+
+        self.ScriptReadEvent, self.EVT_SCRIPT_READ = wx.lib.newevent.NewEvent()
+        self.Bind(self.EVT_SCRIPT_READ, self.script_output)
+
+        self.pipe_inst = self.init_script()
+        self.InitUI()
+        self.SetSize((700, 650))
+        self.SetTitle("Quick Timelapse Recorder")
+        self.Bind(wx.EVT_CLOSE, self.OnClose)
+        self.set_camconf_file()
+
+    def set_camconf_file(self):
+        I_pnl = self.parent.parent.dict_I_pnl['camera_pnl']
+        camconf_path = I_pnl.camconf_path_tc.GetValue()
+        if camconf_path == "":
+            print("ERRROR no cam conf ")
+            wx.MessageBox("No camera configuration file has been selected.", "Error - no camconf", wx.OK | wx.ICON_WARNING)
+            self.OnClose(None)
+        else:
+            time.sleep(0.5)
+            self.pipe_inst.send(f"set_camset {camconf_path}\n")
+
+    def post_output_event(self, output):
+        wx.PostEvent(self, self.ScriptReadEvent(output=output))
+
+    def InitUI(self):
+        # Header Labels
+        self.SetFont(self.parent.parent.shared_data.title_font)
+        title = wx.StaticText(self,  label='Record Short Timelapse')
+        self.SetFont(self.parent.parent.shared_data.sub_title_font)
+        sub_msg = "This tool loops camera capture on the pigrow"
+        sub_label = wx.StaticText(self,  label=sub_msg)
+
+        # Buttons
+        self.toggle_btn = wx.Button(self, label='Show Display')
+        self.toggle_btn.Bind(wx.EVT_BUTTON, self.toggle_click)
+        self.go_btn = wx.Button(self, label='Start') #, size=(175, 50))
+        self.go_btn.Bind(wx.EVT_BUTTON, self.go_click)
+        self.cancel_btn = wx.Button(self, label='Done') #, size=(175, 50))
+        self.cancel_btn.Bind(wx.EVT_BUTTON, self.OnClose)
+        buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        buttons_sizer.Add(self.toggle_btn, 0,  wx.ALL, 3)
+        buttons_sizer.AddStretchSpacer(1)
+        buttons_sizer.Add(self.go_btn, 0,  wx.ALL, 3)
+        buttons_sizer.AddStretchSpacer(1)
+        buttons_sizer.Add(self.cancel_btn, 0,  wx.ALL, 3)
+
+        # Switching panels control and output display
+        self.ctrl_sizer = self.make_control_sizer()
+        self.disp_sizer = self.make_display_sizer()
+        self.disp_sizer.Hide()
+
+        # Main sizer
+        self.main_sizer = wx.BoxSizer(wx.VERTICAL)
+        self.main_sizer.Add(title, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
+        self.main_sizer.Add(sub_label, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
+        self.main_sizer.AddStretchSpacer(1)
+        self.main_sizer.Add(self.ctrl_sizer, 1, wx.ALL|wx.EXPAND, 5)
+        self.main_sizer.Add(self.disp_sizer, 1, wx.ALL|wx.EXPAND, 5)
+
+        self.main_sizer.AddStretchSpacer(1)
+        self.main_sizer.Add(buttons_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
+        self.SetSizer(self.main_sizer)
+
+    def toggle_click(self, e):
+        if self.ctrl_sizer.IsShown():
+            self.ctrl_sizer.Hide()
+            self.disp_sizer.Show()
+        else:
+            self.ctrl_sizer.Show()
+            self.disp_sizer.Hide()
+
+        self.Layout()
+        self.adjust_output_tc_size()
+
+    def adjust_output_tc_size(self):
+        # Calculate available height
+        total_height = self.main_sizer.GetSize()[1]
+        occupied_height = sum(item.GetSize()[1] for item in self.main_sizer.GetChildren())
+        available_height = total_height - occupied_height
+
+        # Set minimum height for output_tc
+        min_height = max(available_height, 600)  # Minimum height, adjust as needed
+        self.output_tc.SetMinSize((-1, min_height))
+
+
+    def make_display_sizer(self):
+        display_panel = wx.Panel(self)
+        self.output_tc = wx.TextCtrl(display_panel, -1, "", style=wx.TE_MULTILINE | wx.TE_READONLY)
+
+        display_sizer = wx.BoxSizer(wx.VERTICAL)
+        display_sizer.Add(self.output_tc, 0, wx.EXPAND)
+
+        display_panel.SetSizer(display_sizer)
+        return display_panel
+
+    def make_control_sizer(self):
+        # Create a panel to hold the controls
+        control_panel = wx.Panel(self)
+
+        #camera tool
+        camera_tool_label = wx.StaticText(control_panel, label="Camera Tool:")
+        camera_tool_choices = ["picam", "fswebcam"]
+        self.camera_tool_dropdown = wx.ComboBox(control_panel, choices=camera_tool_choices, style=wx.CB_READONLY)
+        self.set_camtool()
+        camera_tool_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        camera_tool_sizer.Add(camera_tool_label, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 5)
+        camera_tool_sizer.Add(self.camera_tool_dropdown, 1, wx.ALL|wx.EXPAND, 5)
+
+        # Outfolder line
+        outfolder_label = wx.StaticText(control_panel, label="Outfolder:")
+        self.outfolder_textctrl = wx.TextCtrl(control_panel)
+        out_folder = self.parent.parent.shared_data.remote_pigrow_path + "caps/"
+        self.outfolder_textctrl.SetValue(out_folder)
+        outfolder_button = wx.Button(control_panel, label="...")
+        outfolder_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        outfolder_sizer.Add(outfolder_label, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 5)
+        outfolder_sizer.Add(self.outfolder_textctrl, 1, wx.ALL|wx.EXPAND, 5)
+        outfolder_sizer.Add(outfolder_button, 0, wx.ALL, 5)
+
+        # Set name line
+        setname_label = wx.StaticText(control_panel, label="Set Name:")
+        self.setname_textctrl = wx.TextCtrl(control_panel)
+        self.setname_textctrl.SetValue("quick")
+        setname_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        setname_sizer.Add(setname_label, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 5)
+        setname_sizer.Add(self.setname_textctrl, 1, wx.ALL|wx.EXPAND, 5)
+
+        # Delay line
+        delay_label = wx.StaticText(control_panel, label="Delay between frames:")
+        self.delay_spin = wx.SpinCtrl(control_panel, value='5', min=0, max=1000)
+        delay_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        delay_sizer.Add(delay_label, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 5)
+        delay_sizer.Add(self.delay_spin, 1, wx.ALL|wx.EXPAND, 5)
+
+        # Frame limit line
+        framelimit_label = wx.StaticText(control_panel, label="Frame Limit:")
+        self.framelimit_spin = wx.SpinCtrl(control_panel, value='-1', min=-1, max=60*5)
+        framelimit_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        framelimit_sizer.Add(framelimit_label, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 5)
+        framelimit_sizer.Add(self.framelimit_spin, 1, wx.ALL|wx.EXPAND, 5)
+
+        self.set_btn = wx.Button(control_panel, label='Send Options')
+        self.set_btn.Bind(wx.EVT_BUTTON, self.set_click)
+
+        controls_sizer = wx.BoxSizer(wx.VERTICAL)
+        controls_sizer.Add(camera_tool_sizer, 0, wx.EXPAND)
+        controls_sizer.Add(outfolder_sizer, 0, wx.EXPAND)
+        controls_sizer.Add(setname_sizer, 0, wx.EXPAND)
+        controls_sizer.Add(delay_sizer, 0, wx.EXPAND)
+        controls_sizer.Add(framelimit_sizer, 0, wx.EXPAND)
+        controls_sizer.Add(self.set_btn, 0, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 7)
+
+        control_panel.SetSizer(controls_sizer)
+        return control_panel
+
+    def set_camtool(self):
+        currently_supported = ["fswebcam"]
+        camopt = self.parent.captool_cb.GetValue()
+        if camopt in currently_supported:
+            self.camera_tool_dropdown.SetValue(camopt)
+        else:
+            print("Using", camopt, "currently not supported in quick timelapse, defaulting to fswebcam")
+            self.camera_tool_dropdown.SetValue("fswebcam")
+
+    # Script tools
+    def init_script(self):
+        path_camtrig = self.parent.parent.shared_data.remote_pigrow_path + "scripts/build_test/remote_cam_loop.py"
+        pipe_inst = self.link_pnl.RemoteScriptPipes(self, path_camtrig, self.link_pnl)
+        return pipe_inst
+
+    def go_click(self, e):
+        if self.go_btn.GetLabel() == "Start":
+            self.pipe_inst.send("start\n")
+            self.go_btn.SetLabel("Stop")
+            self.ctrl_sizer.Hide()
+            self.disp_sizer.Show()
+            self.adjust_output_tc_size()
+        else:
+            self.pipe_inst.send("stop\n")
+            self.go_btn.SetLabel("Start")
+            self.ctrl_sizer.Show()
+            self.disp_sizer.Hide()
+        self.Layout()
+
+    def script_output(self, e):
+        output = e.output.strip()
+        current = self.output_tc.GetValue()
+        updated = current + "\n" + output
+        self.output_tc.SetValue(updated)
+        self.output_tc.SetInsertionPointEnd()
+        #print("Quick Timelapse Recieved; ", output)
+
+    def set_click(self, e):
+        self.set_settings()
+
+    def set_settings(self):
+        ctool       = self.camera_tool_dropdown.GetValue()
+        if ctool == 'picam':
+            self.pipe_inst.send("use_picam\n")
+        elif ctool == 'fswebcam':
+            self.pipe_inst.send("use_fsw\n")
+        #
+        outfolder   = self.outfolder_textctrl.GetValue()
+        self.pipe_inst.send(f"set_outfolder {outfolder}\n")
+
+        setname     = self.setname_textctrl.GetValue()
+        self.pipe_inst.send(f"set_name {setname}\n")
+
+        delay       = self.delay_spin.GetValue()
+        self.pipe_inst.send(f"set_delay {delay}\n")
+
+        frame_limit = self.framelimit_spin.GetValue()
+        self.pipe_inst.send(f"set_flimit {frame_limit}\n")
+
+    def OnClose(self, e):
+        self.pipe_inst.close_pipe()
+        self.Destroy()

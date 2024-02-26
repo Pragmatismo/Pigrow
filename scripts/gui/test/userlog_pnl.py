@@ -1,4 +1,5 @@
 import wx
+import wx.lib.scrolledpanel as scrolled
 
 
 class ctrl_pnl(wx.Panel):
@@ -57,8 +58,7 @@ class ctrl_pnl(wx.Panel):
         print("-- new log click, does nothing.")
 
 
-class info_pnl(wx.Panel):
-    #
+class info_pnl(scrolled.ScrolledPanel):
     def __init__( self, parent ):
         self.parent = parent
         self.shared_data = parent.shared_data
@@ -84,6 +84,7 @@ class info_pnl(wx.Panel):
         main_sizer.Add(self.make_empty_log_display_sizer(), 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
         main_sizer.AddStretchSpacer(1)
         self.SetSizer(main_sizer)
+        self.SetupScrolling()
 
     def make_log_tool_sizer(self):
         self.SetFont(self.shared_data.item_title_font)
@@ -137,7 +138,10 @@ class info_pnl(wx.Panel):
 
 
     def add_field_click(self, e):
-        print("Sorry no new fields for you :P")
+        print("Sorry only silly new fields for you :P")
+        self.log_data.add_new_field('test', 'text')
+        self.log_data.add_new_field('test int', 'num')
+        self.log_data.add_new_field('test date', 'date')
 
     def edit_field_click(self, e):
         print("Not editing a field that would be tiresome")
@@ -167,19 +171,37 @@ class info_pnl(wx.Panel):
             out, error = self.parent.parent.link_pnl.run_on_pi("cat " + log_path)
             return out.strip()
 
+        def add_new_field(self, label, field_type):
+            field_types = {'text': self.field_text_box(label, ""),
+                           'num':self.field_int_value(label, ""),
+                           'date':self.field_date_picker(label, "")}
+            if field_type in field_types:
+                made_sizer = field_types[field_type]
+                self.log_info_sizer.Add(made_sizer, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
+                self.parent.Layout()
 
 
-        # def field_text_box(self, label, value):
-        #     text_label = wx.StaticText(self.panel, label=label)
-        #     text_ctrl = wx.TextCtrl(self.panel, value=value)
-        #     return wx.BoxSizer(wx.HORIZONTAL)
-        #
-        # def field_int_value(self, label, value):
-        #     int_label = wx.StaticText(self.panel, label=label)
-        #     int_ctrl = wx.SpinCtrl(self.panel, value=str(value))
-        #     return wx.BoxSizer(wx.HORIZONTAL)
-        #
-        # def field_date_picker(self, label, value):
-        #     date_label = wx.StaticText(self.panel, label=label)
-        #     date_ctrl = wx.DatePickerCtrl(self.panel)
-        #     return wx.BoxSizer(wx.HORIZONTAL)
+
+        def field_text_box(self, label, value):
+            text_label = wx.StaticText(self.parent, label=label)
+            text_ctrl = wx.TextCtrl(self.parent, value=value)
+            field_sizer = wx.BoxSizer(wx.HORIZONTAL)
+            field_sizer.Add(text_label, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
+            field_sizer.Add(text_ctrl, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
+            return field_sizer
+
+        def field_int_value(self, label, value):
+            int_label = wx.StaticText(self.parent, label=label)
+            int_ctrl = wx.SpinCtrl(self.parent, value=str(value))
+            field_sizer = wx.BoxSizer(wx.HORIZONTAL)
+            field_sizer.Add(int_label, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
+            field_sizer.Add(int_ctrl, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
+            return field_sizer
+
+        def field_date_picker(self, label, value):
+            date_label = wx.StaticText(self.parent, label=label)
+            #date_ctrl = wx.DatePickerCtrl(self.parent)
+            field_sizer = wx.BoxSizer(wx.HORIZONTAL)
+            field_sizer.Add(date_label, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
+            #field_sizer.Add(date_ctrl, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
+            return field_sizer

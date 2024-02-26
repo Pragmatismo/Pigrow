@@ -1228,7 +1228,6 @@ class info_pnl(scrolled.ScrolledPanel):
         self.SetSizer(self.main_sizer)
 
     def set_r_caps_folder_click(self, e):
-        print("pressed to open remote caps path")
         self.parent.link_pnl.select_files_on_pi(single_folder=True)
         selected_folders = self.parent.link_pnl.selected_folders
         self.r_folder_text.SetLabel(selected_folders[0])
