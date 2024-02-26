@@ -871,7 +871,8 @@ class longtl_dialog(wx.Dialog):
             wx.MessageBox("No camera configuration file has been selected.", "Error - no camconf", wx.OK | wx.ICON_WARNING)
             self.OnClose(None)
         else:
-            self.camconf = camconf_path
+            filename = os.path.basename(camconf_path)
+            self.camconf = filename
 
     def find_job(self):
         script = 'camcap.py'
@@ -879,12 +880,15 @@ class longtl_dialog(wx.Dialog):
         self.cron_index = cron_I.find_repeat_pos_by_name(script, self.camconf, True, "set")
         if self.cron_index == -1:
             print("Cron Job not found for " + self.camconf)
+            self.found = False
             self.freq_num, self.freq_text = "5", "min"
+            self.enabled = True
         else:
-            enabled = cron_I.repeat_cron.GetItem(self.cron_index, 1).GetText()
+            self.found = True
+            self.enabled = cron_I.repeat_cron.GetItem(self.cron_index, 1).GetText()
             cron_time_string = cron_I.repeat_cron.GetItem(self.cron_index, 2).GetText()
             self.freq_num, self.freq_text, cron_stars = cron_I.repeat_cron.parse_cron_string(cron_time_string)
-            print("Found at;", self.cron_index, " enabled=", enabled, "repeating", self.freq_num, self.freq_text)
+            print("Found at;", self.cron_index, " enabled=", self.enabled, "repeating", self.freq_num, self.freq_text)
 
         #list_of jobs = cron_I.list_repeat_by_key(self, script, "set", self.camconf)
 
@@ -897,7 +901,7 @@ class longtl_dialog(wx.Dialog):
         sub_label = wx.StaticText(self,  label=sub_msg)
 
         # Buttons
-        self.go_btn = wx.Button(self, label='Start') #, size=(175, 50))
+        self.go_btn = wx.Button(self, label='Set Cron') #, size=(175, 50))
         self.go_btn.Bind(wx.EVT_BUTTON, self.go_click)
         self.cancel_btn = wx.Button(self, label='Done') #, size=(175, 50))
         self.cancel_btn.Bind(wx.EVT_BUTTON, self.OnClose)
@@ -907,7 +911,7 @@ class longtl_dialog(wx.Dialog):
         buttons_sizer.Add(self.cancel_btn, 0,  wx.ALL, 3)
 
         # Control and Info display
-        #self.info_sizer = self.make_info_sizer()
+        self.info_sizer = self.make_info_sizer()
         self.ctrl_sizer = self.make_control_sizer()
 
         # Main sizer
@@ -915,16 +919,35 @@ class longtl_dialog(wx.Dialog):
         self.main_sizer.Add(title, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
         self.main_sizer.Add(sub_label, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
         self.main_sizer.AddStretchSpacer(1)
+        self.main_sizer.Add(self.info_sizer, 1, wx.ALL|wx.EXPAND, 5)
         self.main_sizer.Add(self.ctrl_sizer, 1, wx.ALL|wx.EXPAND, 5)
-        #self.main_sizer.Add(self.info_sizer, 1, wx.ALL|wx.EXPAND, 5)
         self.main_sizer.AddStretchSpacer(1)
         self.main_sizer.Add(buttons_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
         self.SetSizer(self.main_sizer)
 
+    def make_info_sizer(self):
+
+        if self.found == True:
+            found_txt = "Found repeating cron job using this config file"
+        else:
+            found_txt = "No cron job using this config file"
+        self.found_l = wx.StaticText(self, label=found_txt)
+
+        info_sizer = wx.BoxSizer(wx.VERTICAL)
+        info_sizer.Add(self.found_l, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
+        return info_sizer
+
     def make_control_sizer(self):
+        # enable / disable
+        self.job_enabled_cb = wx.CheckBox(self, label="Enabled")
+        if str(self.enabled) == "True":
+            self.job_enabled_cb.SetValue(True)
+        else:
+            self.job_enabled_cb.SetValue(False)
+
         # Timing
         timing_label = wx.StaticText(self, label="Repeat every;")
-        self.time_spin = wx.SpinCtrl(self, value='5', min=1, max=300)
+        self.time_spin = wx.SpinCtrl(self, value=self.freq_num, min=1, max=300)
         time_txt_choices = ['min', 'hour', 'day']
         self.time_text_cb = wx.ComboBox(self, choices=time_txt_choices, style=wx.CB_READONLY)
         self.time_text_cb.SetValue(self.freq_text)
@@ -934,6 +957,7 @@ class longtl_dialog(wx.Dialog):
         timing_sizer.Add(self.time_text_cb, 1, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 5)
 
         ctrl_sizer = wx.BoxSizer(wx.VERTICAL)
+        ctrl_sizer.Add(self.job_enabled_cb, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
         ctrl_sizer.Add(timing_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
         return ctrl_sizer
 
