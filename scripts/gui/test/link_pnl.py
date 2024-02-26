@@ -449,7 +449,7 @@ class link_pnl(wx.Panel):
 
         def send(self, command):
             print("- Sending through pipe:", command)
-            if not command[:-1] == "\n":
+            if not command[-1:] == "\n":
                 command += "\n"
             if self.connected and self.channel.active:
                 self.channel.send(command)
@@ -679,6 +679,7 @@ class files_download_dialog(wx.Dialog):
     #Dialog box for downloding files from pi to local storage folder
     def __init__(self, parent, *args, **kw):
         self.parent = parent
+        self.counter = 0
         super(files_download_dialog, self).__init__(*args, **kw)
         self.InitUI()
         self.Bind(EVT_FILE_DOWNLOAD, self.handler)
@@ -693,14 +694,17 @@ class files_download_dialog(wx.Dialog):
     def InitUI(self):
         #draw the pannel
         label = wx.StaticText(self,  label='Downloading files from Pigrow;')
-        self.current_file_txt = wx.StaticText(self,  label='from: ')
-        self.current_dest_txt = wx.StaticText(self,  label='  to: ')
+        self.dl_txt = " of " + str(len(self.parent.files_to_download))
+        self.download_counter = wx.StaticText(self, label="0" + self.dl_txt)
+        self.current_file_txt = wx.StaticText(self, label='from: ')
+        self.current_dest_txt = wx.StaticText(self, label='  to: ')
         self.cancel_btn = wx.Button(self, label='Cancel')
         self.cancel_btn.Bind(wx.EVT_BUTTON, self.OnClose)
 
         main_sizer = wx.BoxSizer(wx.VERTICAL)
         main_sizer.Add(label, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
         main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(self.download_counter, 0, wx.LEFT|wx.ALIGN_CENTER_HORIZONTAL, 5)
         main_sizer.Add(self.current_file_txt, 0, wx.LEFT|wx.EXPAND, 25)
         main_sizer.Add(self.current_dest_txt, 0, wx.LEFT|wx.EXPAND, 25)
         main_sizer.AddStretchSpacer(1)
@@ -712,6 +716,8 @@ class files_download_dialog(wx.Dialog):
             self.Destroy()
         self.current_file_txt.SetLabel("from; " + evt.from_p)
         self.current_dest_txt.SetLabel("  to; " + evt.to_p)
+        self.counter += 1
+        self.download_counter.SetLabel(str(self.counter) + self.dl_txt)
 
     def OnClose(self, e):
         self.abortEvent.set()
