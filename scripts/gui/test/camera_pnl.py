@@ -73,9 +73,11 @@ class ctrl_pnl(scrolled.ScrolledPanel):
         combine_opts = image_combine.config.combine_styles
         self.set_style_cb = wx.ComboBox(self, choices = combine_opts, value=combine_opts[0], size=(265, 30))
 
-        # record timelapse button
+        # record timelapse buttons
         quick_timelapse_btn = wx.Button(self, label='Quick Timelapse')
         quick_timelapse_btn.Bind(wx.EVT_BUTTON, self.quick_timelapse_click)
+        long_timelapse_btn = wx.Button(self, label='Long Timelapse')
+        long_timelapse_btn.Bind(wx.EVT_BUTTON, self.long_timelapse_click)
 
         # Sizers
         load_save_btn_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -133,6 +135,7 @@ class ctrl_pnl(scrolled.ScrolledPanel):
         main_sizer.Add(anal_sizer, 0, wx.ALL, 0)
         main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 10)
         main_sizer.Add(quick_timelapse_btn, 0, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 5)
+        main_sizer.Add(long_timelapse_btn, 0, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 5)
         self.SetAutoLayout(1)
         self.SetupScrolling()
         self.SetSizer(main_sizer)
@@ -457,12 +460,19 @@ class ctrl_pnl(scrolled.ScrolledPanel):
         self.parent.shared_data.camcomf_compare_image = compare_path
 
     # Quick Timelapse
+    def long_timelapse_click(self, e):
+        self.longtl_dbox = longtl_dialog(self, self.parent)
+        self.longtl_dbox.ShowModal()
+        if self.longtl_dbox:
+            if not self.longtl_dbox.IsBeingDeleted():
+                self.longtl_dbox.Destroy()
+
     def quick_timelapse_click(self, e):
-        self.style_dbox = quicktl_dialog(self, self.parent)
-        self.style_dbox.ShowModal()
-        if self.style_dbox:
-            if not self.style_dbox.IsBeingDeleted():
-                self.style_dbox.Destroy()
+        self.quicktl_dbox = quicktl_dialog(self, self.parent)
+        self.quicktl_dbox.ShowModal()
+        if self.quicktl_dbox:
+            if not self.quicktl_dbox.IsBeingDeleted():
+                self.quicktl_dbox.Destroy()
 
 
 class info_pnl(scrolled.ScrolledPanel):
@@ -838,4 +848,98 @@ class quicktl_dialog(wx.Dialog):
 
     def OnClose(self, e):
         self.pipe_inst.close_pipe()
+        self.Destroy()
+
+
+class longtl_dialog(wx.Dialog):
+    def __init__(self, parent, *args, **kw):
+        super(longtl_dialog, self).__init__(*args, **kw)
+        self.parent = parent
+        self.link_pnl = self.parent.parent.link_pnl
+        self.set_camconf_file()
+        self.find_job()
+        self.InitUI()
+        self.SetSize((700, 650))
+        self.SetTitle("Long Timelapse Recorder")
+        self.Bind(wx.EVT_CLOSE, self.OnClose)
+
+    def set_camconf_file(self):
+        I_pnl = self.parent.parent.dict_I_pnl['camera_pnl']
+        camconf_path = I_pnl.camconf_path_tc.GetValue()
+        if camconf_path == "":
+            print("ERROR no cam conf ")
+            wx.MessageBox("No camera configuration file has been selected.", "Error - no camconf", wx.OK | wx.ICON_WARNING)
+            self.OnClose(None)
+        else:
+            self.camconf = camconf_path
+
+    def find_job(self):
+        script = 'camcap.py'
+        cron_I = self.parent.parent.dict_I_pnl['cron_pnl']
+        self.cron_index = cron_I.find_repeat_pos_by_name(script, self.camconf, True, "set")
+        if self.cron_index == -1:
+            print("Cron Job not found for " + self.camconf)
+            self.freq_num, self.freq_text = "5", "min"
+        else:
+            enabled = cron_I.repeat_cron.GetItem(self.cron_index, 1).GetText()
+            cron_time_string = cron_I.repeat_cron.GetItem(self.cron_index, 2).GetText()
+            self.freq_num, self.freq_text, cron_stars = cron_I.repeat_cron.parse_cron_string(cron_time_string)
+            print("Found at;", self.cron_index, " enabled=", enabled, "repeating", self.freq_num, self.freq_text)
+
+        #list_of jobs = cron_I.list_repeat_by_key(self, script, "set", self.camconf)
+
+    def InitUI(self):
+        # Header Labels
+        self.SetFont(self.parent.parent.shared_data.title_font)
+        title = wx.StaticText(self,  label='Record Long Timelapse')
+        self.SetFont(self.parent.parent.shared_data.sub_title_font)
+        sub_msg = "This tool helps set the cronjob for the current config file"
+        sub_label = wx.StaticText(self,  label=sub_msg)
+
+        # Buttons
+        self.go_btn = wx.Button(self, label='Start') #, size=(175, 50))
+        self.go_btn.Bind(wx.EVT_BUTTON, self.go_click)
+        self.cancel_btn = wx.Button(self, label='Done') #, size=(175, 50))
+        self.cancel_btn.Bind(wx.EVT_BUTTON, self.OnClose)
+        buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        buttons_sizer.Add(self.go_btn, 0,  wx.ALL, 3)
+        buttons_sizer.AddStretchSpacer(1)
+        buttons_sizer.Add(self.cancel_btn, 0,  wx.ALL, 3)
+
+        # Control and Info display
+        #self.info_sizer = self.make_info_sizer()
+        self.ctrl_sizer = self.make_control_sizer()
+
+        # Main sizer
+        self.main_sizer = wx.BoxSizer(wx.VERTICAL)
+        self.main_sizer.Add(title, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
+        self.main_sizer.Add(sub_label, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
+        self.main_sizer.AddStretchSpacer(1)
+        self.main_sizer.Add(self.ctrl_sizer, 1, wx.ALL|wx.EXPAND, 5)
+        #self.main_sizer.Add(self.info_sizer, 1, wx.ALL|wx.EXPAND, 5)
+        self.main_sizer.AddStretchSpacer(1)
+        self.main_sizer.Add(buttons_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
+        self.SetSizer(self.main_sizer)
+
+    def make_control_sizer(self):
+        # Timing
+        timing_label = wx.StaticText(self, label="Repeat every;")
+        self.time_spin = wx.SpinCtrl(self, value='5', min=1, max=300)
+        time_txt_choices = ['min', 'hour', 'day']
+        self.time_text_cb = wx.ComboBox(self, choices=time_txt_choices, style=wx.CB_READONLY)
+        self.time_text_cb.SetValue(self.freq_text)
+        timing_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        timing_sizer.Add(timing_label, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 5)
+        timing_sizer.Add(self.time_spin, 1, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 5)
+        timing_sizer.Add(self.time_text_cb, 1, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 5)
+
+        ctrl_sizer = wx.BoxSizer(wx.VERTICAL)
+        ctrl_sizer.Add(timing_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
+        return ctrl_sizer
+
+
+    def go_click(self, e):
+        self.Layout()
+
+    def OnClose(self, e):
         self.Destroy()
