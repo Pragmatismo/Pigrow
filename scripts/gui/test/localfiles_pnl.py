@@ -159,37 +159,36 @@ class ctrl_pnl(wx.Panel):
         # looks at local files an remote files removing any from the pigrows
         # that are already stored in the local caps folder for that pigrow
         print("clearing already downloaded images off pigrow")
-        remote_caps_path = self.parent.dict_I_pnl['localfiles_pnl'].r_folder_text.GetLabel()
-        local_caps_path = self.parent.dict_I_pnl['localfiles_pnl'].folder_text.GetLabel()
-        caps_files = os.listdir(local_caps_path)
-        print("---------")
-        print(local_caps_path)
-        print(len(caps_files))
-        print("-----")
-        caps_files.sort()
-        print(str(len(caps_files)) + " files locally \n")
-        #read pi's caps folder
-        try:
+        I_pnl = self.parent.dict_I_pnl['localfiles_pnl']
+        remote_caps_path = I_pnl.r_folder_text.GetLabel()
+        local_caps_path  = I_pnl.folder_text.GetLabel()
 
+        # Read local caps files
+        caps_files = os.listdir(local_caps_path)
+        caps_files.sort()
+        print (len(caps_files), "Files locally")
+
+        # Read pi's caps folder
+        try:
             out, error = self.parent.link_pnl.run_on_pi("ls " + remote_caps_path)
             remote_caps = out.splitlines()
-            print(len(remote_caps))
-            print("-------------------")
+            print(len(remote_caps), " Files remotely")
         except Exception as e:
-            print(("-- reading remote caps folder failed; " + str(e)))
+            print ("-- Reading remote caps folder failed;", str(e))
             remote_caps = []
+
+        # Clear Files
         count = 0
         for the_remote_file in remote_caps:
             if the_remote_file in caps_files:
                 the_remote_file = remote_caps_path + "/" + the_remote_file
-                #MainApp.status.write_bar("clearing - " + the_remote_file)
-                print("clearing - " + the_remote_file)
+                print("Clearing " + str(count) + "  " + the_remote_file)
                 self.parent.link_pnl.run_on_pi("rm " + the_remote_file, False)
-                #wx.GetApp().Yield()
                 count = count + 1
-            #MainApp.status.write_bar("Cleared " + str(count) + " files from the pigrow")
-            print("Cleared " + str(count) + " files from the pigrow")
-        # when done refreh the file info
+            else:
+                print("File " + str(count) + " not removed")
+
+        # When done refreh the file info
         self.parent.dict_I_pnl['localfiles_pnl'].set_r_caps_text()
 
 class endgrow_dialog(wx.Dialog):

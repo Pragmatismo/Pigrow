@@ -382,7 +382,7 @@ class link_pnl(wx.Panel):
                         self.files_to_download.append([fold + "/" + item, local_item])
         # open dialogue box which displays from and to info then closes when done or cancelled
         self.files_to_download = self.files_to_download + extra_files
-        print ("files to download", self.files_to_download)
+        #print ("files to download", self.files_to_download)
         if not len(self.files_to_download) == 0:
             print("Downlaoding ", len(self.files_to_download), " files")
             file_dbox = files_download_dialog(self, self.parent)
@@ -394,7 +394,7 @@ class link_pnl(wx.Panel):
         ssh_tran.close()
 
     def select_files_on_pi(self, single_folder=False, create_file=False, default_path=""):
-        print("selecting files on pi")
+        print("Selecting files on pi")
         self.single_folder = single_folder
         self.create_file   = create_file
         self.default_path  = default_path
@@ -618,9 +618,13 @@ class select_files_on_pi_dialog(wx.Dialog):
             self.Layout()
             self.fill_filelist()
         else:
-            print("Not doing anthing with files when double clicked on, lol")
-            file_selected = current_folder + name
-            print("doubeclick selected - ", file_selected)
+            if self.single_folder == True:
+                self.parent.selected_folders.append(current_folder)
+                self.Destroy()
+            else:
+                print("double click only enabled in single_folder mode")
+                file_selected = current_folder + name
+                #print("doubeclick selected - ", file_selected)
 
     def select_item_click(self, e):
         local_base = self.parent.shared_data.frompi_path
@@ -637,9 +641,10 @@ class select_files_on_pi_dialog(wx.Dialog):
             s_count = self.file_list.GetSelectedItemCount()
             s_folder_list = []
             if s_count == 1:
-                print("one thing")
+                pass
+                #print("one thing")
             elif s_count == 0:
-                print("no file selected, using folder")
+                #print("no file selected, using folder")
                 s_folder_list.append(current_folder)
 
             s_file_list = []
