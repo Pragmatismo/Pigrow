@@ -1,5 +1,6 @@
 import os
 import wx
+import re
 import wx.lib.scrolledpanel as scrolled
 import image_combine
 import shutil
@@ -746,6 +747,8 @@ class quicktl_dialog(wx.Dialog):
         out_folder = self.parent.parent.shared_data.remote_pigrow_path + "caps/"
         self.outfolder_textctrl.SetValue(out_folder)
         outfolder_button = wx.Button(control_panel, label="...")
+        outfolder_button.Bind(wx.EVT_BUTTON, self.get_folder)
+
         outfolder_sizer = wx.BoxSizer(wx.HORIZONTAL)
         outfolder_sizer.Add(outfolder_label, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 5)
         outfolder_sizer.Add(self.outfolder_textctrl, 1, wx.ALL|wx.EXPAND, 5)
@@ -786,6 +789,12 @@ class quicktl_dialog(wx.Dialog):
 
         control_panel.SetSizer(controls_sizer)
         return control_panel
+
+    def get_folder(self, e):
+        self.parent.parent.link_pnl.select_files_on_pi(single_folder=True)
+        selected_folders = self.parent.parent.link_pnl.selected_folders
+        self.outfolder_textctrl.SetValue(selected_folders[0])
+        self.Layout()
 
     def set_camtool(self):
         currently_supported = ["fswebcam"]
@@ -883,9 +892,11 @@ class longtl_dialog(wx.Dialog):
             self.found = False
             self.freq_num, self.freq_text = "5", "min"
             self.enabled = True
+            self.args = ""
         else:
             self.found = True
             self.enabled = cron_I.repeat_cron.GetItem(self.cron_index, 1).GetText()
+            self.args = cron_I.repeat_cron.GetItem(self.cron_index, 4).GetText()
             cron_time_string = cron_I.repeat_cron.GetItem(self.cron_index, 2).GetText()
             self.freq_num, self.freq_text, cron_stars = cron_I.repeat_cron.parse_cron_string(cron_time_string)
             print("Found at;", self.cron_index, " enabled=", self.enabled, "repeating", self.freq_num, self.freq_text)
@@ -938,6 +949,18 @@ class longtl_dialog(wx.Dialog):
         return info_sizer
 
     def make_control_sizer(self):
+
+        # caps folder
+        caps_folder_label = wx.StaticText(self, label="Caps Folder:")
+        init_caps = self.set_init_caps_folder()
+        self.caps_folder_tc = wx.TextCtrl(self, value=init_caps)
+        caps_folder_button = wx.Button(self, label="...")
+        caps_folder_button.Bind(wx.EVT_BUTTON, self.select_caps_folder)
+        caps_folder_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        caps_folder_sizer.Add(caps_folder_label, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 5)
+        caps_folder_sizer.Add(self.caps_folder_tc, 1, wx.ALL|wx.EXPAND, 5)
+        caps_folder_sizer.Add(caps_folder_button, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 5)
+
         # enable / disable
         self.job_enabled_cb = wx.CheckBox(self, label="Enabled")
         if str(self.enabled) == "True":
@@ -957,9 +980,44 @@ class longtl_dialog(wx.Dialog):
         timing_sizer.Add(self.time_text_cb, 1, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 5)
 
         ctrl_sizer = wx.BoxSizer(wx.VERTICAL)
+        ctrl_sizer.Add(caps_folder_sizer, 0, wx.ALL|wx.EXPAND, 5)
         ctrl_sizer.Add(self.job_enabled_cb, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
         ctrl_sizer.Add(timing_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
         return ctrl_sizer
+
+    def set_init_caps_folder(self):
+        default_caps = self.parent.parent.shared_data.remote_pigrow_path + "caps"
+
+        arg_dict = self.split_arguments(self.args)
+        if "caps" in arg_dict:
+            return arg_dict["caps"]
+        else:
+            return default_caps
+
+    def split_arguments(self, argument_string):
+        # Split the string based on spaces outside quotes
+        args = re.findall(r'[^"\s]+|"[^"]*"', argument_string)
+
+        # Initialize dictionary to store key-value pairs
+        arg_dict = {}
+
+        # Process each argument
+        for arg in args:
+            # Split the argument into key and value
+            key_value = arg.split('=')
+            if len(key_value) == 2:
+                key = key_value[0].strip()
+                # Remove quotes from the value if present
+                value = key_value[1].strip('"')
+                arg_dict[key] = value
+
+        return arg_dict
+
+    def select_caps_folder(self, e):
+        self.parent.parent.link_pnl.select_files_on_pi(single_folder=True)
+        selected_folders = self.parent.parent.link_pnl.selected_folders
+        self.caps_folder_tc.SetValue(selected_folders[0])
+        self.Layout()
 
 
     def go_click(self, e):
