@@ -865,8 +865,12 @@ class longtl_dialog(wx.Dialog):
         super(longtl_dialog, self).__init__(*args, **kw)
         self.parent = parent
         self.link_pnl = self.parent.parent.link_pnl
-        self.set_camconf_file()
-        self.find_job()
+        found = self.set_camconf_file()
+        if not found:
+            return None
+        supported = self.find_job()
+        if not supported:
+            return None
         self.InitUI()
         self.SetSize((700, 650))
         self.SetTitle("Long Timelapse Recorder")
@@ -879,12 +883,33 @@ class longtl_dialog(wx.Dialog):
             print("ERROR no cam conf ")
             wx.MessageBox("No camera configuration file has been selected.", "Error - no camconf", wx.OK | wx.ICON_WARNING)
             self.OnClose(None)
+            return False
         else:
             filename = os.path.basename(camconf_path)
             self.camconf = filename
+            return True
 
     def find_job(self):
-        script = 'camcap.py'
+        # capture tool
+        cap_tool = self.parent.captool_cb.GetValue()
+        tool = {'uvccapture':'camcap',
+                'fswebcam':'camcap',
+                'picamcap':'picamcap',
+                'libcamera':'libcam_cap'}
+        if cap_tool in tool:
+            self.cap_tool = tool[cap_tool]
+        else:
+            print("SORRY capture tool not supported")
+            wx.MessageBox(f"Capture tool {cap_tool} is not supported", "Error - Unsupported Tool", wx.OK | wx.ICON_WARNING)
+            self.OnClose(None)
+            return False
+
+        self.cap_tool_path = self.parent.parent.shared_data.remote_pigrow_path
+        self.cap_tool_path += "scripts/cron/" + self.cap_tool + '.py'
+        self.check_cron(self.cap_tool_path)
+        return True
+
+    def check_cron(self, script):
         cron_I = self.parent.parent.dict_I_pnl['cron_pnl']
         self.cron_index = cron_I.find_repeat_pos_by_name(script, self.camconf, True, "set")
         if self.cron_index == -1:
@@ -897,8 +922,8 @@ class longtl_dialog(wx.Dialog):
             self.found = True
             self.enabled = cron_I.repeat_cron.GetItem(self.cron_index, 1).GetText()
             self.args = cron_I.repeat_cron.GetItem(self.cron_index, 4).GetText()
-            cron_time_string = cron_I.repeat_cron.GetItem(self.cron_index, 2).GetText()
-            self.freq_num, self.freq_text, cron_stars = cron_I.repeat_cron.parse_cron_string(cron_time_string)
+            self.cron_time_string = cron_I.repeat_cron.GetItem(self.cron_index, 2).GetText()
+            self.freq_num, self.freq_text, cron_stars = cron_I.repeat_cron.parse_cron_string(self.cron_time_string)
             print("Found at;", self.cron_index, " enabled=", self.enabled, "repeating", self.freq_num, self.freq_text)
 
         #list_of jobs = cron_I.list_repeat_by_key(self, script, "set", self.camconf)
@@ -937,15 +962,20 @@ class longtl_dialog(wx.Dialog):
         self.SetSizer(self.main_sizer)
 
     def make_info_sizer(self):
-
+        # Found text
         if self.found == True:
             found_txt = "Found repeating cron job using this config file"
         else:
             found_txt = "No cron job using this config file"
         self.found_l = wx.StaticText(self, label=found_txt)
 
+        # capture tool
+        cap_txt = "Using capture tool " + self.cap_tool
+        self.cap_tool_l = wx.StaticText(self, label=cap_txt)
+
         info_sizer = wx.BoxSizer(wx.VERTICAL)
         info_sizer.Add(self.found_l, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
+        info_sizer.Add(self.cap_tool_l, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
         return info_sizer
 
     def make_control_sizer(self):
@@ -1021,7 +1051,36 @@ class longtl_dialog(wx.Dialog):
 
 
     def go_click(self, e):
-        self.Layout()
+        enabled     = str(self.enabled)
+
+        rep_num = self.time_spin.GetValue()
+        rep_txt = self.time_text_cb.GetValue()
+        cron_C = self.parent.parent.dict_C_pnl['cron_pnl']
+        every  = cron_C.make_repeating_cron_timestring(rep_txt, rep_num)
+
+        task        = self.cap_tool_path
+
+        outfolder   = 'caps=' + self.caps_folder_tc.GetValue()
+        conf        = 'set='  + self.camconf
+        extra_args  = conf + " " + outfolder
+
+        print("Index", self.cron_index)
+        print (enabled, every, task, extra_args)
+
+        #check if update needed
+        cron_I = self.parent.parent.dict_I_pnl['cron_pnl']
+        if self.enabled == enabled:
+            if self.cron_time_string.strip() == every:
+                if self.found == True:
+                    print("no change needed 3")
+                    print(self.args, extra_args)
+                    if self.args.strip() == extra_args:
+                        print("no change needed")
+                        return None
+
+        print("should update job")
+
+        #self.Layout()
 
     def OnClose(self, e):
         self.Destroy()
