@@ -1051,11 +1051,13 @@ class longtl_dialog(wx.Dialog):
 
 
     def go_click(self, e):
-        enabled     = str(self.enabled)
+        cron_I = self.parent.parent.dict_I_pnl['cron_pnl']
+        cron_C = self.parent.parent.dict_C_pnl['cron_pnl']
+        # create values for cron
+        enabled     = str(self.job_enabled_cb)
 
         rep_num = self.time_spin.GetValue()
         rep_txt = self.time_text_cb.GetValue()
-        cron_C = self.parent.parent.dict_C_pnl['cron_pnl']
         every  = cron_C.make_repeating_cron_timestring(rep_txt, rep_num)
 
         task        = self.cap_tool_path
@@ -1066,9 +1068,14 @@ class longtl_dialog(wx.Dialog):
 
         print("Index", self.cron_index)
         print (enabled, every, task, extra_args)
+        # if creating new job
+        if self.found == False:
+            cron_C.add_to_repeat_list(cron_I.repeat_cron, 'new', enabled, every, task, extra_args)
+            cron_C.update_cron_click("e", no_starting=True)
+            return None
 
+        # editing existing job
         #check if update needed
-        cron_I = self.parent.parent.dict_I_pnl['cron_pnl']
         if self.enabled == enabled:
             if self.cron_time_string.strip() == every:
                 if self.found == True:
@@ -1077,8 +1084,13 @@ class longtl_dialog(wx.Dialog):
                     if self.args.strip() == extra_args:
                         print("no change needed")
                         return None
-
-        print("should update job")
+        # edit cron tab's table and update to pi
+        print("updating job")
+        cron_I.repeat_cron.SetItem(0, 1, enabled)
+        cron_I.repeat_cron.SetItem(0, 2, every)
+        cron_I.repeat_cron.SetItem(0, 3, task)
+        cron_I.repeat_cron.SetItem(0, 4, extra_args)
+        cron_C.update_cron_click("e", no_starting=True)
 
         #self.Layout()
 
