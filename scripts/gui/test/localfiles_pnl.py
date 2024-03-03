@@ -3,6 +3,10 @@ import datetime
 import shutil
 import wx
 import wx.lib.scrolledpanel as scrolled
+import wx.lib.delayedresult as delayedresult
+import wx.lib.newevent
+
+FileClearEvent, EVT_FILE_CLEAR = wx.lib.newevent.NewEvent()
 
 class ctrl_pnl(wx.Panel):
     def __init__( self, parent ):
@@ -151,15 +155,92 @@ class ctrl_pnl(wx.Panel):
         endgrow_dbox.ShowModal()
         endgrow_dbox.Destroy()
 
-
     def connect_to_pigrow(self):
         self.read_click("e")
 
     def clear_downed_click(self, e):
+        self.clearcaps_dbox = clearcaps_dialog(self, self.parent)
+        self.clearcaps_dbox.ShowModal()
+        if self.clearcaps_dbox:
+            if not self.clearcaps_dbox.IsBeingDeleted():
+                self.clearcaps_dbox.Destroy()
+        self.parent.dict_I_pnl['localfiles_pnl'].set_r_caps_text()        
+
+
+class clearcaps_dialog(wx.Dialog):
+    #Dialog box for downloding files from pi to local storage folder
+    def __init__(self, parent, *args, **kw):
+        self.parent = parent
+        super(clearcaps_dialog, self).__init__(*args, **kw)
+        self.InitUI()
+        self.SetSize((500, 250))
+        self.SetTitle("Clear Downloaded Caps from Pigrow")
+        self.Bind(wx.EVT_CLOSE, self.cancel_click)
+
+    def InitUI(self):
+        # draw the pannel
+        title = wx.StaticText(self,  label='Clearing Downloaded Images from Pigrow')
+
+        #buttons
+        self.cancel_btn = wx.Button(self, label='Cancel', size=(175, 50))
+        self.cancel_btn.Bind(wx.EVT_BUTTON, self.cancel_click)
+        buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        buttons_sizer.Add(self.cancel_btn, 0,  wx.ALL, 3)
+
+        self.clear_txt = " of them cleared"
+        self.clear_counter = wx.StaticText(self, label="0" + self.clear_txt)
+
+        # main sizer
+        self.main_sizer = wx.BoxSizer(wx.VERTICAL)
+        self.main_sizer.Add(title, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
+        self.main_sizer.AddStretchSpacer(1)
+        self.main_sizer.Add(self.clear_counter, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
+        self.main_sizer.AddStretchSpacer(1)
+        self.main_sizer.Add(buttons_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
+        self.SetSizer(self.main_sizer)
+
+        self.counter   = 1
+
+        self.jobID = 100
+        self.Bind(EVT_FILE_CLEAR, self.handler)
+        self.abortEvent = delayedresult.AbortEvent()
+        delayedresult.startWorker(self._resultConsumer, self._resultProducer,
+                                  wargs=(self.jobID,self.abortEvent), jobID=self.jobID)
+
+    def handler(self, evt):
+        if evt.result == "Done":
+            print("Finished clearing caps")
+            self.Destroy()
+        self.counter += 1
+        self.clear_counter.SetLabel(str(self.counter) + self.clear_txt + evt.result)
+
+
+    def _resultConsumer(self, delayedResult):
+        pass
+
+    def _resultProducer(self, jobID, abortEvent):
+        """Run clear caps with delayedresult module"""
+        caps_files, remote_caps, remote_caps_path = self.make_list()
+
+        # Clear Files
+        for the_remote_file in remote_caps:
+            if abortEvent():
+                return None
+
+            if the_remote_file in caps_files:
+                the_remote_file = remote_caps_path + "/" + the_remote_file
+                wx.PostEvent(self,FileClearEvent(result="cleared"))
+                self.parent.parent.link_pnl.run_on_pi("rm " + the_remote_file, False)
+            else:
+                wx.PostEvent(self,FileClearEvent(result="left"))
+
+        wx.PostEvent(self,FileClearEvent(result="Done"))
+
+
+    def make_list(self):
         # looks at local files an remote files removing any from the pigrows
         # that are already stored in the local caps folder for that pigrow
-        print("clearing already downloaded images off pigrow")
-        I_pnl = self.parent.dict_I_pnl['localfiles_pnl']
+        I_pnl = self.parent.parent.dict_I_pnl['localfiles_pnl']
         remote_caps_path = I_pnl.r_folder_text.GetLabel()
         local_caps_path  = I_pnl.folder_text.GetLabel()
 
@@ -170,26 +251,20 @@ class ctrl_pnl(wx.Panel):
 
         # Read pi's caps folder
         try:
-            out, error = self.parent.link_pnl.run_on_pi("ls " + remote_caps_path)
+            out, error = self.parent.parent.link_pnl.run_on_pi("ls " + remote_caps_path)
             remote_caps = out.splitlines()
             print(len(remote_caps), " Files remotely")
         except Exception as e:
             print ("-- Reading remote caps folder failed;", str(e))
             remote_caps = []
 
-        # Clear Files
-        count = 0
-        for the_remote_file in remote_caps:
-            if the_remote_file in caps_files:
-                the_remote_file = remote_caps_path + "/" + the_remote_file
-                print("Clearing " + str(count) + "  " + the_remote_file)
-                self.parent.link_pnl.run_on_pi("rm " + the_remote_file, False)
-                count = count + 1
-            else:
-                print("File " + str(count) + " not removed")
+        return caps_files, remote_caps, remote_caps_path
 
-        # When done refreh the file info
-        self.parent.dict_I_pnl['localfiles_pnl'].set_r_caps_text()
+    def cancel_click(self, e):
+        self.abortEvent.set()
+        self.Destroy()
+
+
 
 class endgrow_dialog(wx.Dialog):
     #Dialog box for downloding files from pi to local storage folder
@@ -215,8 +290,6 @@ class endgrow_dialog(wx.Dialog):
         n_sizer.Add(n_label, 0,  wx.ALL, 3)
         n_sizer.Add(self.name_tc, 0,  wx.ALL, 3)
 
-
-
         a_label = wx.StaticText(self,  label='Download from Pi;')
         self.cb_caps = wx.CheckBox(self, label='caps')
         self.cb_logs = wx.CheckBox(self, label='Logs')
@@ -240,7 +313,6 @@ class endgrow_dialog(wx.Dialog):
         rem_sizer.Add(self.cb_rcaps, 0,  wx.LEFT, 50)
         rem_sizer.Add(self.cb_rlogs, 0,  wx.LEFT, 50)
 
-
         #buttons
         self.go_btn = wx.Button(self, label='Start New Grow', size=(175, 50))
         self.go_btn.Bind(wx.EVT_BUTTON, self.go_click)
@@ -250,6 +322,7 @@ class endgrow_dialog(wx.Dialog):
         buttons_sizer.Add(self.go_btn, 0,  wx.ALL, 3)
         buttons_sizer.AddStretchSpacer(1)
         buttons_sizer.Add(self.cancel_btn, 0,  wx.ALL, 3)
+
         # main sizer
         self.main_sizer = wx.BoxSizer(wx.VERTICAL)
         self.main_sizer.Add(title, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
