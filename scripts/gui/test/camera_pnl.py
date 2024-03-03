@@ -1079,20 +1079,20 @@ class longtl_dialog(wx.Dialog):
         if self.enabled == enabled:
             if self.cron_time_string.strip() == every:
                 if self.found == True:
-                    print("no change needed 3")
                     print(self.args, extra_args)
                     if self.args.strip() == extra_args:
-                        print("no change needed")
+                        #print("no change needed")
                         return None
         # edit cron tab's table and update to pi
-        print("updating job")
+        #print("updating job")
         cron_I.repeat_cron.SetItem(0, 1, enabled)
         cron_I.repeat_cron.SetItem(0, 2, every)
         cron_I.repeat_cron.SetItem(0, 3, task)
         cron_I.repeat_cron.SetItem(0, 4, extra_args)
         cron_C.update_cron_click("e", no_starting=True)
 
-        #self.Layout()
+        self.Destroy()
+
 
     def OnClose(self, e):
         self.Destroy()
