@@ -865,6 +865,7 @@ class longtl_dialog(wx.Dialog):
         super(longtl_dialog, self).__init__(*args, **kw)
         self.parent = parent
         self.link_pnl = self.parent.parent.link_pnl
+        self.cron_update_required = False
         found = self.set_camconf_file()
         if not found:
             return None
@@ -872,7 +873,7 @@ class longtl_dialog(wx.Dialog):
         if not supported:
             return None
         self.InitUI()
-        self.SetSize((700, 650))
+        self.SetSize((700, 450))
         self.SetTitle("Long Timelapse Recorder")
         self.Bind(wx.EVT_CLOSE, self.OnClose)
 
@@ -911,7 +912,27 @@ class longtl_dialog(wx.Dialog):
 
     def check_cron(self, script):
         cron_I = self.parent.parent.dict_I_pnl['cron_pnl']
-        self.cron_index = cron_I.find_repeat_pos_by_name(script, self.camconf, True, "set")
+        # check for cron jobs
+        cron_jobs_list = cron_I.list_repeat_by_key(script, "set", self.camconf)
+        job_count = len(cron_jobs_list)
+        if job_count == 0:
+            self.cron_index = -1
+        elif job_count == 1:
+            print("one job")
+            self.cron_index = cron_jobs_list[0][0]
+        elif job_count > 1:
+            print("More than one cron job using the same settings file.")
+            msg = f"Config file {self.camconf} has {job_count} active capture scripts using it."
+            msg += " Would you like to remove duplicates?"
+            dlg = wx.MessageDialog(None, msg, "Question - Duplicate cron jobs", wx.YES_NO | wx.ICON_QUESTION)
+            result = dlg.ShowModal()
+            dlg.Destroy()
+            if result == wx.ID_YES:
+                for job in cron_jobs_list[1:]:
+                    self.clear_job_from_cron(job[0])
+            self.cron_index = cron_jobs_list[0][0]
+
+        # set info for controls
         if self.cron_index == -1:
             print("Cron Job not found for " + self.camconf)
             self.found = False
@@ -926,7 +947,11 @@ class longtl_dialog(wx.Dialog):
             self.freq_num, self.freq_text, cron_stars = cron_I.repeat_cron.parse_cron_string(self.cron_time_string)
             print("Found at;", self.cron_index, " enabled=", self.enabled, "repeating", self.freq_num, self.freq_text)
 
-        #list_of jobs = cron_I.list_repeat_by_key(self, script, "set", self.camconf)
+    def clear_job_from_cron(self, r_index):
+        cron_I = self.parent.parent.dict_I_pnl['cron_pnl']
+        self.cron_update_required = True
+        cron_I.repeat_cron.SetItem(r_index, 0, "deleted")
+        print(f"Set repeat job {r_index} to deleted, not writen cron yet.")
 
     def InitUI(self):
         # Header Labels
@@ -937,14 +962,14 @@ class longtl_dialog(wx.Dialog):
         sub_label = wx.StaticText(self,  label=sub_msg)
 
         # Buttons
-        self.go_btn = wx.Button(self, label='Set Cron') #, size=(175, 50))
+        self.go_btn = wx.Button(self, label='Ok')
         self.go_btn.Bind(wx.EVT_BUTTON, self.go_click)
-        self.cancel_btn = wx.Button(self, label='Done') #, size=(175, 50))
+        self.cancel_btn = wx.Button(self, label='Cancel')
         self.cancel_btn.Bind(wx.EVT_BUTTON, self.OnClose)
         buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        buttons_sizer.Add(self.go_btn, 0,  wx.ALL, 3)
+        buttons_sizer.Add(self.go_btn, 0,  wx.RIGHT, 25)
         buttons_sizer.AddStretchSpacer(1)
-        buttons_sizer.Add(self.cancel_btn, 0,  wx.ALL, 3)
+        buttons_sizer.Add(self.cancel_btn, 0,  wx.LEFT, 25)
 
         # Control and Info display
         self.info_sizer = self.make_info_sizer()
@@ -1054,7 +1079,7 @@ class longtl_dialog(wx.Dialog):
         cron_I = self.parent.parent.dict_I_pnl['cron_pnl']
         cron_C = self.parent.parent.dict_C_pnl['cron_pnl']
         # create values for cron
-        enabled     = str(self.job_enabled_cb)
+        enabled     = str(self.job_enabled_cb.GetValue()).strip()
 
         rep_num = self.time_spin.GetValue()
         rep_txt = self.time_text_cb.GetValue()
@@ -1066,8 +1091,8 @@ class longtl_dialog(wx.Dialog):
         conf        = 'set='  + self.camconf
         extra_args  = conf + " " + outfolder
 
-        print("Index", self.cron_index)
-        print (enabled, every, task, extra_args)
+        #print("Index", self.cron_index)
+        #print (enabled, every, task, extra_args)
         # if creating new job
         if self.found == False:
             cron_C.add_to_repeat_list(cron_I.repeat_cron, 'new', enabled, every, task, extra_args)
@@ -1079,10 +1104,12 @@ class longtl_dialog(wx.Dialog):
         if self.enabled == enabled:
             if self.cron_time_string.strip() == every:
                 if self.found == True:
-                    print(self.args, extra_args)
                     if self.args.strip() == extra_args:
-                        #print("no change needed")
-                        return None
+                        if not self.cron_update_required == True:
+                            #print("no change needed")
+                            self.Destroy()
+                            return None
+
         # edit cron tab's table and update to pi
         #print("updating job")
         cron_I.repeat_cron.SetItem(0, 1, enabled)
