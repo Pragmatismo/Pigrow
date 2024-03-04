@@ -908,7 +908,36 @@ class longtl_dialog(wx.Dialog):
         self.cap_tool_path = self.parent.parent.shared_data.remote_pigrow_path
         self.cap_tool_path += "scripts/cron/" + self.cap_tool + '.py'
         self.check_cron(self.cap_tool_path)
+        tool_list = ['camcap', 'picamcap', 'libcam_cap']
+        tool_list.remove(self.cap_tool)
+        self.check_other_capstools(tool_list)
         return True
+
+    def check_other_capstools(self, tool_list):
+        jobs_to_remove = []
+        cron_I = self.parent.parent.dict_I_pnl['cron_pnl']
+        for tool in tool_list:
+            tool_path = self.parent.parent.shared_data.remote_pigrow_path
+            tool_path += "scripts/cron/" + tool + '.py'
+            jobs_list = cron_I.list_repeat_by_key(tool_path, "set", self.camconf)
+            job_count = len(jobs_list)
+            if job_count > 0:
+                print("Found", job_count, "cron jobs for for", tool)
+                for job in jobs_list:
+                    jobs_to_remove.append(job)
+
+        job_count = len(jobs_to_remove)
+        if job_count > 0:
+            msg = f"Config file {self.camconf} has {job_count} other capture scripts using it."
+            msg += " Would you like to remove these jobs?\n"
+            for job in jobs_to_remove:
+                msg += "\nenabled: " + job[1] + " " + job[2] + " " + job[3] + " " + job[4]
+            dlg = wx.MessageDialog(None, msg, "Question - Duplicate cron jobs", wx.YES_NO | wx.ICON_QUESTION)
+            result = dlg.ShowModal()
+            dlg.Destroy()
+            if result == wx.ID_YES:
+                for job in jobs_to_remove:
+                    self.clear_job_from_cron(job[0])
 
     def check_cron(self, script):
         cron_I = self.parent.parent.dict_I_pnl['cron_pnl']
@@ -918,11 +947,10 @@ class longtl_dialog(wx.Dialog):
         if job_count == 0:
             self.cron_index = -1
         elif job_count == 1:
-            print("one job")
             self.cron_index = cron_jobs_list[0][0]
         elif job_count > 1:
-            print("More than one cron job using the same settings file.")
-            msg = f"Config file {self.camconf} has {job_count} active capture scripts using it."
+            #print("More than one cron job using the same settings file.")
+            msg = f"Config file {self.camconf} has {job_count} capture scripts using it."
             msg += " Would you like to remove duplicates?"
             dlg = wx.MessageDialog(None, msg, "Question - Duplicate cron jobs", wx.YES_NO | wx.ICON_QUESTION)
             result = dlg.ShowModal()
