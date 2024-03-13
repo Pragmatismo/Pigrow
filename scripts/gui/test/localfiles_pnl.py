@@ -164,7 +164,7 @@ class ctrl_pnl(wx.Panel):
         if self.clearcaps_dbox:
             if not self.clearcaps_dbox.IsBeingDeleted():
                 self.clearcaps_dbox.Destroy()
-        self.parent.dict_I_pnl['localfiles_pnl'].set_r_caps_text()        
+        self.parent.dict_I_pnl['localfiles_pnl'].set_r_caps_text()
 
 
 class clearcaps_dialog(wx.Dialog):
@@ -212,7 +212,7 @@ class clearcaps_dialog(wx.Dialog):
             print("Finished clearing caps")
             self.Destroy()
         self.counter += 1
-        self.clear_counter.SetLabel(str(self.counter) + self.clear_txt + evt.result)
+        self.clear_counter.SetLabel(str(self.counter) + self.clear_txt)
 
 
     def _resultConsumer(self, delayedResult):
@@ -253,6 +253,7 @@ class clearcaps_dialog(wx.Dialog):
         try:
             out, error = self.parent.parent.link_pnl.run_on_pi("ls " + remote_caps_path)
             remote_caps = out.splitlines()
+            self.clear_txt = " of " + str(len(remote_caps))
             print(len(remote_caps), " Files remotely")
         except Exception as e:
             print ("-- Reading remote caps folder failed;", str(e))
