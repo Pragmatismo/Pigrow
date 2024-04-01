@@ -20,11 +20,16 @@ class ctrl_pnl(wx.Panel):
         new_log_btn = wx.Button(self, label='New Log')
         new_log_btn.Bind(wx.EVT_BUTTON, self.new_log_click)
 
+        save_log_btn = wx.Button(self, label='SaveS Log')
+        save_log_btn.Bind(wx.EVT_BUTTON, self.save_log_click)
+
         ## Main Sizer
         main_sizer = wx.BoxSizer(wx.VERTICAL)
         #main_sizer.AddStretchSpacer(1)
         main_sizer.Add(log_sizer, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
         main_sizer.Add(new_log_btn, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
+        main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(save_log_btn, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
         main_sizer.AddStretchSpacer(1)
         self.SetSizer(main_sizer)
 
@@ -59,6 +64,18 @@ class ctrl_pnl(wx.Panel):
         print("-- new log click, just testing.")
         I_pnl.log_data.log_field_dict = {'new test':['text',"lol"]}
         I_pnl.log_data.fill_sizer_from_dict()
+        I_pnl.log_name.SetLabel("userlog_newlog.txt")
+
+    def save_log_click(self, e):
+        print("-- save log click, does nothing")
+        I_pnl = self.parent.dict_I_pnl['userlog_pnl']
+        log_name = I_pnl.log_name.GetLabel()
+        for ctrl in I_pnl.log_data.log_field_ctrls:
+            if len(ctrl) > 1:
+                field_name = ctrl[0].GetLabel()
+                field_type = I_pnl.log_data.log_field_dict[field_name][0]
+                field_val = ctrl[1].GetValue()
+                print(field_name, field_type, field_val)
 
 
 class info_pnl(scrolled.ScrolledPanel):
@@ -138,9 +155,12 @@ class info_pnl(scrolled.ScrolledPanel):
 
     def add_field_click(self, e):
         print("Sorry only silly new fields for you :P")
-        self.log_data.add_new_field('test', 'text')
-        self.log_data.add_new_field('test int', 'num')
-        self.log_data.add_new_field('test date', 'date')
+        self.log_data.log_field_dict['test A'] = ['text',""]
+        self.log_data.log_field_dict['test N'] = ['num',""]
+        self.log_data.log_field_dict['test D'] = ['date',""]
+        self.log_data.add_new_field('test A', 'text')
+        self.log_data.add_new_field('test N', 'num')
+        self.log_data.add_new_field('test D', 'date')
 
     def edit_field_click(self, e):
         print("Not editing a field that would be tiresome")
@@ -157,6 +177,12 @@ class info_pnl(scrolled.ScrolledPanel):
             #blank_l = wx.StaticText(self,  label='--no log loaded--')
             #self.log_display_sizer.Add(display_title_l, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
 
+        def read_log(self, log_name):
+            # currently just returns text, doens't make dict
+            log_path = self.parent.parent.shared_data.remote_pigrow_path + "logs/" + log_name
+            out, error = self.parent.parent.link_pnl.run_on_pi("cat " + log_path)
+            return out.strip()
+
         def load_into_sizer(self, log_name):
             #currently just reads the log as text and displays it
             log_text = self.read_log(log_name)
@@ -164,26 +190,22 @@ class info_pnl(scrolled.ScrolledPanel):
             test_l = wx.StaticText(self.parent,  label=log_text)
 
             self.log_info_sizer.Add(test_l, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
-
             self.parent.Layout()
 
+        ## create controls for log items
         def fill_sizer_from_dict(self):
+            # clear all the existing log controls
             for item in self.log_field_ctrls:
                 for ctrl in item:
-                    print(ctrl)
                     ctrl.Destroy()
             self.log_field_ctrls = []
             self.parent.Layout()
 
+            # create new controls for everything in log_field_dict
             for field_name, (field_type, value) in self.log_field_dict.items():
                 print("adding", field_name, field_type, value)
                 self.add_new_field(field_name, field_type, value)
 
-
-        def read_log(self, log_name):
-            log_path = self.parent.parent.shared_data.remote_pigrow_path + "logs/" + log_name
-            out, error = self.parent.parent.link_pnl.run_on_pi("cat " + log_path)
-            return out.strip()
 
         def add_new_field(self, label, field_type, value=""):
             field_types = {'text': self.field_text_box,
