@@ -701,7 +701,7 @@ class info_pnl(wx.Panel):
                         c_pnl.update_cron_click("e")
                         return "removed"
 
-    def find_repeat_pos_by_name(self, script, name, use_name=True):
+    def find_repeat_pos_by_name(self, script, name, use_name=True, idkey="name"):
         script_index_repeating = -1
         if not name == "":
             for index in range(0, self.repeat_cron.GetItemCount()):
@@ -709,7 +709,7 @@ class info_pnl(wx.Panel):
                 if script in cmd_path:
                     cmd_args = self.repeat_cron.GetItem(index, 4).GetText()
                     if use_name == True:
-                        if  "name=" + name in cmd_args:
+                        if  idkey + "=" + name in cmd_args:
                             script_index_repeating = index
                     else:
                         script_index_repeating = index
@@ -1294,7 +1294,7 @@ class cron_job_dialog(wx.Dialog):
         self.job_enabled = self.cron_enabled_cb.GetValue()
         self.job_repeat = self.cron_repeat_opts_cb.GetValue()
         self.job_repnum = self.cron_every_num_tc.GetValue()
-        
+
         self.job_min = self.cron_timed_min_tc.GetValue()
         self.job_hour = self.cron_timed_hour_tc.GetValue()
         self.job_day = self.cron_timed_day_tc.GetValue()

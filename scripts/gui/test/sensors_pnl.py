@@ -1,74 +1,75 @@
 import os
-import sys
 import wx
+import sys
 import wx.lib.scrolledpanel as scrolled
 
-#class ctrl_pnl(wx.Panel):
-    #
-    #
-#    def __init__( self, parent ):
-#        shared_data = parent.shared_data
-#        wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, style = wx.TAB_TRAVERSAL )
-#        self.SetBackgroundColour((150,230,170))
-#        self.l = wx.StaticText(self,  label=('Sensors'))
 
-#    def connect_to_pigrow(self):
-#        '''
-#        This is called every time a connection to a pigrow is made
-#        '''
-#        pass
-
-class info_pnl(scrolled.ScrolledPanel):
-    #'''
+'''
     #    This deals with sensors that are listed in to Pigrows config file,
     #    the format it expects is;
     #         sensor_chirp01_type=chirp
     #         sensor_chirp01_log=/home/pi/Pigrow/logs/chirp01.txt
     #         sensor_chirp01_loc=i2c:0x31
     #         sensor_chirp01_extra=min:100,max:1000,power_gpio=20,etc:,etc:etc,etc
-    #'''
-    #
+'''
+
+class info_pnl(scrolled.ScrolledPanel):
     def __init__( self, parent ):
         self.parent = parent
         self.c_pnl = parent.dict_C_pnl['sensors_pnl']
         wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, style = wx.TAB_TRAVERSAL )
         shared_data = parent.shared_data
+
         # Tab Title
         self.SetFont(shared_data.title_font)
         title_l = wx.StaticText(self,  label='Sensor Control Panel')
         self.SetFont(shared_data.sub_title_font)
         page_sub_title =  wx.StaticText(self,  label='Link aditional sensors to the pigrow')
-        # placing the information boxes
+        title_sizer = wx.BoxSizer(wx.VERTICAL)
+        title_sizer.Add(title_l, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
+        title_sizer.Add(page_sub_title, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
+
         # sensor table
         self.SetFont(shared_data.info_font)
         self.sensor_list = self.sensor_table(self, 1)
         self.sensor_list.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.sensor_list.double_click)
         self.sensor_list.Bind(wx.EVT_LIST_KEY_DOWN, self.del_item)
         self.sensor_list.Bind(wx.EVT_LIST_ITEM_FOCUSED, self.sensor_got_focus)
+
+        trigger_label_sizer = self.make_trigger_script_sizer()
+
         # trigger table
-        self.SetFont(shared_data.sub_title_font)
-        trigger_sub_title =  wx.StaticText(self,  label='Log Triggers ')
-        self.trigger_script_activity_cron =  wx.StaticText(self,  label="")
-        self.trigger_script_activity_live =  wx.StaticText(self,  label="")
         self.SetFont(shared_data.info_font)
         self.trigger_list = self.trigger_table(self, 1)
         self.trigger_list.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.trigger_list.double_click)
         self.trigger_list.Bind(wx.EVT_LIST_ITEM_FOCUSED, self.trigger_got_focus)
         self.trigger_list.Bind(wx.EVT_LIST_KEY_DOWN, self.del_item)
+
         # sizers
-        trigger_label_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        trigger_label_sizer.Add(trigger_sub_title, 1, wx.ALL, 3)
-        trigger_label_sizer.Add(self.trigger_script_activity_cron, 1, wx.ALL, 3)
-        trigger_label_sizer.Add(self.trigger_script_activity_live, 1, wx.ALL, 3)
         main_sizer = wx.BoxSizer(wx.VERTICAL)
-        main_sizer.Add(title_l, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
-        main_sizer.Add(page_sub_title, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
-        main_sizer.Add(self.sensor_list, 1, wx.ALL|wx.EXPAND, 3)
+        main_sizer.Add(title_sizer, 0, wx.LEFT, 250)
+        main_sizer.Add(self.sensor_list, 1, wx.ALL | wx.EXPAND, 3)
         #main_sizer.AddStretchSpacer(1)
         main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
-        main_sizer.Add(trigger_label_sizer, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
+        main_sizer.Add(trigger_label_sizer, 0, wx.LEFT, 25)
         main_sizer.Add(self.trigger_list, 1, wx.ALL|wx.EXPAND, 3)
         self.SetSizer(main_sizer)
+        self.SetupScrolling()
+
+
+    def make_trigger_script_sizer(self):
+        # Trigger script label + exists and active
+        shared_data = self.parent.shared_data
+        self.SetFont(shared_data.sub_title_font)
+        trigger_sub_title =  wx.StaticText(self,  label='Log Triggers ')
+        self.trigger_script_activity_cron =  wx.StaticText(self,  label="")
+        self.trigger_script_activity_live =  wx.StaticText(self,  label="")
+        trigger_label_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        trigger_label_sizer.Add(trigger_sub_title, 0, wx.ALL, 3)
+        trigger_label_sizer.Add(self.trigger_script_activity_cron, 0, wx.LEFT, 15)
+        trigger_label_sizer.Add(self.trigger_script_activity_live, 0, wx.LEFT, 15)
+
+        return trigger_label_sizer
 
     def sensor_got_focus(self, e):
         trigger_focus = self.trigger_list.GetFocusedItem()
@@ -77,7 +78,6 @@ class info_pnl(scrolled.ScrolledPanel):
     def trigger_got_focus(self, e):
         sensor_focus = self.sensor_list.GetFocusedItem()
         self.sensor_list.Select(sensor_focus, on=0)
-
 
     def del_item(self, e):
         # cron_list_pnl - needs to be set before this works
@@ -119,7 +119,6 @@ class info_pnl(scrolled.ScrolledPanel):
                         print(trigger_list.DeleteItem(trigger_list.GetFocusedItem()))
                         trigger_list.save_table_to_pi()
 
-
     def check_trigger_script_activity(self):
         cron_C_pnl = self.parent.dict_C_pnl['cron_pnl']
         script = 'trigger_watcher.py'
@@ -131,7 +130,7 @@ class info_pnl(scrolled.ScrolledPanel):
             self.trigger_script_activity_cron.SetForegroundColour((80,150,80))
             self.trigger_script_activity_cron.SetLabel("trigger_watcher.py starting on boot")
         elif script_status == "disabled":
-            self.trigger_script_activity_cron.SetForegroundColour((200,110,110))
+            self.trigger_script_activity_cron.SetForegroundColour((200,80,80))
             self.trigger_script_activity_cron.SetLabel("trigger_watcher.py cronjob disabled, won't start on boot")
         elif script_status == "none":
             self.trigger_script_activity_cron.SetForegroundColour((200,75,75))
@@ -145,8 +144,7 @@ class info_pnl(scrolled.ScrolledPanel):
         else:
             self.trigger_script_activity_live.SetLabel(" trigger_watcher.py NOT currently running ")
             self.trigger_script_activity_live.SetForegroundColour((200,75,75))
-        #self.Layout()
-
+        self.Layout()
 
     class sensor_table(wx.ListCtrl):
         def __init__(self, parent, id):
@@ -274,7 +272,6 @@ class info_pnl(scrolled.ScrolledPanel):
                     modular_sensor_dialog_box = sensor_from_module_dialog(self, self.parent)
                     modular_sensor_dialog_box.ShowModal()
                     self.make_sensor_table()
-
 
     class trigger_table(wx.ListCtrl):
         def __init__(self, parent, id):
@@ -405,7 +402,8 @@ class info_pnl(scrolled.ScrolledPanel):
             trigger_edit_box = set_trigger_dialog(self, self.parent)
             trigger_edit_box.ShowModal()
 
-class ctrl_pnl(wx.Panel):
+
+class ctrl_pnl(scrolled.ScrolledPanel):
     def __init__(self, parent):
         self.parent = parent
 
@@ -428,21 +426,20 @@ class ctrl_pnl(wx.Panel):
         #  == Modular Sensor Controlls
         self.modular_sensor_l = wx.StaticText(self,  label='Modular Sensors;')
         self.sensor_module_list_cb = wx.ComboBox(self,  size=(150, 30), choices = self.parent.shared_data.get_module_options("sensor_", "sensor_modules"))
-        self.add_modular_sensor = wx.Button(self, label='Add')
+        self.add_modular_sensor = wx.Button(self, label='Add Sensor')
         self.add_modular_sensor.Bind(wx.EVT_BUTTON, self.add_modular_sensor_click)
         #  == Button Controlls
         self.buttons_l = wx.StaticText(self,  label='Buttons;')
-        self.add_button = wx.Button(self, label='Add')
+        self.add_button = wx.Button(self, label='Add Button')
         self.add_button.Bind(wx.EVT_BUTTON, self.add_button_click)
         #  == Add Trigger
         self.triggers_l = wx.StaticText(self,  label='Triggers;')
-        self.add_trigger = wx.Button(self, label='Add')
+        self.add_trigger = wx.Button(self, label='Add Trigger')
         self.add_trigger.Bind(wx.EVT_BUTTON, self.add_trigger_click)
 
         # Sizers
 
         main_sizer =  wx.BoxSizer(wx.VERTICAL)
-        main_sizer.AddStretchSpacer(1)
         main_sizer.Add(self.make_table_btn, 0, wx.ALL|wx.EXPAND, 3)
         main_sizer.AddStretchSpacer(1)
         main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
@@ -464,6 +461,10 @@ class ctrl_pnl(wx.Panel):
         main_sizer.Add(self.address_chirp_btn, 0, wx.ALL|wx.EXPAND, 3)
         main_sizer.AddStretchSpacer(1)
         self.SetSizer(main_sizer)
+        self.SetupScrolling()
+
+    def connect_to_pigrow(self):
+        self.make_tables_click(None)
 
     def updated_config(self):
         self.make_tables_click("e")
@@ -674,11 +675,13 @@ class set_trigger_dialog(wx.Dialog):
         box_label.SetFont(shared_data.title_font)
         box_sub_title =  wx.StaticText(self,  label='Trigger conditions are checked every time a log entry is written', size=(550,30))
         box_sub_title.SetFont(shared_data.sub_title_font)
+
         # buttons_
         self.ok_btn = wx.Button(self, label='OK', size=(175, 30))
         self.ok_btn.Bind(wx.EVT_BUTTON, self.add_click)
         self.cancel_btn = wx.Button(self, label='Cancel', size=(175, 30))
         self.cancel_btn.Bind(wx.EVT_BUTTON, self.OnClose)
+
         # trigger information
         log_l = wx.StaticText(self,  label='Log')
         log_opts = self.get_log_options()

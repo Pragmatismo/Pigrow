@@ -20,11 +20,16 @@ class ctrl_pnl(wx.Panel):
         new_log_btn = wx.Button(self, label='New Log')
         new_log_btn.Bind(wx.EVT_BUTTON, self.new_log_click)
 
+        save_log_btn = wx.Button(self, label='SaveS Log')
+        save_log_btn.Bind(wx.EVT_BUTTON, self.save_log_click)
+
         ## Main Sizer
         main_sizer = wx.BoxSizer(wx.VERTICAL)
         #main_sizer.AddStretchSpacer(1)
         main_sizer.Add(log_sizer, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
         main_sizer.Add(new_log_btn, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
+        main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(save_log_btn, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
         main_sizer.AddStretchSpacer(1)
         self.SetSizer(main_sizer)
 
@@ -36,7 +41,7 @@ class ctrl_pnl(wx.Panel):
         usrlog = "userlog_" + selected_item + ".txt"
         I_pnl = self.parent.dict_I_pnl['userlog_pnl']
         I_pnl.log_name.SetLabel(usrlog)
-        I_pnl.fill_log_display_sizer(usrlog)
+        I_pnl.log_data.load_into_sizer(usrlog)
         I_pnl.Layout()
 
     def refresh_list_click(self, e):
@@ -55,7 +60,22 @@ class ctrl_pnl(wx.Panel):
 
 
     def new_log_click(self, e):
-        print("-- new log click, does nothing.")
+        I_pnl = self.parent.dict_I_pnl['userlog_pnl']
+        print("-- new log click, just testing.")
+        I_pnl.log_data.log_field_dict = {'new test':['text',"lol"]}
+        I_pnl.log_data.fill_sizer_from_dict()
+        I_pnl.log_name.SetLabel("userlog_newlog.txt")
+
+    def save_log_click(self, e):
+        print("-- save log click, does nothing")
+        I_pnl = self.parent.dict_I_pnl['userlog_pnl']
+        log_name = I_pnl.log_name.GetLabel()
+        for ctrl in I_pnl.log_data.log_field_ctrls:
+            if len(ctrl) > 1:
+                field_name = ctrl[0].GetLabel()
+                field_type = I_pnl.log_data.log_field_dict[field_name][0]
+                field_val = ctrl[1].GetValue()
+                print(field_name, field_type, field_val)
 
 
 class info_pnl(scrolled.ScrolledPanel):
@@ -133,15 +153,14 @@ class info_pnl(scrolled.ScrolledPanel):
 
         return log_display_sizer
 
-    def fill_log_display_sizer(self, log_name):
-        self.log_data.fill_sizer(log_name)
-
-
     def add_field_click(self, e):
         print("Sorry only silly new fields for you :P")
-        self.log_data.add_new_field('test', 'text')
-        self.log_data.add_new_field('test int', 'num')
-        self.log_data.add_new_field('test date', 'date')
+        self.log_data.log_field_dict['test A'] = ['text',""]
+        self.log_data.log_field_dict['test N'] = ['num',""]
+        self.log_data.log_field_dict['test D'] = ['date',""]
+        self.log_data.add_new_field('test A', 'text')
+        self.log_data.add_new_field('test N', 'num')
+        self.log_data.add_new_field('test D', 'date')
 
     def edit_field_click(self, e):
         print("Not editing a field that would be tiresome")
@@ -152,34 +171,53 @@ class info_pnl(scrolled.ScrolledPanel):
     class LogData():
         def __init__(self, parent):
             self.parent = parent
-            self.log_field_list = []
+            self.log_field_dict = {}
+            self.log_field_ctrls = []
             self.log_info_sizer = wx.BoxSizer(wx.VERTICAL)
             #blank_l = wx.StaticText(self,  label='--no log loaded--')
             #self.log_display_sizer.Add(display_title_l, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
 
-        def fill_sizer(self, log_name):
+        def read_log(self, log_name):
+            # currently just returns text, doens't make dict
+            log_path = self.parent.parent.shared_data.remote_pigrow_path + "logs/" + log_name
+            out, error = self.parent.parent.link_pnl.run_on_pi("cat " + log_path)
+            return out.strip()
+
+        def load_into_sizer(self, log_name):
+            #currently just reads the log as text and displays it
             log_text = self.read_log(log_name)
             self.log_info_sizer.Clear(delete_windows=True)
             test_l = wx.StaticText(self.parent,  label=log_text)
 
             self.log_info_sizer.Add(test_l, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
-
             self.parent.Layout()
 
-        def read_log(self, log_name):
-            log_path = self.parent.parent.shared_data.remote_pigrow_path + "logs/" + log_name
-            out, error = self.parent.parent.link_pnl.run_on_pi("cat " + log_path)
-            return out.strip()
+        ## create controls for log items
+        def fill_sizer_from_dict(self):
+            # clear all the existing log controls
+            for item in self.log_field_ctrls:
+                for ctrl in item:
+                    ctrl.Destroy()
+            self.log_field_ctrls = []
+            self.parent.Layout()
 
-        def add_new_field(self, label, field_type):
-            field_types = {'text': self.field_text_box(label, ""),
-                           'num':self.field_int_value(label, ""),
-                           'date':self.field_date_picker(label, "")}
+            # create new controls for everything in log_field_dict
+            for field_name, (field_type, value) in self.log_field_dict.items():
+                print("adding", field_name, field_type, value)
+                self.add_new_field(field_name, field_type, value)
+
+
+        def add_new_field(self, label, field_type, value=""):
+            field_types = {'text': self.field_text_box,
+                           'num':self.field_int_value,
+                           'date':self.field_date_picker}
+
             if field_type in field_types:
-                made_sizer = field_types[field_type]
+                made_sizer = field_types[field_type](label, value)
                 self.log_info_sizer.Add(made_sizer, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
                 self.parent.Layout()
-
+            else:
+                print (f"Field type {field_type} not recognised.")
 
 
         def field_text_box(self, label, value):
@@ -188,6 +226,7 @@ class info_pnl(scrolled.ScrolledPanel):
             field_sizer = wx.BoxSizer(wx.HORIZONTAL)
             field_sizer.Add(text_label, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
             field_sizer.Add(text_ctrl, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
+            self.log_field_ctrls.append([text_label,text_ctrl])
             return field_sizer
 
         def field_int_value(self, label, value):
@@ -196,6 +235,7 @@ class info_pnl(scrolled.ScrolledPanel):
             field_sizer = wx.BoxSizer(wx.HORIZONTAL)
             field_sizer.Add(int_label, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
             field_sizer.Add(int_ctrl, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
+            self.log_field_ctrls.append([int_label,int_ctrl])
             return field_sizer
 
         def field_date_picker(self, label, value):
@@ -204,4 +244,5 @@ class info_pnl(scrolled.ScrolledPanel):
             field_sizer = wx.BoxSizer(wx.HORIZONTAL)
             field_sizer.Add(date_label, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
             #field_sizer.Add(date_ctrl, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
+            self.log_field_ctrls.append([date_label])
             return field_sizer

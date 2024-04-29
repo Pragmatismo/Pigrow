@@ -1,5 +1,6 @@
 import os
 import wx
+import re
 import wx.lib.scrolledpanel as scrolled
 import image_combine
 import shutil
@@ -73,9 +74,11 @@ class ctrl_pnl(scrolled.ScrolledPanel):
         combine_opts = image_combine.config.combine_styles
         self.set_style_cb = wx.ComboBox(self, choices = combine_opts, value=combine_opts[0], size=(265, 30))
 
-        # record timelapse button
+        # record timelapse buttons
         quick_timelapse_btn = wx.Button(self, label='Quick Timelapse')
         quick_timelapse_btn.Bind(wx.EVT_BUTTON, self.quick_timelapse_click)
+        long_timelapse_btn = wx.Button(self, label='Long Timelapse')
+        long_timelapse_btn.Bind(wx.EVT_BUTTON, self.long_timelapse_click)
 
         # Sizers
         load_save_btn_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -133,6 +136,7 @@ class ctrl_pnl(scrolled.ScrolledPanel):
         main_sizer.Add(anal_sizer, 0, wx.ALL, 0)
         main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 10)
         main_sizer.Add(quick_timelapse_btn, 0, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 5)
+        main_sizer.Add(long_timelapse_btn, 0, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 5)
         self.SetAutoLayout(1)
         self.SetupScrolling()
         self.SetSizer(main_sizer)
@@ -457,12 +461,19 @@ class ctrl_pnl(scrolled.ScrolledPanel):
         self.parent.shared_data.camcomf_compare_image = compare_path
 
     # Quick Timelapse
+    def long_timelapse_click(self, e):
+        self.longtl_dbox = longtl_dialog(self, self.parent)
+        self.longtl_dbox.ShowModal()
+        if self.longtl_dbox:
+            if not self.longtl_dbox.IsBeingDeleted():
+                self.longtl_dbox.Destroy()
+
     def quick_timelapse_click(self, e):
-        self.style_dbox = quicktl_dialog(self, self.parent)
-        self.style_dbox.ShowModal()
-        if self.style_dbox:
-            if not self.style_dbox.IsBeingDeleted():
-                self.style_dbox.Destroy()
+        self.quicktl_dbox = quicktl_dialog(self, self.parent)
+        self.quicktl_dbox.ShowModal()
+        if self.quicktl_dbox:
+            if not self.quicktl_dbox.IsBeingDeleted():
+                self.quicktl_dbox.Destroy()
 
 
 class info_pnl(scrolled.ScrolledPanel):
@@ -736,6 +747,8 @@ class quicktl_dialog(wx.Dialog):
         out_folder = self.parent.parent.shared_data.remote_pigrow_path + "caps/"
         self.outfolder_textctrl.SetValue(out_folder)
         outfolder_button = wx.Button(control_panel, label="...")
+        outfolder_button.Bind(wx.EVT_BUTTON, self.get_folder)
+
         outfolder_sizer = wx.BoxSizer(wx.HORIZONTAL)
         outfolder_sizer.Add(outfolder_label, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 5)
         outfolder_sizer.Add(self.outfolder_textctrl, 1, wx.ALL|wx.EXPAND, 5)
@@ -776,6 +789,12 @@ class quicktl_dialog(wx.Dialog):
 
         control_panel.SetSizer(controls_sizer)
         return control_panel
+
+    def get_folder(self, e):
+        self.parent.parent.link_pnl.select_files_on_pi(single_folder=True)
+        selected_folders = self.parent.parent.link_pnl.selected_folders
+        self.outfolder_textctrl.SetValue(selected_folders[0])
+        self.Layout()
 
     def set_camtool(self):
         currently_supported = ["fswebcam"]
@@ -838,4 +857,297 @@ class quicktl_dialog(wx.Dialog):
 
     def OnClose(self, e):
         self.pipe_inst.close_pipe()
+        self.Destroy()
+
+
+class longtl_dialog(wx.Dialog):
+    def __init__(self, parent, *args, **kw):
+        super(longtl_dialog, self).__init__(*args, **kw)
+        self.parent = parent
+        self.link_pnl = self.parent.parent.link_pnl
+        self.cron_update_required = False
+        found = self.set_camconf_file()
+        if not found:
+            return None
+        supported = self.find_job()
+        if not supported:
+            return None
+        self.InitUI()
+        self.SetSize((700, 450))
+        self.SetTitle("Long Timelapse Recorder")
+        self.Bind(wx.EVT_CLOSE, self.OnClose)
+
+    def set_camconf_file(self):
+        I_pnl = self.parent.parent.dict_I_pnl['camera_pnl']
+        camconf_path = I_pnl.camconf_path_tc.GetValue()
+        if camconf_path == "":
+            print("ERROR no cam conf ")
+            wx.MessageBox("No camera configuration file has been selected.", "Error - no camconf", wx.OK | wx.ICON_WARNING)
+            self.OnClose(None)
+            return False
+        else:
+            filename = os.path.basename(camconf_path)
+            self.camconf = filename
+            return True
+
+    def find_job(self):
+        # capture tool
+        cap_tool = self.parent.captool_cb.GetValue()
+        tool = {'uvccapture':'camcap',
+                'fswebcam':'camcap',
+                'picamcap':'picamcap',
+                'libcamera':'libcam_cap'}
+        if cap_tool in tool:
+            self.cap_tool = tool[cap_tool]
+        else:
+            print("SORRY capture tool not supported")
+            wx.MessageBox(f"Capture tool {cap_tool} is not supported", "Error - Unsupported Tool", wx.OK | wx.ICON_WARNING)
+            self.OnClose(None)
+            return False
+
+        self.cap_tool_path = self.parent.parent.shared_data.remote_pigrow_path
+        self.cap_tool_path += "scripts/cron/" + self.cap_tool + '.py'
+        self.check_cron(self.cap_tool_path)
+        tool_list = ['camcap', 'picamcap', 'libcam_cap']
+        tool_list.remove(self.cap_tool)
+        self.check_other_capstools(tool_list)
+        return True
+
+    def check_other_capstools(self, tool_list):
+        jobs_to_remove = []
+        cron_I = self.parent.parent.dict_I_pnl['cron_pnl']
+        for tool in tool_list:
+            tool_path = self.parent.parent.shared_data.remote_pigrow_path
+            tool_path += "scripts/cron/" + tool + '.py'
+            jobs_list = cron_I.list_repeat_by_key(tool_path, "set", self.camconf)
+            job_count = len(jobs_list)
+            if job_count > 0:
+                print("Found", job_count, "cron jobs for for", tool)
+                for job in jobs_list:
+                    jobs_to_remove.append(job)
+
+        job_count = len(jobs_to_remove)
+        if job_count > 0:
+            msg = f"Config file {self.camconf} has {job_count} other capture scripts using it."
+            msg += " Would you like to remove these jobs?\n"
+            for job in jobs_to_remove:
+                msg += "\nenabled: " + job[1] + " " + job[2] + " " + job[3] + " " + job[4]
+            dlg = wx.MessageDialog(None, msg, "Question - Duplicate cron jobs", wx.YES_NO | wx.ICON_QUESTION)
+            result = dlg.ShowModal()
+            dlg.Destroy()
+            if result == wx.ID_YES:
+                for job in jobs_to_remove:
+                    self.clear_job_from_cron(job[0])
+
+    def check_cron(self, script):
+        cron_I = self.parent.parent.dict_I_pnl['cron_pnl']
+        # check for cron jobs
+        cron_jobs_list = cron_I.list_repeat_by_key(script, "set", self.camconf)
+        job_count = len(cron_jobs_list)
+        if job_count == 0:
+            self.cron_index = -1
+        elif job_count == 1:
+            self.cron_index = cron_jobs_list[0][0]
+        elif job_count > 1:
+            #print("More than one cron job using the same settings file.")
+            msg = f"Config file {self.camconf} has {job_count} capture scripts using it."
+            msg += " Would you like to remove duplicates?"
+            dlg = wx.MessageDialog(None, msg, "Question - Duplicate cron jobs", wx.YES_NO | wx.ICON_QUESTION)
+            result = dlg.ShowModal()
+            dlg.Destroy()
+            if result == wx.ID_YES:
+                for job in cron_jobs_list[1:]:
+                    self.clear_job_from_cron(job[0])
+            self.cron_index = cron_jobs_list[0][0]
+
+        # set info for controls
+        if self.cron_index == -1:
+            print("Cron Job not found for " + self.camconf)
+            self.found = False
+            self.freq_num, self.freq_text = "5", "min"
+            self.enabled = True
+            self.args = ""
+        else:
+            self.found = True
+            self.enabled = cron_I.repeat_cron.GetItem(self.cron_index, 1).GetText()
+            self.args = cron_I.repeat_cron.GetItem(self.cron_index, 4).GetText()
+            self.cron_time_string = cron_I.repeat_cron.GetItem(self.cron_index, 2).GetText()
+            self.freq_num, self.freq_text, cron_stars = cron_I.repeat_cron.parse_cron_string(self.cron_time_string)
+            print("Found at;", self.cron_index, " enabled=", self.enabled, "repeating", self.freq_num, self.freq_text)
+
+    def clear_job_from_cron(self, r_index):
+        cron_I = self.parent.parent.dict_I_pnl['cron_pnl']
+        self.cron_update_required = True
+        cron_I.repeat_cron.SetItem(r_index, 0, "deleted")
+        print(f"Set repeat job {r_index} to deleted, not writen cron yet.")
+
+    def InitUI(self):
+        # Header Labels
+        self.SetFont(self.parent.parent.shared_data.title_font)
+        title = wx.StaticText(self,  label='Record Long Timelapse')
+        self.SetFont(self.parent.parent.shared_data.sub_title_font)
+        sub_msg = "This tool helps set the cronjob for the current config file"
+        sub_label = wx.StaticText(self,  label=sub_msg)
+
+        # Buttons
+        self.go_btn = wx.Button(self, label='Ok')
+        self.go_btn.Bind(wx.EVT_BUTTON, self.go_click)
+        self.cancel_btn = wx.Button(self, label='Cancel')
+        self.cancel_btn.Bind(wx.EVT_BUTTON, self.OnClose)
+        buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        buttons_sizer.Add(self.go_btn, 0,  wx.RIGHT, 25)
+        buttons_sizer.AddStretchSpacer(1)
+        buttons_sizer.Add(self.cancel_btn, 0,  wx.LEFT, 25)
+
+        # Control and Info display
+        self.info_sizer = self.make_info_sizer()
+        self.ctrl_sizer = self.make_control_sizer()
+
+        # Main sizer
+        self.main_sizer = wx.BoxSizer(wx.VERTICAL)
+        self.main_sizer.Add(title, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
+        self.main_sizer.Add(sub_label, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
+        self.main_sizer.AddStretchSpacer(1)
+        self.main_sizer.Add(self.info_sizer, 1, wx.ALL|wx.EXPAND, 5)
+        self.main_sizer.Add(self.ctrl_sizer, 1, wx.ALL|wx.EXPAND, 5)
+        self.main_sizer.AddStretchSpacer(1)
+        self.main_sizer.Add(buttons_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
+        self.SetSizer(self.main_sizer)
+
+    def make_info_sizer(self):
+        # Found text
+        if self.found == True:
+            found_txt = "Found repeating cron job using this config file"
+        else:
+            found_txt = "No cron job using this config file"
+        self.found_l = wx.StaticText(self, label=found_txt)
+
+        # capture tool
+        cap_txt = "Using capture tool " + self.cap_tool
+        self.cap_tool_l = wx.StaticText(self, label=cap_txt)
+
+        info_sizer = wx.BoxSizer(wx.VERTICAL)
+        info_sizer.Add(self.found_l, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
+        info_sizer.Add(self.cap_tool_l, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
+        return info_sizer
+
+    def make_control_sizer(self):
+
+        # caps folder
+        caps_folder_label = wx.StaticText(self, label="Caps Folder:")
+        init_caps = self.set_init_caps_folder()
+        self.caps_folder_tc = wx.TextCtrl(self, value=init_caps)
+        caps_folder_button = wx.Button(self, label="...")
+        caps_folder_button.Bind(wx.EVT_BUTTON, self.select_caps_folder)
+        caps_folder_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        caps_folder_sizer.Add(caps_folder_label, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 5)
+        caps_folder_sizer.Add(self.caps_folder_tc, 1, wx.ALL|wx.EXPAND, 5)
+        caps_folder_sizer.Add(caps_folder_button, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 5)
+
+        # enable / disable
+        self.job_enabled_cb = wx.CheckBox(self, label="Enabled")
+        if str(self.enabled) == "True":
+            self.job_enabled_cb.SetValue(True)
+        else:
+            self.job_enabled_cb.SetValue(False)
+
+        # Timing
+        timing_label = wx.StaticText(self, label="Repeat every;")
+        self.time_spin = wx.SpinCtrl(self, value=self.freq_num, min=1, max=300)
+        time_txt_choices = ['min', 'hour', 'day']
+        self.time_text_cb = wx.ComboBox(self, choices=time_txt_choices, style=wx.CB_READONLY)
+        self.time_text_cb.SetValue(self.freq_text)
+        timing_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        timing_sizer.Add(timing_label, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 5)
+        timing_sizer.Add(self.time_spin, 1, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 5)
+        timing_sizer.Add(self.time_text_cb, 1, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 5)
+
+        ctrl_sizer = wx.BoxSizer(wx.VERTICAL)
+        ctrl_sizer.Add(caps_folder_sizer, 0, wx.ALL|wx.EXPAND, 5)
+        ctrl_sizer.Add(self.job_enabled_cb, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
+        ctrl_sizer.Add(timing_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
+        return ctrl_sizer
+
+    def set_init_caps_folder(self):
+        default_caps = self.parent.parent.shared_data.remote_pigrow_path + "caps"
+
+        arg_dict = self.split_arguments(self.args)
+        if "caps" in arg_dict:
+            return arg_dict["caps"]
+        else:
+            return default_caps
+
+    def split_arguments(self, argument_string):
+        # Split the string based on spaces outside quotes
+        args = re.findall(r'[^"\s]+|"[^"]*"', argument_string)
+
+        # Initialize dictionary to store key-value pairs
+        arg_dict = {}
+
+        # Process each argument
+        for arg in args:
+            # Split the argument into key and value
+            key_value = arg.split('=')
+            if len(key_value) == 2:
+                key = key_value[0].strip()
+                # Remove quotes from the value if present
+                value = key_value[1].strip('"')
+                arg_dict[key] = value
+
+        return arg_dict
+
+    def select_caps_folder(self, e):
+        self.parent.parent.link_pnl.select_files_on_pi(single_folder=True)
+        selected_folders = self.parent.parent.link_pnl.selected_folders
+        self.caps_folder_tc.SetValue(selected_folders[0])
+        self.Layout()
+
+
+    def go_click(self, e):
+        cron_I = self.parent.parent.dict_I_pnl['cron_pnl']
+        cron_C = self.parent.parent.dict_C_pnl['cron_pnl']
+        # create values for cron
+        enabled     = str(self.job_enabled_cb.GetValue()).strip()
+
+        rep_num = self.time_spin.GetValue()
+        rep_txt = self.time_text_cb.GetValue()
+        every  = cron_C.make_repeating_cron_timestring(rep_txt, rep_num)
+
+        task        = self.cap_tool_path
+
+        outfolder   = 'caps=' + self.caps_folder_tc.GetValue()
+        conf        = 'set='  + self.camconf
+        extra_args  = conf + " " + outfolder
+
+        #print("Index", self.cron_index)
+        #print (enabled, every, task, extra_args)
+        # if creating new job
+        if self.found == False:
+            cron_C.add_to_repeat_list(cron_I.repeat_cron, 'new', enabled, every, task, extra_args)
+            cron_C.update_cron_click("e", no_starting=True)
+            return None
+
+        # editing existing job
+        #check if update needed
+        if self.enabled == enabled:
+            if self.cron_time_string.strip() == every:
+                if self.found == True:
+                    if self.args.strip() == extra_args:
+                        if not self.cron_update_required == True:
+                            #print("no change needed")
+                            self.Destroy()
+                            return None
+
+        # edit cron tab's table and update to pi
+        #print("updating job")
+        cron_I.repeat_cron.SetItem(0, 1, enabled)
+        cron_I.repeat_cron.SetItem(0, 2, every)
+        cron_I.repeat_cron.SetItem(0, 3, task)
+        cron_I.repeat_cron.SetItem(0, 4, extra_args)
+        cron_C.update_cron_click("e", no_starting=True)
+
+        self.Destroy()
+
+
+    def OnClose(self, e):
         self.Destroy()

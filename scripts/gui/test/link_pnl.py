@@ -382,7 +382,7 @@ class link_pnl(wx.Panel):
                         self.files_to_download.append([fold + "/" + item, local_item])
         # open dialogue box which displays from and to info then closes when done or cancelled
         self.files_to_download = self.files_to_download + extra_files
-        print ("files to download", self.files_to_download)
+        #print ("files to download", self.files_to_download)
         if not len(self.files_to_download) == 0:
             print("Downlaoding ", len(self.files_to_download), " files")
             file_dbox = files_download_dialog(self, self.parent)
@@ -394,7 +394,7 @@ class link_pnl(wx.Panel):
         ssh_tran.close()
 
     def select_files_on_pi(self, single_folder=False, create_file=False, default_path=""):
-        print("selecting files on pi")
+        print("Selecting files on pi")
         self.single_folder = single_folder
         self.create_file   = create_file
         self.default_path  = default_path
@@ -449,7 +449,7 @@ class link_pnl(wx.Panel):
 
         def send(self, command):
             print("- Sending through pipe:", command)
-            if not command[:-1] == "\n":
+            if not command[-1:] == "\n":
                 command += "\n"
             if self.connected and self.channel.active:
                 self.channel.send(command)
@@ -618,9 +618,13 @@ class select_files_on_pi_dialog(wx.Dialog):
             self.Layout()
             self.fill_filelist()
         else:
-            print("Not doing anthing with files when double clicked on, lol")
-            file_selected = current_folder + name
-            print("doubeclick selected - ", file_selected)
+            if self.single_folder == True:
+                self.parent.selected_folders.append(current_folder)
+                self.Destroy()
+            else:
+                print("double click only enabled in single_folder mode")
+                file_selected = current_folder + name
+                #print("doubeclick selected - ", file_selected)
 
     def select_item_click(self, e):
         local_base = self.parent.shared_data.frompi_path
@@ -637,9 +641,10 @@ class select_files_on_pi_dialog(wx.Dialog):
             s_count = self.file_list.GetSelectedItemCount()
             s_folder_list = []
             if s_count == 1:
-                print("one thing")
+                pass
+                #print("one thing")
             elif s_count == 0:
-                print("no file selected, using folder")
+                #print("no file selected, using folder")
                 s_folder_list.append(current_folder)
 
             s_file_list = []
@@ -679,6 +684,7 @@ class files_download_dialog(wx.Dialog):
     #Dialog box for downloding files from pi to local storage folder
     def __init__(self, parent, *args, **kw):
         self.parent = parent
+        self.counter = 0
         super(files_download_dialog, self).__init__(*args, **kw)
         self.InitUI()
         self.Bind(EVT_FILE_DOWNLOAD, self.handler)
@@ -693,14 +699,17 @@ class files_download_dialog(wx.Dialog):
     def InitUI(self):
         #draw the pannel
         label = wx.StaticText(self,  label='Downloading files from Pigrow;')
-        self.current_file_txt = wx.StaticText(self,  label='from: ')
-        self.current_dest_txt = wx.StaticText(self,  label='  to: ')
+        self.dl_txt = " of " + str(len(self.parent.files_to_download))
+        self.download_counter = wx.StaticText(self, label="0" + self.dl_txt)
+        self.current_file_txt = wx.StaticText(self, label='from: ')
+        self.current_dest_txt = wx.StaticText(self, label='  to: ')
         self.cancel_btn = wx.Button(self, label='Cancel')
         self.cancel_btn.Bind(wx.EVT_BUTTON, self.OnClose)
 
         main_sizer = wx.BoxSizer(wx.VERTICAL)
         main_sizer.Add(label, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
         main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(self.download_counter, 0, wx.LEFT|wx.ALIGN_CENTER_HORIZONTAL, 5)
         main_sizer.Add(self.current_file_txt, 0, wx.LEFT|wx.EXPAND, 25)
         main_sizer.Add(self.current_dest_txt, 0, wx.LEFT|wx.EXPAND, 25)
         main_sizer.AddStretchSpacer(1)
@@ -712,6 +721,8 @@ class files_download_dialog(wx.Dialog):
             self.Destroy()
         self.current_file_txt.SetLabel("from; " + evt.from_p)
         self.current_dest_txt.SetLabel("  to; " + evt.to_p)
+        self.counter += 1
+        self.download_counter.SetLabel(str(self.counter) + self.dl_txt)
 
     def OnClose(self, e):
         self.abortEvent.set()
