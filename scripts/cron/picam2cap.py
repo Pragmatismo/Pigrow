@@ -16,10 +16,8 @@ user_filename = None
 
 def display_picam_settings(camera):
     #print ("  Picamera Settings")
-    #print(str(camera.camera_controls))
     for name, (min_val, max_val, current_val) in camera.camera_controls.items():
         print(name, "=", min_val, "|", max_val, "|", current_val)
-
 
 for argu in sys.argv[1:]:
     if argu == '-h' or argu == '--help':
@@ -75,32 +73,37 @@ def load_picam_set(setloc):
     return picam_dic
 
 def config_cam(camera):
-    print("This test version of picam2cap currently only uses the resoluton setting.")
-
-
     picam_dic = load_picam_set(setloc=settings_file)
     print("picam_dic;", picam_dic, " ----")
     capture_config = camera.create_still_configuration()
-    print("capture_config;", capture_config, " ----")
+    print("init still capture_config;", capture_config, " ----")
 
-    if "resolution" in picam_dic:
-        x_dim, y_dim = picam_dic["resolution"].split("x")
+    # set image res for camera's main stream
+    if "Resolution" in picam_dic:
+        x_dim, y_dim = picam_dic["Resolution"].split("x")
         capture_config['main']['size'] = (int(x_dim), int(y_dim))
 
         camera.align_configuration(capture_config)
-        picam_dic.pop("resolution", None)
 
-
-
+    # configure camera (this does not apply controls)
     camera.configure(capture_config)
     print("capture_config (post);", capture_config, " ----")
+
+    # apply all settings still in picam_dic
+    print("This version of picam2cap only works with float controls atm")
+    for item in picam_dic.keys():
+        if item in camera.camera_controls:
+            try:
+                camera.set_controls({item:float(picam_dic[item])})
+            except:
+                print("Unable to set control;", item)
+
 
 def take_picam2(camera, caps_path):
     '''
      Take and save photo
     '''
     try:
-
         # set save path
         if user_filename == None:
             #get current time and set filename
@@ -112,8 +115,9 @@ def take_picam2(camera, caps_path):
 
         # take photo
         metadata = camera.capture_file(save_filename)
-        #metadata = picam2.capture_metadata()
-        print(metadata)
+        print("Captured Image Metadata;")
+        for item in metadata:
+            print(item, "=", metadata[item])
 
         return save_filename
     except:
@@ -161,7 +165,7 @@ def check_disk_percentage(caps_path):
 
 if __name__ == '__main__':
     sys.path.append(homedir + '/Pigrow/scripts/')
-    script = 'picam2cap.py'
+    #script = 'picam2cap.py'
     #import pigrow_defs
     caps_path = set_caps_path(caps_path)
     check_disk_percentage(caps_path)
@@ -170,8 +174,6 @@ if __name__ == '__main__':
     config_cam(camera)
 
     camera.start(show_preview=False)
-
-    display_picam_settings(camera)
 
     filename = take_picam2(camera, caps_path)
     print("Saved image to:" + filename)
