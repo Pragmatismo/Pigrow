@@ -90,13 +90,25 @@ def config_cam(camera):
     print("capture_config (post);", capture_config, " ----")
 
     # apply all settings still in picam_dic
+    requires_float = ["Brightness",
+                      "Contrast",
+                      "DigitalGain",
+                      "ExposureValue",
+                      "Saturation",
+                      "Sharpness"]
+    require_odd = ["AfWindows",
+                   "ScalerCrop",
+                   "SensorBlackLevels"]
+
+
     print("This version of picam2cap only works with float controls atm")
     for item in picam_dic.keys():
         if item in camera.camera_controls:
-            try:
-                camera.set_controls({item:float(picam_dic[item])})
-            except:
-                print("Unable to set control;", item)
+            if not item in require_odd:
+                if item in requires_float:
+                    camera.set_controls({item:float(picam_dic[item])})
+                else:
+                    camera.set_controls({item:int(picam_dic[item])})
 
 
 def take_picam2(camera, caps_path):
