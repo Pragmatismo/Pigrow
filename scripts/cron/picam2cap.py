@@ -16,10 +16,8 @@ user_filename = None
 
 def display_picam_settings(camera):
     #print ("  Picamera Settings")
-    #print(str(camera.camera_controls))
     for name, (min_val, max_val, current_val) in camera.camera_controls.items():
         print(name, "=", min_val, "|", max_val, "|", current_val)
-
 
 for argu in sys.argv[1:]:
     if argu == '-h' or argu == '--help':
@@ -66,7 +64,7 @@ for argu in sys.argv[1:]:
         except:
             print("Didn't undertand " + str(argu))
 
-def load_picam_set(setloc= homedir + "/Pigrow/config/picam_settings.txt"):
+def load_picam_set(setloc):
     picam_dic = {}
     with open(setloc, "r") as f:
         for line in f:
@@ -74,15 +72,38 @@ def load_picam_set(setloc= homedir + "/Pigrow/config/picam_settings.txt"):
             picam_dic[s_item[0]]=s_item[1].rstrip('\n')
     return picam_dic
 
-def take_picam2(camera, picam_dic, caps_path):
+def config_cam(camera):
+    picam_dic = load_picam_set(setloc=settings_file)
+    print("picam_dic;", picam_dic, " ----")
+    capture_config = camera.create_still_configuration()
+    print("init still capture_config;", capture_config, " ----")
+
+    # set image res for camera's main stream
+    if "Resolution" in picam_dic:
+        x_dim, y_dim = picam_dic["Resolution"].split("x")
+        capture_config['main']['size'] = (int(x_dim), int(y_dim))
+
+        camera.align_configuration(capture_config)
+
+    # configure camera (this does not apply controls)
+    camera.configure(capture_config)
+    print("capture_config (post);", capture_config, " ----")
+
+    # apply all settings still in picam_dic
+    print("This version of picam2cap only works with float controls atm")
+    for item in picam_dic.keys():
+        if item in camera.camera_controls:
+            try:
+                camera.set_controls({item:float(picam_dic[item])})
+            except:
+                print("Unable to set control;", item)
+
+
+def take_picam2(camera, caps_path):
     '''
      Take and save photo
     '''
     try:
-        # apply settings
-        print("This test version of picam2cap does not use settings")
-
-
         # set save path
         if user_filename == None:
             #get current time and set filename
@@ -94,8 +115,9 @@ def take_picam2(camera, picam_dic, caps_path):
 
         # take photo
         metadata = camera.capture_file(save_filename)
-        #metadata = picam2.capture_metadata()
-        print(metadata)
+        print("Captured Image Metadata;")
+        for item in metadata:
+            print(item, "=", metadata[item])
 
         return save_filename
     except:
@@ -143,18 +165,16 @@ def check_disk_percentage(caps_path):
 
 if __name__ == '__main__':
     sys.path.append(homedir + '/Pigrow/scripts/')
-    script = 'picam2cap.py'
+    #script = 'picam2cap.py'
     #import pigrow_defs
     caps_path = set_caps_path(caps_path)
     check_disk_percentage(caps_path)
-    picam_dic = load_picam_set(setloc=settings_file)
 
     camera = Picamera2()
+    config_cam(camera)
+
     camera.start(show_preview=False)
-    capture_config = camera.create_still_configuration()
 
-    display_picam_settings(camera)
-
-    filename = take_picam2(camera, picam_dic, caps_path)
+    filename = take_picam2(camera, caps_path)
     print("Saved image to:" + filename)
     camera.close()
