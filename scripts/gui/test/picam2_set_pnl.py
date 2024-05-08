@@ -24,8 +24,93 @@ class picam2_sets_pnl(wx.Panel):
         print("Getting settings from Raspberry Pi")
         self.refresh_settings_sizer()
 
+    def make_control_dict(self):
+        control_dict = {"AeConstraintMode":[["Normal",
+                                             "Highlight",
+                                             "Shadows",
+                                             "Custom"], 0],
+                        "AeEnable":[["True", "False"], 0],
+                        "AeExposureMode":[["Normal",
+                                           "Short",
+                                           "Long",
+                                           "Custom"], 0],
+                        "AeFlickerMode":[["FlickerOff",
+                                          "FlickerManual"], 0],
+                        "AeFlickerPeriod":[(0, 50000), 10000],
+                        "AeMeteringMode":[["CentreWeighted",
+                                           "Spot",
+                                           "Matrix",
+                                           "Custom"], 0],
+                        "AfMetering":[["Auto",
+                                       "Windows"], 0],
+                        "AfMode":[["Manual",
+                                   "Auto",
+                                   "Continuous"], 1],
+                        "AfRange":[["Normal",
+                                    "Macro",
+                                    "Full"], 2],
+                        "AfSpeed":[["Normal",
+                                    "Fast"], 0],
+                        #"AfWindows":[
+                        #"AnalogueGain":[]
+                        "AwbEnable":[["False", "True"], 1],
+                        "AwbMode":[["Auto",
+                                    "Tungsten",
+                                    "Fluorescent",
+                                    "Indoor",
+                                    "Daylight",
+                                    "Cloudy",
+                                    "Custom"], 0],
+                        "Brightness":[(-1.0, 1.0), 0.0],
+                        #"ColourCorrectionMatrix"
+                        #"ColourGains"
+                        "Contrast":[(-1.0, 1.0), 0.0],
+                        "Saturation":[(0.0, 32.0), 1.0],
+                        "Sharpness":[(0.0, 16.0), 1.0],
+                        #"ExposureTime":[]
+                        "ExposureValue":[(-8.0, 8.0), 0.0],
+                        #"FrameDurationLimits"
+                        "HdrMode":[["Off",
+                                    "SingleExposure",
+                                    "MultiExposure",
+                                    "Night",
+                                    "MultiExposureUnmerged"], 0],
+                        "LensPosition":[(0.0, 32.0), 5.0],
+                        # LENS POS SHOULD BE use BY camera_controls property
+                        "NoiseReductionMode":[["Off",
+                                               "Fast",
+                                               "HighQuality"], 0]}
+                        #"ScalerCrop":(,,,,)
+
+        return control_dict
+
+    def read_set_from_pi(self):
+
+        pigrow_path = self.parent.parent.shared_data.remote_pigrow_path
+        cmd = pigrow_path + 'scripts/cron/picam2cap.py --settings'
+        out, error = self.parent.parent.link_pnl.run_on_pi(cmd)
+        print("picam2 settings;")
+        print(out)
+        lines = out.splitlines()
+        for line in lines:
+            if "=" in line:
+                name, vals = line.split("=")
+                name = name.strip()
+                vmin, vmax, vnow = vals.split("|")
+
+                try:
+                    vnow = float(vnow)
+                    vmin = float(vmin)
+                    vmax = float(vmax)
+                    settings_dict[name] = [vnow, (vmin, vmax)]
+                except:
+                    #print("didn't work with", line)
+                    pass
+
+
     def refresh_settings_sizer(self):
-        settings_dict = {}
+        self.c_sets_sizer.Clear(delete_windows=True)
+        settings_dict = self.make_control_dict()
 
         # Get Resolution and camera sensor settings
         #camera_res_v1 = ['1920x1080', '2592x1944', '1296x972', '1296x730', '640x480']
@@ -40,32 +125,18 @@ class picam2_sets_pnl(wx.Panel):
                       '640x480 "VGA"',
                       '320x240 "QVGA"']
         #preset_res = limit_res_for_cam(preset_res)
-        settings_dict["Resolution"] = [preset_res[0], preset_res]
+        settings_dict["Resolution"] = [preset_res, preset_res[0]]
+
+
 
         # read settings
-        pigrow_path = self.parent.parent.shared_data.remote_pigrow_path
-        cmd = pigrow_path + 'scripts/cron/picam2cap.py --settings'
-        out, error = self.parent.parent.link_pnl.run_on_pi(cmd)
-        print("picam2 settings;")
-        print(out)
-        lines = out.splitlines()
-        for line in lines:
-            if "=" in line:
-                name, vals = line.split("=")
-                name = name.strip()
-                vmin, vmax, vnow = vals.split("|")
-                try:
-                    vnow = float(vnow)
-                    vmin = float(vmin)
-                    vmax = float(vmax)
-                    settings_dict[name] = [vnow, (vmin, vmax)]
-                except:
-                    print("didn't work with", line)
+        # currently not reading setting from pi
 
         # make ui elements and reference dicts
         setting_crtl_dict = {}
         setting_t_dict = {}
         for setting in settings_dict.keys():
+            print(" Making box for", setting)
             label, box, box_t = self.create_ui_element(setting, settings_dict[setting])
             if not label == None:
                 self.setting_crtl_dict[setting] = box
@@ -79,13 +150,18 @@ class picam2_sets_pnl(wx.Panel):
     def create_ui_element(self, setting, vals):
         label     = wx.StaticText(self,  label=setting)
         input_box_t = wx.StaticText(self,  label="")
-        if isinstance(vals[1], list):
-            input_box = wx.ComboBox(self, choices=vals[1], value=vals[0])
-        elif isinstance(vals[1], str):
-            input_box = wx.TextCtrl(self, value=vals[0])
-        elif isinstance(vals[1], tuple) and isinstance(vals[0], int):
-            min_val, max_val = vals[1]
-            default_val = int(vals[0])
+        if isinstance(vals[0], list):
+            input_box = wx.ComboBox(self, choices=vals[0])
+            if isinstance(vals[1], int):
+                input_box.SetSelection(vals[1])
+            else:
+                input_box.SetValue(vals[1])
+        elif isinstance(vals[0], str):
+            input_box = wx.TextCtrl(self, value=vals[1])
+
+        elif isinstance(vals[0], tuple) and isinstance(vals[1], int):
+            min_val, max_val = vals[0]
+            default_val = int(vals[1])
             #print(min_val, max_val, default_val)
             input_box_t = wx.TextCtrl(self, value=str(default_val), style=wx.TE_PROCESS_ENTER)
             input_box_t.SetLabel(setting)
@@ -93,34 +169,35 @@ class picam2_sets_pnl(wx.Panel):
             input_box = wx.Slider(self, id=wx.ID_ANY, value=default_val, minValue=int(min_val), maxValue=int(max_val))
             input_box.SetLabel(setting)
             input_box.Bind(wx.EVT_SLIDER, self.slider_move)
-        elif isinstance(vals[1], tuple) and isinstance(vals[0], float):
-            min_val, max_val = vals[1]
+        elif isinstance(vals[0], tuple) and isinstance(vals[1], float):
+            min_val, max_val = vals[0]
             step = 0.1
-            c_val = float(vals[0])
+            c_val = float(vals[1])
             #
             slider_v = int((c_val - min_val) / (max_val - min_val) * 100)
             slider_m = int((max_val - min_val) / (max_val - min_val) * 100)
 
             #
-            input_box_t = wx.SpinCtrlDouble(self, value=str(c_val), min=min_val, max=max_val, inc=step)
-            input_box_t.SetLabel(setting)
-            self.Bind(wx.EVT_SPINCTRLDOUBLE, self.onSpinCtrl, input_box_t)
-
-            input_box = wx.Slider(self, value=slider_v, minValue=0, maxValue=slider_m, style=wx.SL_HORIZONTAL | wx.SL_AUTOTICKS)
-            input_box.SetTickFreq(10)
+            input_box = wx.SpinCtrlDouble(self, value=str(c_val), min=min_val, max=max_val, inc=step)
             input_box.SetLabel(setting)
-            self.Bind(wx.EVT_SLIDER, self.onSlider, input_box)
+            self.Bind(wx.EVT_SPINCTRLDOUBLE, self.onSpinCtrl, input_box)
+
+            input_box_t = wx.Slider(self, value=slider_v, minValue=0, maxValue=slider_m, style=wx.SL_HORIZONTAL | wx.SL_AUTOTICKS)
+            input_box_t.SetTickFreq(10)
+            input_box_t.SetLabel(setting)
+            self.Bind(wx.EVT_SLIDER, self.onSlider, input_box_t)
             #
 
         else:
-            print (" Error - picam_set create_ui_element - Not set up to undertand ", type(vals[1]), " as options type")
+            print (" Error - picam2_set create_ui_element - Not set up to undertand ", type(vals[1]), " as options type")
             input_box = wx.TextCtrl(self, value="")
         return label, input_box, input_box_t
 
     def create_empty_settings_sizer(self):
         note = wx.StaticText(self,  label='Press Get Settings')
 
-        c_settings_sizer = wx.BoxSizer(wx.VERTICAL)
+        #c_settings_sizer = wx.BoxSizer(wx.VERTICAL)
+        c_settings_sizer = wx.FlexGridSizer(3, 0, 5)
         c_settings_sizer.Add(note, 0, wx.ALL|wx.EXPAND, 3)
 
         setting_crtl_dict = {}
@@ -144,7 +221,7 @@ class picam2_sets_pnl(wx.Panel):
         spinCtrl = event.GetEventObject()
         setting_name = spinCtrl.GetLabel()
         spin_val = spinCtrl.GetValue()
-        slider = self.setting_crtl_dict[setting_name]
+        slider = self.setting_t_dict[setting_name]
         minValue = spinCtrl.GetMin()
         maxValue = spinCtrl.GetMax()
         slider.SetValue(int((spin_val - minValue) / (maxValue - minValue) * 100))
@@ -153,7 +230,7 @@ class picam2_sets_pnl(wx.Panel):
         slider = event.GetEventObject()
         setting_name = slider.GetLabel()
         slider_val = slider.GetValue()
-        spinCtrl = self.setting_t_dict[setting_name]
+        spinCtrl = self.setting_crtl_dict[setting_name]
         minValue = spinCtrl.GetMin()
         maxValue = spinCtrl.GetMax()
         spinCtrl.SetValue(float(minValue + (maxValue - minValue) * slider_val / 100))
@@ -161,11 +238,25 @@ class picam2_sets_pnl(wx.Panel):
 
     # config
     def make_conf_text(self, setting_dict):
+        #print("handed settings_dict", setting_dict)
         set_for_txt_dict = {}
         for item in setting_dict.keys():
-            value = setting_dict[item].GetValue()
+            #
+            print(setting_dict[item])
+            if isinstance(setting_dict[item], wx.ComboBox):
+                index = setting_dict[item].GetSelection()
+                if index != wx.NOT_FOUND:
+                    print("Index of selected item:", index)
+                    value = index
+                else:
+                    value = ""
+                    print("No item selected.")
+            else:
+                value = setting_dict[item].GetValue()
+            #
             if not value == "":
                 set_for_txt_dict[item] = value
+                print("Adding from setting_dict get value;", item, value)
 
         # switch dict
         set_for_txt_dict = self.set_for_text(set_for_txt_dict)
@@ -175,6 +266,7 @@ class picam2_sets_pnl(wx.Panel):
             value = str(set_for_txt_dict[item]).strip()
             settings_text += item.strip() + "=" + value + "\n"
 
+        print("picam2_set returning;", settings_text)
         return settings_text
 
     def set_for_text(self, set_dict):
