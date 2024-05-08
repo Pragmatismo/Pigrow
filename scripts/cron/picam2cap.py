@@ -132,6 +132,7 @@ def take_picam2(camera, caps_path):
         print("Captured Image Metadata;")
         for item in metadata:
             print(item, "=", metadata[item])
+        print("Saving image to:", save_filename)    
 
         return save_filename
     except:
