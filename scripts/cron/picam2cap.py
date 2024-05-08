@@ -95,7 +95,9 @@ def config_cam(camera):
                       "DigitalGain",
                       "ExposureValue",
                       "Saturation",
-                      "Sharpness"]
+                      "Sharpness",
+                      "ExposureValue",
+                      "LensPosition"]
     require_odd = ["AfWindows",
                    "ScalerCrop",
                    "SensorBlackLevels"]
