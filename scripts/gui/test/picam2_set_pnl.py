@@ -75,7 +75,7 @@ class picam2_sets_pnl(wx.Panel):
                                     "MultiExposure",
                                     "Night",
                                     "MultiExposureUnmerged"], 0],
-                        "LensPosition":[(0.0, 32.0), 5],
+                        "LensPosition":[(0.0, 32.0), 5.0],
                         # LENS POS SHOULD BE use BY camera_controls property
                         "NoiseReductionMode":[["Off",
                                                "Fast",
@@ -234,7 +234,6 @@ class picam2_sets_pnl(wx.Panel):
         minValue = spinCtrl.GetMin()
         maxValue = spinCtrl.GetMax()
         spinCtrl.SetValue(float(minValue + (maxValue - minValue) * slider_val / 100))
-        print("slide", slider_val, int(minValue + (maxValue - minValue) * slider_val / 100))
 
 
     # config
@@ -242,7 +241,19 @@ class picam2_sets_pnl(wx.Panel):
         #print("handed settings_dict", setting_dict)
         set_for_txt_dict = {}
         for item in setting_dict.keys():
-            value = setting_dict[item].GetValue()
+            #
+            print(setting_dict[item])
+            if isinstance(setting_dict[item], wx.ComboBox):
+                index = setting_dict[item].GetSelection()
+                if index != wx.NOT_FOUND:
+                    print("Index of selected item:", index)
+                    value = index
+                else:
+                    value = ""
+                    print("No item selected.")
+            else:
+                value = setting_dict[item].GetValue()
+            #
             if not value == "":
                 set_for_txt_dict[item] = value
                 print("Adding from setting_dict get value;", item, value)
