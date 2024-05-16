@@ -70,6 +70,13 @@ def make_config_text():
     # set image res for camera's main stream
     if "Resolution" in picam_dic:
         x_dim, y_dim = picam_dic["Resolution"].split("x")
+        picam_dic["width"] = x_dim
+        picam_dic["height"] = y_dim
+
+    # remove script opts
+    to_remove = ["Resolution", "cap_opt", "cam_num"]
+    for item in to_remove:
+        picam_dic.pop(item, None)
 
 
     conf_text = ""
@@ -77,7 +84,7 @@ def make_config_text():
             if not picam_dic[item] == "":
                 conf_text += " --" + item + " " + picam_dic[item]
 
-    return conf_text            
+    return conf_text
 
 
 def take_rpi(caps_path):
@@ -97,8 +104,8 @@ def take_rpi(caps_path):
         # take photo
         conf_text = make_config_text()
         cam_cmd = "rpicam-still --nopreview -o " + save_filename + conf_text
-
         print("cam_cmd:", cam_cmd)
+        os.system(cam_cmd)
 
         print("Saving image to:", save_filename)
         return save_filename
