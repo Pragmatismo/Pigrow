@@ -74,7 +74,7 @@ def make_config_text():
         picam_dic["height"] = y_dim
 
     # remove script opts
-    to_remove = ["Resolution", "cap_opt", "cam_num"]
+    to_remove = ["Resolution", "cam_opt", "cam_num"]
     for item in to_remove:
         picam_dic.pop(item, None)
 
