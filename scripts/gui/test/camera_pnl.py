@@ -1,16 +1,20 @@
 import os
 import wx
 import re
+import json
 import wx.lib.scrolledpanel as scrolled
 import image_combine
 import shutil
 from picam_set_pnl import picam_sets_pnl
+from picam2_set_pnl import picam2_sets_pnl
+from rpicap_set_pnl import rpicap_sets_pnl
 from fswebcam_set_pnl import fs_sets_pnl
 from motion_set_pnl import motion_sets_pnl
 from libcam_set_pnl import libcam_sets_pnl
 import wx.lib.delayedresult as delayedresult
 
 import time
+
 
 class ctrl_pnl(scrolled.ScrolledPanel):
     def __init__( self, parent ):
@@ -29,9 +33,9 @@ class ctrl_pnl(scrolled.ScrolledPanel):
         self.list_cams_btn.Bind(wx.EVT_BUTTON, self.list_cams_click)
         cam_opts = [""]
         self.cam_cb = wx.ComboBox(self, choices = cam_opts, size=(225, 30))
-        #
+        # capture options
         self.cap_tool_l = wx.StaticText(self,  label='Capture tool;')
-        webcam_opts = ['uvccapture', 'fswebcam', 'picamcap', 'libcamera', 'motion']
+        webcam_opts = ['uvccapture', 'fswebcam', 'rpicam', 'picamcap', 'picam2cap', 'libcamera', 'motion']
         self.captool_cb = wx.ComboBox(self, choices = webcam_opts, size=(265, 30))
         self.captool_cb.Bind(wx.EVT_COMBOBOX, self.camcap_combo_go)
 
@@ -259,6 +263,10 @@ class ctrl_pnl(scrolled.ScrolledPanel):
             I_pnl.show_uvc_control()
         elif option == 'picamcap':
             I_pnl.show_picamcap_control()
+        elif option == 'picam2cap':
+            I_pnl.show_picam2cap_control()
+        elif option == 'rpicam':
+            I_pnl.show_rpicap_control()
         elif option == 'motion':
             I_pnl.show_motion_control()
         elif option == 'libcamera':
@@ -296,7 +304,7 @@ class ctrl_pnl(scrolled.ScrolledPanel):
 
     def download_and_show_picture(self, path, label, combine=False):
         I_pnl = self.parent.dict_I_pnl['camera_pnl']
-        if "errror" in path.lower():
+        if "error" in path.lower():
             msg_text = "Photo was not taken, \n\n" + path
             dbox = wx.MessageDialog(self, msg_text, "Error", wx.OK | wx.ICON_ERROR)
             dbox.ShowModal()
@@ -314,6 +322,17 @@ class ctrl_pnl(scrolled.ScrolledPanel):
                     self.local_img_paths.append(img_path)
                 else:
                     I_pnl.show_image_onscreen(img_path, label)
+            # check for associated json file
+            if not combine == True:
+                jpath = path.split(".")[0] + ".json"
+                print("looking for", jpath)
+                out, error = self.parent.link_pnl.run_on_pi("ls " + jpath)
+                print(out,error)
+                if out.strip() == jpath:
+                    print("Found json file associated with image.")
+                    local_jpath = os.path.join("temp", os.path.basename(jpath))
+                    l_jpath = self.parent.link_pnl.download_file_to_folder(jpath, local_jpath)
+                    I_pnl.show_json_onscreen(l_jpath)
 
 
     # Take image buttons
@@ -488,12 +507,14 @@ class info_pnl(scrolled.ScrolledPanel):
         self.camconf_path_tc.Bind(wx.EVT_COMBOBOX, self.camconf_select)
 
         #intiate settings pnls
-        self.picam_set_pnl = picam_sets_pnl(self)
-        self.fs_set_pnl = fs_sets_pnl(self)
+        self.picam_set_pnl  = picam_sets_pnl(self)
+        self.picam2_set_pnl = picam2_sets_pnl(self)
+        self.rpicap_set_pnl = rpicap_sets_pnl(self)
+        self.fs_set_pnl     = fs_sets_pnl(self)
         self.motion_set_pnl = motion_sets_pnl(self)
         self.libcam_set_pnl = libcam_sets_pnl(self)
 
-        self.sets_pnl = None #self.picam_set_pnl
+        self.sets_pnl = None
         cam_conf_sizer = wx.BoxSizer(wx.HORIZONTAL)
         cam_conf_sizer.Add(ccf_label, 0, wx.ALL, 5)
         cam_conf_sizer.Add(self.camconf_path_tc , 0, wx.ALL, 5)
@@ -512,6 +533,8 @@ class info_pnl(scrolled.ScrolledPanel):
         self.main_sizer = wx.BoxSizer(wx.VERTICAL)
         self.main_sizer.Add(cam_conf_sizer, 0, wx.ALL, 0)
         self.main_sizer.Add(self.picam_set_pnl , 0, wx.ALL, 5)
+        self.main_sizer.Add(self.picam2_set_pnl , 0, wx.ALL, 5)
+        self.main_sizer.Add(self.rpicap_set_pnl , 0, wx.ALL, 5)
         self.main_sizer.Add(self.fs_set_pnl , 0, wx.ALL, 5)
         self.main_sizer.Add(self.motion_set_pnl , 0, wx.ALL, 5)
         self.main_sizer.Add(self.libcam_set_pnl , 0, wx.ALL, 5)
@@ -523,6 +546,8 @@ class info_pnl(scrolled.ScrolledPanel):
         self.SetupScrolling()
         self.SetSizer(self.main_sizer)
         self.picam_set_pnl.Hide()
+        self.picam2_set_pnl.Hide()
+        self.rpicap_set_pnl.Hide()
         self.fs_set_pnl.Hide()
         self.motion_set_pnl.Hide()
         self.libcam_set_pnl.Hide()
@@ -561,6 +586,35 @@ class info_pnl(scrolled.ScrolledPanel):
         shared_data.most_recent_camconf_image = img_to_show
         self.parent.Layout()
 
+
+    def show_json_onscreen(self, jpath):
+        try:
+            with open(jpath, 'r') as file:
+                json_data = json.load(file)
+        except (FileNotFoundError, json.JSONDecodeError) as e:
+            print(f"Error loading JSON file: {e}")
+            return
+
+        # Trim lists:
+        lenlimit = 6
+        for key in json_data:
+            if isinstance(json_data[key], list):
+                if len(json_data[key]) > lenlimit:
+                    json_data[key] = json_data[key][:lenlimit - 1]
+                    json_data[key].append("...")
+
+                # Convert list to a comma-separated string, removing square brackets
+                json_data[key] = ', '.join(map(str, json_data[key]))
+
+        formatted_json = json.dumps(json_data, indent=4)
+        print(formatted_json)
+
+        json_textbox = wx.TextCtrl(self, value=formatted_json, style=wx.TE_MULTILINE | wx.TE_READONLY)
+        self.picture_sizer.Add(json_textbox, proportion=1, flag=wx.EXPAND | wx.ALL, border=10)
+
+        self.parent.Layout()
+
+
     def pic_click(self, e):
         bitmap = e.GetEventObject()
         path_label = bitmap.GetLabel()
@@ -594,6 +648,20 @@ class info_pnl(scrolled.ScrolledPanel):
         if not self.sets_pnl == None:
             self.sets_pnl.Hide()
         self.sets_pnl = self.picam_set_pnl
+        self.sets_pnl.Show()
+        self.Layout()
+
+    def show_picam2cap_control(self):
+        if not self.sets_pnl == None:
+            self.sets_pnl.Hide()
+        self.sets_pnl = self.picam2_set_pnl
+        self.sets_pnl.Show()
+        self.Layout()
+
+    def show_rpicap_control(self):
+        if not self.sets_pnl == None:
+            self.sets_pnl.Hide()
+        self.sets_pnl = self.rpicap_set_pnl
         self.sets_pnl.Show()
         self.Layout()
 
@@ -896,6 +964,7 @@ class longtl_dialog(wx.Dialog):
         tool = {'uvccapture':'camcap',
                 'fswebcam':'camcap',
                 'picamcap':'picamcap',
+                'picam2cap':'picam2',
                 'libcamera':'libcam_cap'}
         if cap_tool in tool:
             self.cap_tool = tool[cap_tool]
@@ -908,7 +977,7 @@ class longtl_dialog(wx.Dialog):
         self.cap_tool_path = self.parent.parent.shared_data.remote_pigrow_path
         self.cap_tool_path += "scripts/cron/" + self.cap_tool + '.py'
         self.check_cron(self.cap_tool_path)
-        tool_list = ['camcap', 'picamcap', 'libcam_cap']
+        tool_list = ['camcap', 'picamcap', 'picam2cap', 'libcam_cap']
         tool_list.remove(self.cap_tool)
         self.check_other_capstools(tool_list)
         return True
