@@ -176,4 +176,3 @@ if __name__ == '__main__':
     check_disk_percentage(caps_path)
 
     filename = take_rpi(caps_path)
-    print("Saved image to:" + filename)
