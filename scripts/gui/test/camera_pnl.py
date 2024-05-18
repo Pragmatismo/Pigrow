@@ -6,7 +6,7 @@ import wx.lib.scrolledpanel as scrolled
 import image_combine
 import shutil
 from picam_set_pnl import picam_sets_pnl
-from picam2_set_pnl import picam2_sets_pnl
+#from picam2_set_pnl import picam2_sets_pnl
 from rpicap_set_pnl import rpicap_sets_pnl
 from fswebcam_set_pnl import fs_sets_pnl
 from motion_set_pnl import motion_sets_pnl
@@ -508,7 +508,7 @@ class info_pnl(scrolled.ScrolledPanel):
 
         #intiate settings pnls
         self.picam_set_pnl  = picam_sets_pnl(self)
-        self.picam2_set_pnl = picam2_sets_pnl(self)
+        #self.picam2_set_pnl = picam2_sets_pnl(self)
         self.rpicap_set_pnl = rpicap_sets_pnl(self)
         self.fs_set_pnl     = fs_sets_pnl(self)
         self.motion_set_pnl = motion_sets_pnl(self)
@@ -533,7 +533,7 @@ class info_pnl(scrolled.ScrolledPanel):
         self.main_sizer = wx.BoxSizer(wx.VERTICAL)
         self.main_sizer.Add(cam_conf_sizer, 0, wx.ALL, 0)
         self.main_sizer.Add(self.picam_set_pnl , 0, wx.ALL, 5)
-        self.main_sizer.Add(self.picam2_set_pnl , 0, wx.ALL, 5)
+        #self.main_sizer.Add(self.picam2_set_pnl , 0, wx.ALL, 5)
         self.main_sizer.Add(self.rpicap_set_pnl , 0, wx.ALL, 5)
         self.main_sizer.Add(self.fs_set_pnl , 0, wx.ALL, 5)
         self.main_sizer.Add(self.motion_set_pnl , 0, wx.ALL, 5)
@@ -546,7 +546,7 @@ class info_pnl(scrolled.ScrolledPanel):
         self.SetupScrolling()
         self.SetSizer(self.main_sizer)
         self.picam_set_pnl.Hide()
-        self.picam2_set_pnl.Hide()
+        #self.picam2_set_pnl.Hide()
         self.rpicap_set_pnl.Hide()
         self.fs_set_pnl.Hide()
         self.motion_set_pnl.Hide()
@@ -651,12 +651,12 @@ class info_pnl(scrolled.ScrolledPanel):
         self.sets_pnl.Show()
         self.Layout()
 
-    def show_picam2cap_control(self):
-        if not self.sets_pnl == None:
-            self.sets_pnl.Hide()
-        self.sets_pnl = self.picam2_set_pnl
-        self.sets_pnl.Show()
-        self.Layout()
+    # def show_picam2cap_control(self):
+    #     if not self.sets_pnl == None:
+    #         self.sets_pnl.Hide()
+    #     self.sets_pnl = self.picam2_set_pnl
+    #     self.sets_pnl.Show()
+    #     self.Layout()
 
     def show_rpicap_control(self):
         if not self.sets_pnl == None:
