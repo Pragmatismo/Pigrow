@@ -12,7 +12,11 @@ user_filename = None
 
 def display_picam_settings():
     print (" Display Settings has not been coded.")
+
     # --list-cameras
+    cam_cmd = "rpicam-still --list-cameras"
+    out, error = os.system(cam_cmd)
+    print(cam_cmd, "\n", out, error)
 
 
 for argu in sys.argv[1:]:
@@ -67,7 +71,7 @@ def load_picam_set(setloc):
 def make_config_text(save_filename):
     picam_dic = load_picam_set(setloc=settings_file)
     conf_text = ""
-    print("picam_dic;", picam_dic, " ----")
+    #print("picam_dic;", picam_dic, " ----")
 
     # set image res for camera's main stream
     if "Resolution" in picam_dic:
@@ -176,4 +180,3 @@ if __name__ == '__main__':
     check_disk_percentage(caps_path)
 
     filename = take_rpi(caps_path)
-    print("Saved image to:" + filename)
