@@ -12,6 +12,7 @@ user_filename = None
 
 def display_picam_settings():
     print (" Display Settings has not been coded.")
+    # --list-cameras
 
 
 for argu in sys.argv[1:]:
@@ -63,8 +64,9 @@ def load_picam_set(setloc):
             picam_dic[s_item[0]]=s_item[1].rstrip('\n')
     return picam_dic
 
-def make_config_text():
+def make_config_text(save_filename):
     picam_dic = load_picam_set(setloc=settings_file)
+    conf_text = ""
     print("picam_dic;", picam_dic, " ----")
 
     # set image res for camera's main stream
@@ -73,13 +75,27 @@ def make_config_text():
         picam_dic["width"] = x_dim
         picam_dic["height"] = y_dim
 
+    # set metadata flag
+    # --metadata arg  Save captured image metadata to a file or "-" for stdout
+    if "metadata" in picam_dic:
+        if picam_dic["metadata"] == "each":
+            picam_dic["metadata"] = os.path.splitext(save_filename)[0] + ".json"
+        elif picam_dic["metadata"] == "off":
+            picam_dic.pop("metadata", None)
+        elif picam_dic["metadata"] == "$path":
+            picam_dic["metadata"] = homedir + '/Pigrow/logs/cap_metadata.json'
+
+    # check if raw is set
+    if "raw" in picam_dic:
+        if picam_dic["raw"] == "True":
+            conf_text += " --raw"
+
     # remove script opts
-    to_remove = ["Resolution", "cam_opt", "cam_num"]
+    to_remove = ["Resolution", "cam_opt", "cam_num", "raw"]
     for item in to_remove:
         picam_dic.pop(item, None)
 
 
-    conf_text = ""
     for item in picam_dic.keys():
             if not picam_dic[item] == "":
                 conf_text += " --" + item + " " + picam_dic[item]
@@ -102,7 +118,7 @@ def take_rpi(caps_path):
             save_filename = user_filename
 
         # take photo
-        conf_text = make_config_text()
+        conf_text = make_config_text(save_filename)
         cam_cmd = "rpicam-still --nopreview -o " + save_filename + conf_text
         print("cam_cmd:", cam_cmd)
         os.system(cam_cmd)
