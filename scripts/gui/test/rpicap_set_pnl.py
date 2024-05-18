@@ -10,27 +10,23 @@ class rpicap_sets_pnl(wx.Panel):
         label = wx.StaticText(self,  label='Rpi cam Settings')
         label.SetFont(shared_data.button_font)
 
-        self.getset_btn = wx.Button(self, label='Get Settings')
-        self.getset_btn.Bind(wx.EVT_BUTTON, self.getset_click)
+        #self.getset_btn = wx.Button(self, label='Get Settings')
+        #self.getset_btn.Bind(wx.EVT_BUTTON, self.getset_click)
         self.c_sets_sizer, self.setting_crtl_dict, self.setting_t_dict = self.create_empty_settings_sizer()
         self.refresh_settings_sizer()
 
         main_sizer = wx.BoxSizer(wx.VERTICAL)
         main_sizer.Add(label, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 7)
-        main_sizer.Add(self.getset_btn, 0, wx.ALL, 0)
+        #main_sizer.Add(self.getset_btn, 0, wx.ALL, 0)
         main_sizer.Add(self.c_sets_sizer, 0, wx.ALL | wx.EXPAND, 0)
         self.SetSizer(main_sizer)
 
-    def getset_click(self, e):
-        #print("Getting settings from Raspberry Pi")
-        self.refresh_settings_sizer()
+    # def getset_click(self, e):
+    #     #print("Getting settings from Raspberry Pi")
+    #     self.refresh_settings_sizer()
 
     def make_control_dict(self):
-        #  -c [ --config ] [=arg(=config.txt)]   Read the options from a file.
-        # "--post-process-file": -- et the file name for configuring the post-processing
         # -t [ --timeout ] arg (=5sec) -- Time for which program runs. If no units are provided default to ms.
-        # --tuning-file arg (=-)                Name of camera tuning file to use, omit this option for libcamera default behaviour
-        # -x [ --exif ] arg                     Add these extra EXIF tags to the output file
         control_dict = {"brightness":[(-1.0, 1.0), 0.0],
                         "contrast":[(0.0, 32.0), 1.0],
                         "saturation":[(0.0, 32.0), 1.0],
@@ -57,11 +53,11 @@ class rpicap_sets_pnl(wx.Panel):
                                  "cloudy",
                                  "custom"], "auto", "Auto White Balance"],
                         "awbgains":["0,0", "0,0", "explict red and blue white balance gains"],
-                        "denoise":["auto",
+                        "denoise":[["auto",
                                    "off",
                                    "cdn_off",
                                    "cdn_fast",
-                                   "cdn_hq", "auto"],
+                                   "cdn_hq"], "auto"],
                         "autofocus-mode":[["manual",
                                            "auto",
                                            "continuous"], "auto"],
@@ -76,10 +72,18 @@ class rpicap_sets_pnl(wx.Panel):
                                "auto",
                                "sensor",
                                "single-exp"], "off"],
+                        "encoding":[["jpg",
+                                     "png",
+                                     "bmp",
+                                     "rgb",
+                                     "yuv420"], "jpg"],
+                        "raw":[["True", "False"], "False"],
                         "metadata":[["off",
                                     "each",
                                     "$path",
-                                    "-"], "off"]}
+                                    "-"], "off"],
+                        "tuning-file":["", "", "Path to camera tuning file"],
+                        "post-process-file":["", "", "Path to file"]}
 
         return control_dict
 
@@ -123,7 +127,7 @@ class rpicap_sets_pnl(wx.Panel):
                       '640x480 "VGA"',
                       '320x240 "QVGA"']
         #preset_res = limit_res_for_cam(preset_res)
-        settings_dict["Resolution"] = [preset_res, preset_res[0]]
+        settings_dict = {**{"Resolution":[preset_res, preset_res[0]]}, **settings_dict}
 
         # read settings
         # currently not reading setting from pi
@@ -132,7 +136,6 @@ class rpicap_sets_pnl(wx.Panel):
         setting_crtl_dict = {}
         setting_t_dict = {}
         for setting in settings_dict.keys():
-            print(" Making box for", setting)
             label, box, box_t = self.create_ui_element(setting, settings_dict[setting])
             if not label == None:
                 self.setting_crtl_dict[setting] = box
@@ -145,16 +148,24 @@ class rpicap_sets_pnl(wx.Panel):
 
     def create_ui_element(self, setting, vals):
         label     = wx.StaticText(self,  label=setting)
+        # Use 3rd box for note about setting if provided.
         input_box_t = wx.StaticText(self,  label="")
+        try:
+            input_box_t.SetLabel(vals[2])
+        except:
+            pass
+
+        # list boxes
         if isinstance(vals[0], list):
             input_box = wx.ComboBox(self, choices=vals[0])
             if isinstance(vals[1], int):
                 input_box.SetSelection(vals[1])
             else:
                 input_box.SetValue(vals[1])
+        # For string based settings
         elif isinstance(vals[0], str):
             input_box = wx.TextCtrl(self, value=vals[1])
-
+        # int numbers
         elif isinstance(vals[0], tuple) and isinstance(vals[1], int):
             min_val, max_val = vals[0]
             default_val = int(vals[1])
@@ -165,6 +176,7 @@ class rpicap_sets_pnl(wx.Panel):
             input_box = wx.Slider(self, id=wx.ID_ANY, value=default_val, minValue=int(min_val), maxValue=int(max_val))
             input_box.SetLabel(setting)
             input_box.Bind(wx.EVT_SLIDER, self.slider_move)
+        # float numbers
         elif isinstance(vals[0], tuple) and isinstance(vals[1], float):
             min_val, max_val = vals[0]
             step = 0.1
@@ -241,7 +253,6 @@ class rpicap_sets_pnl(wx.Panel):
             value = setting_dict[item].GetValue()
             if not value == "":
                 set_for_txt_dict[item] = value
-                print("Adding from setting_dict get value;", item, value)
 
         # switch dict
         set_for_txt_dict = self.set_for_text(set_for_txt_dict)
@@ -251,14 +262,13 @@ class rpicap_sets_pnl(wx.Panel):
             value = str(set_for_txt_dict[item]).strip()
             settings_text += item.strip() + "=" + value + "\n"
 
-        print("rpicam_set returning;", settings_text)
         return settings_text
 
     def set_for_text(self, set_dict):
         '''alters settings to match expected format'''
         if "Resolution" in set_dict:
             res_text = self.setting_crtl_dict["Resolution"].GetValue()
-            print("res_text", res_text)
+            #print("res_text", res_text)
             if " " in res_text:
                 set_dict["Resolution"] = res_text.split(" ")[0]
             else:
@@ -267,33 +277,34 @@ class rpicap_sets_pnl(wx.Panel):
         return set_dict
 
 
-    # def text_into_ui(self, set_text):
-        # cam_settings = set_text.splitlines()
-        # self.camera_settings_dict = {}
-        # for line in cam_settings:
-        #     if "=" in line:
-        #         equals_pos = line.find("=")
-        #         key = line[:equals_pos]
-        #         value = line[equals_pos+1:]
-        #         self.camera_settings_dict[key] = value
-        # # make changes for old keys
-        # csd = self.camera_settings_dict
-        #
-        # # put into ui items
-        # for key in csd.keys():
-        #     if key in self.setting_crtl_dict:
-        #         if type(self.setting_crtl_dict[key]) == wx._core.Slider:
-        #             self.setting_t_dict[key].SetValue(csd[key])
-        #             csd[key] = int(csd[key])
-        #         self.setting_crtl_dict[key].SetValue(csd[key])
+    def text_into_ui(self, set_text):
+        cam_settings = set_text.splitlines()
+        self.camera_settings_dict = {}
+        for line in cam_settings:
+            if "=" in line:
+                equals_pos = line.find("=")
+                key = line[:equals_pos]
+                value = line[equals_pos+1:]
+                self.camera_settings_dict[key] = value
+        # make changes for old keys
+        csd = self.camera_settings_dict
 
-    # image capture
+        # put into ui items
+        for key in csd.keys():
+            if key in self.setting_crtl_dict:
+                if type(self.setting_crtl_dict[key]) == wx._core.Slider:
+                    self.setting_t_dict[key].SetValue(csd[key])
+                    csd[key] = int(csd[key])
+
+                self.setting_crtl_dict[key].SetValue(csd[key])
+
+    # Image capture
     def take_image(self, settings_file, outpath):
         print(" Taking a picture using ", settings_file, outpath)
         pigrow_path = self.parent.parent.shared_data.remote_pigrow_path
         cmd = pigrow_path + 'scripts/cron/rpicap.py caps=' + outpath + ' set=' + settings_file
         out, error = self.parent.parent.link_pnl.run_on_pi(cmd)
-        print(out)
+        print(out, error)
         # check for text output listing save location
         if "Saving image to:" in out:
             path = out.split("Saving image to:")[1].split("\n")[0].strip()
