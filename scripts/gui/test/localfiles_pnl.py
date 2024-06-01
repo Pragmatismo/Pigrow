@@ -1236,12 +1236,20 @@ class info_pnl(scrolled.ScrolledPanel):
 
     def make_photo_sizer(self):
         # local caps folder
+        self.auto_path_checkbox = wx.CheckBox(self, label='Automatic local path')
+        self.auto_path_checkbox.Bind(wx.EVT_CHECKBOX, self.on_auto_path_checkbox)
+        self.auto_path_checkbox.SetValue(True)
+        auto_path_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        auto_path_sizer.AddStretchSpacer()
+        auto_path_sizer.Add(self.auto_path_checkbox, 0, wx.ALIGN_CENTER)
+        #
         self.SetFont(self.shared_data.info_font)
         caps_folder_l = wx.StaticText(self,  label='Local;')
         caps_folder = os.path.join(self.shared_data.frompi_path, 'caps')
         self.folder_text = wx.StaticText(self,  label=caps_folder)
         self.set_caps_folder_btn = wx.Button(self, label='...')
         self.set_caps_folder_btn.Bind(wx.EVT_BUTTON, self.set_caps_folder_click)
+        self.set_caps_folder_btn.Disable()
         caps_folder_sizer = wx.BoxSizer(wx.HORIZONTAL)
         caps_folder_sizer.Add(caps_folder_l, 0, wx.ALL|wx.EXPAND, 5)
         caps_folder_sizer.Add(self.folder_text, 0, wx.ALL|wx.EXPAND, 5)
@@ -1274,6 +1282,7 @@ class info_pnl(scrolled.ScrolledPanel):
         photo_dates_sizer.AddStretchSpacer(1)
         photo_dates_sizer.Add(self.photo_last_text, 0, wx.LEFT, 5)
         photo_mid_sizer = wx.BoxSizer(wx.VERTICAL)
+        photo_mid_sizer.Add(auto_path_sizer, 0, wx.ALL|wx.EXPAND, 5)
         photo_mid_sizer.Add(caps_folder_sizer, 0, wx.ALL|wx.EXPAND, 5)
         photo_mid_sizer.Add(r_caps_folder_sizer, 0, wx.ALL|wx.EXPAND, 5)
         photo_mid_sizer.Add(photo_dates_sizer, 0, wx.ALL|wx.EXPAND, 1)
@@ -1304,11 +1313,34 @@ class info_pnl(scrolled.ScrolledPanel):
 
         return photo_sizer
 
+    def on_auto_path_checkbox(self, e):
+        is_checked = self.auto_path_checkbox.GetValue()
+        self.set_caps_folder_btn.Enable(not is_checked)
+        if is_checked:
+            self.set_auto_localpath()
+
+    def set_auto_localpath(self):
+        r_path = self.r_folder_text.GetLabel()
+        if "Pigrow/" in r_path:
+            print("found pigrow")
+            folder = r_path.split("Pigrow/")[1]
+            l_path = os.path.join(self.parent.shared_data.frompi_path, folder)
+        else:
+            name = os.path.basename(os.path.normpath(r_path))
+            l_path = os.path.join(self.parent.shared_data.frompi_path, name)
+        self.folder_text.SetLabel(l_path)
+        self.read_caps_info()
+        self.Layout()
+
     def set_r_caps_folder_click(self, e):
         self.parent.link_pnl.select_files_on_pi(single_folder=True)
         selected_folders = self.parent.link_pnl.selected_folders
         self.r_folder_text.SetLabel(selected_folders[0])
         self.set_r_caps_text()
+
+        if self.auto_path_checkbox.GetValue():
+            self.set_auto_localpath()
+
         self.Layout()
 
     def set_r_caps_text(self):
