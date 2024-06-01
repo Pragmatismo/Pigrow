@@ -1371,15 +1371,16 @@ class info_pnl(scrolled.ScrolledPanel):
 
     def set_caps_folder_click(self, e):
         # get folder
-        wildcard = "JPG and PNG files (*.jpg;*.png)|*.jpg;*.png|GIF files (*.gif)|*.gif"
-        openFileDialog = wx.FileDialog(self, "Select caps folder", "", "", wildcard, wx.FD_OPEN | wx.FD_FILE_MUST_EXIST)
+
+        #
+        default = self.parent.shared_data.frompi_path
+        openFileDialog = wx.DirDialog(self, "Select caps folder", default, style=wx.DD_DEFAULT_STYLE | wx.DD_DIR_MUST_EXIST | wx.DD_NEW_DIR_BUTTON)
         openFileDialog.SetMessage("Select an image from the caps folder you want to import")
         if openFileDialog.ShowModal() == wx.ID_CANCEL:
             return 'none'
         new_cap_path = openFileDialog.GetPath()
-        cap_dir = os.path.split(new_cap_path)[0]
         #
-        self.folder_text.SetLabel(cap_dir)
+        self.folder_text.SetLabel(new_cap_path)
         self.read_caps_info()
         self.Layout()
 
