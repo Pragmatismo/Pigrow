@@ -965,7 +965,8 @@ class longtl_dialog(wx.Dialog):
                 'fswebcam':'camcap',
                 'picamcap':'picamcap',
                 'picam2cap':'picam2',
-                'libcamera':'libcam_cap'}
+                'libcamera':'libcam_cap',
+                'rpicam':'rpicap'}
         if cap_tool in tool:
             self.cap_tool = tool[cap_tool]
         else:
@@ -977,7 +978,7 @@ class longtl_dialog(wx.Dialog):
         self.cap_tool_path = self.parent.parent.shared_data.remote_pigrow_path
         self.cap_tool_path += "scripts/cron/" + self.cap_tool + '.py'
         self.check_cron(self.cap_tool_path)
-        tool_list = ['camcap', 'picamcap', 'picam2cap', 'libcam_cap']
+        tool_list = ['camcap', 'picamcap', 'picam2cap', 'libcam_cap', 'rpicap']
         tool_list.remove(self.cap_tool)
         self.check_other_capstools(tool_list)
         return True
@@ -1173,17 +1174,19 @@ class longtl_dialog(wx.Dialog):
 
 
     def go_click(self, e):
+        self.make_cron()
+        self.OnClose("e")
+
+    def make_cron(self):
         cron_I = self.parent.parent.dict_I_pnl['cron_pnl']
         cron_C = self.parent.parent.dict_C_pnl['cron_pnl']
+
         # create values for cron
         enabled     = str(self.job_enabled_cb.GetValue()).strip()
-
         rep_num = self.time_spin.GetValue()
         rep_txt = self.time_text_cb.GetValue()
         every  = cron_C.make_repeating_cron_timestring(rep_txt, rep_num)
-
         task        = self.cap_tool_path
-
         outfolder   = 'caps=' + self.caps_folder_tc.GetValue()
         conf        = 'set='  + self.camconf
         extra_args  = conf + " " + outfolder
@@ -1204,7 +1207,6 @@ class longtl_dialog(wx.Dialog):
                     if self.args.strip() == extra_args:
                         if not self.cron_update_required == True:
                             #print("no change needed")
-                            self.Destroy()
                             return None
 
         # edit cron tab's table and update to pi
@@ -1215,7 +1217,7 @@ class longtl_dialog(wx.Dialog):
         cron_I.repeat_cron.SetItem(0, 4, extra_args)
         cron_C.update_cron_click("e", no_starting=True)
 
-        self.Destroy()
+        return None
 
 
     def OnClose(self, e):
