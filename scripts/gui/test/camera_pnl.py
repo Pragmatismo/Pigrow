@@ -802,7 +802,7 @@ class quicktl_dialog(wx.Dialog):
 
         #camera tool
         camera_tool_label = wx.StaticText(control_panel, label="Camera Tool:")
-        camera_tool_choices = ["picam", "fswebcam"]
+        camera_tool_choices = ["picam", "fswebcam", 'rpicam']
         self.camera_tool_dropdown = wx.ComboBox(control_panel, choices=camera_tool_choices, style=wx.CB_READONLY)
         self.set_camtool()
         camera_tool_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -865,7 +865,7 @@ class quicktl_dialog(wx.Dialog):
         self.Layout()
 
     def set_camtool(self):
-        currently_supported = ["fswebcam"]
+        currently_supported = ["fswebcam", "rpicam"]
         camopt = self.parent.captool_cb.GetValue()
         if camopt in currently_supported:
             self.camera_tool_dropdown.SetValue(camopt)
