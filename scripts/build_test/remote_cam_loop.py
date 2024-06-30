@@ -98,6 +98,72 @@ class FswCaptureThread(threading.Thread):
                 settings.active = False
             time.sleep(settings.delay)
 
+def set_for_with_rpicam():
+    sets_dict = settings.sdict
+
+    conf_text = ""
+    #print(";", sets_dict, " ----")
+
+    # set image res for camera's main stream
+    if "Resolution" in sets_dict:
+        x_dim, y_dim = sets_dict["Resolution"].split("x")
+        sets_dict["width"] = x_dim
+        sets_dict["height"] = y_dim
+
+    # set metadata flag
+    # --metadata arg  Save captured image metadata to a file or "-" for stdout
+    # if "metadata" in sets_dict:
+    #     if sets_dict["metadata"] == "each":
+    #         sets_dict["metadata"] = os.path.splitext(save_filename)[0] + ".json"
+    #     elif sets_dict["metadata"] == "off":
+    #         sets_dict.pop("metadata", None)
+    #     elif sets_dict["metadata"] == "$path":
+    #         sets_dict["metadata"] = homedir + '/Pigrow/logs/cap_metadata.json'
+
+    # check if raw is set
+    if "raw" in sets_dict:
+        if sets_dict["raw"] == "True":
+            conf_text += " --raw"
+
+    # remove script opts
+    to_remove = ["Resolution", "cam_opt", "cam_num", "raw", "metadata"]
+    for item in to_remove:
+        sets_dict.pop(item, None)
+
+
+    for item in sets_dict.keys():
+            if not sets_dict[item] == "":
+                conf_text += " --" + item + " " + sets_dict[item]
+
+    cam_cmd = "rpicam-still --nopreview " + conf_text + " -o "
+    #
+    print("Base cmd set to - ", cam_cmd + "\n")
+    sys.stdout.flush()
+    return cam_cmd
+
+def take_with_rpicam(cam_cmd, count):
+    timenow  = str(time.time())[0:10]
+    filepath = settings.out_folder + settings.set_name + "_" + str(timenow) + ".jpg"
+    cam_cmd += " " + filepath
+
+    os.system(cam_cmd)
+    print("Capture " + str(count) + " Finished:" + filepath + "\n")
+    sys.stdout.flush()
+
+class RpiCaptureThread(threading.Thread):
+    def __init__(self):
+        super().__init__()
+
+    def run(self):
+        base_cmd = set_for_with_rpicam()
+        count = 1
+        while settings.active == True:
+            take_with_rpicam(base_cmd, count)
+            count += 1
+            if count > settings.frame_limit and not settings.frame_limit == -1:
+                settings.active = False
+            time.sleep(settings.delay)
+
 def start_capture_loop(received_input):
     print("Starting capture loop.\n")
     sys.stdout.flush()
@@ -106,6 +172,9 @@ def start_capture_loop(received_input):
 
     if settings.camera_opt == "fsw":
         capture_thread = FswCaptureThread()
+        capture_thread.start()
+    elif settings.camera_opt == "rpicam":
+        capture_thread = RpiCaptureThread()
         capture_thread.start()
     elif settings.camera_opt == "picam":
         print("Sorry picam capture is not yet written\n")
@@ -126,6 +195,11 @@ def use_picam(received_input):
 def use_fsw(received_input):
     settings.camera_opt = "fsw"
     print("Camera Set to FSWebcam")
+    sys.stdout.flush()
+
+def use_rpicam(received_input):
+    settings.camera_opt = "rpicam"
+    print("Camera Set to Rpicam")
     sys.stdout.flush()
 
 def set_outfolder(received_input):
@@ -175,6 +249,7 @@ commands = {'start':start_capture_loop,
             'stop':stop_capture_loop,
             'use_picam':use_picam,
             'use_fsw':use_fsw,
+            'use_rpicam':use_rpicam,
             'set_outfolder':set_outfolder,
             'set_name':set_setname,
             'set_camset':set_camset,
