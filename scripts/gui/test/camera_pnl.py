@@ -910,6 +910,8 @@ class quicktl_dialog(wx.Dialog):
             self.pipe_inst.send("use_picam\n")
         elif ctool == 'fswebcam':
             self.pipe_inst.send("use_fsw\n")
+        elif ctool == 'rpicam':
+            self.pipe_inst.send("use_rpicam\n")
         #
         outfolder   = self.outfolder_textctrl.GetValue()
         self.pipe_inst.send(f"set_outfolder {outfolder}\n")
