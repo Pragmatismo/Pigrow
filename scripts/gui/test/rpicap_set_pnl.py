@@ -1,5 +1,10 @@
 import wx
 
+import wx.lib.newevent
+import cv2
+import numpy as np
+ROIChangedEvent, EVT_ROI_CHANGED = wx.lib.newevent.NewEvent()
+
 class rpicap_sets_pnl(wx.Panel):
 
     def __init__(self, parent):
@@ -15,11 +20,45 @@ class rpicap_sets_pnl(wx.Panel):
         self.c_sets_sizer, self.setting_crtl_dict, self.setting_t_dict = self.create_empty_settings_sizer()
         self.refresh_settings_sizer()
 
+        # tool buttons
+        set_afroi_butt = wx.Button(self, label='Set AutoFocus\nRegion')
+        set_afroi_butt.Bind(wx.EVT_BUTTON, self.set_afroi_click)
+
         main_sizer = wx.BoxSizer(wx.VERTICAL)
         main_sizer.Add(label, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 7)
         #main_sizer.Add(self.getset_btn, 0, wx.ALL, 0)
+        main_sizer.Add(set_afroi_butt, 0, wx.ALL, 0)
         main_sizer.Add(self.c_sets_sizer, 0, wx.ALL | wx.EXPAND, 0)
         self.SetSizer(main_sizer)
+
+    def set_afroi_click(self, e):
+        print("Setting Autofocus Region of Interest")
+        setting_name = "autofocus-window"
+
+        if setting_name in self.setting_crtl_dict:
+            initial_roi = self.setting_crtl_dict[setting_name].GetValue()
+            x,y,w,h = initial_roi.split(",")
+            initial_roi = float(x), float(y), float(w), float(h)
+        else:
+            wx.MessageBox("Error - autofocus-range not in options, can't set it", "Error", wx.OK | wx.ICON_ERROR)
+
+
+        image_path = "./test.jpg"
+
+        dialog = SetAFROIDialog(None, image_path, initial_roi)
+        result = dialog.ShowModal()
+
+        if result == wx.ID_OK:
+            # If the user clicked OK, retrieve the ROI information
+            new_roi = dialog.get_roi()
+            if setting_name in self.setting_crtl_dict:
+                self.setting_crtl_dict[setting_name].SetValue(new_roi)
+            print(f"Final ROI coordinates: {new_roi}")
+        else:
+            # Handle case where user clicked Cancel or closed the dialog
+            new_roi = None
+
+        dialog.Destroy()
 
     # def getset_click(self, e):
     #     #print("Getting settings from Raspberry Pi")
@@ -33,10 +72,12 @@ class rpicap_sets_pnl(wx.Panel):
                         "sharpness":[(0.0, 16.0), 1.0],
                         "hflip":[["True", "False"], "False"],
                         "vflip":[["True", "False"], "False"],
+                        "roi":["0,0,1,1", "0,0,1,1", "X, Y, w, h - in decimal 0.0 to 1.0"],
                         "rotation":[(0, 180), 0],
                         "shutter":["0", "0", "sutter speed in microseconds"],
                         "gain":["0", "0"],
-                        "ev":[(-10.0, 10.0), 0.0],
+                        "ev":[(-10.0, 10.0), 0.0, "exposure value compensation of the image in stops"],
+
                         "exposure":[["normal",
                                      "sport"], "normal"],
                         "metering":[["centre",
@@ -66,7 +107,7 @@ class rpicap_sets_pnl(wx.Panel):
                                             "full"], "normal"],
                         "autofocus-speed":[["normal",
                                             "fast"], "normal"],
-                        "autofocus-window":["0,0,0,0", "0,0,0,0"],
+                        "autofocus-window":["0.33,0.33,0.33,0.33", "0.33,0.33,0.33,0.33", "X, Y, w, h - in decimal 0.0 to 1.0"],
                         "lens-position":[(0.0, 32.0), 0.0],
                         "hdr":[["off",
                                "auto",
@@ -319,3 +360,152 @@ class rpicap_sets_pnl(wx.Panel):
         cam_cmd = "rpicam-still --nopreview --metadata " + metapath + " -o " + outpath
         out, error = self.parent.parent.link_pnl.run_on_pi(cam_cmd)
         return out + error, "rpicam-still"
+
+class SetAFROIDialog(wx.Dialog):
+    def __init__(self, parent, image_path, initial_roi=None):
+        self.image = cv2.imread(image_path)
+        self.image = cv2.cvtColor(self.image, cv2.COLOR_BGR2RGB)
+        self.image_height, self.image_width = self.image.shape[:2]
+        display_size = wx.DisplaySize()
+
+        # Determine initial dialog size based on the image size and screen size
+        dialog_width = min(self.image_width + 20, display_size[0] - 100)
+        dialog_height = min(self.image_height + 150, display_size[1] - 100)
+
+        super(SetAFROIDialog, self).__init__(parent, title="Set ROI", size=(dialog_width, dialog_height))
+
+        self.panel = wx.Panel(self)
+        self.vbox = wx.BoxSizer(wx.VERTICAL)
+
+        self.header = wx.StaticText(self.panel, label="Drag to select a region")
+        self.vbox.Add(self.header, 0, wx.ALL | wx.CENTER, 5)
+
+        self.image_panel = wx.Panel(self.panel, size=(self.image_width, self.image_height))
+        self.image_panel.Bind(wx.EVT_PAINT, self.on_paint)
+        self.image_panel.Bind(wx.EVT_LEFT_DOWN, self.on_left_down)
+        self.image_panel.Bind(wx.EVT_MOTION, self.on_mouse_drag)
+        self.image_panel.Bind(wx.EVT_LEFT_UP, self.on_left_up)
+        self.image_panel.SetBackgroundColour(wx.Colour(255, 255, 255))
+        self.vbox.Add(self.image_panel, 1, wx.EXPAND | wx.ALL, 5)
+
+        self.coord_sizer = wx.GridSizer(1, 8, 5, 5)
+        self.coord_sizer.Add(wx.StaticText(self.panel, label="x:"))
+        self.x_text = wx.TextCtrl(self.panel)
+        self.coord_sizer.Add(self.x_text)
+        self.coord_sizer.Add(wx.StaticText(self.panel, label="y:"))
+        self.y_text = wx.TextCtrl(self.panel)
+        self.coord_sizer.Add(self.y_text)
+        self.coord_sizer.Add(wx.StaticText(self.panel, label="w:"))
+        self.w_text = wx.TextCtrl(self.panel)
+        self.coord_sizer.Add(self.w_text)
+        self.coord_sizer.Add(wx.StaticText(self.panel, label="h:"))
+        self.h_text = wx.TextCtrl(self.panel)
+        self.coord_sizer.Add(self.h_text)
+
+        self.vbox.Add(self.coord_sizer, 0, wx.ALL | wx.CENTER, 5)
+
+        self.ok_button = wx.Button(self.panel, label="OK")
+        self.ok_button.Bind(wx.EVT_BUTTON, self.on_ok)
+        self.vbox.Add(self.ok_button, 0, wx.ALL | wx.CENTER, 5)
+
+        self.panel.SetSizer(self.vbox)
+
+        self.start_pos = None
+        self.end_pos = None
+        self.bmp = wx.Bitmap.FromBuffer(self.image_width, self.image_height, self.image)
+        self.resized_image = self.image
+        self.resized_image_offset = (0, 0)
+
+        # Set initial ROI
+        if initial_roi is None:
+            self.set_default_roi()
+        else:
+            self.set_roi(initial_roi)
+
+    def get_roi(self):
+        # This method should return the final ROI coordinates
+        x = self.x_text.GetValue()
+        y = self.y_text.GetValue()
+        w = self.w_text.GetValue()
+        h = self.h_text.GetValue()
+        roi = f"{x},{y},{w},{h}"
+        return roi
+
+    def on_paint(self, event):
+        dc = wx.BufferedPaintDC(self.image_panel)
+        dc.Clear()
+        dc.DrawBitmap(self.bmp, 0, 0)
+
+        if self.start_pos and self.end_pos:
+            dc.SetPen(wx.Pen(wx.Colour(255, 0, 0), 2))
+            brush = wx.Brush(wx.Colour(255, 255, 255, 191))  # 75% transparent white
+            dc.SetBrush(brush)
+            start_x, start_y = self.start_pos
+            end_x, end_y = self.end_pos
+            dc.DrawRectangle(start_x, start_y, end_x - start_x, end_y - start_y)
+
+    def on_left_down(self, event):
+        self.start_pos = event.GetPosition()
+        self.end_pos = None
+        self.Refresh()
+
+    def on_mouse_drag(self, event):
+        if event.Dragging() and event.LeftIsDown() and self.start_pos:
+            self.end_pos = event.GetPosition()
+            self.Refresh()
+
+    def on_left_up(self, event):
+        if self.start_pos and self.end_pos:
+            self.end_pos = event.GetPosition()
+            self.update_roi_text_boxes()
+            wx.PostEvent(self, ROIChangedEvent())
+            self.Refresh()
+
+    def update_roi_text_boxes(self):
+        x1, y1 = self.start_pos
+        x2, y2 = self.end_pos
+
+        x = min(x1, x2)
+        y = min(y1, y2)
+        w = abs(x2 - x1)
+        h = abs(y2 - y1)
+
+
+        normalized_x = x / self.resized_image.shape[1]
+        normalized_y = y / self.resized_image.shape[0]
+        normalized_w = w / self.resized_image.shape[1]
+        normalized_h = h / self.resized_image.shape[0]
+
+        if normalized_w > 1:
+            normalized_w = 1
+        if normalized_h > 1:
+            normalized_h = 1
+
+        self.x_text.SetValue(f"{normalized_x:.4f}")
+        self.y_text.SetValue(f"{normalized_y:.4f}")
+        self.w_text.SetValue(f"{normalized_w:.4f}")
+        self.h_text.SetValue(f"{normalized_h:.4f}")
+
+    def set_default_roi(self):
+        """Set the default ROI to the middle third of the image dimensions."""
+        self.start_pos = (int(self.resized_image.shape[1] * 1/3), int(self.resized_image.shape[0] * 1/3))
+        self.end_pos = (int(self.resized_image.shape[1] * 2/3), int(self.resized_image.shape[0] * 2/3))
+        self.update_roi_text_boxes()
+        self.Refresh()
+
+    def set_roi(self, roi):
+        """Set the ROI based on provided normalized coordinates (x, y, w, h)."""
+        normalized_x, normalized_y, normalized_w, normalized_h = roi
+        self.start_pos = (int(normalized_x * self.resized_image.shape[1]), int(normalized_y * self.resized_image.shape[0]))
+        self.end_pos = (int((normalized_x + normalized_w) * self.resized_image.shape[1]), int((normalized_y + normalized_h) * self.resized_image.shape[0]))
+        self.update_roi_text_boxes()
+        self.Refresh()
+
+    def on_ok(self, event):
+        x = float(self.x_text.GetValue())
+        y = float(self.y_text.GetValue())
+        w = float(self.w_text.GetValue())
+        h = float(self.h_text.GetValue())
+
+        #print(f"Final ROI coordinates: x={x}, y={y}, w={w}, h={h}")
+        self.EndModal(wx.ID_OK)
