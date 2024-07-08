@@ -1,14 +1,20 @@
 #!/usr/bin/python3
+import os
+os.environ["GDK_DEBUG"] = "none"
 import sys
+#sys.stderr = open(os.devnull, 'w')
+
 import wx
 
 import shared_data
 import link_pnl as link_pnl
 
+
 list_of_panels = ['start_pnl',  'system_pnl', 'cron_pnl', 'camera_pnl', 'timelapse_pnl', 'localfiles_pnl', 'sensors_pnl', 'power_pnl', 'watering_pnl', 'display_pnl', 'userlog_pnl']
 for x in list_of_panels:
     import_cmd = "import " + x
     exec(import_cmd)
+
 
 class view_pnl(wx.Panel):
     '''
@@ -104,7 +110,7 @@ class MainFrame(wx.Frame):
     #    print (h.heap())
 
     def tell_pnls_connected(self):
-        print("Connected to a pigrow - this is where we'd tell the pnls")
+        print("Connected to a pigrow;")
         for key, value in MainFrame.dict_C_pnl.items():
             try:
                 value.connect_to_pigrow()

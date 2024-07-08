@@ -214,25 +214,41 @@ class ctrl_pnl(wx.Panel):
         repeat_list_instance.autosizeme()
         onetime_list_instance.autosizeme()
 
+    # def test_if_script_running(self, script, args):
+    #     #cron_info_pnl.test_if_script_running(MainApp.cron_info_pannel, script)
+    #     pid_text, error = self.parent.link_pnl.run_on_pi("pidof -x " + str(script))
+    #     pid_text = pid_text.strip()
+    #     # return false if none are running
+    #     if pid_text == '':
+    #         return False
+    #     # convert output into list of pids
+    #     if " " in pid_text:
+    #         pids = pid_text.split(" ")
+    #     else:
+    #         pids = [pid_text]
+    #     # cycle through and check for expected args
+    #     for pid in pids:
+    #         out, error = self.parent.link_pnl.run_on_pi("ps -fp " + pid)
+    #         if args.strip() in out:
+    #             return True
+    #     # if it didn't find it return false
+    #     return False
+
     def test_if_script_running(self, script, args):
-        #cron_info_pnl.test_if_script_running(MainApp.cron_info_pannel, script)
-        pid_text, error = self.parent.link_pnl.run_on_pi("pidof -x " + str(script))
-        pid_text = pid_text.strip()
-        # return false if none are running
-        if pid_text == '':
+        # Run ps to get all python processes
+        cmd = "ps aux | grep '[p]ython' | grep -v 'grep'"
+        out, error = self.parent.link_pnl.run_on_pi(cmd)
+
+        if error:
             return False
-        # convert output into list of pids
-        if " " in pid_text:
-            pids = pid_text.split(" ")
-        else:
-            pids = [pid_text]
-        # cycle through and check for expected args
-        for pid in pids:
-            out, error = self.parent.link_pnl.run_on_pi("ps -fp " + pid)
-            if args.strip() in out:
+
+        # Check if the script name and args are in the process list
+        for line in out.strip().split("\n"):
+            if script in line and args.strip() in line:
                 return True
-        # if it didn't find it return false
+
         return False
+
 
     def check_if_script_in_startup(self, script_name):
         print(" checking startup cron for " + script_name )
