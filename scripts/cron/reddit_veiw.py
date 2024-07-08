@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 import datetime
 import praw           #pip install praw
 import os

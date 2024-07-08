@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 import datetime, time
 import os, sys
 from subprocess import check_output
