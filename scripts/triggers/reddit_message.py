@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 import datetime
 import praw           #sudo pip3 install praw
 import sys

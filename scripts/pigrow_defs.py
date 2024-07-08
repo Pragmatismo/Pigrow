@@ -1,4 +1,5 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
+
 import os, sys
 import datetime
 
@@ -8,8 +9,9 @@ def load_locs(loc_locs):
     #print("Loading location details")
     with open(loc_locs, "r") as f:
         for line in f:
-            s_item = line.split("=")
-            loc_dic[s_item[0]]=s_item[1].rstrip() #adds each setting to dictionary
+            if "=" in line:
+                s_item = line.split("=")
+                loc_dic[s_item[0]]=s_item[1].rstrip() #adds each setting to dictionary
     #Check for important options, but doe snothing at the moment...
     if 'loc_switchlog' in loc_dic:
         loc_switchlog = loc_dic['loc_switchlog']
@@ -57,7 +59,6 @@ def save_settings(pi_set, loc_settings, err_log="./err.log"):
                 try:
                     s_line = str(a) +"="+ str(b) +"\n"
                     f.write(s_line)
-                    #print s_line
                 except:
                     print("ERROR - " + loc_settings + " NOT SAVED - SERIOUS FAULT!")
     except:

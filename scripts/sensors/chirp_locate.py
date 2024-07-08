@@ -1,5 +1,5 @@
-#!/usr/bin/python
-# should be ready for python3 - need to test with sensor first
+#!/usr/bin/env python3
+
 import subprocess
 import time
 import sys

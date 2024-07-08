@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 import os
 import sys
 import time
@@ -374,7 +374,7 @@ def read_adc(channels):
 
 def convert_to_percent(vals):
     max_value = max_volt
-    
+
     if show_as_0 == "percent":
         vals[0] = float(vals[0]) / float(max_volt) * 100
     if show_as_1 == "percent":

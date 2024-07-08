@@ -1,6 +1,5 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 
-### This is probably ready to switch to python3 - need to test with a sensor first 
 
 import os
 import sys
