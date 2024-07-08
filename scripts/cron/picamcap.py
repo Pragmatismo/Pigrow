@@ -1,10 +1,10 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 import time
 import os, sys
 try:
     from picamera import PiCamera
 except:
-    print("Picamera is not installed, is this even a raspberry pi?!")
+    print("Picamera is not installed, you're probably using a newer version of Raspberry Pi OS")
     exit()
 
 # default settings

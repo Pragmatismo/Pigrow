@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 import datetime, sys, os
 import RPi.GPIO as GPIO
 homedir = os.getenv("HOME")

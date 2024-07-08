@@ -133,7 +133,7 @@ class link_pnl(wx.Panel):
         self.cb_ip.Clear()
         self.cb_ip.Append(self.discover_ip_list())
 
-    def get_box_name(self=None):
+    def get_box_name(self):
         boxname = None
         out, error = self.run_on_pi("cat /home/" + self.target_user + "/Pigrow/config/pigrow_config.txt | grep box_name")
         if "=" in out:
@@ -234,6 +234,7 @@ class link_pnl(wx.Panel):
     def run_on_pi(self, command, write_status=True, in_background=False):
         '''Runs a command on the pigrow and returns the output and error'''
         try:
+            command = f"/bin/bash -l -c '{command}'"
             if in_background:
                 command = 'nohup ' + command + ' > /dev/null 2>&1 &'
 
@@ -245,7 +246,6 @@ class link_pnl(wx.Panel):
             print(error)
             return "", error
         return out, error
-
 
     def write_textfile_to_pi(self, text, location):
         '''
@@ -419,6 +419,7 @@ class link_pnl(wx.Panel):
 
 
      # Run on pi with input and output pipes
+
     class RemoteScriptPipes(wx.EvtHandler):
         def __init__(self, parent, script_path, the_link_pnl):
             super().__init__()
@@ -751,46 +752,3 @@ class files_download_dialog(wx.Dialog):
         wx.PostEvent(self,FileDownloadEvent(from_p="Done", to_p="Done"))
         print("Download completed")
         return jobID
-
-# class PipesToScript:
-#     def __init__(self, file_path):
-#         self.file_path = file_path
-#         self.name = "pi" + "@" + "192.168.1.28"
-#         self.password = "raspberry"
-#         self.ssh = None
-#         self.input_thread = None
-#         self.output_thread = None
-#
-#     def start(self):
-#         self.ssh = subprocess.Popen(["sshpass", "-p", self.password, "ssh", self.name, self.file_path],
-#                                     shell=False,
-#                                     stdout=subprocess.PIPE,
-#                                     stderr=subprocess.PIPE,
-#                                     stdin=subprocess.PIPE)
-#
-#         self.output_thread = threading.Thread(target=self._receive_output_from_pi)
-#         self.output_thread.start()
-#
-#     def _receive_output_from_pi(self):
-#         while True:
-#             output = self.ssh.stdout.readline().decode().strip()
-#             if output:
-#                 print(output)
-#                 wx.PostEvent(self, CallOutputEvent(data=output))  # Post event to update GUI
-#                 sys.stdout.flush()  # Flush stdout
-#
-#
-#     def send(self, command):
-#         self.ssh.stdin.write(command.encode() + b'\n')
-#         self.ssh.stdin.flush()
-#
-#     def close(self):
-#         if self.ssh:
-#             self.ssh.terminate()
-
-
-
-    #def close(self):
-    #    if self.connected:
-    #        self.connected = False
-    #        self.client.close()

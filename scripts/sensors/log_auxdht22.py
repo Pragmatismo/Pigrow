@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 import sys, os
 import datetime
 import Adafruit_DHT
@@ -72,7 +72,7 @@ if not sensor_gpio == None:
             valid_reading = True
         count = count + 1
         if count >= try_attempts:
-            valid_reading = True     
+            valid_reading = True
     log_sensor(log_path, hum, temp, logt)
 else:
     print("please set a gpio using the gpio=[number] flag")

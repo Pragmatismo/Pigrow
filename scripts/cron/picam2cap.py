@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 import time
 import os, sys
 try:
@@ -132,7 +132,7 @@ def take_picam2(camera, caps_path):
         print("Captured Image Metadata;")
         for item in metadata:
             print(item, "=", metadata[item])
-        print("Saving image to:", save_filename)    
+        print("Saving image to:", save_filename)
 
         return save_filename
     except:

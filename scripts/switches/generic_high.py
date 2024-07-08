@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 import os
 import sys
 import RPi.GPIO as GPIO
@@ -39,7 +39,7 @@ def check_command_line_args():
             print("GPIO=<num>")
             print("log=[none,dirlocs,<PATH>]")
             sys.exit()
-            
+
     if gpio_pin == "not set":
         print("gpio pin must be supplied with gpio=PIN_NUM")
         sys.exit()
