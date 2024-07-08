@@ -157,6 +157,8 @@ class ctrl_pnl(wx.Panel):
 
     def connect_to_pigrow(self):
         self.read_click("e")
+        self.parent.dict_I_pnl['localfiles_pnl'].set_auto_localpath()
+
 
     def clear_downed_click(self, e):
         self.clearcaps_dbox = clearcaps_dialog(self, self.parent)
@@ -1386,6 +1388,10 @@ class info_pnl(scrolled.ScrolledPanel):
 
     def read_caps_info(self):
         caps_folder = self.folder_text.GetLabel()
+
+        if not os.path.exists(caps_folder):
+            os.makedirs(caps_folder)
+
         file_list = os.listdir(caps_folder)
         pic_list = []
         img_types = ['jpg', 'gif', 'png', 'bmp', 'raw']
@@ -1409,9 +1415,15 @@ class info_pnl(scrolled.ScrolledPanel):
                 self.set_image_preview(pic_list[-1], 'last')
                 self.photo_last_text.SetLabel(self.make_image_text(name))
             else:
-                print(" only one image in caps folder")
+                print(" Only one image in caps folder")
+                self.last_photo_title.SetLabel("--")
+                self.set_image_preview(None, 'last')
         else:
             print(" No image files to load")
+            self.first_photo_title.SetLabel("--")
+            self.last_photo_title.SetLabel("--")
+            self.set_image_preview(None, 'first')
+            self.set_image_preview(None, 'last')
 
     def set_image_preview(self, img_path, place):
         #print("Loading -", img_path, "to", place)
@@ -1427,7 +1439,15 @@ class info_pnl(scrolled.ScrolledPanel):
                 self.photo_folder_last_pic.SetBitmap(pic)
         except:
             #raise
-            print("!! image in local caps folder didn't work.", img_path)
+            if not img_path == None:
+                print("!! image in local caps folder didn't work.", img_path)
+            blank_bitmap = wx.Bitmap(100, 100)
+            if place == 'first':
+                self.photo_folder_first_pic.SetToolTip('no image')
+                self.photo_folder_first_pic.SetBitmap(blank_bitmap)
+            elif place == "last":
+                self.photo_folder_last_pic.SetToolTip('no image')
+                self.photo_folder_last_pic.SetBitmap(blank_bitmap)
 
     def make_image_text(self, pic_path):
         pic_date = self.parent.shared_data.date_from_fn(pic_path)
