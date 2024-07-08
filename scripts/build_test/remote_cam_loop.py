@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 
 '''
 Runs on the raspberry pi and enables the gui to record short-duration timelapse
