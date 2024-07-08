@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 #
 #         This script it designed to be run in a continuous loop
 #
