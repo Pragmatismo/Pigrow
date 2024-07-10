@@ -923,6 +923,9 @@ class install_dialog(wx.Dialog):
         self.wizard_btn = wx.Button(self, label='Set-up Wizard', size=(175, 30))
         self.wizard_btn.Bind(wx.EVT_BUTTON, self.wizard_click)
 
+        self.venv_btn = wx.Button(self, label='Config VENV (bookworm)', size=(175, 30))
+        self.venv_btn.Bind(wx.EVT_BUTTON, self.venv_click)
+
         # optional install catagory text & drop down
         self.filter_txt = wx.TextCtrl(self, size=(265, 30))
         self.filter_txt.Bind(wx.EVT_TEXT, self.update_filter)
@@ -956,6 +959,7 @@ class install_dialog(wx.Dialog):
         #main_sizer.AddStretchSpacer(1)
         #main_sizer.Add(note, 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(self.venv_btn, 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.Add(self.wizard_btn, 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.AddStretchSpacer(1)
         main_sizer.Add(cat_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
@@ -1020,9 +1024,17 @@ class install_dialog(wx.Dialog):
         wx.MessageBox(message, title, wx.OK | wx.ICON_INFORMATION)
         self.Destroy()
 
+    def venv_click(self, e):
+        self.dialog = VenvDialog(self.parent)
+        self.dialog.Show()
+        self.dialog.Destroy()
+
+        # restart connection?
+
+
     def create_dirlocs_from_template(self):
         shared_data = self.parent.parent.shared_data
-        print("Creting dirlocs.txt from template")
+        print("Creating dirlocs.txt from template")
 
         # grab template from pi and swap wildcards for username
         dirlocs_template_path = shared_data.remote_pigrow_path + 'config/templates/dirlocs_temp.txt'
@@ -1627,3 +1639,333 @@ class InstallProgressDialog(wx.Dialog):
             wx.CallAfter(self.cancel_button.SetLabel, "Close")
             wx.CallAfter(self.cancel_button.Enable)
         threading.Thread(target=process_items).start()
+
+
+class VenvDialog(wx.Dialog):
+    def __init__(self, parent):
+        self.parent = parent
+        base_path = self.parent.parent.shared_data.remote_pigrow_path.replace("Pigrow/", "")
+        self.venv_path = f"{base_path}venvpigrow"
+        print(self.venv_path)
+        self.venv_found = False
+        self.cron_found = False
+        self.bashrc_found = False
+        self.profile_found = False
+        super(VenvDialog, self).__init__(parent, title="Virtual Environment Setup", size=(400, 300))
+
+        self.init_ui()
+        self.Centre()
+        self.ShowModal()
+
+    def init_ui(self):
+        panel = wx.Panel(self)
+
+        # Explanation text
+        msg_txt = "A virtual environment (venv) helps manage project-specific dependencies."
+        msg_txt += "This is required in the Bookworm version of RasPiOS.\n"
+        explanation = wx.StaticText(panel, label=msg_txt)
+
+        # Status Info
+        python_version_st = wx.StaticText(panel, label=self.current_python_msg())
+        cron_line_st   = wx.StaticText(panel, label=self.cron_line_msg())
+        bashrc_line_st = wx.StaticText(panel, label=self.bashrc_line_msg())
+
+        info_box = wx.BoxSizer(wx.VERTICAL)
+        info_box.Add(explanation, flag=wx.EXPAND | wx.ALL, border=10)
+        info_box.Add(python_version_st, flag=wx.EXPAND | wx.ALL, border=5)
+        info_box.Add(cron_line_st, flag=wx.EXPAND | wx.ALL, border=5)
+        info_box.Add(bashrc_line_st, flag=wx.EXPAND | wx.ALL, border=5)
+
+        # Buttons
+        hbox = wx.BoxSizer(wx.HORIZONTAL)
+        install_button = wx.Button(panel, label="Install and Enable Venv")
+        remove_button = wx.Button(panel, label="Remove Venv")
+        cancel_button = wx.Button(panel, label="Cancel")
+
+        install_button.Bind(wx.EVT_BUTTON, self.on_install)
+        remove_button.Bind(wx.EVT_BUTTON, self.on_remove)
+        cancel_button.Bind(wx.EVT_BUTTON, self.on_cancel)
+
+        hbox.Add(install_button, flag=wx.RIGHT, border=5)
+        hbox.Add(remove_button, flag=wx.RIGHT, border=5)
+        hbox.Add(cancel_button)
+
+        vbox = wx.BoxSizer(wx.VERTICAL)
+        vbox.Add(info_box, flag=wx.ALIGN_CENTER | wx.ALL, border=10)
+        vbox.Add(hbox, flag=wx.ALIGN_CENTER | wx.ALL, border=10)
+
+        panel.SetSizer(vbox)
+
+    # read current state
+    def current_python_msg(self):
+        run_on_pi = self.parent.parent.link_pnl.run_on_pi
+        which_py, error = run_on_pi("which python")
+        if self.venv_path in which_py:
+            msg = "Pigrow Venv Enabled; "
+            self.venv_found = True
+        elif "home" in which_py:
+            msg = "WARNING! Other Venv Enabled; "
+        else:
+            msg = "Venv not Activated; "
+        msg += "currently using; " + which_py
+        return msg
+
+    def cron_line_msg(self):
+        ''' Checks to see if the path line is in cron '''
+        run_on_pi = self.parent.parent.link_pnl.run_on_pi
+        check_line = f'PATH="{self.venv_path}/bin:$PATH"'
+
+        # Command to list crontab entries
+        cmd = 'crontab -l'
+        out, error = run_on_pi(cmd)
+
+        if error:
+            msg = f"Error checking crontab: {error}"
+        else:
+            if check_line in out:
+                msg = "crontab venv path ENABLED."
+                self.cron_found = True
+            else:
+                msg = "crontab venv path NOT FOUND"
+        return msg
+
+    def bashrc_line_msg(self):
+        ''' Checks to see if the path line is in bashrc '''
+        run_on_pi = self.parent.parent.link_pnl.run_on_pi
+        check_line = f'export PATH="{self.venv_path}/bin:$PATH"'
+
+        # Command to check the contents of ~/.bashrc
+        cmd = 'cat ~/.bashrc'
+        out, error = run_on_pi(cmd)
+
+        if error:
+            msg = f"Error checking .bashrc: {error}"
+        else:
+            if check_line in out:
+                msg = ".bashrc venv path ENABLED\n"
+            else:
+                msg = ".bashrc venv path NOT FOUND\n"
+
+        # Check /etc/profile
+        cmd = 'cat /etc/profile'
+        out, error = run_on_pi(cmd)
+
+        if error:
+            msg += f"Error checking .bashrc: {error}"
+        else:
+            if check_line in out:
+                msg += "/etc/profile venv path ENABLED"
+            else:
+                msg += "/etc/profile venv path NOT FOUND"
+        return msg
+
+    # install and add config lines
+    def install_venv(self):
+        run_on_pi = self.parent.parent.link_pnl.run_on_pi
+
+        # Show a message box indicating the installation process
+        # dlg = wx.MessageDialog(None, "Installing venv...", "Info", wx.OK | wx.ICON_INFORMATION)
+        # dlg.ShowModal()
+
+        busy_info = wx.BusyInfo("Installing venv...")
+        print(f"Installing venv to {self.venv_path}")
+        wx.GetApp().Yield()
+        #wx.Yield()  # Ensure the busy dialog is shown
+
+        # Command to create a virtual environment with system site packages
+        cmd = f'python3 -m venv --system-site-packages {self.venv_path}'
+
+        out, error = run_on_pi(cmd)
+        # dlg.Destroy()
+        del busy_info
+
+        if error:
+            msg = f"Error creating virtual environment: {error}"
+            wx.MessageBox(msg, "Error", wx.OK | wx.ICON_ERROR)
+        else:
+            msg = f"Virtual environment created at {self.venv_path}."
+            wx.MessageBox(msg, "Success", wx.OK | wx.ICON_INFORMATION)
+
+    def add_to_cron(self):
+        run_on_pi = self.parent.parent.link_pnl.run_on_pi
+        path_line = f'PATH="{self.venv_path}/bin:$PATH"\n'
+
+        # List the current crontab entries
+        cmd = 'crontab -l'
+        out, error = run_on_pi(cmd)
+        if error:
+            msg = f"Error listing crontab: {error}"
+            wx.MessageBox(msg, "Error", wx.OK | wx.ICON_ERROR)
+            return
+
+        # add firts line to cron
+        cron_text = path_line + out
+
+        remote_pigrow_path = self.parent.parent.shared_data.remote_pigrow_path
+        temppath = remote_pigrow_path + 'temp/remotecron.txt'
+        self.parent.parent.link_pnl.write_textfile_to_pi( cron_text, temppath)
+        # import file into cron
+        out, error = self.parent.parent.link_pnl.run_on_pi("crontab " + temppath)
+        out, error = self.parent.parent.link_pnl.run_on_pi("rm " + temppath)
+        print("venv path added to cron")
+        wx.MessageBox("venv path added to cron", "Info", wx.OK | wx.ICON_INFORMATION)
+
+    def add_line_to_file(self, file_path, line_to_add, sudo=False):
+        run_on_pi = self.parent.parent.link_pnl.run_on_pi
+
+        # Read the contents of the target file
+        cmd = f'cat {file_path}'
+        out, error = run_on_pi(cmd)
+
+        if error:
+            msg = f"Error reading {file_path}: {error}"
+            wx.MessageBox(msg, "Error", wx.OK | wx.ICON_ERROR)
+            return
+
+        # Check if the line already exists
+        if line_to_add in out:
+            msg = f"The line is already present in {file_path}."
+            wx.MessageBox(msg, "Info", wx.OK | wx.ICON_INFORMATION)
+            return
+
+        # Append the line to the content
+        new_file_lines = out + "\n" + line_to_add + "\n"
+
+        # Write the new content to a temporary file
+        remote_pigrow_path = self.parent.parent.shared_data.remote_pigrow_path
+        temp_path = remote_pigrow_path + 'temp/new_file.txt'
+        self.parent.parent.link_pnl.write_textfile_to_pi(new_file_lines, temp_path)
+
+        # Copy the temporary file to the target file path with appropriate permissions
+        if sudo:
+            cmd = f'sudo cp {temp_path} {file_path}'
+        else:
+            cmd = f'cp {temp_path} {file_path}'
+        out, error = run_on_pi(cmd)
+
+        if error:
+            msg = f"Error updating {file_path}: {error}"
+        else:
+            msg = f"The line has been added to {file_path}."
+
+        wx.MessageBox(msg, "Info", wx.OK | wx.ICON_INFORMATION)
+
+    def on_install(self, event):
+        if self.venv_found == False:
+            self.install_venv()
+
+        if self.cron_found == False:
+            self.add_to_cron()
+
+        path_line = f'export PATH="{self.venv_path}/bin:$PATH"'
+        if self.bashrc_found == False:
+            self.add_line_to_file("~/.bashrc", path_line)
+        if self.profile_found == False:
+            self.add_line_to_file("/etc/profile", path_line, sudo=True)
+
+        # wx.MessageBox("Venv installed and enabled successfully.", "Success", wx.OK | wx.ICON_INFORMATION)
+        self.Close()
+
+    # remove config lines
+    def on_remove(self, event):
+        run_on_pi = self.parent.parent.link_pnl.run_on_pi
+
+        # remove from cron
+        self.remove_from_cron()
+
+        # Remove from .bashrc and /etc/profile
+        path_line = f'export PATH="{self.venv_path}/bin:$PATH"'
+        self.remove_line_from_file("~/.bashrc", path_line)
+        self.remove_line_from_file("/etc/profile", path_line, sudo=True)
+
+        # delete venv
+        confirm = wx.MessageDialog(self, "Do you want to delete the virtual environment?", "Confirm", wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION)
+        if confirm.ShowModal() == wx.ID_YES:
+            cmd = f"rm -rf {self.venv_path}"
+            out, error = run_on_pi(cmd)
+            if error:
+                wx.MessageBox(f"Error: {error}", "Error", wx.OK | wx.ICON_ERROR)
+                return
+            else:
+                print("Removed {self.venv_path}")
+
+        # wx.MessageBox("Venv removed successfully.", "Success", wx.OK | wx.ICON_INFORMATION)
+        self.Close()
+
+    def remove_from_cron(self):
+        run_on_pi = self.parent.parent.link_pnl.run_on_pi
+        path_line = f'PATH="{self.venv_path}/bin:$PATH"'
+
+        # List the current crontab entries
+        cmd = 'crontab -l'
+        out, error = run_on_pi(cmd)
+
+        if error:
+            msg = f"Error listing crontab: {error}"
+            wx.MessageBox(msg, "Error", wx.OK | wx.ICON_ERROR)
+            return
+
+        # Remove the line if it exists
+        cron_lines = out.splitlines()
+        new_cron_lines = ""
+        for line in cron_lines:
+            if not line == path_line:
+                new_cron_lines += line + "\n"
+
+        if len(out) == len(new_cron_lines):
+            msg = "The PATH line was not found in the crontab."
+        else:
+            remote_pigrow_path = self.parent.parent.shared_data.remote_pigrow_path
+            temppath = remote_pigrow_path + 'temp/remotecron.txt'
+            self.parent.parent.link_pnl.write_textfile_to_pi(new_cron_lines, temppath )
+            # import file into cron
+            out, error = self.parent.parent.link_pnl.run_on_pi("crontab " + temppath)
+            out, error = self.parent.parent.link_pnl.run_on_pi("rm " + temppath)
+            print("Path line removed from cron")
+            msg = "The PATH line has been removed from the crontab."
+
+        wx.MessageBox(msg, "Info", wx.OK | wx.ICON_INFORMATION)
+
+    def remove_line_from_file(self, file_path, line_to_remove, sudo=False):
+        run_on_pi = self.parent.parent.link_pnl.run_on_pi
+
+        # Read the contents of the target file
+        cmd = f'cat {file_path}'
+        out, error = run_on_pi(cmd)
+
+        if error:
+            msg = f"Error reading {file_path}: {error}"
+            wx.MessageBox(msg, "Error", wx.OK | wx.ICON_ERROR)
+            return
+
+        # Remove the line if it exists
+        file_lines = out.splitlines()
+        new_file_lines = ""
+        for line in file_lines:
+            if not line == line_to_remove:
+                new_file_lines += line + "\n"
+
+        if len(out) == len(new_file_lines):
+            msg = f"The line was not found in {file_path}."
+        else:
+            remote_pigrow_path = self.parent.parent.shared_data.remote_pigrow_path
+            temp_path = remote_pigrow_path + 'temp/new_file.txt'
+            self.parent.parent.link_pnl.write_textfile_to_pi(new_file_lines, temp_path)
+
+            # Copy temp file to the target file path with appropriate permissions
+            if sudo == True:
+                cmd = f'sudo cp {temp_path} {file_path}'
+            else:
+                cmd = f'cp {temp_path} {file_path}'
+            out, error = run_on_pi(cmd)
+
+            if error:
+                msg = f"Error updating {file_path}: {error}"
+            else:
+                msg = f"The line has been removed from {file_path}."
+
+        wx.MessageBox(msg, "Info", wx.OK | wx.ICON_INFORMATION)
+
+    # exit behaviour
+    def on_cancel(self, event):
+        self.Close()
