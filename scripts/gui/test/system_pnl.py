@@ -923,7 +923,7 @@ class install_dialog(wx.Dialog):
         self.wizard_btn = wx.Button(self, label='Set-up Wizard', size=(175, 30))
         self.wizard_btn.Bind(wx.EVT_BUTTON, self.wizard_click)
 
-        self.venv_btn = wx.Button(self, label='Enable VENV', size=(175, 30))
+        self.venv_btn = wx.Button(self, label='Config VENV (bookworm)', size=(175, 30))
         self.venv_btn.Bind(wx.EVT_BUTTON, self.venv_click)
 
         # optional install catagory text & drop down
@@ -959,8 +959,8 @@ class install_dialog(wx.Dialog):
         #main_sizer.AddStretchSpacer(1)
         #main_sizer.Add(note, 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.AddStretchSpacer(1)
-        main_sizer.Add(self.wizard_btn, 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.Add(self.venv_btn, 0, wx.ALL|wx.EXPAND, 5)
+        main_sizer.Add(self.wizard_btn, 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.AddStretchSpacer(1)
         main_sizer.Add(cat_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
         main_sizer.Add(opti_l, 0, wx.ALL|wx.EXPAND, 5)
@@ -1644,7 +1644,9 @@ class InstallProgressDialog(wx.Dialog):
 class VenvDialog(wx.Dialog):
     def __init__(self, parent):
         self.parent = parent
-        self.venv_path = "/home/robo/venvpigrow"
+        base_path = self.parent.parent.shared_data.remote_pigrow_path.replace("Pigrow/", "")
+        self.venv_path = f"{base_path}venvpigrow"
+        print(self.venv_path)
         self.venv_found = False
         self.cron_found = False
         self.bashrc_found = False
@@ -1762,14 +1764,20 @@ class VenvDialog(wx.Dialog):
         run_on_pi = self.parent.parent.link_pnl.run_on_pi
 
         # Show a message box indicating the installation process
-        #dlg = wx.MessageDialog(None, "Installing venv...", "Info", wx.OK | wx.ICON_INFORMATION)
-        #dlg.ShowModal()
-        #dlg.Destroy()
+        # dlg = wx.MessageDialog(None, "Installing venv...", "Info", wx.OK | wx.ICON_INFORMATION)
+        # dlg.ShowModal()
+
+        busy_info = wx.BusyInfo("Installing venv...")
+        print(f"Installing venv to {self.venv_path}")
+        wx.GetApp().Yield()
+        #wx.Yield()  # Ensure the busy dialog is shown
 
         # Command to create a virtual environment with system site packages
         cmd = f'python3 -m venv --system-site-packages {self.venv_path}'
 
         out, error = run_on_pi(cmd)
+        # dlg.Destroy()
+        del busy_info
 
         if error:
             msg = f"Error creating virtual environment: {error}"
@@ -1855,34 +1863,14 @@ class VenvDialog(wx.Dialog):
         if self.profile_found == False:
             self.add_line_to_file("/etc/profile", path_line, sudo=True)
 
-        # Check if venv is already installed
-        # venv_path = "/home/robo/venvpigrow"
-        # venv_check_command = f"[ -d {venv_path} ] && echo 'exists' || echo 'not_exists'"
-        # out, error = self.run_on_pi(venv_check_command)
-        #
-        # if out == 'exists':
-        #     confirm = wx.MessageDialog(self, "Venv is already installed. Do you want to delete and reinstall it?", "Confirm", wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION)
-        #     if confirm.ShowModal() == wx.ID_YES:
-        #         self.run_on_pi(f"rm -rf {venv_path}")
-        #
-        # # Install venv
-        # install_cmds = [
-        #     f"python3 -m venv {venv_path}",
-        #     f"echo 'export PATH={venv_path}/bin:$PATH' | sudo tee -a /etc/profile > /dev/null",
-        #     f"echo 'export PATH={venv_path}/bin:$PATH' >> ~/.bashrc",
-        #     "source ~/.bashrc"
-        # ]
-        # for cmd in install_cmds:
-        #     out, error = self.run_on_pi(cmd)
-        #     if error:
-        #         wx.MessageBox(f"Error: {error}", "Error", wx.OK | wx.ICON_ERROR)
-        #         return
-        #
         # wx.MessageBox("Venv installed and enabled successfully.", "Success", wx.OK | wx.ICON_INFORMATION)
-        # self.Close()
+        self.Close()
 
     # remove config lines
     def on_remove(self, event):
+        run_on_pi = self.parent.parent.link_pnl.run_on_pi
+
+        # remove from cron
         self.remove_from_cron()
 
         # Remove from .bashrc and /etc/profile
@@ -1890,22 +1878,19 @@ class VenvDialog(wx.Dialog):
         self.remove_line_from_file("~/.bashrc", path_line)
         self.remove_line_from_file("/etc/profile", path_line, sudo=True)
 
-        # confirm = wx.MessageDialog(self, "Do you want to delete the virtual environment?", "Confirm", wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION)
-        # if confirm.ShowModal() == wx.ID_YES:
-        #     venv_path = "/home/robo/venvpigrow"
-        #     remove_cmds = [
-        #         f"rm -rf {venv_path}",
-        #         f"sed -i '/export PATH={venv_path}\\/bin:$PATH/d' ~/.bashrc",
-        #         f"sudo sed -i '/export PATH={venv_path}\\/bin:$PATH/d' /etc/profile"
-        #     ]
-        #     for cmd in remove_cmds:
-        #         out, error = self.run_on_pi(cmd)
-        #         if error:
-        #             wx.MessageBox(f"Error: {error}", "Error", wx.OK | wx.ICON_ERROR)
-        #             return
+        # delete venv
+        confirm = wx.MessageDialog(self, "Do you want to delete the virtual environment?", "Confirm", wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION)
+        if confirm.ShowModal() == wx.ID_YES:
+            cmd = f"rm -rf {self.venv_path}"
+            out, error = run_on_pi(cmd)
+            if error:
+                wx.MessageBox(f"Error: {error}", "Error", wx.OK | wx.ICON_ERROR)
+                return
+            else:
+                print("Removed {self.venv_path}")
 
-            # wx.MessageBox("Venv removed successfully.", "Success", wx.OK | wx.ICON_INFORMATION)
-            #self.Close()
+        # wx.MessageBox("Venv removed successfully.", "Success", wx.OK | wx.ICON_INFORMATION)
+        self.Close()
 
     def remove_from_cron(self):
         run_on_pi = self.parent.parent.link_pnl.run_on_pi
