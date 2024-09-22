@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 import sys
 
 class sensor_config():
@@ -7,9 +7,9 @@ class sensor_config():
         print("connection_type=i2c")
         print("connection_address_list=0x44,0x45")
         print("default_connection_address=0x44")
-        
-        
-        
+
+
+
 def read_sensor(location=""):
     # Try importing the modules then give-up and report to user if it fails
     import datetime
@@ -43,7 +43,7 @@ def read_sensor(location=""):
 
 if __name__ == '__main__':
       '''
-      Not implemented: The sht31d can be configured to enable the heater 
+      Not implemented: The sht31d can be configured to enable the heater
       Implemented: and switch addresses between 0x44 and 0x45'''
      # check for command line arguments
     sensor_location = ""
