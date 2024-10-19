@@ -2,6 +2,7 @@ import wx
 import wx.grid as gridlib
 import wx.lib.scrolledpanel as scrolled
 import os
+import json
 
 class ctrl_pnl(wx.Panel):
     def __init__(self, parent):
@@ -28,8 +29,11 @@ class ctrl_pnl(wx.Panel):
         self.add_btn = wx.Button(self, label="Add Dataset")
         self.main_sizer.Add(self.add_btn, 0, wx.ALIGN_LEFT | wx.ALL, 5)
 
-        # Bind button event for adding datasets
+        self.read_caps_json = wx.Button(self, label="Read caps JSON")
+        self.main_sizer.Add(self.read_caps_json, 0, wx.ALIGN_LEFT | wx.ALL, 5)
+
         self.add_btn.Bind(wx.EVT_BUTTON, self.on_add_dataset)
+        self.read_caps_json.Bind(wx.EVT_BUTTON, self.on_read_caps_json)
 
         # Set the sizer
         self.SetSizer(self.main_sizer)
@@ -186,7 +190,13 @@ class ctrl_pnl(wx.Panel):
         # Refresh the table to show the new dataset
         self.refresh_table()
 
-
+    def on_read_caps_json(self, event):
+        self.caps_dbox = CapsDataDialog(self)
+        self.caps_dbox.ShowModal()
+        if self.caps_dbox:
+            if not self.caps_dbox.IsBeingDeleted():
+                self.caps_dbox.Destroy()
+        self.refresh_table()
 
 
 class info_pnl(scrolled.ScrolledPanel):
@@ -213,3 +223,211 @@ class info_pnl(scrolled.ScrolledPanel):
         main_sizer.AddStretchSpacer(1)
         self.SetSizer(main_sizer)
         self.SetupScrolling()
+
+
+import wx
+import os
+import json
+
+class CapsDataDialog(wx.Dialog):
+    def __init__(self, parent, *args, **kw):
+        super(CapsDataDialog, self).__init__(parent, *args, **kw)
+        self.parent = parent
+        self.base_path = None  # To store the base path of the selected file
+
+        timelapse_set = parent.parent.dict_C_pnl['timelapse_pnl'].trimmed_frame_list
+
+        # Initialize the caps_set
+        if timelapse_set:
+            self.caps_set = timelapse_set
+        else:
+            self.caps_set = []
+
+        # UI initialization
+        self.init_ui()
+
+        # After UI elements are created, set initial data
+        if timelapse_set:
+            self.update_caps_display()
+
+    def init_ui(self):
+        vbox = wx.BoxSizer(wx.VERTICAL)
+
+        # Caps Set display (first item and length)
+        self.caps_display = wx.TextCtrl(self, value="", style=wx.TE_READONLY)
+        vbox.Add(self.caps_display, flag=wx.EXPAND | wx.ALL, border=5)
+
+        # Button to select a new cap set
+        select_caps_btn = wx.Button(self, label="Select Caps Set")
+        select_caps_btn.Bind(wx.EVT_BUTTON, self.on_select_caps_set)
+        vbox.Add(select_caps_btn, flag=wx.EXPAND | wx.ALL, border=5)
+
+        # Dropdown for JSON keys (empty initially)
+        self.json_key_choice = wx.Choice(self)
+        vbox.Add(self.json_key_choice, flag=wx.EXPAND | wx.ALL, border=5)
+
+        # Buttons for "Read JSON Files" and "Save in Log Format"
+        read_json_btn = wx.Button(self, label="Read JSON Files")
+        read_json_btn.Bind(wx.EVT_BUTTON, self.on_read_json_files)
+        vbox.Add(read_json_btn, flag=wx.EXPAND | wx.ALL, border=5)
+
+        save_log_btn = wx.Button(self, label="Save in Log Format")
+        save_log_btn.Bind(wx.EVT_BUTTON, self.on_save_in_log_format)
+        vbox.Add(save_log_btn, flag=wx.EXPAND | wx.ALL, border=5)
+
+        # Add "Add Dataset" and "Cancel" buttons
+        add_dataset_btn = wx.Button(self, label="Add Dataset")
+        add_dataset_btn.Bind(wx.EVT_BUTTON, self.on_add_dataset)
+        vbox.Add(add_dataset_btn, flag=wx.EXPAND | wx.ALL, border=5)
+
+        cancel_btn = wx.Button(self, label="Cancel")
+        cancel_btn.Bind(wx.EVT_BUTTON, self.on_cancel)
+        vbox.Add(cancel_btn, flag=wx.EXPAND | wx.ALL, border=5)
+
+        self.SetSizer(vbox)
+        self.SetTitle("Caps Data Dialog")
+        self.Fit()
+
+    def update_caps_display(self):
+        """Update the caps set display text box."""
+        if self.caps_set:
+            self.caps_display.SetValue(f"{self.caps_set[0]} ({len(self.caps_set)} items)")
+        else:
+            self.caps_display.SetValue("No caps set selected")
+
+        # Update JSON key choices after selecting a new caps set
+        self.json_keys = self.get_json_keys()
+        self.json_key_choice.SetItems(self.json_keys)
+
+    def get_json_keys(self):
+        """Get the keys from the first JSON file in caps_set."""
+        if self.caps_set and self.base_path:
+            first_file = os.path.join(self.base_path, self.caps_set[0])
+            with open(first_file, 'r') as f:
+                data = json.load(f)
+            return list(data.keys())
+        return []
+
+    def select_caps_set(self, e=None):
+        frompi_path = self.parent.parent.shared_data.frompi_path
+
+        # Open dialog box to select JSON file
+        with wx.FileDialog(self, "Select JSON file", defaultDir=frompi_path, wildcard="JSON files (*.json)|*.json", style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST) as fileDialog:
+            if fileDialog.ShowModal() == wx.ID_CANCEL:
+                return
+
+            # Proceed to select the file
+            file_path = fileDialog.GetPath()
+            self.base_path, filename = os.path.split(file_path)  # Store base path
+            cap_set = filename.split("_")[0]
+
+            # Get a list of all files that match {base_path}/{cap_set}_*.json
+            files = [f for f in os.listdir(self.base_path) if f.startswith(cap_set) and f.endswith(".json")]
+
+            self.caps_set = files
+            self.update_caps_display()
+
+    def on_read_json_files(self, e=None):
+        if not self.base_path:
+            wx.MessageBox("Please select a caps set first.", "Error", wx.OK | wx.ICON_ERROR)
+            return
+
+        date_from_filename = self.parent.parent.dict_I_pnl['timelapse_pnl'].date_from_filename
+        selected_key = self.json_key_choice.GetStringSelection()
+
+        data_tuples = []
+        for file in self.caps_set:
+            file_path = os.path.join(self.base_path, file)
+            with open(file_path, 'r') as f:
+                data = json.load(f)
+            value = data.get(selected_key, None)
+            date = date_from_filename(file)
+            data_tuples.append((date[1], value))
+
+        data_tuples = sorted(data_tuples, key=lambda x: x[0])
+        self.data_tuples = data_tuples
+
+    def on_save_in_log_format(self, e=None):
+        if not hasattr(self, 'data_tuples'):
+            wx.MessageBox("Please read the JSON files first.", "Error", wx.OK | wx.ICON_ERROR)
+            return
+
+        # Ask user to select a save location and filename
+        with wx.FileDialog(self, "Save log file", wildcard="Text files (*.txt)|*.txt", style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT) as saveDialog:
+            if saveDialog.ShowModal() == wx.ID_CANCEL:
+                return
+
+            save_path = saveDialog.GetPath()
+
+            # Construct the log format
+            selected_key = self.json_key_choice.GetStringSelection()
+            log_str = ""
+            for date, value in self.data_tuples:
+                log_str += f"date={str(date)}>{selected_key}={value}\n"
+
+            # Save the string to the location the user gave
+            with open(save_path, 'w') as log_file:
+                log_file.write(log_str)
+
+    def on_add_dataset(self, e=None):
+        if not hasattr(self, 'data_tuples'):
+            wx.MessageBox("Please read the JSON files first.", "Error", wx.OK | wx.ICON_ERROR)
+            return
+
+        selected_key = self.json_key_choice.GetStringSelection()
+        set1 = [self.caps_set[0], selected_key, self.data_tuples]
+        self.parent.loaded_datasets.append(set1)
+        self.Close()
+
+    def on_cancel(self, e=None):
+        self.Close()
+
+    def on_select_caps_set(self, e=None):
+        self.select_caps_set()
+
+# class caps_data_dialog(wx,Dialog):
+#     def __init__(self, parent, *args, **kw):
+#         self.parent = parent
+#         timelapse_set = parent.parent.dict_C_pnl['timelapse_pnl'].trimmed_frame_list
+#         if timelapse_set:
+#             self.caps_set = timelapse_set
+#         else:
+#             self.caps_set = self.select_caps_set()
+#         json_keys = # get list of all keys in selected json file
+#
+#         # create a text box displaying the currently selected caps_set's first item and length of list
+#         # beside that have a button which runs select_caps_set and changes value of cap set box, recalculates json keys
+#         # have a dropdown box below that with a choice of all avilable json keys
+#         # have a button below that 'read json files' that run on_read_json_files
+#         # below that a button 'save in log format' on_save_in_log_format
+#         # at the bottom there are two buttons 'add dataset' and 'cancel'
+#
+#
+#
+#     def select_caps_set(self, e=None):
+#         frompi_path = self.parent.parent.shared_data.frompi_path
+#         # open dialog box to select json file
+#         # default path for dialog box is frompi path.
+#
+#         base_path, filename = os.path.split(file_path)
+#         cap_set = filename.split("_")[0]
+#         # get a list of all files that match {base_path}/{cap_set}_*.json
+#         # return list
+#
+#     def on_read_json_files(self, e=None):
+#         date_from_file = self.parent.parent.dict_I_pnl['timelapse_pnl']
+#         # for every item in the json files list
+#         # read the file and extract the value of the item
+#         # read the date from the filename using;
+#         date = date_from_file(filename)
+#         # create list of tuples [(date, value), (date, value), (date, value)]
+#
+#     def on_save_in_log_format(self, e=None):
+#         # ask user to select a save location and filename
+#         # cycle trough each item in self.caps_Set
+#         # make a string adding "date={item[1]}, {selected_json_key}={value}\n"
+#         # save the sring to the locaion the user gave
+#
+#     def on_add_dataset(self, e=None):
+#         set1 = [{path_to_json_file}, {selected_key}, {list_of_dates_and_values}]
+#         self.parent.loaded_datasets.append(set1)
