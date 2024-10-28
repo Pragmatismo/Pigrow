@@ -29,14 +29,24 @@ class ctrl_pnl(wx.Panel):
         self.add_btn = wx.Button(self, label="Add Dataset")
         self.main_sizer.Add(self.add_btn, 0, wx.ALIGN_LEFT | wx.ALL, 5)
 
+        # Button to toggle Load Log panel
+        self.toggle_load_log_btn = wx.Button(self, label="Load Log")
+        self.main_sizer.Add(self.toggle_load_log_btn, 0, wx.ALIGN_LEFT | wx.ALL, 5)
+
         self.read_caps_json = wx.Button(self, label="Read caps JSON")
         self.main_sizer.Add(self.read_caps_json, 0, wx.ALIGN_LEFT | wx.ALL, 5)
 
         self.add_btn.Bind(wx.EVT_BUTTON, self.on_add_dataset)
+        self.toggle_load_log_btn.Bind(wx.EVT_BUTTON, self.on_toggle_load_log)
         self.read_caps_json.Bind(wx.EVT_BUTTON, self.on_read_caps_json)
 
         # Set the sizer
         self.SetSizer(self.main_sizer)
+
+    def on_toggle_load_log(self, event):
+        """Toggle the visibility of the Load Log panel in info_pnl."""
+        i_pnl = self.parent.dict_I_pnl['graphs_pnl']
+        i_pnl.toggle_load_log_panel()
 
     def create_datasets_table(self):
         # Create a panel to hold the dataset table
@@ -200,34 +210,41 @@ class ctrl_pnl(wx.Panel):
 
 
 class info_pnl(scrolled.ScrolledPanel):
-    def __init__( self, parent ):
+    def __init__(self, parent):
         self.parent = parent
         self.shared_data = parent.shared_data
         self.c_pnl = parent.dict_C_pnl['graphs_pnl']
         w = 1000
-        wx.Panel.__init__ ( self, parent, size = (w,-1), id = wx.ID_ANY, style = wx.TAB_TRAVERSAL )
+        wx.Panel.__init__(self, parent, size=(w, -1), id=wx.ID_ANY, style=wx.TAB_TRAVERSAL)
 
         # Tab Title
         self.SetFont(self.shared_data.title_font)
-        title_l = wx.StaticText(self,  label='Graphs')
+        title_l = wx.StaticText(self, label='Graphs')
         self.SetFont(self.shared_data.sub_title_font)
-        sub_title_text = "This will be where graphs are made, at the moment you still need to use the older gui. "
-        page_sub_title =  wx.StaticText(self,  label=sub_title_text)
-
-
+        sub_title_text = "This will be where graphs are made, at the moment you still need to use the older gui."
+        page_sub_title = wx.StaticText(self, label=sub_title_text)
 
         # Main Sizer
-        main_sizer = wx.BoxSizer(wx.VERTICAL)
-        main_sizer.Add(title_l, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
-        main_sizer.Add(page_sub_title, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
-        main_sizer.AddStretchSpacer(1)
-        self.SetSizer(main_sizer)
+        self.main_sizer = wx.BoxSizer(wx.VERTICAL)
+        self.main_sizer.Add(title_l, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
+        self.main_sizer.Add(page_sub_title, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
+
+        # Load Log Panel (initially hidden)
+        self.load_log_pnl = LoadLogPanel(self)
+        self.load_log_pnl.Hide()
+        self.main_sizer.Add(self.load_log_pnl, 0, wx.EXPAND | wx.ALL, 5)
+
+        self.SetSizer(self.main_sizer)
         self.SetupScrolling()
 
+    def toggle_load_log_panel(self):
+        """Show or hide the Load Log panel."""
+        if self.load_log_pnl.IsShown():
+            self.load_log_pnl.Hide()
+        else:
+            self.load_log_pnl.Show()
+        self.main_sizer.Layout()
 
-import wx
-import os
-import json
 
 class CapsDataDialog(wx.Dialog):
     def __init__(self, parent, *args, **kw):
@@ -385,49 +402,277 @@ class CapsDataDialog(wx.Dialog):
     def on_select_caps_set(self, e=None):
         self.select_caps_set()
 
-# class caps_data_dialog(wx,Dialog):
-#     def __init__(self, parent, *args, **kw):
-#         self.parent = parent
-#         timelapse_set = parent.parent.dict_C_pnl['timelapse_pnl'].trimmed_frame_list
-#         if timelapse_set:
-#             self.caps_set = timelapse_set
-#         else:
-#             self.caps_set = self.select_caps_set()
-#         json_keys = # get list of all keys in selected json file
-#
-#         # create a text box displaying the currently selected caps_set's first item and length of list
-#         # beside that have a button which runs select_caps_set and changes value of cap set box, recalculates json keys
-#         # have a dropdown box below that with a choice of all avilable json keys
-#         # have a button below that 'read json files' that run on_read_json_files
-#         # below that a button 'save in log format' on_save_in_log_format
-#         # at the bottom there are two buttons 'add dataset' and 'cancel'
-#
-#
-#
-#     def select_caps_set(self, e=None):
-#         frompi_path = self.parent.parent.shared_data.frompi_path
-#         # open dialog box to select json file
-#         # default path for dialog box is frompi path.
-#
-#         base_path, filename = os.path.split(file_path)
-#         cap_set = filename.split("_")[0]
-#         # get a list of all files that match {base_path}/{cap_set}_*.json
-#         # return list
-#
-#     def on_read_json_files(self, e=None):
-#         date_from_file = self.parent.parent.dict_I_pnl['timelapse_pnl']
-#         # for every item in the json files list
-#         # read the file and extract the value of the item
-#         # read the date from the filename using;
-#         date = date_from_file(filename)
-#         # create list of tuples [(date, value), (date, value), (date, value)]
-#
-#     def on_save_in_log_format(self, e=None):
-#         # ask user to select a save location and filename
-#         # cycle trough each item in self.caps_Set
-#         # make a string adding "date={item[1]}, {selected_json_key}={value}\n"
-#         # save the sring to the locaion the user gave
-#
-#     def on_add_dataset(self, e=None):
-#         set1 = [{path_to_json_file}, {selected_key}, {list_of_dates_and_values}]
-#         self.parent.loaded_datasets.append(set1)
+import datetime
+import time
+
+class LoadLogPanel(wx.Panel):
+    def __init__(self, parent):
+        super(LoadLogPanel, self).__init__(parent)
+        self.parent = parent  # Reference to info_pnl
+        self.c_pnl = parent.c_pnl  # Reference to ctrl_pnl
+        self.init_ui()
+
+    def init_ui(self):
+        main_sizer = wx.BoxSizer(wx.VERTICAL)
+
+        # Title label 'Load Log' justified left
+        title_label = wx.StaticText(self, label="Load Log")
+        main_sizer.Add(title_label, 0, wx.ALIGN_LEFT | wx.ALL, 5)
+
+        # Buttons 'load from pi' and 'load local' beside each other
+        button_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.load_from_pi_btn = wx.Button(self, label="Load from Pi")
+        self.load_local_btn = wx.Button(self, label="Load Local")
+        button_sizer.Add(self.load_from_pi_btn, 0, wx.ALL, 5)
+        button_sizer.Add(self.load_local_btn, 0, wx.ALL, 5)
+        main_sizer.Add(button_sizer, 0, wx.ALIGN_LEFT)
+
+        # Bind events
+        self.load_from_pi_btn.Bind(wx.EVT_BUTTON, self.on_load_from_pi)
+        self.load_local_btn.Bind(wx.EVT_BUTTON, self.on_load_local)
+
+        # Log info display
+        self.log_info_text = wx.StaticText(self, label="")
+        main_sizer.Add(self.log_info_text, 0, wx.ALIGN_LEFT | wx.ALL, 5)
+
+        # Split Character and KV Split Character text boxes
+        split_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        split_char_label = wx.StaticText(self, label="Split Character:")
+        self.split_char_text = wx.TextCtrl(self, value="", style=wx.TE_READONLY)
+        kv_split_char_label = wx.StaticText(self, label="KV Split Character:")
+        self.kv_split_char_text = wx.TextCtrl(self, value="", style=wx.TE_READONLY)
+        split_sizer.Add(split_char_label, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
+        split_sizer.Add(self.split_char_text, 0, wx.ALL, 5)
+        split_sizer.Add(kv_split_char_label, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
+        split_sizer.Add(self.kv_split_char_text, 0, wx.ALL, 5)
+        main_sizer.Add(split_sizer, 0, wx.ALIGN_LEFT)
+
+        # Date information display
+        date_info_sizer = wx.BoxSizer(wx.VERTICAL)
+        self.date_info_text = wx.StaticText(self, label="")
+        date_info_sizer.Add(self.date_info_text, 0, wx.ALIGN_LEFT | wx.ALL, 5)
+        main_sizer.Add(date_info_sizer, 0, wx.ALIGN_LEFT)
+
+        # Dropdown box for available keys
+        key_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        key_label = wx.StaticText(self, label="Available Keys:")
+        self.key_choice = wx.Choice(self)
+        self.key_value_text = wx.StaticText(self, label="")
+        key_sizer.Add(key_label, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
+        key_sizer.Add(self.key_choice, 0, wx.ALL, 5)
+        key_sizer.Add(self.key_value_text, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
+        main_sizer.Add(key_sizer, 0, wx.ALIGN_LEFT)
+
+        # Bind event for key_choice
+        self.key_choice.Bind(wx.EVT_CHOICE, self.on_key_selected)
+
+        # 'Load Data' button
+        self.load_data_btn = wx.Button(self, label="Load Data")
+        main_sizer.Add(self.load_data_btn, 0, wx.ALIGN_LEFT | wx.ALL, 5)
+        self.load_data_btn.Bind(wx.EVT_BUTTON, self.on_load_data)
+
+        self.SetSizer(main_sizer)
+
+    def on_load_from_pi(self, event):
+        wx.MessageBox("Loading logs from Pi not yet coded", "Info", wx.OK | wx.ICON_INFORMATION)
+
+    def on_load_local(self, event):
+        # Open file dialog to select a file
+        with wx.FileDialog(self, "Open Log File", wildcard="Log files (*.txt;*.log)|*.txt;*.log|All files|*.*",
+                           style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST) as fileDialog:
+            if fileDialog.ShowModal() == wx.ID_CANCEL:
+                return
+            # Proceed to load the file
+            path = fileDialog.GetPath()
+            self.load_log_file(path)
+
+    def load_log_file(self, path):
+        try:
+            with open(path, 'r') as f:
+                self.lines = f.readlines()
+            self.log_title = os.path.basename(path)
+            # Display log title and first and last lines
+            first_line = self.lines[0].strip()
+            last_line = self.lines[-1].strip()
+            log_info = f"{self.log_title}:\n    {first_line}\n    {last_line}"
+            self.log_info_text.SetLabel(log_info)
+            # Proceed to identify split characters
+            self.identify_split_characters()
+        except Exception as e:
+            wx.MessageBox(f"Failed to load log file: {e}", "Error", wx.OK | wx.ICON_ERROR)
+
+    def identify_split_characters(self):
+        """Identify the split character and KV split character."""
+        first_line = self.lines[0].strip()
+        split_char_candidates = ['>', ',', ';', '|', ' ']
+        kv_split_char_candidates = ['=', ':']
+        found = False
+        for sc in split_char_candidates:
+            fields = first_line.split(sc)
+            if len(fields) > 1:
+                for kv_sc in kv_split_char_candidates:
+                    date_field = self.find_date_field(fields, kv_sc)
+                    if date_field is not None:
+                        self.split_char = sc
+                        self.kv_split_char = kv_sc
+                        self.split_char_text.SetValue(self.split_char)
+                        self.kv_split_char_text.SetValue(self.kv_split_char)
+                        found = True
+                        break
+                if found:
+                    break
+        if found:
+            # Now extract all keys
+            self.extract_keys()
+        else:
+            wx.MessageBox("Failed to identify split characters and date field.", "Error", wx.OK | wx.ICON_ERROR)
+
+    def find_date_field(self, fields, kv_sc):
+        """Find the field containing the date."""
+        for field in fields:
+            if kv_sc in field:
+                key, value = field.split(kv_sc, 1)
+                if self.is_date(value):
+                    self.date_key = key
+                    return field
+            else:
+                if self.is_date(field):
+                    self.date_key = None
+                    return field
+        return None
+
+    def is_date(self, text):
+        """Check if a text string is a date."""
+        try:
+            # Try to parse as a Unix timestamp
+            timestamp = float(text)
+            datetime.datetime.fromtimestamp(timestamp)
+            return True
+        except:
+            pass
+        # Try common date formats
+        date_formats = ["%Y-%m-%d %H:%M:%S.%f", "%Y-%m-%d %H:%M:%S",
+                        "%d/%m/%Y %H:%M:%S", "%d/%m/%Y %H:%M:%S.%f"]
+        for fmt in date_formats:
+            try:
+                datetime.datetime.strptime(text, fmt)
+                return True
+            except:
+                pass
+        return False
+
+    def extract_keys(self):
+        """Extract keys from the first line."""
+        first_line = self.lines[0].strip()
+        fields = first_line.split(self.split_char)
+        keys = []
+        for field in fields:
+            if self.kv_split_char in field:
+                key, value = field.split(self.kv_split_char, 1)
+                keys.append(key)
+        self.keys = keys
+        self.key_choice.SetItems(keys)
+        self.key_choice.SetSelection(0)
+        self.extract_dates()
+
+    def extract_dates(self):
+        """Extract dates from all lines."""
+        self.dates = []
+        self.data_lines = []
+        for line in self.lines:
+            line = line.strip()
+            fields = line.split(self.split_char)
+            date_found = False
+            for field in fields:
+                if self.kv_split_char in field:
+                    key, value = field.split(self.kv_split_char, 1)
+                    if key == self.date_key or self.date_key is None:
+                        date = self.parse_date(value)
+                        if date:
+                            self.dates.append(date)
+                            date_found = True
+                            self.data_lines.append(line)
+                            break
+                else:
+                    if self.date_key is None:
+                        date = self.parse_date(field)
+                        if date:
+                            self.dates.append(date)
+                            date_found = True
+                            self.data_lines.append(line)
+                            break
+            if not date_found:
+                continue  # Skip lines without date
+        if self.dates:
+            first_date = self.dates[0]
+            last_date = self.dates[-1]
+            duration = last_date - first_date
+            date_info = f"First Date: {first_date}\nLast Date: {last_date}\nDuration: {duration}"
+            self.date_info_text.SetLabel(date_info)
+        else:
+            self.date_info_text.SetLabel("No dates found.")
+
+    def parse_date(self, text):
+        """Parse a date from text."""
+        try:
+            timestamp = float(text)
+            date = datetime.datetime.fromtimestamp(timestamp)
+            return date
+        except:
+            pass
+        date_formats = ["%Y-%m-%d %H:%M:%S.%f", "%Y-%m-%d %H:%M:%S",
+                        "%d/%m/%Y %H:%M:%S", "%d/%m/%Y %H:%M:%S.%f"]
+        for fmt in date_formats:
+            try:
+                date = datetime.datetime.strptime(text, fmt)
+                return date
+            except:
+                pass
+        return None
+
+    def on_key_selected(self, event):
+        selected_key = self.key_choice.GetStringSelection()
+        # Get the value of that key in the first line
+        first_line = self.lines[0].strip()
+        fields = first_line.split(self.split_char)
+        value = None
+        for field in fields:
+            if self.kv_split_char in field:
+                key, val = field.split(self.kv_split_char, 1)
+                if key == selected_key:
+                    value = val
+                    break
+        if value:
+            self.key_value_text.SetLabel(f"Value: {value}")
+        else:
+            self.key_value_text.SetLabel("Value not found.")
+
+    def on_load_data(self, event):
+        """Load data and add to ctrl_pnl."""
+        selected_key = self.key_choice.GetStringSelection()
+        data_tuples = []
+        for line in self.data_lines:
+            line = line.strip()
+            fields = line.split(self.split_char)
+            date = None
+            value = None
+            for field in fields:
+                if self.kv_split_char in field:
+                    key, val = field.split(self.kv_split_char, 1)
+                    if key == selected_key:
+                        value = val
+                    if key == self.date_key or self.date_key is None:
+                        date = self.parse_date(val)
+                else:
+                    if self.date_key is None:
+                        date = self.parse_date(field)
+            if date and value is not None:
+                try:
+                    data_tuples.append((date, float(value)))
+                except ValueError:
+                    continue  # Skip lines where value cannot be converted to float
+        # Add the dataset to ctrl_pnl
+        set1 = [self.log_title, selected_key, data_tuples]
+        self.c_pnl.loaded_datasets.append(set1)
+        self.c_pnl.refresh_table()
+        wx.MessageBox("Data loaded successfully.", "Info", wx.OK | wx.ICON_INFORMATION)
