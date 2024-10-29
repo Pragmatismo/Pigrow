@@ -1,8 +1,12 @@
 import wx
 import wx.grid as gridlib
+import wx.adv
 import wx.lib.scrolledpanel as scrolled
 import os
 import json
+import datetime
+import time
+
 
 class ctrl_pnl(wx.Panel):
     def __init__(self, parent):
@@ -55,7 +59,7 @@ class ctrl_pnl(wx.Panel):
 
         # Create the grid to display datasets
         self.grid = gridlib.Grid(self.table_panel)
-        self.grid.CreateGrid(1, 3)  # Create grid with 3 columns, 1 empty row initially
+        self.grid.CreateGrid(1, 4)  # Create grid with 3 columns, 1 empty row initially
 
         # Hide the row and column labels
         self.grid.HideRowLabels()
@@ -74,15 +78,17 @@ class ctrl_pnl(wx.Panel):
         self.grid.SetColSize(0, 200)  # File Name
         self.grid.SetColSize(1, 100)  # Key
         self.grid.SetColSize(2, 50)   # Length
+        self.grid.SetColSize(3, 80)   # Trimmed Length
 
-        # Center align text in "Key" and "Length" columns
-        self.grid.SetColAttr(1, wx.grid.GridCellAttr().SetAlignment(wx.ALIGN_CENTER, wx.ALIGN_CENTER))
-        self.grid.SetColAttr(2, wx.grid.GridCellAttr().SetAlignment(wx.ALIGN_CENTER, wx.ALIGN_CENTER))
+        # Center align text in "Key", "Length", and "Trimmed Length" columns
+        for col in [1, 2, 3]:
+            self.grid.SetColAttr(col, wx.grid.GridCellAttr().SetAlignment(wx.ALIGN_CENTER, wx.ALIGN_CENTER))
 
         # Start with empty fields
         self.grid.SetCellValue(0, 0, "")
         self.grid.SetCellValue(0, 1, "")
         self.grid.SetCellValue(0, 2, "")
+        self.grid.SetCellValue(0, 3, "")
 
         # Add the grid to the panel
         panel_sizer.Add(self.grid, 1, wx.EXPAND)
@@ -100,6 +106,8 @@ class ctrl_pnl(wx.Panel):
         self.delete_btn.Bind(wx.EVT_BUTTON, self.on_delete)
         self.up_btn.Bind(wx.EVT_BUTTON, self.on_move_up)
 
+        self.grid.Bind(wx.grid.EVT_GRID_CELL_LEFT_DCLICK, self.on_cell_dclick)
+
         # Add the buttons to the panel sizer
         panel_sizer.Add(button_sizer, 0, wx.ALIGN_CENTER)
 
@@ -108,6 +116,15 @@ class ctrl_pnl(wx.Panel):
 
         self.table_panel.SetSizer(panel_sizer)
         return self.table_panel
+
+    def on_cell_dclick(self, event):
+        row = event.GetRow()
+        if row < len(self.loaded_datasets):
+            dataset = self.loaded_datasets[row]
+            i_pnl = self.parent.dict_I_pnl['graphs_pnl']
+            i_pnl.show_duration_select_panel(dataset)
+        event.Skip()
+
 
     def adjust_table_size(self):
         """Adjust the table height dynamically based on the number of rows."""
@@ -175,15 +192,20 @@ class ctrl_pnl(wx.Panel):
         self.grid.AppendRows(len(self.loaded_datasets))  # Add the number of rows we need
 
         for i, dataset in enumerate(self.loaded_datasets):
-            file_path, key, data = dataset
+            file_path = dataset['file_path']
+            key = dataset['key']
+            data = dataset['data']
+            trimmed_data = dataset['trimmed_data']
 
-            # Use os.path to handle file name and extension
-            filename = os.path.splitext(os.path.basename(file_path))[0]  # Remove path and extension
-            length = len(data)  # Get the length of the dataset
+            filename = os.path.splitext(os.path.basename(file_path))[0]
+            length = len(data)
+            trimmed_length = len(trimmed_data)
 
             self.grid.SetCellValue(i, 0, filename)
             self.grid.SetCellValue(i, 1, key)
             self.grid.SetCellValue(i, 2, str(length))
+            self.grid.SetCellValue(i, 3, str(trimmed_length))
+
 
         self.grid.AutoSizeColumns()  # Adjust column sizes
         self.adjust_table_size()  # Adjust table size after refreshing
@@ -191,11 +213,23 @@ class ctrl_pnl(wx.Panel):
     def on_add_dataset(self, event):
         """Add dataset to the table (simulates loading a dataset)."""
         if len(self.loaded_datasets) == 0:
-            set1 = ["./logs/sensorbank/sensor1.txt", "height", [("10:00", 1), ("11:00", 3), ("12:00", 2)]]
-            self.loaded_datasets.append(set1)
-        elif len(self.loaded_datasets) > 0:
-            set2 = ["./logs/sensorbank/sensor2.txt", "speed", [("10:00", 1), ("11:00", 3), ("12:00", 2), ("13:00", 3)]]
-            self.loaded_datasets.append(set2)
+            data = [("10:00", 1), ("11:00", 3), ("12:00", 2)]
+            dataset = {
+                'file_path': "./logs/sensorbank/sensor1.txt",
+                'key': "height",
+                'data': data,
+                'trimmed_data': data,
+            }
+            self.loaded_datasets.append(dataset)
+        else:
+            data = [("10:00", 1), ("11:00", 3), ("12:00", 2), ("13:00", 3)]
+            dataset = {
+                'file_path': "./logs/sensorbank/sensor2.txt",
+                'key': "speed",
+                'data': data,
+                'trimmed_data': data,
+            }
+            self.loaded_datasets.append(dataset)
 
         # Refresh the table to show the new dataset
         self.refresh_table()
@@ -234,8 +268,20 @@ class info_pnl(scrolled.ScrolledPanel):
         self.load_log_pnl.Hide()
         self.main_sizer.Add(self.load_log_pnl, 0, wx.EXPAND | wx.ALL, 5)
 
+        # Duration Select Panel (initially hidden)
+        self.duration_select_pnl = DurationSelectPanel(self)
+        self.duration_select_pnl.Hide()
+        self.main_sizer.Add(self.duration_select_pnl, 0, wx.EXPAND | wx.ALL, 5)
+
+
         self.SetSizer(self.main_sizer)
         self.SetupScrolling()
+
+    def show_duration_select_panel(self, dataset):
+        """Show the Duration Select panel for the given dataset."""
+        self.duration_select_pnl.load_dataset(dataset)
+        self.duration_select_pnl.Show()
+        self.main_sizer.Layout()
 
     def toggle_load_log_panel(self):
         """Show or hide the Load Log panel."""
@@ -392,9 +438,15 @@ class CapsDataDialog(wx.Dialog):
             return
 
         selected_key = self.json_key_choice.GetStringSelection()
-        set1 = [self.caps_set[0], selected_key, self.data_tuples]
-        self.parent.loaded_datasets.append(set1)
+        dataset = {
+            'file_path': self.caps_set[0],
+            'key': selected_key,
+            'data': self.data_tuples,
+            'trimmed_data': self.data_tuples,
+        }
+        self.parent.loaded_datasets.append(dataset)
         self.Close()
+
 
     def on_cancel(self, e=None):
         self.Close()
@@ -402,8 +454,6 @@ class CapsDataDialog(wx.Dialog):
     def on_select_caps_set(self, e=None):
         self.select_caps_set()
 
-import datetime
-import time
 
 class LoadLogPanel(wx.Panel):
     def __init__(self, parent):
@@ -485,6 +535,7 @@ class LoadLogPanel(wx.Panel):
             # Proceed to load the file
             path = fileDialog.GetPath()
             self.load_log_file(path)
+        self.Layout()
 
     def load_log_file(self, path):
         try:
@@ -611,6 +662,9 @@ class LoadLogPanel(wx.Panel):
             self.date_info_text.SetLabel(date_info)
         else:
             self.date_info_text.SetLabel("No dates found.")
+        self.Layout()
+        self.Fit()
+
 
     def parse_date(self, text):
         """Parse a date from text."""
@@ -646,6 +700,7 @@ class LoadLogPanel(wx.Panel):
             self.key_value_text.SetLabel(f"Value: {value}")
         else:
             self.key_value_text.SetLabel("Value not found.")
+        self.Layout()
 
     def on_load_data(self, event):
         """Load data and add to ctrl_pnl."""
@@ -671,8 +726,249 @@ class LoadLogPanel(wx.Panel):
                     data_tuples.append((date, float(value)))
                 except ValueError:
                     continue  # Skip lines where value cannot be converted to float
+
         # Add the dataset to ctrl_pnl
-        set1 = [self.log_title, selected_key, data_tuples]
-        self.c_pnl.loaded_datasets.append(set1)
+        dataset = {
+            'file_path': self.log_title,
+            'key': selected_key,
+            'data': data_tuples,
+            'trimmed_data': data_tuples,  # Initially same as data
+        }
+        self.c_pnl.loaded_datasets.append(dataset)
         self.c_pnl.refresh_table()
+
+        # Show Duration Select panel
+        self.parent.show_duration_select_panel(dataset)
         wx.MessageBox("Data loaded successfully.", "Info", wx.OK | wx.ICON_INFORMATION)
+
+
+class DurationSelectPanel(wx.Panel):
+    def __init__(self, parent):
+        super(DurationSelectPanel, self).__init__(parent)
+        self.parent = parent  # Reference to info_pnl
+        self.c_pnl = parent.c_pnl  # Reference to ctrl_pnl
+        self.current_dataset = None
+        self.init_ui()
+
+    def init_ui(self):
+        main_sizer = wx.BoxSizer(wx.VERTICAL)
+
+        # Title label 'Duration Select' justified left
+        title_label = wx.StaticText(self, label="Duration Select")
+        main_sizer.Add(title_label, 0, wx.ALIGN_LEFT | wx.ALL, 5)
+
+        # Date and Time controls for Start
+        start_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        start_label = wx.StaticText(self, label="Start Date and Time:")
+        self.start_date_ctrl = wx.adv.DatePickerCtrl(self)
+        self.start_time_ctrl = wx.adv.TimePickerCtrl(self)
+        start_sizer.Add(start_label, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
+        start_sizer.Add(self.start_date_ctrl, 0, wx.ALL, 5)
+        start_sizer.Add(self.start_time_ctrl, 0, wx.ALL, 5)
+        main_sizer.Add(start_sizer, 0, wx.ALIGN_LEFT)
+
+        # Date and Time controls for End
+        end_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        end_label = wx.StaticText(self, label="End Date and Time:")
+        self.end_date_ctrl = wx.adv.DatePickerCtrl(self)
+        self.end_time_ctrl = wx.adv.TimePickerCtrl(self)
+        end_sizer.Add(end_label, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
+        end_sizer.Add(self.end_date_ctrl, 0, wx.ALL, 5)
+        end_sizer.Add(self.end_time_ctrl, 0, wx.ALL, 5)
+        main_sizer.Add(end_sizer, 0, wx.ALIGN_LEFT)
+
+        # Limit to last N time units
+        limit_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        limit_label = wx.StaticText(self, label="Limit to last:")
+        self.limit_text = wx.TextCtrl(self, value="1")
+        self.time_unit_choice = wx.Choice(self, choices=["Hour", "Day", "Week", "Month", "Year"])
+        self.time_unit_choice.SetSelection(0)
+        limit_sizer.Add(limit_label, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
+        limit_sizer.Add(self.limit_text, 0, wx.ALL, 5)
+        limit_sizer.Add(self.time_unit_choice, 0, wx.ALL, 5)
+        main_sizer.Add(limit_sizer, 0, wx.ALIGN_LEFT)
+
+        # Bind events
+        self.limit_text.Bind(wx.EVT_TEXT, self.on_limit_changed)
+        self.time_unit_choice.Bind(wx.EVT_CHOICE, self.on_limit_changed)
+        self.start_date_ctrl.Bind(wx.adv.EVT_DATE_CHANGED, self.on_date_time_changed)
+        self.start_time_ctrl.Bind(wx.adv.EVT_TIME_CHANGED, self.on_date_time_changed)
+        self.end_date_ctrl.Bind(wx.adv.EVT_DATE_CHANGED, self.on_date_time_changed)
+        self.end_time_ctrl.Bind(wx.adv.EVT_TIME_CHANGED, self.on_date_time_changed)
+
+        # Trim date to log
+        trim_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        trim_label = wx.StaticText(self, label="Trim date to log:")
+        self.dataset_choice = wx.Choice(self)
+        trim_sizer.Add(trim_label, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
+        trim_sizer.Add(self.dataset_choice, 0, wx.ALL, 5)
+        main_sizer.Add(trim_sizer, 0, wx.ALIGN_LEFT)
+
+        self.dataset_choice.Bind(wx.EVT_CHOICE, self.on_dataset_selected)
+
+        # Info about current selection
+        self.info_label = wx.StaticText(self, label="")
+        main_sizer.Add(self.info_label, 0, wx.ALIGN_LEFT | wx.ALL, 5)
+
+        # Hide button
+        hide_btn = wx.Button(self, label="Hide")
+        main_sizer.Add(hide_btn, 0, wx.ALIGN_RIGHT | wx.ALL, 5)
+        hide_btn.Bind(wx.EVT_BUTTON, self.on_hide)
+
+        self.SetSizer(main_sizer)
+
+    def on_hide(self, event):
+        self.Hide()
+        self.parent.main_sizer.Layout()
+
+    def load_dataset(self, dataset):
+        self.current_dataset = dataset
+        data = dataset['data']
+        trimmed_data = dataset['trimmed_data']
+
+        if not data:
+            wx.MessageBox("No data available in the selected dataset.", "Error", wx.OK | wx.ICON_ERROR)
+            return
+
+        # Set the date and time controls to the range of the trimmed data
+        start_datetime = trimmed_data[0][0]
+        end_datetime = trimmed_data[-1][0]
+
+        # Set the date and time pickers
+        self.start_date_ctrl.SetValue(wx.DateTime.FromDMY(start_datetime.day, start_datetime.month - 1, start_datetime.year))
+        self.start_time_ctrl.SetValue(wx.DateTime.FromHMS(start_datetime.hour, start_datetime.minute, start_datetime.second))
+        self.end_date_ctrl.SetValue(wx.DateTime.FromDMY(end_datetime.day, end_datetime.month - 1, end_datetime.year))
+        self.end_time_ctrl.SetValue(wx.DateTime.FromHMS(end_datetime.hour, end_datetime.minute, end_datetime.second))
+
+        # Limit the date controls to the range of the full data
+        full_start_datetime = data[0][0]
+        full_end_datetime = data[-1][0]
+
+        self.start_date_ctrl.SetRange(wx.DateTime.FromDMY(full_start_datetime.day, full_start_datetime.month - 1, full_start_datetime.year),
+                                      wx.DateTime.FromDMY(full_end_datetime.day, full_end_datetime.month - 1, full_end_datetime.year))
+        self.end_date_ctrl.SetRange(wx.DateTime.FromDMY(full_start_datetime.day, full_start_datetime.month - 1, full_start_datetime.year),
+                                    wx.DateTime.FromDMY(full_end_datetime.day, full_end_datetime.month - 1, full_end_datetime.year))
+
+        # Update dataset choices for 'trim date to log'
+        dataset_names = [d['file_path'] for d in self.c_pnl.loaded_datasets if d != dataset]
+        self.dataset_choice.SetItems(dataset_names)
+
+        # Update info
+        self.update_info()
+
+    def on_limit_changed(self, event):
+        if not self.current_dataset:
+            return
+        value = self.limit_text.GetValue()
+        try:
+            n = int(value)
+        except ValueError:
+            wx.MessageBox("Please enter a valid number.", "Error", wx.OK | wx.ICON_ERROR)
+            return
+        unit = self.time_unit_choice.GetStringSelection()
+        now = datetime.datetime.now()
+
+        if unit == "Hour":
+            delta = datetime.timedelta(hours=n)
+        elif unit == "Day":
+            delta = datetime.timedelta(days=n)
+        elif unit == "Week":
+            delta = datetime.timedelta(weeks=n)
+        elif unit == "Month":
+            delta = datetime.timedelta(days=30 * n)  # Approximate
+        elif unit == "Year":
+            delta = datetime.timedelta(days=365 * n)  # Approximate
+        else:
+            delta = datetime.timedelta()
+
+        start_datetime = now - delta
+        end_datetime = now
+
+        # Set the date and time pickers
+        self.start_date_ctrl.SetValue(wx.DateTime.FromDMY(start_datetime.day, start_datetime.month - 1, start_datetime.year))
+        self.start_time_ctrl.SetValue(wx.DateTime.FromHMS(start_datetime.hour, start_datetime.minute, start_datetime.second))
+        self.end_date_ctrl.SetValue(wx.DateTime.FromDMY(end_datetime.day, end_datetime.month - 1, end_datetime.year))
+        self.end_time_ctrl.SetValue(wx.DateTime.FromHMS(end_datetime.hour, end_datetime.minute, end_datetime.second))
+
+        self.apply_trim()
+
+    def on_dataset_selected(self, event):
+        selected_dataset_name = self.dataset_choice.GetStringSelection()
+        selected_dataset = next((d for d in self.c_pnl.loaded_datasets if d['file_path'] == selected_dataset_name), None)
+        if selected_dataset:
+            trimmed_data = selected_dataset['trimmed_data']
+            start_datetime = trimmed_data[0][0]
+            end_datetime = trimmed_data[-1][0]
+
+            # Update the date and time pickers
+            self.start_date_ctrl.SetValue(wx.DateTime.FromDMY(start_datetime.day, start_datetime.month - 1, start_datetime.year))
+            self.start_time_ctrl.SetValue(wx.DateTime.FromHMS(start_datetime.hour, start_datetime.minute, start_datetime.second))
+            self.end_date_ctrl.SetValue(wx.DateTime.FromDMY(end_datetime.day, end_datetime.month - 1, end_datetime.year))
+            self.end_time_ctrl.SetValue(wx.DateTime.FromHMS(end_datetime.hour, end_datetime.minute, end_datetime.second))
+
+            self.apply_trim()
+
+    def on_date_time_changed(self, event):
+        self.apply_trim()
+
+    def apply_trim(self):
+        if not self.current_dataset:
+            return
+
+        data = self.current_dataset['data']
+
+        # Get start datetime
+        start_date_wx = self.start_date_ctrl.GetValue()
+        start_time_wx = self.start_time_ctrl.GetValue()
+        start_datetime = datetime.datetime(
+            start_date_wx.GetYear(),
+            start_date_wx.GetMonth() + 1,
+            start_date_wx.GetDay(),
+            start_time_wx.GetHour(),
+            start_time_wx.GetMinute(),
+            start_time_wx.GetSecond()
+        )
+
+        # Get end datetime
+        end_date_wx = self.end_date_ctrl.GetValue()
+        end_time_wx = self.end_time_ctrl.GetValue()
+        end_datetime = datetime.datetime(
+            end_date_wx.GetYear(),
+            end_date_wx.GetMonth() + 1,
+            end_date_wx.GetDay(),
+            end_time_wx.GetHour(),
+            end_time_wx.GetMinute(),
+            end_time_wx.GetSecond()
+        )
+
+        # Ensure start_datetime is before end_datetime
+        if start_datetime > end_datetime:
+            wx.MessageBox("Start date/time must be before end date/time.", "Error", wx.OK | wx.ICON_ERROR)
+            return
+
+        # Trim the data
+        trimmed_data = [d for d in data if start_datetime <= d[0] <= end_datetime]
+        self.current_dataset['trimmed_data'] = trimmed_data
+
+        # Update info
+        self.update_info()
+
+        # Refresh the table in ctrl_pnl
+        self.c_pnl.refresh_table()
+
+    def update_info(self):
+        data_len = len(self.current_dataset['data'])
+        trimmed_len = len(self.current_dataset['trimmed_data'])
+
+        if trimmed_len > 0:
+            start_date = self.current_dataset['trimmed_data'][0][0]
+            end_date = self.current_dataset['trimmed_data'][-1][0]
+            duration = end_date - start_date
+        else:
+            duration = datetime.timedelta(0)
+
+        info_text = f"Original Items: {data_len}\nTrimmed Items: {trimmed_len}\nDuration: {duration}"
+        self.info_label.SetLabel(info_text)
+
+        self.Layout()
+        self.parent.main_sizer.Layout()
