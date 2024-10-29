@@ -29,10 +29,6 @@ class ctrl_pnl(wx.Panel):
         self.datasets_table = self.create_datasets_table()
         self.main_sizer.Add(self.datasets_table, 0, wx.EXPAND | wx.ALL, 5)
 
-        # Button to add datasets for testing
-        self.add_btn = wx.Button(self, label="Add Dataset")
-        self.main_sizer.Add(self.add_btn, 0, wx.ALIGN_LEFT | wx.ALL, 5)
-
         # Button to toggle Load Log panel
         self.toggle_load_log_btn = wx.Button(self, label="Load Log")
         self.main_sizer.Add(self.toggle_load_log_btn, 0, wx.ALIGN_LEFT | wx.ALL, 5)
@@ -40,7 +36,6 @@ class ctrl_pnl(wx.Panel):
         self.read_caps_json = wx.Button(self, label="Read caps JSON")
         self.main_sizer.Add(self.read_caps_json, 0, wx.ALIGN_LEFT | wx.ALL, 5)
 
-        self.add_btn.Bind(wx.EVT_BUTTON, self.on_add_dataset)
         self.toggle_load_log_btn.Bind(wx.EVT_BUTTON, self.on_toggle_load_log)
         self.read_caps_json.Bind(wx.EVT_BUTTON, self.on_read_caps_json)
 
@@ -209,30 +204,6 @@ class ctrl_pnl(wx.Panel):
 
         self.grid.AutoSizeColumns()  # Adjust column sizes
         self.adjust_table_size()  # Adjust table size after refreshing
-
-    def on_add_dataset(self, event):
-        """Add dataset to the table (simulates loading a dataset)."""
-        if len(self.loaded_datasets) == 0:
-            data = [("10:00", 1), ("11:00", 3), ("12:00", 2)]
-            dataset = {
-                'file_path': "./logs/sensorbank/sensor1.txt",
-                'key': "height",
-                'data': data,
-                'trimmed_data': data,
-            }
-            self.loaded_datasets.append(dataset)
-        else:
-            data = [("10:00", 1), ("11:00", 3), ("12:00", 2), ("13:00", 3)]
-            dataset = {
-                'file_path': "./logs/sensorbank/sensor2.txt",
-                'key': "speed",
-                'data': data,
-                'trimmed_data': data,
-            }
-            self.loaded_datasets.append(dataset)
-
-        # Refresh the table to show the new dataset
-        self.refresh_table()
 
     def on_read_caps_json(self, event):
         self.caps_dbox = CapsDataDialog(self)
