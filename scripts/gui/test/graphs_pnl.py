@@ -2,21 +2,22 @@ import wx
 import wx.grid as gridlib
 import wx.adv
 import wx.lib.scrolledpanel as scrolled
+import importlib
 import os
 import json
 import datetime
 import time
+import sys
 
 
-class ctrl_pnl(wx.Panel):
+class ctrl_pnl(scrolled.ScrolledPanel):
     def __init__(self, parent):
         self.parent = parent
         self.shared_data = parent.shared_data
-
-        # Initialize the list of datasets (empty for now)
         self.loaded_datasets = []
 
-        wx.Panel.__init__(self, parent, id=wx.ID_ANY, style=wx.TAB_TRAVERSAL)
+        # Initialize ScrolledPanel instead of Panel
+        scrolled.ScrolledPanel.__init__(self, parent, id=wx.ID_ANY, style=wx.TAB_TRAVERSAL)
 
         # Main Sizer
         self.main_sizer = wx.BoxSizer(wx.VERTICAL)
@@ -39,8 +40,179 @@ class ctrl_pnl(wx.Panel):
         self.toggle_load_log_btn.Bind(wx.EVT_BUTTON, self.on_toggle_load_log)
         self.read_caps_json.Bind(wx.EVT_BUTTON, self.on_read_caps_json)
 
+        self.create_make_graphs_section()
+
+        # Create the empty options panel
+        self.options_panel = GraphOptionsPanel(self)
+        self.main_sizer.Add(self.options_panel, 0, wx.EXPAND | wx.ALL, 5)
+
         # Set the sizer
         self.SetSizer(self.main_sizer)
+
+        # Setup scrolling
+        self.SetupScrolling(scroll_x=False, scroll_y=True)
+
+    def create_make_graphs_section(self):
+        """Create the 'Make Graphs' section in the control panel."""
+        # Section Heading
+        heading = wx.StaticText(self, label="Make Graphs")
+        self.main_sizer.Add(heading, 0, wx.ALIGN_LEFT | wx.ALL, 5)
+
+        # Sizer for graph selection and 'Make' button
+        graph_sizer = wx.BoxSizer(wx.HORIZONTAL)
+
+        # Combo box for available graphs
+        self.graph_choice = wx.ComboBox(self, style=wx.CB_READONLY)
+        self.populate_graph_choices()
+
+        # 'Make' button
+        self.make_graph_btn = wx.Button(self, label="Make")
+        self.make_graph_btn.Bind(wx.EVT_BUTTON, self.on_make_graph)
+
+        graph_sizer.Add(self.graph_choice, 1, wx.EXPAND | wx.ALL, 5)
+        graph_sizer.Add(self.make_graph_btn, 0, wx.ALL, 5)
+
+        self.main_sizer.Add(graph_sizer, 0, wx.EXPAND)
+
+        # 'Configure Graph' checkbox
+        self.configure_graph_chk = wx.CheckBox(self, label="Configure Graph")
+        self.configure_graph_chk.Bind(wx.EVT_CHECKBOX, self.on_configure_graph)
+        self.main_sizer.Add(self.configure_graph_chk, 0, wx.ALIGN_LEFT | wx.ALL, 5)
+
+    def populate_graph_choices(self):
+        """Populate the combo box with available graph modules."""
+        graph_modules_dir = os.path.abspath(os.path.join(os.getcwd(), '..', 'graph_modules'))
+        self.graph_names = []
+
+        if os.path.isdir(graph_modules_dir):
+            for filename in os.listdir(graph_modules_dir):
+                if filename.startswith('graph_') and filename.endswith('.py'):
+                    graph_name = filename[len('graph_'):-len('.py')]
+                    self.graph_names.append(graph_name)
+        else:
+            wx.MessageBox(f"Graph modules directory not found: {graph_modules_dir}", "Error", wx.OK | wx.ICON_ERROR)
+
+        self.graph_choice.SetItems(self.graph_names)
+        if self.graph_names:
+            self.graph_choice.SetSelection(0)
+
+    def on_make_graph(self, event):
+        datasets = self.prepare_datasets_for_graph()
+        # Get selected graph and options
+        selected_graph = self.graph_choice.GetStringSelection()
+        if not selected_graph:
+            wx.MessageBox("Please select a graph.", "Error", wx.OK | wx.ICON_ERROR)
+            return
+
+        options = self.options_panel.get_options()
+
+        # Extract values from options with default conversion
+        ymax = options.get("Y axis Maximum", "")
+        if not ymax == "":
+            try:
+                int(ymax)
+            except:
+                ymax = ""
+        ymin = options.get("Y axis Minimum", "")
+        if not ymin == "":
+            try:
+                int(ymin)
+            except:
+                ymin = ""
+
+        size_h = int(options.get("Width", 12))
+        size_v = int(options.get("Height", 7))
+
+        # Define the graph file path
+        module_name = f"graph_{selected_graph}"
+        file_name = module_name + "_graph.png"
+        graph_path = os.path.join(self.shared_data.frompi_path, file_name)
+
+        # Import the selected graph module and make the graph
+        graph_modules_dir = os.path.abspath(os.path.join(os.getcwd(), '..', 'graph_modules'))
+
+        # Add graph_modules_dir to sys.path if not already present
+        if graph_modules_dir not in sys.path:
+            sys.path.insert(0, graph_modules_dir)
+
+        try:
+            # Load or reload the module
+            if module_name in sys.modules:
+                importlib.reload(sys.modules[module_name])
+                graph_module = sys.modules[module_name]
+            else:
+                graph_module = importlib.import_module(module_name)
+
+            # Ensure 'make_graph' function exists in the module
+            if hasattr(graph_module, 'make_graph'):
+                make_graph = graph_module.make_graph
+
+                # Time the graph creation
+                start_time = time.time()
+                make_graph(datasets, graph_path, ymax, ymin, size_h, size_v, None, None, None, None,
+                           options)
+                end_time = time.time()
+
+                elapsed_time = round(end_time - start_time, 2)
+                print(f"{module_name} graph created in {elapsed_time} seconds and saved to {graph_path}")
+            else:
+                print(f"The module '{module_name}' does not have a 'make_graph' function.")
+        except Exception as e:
+            raise
+            print(f"Failed to import or execute '{module_name}':\n{e}")
+
+    def prepare_datasets_for_graph(self):
+        new_dataset = []
+
+        for dataset in self.loaded_datasets:
+            key = dataset["key"]
+            data = dataset["trimmed_data"]
+
+            # Separate dates and values into their own lists
+            date_list = [item[0] for item in data]
+            value_list = [item[1] for item in data]
+
+            # Package the lists into the format [date_list, value_list, [key]]
+            formatted_dataset = [date_list, value_list, [key]]
+            new_dataset.append(formatted_dataset)
+
+        return new_dataset
+
+    def on_configure_graph(self, event):
+        """Handle the 'Configure Graph' checkbox."""
+        if self.configure_graph_chk.IsChecked():
+            selected_graph = self.graph_choice.GetStringSelection()
+            if not selected_graph:
+                wx.MessageBox("Please select a graph.", "Error", wx.OK | wx.ICON_ERROR)
+                return
+
+            module_name = f"graph_{selected_graph}"
+            graph_modules_dir = os.path.abspath(os.path.join(os.getcwd(), '..', 'graph_modules'))
+
+            # Add graph_modules_dir to sys.path if not already present
+            if graph_modules_dir not in sys.path:
+                sys.path.insert(0, graph_modules_dir)
+
+            try:
+                # Reload the module if it's already loaded
+                if module_name in sys.modules:
+                    importlib.reload(sys.modules[module_name])
+                    graph_module = sys.modules[module_name]
+                else:
+                    graph_module = importlib.import_module(module_name)
+
+                # Read graph options (for now, just print them)
+                if hasattr(graph_module, 'read_graph_options'):
+                    options = graph_module.read_graph_options()
+                    print(f"Graph options for '{selected_graph}':\n{options}")
+                    self.options_panel.update_options(options)
+                else:
+                    print(f"The module '{module_name}' does not have a 'read_graph_options' function.")
+            except Exception as e:
+                print(f"Failed to import or execute '{module_name}':\n{e}")
+        else:
+            # Checkbox unchecked; add hide function once display is done
+            pass
 
     def on_toggle_load_log(self, event):
         """Toggle the visibility of the Load Log panel in info_pnl."""
@@ -943,3 +1115,141 @@ class DurationSelectPanel(wx.Panel):
 
         self.Layout()
         self.parent.main_sizer.Layout()
+
+
+class GraphOptionsPanel(wx.Panel):
+    def __init__(self, parent):
+        super(GraphOptionsPanel, self).__init__(parent)
+        self.parent = parent
+        self.main_sizer = wx.BoxSizer(wx.VERTICAL)
+        self.SetSizer(self.main_sizer)
+
+        # Initialize a dictionary to keep track of controls
+        self.controls = {}
+
+    def default_graph_opts(self, options_dict):
+        defaults = {
+            "Y axis Minimum": "",
+            "Y axis Maximum": "",
+            "Width": "12",
+            "Height": "7"
+        }
+        # Update options_dict with any missing default values
+        return {**defaults, **options_dict}
+
+    def update_options(self, options_dict):
+        options_dict = self.default_graph_opts(options_dict)
+        # Clear existing controls
+        self.main_sizer.Clear(True)
+        self.controls = {}  # Reset controls dictionary
+
+        # Create a grid sizer with two columns
+        grid_sizer = wx.GridSizer(rows=len(options_dict), cols=2, hgap=5, vgap=5)
+
+        # Predefined options for special combo boxes
+        marker_options = [
+            ". point", ", pixel", "o circle", "v triangle_down", "^ triangle_up",
+            "< triangle_left", "> triangle_right", "1 tri_down", "2 tri_up",
+            "3 tri_left", "4 tri_right", "s square", "p pentagon", "* star",
+            "h hexagon1", "H hexagon2", "+ plus", "x x", "D diamond",
+            "d thin_diamond", "| vline", "_ hline"
+        ]
+        linestyle_options = [
+            "- solid", "-- dashed", "-. dash_dot", ": dotted", "None None"
+        ]
+
+        # Color cycles for the 'color_cycle' option
+        color_cycle_options = [
+            # High contrast palettes (first five)
+            "tab:blue, tab:orange, tab:green, tab:red, tab:purple, tab:brown, tab:pink, tab:gray, tab:olive, tab:cyan",
+            # Tableau 'T10'
+            "xkcd:bright blue, xkcd:bright green, xkcd:bright red, xkcd:bright purple, xkcd:bright orange",
+            # High contrast xkcd colors
+            "tab:red, tab:blue, tab:yellow, tab:green, tab:purple, tab:brown",  # Minimal contrast mix
+            "xkcd:turquoise, xkcd:lime green, xkcd:deep pink, xkcd:gold, xkcd:violet",  # Vivid contrast colors
+            "tab:green, tab:purple, tab:orange, tab:brown, tab:pink",  # Alternating contrast
+
+            # Stylized palettes (next ten)
+            "xkcd:soft pink, xkcd:mint green, xkcd:light purple, xkcd:sky blue, xkcd:peach",  # Pastel tones
+            "xkcd:dark teal, xkcd:rust, xkcd:dark olive, xkcd:dark purple, xkcd:ochre",  # Earthy tones
+            "tab:blue, tab:cyan, xkcd:dark blue, xkcd:sea green, xkcd:navy",  # Cool blues and greens
+            "xkcd:wine, xkcd:brick red, xkcd:burnt orange, xkcd:dark brown, xkcd:mustard yellow",  # Warm, muted tones
+            "xkcd:cerulean, xkcd:aquamarine, xkcd:seafoam, xkcd:turquoise, xkcd:sky blue",  # Ocean-inspired palette
+            "tab:gray, tab:olive, tab:cyan, xkcd:slate, xkcd:charcoal",  # Neutral palette
+            "xkcd:sage green, xkcd:dusty rose, xkcd:lavender, xkcd:peach, xkcd:light teal",  # Soft, vintage colors
+            "tab:pink, xkcd:light brown, xkcd:mustard, xkcd:coral, tab:red",  # Retro palette
+            "xkcd:midnight blue, xkcd:deep red, xkcd:forest green, xkcd:slate gray, xkcd:mustard",  # Dark, bold tones
+            "tab:purple, xkcd:rose pink, tab:blue, xkcd:teal, tab:orange"  # Contemporary vibrant mix
+        ]
+
+        # Dictionary of special options
+        self.special_options = {
+            'marker': marker_options,
+            'line_style': linestyle_options,
+            'color_cycle': color_cycle_options
+        }
+
+        for key, value in options_dict.items():
+            # Left column: key label
+            key_label = wx.StaticText(self, label=key)
+            grid_sizer.Add(key_label, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 1)
+
+            # Determine the control for the right column
+            control = None
+
+            # Check for boolean values
+            if str(value).lower() == 'true' or str(value).lower() == 'false' and not key in self.special_options:
+                checkbox = wx.CheckBox(self)
+                checkbox.SetValue(str(value).lower() == 'true')
+                control = checkbox
+            # Check for special options
+            elif key in self.special_options:
+                choices = self.special_options[key]
+                combo = wx.ComboBox(self, choices=choices)
+                current_value = value
+                # Find the option that starts with the current value
+                for option in choices:
+                    if option.startswith(current_value + ' '):
+                        combo.SetStringSelection(option)
+                        break
+                else:
+                    # If not found, select the first option
+                    combo.SetSelection(0)
+                control = combo
+            else:
+                # Default to text control
+                text_ctrl = wx.TextCtrl(self, value=str(value))
+                control = text_ctrl
+
+            # Add control to the grid sizer
+            grid_sizer.Add(control, 0, wx.EXPAND | wx.ALL, 1)
+
+            # Store the control with its corresponding key
+            self.controls[key] = control
+
+        # Add grid sizer to main sizer
+        self.main_sizer.Add(grid_sizer, 0, wx.EXPAND | wx.ALL, 5)
+        # Refresh layout
+        self.Layout()
+        self.Fit()  # Adjust the panel size to fit the controls
+
+    def get_options(self):
+        """Reads all controls and returns a dictionary of settings."""
+        options = {}
+        trim_by_space = ["line_style", "marker"]
+
+        for key, control in self.controls.items():
+            if isinstance(control, wx.CheckBox):
+                options[key] = 'true' if control.GetValue() else 'false'
+            elif isinstance(control, wx.ComboBox):
+                value = control.GetValue()
+                if key in trim_by_space:
+                    value = value.split(' ')[0]
+                options[key] = value
+            elif isinstance(control, wx.TextCtrl):
+                options[key] = control.GetValue()
+            else:
+                # Handle other control types if necessary
+                options[key] = control.GetValue()
+
+        return options
