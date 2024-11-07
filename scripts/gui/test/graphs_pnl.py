@@ -1144,7 +1144,8 @@ class GraphOptionsPanel(wx.Panel):
         self.controls = {}  # Reset controls dictionary
 
         # Create a grid sizer with two columns
-        grid_sizer = wx.GridSizer(rows=len(options_dict), cols=2, hgap=5, vgap=5)
+        grid_sizer = wx.FlexGridSizer(rows=len(options_dict), cols=2, hgap=1, vgap=2)
+        grid_sizer.AddGrowableCol(1, 1)
 
         # Predefined options for special combo boxes
         marker_options = [
@@ -1165,10 +1166,9 @@ class GraphOptionsPanel(wx.Panel):
             # Tableau 'T10'
             "xkcd:bright blue, xkcd:bright green, xkcd:bright red, xkcd:bright purple, xkcd:bright orange",
             # High contrast xkcd colors
-            "tab:red, tab:blue, tab:yellow, tab:green, tab:purple, tab:brown",  # Minimal contrast mix
+            "tab:red, tab:blue, yellow, tab:green, tab:purple, tab:brown",  # Minimal contrast mix
             "xkcd:turquoise, xkcd:lime green, xkcd:deep pink, xkcd:gold, xkcd:violet",  # Vivid contrast colors
             "tab:green, tab:purple, tab:orange, tab:brown, tab:pink",  # Alternating contrast
-
             # Stylized palettes (next ten)
             "xkcd:soft pink, xkcd:mint green, xkcd:light purple, xkcd:sky blue, xkcd:peach",  # Pastel tones
             "xkcd:dark teal, xkcd:rust, xkcd:dark olive, xkcd:dark purple, xkcd:ochre",  # Earthy tones
@@ -1182,17 +1182,75 @@ class GraphOptionsPanel(wx.Panel):
             "tab:purple, xkcd:rose pink, tab:blue, xkcd:teal, tab:orange"  # Contemporary vibrant mix
         ]
 
+        color_palette_options = [
+            "viridis", "plasma", "inferno", "magma", "cividis",  # Sequential color maps
+            "tab10", "tab20", "tab20b", "tab20c",  # Categorical color maps
+            "Set1", "Set2", "Set3", "Paired", "Accent",  # Other categorical maps
+            "Dark2", "Pastel1", "Pastel2",  # Pastel and subdued palettes
+            "Spectral", "coolwarm", "bwr", "seismic"  # Diverging color maps
+        ]
+
+        legend_position_options = [
+            "best", "upper right", "upper left", "lower left", "lower right",
+            "right", "center left", "center right", "lower center", "upper center", "center"
+        ]
+
+        color_options = [
+            "white", "black", "lightgray", "darkgray", "dimgray",  # Grayscale options
+            "whitesmoke", "gainsboro", "snow", "ivory",  # Light shades
+            "beige", "linen", "seashell", "mintcream", "aliceblue",  # Soft pastel shades
+            "lightyellow", "honeydew", "lavender", "azure",  # Subtle tints
+            "cornsilk", "ghostwhite", "oldlace", "floralwhite",  # Warm, light shades
+            "xkcd:light blue", "xkcd:light pink", "xkcd:light green",  # xkcd colors
+            "tab:blue", "tab:gray", "tab:purple", "tab:olive"  # Tableau colors
+        ]
+
+        text_color_options = [
+            "black", "white", "darkblue", "darkgreen", "darkred", "navy", "midnightblue",
+            "indigo", "teal", "darkorange", "maroon", "purple", "saddlebrown",
+            "slategray", "grey",
+            "tab:blue", "tab:green", "tab:red", "tab:purple",
+            "tab:pink" "tab:olive", "tab:cyan",
+            "xkcd:light blue", "xkcd:light green", "xkcd:light pink", "xkcd:bright green",
+            "xkcd:sky blue", "xkcd:rose", "xkcd:turquoise", "xkcd:light purple"
+        ]
+
+        mpl_style_options = [
+            "default", "classic", "Solarize_Light2", "bmh", "dark_background",
+            "fast", "fivethirtyeight", "ggplot", "grayscale", "seaborn",
+            "seaborn-bright", "seaborn-colorblind", "seaborn-dark",
+            "seaborn-dark-palette", "seaborn-darkgrid", "seaborn-deep",
+            "seaborn-muted", "seaborn-notebook", "seaborn-paper",
+            "seaborn-pastel", "seaborn-poster", "seaborn-talk", "seaborn-ticks",
+            "seaborn-white", "seaborn-whitegrid", "tableau-colorblind10"
+        ]
+
         # Dictionary of special options
         self.special_options = {
             'marker': marker_options,
             'line_style': linestyle_options,
-            'color_cycle': color_cycle_options
+            'color_cycle': color_cycle_options,
+            'color_palette': color_palette_options,
+            'legend_position': legend_position_options,
+            'background_color': color_options,
+            'axes_background_color': color_options,
+            'grid_color': color_options,
+            'title_color': text_color_options,
+            'label_color': text_color_options,
+            'legend_color': text_color_options,
+            'x_axis_color': text_color_options,
+            'y_axis_color': text_color_options,
+            'x_tick_color': text_color_options,
+            'y_tick_color': text_color_options,
+            'mpl_style': mpl_style_options
         }
 
         for key, value in options_dict.items():
             # Left column: key label
             key_label = wx.StaticText(self, label=key)
+            key_label.Wrap(150)  # Set maximum width (adjust value as needed)
             grid_sizer.Add(key_label, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 1)
+
 
             # Determine the control for the right column
             control = None
@@ -1206,15 +1264,14 @@ class GraphOptionsPanel(wx.Panel):
             elif key in self.special_options:
                 choices = self.special_options[key]
                 combo = wx.ComboBox(self, choices=choices)
+                combo.SetMinSize((200, -1))
                 current_value = value
                 # Find the option that starts with the current value
-                for option in choices:
-                    if option.startswith(current_value + ' '):
-                        combo.SetStringSelection(option)
-                        break
-                else:
-                    # If not found, select the first option
-                    combo.SetSelection(0)
+                if current_value != "":
+                    for option in choices:
+                        if option.startswith(current_value):
+                            combo.SetStringSelection(option)
+                            break
                 control = combo
             else:
                 # Default to text control
@@ -1229,9 +1286,10 @@ class GraphOptionsPanel(wx.Panel):
 
         # Add grid sizer to main sizer
         self.main_sizer.Add(grid_sizer, 0, wx.EXPAND | wx.ALL, 5)
+
         # Refresh layout
         self.Layout()
-        self.Fit()  # Adjust the panel size to fit the controls
+        self.Fit()
 
     def get_options(self):
         """Reads all controls and returns a dictionary of settings."""
