@@ -4,7 +4,7 @@ from yt_dlp.utils import xpath_attr
 #
 # This is an example script which can be used as a template to make your own graphs which intergrate with the pigrow remote gui
 #
-# Copy this file, remane it something that fits the pattern  graph_[name].py and save it into the graph_modules folder
+# Copy this file, rename it something that fits the pattern  graph_[name].py and save it into the graph_modules folder
 #
 # All code must happen within the make_graph function,
 # Save the graph using the exact path given by graph_path
@@ -152,7 +152,7 @@ def make_graph(list_of_datasets, graph_path, ymax="", ymin="", size_h="", size_v
         ax.set_facecolor(axes_background_color)
 
     # Set color cycle if provided
-    if not color_cycle == 'false':
+    if not color_cycle == 'false' and not color_cycle == "":
         ax.set_prop_cycle(color=color_cycle)
 
     if color_palette:
