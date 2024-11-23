@@ -155,6 +155,7 @@ class ctrl_pnl(scrolled.ScrolledPanel):
 
                 elapsed_time = round(end_time - start_time, 2)
                 print(f"{module_name} graph created in {elapsed_time} seconds and saved to {graph_path}")
+                self.parent.dict_I_pnl['graphs_pnl'].add_graph_to_panel(graph_path)
             else:
                 print(f"The module '{module_name}' does not have a 'make_graph' function.")
         except Exception as e:
@@ -416,6 +417,9 @@ class info_pnl(scrolled.ScrolledPanel):
         self.duration_select_pnl.Hide()
         self.main_sizer.Add(self.duration_select_pnl, 0, wx.EXPAND | wx.ALL, 5)
 
+        # Graph Panel
+        self.graph_panel = GraphPanel(self)
+        self.main_sizer.Add(self.graph_panel, 0, wx.EXPAND | wx.ALL, 5)
 
         self.SetSizer(self.main_sizer)
         self.SetupScrolling()
@@ -433,6 +437,10 @@ class info_pnl(scrolled.ScrolledPanel):
         else:
             self.load_log_pnl.Show()
         self.main_sizer.Layout()
+
+    def add_graph_to_panel(self, graph_path):
+        """Add a graph to the GraphPanel."""
+        self.graph_panel.add_graph(graph_path)
 
 
 class CapsDataDialog(wx.Dialog):
@@ -1311,3 +1319,62 @@ class GraphOptionsPanel(wx.Panel):
                 options[key] = control.GetValue()
 
         return options
+
+
+class GraphPanel(wx.Panel):
+    def __init__(self, parent):
+        super().__init__(parent)
+
+        # Main Sizer for Graph Panel
+        self.sizer = wx.BoxSizer(wx.VERTICAL)
+
+        # Header Section
+        header_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        title_label = wx.StaticText(self, label="Graphs")
+        clear_button = wx.Button(self, label="Clear")
+        header_sizer.Add(title_label, 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT, 10)
+        header_sizer.AddStretchSpacer()
+        header_sizer.Add(clear_button, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 10)
+
+        self.sizer.Add(header_sizer, 0, wx.EXPAND | wx.ALL, 5)
+
+        # Content Section (For Graphs)
+        self.graph_sizer = wx.BoxSizer(wx.VERTICAL)
+        self.sizer.Add(self.graph_sizer, 0, wx.EXPAND | wx.ALL, 5)
+
+        self.SetSizer(self.sizer)
+
+        # Event Binding
+        clear_button.Bind(wx.EVT_BUTTON, self.clear_graphs)
+
+        # Store graph paths for later use
+        self.graphs = []
+
+    def add_graph(self, graph_path):
+        """Add a graph image to the panel."""
+        bmp = wx.Image(graph_path, wx.BITMAP_TYPE_ANY).ConvertToBitmap()
+        bitmap = wx.StaticBitmap(self, bitmap=bmp)
+        bitmap.Bind(wx.EVT_LEFT_DCLICK, lambda event: self.on_double_click(graph_path))
+
+        # Add the image to the top
+        self.graph_sizer.Insert(0, bitmap, 0, wx.CENTER | wx.ALL, 5)
+        self.graphs.insert(0, graph_path)
+
+        # Update Layout
+        self.sizer.Layout()
+        self.GetParent().FitInside()  # Update the scrolled panel's size
+
+    def clear_graphs(self, event=None):
+        """Clear all graphs from the panel."""
+        for child in self.graph_sizer.GetChildren():
+            child.GetWindow().Destroy()
+        self.graph_sizer.Clear()
+        self.graphs.clear()
+
+        # Update Layout
+        self.sizer.Layout()
+        self.GetParent().FitInside()
+
+    def on_double_click(self, graph_path):
+        """Handle double-click event on a graph."""
+        print(f"Graph clicked: {graph_path}")
