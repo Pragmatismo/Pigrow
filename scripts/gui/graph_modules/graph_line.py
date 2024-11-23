@@ -1,7 +1,14 @@
-from yt_dlp.utils import xpath_attr
+try:
+    import matplotlib
+
+    matplotlib.use('agg')
+    import matplotlib.pyplot as plt
+    import matplotlib.ticker as plticker
+    import matplotlib.cm as cm
+except:
+    print("Matplotlib not installed, can't create graphs on this device")
 
 
-#
 # This is an example script which can be used as a template to make your own graphs which intergrate with the pigrow remote gui
 #
 # Copy this file, rename it something that fits the pattern  graph_[name].py and save it into the graph_modules folder
@@ -9,8 +16,8 @@ from yt_dlp.utils import xpath_attr
 # All code must happen within the make_graph function,
 # Save the graph using the exact path given by graph_path
 #
-#
-#
+
+
 def read_graph_options():
     '''
     Returns a dictionary of settings and their default values for use by the remote gui
@@ -55,16 +62,12 @@ def read_graph_options():
     return graph_module_settings_dict
 
 
-import matplotlib
 
-matplotlib.use('agg')
-import matplotlib.pyplot as plt
-import matplotlib.ticker as plticker
-import matplotlib.cm as cm
 
 
 def make_graph(list_of_datasets, graph_path, ymax="", ymin="", size_h="", size_v="", dh="", th="", tc="", dc="",
                extra={}):
+
     print("Want's to create a line graph using the graph_line.py module...")
 
     # Load defaults if no settings supplied
