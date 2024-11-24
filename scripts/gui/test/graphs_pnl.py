@@ -34,11 +34,17 @@ class ctrl_pnl(scrolled.ScrolledPanel):
         self.toggle_load_log_btn = wx.Button(self, label="Load Log")
         self.main_sizer.Add(self.toggle_load_log_btn, 0, wx.ALIGN_LEFT | wx.ALL, 5)
 
+        # Data loading buttons
+        self.datal_sizer = wx.BoxSizer(wx.HORIZONTAL)
         self.read_caps_json = wx.Button(self, label="Read caps JSON")
-        self.main_sizer.Add(self.read_caps_json, 0, wx.ALIGN_LEFT | wx.ALL, 5)
+        self.open_datasucker = wx.Button(self, label="Data Sucker")
+        self.datal_sizer.Add(self.read_caps_json, 0, wx.ALL, 5)
+        self.datal_sizer.Add(self.open_datasucker, 0, wx.ALL, 5)
+        self.main_sizer.Add(self.datal_sizer, 0, wx.ALIGN_LEFT | wx.ALL, 5)
 
         self.toggle_load_log_btn.Bind(wx.EVT_BUTTON, self.on_toggle_load_log)
         self.read_caps_json.Bind(wx.EVT_BUTTON, self.on_read_caps_json)
+        self.open_datasucker.Bind(wx.EVT_BUTTON, self.on_open_datasucker)
 
         self.create_make_graphs_section()
 
@@ -384,6 +390,14 @@ class ctrl_pnl(scrolled.ScrolledPanel):
         if self.caps_dbox:
             if not self.caps_dbox.IsBeingDeleted():
                 self.caps_dbox.Destroy()
+        self.refresh_table()
+
+    def on_open_datasucker(self, event):
+        self.sucker_dbox = SuckerDialog(self)
+        self.sucker_dbox.ShowModal()
+        if self.sucker_dbox:
+            if not self.sucker_dbox.IsBeingDeleted():
+                self.sucker_dbox.Destroy()
         self.refresh_table()
 
 
@@ -1378,3 +1392,168 @@ class GraphPanel(wx.Panel):
     def on_double_click(self, graph_path):
         """Handle double-click event on a graph."""
         print(f"Graph clicked: {graph_path}")
+
+import os
+import wx
+import importlib
+import datetime
+import wx.lib.scrolledpanel as scrolled
+
+class SuckerDialog(wx.Dialog):
+    def __init__(self, parent, *args, **kw):
+        super(SuckerDialog, self).__init__(parent, *args, **kw)
+        self.parent = parent
+        self.module = None  # Placeholder for dynamically loaded module
+        self.settings_dict = {}  # Settings from the selected module
+        self.init_ui()
+
+    def init_ui(self):
+        """Initialize the dialog user interface."""
+        self.SetTitle("Data Sucker Module")
+        main_sizer = wx.BoxSizer(wx.VERTICAL)
+
+        # Title
+        title = wx.StaticText(self, label="Data Sucker Module")
+        subtitle = wx.StaticText(self, label="Load data from online or local sources using custom modules")
+        title_font = wx.Font(14, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD)
+        title.SetFont(title_font)
+        main_sizer.Add(title, flag=wx.ALL, border=10)
+        main_sizer.Add(subtitle, flag=wx.ALL, border=10)
+
+        # Dropdown for module selection
+        self.module_dropdown = wx.ComboBox(self, choices=self.get_available_modules(), style=wx.CB_READONLY)
+        self.module_dropdown.Bind(wx.EVT_COMBOBOX, self.on_module_select)
+        main_sizer.Add(wx.StaticText(self, label="Select a Module:"), flag=wx.LEFT, border=10)
+        main_sizer.Add(self.module_dropdown, flag=wx.EXPAND | wx.ALL, border=10)
+
+        # Horizontal sizer for options and description
+        options_description_sizer = wx.BoxSizer(wx.HORIZONTAL)
+
+        # Scrollable panel for options
+        self.scroll_panel = scrolled.ScrolledPanel(self, style=wx.VSCROLL)
+        self.scroll_panel.SetAutoLayout(1)
+        self.scroll_panel.SetupScrolling()
+        self.scroll_sizer = wx.FlexGridSizer(cols=2, vgap=5, hgap=5)
+        self.scroll_panel.SetSizer(self.scroll_sizer)
+        options_description_sizer.Add(self.scroll_panel, proportion=2, flag=wx.EXPAND | wx.ALL, border=10)
+
+        # Text box for description
+        self.description_box = wx.TextCtrl(self, style=wx.TE_MULTILINE | wx.TE_READONLY | wx.TE_BESTWRAP)
+        self.description_box.SetMinSize((250, -1))  # Default minimum width
+        self.description_box.SetValue("No description available")  # Default text
+        options_description_sizer.Add(self.description_box, proportion=3, flag=wx.EXPAND | wx.ALL, border=10)
+
+        main_sizer.Add(options_description_sizer, proportion=1, flag=wx.EXPAND)
+
+        # Buttons
+        button_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.add_button = wx.Button(self, label="Add Dataset")
+        self.add_button.Bind(wx.EVT_BUTTON, self.on_add_dataset)
+        self.done_button = wx.Button(self, label="Done")
+        self.done_button.Bind(wx.EVT_BUTTON, self.on_cancel)
+        button_sizer.Add(self.add_button, flag=wx.RIGHT, border=5)
+        button_sizer.Add(self.done_button, flag=wx.RIGHT, border=5)
+        main_sizer.Add(button_sizer, flag=wx.ALIGN_CENTER | wx.ALL, border=10)
+
+        self.SetSizer(main_sizer)
+        self.SetSize((800, 500))
+
+    def get_available_modules(self):
+        """Scan the graph_modules folder for available 'sucker_' modules."""
+        modules = []
+        module_path = "./graph_modules/"
+        for filename in os.listdir(module_path):
+            if filename.startswith("sucker_") and filename.endswith(".py"):
+                module_name = filename[7:-3]  # Remove 'sucker_' prefix and '.py' suffix
+                modules.append(module_name)
+        return modules
+
+    def on_module_select(self, event):
+        """Load the selected module and display its options."""
+        selected_module = self.module_dropdown.GetValue()
+        if not selected_module:
+            return
+
+        # Dynamically import the selected module
+        try:
+            module_name = f"graph_modules.sucker_{selected_module}"
+            self.module = importlib.import_module(module_name)
+            self.settings_dict = self.module.read_datasucker_options()
+            self.populate_options()
+
+            # Load module description
+            description = getattr(self.module, "read_description", lambda: "No description available")()
+            self.description_box.SetValue(description)
+        except Exception as e:
+            wx.MessageBox(f"Error loading module: {e}", "Error", wx.OK | wx.ICON_ERROR)
+
+    def populate_options(self):
+        """Populate the scroll panel with settings controls."""
+        self.scroll_sizer.Clear(True)  # Clear existing controls
+
+        for key, value in self.settings_dict.items():
+            self.scroll_sizer.Add(wx.StaticText(self.scroll_panel, label=key), flag=wx.ALIGN_CENTER_VERTICAL)
+
+            if isinstance(value, list):
+                # Dropdown for list options
+                control = wx.ComboBox(self.scroll_panel, choices=value, style=wx.CB_READONLY)
+                control.SetSelection(0)  # Default to the first item
+            elif isinstance(value, str) and value.startswith("DATE$"):
+                # Date and time picker
+                if value == "DATE$NOW":
+                    default_date = datetime.datetime.now()
+                else:
+                    default_date = datetime.datetime(datetime.datetime.now().year, 1, 1)
+                control = wx.adv.DatePickerCtrl(self.scroll_panel, dt=wx.DateTime.FromDMY(
+                    default_date.day, default_date.month - 1, default_date.year))
+            else:
+                # Text control for other types
+                control = wx.TextCtrl(self.scroll_panel, value=str(value))
+
+            control.SetName(key)  # Store the key in the control name
+            self.scroll_sizer.Add(control, flag=wx.EXPAND)
+
+        self.scroll_panel.Layout()
+        self.scroll_panel.SetupScrolling()
+
+    def on_add_dataset(self, event=None):
+        """Run the selected module and add the dataset."""
+        if not self.module or not self.settings_dict:
+            wx.MessageBox("No module or settings available.", "Error", wx.OK | wx.ICON_ERROR)
+            return
+
+        # Read the current settings from the controls
+        for child in self.scroll_panel.GetChildren():
+            if isinstance(child, wx.Control):
+                key = child.GetName()
+                if isinstance(child, wx.ComboBox):
+                    self.settings_dict[key] = child.GetValue()
+                elif isinstance(child, wx.adv.DatePickerCtrl):
+                    dt = child.GetValue()
+                    if self.settings_dict[key] == "DATE$":
+                        self.settings_dict[key] = dt.FormatISODate() + " 00:00"
+                    elif self.settings_dict[key] == "DATE$NOW":
+                        self.settings_dict[key] = dt.FormatISODate() + " 23:59"
+                    else:
+                        self.settings_dict[key] = dt.FormatISODate() + " 00:00"
+                elif isinstance(child, wx.TextCtrl):
+                    self.settings_dict[key] = child.GetValue()
+
+        try:
+            # Run the module's suckdata method with current settings
+            data_label, selected_key, data = self.module.suckdata(self.settings_dict)
+            dataset = {
+                "file_path": data_label,
+                "key": selected_key,
+                "data": data,
+                "trimmed_data": data,
+            }
+            self.parent.loaded_datasets.append(dataset)
+            self.parent.refresh_table()  # Refresh table
+            wx.MessageBox(f"Dataset '{selected_key}' added successfully.", "Success", wx.OK | wx.ICON_INFORMATION)
+        except Exception as e:
+            wx.MessageBox(f"Error adding dataset: {e}", "Error", wx.OK | wx.ICON_ERROR)
+
+    def on_cancel(self, event=None):
+        """Close the dialog."""
+        self.Close()
