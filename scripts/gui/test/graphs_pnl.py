@@ -700,6 +700,7 @@ class LoadLogPanel(wx.Panel):
 
     def on_hide_btn(self, event):
         self.Hide()
+        self.parent.main_sizer.Layout()
 
     def on_load_from_pi(self, event):
         wx.MessageBox("Loading logs from Pi not yet coded", "Info", wx.OK | wx.ICON_INFORMATION)
@@ -730,7 +731,7 @@ class LoadLogPanel(wx.Panel):
             # Display log title and first and last lines
             first_line = self.lines[0].strip()
             last_line = self.lines[-1].strip()
-            log_info = f"{self.log_title}:\n    {first_line}\n    {last_line}"
+            log_info = f"{self.log_title}:\n       {first_line}\n       {last_line}"
             self.log_info_text.SetLabel(log_info)
             # Proceed to identify split characters
             self.identify_split_characters()
@@ -942,13 +943,19 @@ class DurationSelectPanel(wx.Panel):
     def init_ui(self):
         main_sizer = wx.BoxSizer(wx.VERTICAL)
 
-        # Title label 'Duration Select' justified left
+        # Top bar label and button
         title_label = wx.StaticText(self, label="Duration Select")
-        main_sizer.Add(title_label, 0, wx.ALIGN_LEFT | wx.ALL, 5)
+        self.hide_btn = wx.Button(self, label="Hide")
+        self.hide_btn.Bind(wx.EVT_BUTTON, self.on_hide)
+        topbar_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        topbar_sizer.Add(title_label, 0, wx.ALL, 5)
+        topbar_sizer.AddStretchSpacer()
+        topbar_sizer.Add(self.hide_btn, 0, wx.ALL, 5)
+        main_sizer.Add(topbar_sizer, 0, wx.EXPAND, 5)
 
         # Date and Time controls for Start
         start_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        start_label = wx.StaticText(self, label="Start Date and Time:")
+        start_label = wx.StaticText(self, label="Start:")
         self.start_date_ctrl = wx.adv.DatePickerCtrl(self)
         self.start_time_ctrl = wx.adv.TimePickerCtrl(self)
         start_sizer.Add(start_label, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
@@ -958,7 +965,7 @@ class DurationSelectPanel(wx.Panel):
 
         # Date and Time controls for End
         end_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        end_label = wx.StaticText(self, label="End Date and Time:")
+        end_label = wx.StaticText(self, label="End:")
         self.end_date_ctrl = wx.adv.DatePickerCtrl(self)
         self.end_time_ctrl = wx.adv.TimePickerCtrl(self)
         end_sizer.Add(end_label, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
@@ -970,8 +977,7 @@ class DurationSelectPanel(wx.Panel):
         limit_sizer = wx.BoxSizer(wx.HORIZONTAL)
         limit_label = wx.StaticText(self, label="Limit to last:")
         self.limit_text = wx.TextCtrl(self, value="1")
-        self.time_unit_choice = wx.Choice(self, choices=["Hour", "Day", "Week", "Month", "Year"])
-        self.time_unit_choice.SetSelection(0)
+        self.time_unit_choice = wx.Choice(self, choices=["Hour", "Day", "Week", "Month", "Year", "None"])
         limit_sizer.Add(limit_label, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
         limit_sizer.Add(self.limit_text, 0, wx.ALL, 5)
         limit_sizer.Add(self.time_unit_choice, 0, wx.ALL, 5)
@@ -999,11 +1005,6 @@ class DurationSelectPanel(wx.Panel):
         self.info_label = wx.StaticText(self, label="")
         main_sizer.Add(self.info_label, 0, wx.ALIGN_LEFT | wx.ALL, 5)
 
-        # Hide button
-        hide_btn = wx.Button(self, label="Hide")
-        main_sizer.Add(hide_btn, 0, wx.ALIGN_RIGHT | wx.ALL, 5)
-        hide_btn.Bind(wx.EVT_BUTTON, self.on_hide)
-
         self.SetSizer(main_sizer)
 
     def on_hide(self, event):
@@ -1020,14 +1021,15 @@ class DurationSelectPanel(wx.Panel):
             return
 
         # Set the date and time controls to the range of the trimmed data
-        start_datetime = trimmed_data[0][0]
-        end_datetime = trimmed_data[-1][0]
+        if len(trimmed_data) > 0:
+            start_datetime = trimmed_data[0][0]
+            end_datetime = trimmed_data[-1][0]
 
-        # Set the date and time pickers
-        self.start_date_ctrl.SetValue(wx.DateTime.FromDMY(start_datetime.day, start_datetime.month - 1, start_datetime.year))
-        self.start_time_ctrl.SetValue(wx.DateTime.FromHMS(start_datetime.hour, start_datetime.minute, start_datetime.second))
-        self.end_date_ctrl.SetValue(wx.DateTime.FromDMY(end_datetime.day, end_datetime.month - 1, end_datetime.year))
-        self.end_time_ctrl.SetValue(wx.DateTime.FromHMS(end_datetime.hour, end_datetime.minute, end_datetime.second))
+            # Set the date and time pickers
+            self.start_date_ctrl.SetValue(wx.DateTime.FromDMY(start_datetime.day, start_datetime.month - 1, start_datetime.year))
+            self.start_time_ctrl.SetValue(wx.DateTime.FromHMS(start_datetime.hour, start_datetime.minute, start_datetime.second))
+            self.end_date_ctrl.SetValue(wx.DateTime.FromDMY(end_datetime.day, end_datetime.month - 1, end_datetime.year))
+            self.end_time_ctrl.SetValue(wx.DateTime.FromHMS(end_datetime.hour, end_datetime.minute, end_datetime.second))
 
         # Limit the date controls to the range of the full data
         full_start_datetime = data[0][0]
@@ -1056,6 +1058,7 @@ class DurationSelectPanel(wx.Panel):
             return
         unit = self.time_unit_choice.GetStringSelection()
         now = datetime.datetime.now()
+        end_datetime = now
 
         if unit == "Hour":
             delta = datetime.timedelta(hours=n)
@@ -1068,10 +1071,12 @@ class DurationSelectPanel(wx.Panel):
         elif unit == "Year":
             delta = datetime.timedelta(days=365 * n)  # Approximate
         else:
-            delta = datetime.timedelta()
+            delta = None
 
-        start_datetime = now - delta
-        end_datetime = now
+        if delta == None:
+            start_datetime = self.current_dataset['data'][0][0]
+        else:
+            start_datetime = now - delta
 
         # Set the date and time pickers
         self.start_date_ctrl.SetValue(wx.DateTime.FromDMY(start_datetime.day, start_datetime.month - 1, start_datetime.year))
@@ -1156,7 +1161,10 @@ class DurationSelectPanel(wx.Panel):
         else:
             duration = datetime.timedelta(0)
 
-        info_text = f"Original Items: {data_len}\nTrimmed Items: {trimmed_len}\nDuration: {duration}"
+        if "." in str(duration):
+            duration = str(duration).split(".")[0]
+
+        info_text = f"Using: {trimmed_len} of {data_len}\nDuration: {duration}"
         self.info_label.SetLabel(info_text)
 
         self.Layout()
