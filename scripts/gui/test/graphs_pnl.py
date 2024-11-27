@@ -413,17 +413,16 @@ class info_pnl(scrolled.ScrolledPanel):
         self.SetFont(self.shared_data.title_font)
         title_l = wx.StaticText(self, label='Graphs')
         self.SetFont(self.shared_data.sub_title_font)
-        sub_title_text = "This will be where graphs are made, at the moment you still need to use the older gui."
-        page_sub_title = wx.StaticText(self, label=sub_title_text)
+        #sub_title_text = "."
+        #page_sub_title = wx.StaticText(self, label=sub_title_text)
 
         # Main Sizer
         self.main_sizer = wx.BoxSizer(wx.VERTICAL)
         self.main_sizer.Add(title_l, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
-        self.main_sizer.Add(page_sub_title, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
+        #self.main_sizer.Add(page_sub_title, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
 
-        # Load Log Panel (initially hidden)
+        # Load Log Panel
         self.load_log_pnl = LoadLogPanel(self)
-        self.load_log_pnl.Hide()
         self.main_sizer.Add(self.load_log_pnl, 0, wx.EXPAND | wx.ALL, 5)
 
         # Duration Select Panel (initially hidden)
@@ -628,17 +627,26 @@ class LoadLogPanel(wx.Panel):
         self.init_ui()
 
     def init_ui(self):
+        self.SetBackgroundColour(wx.Colour(220, 220, 220))
         main_sizer = wx.BoxSizer(wx.VERTICAL)
 
-        # Title label 'Load Log' justified left
+        # Top bar label and button
         title_label = wx.StaticText(self, label="Load Log")
-        main_sizer.Add(title_label, 0, wx.ALIGN_LEFT | wx.ALL, 5)
+        self.hide_btn = wx.Button(self, label="Hide")
+        self.hide_btn.Bind(wx.EVT_BUTTON, self.on_hide_btn)
+        topbar_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        topbar_sizer.Add(title_label, 0, wx.ALL, 5)
+        topbar_sizer.AddStretchSpacer()
+        topbar_sizer.Add(self.hide_btn, 0, wx.ALL, 5)
+        main_sizer.Add(topbar_sizer, 0, wx.EXPAND, 5)
+
 
         # Buttons 'load from pi' and 'load local' beside each other
         button_sizer = wx.BoxSizer(wx.HORIZONTAL)
         self.load_from_pi_btn = wx.Button(self, label="Load from Pi")
         self.load_local_btn = wx.Button(self, label="Load Local")
         button_sizer.Add(self.load_from_pi_btn, 0, wx.ALL, 5)
+
         button_sizer.Add(self.load_local_btn, 0, wx.ALL, 5)
         main_sizer.Add(button_sizer, 0, wx.ALIGN_LEFT)
 
@@ -660,7 +668,7 @@ class LoadLogPanel(wx.Panel):
         split_sizer.Add(self.split_char_text, 0, wx.ALL, 5)
         split_sizer.Add(kv_split_char_label, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
         split_sizer.Add(self.kv_split_char_text, 0, wx.ALL, 5)
-        main_sizer.Add(split_sizer, 0, wx.ALIGN_LEFT)
+        main_sizer.Add(split_sizer, 0, wx.ALIGN_CENTER_HORIZONTAL)
 
         # Date information display
         date_info_sizer = wx.BoxSizer(wx.VERTICAL)
@@ -682,25 +690,37 @@ class LoadLogPanel(wx.Panel):
         self.key_choice.Bind(wx.EVT_CHOICE, self.on_key_selected)
 
         # 'Load Data' button
-        self.load_data_btn = wx.Button(self, label="Load Data")
+        self.load_data_btn = wx.Button(self, label="Import Data")
+        self.load_data_btn.Disable()
         main_sizer.Add(self.load_data_btn, 0, wx.ALIGN_LEFT | wx.ALL, 5)
-        self.load_data_btn.Bind(wx.EVT_BUTTON, self.on_load_data)
+        self.load_data_btn.Bind(wx.EVT_BUTTON, self.on_import_data)
 
         self.SetSizer(main_sizer)
+        self.parent.Layout()
+
+    def on_hide_btn(self, event):
+        self.Hide()
 
     def on_load_from_pi(self, event):
         wx.MessageBox("Loading logs from Pi not yet coded", "Info", wx.OK | wx.ICON_INFORMATION)
 
     def on_load_local(self, event):
-        # Open file dialog to select a file
-        with wx.FileDialog(self, "Open Log File", wildcard="Log files (*.txt;*.log)|*.txt;*.log|All files|*.*",
-                           style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST) as fileDialog:
+        with wx.FileDialog(
+                self,
+                "Open Log File",
+                wildcard="Log files (*.txt;*.log)|*.txt;*.log",
+                style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST,
+                defaultDir=self.parent.parent.shared_data.frompi_path
+        ) as fileDialog:
             if fileDialog.ShowModal() == wx.ID_CANCEL:
                 return
+
             # Proceed to load the file
             path = fileDialog.GetPath()
             self.load_log_file(path)
+        self.load_data_btn.Enable()
         self.Layout()
+        self.parent.Layout() 
 
     def load_log_file(self, path):
         try:
@@ -787,9 +807,11 @@ class LoadLogPanel(wx.Panel):
                 key, value = field.split(self.kv_split_char, 1)
                 keys.append(key)
         self.keys = keys
-        self.key_choice.SetItems(keys)
-        self.key_choice.SetSelection(0)
         self.extract_dates()
+        filtered_keys = [key for key in self.keys if key != self.date_key]
+        self.key_choice.SetItems(filtered_keys)
+        self.key_choice.SetSelection(0)
+
 
     def extract_dates(self):
         """Extract dates from all lines."""
@@ -822,14 +844,17 @@ class LoadLogPanel(wx.Panel):
         if self.dates:
             first_date = self.dates[0]
             last_date = self.dates[-1]
-            duration = last_date - first_date
-            date_info = f"First Date: {first_date}\nLast Date: {last_date}\nDuration: {duration}"
+            duration = str(last_date - first_date)
+            f_first_date = first_date.strftime("%d-%b-%y %H:%M")
+            f_last_date = last_date.strftime("%d-%b-%y %H:%M")
+            if "." in duration:
+                duration = duration.split(".")[0]
+            date_info = f"From: {f_first_date} to {f_last_date}\nDuration: {duration}"
             self.date_info_text.SetLabel(date_info)
         else:
             self.date_info_text.SetLabel("No dates found.")
         self.Layout()
         self.Fit()
-
 
     def parse_date(self, text):
         """Parse a date from text."""
@@ -867,7 +892,7 @@ class LoadLogPanel(wx.Panel):
             self.key_value_text.SetLabel("Value not found.")
         self.Layout()
 
-    def on_load_data(self, event):
+    def on_import_data(self, event):
         """Load data and add to ctrl_pnl."""
         selected_key = self.key_choice.GetStringSelection()
         data_tuples = []
@@ -904,7 +929,6 @@ class LoadLogPanel(wx.Panel):
 
         # Show Duration Select panel
         self.parent.show_duration_select_panel(dataset)
-        wx.MessageBox("Data loaded successfully.", "Info", wx.OK | wx.ICON_INFORMATION)
 
 
 class DurationSelectPanel(wx.Panel):
@@ -1392,12 +1416,6 @@ class GraphPanel(wx.Panel):
     def on_double_click(self, graph_path):
         """Handle double-click event on a graph."""
         print(f"Graph clicked: {graph_path}")
-
-import os
-import wx
-import importlib
-import datetime
-import wx.lib.scrolledpanel as scrolled
 
 class SuckerDialog(wx.Dialog):
     def __init__(self, parent, *args, **kw):
