@@ -8,6 +8,7 @@ import json
 import datetime
 import time
 import sys
+import matplotlib.pyplot as plt
 
 
 class ctrl_pnl(scrolled.ScrolledPanel):
@@ -29,6 +30,39 @@ class ctrl_pnl(scrolled.ScrolledPanel):
         # Add table to display datasets
         self.datasets_table = self.create_datasets_table()
         self.main_sizer.Add(self.datasets_table, 0, wx.EXPAND | wx.ALL, 5)
+
+        # Preset sizer
+        self.preset_sizer = wx.BoxSizer(wx.HORIZONTAL)
+
+        # Preset label
+        preset_label = wx.StaticText(self, label="Preset")
+        self.preset_sizer.Add(preset_label, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
+
+        # Preset choice (combobox)
+        self.preset_choice = wx.ComboBox(self, style=wx.CB_READONLY)
+        # Initialize GraphPreset and populate preset list
+        self.graph_preset = GraphPreset()
+        preset_list = self.graph_preset.get_preset_list()
+        self.preset_choice.SetItems(preset_list)
+        if preset_list:
+            self.preset_choice.SetSelection(0)
+
+        self.preset_sizer.Add(self.preset_choice, 1, wx.EXPAND | wx.ALL, 5)
+
+        # Load button
+        self.load_preset_btn = wx.Button(self, label="Load")
+        self.preset_sizer.Add(self.load_preset_btn, 0, wx.ALL, 5)
+
+        # Save button
+        self.save_preset_btn = wx.Button(self, label="Save")
+        self.preset_sizer.Add(self.save_preset_btn, 0, wx.ALL, 5)
+
+        # Bind button events
+        self.load_preset_btn.Bind(wx.EVT_BUTTON, self.on_load_preset)
+        self.save_preset_btn.Bind(wx.EVT_BUTTON, self.on_save_preset)
+
+        # Add preset_sizer to main_sizer
+        self.main_sizer.Add(self.preset_sizer, 0, wx.EXPAND | wx.ALL, 5)
 
         # Button to toggle Load Log panel
         self.toggle_load_log_btn = wx.Button(self, label="Load Log")
@@ -57,6 +91,38 @@ class ctrl_pnl(scrolled.ScrolledPanel):
 
         # Setup scrolling
         self.SetupScrolling(scroll_x=False, scroll_y=True)
+
+    def on_load_preset(self, event):
+        selected_preset = self.preset_choice.GetStringSelection()
+        if selected_preset:
+            graph_type, graph_settings = self.graph_preset.load_preset(self, selected_preset)
+            if graph_type:
+                # Set the graph type in the GUI
+                self.graph_choice.SetStringSelection(graph_type)
+            else:
+                wx.MessageBox("Graph type not found in preset.", "Error", wx.OK | wx.ICON_ERROR)
+
+            # Simulate checking 'Configure Graph' checkbox
+            self.configure_graph_chk.SetValue(True)
+            # Call on_configure_graph to load options from the graph module
+            self.on_configure_graph(None)
+
+            if graph_settings:
+                # Apply the settings to the options panel without changing the layout
+                self.options_panel.apply_settings(graph_settings)
+            else:
+                # If no settings, we can leave the options panel as is
+                pass
+        else:
+            wx.MessageBox("Please select a preset.", "Info", wx.OK | wx.ICON_INFORMATION)
+
+    def on_save_preset(self, event):
+        self.graph_preset.save_preset(
+            parent=self,
+            loaded_datasets=self.loaded_datasets,
+            graph_type=self.graph_choice.GetStringSelection(),
+            graph_settings=self.options_panel.get_options() if self.configure_graph_chk.IsChecked() else {}
+        )
 
     def create_make_graphs_section(self):
         """Create the 'Make Graphs' section in the control panel."""
@@ -211,7 +277,6 @@ class ctrl_pnl(scrolled.ScrolledPanel):
                 # Read graph options (for now, just print them)
                 if hasattr(graph_module, 'read_graph_options'):
                     options = graph_module.read_graph_options()
-                    print(f"Graph options for '{selected_graph}':\n{options}")
                     self.options_panel.update_options(options)
                 else:
                     print(f"The module '{module_name}' does not have a 'read_graph_options' function.")
@@ -603,7 +668,7 @@ class CapsDataDialog(wx.Dialog):
 
         selected_key = self.json_key_choice.GetStringSelection()
         dataset = {
-            'file_path': self.caps_set[0],
+            'file_path': self.base_path +":J",
             'key': selected_key,
             'data': self.data_tuples,
             'trimmed_data': self.data_tuples,
@@ -1181,6 +1246,8 @@ class GraphOptionsPanel(wx.Panel):
         # Initialize a dictionary to keep track of controls
         self.controls = {}
 
+        self.mpl_style_options = plt.style.available
+
     def default_graph_opts(self, options_dict):
         defaults = {
             "Y axis Minimum": "",
@@ -1269,15 +1336,7 @@ class GraphOptionsPanel(wx.Panel):
             "xkcd:sky blue", "xkcd:rose", "xkcd:turquoise", "xkcd:light purple"
         ]
 
-        mpl_style_options = [
-            "default", "classic", "Solarize_Light2", "bmh", "dark_background",
-            "fast", "fivethirtyeight", "ggplot", "grayscale", "seaborn",
-            "seaborn-bright", "seaborn-colorblind", "seaborn-dark",
-            "seaborn-dark-palette", "seaborn-darkgrid", "seaborn-deep",
-            "seaborn-muted", "seaborn-notebook", "seaborn-paper",
-            "seaborn-pastel", "seaborn-poster", "seaborn-talk", "seaborn-ticks",
-            "seaborn-white", "seaborn-whitegrid", "tableau-colorblind10"
-        ]
+        mpl_style_options = self.mpl_style_options
 
         # Dictionary of special options
         self.special_options = {
@@ -1344,6 +1403,30 @@ class GraphOptionsPanel(wx.Panel):
         # Refresh layout
         self.Layout()
         self.Fit()
+
+    def apply_settings(self, settings_dict):
+        """Apply settings to existing controls without changing the layout."""
+        for key, value in settings_dict.items():
+            if key in self.controls:
+                control = self.controls[key]
+                if isinstance(control, wx.CheckBox):
+                    control.SetValue(str(value).lower() == 'true')
+                elif isinstance(control, wx.ComboBox):
+                    choices = control.GetItems()
+                    # If value is in choices, set selection
+                    # Otherwise, set the value directly
+                    if value in choices:
+                        control.SetStringSelection(value)
+                    else:
+                        control.SetValue(value)
+                elif isinstance(control, wx.TextCtrl):
+                    control.SetValue(str(value))
+                else:
+                    # Handle other control types if necessary
+                    pass
+            else:
+                # Key not in controls, ignore
+                pass
 
     def get_options(self):
         """Reads all controls and returns a dictionary of settings."""
@@ -1569,7 +1652,7 @@ class SuckerDialog(wx.Dialog):
             # Run the module's suckdata method with current settings
             data_label, selected_key, data = self.module.suckdata(self.settings_dict)
             dataset = {
-                "file_path": data_label,
+                "file_path": data_label + ":M",
                 "key": selected_key,
                 "data": data,
                 "trimmed_data": data,
@@ -1583,3 +1666,81 @@ class SuckerDialog(wx.Dialog):
     def on_cancel(self, event=None):
         """Close the dialog."""
         self.Close()
+
+class GraphPreset:
+    def __init__(self):
+        self.preset_folder = "./graph_presets/"
+        if not os.path.exists(self.preset_folder):
+            os.makedirs(self.preset_folder)
+
+    def get_preset_list(self):
+        # Return a list of .txt files in the preset folder
+        preset_files = []
+        if os.path.isdir(self.preset_folder):
+            for filename in os.listdir(self.preset_folder):
+                if filename.endswith('.json'):
+                    preset_files.append(filename[:-5])  # Remove '.json' extension
+        return preset_files
+
+    def load_preset(self, parent, preset_name):
+        preset_file = os.path.join(self.preset_folder, preset_name + '.json')
+        if os.path.exists(preset_file):
+            try:
+                with open(preset_file, 'r') as f:
+                    preset_data = json.load(f)
+                print(f"Loaded preset: {preset_name}")
+
+                # Extract graph information
+                graph_info = preset_data.get('graph', {})
+                graph_type = graph_info.get('type', '')
+                graph_settings = graph_info.get('settings', {})
+
+                # For now, we're focusing on graph settings
+                # Datasets can be handled later
+                return graph_type, graph_settings
+            except Exception as e:
+                wx.MessageBox(f"Error loading preset: {e}", "Error", wx.OK | wx.ICON_ERROR)
+                return None, None
+        else:
+            wx.MessageBox(f"Preset file '{preset_file}' does not exist.", "Error", wx.OK | wx.ICON_ERROR)
+            return None, None
+
+    def save_preset(self, parent, loaded_datasets, graph_type, graph_settings):
+        # Prompt the user for the preset name
+        dlg = wx.TextEntryDialog(parent, "Enter a name for the preset:", "Save Preset")
+        if dlg.ShowModal() == wx.ID_OK:
+            preset_name = dlg.GetValue()
+            if preset_name:
+                # Construct datasets dictionary
+                datasets_dict = self.construct_datasets_dict(parent, loaded_datasets)
+                # Build graph information
+                graph_info = {'type': graph_type}
+                if graph_settings:
+                    graph_info['settings'] = graph_settings
+                # Create the JSON structure
+                preset_data = {
+                    'datasets': datasets_dict,
+                    'graph': graph_info
+                }
+                # Save the preset data to a JSON file
+                preset_file = os.path.join(self.preset_folder, preset_name + '.json')
+                try:
+                    with open(preset_file, 'w') as f:
+                        json.dump(preset_data, f, indent=4)
+                    print(f"Preset saved to {preset_file}")
+                except Exception as e:
+                    print(f"Failed to save preset: {e}")
+            else:
+                wx.MessageBox("Preset name cannot be empty.", "Error", wx.OK | wx.ICON_ERROR)
+        dlg.Destroy()
+
+    def construct_datasets_dict(self, parent, loaded_datasets):
+        datasets_dict = {}
+        # Access the grid to get dataset names as displayed in the first column
+        grid = parent.grid
+        for i in range(len(loaded_datasets)):
+            dataset = loaded_datasets[i]
+            dataset_name = grid.GetCellValue(i, 0)  # First column of the grid
+            key = dataset.get('key', '')
+            datasets_dict[dataset_name] = {'key': key}
+        return datasets_dict
