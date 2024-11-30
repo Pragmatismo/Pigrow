@@ -41,7 +41,7 @@ class ctrl_pnl(scrolled.ScrolledPanel):
         # Preset choice (combobox)
         self.preset_choice = wx.ComboBox(self, style=wx.CB_READONLY)
         # Initialize GraphPreset and populate preset list
-        self.graph_preset = GraphPreset()
+        self.graph_preset = GraphPreset(self)
         preset_list = self.graph_preset.get_preset_list()
         self.preset_choice.SetItems(preset_list)
         if preset_list:
@@ -93,28 +93,7 @@ class ctrl_pnl(scrolled.ScrolledPanel):
         self.SetupScrolling(scroll_x=False, scroll_y=True)
 
     def on_load_preset(self, event):
-        selected_preset = self.preset_choice.GetStringSelection()
-        if selected_preset:
-            graph_type, graph_settings = self.graph_preset.load_preset(self, selected_preset)
-            if graph_type:
-                # Set the graph type in the GUI
-                self.graph_choice.SetStringSelection(graph_type)
-            else:
-                wx.MessageBox("Graph type not found in preset.", "Error", wx.OK | wx.ICON_ERROR)
-
-            # Simulate checking 'Configure Graph' checkbox
-            self.configure_graph_chk.SetValue(True)
-            # Call on_configure_graph to load options from the graph module
-            self.on_configure_graph(None)
-
-            if graph_settings:
-                # Apply the settings to the options panel without changing the layout
-                self.options_panel.apply_settings(graph_settings)
-            else:
-                # If no settings, we can leave the options panel as is
-                pass
-        else:
-            wx.MessageBox("Please select a preset.", "Info", wx.OK | wx.ICON_INFORMATION)
+        self.graph_preset.load_preset(self)
 
     def on_save_preset(self, event):
         self.graph_preset.save_preset(
@@ -424,11 +403,15 @@ class ctrl_pnl(scrolled.ScrolledPanel):
 
     def refresh_table(self):
         """Refresh the grid to reflect the updated dataset list."""
-        self.grid.ClearGrid()
+        # Clear the grid only if there are rows to delete
+        num_rows = self.grid.GetNumberRows()
+        if num_rows > 0:
+            self.grid.DeleteRows(0, num_rows)
 
-        # Update the grid with the new dataset length
-        self.grid.DeleteRows(0, self.grid.GetNumberRows())  # Clear all rows
-        self.grid.AppendRows(len(self.loaded_datasets))  # Add the number of rows we need
+        # Append new rows based on the number of loaded datasets
+        num_datasets = len(self.loaded_datasets)
+        if num_datasets > 0:
+            self.grid.AppendRows(num_datasets)
 
         for i, dataset in enumerate(self.loaded_datasets):
             file_path = dataset['file_path']
@@ -445,9 +428,14 @@ class ctrl_pnl(scrolled.ScrolledPanel):
             self.grid.SetCellValue(i, 2, str(length))
             self.grid.SetCellValue(i, 3, str(trimmed_length))
 
+        # If there are no datasets, add an empty row
+        if num_datasets == 0:
+            self.grid.AppendRows(1)
+            for col in range(4):
+                self.grid.SetCellValue(0, col, "")
 
-        self.grid.AutoSizeColumns()  # Adjust column sizes
-        self.adjust_table_size()  # Adjust table size after refreshing
+        self.grid.AutoSizeColumns()
+        self.adjust_table_size()
 
     def on_read_caps_json(self, event):
         self.caps_dbox = CapsDataDialog(self)
@@ -989,6 +977,9 @@ class LoadLogPanel(wx.Panel):
             'key': selected_key,
             'data': data_tuples,
             'trimmed_data': data_tuples,  # Initially same as data
+            'split_char': self.split_char,
+            'kv_split_char': self.kv_split_char,
+            'date_key': self.date_key
         }
         self.c_pnl.loaded_datasets.append(dataset)
         self.c_pnl.refresh_table()
@@ -1668,42 +1659,20 @@ class SuckerDialog(wx.Dialog):
         self.Close()
 
 class GraphPreset:
-    def __init__(self):
+    def __init__(self, parent):
+        self.parent = parent
         self.preset_folder = "./graph_presets/"
         if not os.path.exists(self.preset_folder):
             os.makedirs(self.preset_folder)
 
     def get_preset_list(self):
-        # Return a list of .txt files in the preset folder
+        # Return a list of .json files in the preset folder
         preset_files = []
         if os.path.isdir(self.preset_folder):
             for filename in os.listdir(self.preset_folder):
                 if filename.endswith('.json'):
                     preset_files.append(filename[:-5])  # Remove '.json' extension
         return preset_files
-
-    def load_preset(self, parent, preset_name):
-        preset_file = os.path.join(self.preset_folder, preset_name + '.json')
-        if os.path.exists(preset_file):
-            try:
-                with open(preset_file, 'r') as f:
-                    preset_data = json.load(f)
-                print(f"Loaded preset: {preset_name}")
-
-                # Extract graph information
-                graph_info = preset_data.get('graph', {})
-                graph_type = graph_info.get('type', '')
-                graph_settings = graph_info.get('settings', {})
-
-                # For now, we're focusing on graph settings
-                # Datasets can be handled later
-                return graph_type, graph_settings
-            except Exception as e:
-                wx.MessageBox(f"Error loading preset: {e}", "Error", wx.OK | wx.ICON_ERROR)
-                return None, None
-        else:
-            wx.MessageBox(f"Preset file '{preset_file}' does not exist.", "Error", wx.OK | wx.ICON_ERROR)
-            return None, None
 
     def save_preset(self, parent, loaded_datasets, graph_type, graph_settings):
         # Prompt the user for the preset name
@@ -1736,11 +1705,129 @@ class GraphPreset:
 
     def construct_datasets_dict(self, parent, loaded_datasets):
         datasets_dict = {}
-        # Access the grid to get dataset names as displayed in the first column
         grid = parent.grid
         for i in range(len(loaded_datasets)):
             dataset = loaded_datasets[i]
-            dataset_name = grid.GetCellValue(i, 0)  # First column of the grid
+            dataset_name = grid.GetCellValue(i, 0)
             key = dataset.get('key', '')
-            datasets_dict[dataset_name] = {'key': key}
+            dataset_entry = {'key': key}
+
+            # Include additional fields if the dataset was loaded from a log
+            if 'split_char' in dataset:
+                dataset_entry.update({
+                    'file_path': dataset.get('file_path', ''),
+                    'split_char': dataset.get('split_char', ''),
+                    'kv_split_char': dataset.get('kv_split_char', ''),
+                    'date_key': dataset.get('date_key', None),
+                })
+            datasets_dict[dataset_name] = dataset_entry
         return datasets_dict
+
+    def load_preset(self, parent):
+        preset_name = parent.preset_choice.GetStringSelection()
+        preset_file = os.path.join(self.preset_folder, preset_name + '.json')
+        if os.path.exists(preset_file):
+            with open(preset_file, 'r') as f:
+                preset_data = json.load(f)
+            datasets_info = preset_data.get('datasets', {})
+            # Clear existing datasets
+            parent.loaded_datasets = []
+            parent.refresh_table()
+            for dataset_name, dataset_params in datasets_info.items():
+                key = dataset_params.get('key', '')
+                # Check if the dataset was loaded from a log
+                if 'split_char' in dataset_params:
+                    file_path = dataset_params.get('file_path', '')
+                    if "/" not in file_path:
+                        frompi_path = self.parent.parent.shared_data.frompi_path
+                        file_path = os.path.join(frompi_path, "logs", file_path)
+                    if "." not in file_path:
+                        file_path = file_path + ".txt"
+                    split_char = dataset_params.get('split_char', '')
+                    kv_split_char = dataset_params.get('kv_split_char', '')
+                    date_key = dataset_params.get('date_key', None)
+                    # Use these parameters to load the dataset
+                    self.load_log_dataset(
+                        parent,
+                        file_path,
+                        key,
+                        split_char,
+                        kv_split_char,
+                        date_key,
+                        dataset_name
+                    )
+                else:
+                    # Handle other types of datasets
+                    pass
+            # Update graph selection and options as well
+            graph_info = preset_data.get('graph', {})
+            graph_type = graph_info.get('type', '')
+            parent.graph_choice.SetStringSelection(graph_type)
+            if 'settings' in graph_info:
+                options = graph_info['settings']
+                parent.options_panel.update_options(options)
+                parent.configure_graph_chk.SetValue(True)
+            else:
+                parent.configure_graph_chk.SetValue(False)
+        else:
+            print(f"Preset file {preset_file} does not exist.")
+
+    def load_log_dataset(self, parent, file_path, key, split_char, kv_split_char, date_key, dataset_name):
+        # Implement logic to load the log using the provided parameters
+        try:
+            with open(file_path, 'r') as f:
+                lines = f.readlines()
+            # Parse the lines using split_char and kv_split_char
+            data_tuples = []
+            for line in lines:
+                line = line.strip()
+                fields = line.split(split_char)
+                date = None
+                value = None
+                for field in fields:
+                    if kv_split_char in field:
+                        k, val = field.split(kv_split_char, 1)
+                        if k == key:
+                            value = val
+                        if k == date_key or date_key is None:
+                            date = self.parse_date(val)
+                    else:
+                        if date_key is None:
+                            date = self.parse_date(field)
+                if date and value is not None:
+                    try:
+                        data_tuples.append((date, float(value)))
+                    except ValueError:
+                        continue  # Skip invalid entries
+            # Add the dataset to ctrl_pnl
+            dataset = {
+                'file_path': dataset_name,
+                'key': key,
+                'data': data_tuples,
+                'trimmed_data': data_tuples,
+                'split_char': split_char,
+                'kv_split_char': kv_split_char,
+                'date_key': date_key,
+            }
+            parent.loaded_datasets.append(dataset)
+            parent.refresh_table()
+        except Exception as e:
+            wx.MessageBox(f"Failed to load log file: {e}", "Error", wx.OK | wx.ICON_ERROR)
+
+    def parse_date(self, text):
+        """Parse a date from text."""
+        try:
+            timestamp = float(text)
+            date = datetime.datetime.fromtimestamp(timestamp)
+            return date
+        except:
+            pass
+        date_formats = ["%Y-%m-%d %H:%M:%S.%f", "%Y-%m-%d %H:%M:%S",
+                        "%d/%m/%Y %H:%M:%S", "%d/%m/%Y %H:%M:%S.%f"]
+        for fmt in date_formats:
+            try:
+                date = datetime.datetime.strptime(text, fmt)
+                return date
+            except:
+                pass
+        return None
