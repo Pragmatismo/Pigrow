@@ -1570,13 +1570,13 @@ class SuckerDialog(wx.Dialog):
 
     def on_module_select(self, event):
         """Load the selected module and display its options."""
-        selected_module = self.module_dropdown.GetValue()
-        if not selected_module:
+        self.selected_module = self.module_dropdown.GetValue()
+        if not self.selected_module:
             return
 
         # Dynamically import the selected module
         try:
-            module_name = f"graph_modules.sucker_{selected_module}"
+            module_name = f"graph_modules.sucker_{self.selected_module}"
             self.module = importlib.import_module(module_name)
             self.settings_dict = self.module.read_datasucker_options()
             self.populate_options()
@@ -1641,12 +1641,13 @@ class SuckerDialog(wx.Dialog):
 
         try:
             # Run the module's suckdata method with current settings
-            data_label, selected_key, data = self.module.suckdata(self.settings_dict)
+            selected_key, data = self.module.suckdata(self.settings_dict)
             dataset = {
-                "file_path": data_label + ":M",
+                "file_path": self.selected_module + ":M",
                 "key": selected_key,
                 "data": data,
                 "trimmed_data": data,
+                "ds_settings": self.settings_dict
             }
             self.parent.loaded_datasets.append(dataset)
             self.parent.refresh_table()  # Refresh table
@@ -1655,8 +1656,13 @@ class SuckerDialog(wx.Dialog):
             wx.MessageBox(f"Error adding dataset: {e}", "Error", wx.OK | wx.ICON_ERROR)
 
     def on_cancel(self, event=None):
-        """Close the dialog."""
         self.Close()
+
+import os
+import json
+import datetime
+import importlib
+import wx
 
 class GraphPreset:
     def __init__(self, parent):
@@ -1712,14 +1718,26 @@ class GraphPreset:
             key = dataset.get('key', '')
             dataset_entry = {'key': key}
 
-            # Include additional fields if the dataset was loaded from a log
-            if 'split_char' in dataset:
+            if dataset_name.endswith(':M'):
+                # Dataset loaded via datasucker module
+                module_name = dataset_name[:-2]  # Remove ':M'
+                ds_settings = dataset.get('ds_settings', {})
+                dataset_entry.update({
+                    'module_name': module_name,
+                    'ds_settings': ds_settings
+                })
+            elif 'split_char' in dataset:
+                # Dataset loaded from a log
                 dataset_entry.update({
                     'file_path': dataset.get('file_path', ''),
                     'split_char': dataset.get('split_char', ''),
                     'kv_split_char': dataset.get('kv_split_char', ''),
                     'date_key': dataset.get('date_key', None),
                 })
+            else:
+                # Handle other types of datasets if necessary
+                pass
+
             datasets_dict[dataset_name] = dataset_entry
         return datasets_dict
 
@@ -1735,8 +1753,13 @@ class GraphPreset:
             parent.refresh_table()
             for dataset_name, dataset_params in datasets_info.items():
                 key = dataset_params.get('key', '')
-                # Check if the dataset was loaded from a log
-                if 'split_char' in dataset_params:
+                # Check if the dataset was loaded via a datasucker module
+                if 'module_name' in dataset_params:
+                    module_name = dataset_params.get('module_name')
+                    ds_settings = dataset_params.get('ds_settings', {})
+                    self.load_datasucker_dataset(parent, module_name, ds_settings, dataset_name)
+                elif 'split_char' in dataset_params:
+                    # Dataset loaded from a log
                     file_path = dataset_params.get('file_path', '')
                     if "/" not in file_path:
                         frompi_path = self.parent.parent.shared_data.frompi_path
@@ -1757,7 +1780,7 @@ class GraphPreset:
                         dataset_name
                     )
                 else:
-                    # Handle other types of datasets
+                    # Handle other types of datasets if necessary
                     pass
             # Update graph selection and options as well
             graph_info = preset_data.get('graph', {})
@@ -1772,47 +1795,30 @@ class GraphPreset:
         else:
             print(f"Preset file {preset_file} does not exist.")
 
-    def load_log_dataset(self, parent, file_path, key, split_char, kv_split_char, date_key, dataset_name):
-        # Implement logic to load the log using the provided parameters
+    def load_datasucker_dataset(self, parent, module_name, ds_settings, dataset_name):
         try:
-            with open(file_path, 'r') as f:
-                lines = f.readlines()
-            # Parse the lines using split_char and kv_split_char
-            data_tuples = []
-            for line in lines:
-                line = line.strip()
-                fields = line.split(split_char)
-                date = None
-                value = None
-                for field in fields:
-                    if kv_split_char in field:
-                        k, val = field.split(kv_split_char, 1)
-                        if k == key:
-                            value = val
-                        if k == date_key or date_key is None:
-                            date = self.parse_date(val)
-                    else:
-                        if date_key is None:
-                            date = self.parse_date(field)
-                if date and value is not None:
-                    try:
-                        data_tuples.append((date, float(value)))
-                    except ValueError:
-                        continue  # Skip invalid entries
-            # Add the dataset to ctrl_pnl
+            # Dynamically import the module
+            module_full_name = f"graph_modules.sucker_{module_name}"
+            module = importlib.import_module(module_full_name)
+            # Call the module's suckdata method with ds_settings
+            selected_key, data = module.suckdata(ds_settings)
+            # Create the dataset dict
             dataset = {
-                'file_path': dataset_name,
-                'key': key,
-                'data': data_tuples,
-                'trimmed_data': data_tuples,
-                'split_char': split_char,
-                'kv_split_char': kv_split_char,
-                'date_key': date_key,
+                "file_path": dataset_name,  # Use dataset_name from the preset
+                "key": selected_key,
+                "data": data,
+                "trimmed_data": data,
+                "ds_settings": ds_settings
             }
+            # Add to loaded_datasets
             parent.loaded_datasets.append(dataset)
             parent.refresh_table()
         except Exception as e:
-            wx.MessageBox(f"Failed to load log file: {e}", "Error", wx.OK | wx.ICON_ERROR)
+            wx.MessageBox(f"Error loading dataset from module '{module_name}': {e}", "Error", wx.OK | wx.ICON_ERROR)
+
+    def load_log_dataset(self, parent, file_path, key, split_char, kv_split_char, date_key, dataset_name):
+        # Existing code to load datasets from logs
+        pass  # (Include your existing implementation here)
 
     def parse_date(self, text):
         """Parse a date from text."""

@@ -47,7 +47,8 @@ def read_datasucker_options():
             "Soil Moisture (1-3 cm)",
             "Soil Moisture (3-9 cm)",
             "Soil Moisture (9-27 cm)",
-            "Soil Moisture (27-81 cm)"
+            "Soil Moisture (27-81 cm)",
+            ""
         ],
         "daily": [
             "",
@@ -105,15 +106,13 @@ def suckdata(settings_dict=None):
             - daily (str): Selected daily variable (from read_datasucker_options())
 
     Returns:
-        tuple: (data_label, key, data)
-            - data_label (str): Label for the data source
+        tuple: (key, data)
             - key (str): Selected variable name
             - data (list): A list of (datetime, value) tuples for the selected variable.
     """
     if settings_dict is None:
         settings_dict = read_datasucker_options()
 
-    data_label = "open_metro"
     latitude = settings_dict.get("latitude")
     longitude = settings_dict.get("longitude")
     start = settings_dict.get("start")
@@ -201,4 +200,4 @@ def suckdata(settings_dict=None):
     else:
         raise ValueError(f"No data found for {selected_key}.")
 
-    return data_label, selected_key, data
+    return selected_key, data
