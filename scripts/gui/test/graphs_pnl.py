@@ -758,12 +758,27 @@ class LoadLogPanel(wx.Panel):
         self.parent.main_sizer.Layout()
 
     def on_load_from_pi(self, event):
-        #select_files_on_pi(single_folder=False, create_file=False, default_path="")
-        pi_logs = self.parent.parent.shared_data.remote_pigrow_path + "logs"
+        # Select Files on Pi
+        pi_logs = self.parent.parent.shared_data.remote_pigrow_path + "/logs/"
         select_files = self.parent.parent.link_pnl.select_files_on_pi
         selected_files, selected_folders = select_files(single_folder=False,
                                                         default_path=pi_logs)
-        print(f"doing nothing with {selected_files}, {selected_folders}")
+        if selected_files == []:
+            return None
+
+        # Download File
+        remote_path = selected_files[0][0]
+        filename = os.path.splitext(os.path.basename(remote_path))[0]
+        fp_path = self.parent.parent.shared_data.frompi_path
+        local_path = os.path.join(fp_path, "logs", filename)
+        print("Copying", remote_path, "to", local_path)
+        self.parent.parent.link_pnl.download_file_to_folder(remote_path, local_path)
+
+        # load downloaded log
+        self.load_log_file(local_path)
+        self.load_data_btn.Enable()
+        self.Layout()
+        self.parent.Layout()
 
     def on_load_local(self, event):
         with wx.FileDialog(
@@ -781,7 +796,7 @@ class LoadLogPanel(wx.Panel):
             self.load_log_file(path)
         self.load_data_btn.Enable()
         self.Layout()
-        self.parent.Layout() 
+        self.parent.Layout()
 
     def load_log_file(self, path):
         try:
