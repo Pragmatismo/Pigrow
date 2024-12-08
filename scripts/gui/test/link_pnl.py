@@ -6,6 +6,10 @@ from getmac import get_mac_address
 import wx.lib.delayedresult as delayedresult
 import  wx.lib.newevent
 import threading
+import platform
+
+import subprocess
+from datetime import datetime
 
 FileDownloadEvent, EVT_FILE_DOWNLOAD = wx.lib.newevent.NewEvent()
 
@@ -105,33 +109,55 @@ class link_pnl(wx.Panel):
     def discover_ip_list(self):
         default_ip = self.parent.shared_data.gui_set_dict['default_address']
         ip_ranges = ["192.168.0.", "192.168.1."]
-        # read mac addresses of all devices on ip_range
+
+        def ping_sweep(ip_range):
+            """Ping all IPs in the range to populate the ARP table."""
+            for x in range(0, 255):
+                print(f"pinging {x}")
+                ip = f"{ip_range}{x}"
+                param = "-n 1" if platform.system().lower() == "windows" else "-c 1"
+                os.system(f"ping {param} -w 1 {ip} > /dev/null 2>&1")
+
+        # Initialize lists for Raspberry Pi and other IPs
         raspi_ips = []
         other_ips = []
+
+        # Perform ping sweep and MAC address lookup
         for ip_range in ip_ranges:
-            for x in range(0,255):
-                ip_mac = get_mac_address(ip=ip_range + str(x))
-                if not ip_mac == None:
-                    if not "00:00:00" in ip_mac:
-                        if "b8:27:eb" in ip_mac:
-                            raspi_ips.append(ip_range + str(x))
+            print(f"Sweeping range {ip_range}")
+            ping_sweep(ip_range)  # Populate the ARP table
+            for x in range(0, 255):
+                ip = f"{ip_range}{x}"
+                ip_mac = get_mac_address(ip=ip)
+                if ip_mac is not None:
+                    if "00:00:00" not in ip_mac:
+                        if "b8:27:eb" in ip_mac:  # Raspberry Pi MAC prefix
+                            raspi_ips.append(ip)
+                            print(f"Found {ip}")
                         else:
-                            other_ips.append(ip_range + str(x))
-        # read ipv6 addresses
+                            other_ips.append(ip)
+
+        # IPv6 discovery (basic example)
         ip6_mac = get_mac_address(ip6="::1")
-        # combine lsts
+
+        # Combine results into the final IP list
         final_ip_list = raspi_ips
-        if not other_ips == []:
+        if other_ips:
             final_ip_list += ["-----"] + other_ips
-        if not ip6_mac == None:
-            final_ip_list += ["-----"] + ip6_mac
-        if other_ips == [] and raspi_ips == []:
+        if ip6_mac is not None:
+            final_ip_list += ["-----"] + [ip6_mac]
+        if not final_ip_list:  # No devices found
             return ip6_mac
         return final_ip_list
 
-    def seek_for_pigrows_click(self, e):
-        self.cb_ip.Clear()
-        self.cb_ip.Append(self.discover_ip_list())
+    def seek_for_pigrows_click(self, event):
+        dlg = DiscoverIPDialog(self, title="Discovery Options")
+        if dlg.ShowModal() == wx.ID_OK:
+            ip_list = dlg.get_ip_list()
+            self.cb_ip.Clear()
+            for item in ip_list:
+                self.cb_ip.Append(item)
+        dlg.Destroy()
 
     def get_box_name(self):
         boxname = None
@@ -146,10 +172,6 @@ class link_pnl(wx.Panel):
         if boxname == '':
             boxname = None
         return boxname
-
-    #def __del__(self):
-    #    print("psssst it did that thing, the _del_ one you like so much...")
-    #    pass
 
 
     def link_with_pi_btn_click(self, e):
@@ -395,14 +417,18 @@ class link_pnl(wx.Panel):
 
     def select_files_on_pi(self, single_folder=False, create_file=False, default_path=""):
         print("Selecting files on pi")
-        self.single_folder = single_folder
-        self.create_file   = create_file
-        self.default_path  = default_path
-        select_file_dbox = select_files_on_pi_dialog(self, self.parent)
+        select_file_dbox = select_files_on_pi_dialog(self,
+                                                    single_folder=single_folder,
+                                                    create_file=create_file,
+                                                    default_path=default_path
+                                                    )
         select_file_dbox.ShowModal()
+        selected_files = select_file_dbox.selected_files
+        selected_folders = select_file_dbox.selected_folders
+        return selected_files, selected_folders
+
 
    # upload files
-
     def upload_files(self, file_list):
         port = int(self.parent.shared_data.gui_set_dict['ssh_port'])
         print("  - connecting transport pipe... " + self.target_ip + " port:" + str(port))
@@ -472,14 +498,15 @@ class link_pnl(wx.Panel):
 
 class select_files_on_pi_dialog(wx.Dialog):
     #Dialog box for downloding files from pi to local storage folder
-    def __init__(self, parent, *args, **kw):
+    def __init__(self, parent, single_folder=False, create_file=False, default_path=""):
         self.parent = parent
-        self.single_folder = parent.single_folder
-        self.create_file   = parent.create_file
-        self.default_path  = parent.default_path
-        self.parent.selected_folders = []
-        self.parent.selected_files   = []
-        super(select_files_on_pi_dialog, self).__init__(*args, **kw)
+        self.single_folder = single_folder
+        self.create_file   = create_file
+        self.default_path  = default_path
+
+        self.selected_folders = []
+        self.selected_files = []
+        super(select_files_on_pi_dialog, self).__init__(parent)
         self.InitUI()
         self.SetSize((700, 500))
         self.SetTitle("Select file on pi")
@@ -496,13 +523,13 @@ class select_files_on_pi_dialog(wx.Dialog):
         if not s_path[-1:] == "/":
             s_path = s_path + "/"
 
-
         self.folder_path = wx.StaticText(self,  label=s_path)
         self.up_a_level_btn = wx.Button(self, label='..')
         self.up_a_level_btn.Bind(wx.EVT_BUTTON, self.up_a_level_click)
         folder_sizer = wx.BoxSizer(wx.HORIZONTAL)
         folder_sizer.Add(self.folder_path, 0, wx.ALL|wx.EXPAND, 5)
         folder_sizer.Add(self.up_a_level_btn, 0, wx.ALL, 5)
+
         # files
         if self.single_folder == True:
             print("Single Folder mode activated ")
@@ -601,10 +628,6 @@ class select_files_on_pi_dialog(wx.Dialog):
         self.fill_filelist()
 
     def OnClose(self, e):
-        print(" Closing the dialog box without doing anything")
-        self.selected_files = []
-        self.parent.selected_folders = []
-        self.parent.selected_files   = []
         self.Destroy()
 
     def DoubleClick_filelist(self, e):
@@ -612,7 +635,6 @@ class select_files_on_pi_dialog(wx.Dialog):
         index =  e.GetIndex()
         name = self.file_list.GetItem(index, 0).GetText()
         colour = self.file_list.GetItemTextColour(index)
-        print("colour", str(colour))
         if colour == (90, 100, 190, 255):
             new_path = current_folder + name + "/"
             self.folder_path.SetLabel(new_path)
@@ -620,7 +642,7 @@ class select_files_on_pi_dialog(wx.Dialog):
             self.fill_filelist()
         else:
             if self.single_folder == True:
-                self.parent.selected_folders.append(current_folder)
+                self.selected_folders.append(current_folder)
                 self.Destroy()
             else:
                 print("double click only enabled in single_folder mode")
@@ -635,7 +657,7 @@ class select_files_on_pi_dialog(wx.Dialog):
             if filename == "":
                 return None
             item = current_folder + filename
-            self.parent.selected_files.append(item)
+            self.selected_files.append(item)
 
         else:
             first_selected = self.file_list.GetNextSelected(-1)
@@ -670,13 +692,11 @@ class select_files_on_pi_dialog(wx.Dialog):
                 folder = os.path.dirname(filename)
                 s_file_list = []
                 s_folder_list = [folder]
-            print("folders ", s_folder_list)
-            print("files ", s_file_list)
 
             for item in s_folder_list:
-                self.parent.selected_folders.append(item)
+                self.selected_folders.append(item)
             for item in s_file_list:
-                self.parent.selected_files.append(item)
+                self.selected_files.append(item)
 
         self.Destroy()
 
@@ -752,3 +772,260 @@ class files_download_dialog(wx.Dialog):
         wx.PostEvent(self,FileDownloadEvent(from_p="Done", to_p="Done"))
         print("Download completed")
         return jobID
+
+class DiscoverIPDialog(wx.Dialog):
+    def __init__(self, parent, title="Discover IP Options"):
+        super(DiscoverIPDialog, self).__init__(parent, title=title, size=(550, 600))
+
+        self.parent = parent
+        self.ip_list = []  # Will store discovered IPs after scanning
+        self.stop_requested = threading.Event()  # Used to signal thread to stop
+        self.scanning_thread = None
+
+        panel = wx.Panel(self)
+        vbox = wx.BoxSizer(wx.VERTICAL)
+
+        info_text = (
+            "Discover IP addresses on your local network:\n"
+            "- 'Use get_mac': Will attempt to using get_mac to check for MAC address, if devices aren't showing we can populate the ARP tables by pinging devices, note this is slow.\n"
+            "- 'Use nmap': Will use nmap to discover hosts, then get MACs. nmap must be installed.\n\n"
+            "Raspberry Pi devices are identified by certain MAC prefixes, Raspi's will apear at the top of the list\n\n"
+            "You can also enable IPv6 scanning for a basic check.\n"
+        )
+        lbl_info = wx.StaticText(panel, label=info_text)
+        vbox.Add(lbl_info, 0, wx.ALL|wx.EXPAND, 10)
+
+        # Method selection
+        method_choices = ["Use nmap", "Use get_mac"]
+        self.rdo_method = wx.RadioBox(panel, label="Discovery Method",
+                                      choices=method_choices, majorDimension=1, style=wx.RA_SPECIFY_ROWS)
+        self.rdo_method.SetSelection(1)  # Default to get_mac
+        vbox.Add(self.rdo_method, 0, wx.ALL|wx.EXPAND, 10)
+        self.rdo_method.Bind(wx.EVT_RADIOBOX, self.on_method_changed)
+
+        # Ping checkbox
+        self.chk_ping = wx.CheckBox(panel, label="Enable Ping Sweep before 'get_mac' discovery")
+        self.chk_ping.SetValue(True)  # Default checked
+        vbox.Add(self.chk_ping, 0, wx.ALL|wx.EXPAND, 10)
+
+        # IPv6 checkbox
+        self.chk_ipv6 = wx.CheckBox(panel, label="Enable IPv6 Scanning")
+        self.chk_ipv6.SetValue(False)
+        vbox.Add(self.chk_ipv6, 0, wx.ALL|wx.EXPAND, 10)
+
+        # IP Range selection (editable ComboBox)
+        vbox.Add(wx.StaticText(panel, label="IP Range Prefix (e.g. '192.168.0.'):"), 0, wx.ALL|wx.EXPAND, 5)
+        self.cb_ip_range = wx.ComboBox(panel, style=wx.CB_DROPDOWN)
+        self.cb_ip_range.Append("192.168.0.")
+        self.cb_ip_range.Append("192.168.1.")
+        self.cb_ip_range.SetSelection(0)  # default selection
+        vbox.Add(self.cb_ip_range, 0, wx.ALL|wx.EXPAND, 10)
+
+        # Status label
+        self.lbl_status = wx.StaticText(panel, label="Status: Idle")
+        vbox.Add(self.lbl_status, 0, wx.ALL|wx.EXPAND, 10)
+
+        # Buttons
+        btn_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.btn_ok = wx.Button(panel, wx.ID_OK, label="OK (Start Scan)")
+        self.btn_cancel = wx.Button(panel, wx.ID_CANCEL, label="Cancel")
+        btn_sizer.Add(self.btn_ok, 0, wx.ALL, 5)
+        btn_sizer.Add(self.btn_cancel, 0, wx.ALL, 5)
+        vbox.Add(btn_sizer, 0, wx.ALIGN_CENTER|wx.ALL, 10)
+
+        panel.SetSizer(vbox)
+        self.Layout()
+
+        # Bind events
+        self.btn_ok.Bind(wx.EVT_BUTTON, self.on_ok)
+        self.btn_cancel.Bind(wx.EVT_BUTTON, self.on_cancel)
+        self.on_method_changed(None)  # Set initial state of ping checkbox
+
+    def on_method_changed(self, event):
+        # If method is "Use nmap", disable ping checkbox
+        method = self.rdo_method.GetStringSelection()
+        if method == "Use nmap":
+            self.chk_ping.Disable()
+        else:
+            self.chk_ping.Enable()
+
+    def get_options(self):
+        method = self.rdo_method.GetStringSelection()  # "Use nmap" or "Use get_mac"
+        enable_ping = self.chk_ping.GetValue() if method == "Use get_mac" else False
+        ipv6_enabled = self.chk_ipv6.GetValue()
+        ip_range_prefix = self.cb_ip_range.GetValue().strip()
+        if not ip_range_prefix.endswith('.'):
+            ip_range_prefix += '.'
+        return enable_ping, method, ipv6_enabled, ip_range_prefix
+
+    def on_ok(self, event):
+        # If scanning not started yet, start it; else do nothing since the dialog will close automatically
+        if not self.scanning_thread or not self.scanning_thread.is_alive():
+            enable_ping, method, ipv6_enabled, ip_range_prefix = self.get_options()
+
+            # Disable OK during scan
+            self.btn_ok.Disable()
+            self.stop_requested.clear()
+            self.ip_list = []
+
+            self.set_status("Starting scan...")
+            self.scanning_thread = threading.Thread(target=self.scan_network,
+                                                    args=(enable_ping, method, ipv6_enabled, ip_range_prefix))
+            self.scanning_thread.start()
+        # If already scanning, do nothing here - waiting for completion or cancel
+
+    def on_cancel(self, event):
+        # If scanning is in progress, request stop
+        if self.scanning_thread and self.scanning_thread.is_alive():
+            self.set_status("Stop requested, please wait...")
+            self.stop_requested.set()
+        else:
+            # No scanning in progress, just close
+            self.EndModal(wx.ID_CANCEL)
+
+    def set_status(self, msg):
+        # Update status label safely from main thread
+        wx.CallAfter(self.lbl_status.SetLabel, f"Status: {msg}")
+
+    def scan_network(self, enable_ping, method, ipv6_enabled, ip_range_prefix):
+        # Actual scanning logic in another thread
+        # We'll have a single ip_range from the combo box now
+        ip_ranges = [ip_range_prefix]  # Just one selected range
+
+        def check_stop():
+            return self.stop_requested.is_set()
+
+        def ping_sweep(ip_range):
+            for x in range(0, 255):
+                if check_stop():
+                    return
+                ip = f"{ip_range}{x}"
+                param = "-n 1" if platform.system().lower() == "windows" else "-c 1"
+                self.set_status(f"Pinging {ip}")
+                os.system(f"ping {param} -w 1 {ip} > /dev/null 2>&1")
+
+        def nmap_scan(ip_range):
+            if check_stop():
+                return []
+            self.set_status(f"Running nmap on {ip_range}0/24")
+            cmd = f"nmap -sn {ip_range}0/24"
+            try:
+                result = subprocess.check_output(cmd, shell=True).decode('utf-8', errors='ignore')
+            except subprocess.CalledProcessError:
+                result = ""
+            found_ips = []
+            for line in result.splitlines():
+                if check_stop():
+                    return found_ips
+                if "Nmap scan report for" in line:
+                    parts = line.split()
+                    ip = parts[-1] if parts else ""
+                    if ip:
+                        found_ips.append(ip)
+            return list(dict.fromkeys(found_ips))
+
+        def classify_ips_by_mac(ip_list_to_check):
+            raspi_ips = []
+            other_ips = []
+            total = len(ip_list_to_check)
+            for idx, ip in enumerate(ip_list_to_check):
+                if check_stop():
+                    return raspi_ips + (["-----"] + other_ips if other_ips else [])
+                self.set_status(f"Checking MAC for {ip} ({idx+1}/{total})")
+                ip_mac = get_mac_address(ip=ip)
+                if ip_mac is not None and "00:00:00" not in ip_mac:
+                    if "b8:27:eb" in ip_mac or "dc:a6:32" in ip_mac:
+                        raspi_ips.append(ip)
+                    else:
+                        other_ips.append(ip)
+            final_list = raspi_ips
+            if other_ips:
+                final_list += ["-----"] + other_ips
+            if not final_list:
+                final_list = ["No devices found."]
+            return final_list
+
+        def get_mac_approach(ip_ranges, do_ping):
+            raspi_ips = []
+            other_ips = []
+            for ip_range in ip_ranges:
+                if do_ping:
+                    self.set_status(f"Ping sweeping {ip_range}0/24...")
+                    ping_sweep(ip_range)
+                    if check_stop():
+                        return raspi_ips + other_ips
+                count = 0
+                total_ips = 255 * len(ip_ranges)
+                for x in range(0, 255):
+                    if check_stop():
+                        return raspi_ips + other_ips
+                    count += 1
+                    ip = f"{ip_range}{x}"
+                    self.set_status(f"Checking MAC {count}/{total_ips} - {ip}")
+                    ip_mac = get_mac_address(ip=ip)
+                    if ip_mac is not None and "00:00:00" not in ip_mac:
+                        if "b8:27:eb" in ip_mac or "dc:a6:32" in ip_mac:
+                            raspi_ips.append(ip)
+                        else:
+                            other_ips.append(ip)
+            final_list = raspi_ips
+            if other_ips:
+                final_list += ["-----"] + other_ips
+            if not final_list:
+                final_list = ["No devices found."]
+            return final_list
+
+        final_ip_list = []
+        if method == "Use nmap":
+            # No ping sweep
+            for ip_range in ip_ranges:
+                if check_stop():
+                    break
+                found_ips = nmap_scan(ip_range)
+                if check_stop():
+                    break
+                # classify by mac after scanning
+                if found_ips and "No devices found." not in found_ips:
+                    final_ip_list += found_ips
+            # remove duplicates
+            final_ip_list = list(dict.fromkeys(final_ip_list))
+            if final_ip_list and not check_stop():
+                final_ip_list = classify_ips_by_mac(final_ip_list)
+            else:
+                if not final_ip_list and not check_stop():
+                    final_ip_list = ["No devices found."]
+        else:
+            # Use get_mac approach
+            final_ip_list = get_mac_approach(ip_ranges, enable_ping)
+            if check_stop() and not final_ip_list:
+                final_ip_list = ["No devices found."]
+
+        # IPv6 check if enabled
+        if ipv6_enabled and not check_stop():
+            self.set_status("Checking IPv6...")
+            ip6_mac = get_mac_address(ip6="::1")
+            if ip6_mac:
+                # Insert after a separator
+                final_ip_list += ["-----"] + [f"IPv6:: {ip6_mac}"]
+            # If we want to do more complex IPv6 scanning, implement here.
+
+        if check_stop():
+            self.set_status("Scanning canceled.")
+            # partial results returned
+        else:
+            self.set_status("Scanning complete.")
+
+        self.ip_list = final_ip_list if final_ip_list else ["No devices found."]
+        # Re-enable OK button so user can close dialog
+        wx.CallAfter(self.btn_ok.Enable)
+
+        if self.stop_requested.is_set():
+            self.set_status("Scanning canceled.")
+            wx.CallAfter(self.EndModal, wx.ID_CANCEL)
+        else:
+            self.set_status("Scanning complete.")
+            # Now that scanning is done, close the dialog and return the list
+            wx.CallAfter(self.EndModal, wx.ID_OK)
+
+    def get_ip_list(self):
+        return self.ip_list

@@ -70,8 +70,7 @@ class motion_sets_pnl(wx.Panel):
         conf_path = self.conf_path_tc.GetValue()
         if conf_path == "":
             conf_path = self.parent.parent.shared_data.remote_pigrow_path + "config/"
-        self.parent.parent.link_pnl.select_files_on_pi(create_file=True, default_path=conf_path)
-        selected_files = self.parent.parent.link_pnl.selected_files
+        selected_files, selected_folders = self.parent.parent.link_pnl.select_files_on_pi(create_file=True, default_path=conf_path)
         if not selected_files == []:
             self.conf_path_tc.SetValue(selected_files[0])
 
@@ -79,8 +78,7 @@ class motion_sets_pnl(wx.Panel):
         log_path = self.log_path_tc.GetValue()
         if log_path == "":
             log_path = self.parent.parent.shared_data.remote_pigrow_path + "logs/"
-        self.parent.parent.link_pnl.select_files_on_pi(create_file=True, default_path=log_path)
-        selected_files = self.parent.parent.link_pnl.selected_files
+        selected_files, selected_folders = self.parent.parent.link_pnl.select_files_on_pi(create_file=True, default_path=log_path)
         if not selected_files == []:
             self.log_path_tc.SetValue(selected_files[0])
 

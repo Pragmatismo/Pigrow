@@ -599,10 +599,10 @@ class CapsDataDialog(wx.Dialog):
             # Proceed to select the file
             file_path = fileDialog.GetPath()
             self.base_path, filename = os.path.split(file_path)  # Store base path
-            cap_set = filename.split("_")[0]
+            self.cap_set = filename.split("_")[0]
 
             # Get a list of all files that match {base_path}/{cap_set}_*.json
-            files = [f for f in os.listdir(self.base_path) if f.startswith(cap_set) and f.endswith(".json")]
+            files = [f for f in os.listdir(self.base_path) if f.startswith(self.cap_set) and f.endswith(".json")]
 
             self.caps_set = files
             self.update_caps_display()
@@ -660,6 +660,8 @@ class CapsDataDialog(wx.Dialog):
             'key': selected_key,
             'data': self.data_tuples,
             'trimmed_data': self.data_tuples,
+            'base_path': self.base_path,
+            'cap_set': self.cap_set
         }
         self.parent.loaded_datasets.append(dataset)
         self.Close()
@@ -756,7 +758,12 @@ class LoadLogPanel(wx.Panel):
         self.parent.main_sizer.Layout()
 
     def on_load_from_pi(self, event):
-        wx.MessageBox("Loading logs from Pi not yet coded", "Info", wx.OK | wx.ICON_INFORMATION)
+        #select_files_on_pi(single_folder=False, create_file=False, default_path="")
+        pi_logs = self.parent.parent.shared_data.remote_pigrow_path + "logs"
+        select_files = self.parent.parent.link_pnl.select_files_on_pi
+        selected_files, selected_folders = select_files(single_folder=False,
+                                                        default_path=pi_logs)
+        print(f"doing nothing with {selected_files}, {selected_folders}")
 
     def on_load_local(self, event):
         with wx.FileDialog(
@@ -1033,7 +1040,8 @@ class DurationSelectPanel(wx.Panel):
         limit_sizer = wx.BoxSizer(wx.HORIZONTAL)
         limit_label = wx.StaticText(self, label="Limit to last:")
         self.limit_text = wx.TextCtrl(self, value="1")
-        self.time_unit_choice = wx.Choice(self, choices=["Hour", "Day", "Week", "Month", "Year", "None"])
+        self.time_unit_choice = wx.Choice(self, choices=["Hour", "Day", "Week", "Month", "Year", "None", "Custom"])
+        self.time_unit_choice.SetStringSelection("None")
         limit_sizer.Add(limit_label, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
         limit_sizer.Add(self.limit_text, 0, wx.ALL, 5)
         limit_sizer.Add(self.time_unit_choice, 0, wx.ALL, 5)
@@ -1070,91 +1078,147 @@ class DurationSelectPanel(wx.Panel):
     def load_dataset(self, dataset):
         self.current_dataset = dataset
         data = dataset['data']
-        trimmed_data = dataset['trimmed_data']
+
+        # Add "None" to dataset_choice and set it as default
+        dataset_names = ["None"]  # None means no 'trim to log'
+        # Add other datasets as "trim to log" options
+        dataset_names += [d['file_path'] for d in self.c_pnl.loaded_datasets if d != dataset]
+
+        self.dataset_choice.SetItems(dataset_names)
+        # Determine mode from dataset (if previously saved in presets)
+        trim_mode = dataset.get('trim_mode', 'none')
+        if trim_mode == 'none':
+            self.dataset_choice.SetSelection(0)  # None selected
+        else:
+            # Find the dataset in the list
+            if trim_mode.startswith('log:'):
+                target_ds = trim_mode.split(':', 1)[1]
+                idx = self.dataset_choice.FindString(target_ds)
+                if idx != wx.NOT_FOUND:
+                    self.dataset_choice.SetSelection(idx)
+                else:
+                    self.dataset_choice.SetSelection(0)
+            else:
+                self.dataset_choice.SetSelection(0)  # fallback
+
+        # If we have start/end times stored in dataset, apply them
+        start_dt = dataset.get('start_datetime')
+        end_dt = dataset.get('end_datetime')
 
         if not data:
-            wx.MessageBox("No data available in the selected dataset.", "Error", wx.OK | wx.ICON_ERROR)
             return
-
-        # Set the date and time controls to the range of the trimmed data
-        if len(trimmed_data) > 0:
-            start_datetime = trimmed_data[0][0]
-            end_datetime = trimmed_data[-1][0]
-
-            # Set the date and time pickers
-            self.start_date_ctrl.SetValue(wx.DateTime.FromDMY(start_datetime.day, start_datetime.month - 1, start_datetime.year))
-            self.start_time_ctrl.SetValue(wx.DateTime.FromHMS(start_datetime.hour, start_datetime.minute, start_datetime.second))
-            self.end_date_ctrl.SetValue(wx.DateTime.FromDMY(end_datetime.day, end_datetime.month - 1, end_datetime.year))
-            self.end_time_ctrl.SetValue(wx.DateTime.FromHMS(end_datetime.hour, end_datetime.minute, end_datetime.second))
-
-        # Limit the date controls to the range of the full data
         full_start_datetime = data[0][0]
         full_end_datetime = data[-1][0]
 
-        self.start_date_ctrl.SetRange(wx.DateTime.FromDMY(full_start_datetime.day, full_start_datetime.month - 1, full_start_datetime.year),
-                                      wx.DateTime.FromDMY(full_end_datetime.day, full_end_datetime.month - 1, full_end_datetime.year))
-        self.end_date_ctrl.SetRange(wx.DateTime.FromDMY(full_start_datetime.day, full_start_datetime.month - 1, full_start_datetime.year),
-                                    wx.DateTime.FromDMY(full_end_datetime.day, full_end_datetime.month - 1, full_end_datetime.year))
+        if start_dt is None: start_dt = full_start_datetime
+        if end_dt is None: end_dt = full_end_datetime
 
-        # Update dataset choices for 'trim date to log'
-        dataset_names = [d['file_path'] for d in self.c_pnl.loaded_datasets if d != dataset]
-        self.dataset_choice.SetItems(dataset_names)
+        # Set date/time pickers
+        self.start_date_ctrl.SetRange(
+            wx.DateTime.FromDMY(full_start_datetime.day, full_start_datetime.month - 1, full_start_datetime.year),
+            wx.DateTime.FromDMY(full_end_datetime.day, full_end_datetime.month - 1, full_end_datetime.year))
+        self.end_date_ctrl.SetRange(
+            wx.DateTime.FromDMY(full_start_datetime.day, full_start_datetime.month - 1, full_start_datetime.year),
+            wx.DateTime.FromDMY(full_end_datetime.day, full_end_datetime.month - 1, full_end_datetime.year))
 
-        # Update info
+        self.start_date_ctrl.SetValue(wx.DateTime.FromDMY(start_dt.day, start_dt.month - 1, start_dt.year))
+        self.start_time_ctrl.SetValue(wx.DateTime.FromHMS(start_dt.hour, start_dt.minute, start_dt.second))
+        self.end_date_ctrl.SetValue(wx.DateTime.FromDMY(end_dt.day, end_dt.month - 1, end_dt.year))
+        self.end_time_ctrl.SetValue(wx.DateTime.FromHMS(end_dt.hour, end_dt.minute, end_dt.second))
+
+        # Set Limit to Last default to "None"
+        self.time_unit_choice.SetSelection(self.time_unit_choice.FindString("None"))
+
+        # Update UI states based on current selection
+        self.update_ui_for_mode()
+
         self.update_info()
 
     def on_limit_changed(self, event):
         if not self.current_dataset:
             return
-        value = self.limit_text.GetValue()
-        try:
-            n = int(value)
-        except ValueError:
-            wx.MessageBox("Please enter a valid number.", "Error", wx.OK | wx.ICON_ERROR)
-            return
+
         unit = self.time_unit_choice.GetStringSelection()
-        now = datetime.datetime.now()
-        end_datetime = now
-
-        if unit == "Hour":
-            delta = datetime.timedelta(hours=n)
-        elif unit == "Day":
-            delta = datetime.timedelta(days=n)
-        elif unit == "Week":
-            delta = datetime.timedelta(weeks=n)
-        elif unit == "Month":
-            delta = datetime.timedelta(days=30 * n)  # Approximate
-        elif unit == "Year":
-            delta = datetime.timedelta(days=365 * n)  # Approximate
+        if unit == "None":
+            # If None selected, we revert to direct date/time pickers (no special calculation)
+            # Just leave date/time as is (user may have set them)
+            pass
+        elif unit == "Custom":
+            # If Custom selected, we rely on the current date/time pickers and treat as custom range
+            # No immediate recalculation needed here, apply_trim will handle saving mode
+            pass
         else:
-            delta = None
+            # Unit is Hour/Day/Week/Month/Year
+            value = self.limit_text.GetValue()
+            try:
+                n = int(value)
+            except ValueError:
+                wx.MessageBox("Please enter a valid number.", "Error", wx.OK | wx.ICON_ERROR)
+                return
 
-        if delta == None:
-            start_datetime = self.current_dataset['data'][0][0]
-        else:
-            start_datetime = now - delta
+            now = datetime.datetime.now()
+            if unit == "Hour":
+                delta = datetime.timedelta(hours=n)
+            elif unit == "Day":
+                delta = datetime.timedelta(days=n)
+            elif unit == "Week":
+                delta = datetime.timedelta(weeks=n)
+            elif unit == "Month":
+                delta = datetime.timedelta(days=30 * n)  # Approximate
+            elif unit == "Year":
+                delta = datetime.timedelta(days=365 * n)  # Approximate
+            else:
+                delta = None
 
-        # Set the date and time pickers
-        self.start_date_ctrl.SetValue(wx.DateTime.FromDMY(start_datetime.day, start_datetime.month - 1, start_datetime.year))
-        self.start_time_ctrl.SetValue(wx.DateTime.FromHMS(start_datetime.hour, start_datetime.minute, start_datetime.second))
-        self.end_date_ctrl.SetValue(wx.DateTime.FromDMY(end_datetime.day, end_datetime.month - 1, end_datetime.year))
-        self.end_time_ctrl.SetValue(wx.DateTime.FromHMS(end_datetime.hour, end_datetime.minute, end_datetime.second))
+            if delta is not None:
+                start_datetime = now - delta
+                end_datetime = now
+                # Set the date/time pickers according to the calculated range
+                self.start_date_ctrl.SetValue(
+                    wx.DateTime.FromDMY(start_datetime.day, start_datetime.month - 1, start_datetime.year))
+                self.start_time_ctrl.SetValue(
+                    wx.DateTime.FromHMS(start_datetime.hour, start_datetime.minute, start_datetime.second))
+                self.end_date_ctrl.SetValue(
+                    wx.DateTime.FromDMY(end_datetime.day, end_datetime.month - 1, end_datetime.year))
+                self.end_time_ctrl.SetValue(
+                    wx.DateTime.FromHMS(end_datetime.hour, end_datetime.minute, end_datetime.second))
 
         self.apply_trim()
 
     def on_dataset_selected(self, event):
-        selected_dataset_name = self.dataset_choice.GetStringSelection()
-        selected_dataset = next((d for d in self.c_pnl.loaded_datasets if d['file_path'] == selected_dataset_name), None)
-        if selected_dataset:
-            trimmed_data = selected_dataset['trimmed_data']
-            start_datetime = trimmed_data[0][0]
-            end_datetime = trimmed_data[-1][0]
+        selection = self.dataset_choice.GetStringSelection()
+        if selection == "None":
+            # None selected, enable date/time pickers and limit fields
+            self.enable_datetime_controls(True)
+            self.enable_limit_controls(True)
+            # Use current dataset's stored start/end if any
+            self.apply_trim()
+        else:
+            # A dataset was selected to 'trim to log'
+            # Find that dataset and apply its trimmed range directly, disable date/time controls
+            target_dataset = next((d for d in self.c_pnl.loaded_datasets if d['file_path'] == selection), None)
+            if target_dataset and target_dataset['trimmed_data']:
+                trimmed_data = target_dataset['trimmed_data']
+                start_datetime = trimmed_data[0][0]
+                end_datetime = trimmed_data[-1][0]
 
-            # Update the date and time pickers
-            self.start_date_ctrl.SetValue(wx.DateTime.FromDMY(start_datetime.day, start_datetime.month - 1, start_datetime.year))
-            self.start_time_ctrl.SetValue(wx.DateTime.FromHMS(start_datetime.hour, start_datetime.minute, start_datetime.second))
-            self.end_date_ctrl.SetValue(wx.DateTime.FromDMY(end_datetime.day, end_datetime.month - 1, end_datetime.year))
-            self.end_time_ctrl.SetValue(wx.DateTime.FromHMS(end_datetime.hour, end_datetime.minute, end_datetime.second))
+                self.start_date_ctrl.SetValue(
+                    wx.DateTime.FromDMY(start_datetime.day, start_datetime.month - 1, start_datetime.year))
+                self.start_time_ctrl.SetValue(
+                    wx.DateTime.FromHMS(start_datetime.hour, start_datetime.minute, start_datetime.second))
+                self.end_date_ctrl.SetValue(
+                    wx.DateTime.FromDMY(end_datetime.day, end_datetime.month - 1, end_datetime.year))
+                self.end_time_ctrl.SetValue(
+                    wx.DateTime.FromHMS(end_datetime.hour, end_datetime.minute, end_datetime.second))
+
+                # Disable other date/time and limit fields
+                self.enable_datetime_controls(False)
+                self.enable_limit_controls(False)
+            else:
+                # No data found in that dataset or dataset not found
+                # Just disable fields and apply trim to show no data
+                self.enable_datetime_controls(False)
+                self.enable_limit_controls(False)
 
             self.apply_trim()
 
@@ -1166,8 +1230,109 @@ class DurationSelectPanel(wx.Panel):
             return
 
         data = self.current_dataset['data']
+        if not data:
+            self.current_dataset['trimmed_data'] = []
+            self.update_info()
+            self.c_pnl.refresh_table()
+            return
 
-        # Get start datetime
+        selection = self.dataset_choice.GetStringSelection()
+        unit = self.time_unit_choice.GetStringSelection()
+        value = self.limit_text.GetValue()
+
+        if selection == "None":
+            # No dataset selected for 'trim to log'
+            # Determine trim_mode based on unit selection
+            if unit == "None":
+                # Using exact date/time from pickers => trim_mode = 'none'
+                trim_mode = 'none'
+                start_datetime, end_datetime = self.get_current_datetime_range_from_pickers()
+                trimmed_data = [d for d in data if start_datetime <= d[0] <= end_datetime]
+                self.current_dataset['start_datetime'] = start_datetime
+                self.current_dataset['end_datetime'] = end_datetime
+
+            elif unit == "Custom":
+                # Custom means we store exact date/time but mark as 'custom'
+                trim_mode = 'custom'
+                start_datetime, end_datetime = self.get_current_datetime_range_from_pickers()
+                trimmed_data = [d for d in data if start_datetime <= d[0] <= end_datetime]
+                self.current_dataset['start_datetime'] = start_datetime
+                self.current_dataset['end_datetime'] = end_datetime
+
+            else:
+                # One of Hour/Day/Week/Month/Year chosen
+                # Interpret as 'last:<unit>:<count>'
+                try:
+                    count = int(value)
+                except ValueError:
+                    wx.MessageBox("Please enter a valid number for the limit.", "Error", wx.OK | wx.ICON_ERROR)
+                    return
+
+                # 'last:<unit>:<count>'
+                # In this mode, we do not store start/end directly, as they are derived
+                # But we still apply them now to show the user immediate effect
+                now = datetime.datetime.now()
+                if unit == "Hour":
+                    delta = datetime.timedelta(hours=count)
+                elif unit == "Day":
+                    delta = datetime.timedelta(days=count)
+                elif unit == "Week":
+                    delta = datetime.timedelta(weeks=count)
+                elif unit == "Month":
+                    delta = datetime.timedelta(days=30 * count)
+                elif unit == "Year":
+                    delta = datetime.timedelta(days=365 * count)
+                else:
+                    delta = None
+
+                if delta is None:
+                    # If for some reason unit not recognized, fallback to none
+                    trim_mode = 'none'
+                    start_datetime, end_datetime = self.get_current_datetime_range_from_pickers()
+                    trimmed_data = [d for d in data if start_datetime <= d[0] <= end_datetime]
+                    self.current_dataset['start_datetime'] = start_datetime
+                    self.current_dataset['end_datetime'] = end_datetime
+                else:
+                    trim_mode = f"last:{unit}:{count}"
+                    start_datetime = now - delta
+                    end_datetime = now
+                    trimmed_data = [d for d in data if start_datetime <= d[0] <= end_datetime]
+                    # In 'last:' mode, no start/end stored since it's dynamic
+                    self.current_dataset['start_datetime'] = None
+                    self.current_dataset['end_datetime'] = None
+
+            self.current_dataset['trim_mode'] = trim_mode
+
+        else:
+            # 'Trim date to log' selected
+            target_dataset = next((d for d in self.c_pnl.loaded_datasets if d['file_path'] == selection), None)
+            if target_dataset and target_dataset['trimmed_data']:
+                idx = self.c_pnl.loaded_datasets.index(target_dataset)
+                self.current_dataset['trim_mode'] = f'log:{idx}'
+                # Get the date range from target_dataset's trimmed_data
+                ref_start = target_dataset['trimmed_data'][0][0]
+                ref_end = target_dataset['trimmed_data'][-1][0]
+                data = self.current_dataset['data']
+                trimmed_data = [d for d in data if ref_start <= d[0] <= ref_end]
+                self.current_dataset['start_datetime'] = None
+                self.current_dataset['end_datetime'] = None
+            else:
+                # If no target dataset found or no trimmed_data, fallback to none
+                self.current_dataset['trim_mode'] = 'none'
+                start_datetime, end_datetime = self.get_current_datetime_range_from_pickers()
+                trimmed_data = [d for d in data if start_datetime <= d[0] <= end_datetime]
+                self.current_dataset['start_datetime'] = start_datetime
+                self.current_dataset['end_datetime'] = end_datetime
+
+        if not trimmed_data:
+            trimmed_data = []
+            wx.MessageBox("No data in the selected date range.", "Info", wx.OK | wx.ICON_INFORMATION)
+
+        self.current_dataset['trimmed_data'] = trimmed_data
+        self.update_info()
+        self.c_pnl.refresh_table()
+
+    def get_current_datetime_range_from_pickers(self):
         start_date_wx = self.start_date_ctrl.GetValue()
         start_time_wx = self.start_time_ctrl.GetValue()
         start_datetime = datetime.datetime(
@@ -1179,7 +1344,6 @@ class DurationSelectPanel(wx.Panel):
             start_time_wx.GetSecond()
         )
 
-        # Get end datetime
         end_date_wx = self.end_date_ctrl.GetValue()
         end_time_wx = self.end_time_ctrl.GetValue()
         end_datetime = datetime.datetime(
@@ -1190,21 +1354,7 @@ class DurationSelectPanel(wx.Panel):
             end_time_wx.GetMinute(),
             end_time_wx.GetSecond()
         )
-
-        # Ensure start_datetime is before end_datetime
-        if start_datetime > end_datetime:
-            wx.MessageBox("Start date/time must be before end date/time.", "Error", wx.OK | wx.ICON_ERROR)
-            return
-
-        # Trim the data
-        trimmed_data = [d for d in data if start_datetime <= d[0] <= end_datetime]
-        self.current_dataset['trimmed_data'] = trimmed_data
-
-        # Update info
-        self.update_info()
-
-        # Refresh the table in ctrl_pnl
-        self.c_pnl.refresh_table()
+        return start_datetime, end_datetime
 
     def update_info(self):
         data_len = len(self.current_dataset['data'])
@@ -1225,6 +1375,27 @@ class DurationSelectPanel(wx.Panel):
 
         self.Layout()
         self.parent.main_sizer.Layout()
+
+    def update_ui_for_mode(self):
+        selection = self.dataset_choice.GetStringSelection()
+        if selection == "None":
+            # Enable date/time and limit fields
+            self.enable_datetime_controls(True)
+            self.enable_limit_controls(True)
+        else:
+            # Another dataset is selected, disable date/time and limit fields
+            self.enable_datetime_controls(False)
+            self.enable_limit_controls(False)
+
+    def enable_datetime_controls(self, enable):
+        self.start_date_ctrl.Enable(enable)
+        self.start_time_ctrl.Enable(enable)
+        self.end_date_ctrl.Enable(enable)
+        self.end_time_ctrl.Enable(enable)
+
+    def enable_limit_controls(self, enable):
+        self.limit_text.Enable(enable)
+        self.time_unit_choice.Enable(enable)
 
 
 class GraphOptionsPanel(wx.Panel):
@@ -1658,12 +1829,6 @@ class SuckerDialog(wx.Dialog):
     def on_cancel(self, event=None):
         self.Close()
 
-import os
-import json
-import datetime
-import importlib
-import wx
-
 class GraphPreset:
     def __init__(self, parent):
         self.parent = parent
@@ -1686,15 +1851,15 @@ class GraphPreset:
         if dlg.ShowModal() == wx.ID_OK:
             preset_name = dlg.GetValue()
             if preset_name:
-                # Construct datasets dictionary
-                datasets_dict = self.construct_datasets_dict(parent, loaded_datasets)
+                # Construct datasets list
+                datasets_list = self.construct_datasets_list(loaded_datasets)
                 # Build graph information
                 graph_info = {'type': graph_type}
                 if graph_settings:
                     graph_info['settings'] = graph_settings
                 # Create the JSON structure
                 preset_data = {
-                    'datasets': datasets_dict,
+                    'datasets': datasets_list,
                     'graph': graph_info
                 }
                 # Save the preset data to a JSON file
@@ -1709,37 +1874,55 @@ class GraphPreset:
                 wx.MessageBox("Preset name cannot be empty.", "Error", wx.OK | wx.ICON_ERROR)
         dlg.Destroy()
 
-    def construct_datasets_dict(self, parent, loaded_datasets):
-        datasets_dict = {}
-        grid = parent.grid
-        for i in range(len(loaded_datasets)):
-            dataset = loaded_datasets[i]
-            dataset_name = grid.GetCellValue(i, 0)
-            key = dataset.get('key', '')
-            dataset_entry = {'key': key}
+    def construct_datasets_list(self, loaded_datasets):
+        datasets_list = []
+        for dataset in loaded_datasets:
+            dataset_entry = {
+                'key': dataset.get('key', ''),
+                'trim_mode': dataset.get('trim_mode', 'none')
+            }
 
-            if dataset_name.endswith(':M'):
-                # Dataset loaded via datasucker module
-                module_name = dataset_name[:-2]  # Remove ':M'
-                ds_settings = dataset.get('ds_settings', {})
-                dataset_entry.update({
-                    'module_name': module_name,
-                    'ds_settings': ds_settings
-                })
-            elif 'split_char' in dataset:
-                # Dataset loaded from a log
+            trim_mode = dataset_entry['trim_mode']
+            if trim_mode == 'none' or trim_mode == 'custom':
+                # Store start/end times if available
+                start_dt = dataset.get('start_datetime')
+                end_dt = dataset.get('end_datetime')
+                if start_dt and end_dt:
+                    dataset_entry['start_datetime'] = start_dt.isoformat()
+                    dataset_entry['end_datetime'] = end_dt.isoformat()
+            elif trim_mode.startswith('last:'):
+                # last:unit:count format, no start/end needed
+                # already stored in trim_mode
+                pass
+            elif trim_mode.startswith('log:'):
+                # log:<index>, no start/end needed
+                pass
+
+            # Store other dataset-specific info (same as before)
+            if 'split_char' in dataset:
                 dataset_entry.update({
                     'file_path': dataset.get('file_path', ''),
                     'split_char': dataset.get('split_char', ''),
                     'kv_split_char': dataset.get('kv_split_char', ''),
-                    'date_key': dataset.get('date_key', None),
+                    'date_key': dataset.get('date_key', None)
                 })
-            else:
-                # Handle other types of datasets if necessary
-                pass
 
-            datasets_dict[dataset_name] = dataset_entry
-        return datasets_dict
+            if 'ds_settings' in dataset:
+                ds_settings = dataset.get('ds_settings', {})
+                if 'file_path' in dataset and dataset['file_path'].endswith(':M'):
+                    module_name = dataset['file_path'][:-2]  # remove ':M'
+                    dataset_entry['module_name'] = module_name
+                    dataset_entry['ds_settings'] = ds_settings
+
+            if 'base_path' in dataset and 'cap_set' in dataset:
+                dataset_entry.update({
+                    'base_path': dataset.get('base_path', ''),
+                    'cap_set': dataset.get('cap_set', '')
+                })
+
+            datasets_list.append(dataset_entry)
+
+        return datasets_list
 
     def load_preset(self, parent):
         preset_name = parent.preset_choice.GetStringSelection()
@@ -1747,42 +1930,63 @@ class GraphPreset:
         if os.path.exists(preset_file):
             with open(preset_file, 'r') as f:
                 preset_data = json.load(f)
-            datasets_info = preset_data.get('datasets', {})
+            datasets_info = preset_data.get('datasets', [])
+
             # Clear existing datasets
             parent.loaded_datasets = []
             parent.refresh_table()
-            for dataset_name, dataset_params in datasets_info.items():
-                key = dataset_params.get('key', '')
-                # Check if the dataset was loaded via a datasucker module
+
+            # First, load the datasets without trimming
+            for dataset_params in datasets_info:
+                dataset = {
+                    'data': [],
+                    'trimmed_data': [],
+                    'trim_mode': dataset_params.get('trim_mode', 'none'),
+                    'key': dataset_params.get('key', '')
+                }
+
+                trim_mode = dataset['trim_mode']
+                if trim_mode == 'none' or trim_mode == 'custom':
+                    start_str = dataset_params.get('start_datetime')
+                    end_str = dataset_params.get('end_datetime')
+                    if start_str and end_str:
+                        dataset['start_datetime'] = datetime.datetime.fromisoformat(start_str)
+                        dataset['end_datetime'] = datetime.datetime.fromisoformat(end_str)
+                    else:
+                        dataset['start_datetime'] = None
+                        dataset['end_datetime'] = None
+                else:
+                    # 'last:' or 'log:' modes do not store direct start/end
+                    dataset['start_datetime'] = None
+                    dataset['end_datetime'] = None
+
+                # Identify dataset type and load data
                 if 'module_name' in dataset_params:
                     module_name = dataset_params.get('module_name')
                     ds_settings = dataset_params.get('ds_settings', {})
-                    self.load_datasucker_dataset(parent, module_name, ds_settings, dataset_name)
+                    self.load_datasucker_dataset(parent, module_name, ds_settings, dataset)
                 elif 'split_char' in dataset_params:
-                    # Dataset loaded from a log
                     file_path = dataset_params.get('file_path', '')
-                    if "/" not in file_path:
-                        frompi_path = self.parent.parent.shared_data.frompi_path
-                        file_path = os.path.join(frompi_path, "logs", file_path)
-                    if "." not in file_path:
-                        file_path = file_path + ".txt"
                     split_char = dataset_params.get('split_char', '')
                     kv_split_char = dataset_params.get('kv_split_char', '')
                     date_key = dataset_params.get('date_key', None)
-                    # Use these parameters to load the dataset
-                    self.load_log_dataset(
-                        parent,
-                        file_path,
-                        key,
-                        split_char,
-                        kv_split_char,
-                        date_key,
-                        dataset_name
-                    )
+                    self.load_log_dataset(parent, file_path, dataset['key'], split_char, kv_split_char, date_key,
+                                          dataset)
+                elif 'base_path' in dataset_params and 'cap_set' in dataset_params:
+                    base_path = dataset_params.get('base_path', '')
+                    cap_set = dataset_params.get('cap_set', '')
+                    self.load_caps_dataset(parent, base_path, cap_set, dataset['key'], dataset)
                 else:
-                    # Handle other types of datasets if necessary
+                    # no special loading info, dataset might remain empty
                     pass
-            # Update graph selection and options as well
+
+                parent.loaded_datasets.append(dataset)
+
+            # After all datasets are loaded, re-apply trimming logic
+            self.reapply_trimming(parent.loaded_datasets)
+            parent.refresh_table()
+
+            # Update graph selection and options
             graph_info = preset_data.get('graph', {})
             graph_type = graph_info.get('type', '')
             parent.graph_choice.SetStringSelection(graph_type)
@@ -1795,30 +1999,168 @@ class GraphPreset:
         else:
             print(f"Preset file {preset_file} does not exist.")
 
-    def load_datasucker_dataset(self, parent, module_name, ds_settings, dataset_name):
+    def reapply_trimming(self, loaded_datasets):
+        """
+        After all datasets are loaded, re-apply trimming logic based on trim_mode.
+        This now also ensures that datasets referencing 'log:<index>' modes
+        can correctly find the corresponding dataset by index.
+        """
+        # First pass: handle none, custom, last
+        for dataset in loaded_datasets:
+            trim_mode = dataset.get('trim_mode', 'none')
+            if trim_mode in ['none', 'custom']:
+                data = dataset['data']
+                start_dt = dataset.get('start_datetime')
+                end_dt = dataset.get('end_datetime')
+                if start_dt and end_dt:
+                    trimmed = [d for d in data if start_dt <= d[0] <= end_dt]
+                else:
+                    trimmed = data
+                dataset['trimmed_data'] = trimmed if trimmed else []
+            elif trim_mode.startswith('last:'):
+                parts = trim_mode.split(':')
+                if len(parts) == 3:
+                    _, unit, count_str = parts
+                    try:
+                        count = int(count_str)
+                    except ValueError:
+                        count = 1
+                    now = datetime.datetime.now()
+                    if unit == "Hour":
+                        delta = datetime.timedelta(hours=count)
+                    elif unit == "Day":
+                        delta = datetime.timedelta(days=count)
+                    elif unit == "Week":
+                        delta = datetime.timedelta(weeks=count)
+                    elif unit == "Month":
+                        delta = datetime.timedelta(days=30 * count)
+                    elif unit == "Year":
+                        delta = datetime.timedelta(days=365 * count)
+                    else:
+                        delta = None
+
+                    data = dataset['data']
+                    if delta:
+                        start_dt = now - delta
+                        end_dt = now
+                        trimmed = [d for d in data if start_dt <= d[0] <= end_dt]
+                    else:
+                        trimmed = data
+                    dataset['trimmed_data'] = trimmed if trimmed else []
+                else:
+                    dataset['trimmed_data'] = dataset['data']
+            # log: handled in second pass
+
+        # Second pass: handle log: references
+        for dataset in loaded_datasets:
+            trim_mode = dataset.get('trim_mode', 'none')
+            if trim_mode.startswith('log:'):
+                parts = trim_mode.split(':', 1)
+                if len(parts) == 2:
+                    index_str = parts[1]
+                    try:
+                        idx = int(index_str)
+                    except ValueError:
+                        idx = None
+
+                    if idx is not None and 0 <= idx < len(loaded_datasets):
+                        ref_dataset = loaded_datasets[idx]
+                        if ref_dataset['trimmed_data']:
+                            ref_start = ref_dataset['trimmed_data'][0][0]
+                            ref_end = ref_dataset['trimmed_data'][-1][0]
+                            data = dataset['data']
+                            trimmed = [d for d in data if ref_start <= d[0] <= ref_end]
+                            dataset['trimmed_data'] = trimmed if trimmed else []
+                        else:
+                            dataset['trimmed_data'] = []
+                    else:
+                        dataset['trimmed_data'] = []
+                else:
+                    dataset['trimmed_data'] = dataset['data']
+
+    def load_caps_dataset(self, parent, base_path, cap_set, key, dataset):
         try:
-            # Dynamically import the module
+            date_from_filename = parent.parent.dict_I_pnl['timelapse_pnl'].date_from_filename
+            files = [f for f in os.listdir(base_path) if f.startswith(cap_set) and f.endswith('.json')]
+            if not files:
+                wx.MessageBox(f"No JSON files found in {base_path} with prefix '{cap_set}'.", "Error",
+                              wx.OK | wx.ICON_ERROR)
+                return
+
+            data_tuples = []
+            for file in files:
+                file_path = os.path.join(base_path, file)
+                with open(file_path, 'r') as f:
+                    data = json.load(f)
+                value = data.get(key, None)
+                date_tuple = date_from_filename(file)
+                if date_tuple:
+                    _, date = date_tuple
+                else:
+                    date = None
+                if date and value is not None:
+                    data_tuples.append((date, value))
+
+            data_tuples.sort(key=lambda x: x[0])
+            if not data_tuples:
+                # If empty, no data for that dataset
+                pass
+            dataset['data'] = data_tuples
+            dataset['trimmed_data'] = data_tuples
+            dataset['base_path'] = base_path
+            dataset['cap_set'] = cap_set
+            dataset['file_path'] = base_path + ":J"
+        except Exception as e:
+            wx.MessageBox(f"Error loading dataset from caps folder: {e}", "Error", wx.OK | wx.ICON_ERROR)
+
+    def load_datasucker_dataset(self, parent, module_name, ds_settings, dataset):
+        try:
             module_full_name = f"graph_modules.sucker_{module_name}"
             module = importlib.import_module(module_full_name)
-            # Call the module's suckdata method with ds_settings
             selected_key, data = module.suckdata(ds_settings)
-            # Create the dataset dict
-            dataset = {
-                "file_path": dataset_name,  # Use dataset_name from the preset
-                "key": selected_key,
-                "data": data,
-                "trimmed_data": data,
-                "ds_settings": ds_settings
-            }
-            # Add to loaded_datasets
-            parent.loaded_datasets.append(dataset)
-            parent.refresh_table()
+            dataset['data'] = data
+            dataset['trimmed_data'] = data
+            dataset['ds_settings'] = ds_settings
+            dataset['file_path'] = module_name + ":M"
+            dataset['key'] = selected_key
         except Exception as e:
             wx.MessageBox(f"Error loading dataset from module '{module_name}': {e}", "Error", wx.OK | wx.ICON_ERROR)
 
-    def load_log_dataset(self, parent, file_path, key, split_char, kv_split_char, date_key, dataset_name):
-        # Existing code to load datasets from logs
-        pass  # (Include your existing implementation here)
+    def load_log_dataset(self, parent, file_path, key, split_char, kv_split_char, date_key, dataset):
+        try:
+            full_file_path = os.path.join(self.parent.shared_data.frompi_path, 'logs', file_path)
+            with open(full_file_path, 'r') as f:
+                lines = f.readlines()
+            data_tuples = []
+            for line in lines:
+                line = line.strip()
+                fields = line.split(split_char)
+                date = None
+                value = None
+                for field in fields:
+                    if kv_split_char in field:
+                        k, val = field.split(kv_split_char, 1)
+                        if k == key:
+                            value = val
+                        if k == date_key or date_key is None:
+                            date = self.parse_date(val)
+                    else:
+                        if date_key is None:
+                            date = self.parse_date(field)
+                if date and value is not None:
+                    try:
+                        data_tuples.append((date, float(value)))
+                    except ValueError:
+                        continue
+            dataset['data'] = data_tuples
+            dataset['trimmed_data'] = data_tuples
+            dataset['file_path'] = file_path
+            dataset['split_char'] = split_char
+            dataset['kv_split_char'] = kv_split_char
+            dataset['date_key'] = date_key
+            dataset['key'] = key
+        except Exception as e:
+            wx.MessageBox(f"Failed to load log file: {e}", "Error", wx.OK | wx.ICON_ERROR)
 
     def parse_date(self, text):
         """Parse a date from text."""
@@ -1837,3 +2179,4 @@ class GraphPreset:
             except:
                 pass
         return None
+

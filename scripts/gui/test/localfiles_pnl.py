@@ -1023,23 +1023,21 @@ class file_upload_dialog(wx.Dialog):
         self.Layout()
 
     def select_upload_folder_click(self, e):
-        self.parent.parent.link_pnl.select_files_on_pi(single_folder=True)
-        selected_files = self.parent.parent.link_pnl.selected_files
-        self.selected_folders = self.parent.parent.link_pnl.selected_folders
+        self.selected_files, self.selected_folders = self.parent.parent.link_pnl.select_files_on_pi(single_folder=True)
         self.selected_dest_folder_l.SetLabel(self.selected_folders[0])
         self.Layout()
 
     def start_upload_click(self, e):
         dest_fold = self.selected_folders[0]
         tocopy_files = self.filelist
-        print("Wants to copy", len(tocopy_files), "to", dest_fold)
+        print("Wants to copy", len(tocopy_files), " files to", dest_fold)
         copy_list = []
         for file in tocopy_files:
             dest = dest_fold + os.path.split(file)[1]
             copy_list.append([file, dest])
-        print (copy_list)
         self.parent.parent.link_pnl.upload_files(copy_list)
         self.Layout()
+        self.Destroy()
 
     def OnClose(self, e):
         #closes the dialogue box
@@ -1109,9 +1107,7 @@ class file_download_dialog(wx.Dialog):
         self.SetSizer(main_sizer)
 
     def select_file_click(self, e):
-        self.parent.parent.link_pnl.select_files_on_pi()
-        selected_files = self.parent.parent.link_pnl.selected_files
-        selected_folders = self.parent.parent.link_pnl.selected_folders
+        selected_files, selected_folders = self.parent.parent.link_pnl.select_files_on_pi()
         if len(selected_files) == 0 and len(selected_folders) == 0:
             return None
         # folders
@@ -1335,8 +1331,7 @@ class info_pnl(scrolled.ScrolledPanel):
         self.Layout()
 
     def set_r_caps_folder_click(self, e):
-        self.parent.link_pnl.select_files_on_pi(single_folder=True)
-        selected_folders = self.parent.link_pnl.selected_folders
+        selected_files, selected_folders = self.parent.link_pnl.select_files_on_pi(single_folder=True)
         self.r_folder_text.SetLabel(selected_folders[0])
         self.set_r_caps_text()
 
