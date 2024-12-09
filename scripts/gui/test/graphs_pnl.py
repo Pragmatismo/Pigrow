@@ -143,6 +143,14 @@ class ctrl_pnl(scrolled.ScrolledPanel):
         else:
             wx.MessageBox(f"Graph modules directory not found: {graph_modules_dir}", "Error", wx.OK | wx.ICON_ERROR)
 
+        # Reorder based on default_order
+        default_order = ['line', 'overlaid_days', 'day_range']
+        # We'll loop in reverse so we insert them at the front in correct order
+        for name in reversed(default_order):
+            if name in self.graph_names:
+                self.graph_names.remove(name)
+                self.graph_names.insert(0, name)
+
         self.graph_choice.SetItems(self.graph_names)
         if self.graph_names:
             self.graph_choice.SetSelection(0)
@@ -1563,6 +1571,19 @@ class GraphOptionsPanel(wx.Panel):
                             combo.SetStringSelection(option)
                             break
                 control = combo
+            # Check if value is a list
+            elif isinstance(value, list):
+                # If value is a list, create a combo with these as options
+                if value:  # Ensure not empty
+                    combo = wx.ComboBox(self, choices=value)
+                    combo.SetMinSize((200, -1))
+                    # Select the first item by default
+                    combo.SetSelection(0)
+                    control = combo
+                else:
+                    # If for some reason it's an empty list, just create a text ctrl
+                    text_ctrl = wx.TextCtrl(self, value="")
+                    control = text_ctrl
             else:
                 # Default to text control
                 text_ctrl = wx.TextCtrl(self, value=str(value))

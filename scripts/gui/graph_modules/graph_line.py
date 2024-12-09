@@ -13,10 +13,8 @@ except:
 #
 # Copy this file, rename it something that fits the pattern  graph_[name].py and save it into the graph_modules folder
 #
-# All code must happen within the make_graph function,
 # Save the graph using the exact path given by graph_path
 #
-
 
 def read_graph_options():
     '''
@@ -61,14 +59,10 @@ def read_graph_options():
     print("AVAILABLE:", matplotlib.style.available)
     return graph_module_settings_dict
 
-
-
-
-
 def make_graph(list_of_datasets, graph_path, ymax="", ymin="", size_h="", size_v="", dh="", th="", tc="", dc="",
                extra={}):
 
-    print("Want's to create a line graph using the graph_line.py module...")
+    print("Requested a graph using the graph_line.py module...")
 
     # Load defaults if no settings supplied
     if extra == {}:
@@ -237,3 +231,4 @@ def make_graph(list_of_datasets, graph_path, ymax="", ymin="", size_h="", size_v
     plt.savefig(graph_path)
     plt.close(fig)  # Close the figure to free memory
     print(f"Line graph created and saved to {graph_path}")
+    return graph_path

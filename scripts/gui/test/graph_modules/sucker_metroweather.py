@@ -88,7 +88,8 @@ def read_description():
         "humidity, surface pressure, and precipitation, as well as specialized data like soil moisture "
         "and soil temperature. Only one variable can be selected at a time. The data is sourced from "
         "reanalysis datasets such as ERA5, offering high accuracy. Open-Meteo is free to use for "
-        "non-commercial purposes, with a limit of 10,000 requests per day."
+        "non-commercial purposes, with a limit of 10,000 requests per day.\n\n"
+        "For more detailed informaion on available data see https://open-meteo.com/en/docs/historical-weather-api"
     )
     return description
 
