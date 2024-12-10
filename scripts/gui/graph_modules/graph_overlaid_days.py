@@ -3,6 +3,9 @@ def read_graph_options():
     Returns a dictionary of settings and their default values for use by the remote gui.
     '''
     graph_module_settings_dict = {
+        "group_by": ["days", "week", "dataset"],
+        "color_cycle_fade": "false",
+        "color_fade_channels": ["red", "green", "blue", "red+green", "red+blue", "green+blue"],
         "title_text": "",
         "range_in_title": "true",
         "color_cycle": "",
@@ -12,7 +15,6 @@ def read_graph_options():
         "show_grid": "true",
         "major_ticks": "",
         "minor_ticks": "",
-        "mpl_style": "",
         "background_color": "",
         "axes_background_color": "",
         "x_axis_color": "",
@@ -38,10 +40,8 @@ def read_graph_options():
         "legend_position": "best",
         "legend_border": "true",
         "legend_alpha": "1.0",
-        "group_by": ["days", "week", "dataset"],
-        "color_cycle_fade": "false",  # New option
-        "color_fade_channels": ["red", "green", "blue", "red+green", "red+blue", "green+blue"] # for combo box
-    }
+        "mpl_style": ""
+        }
     return graph_module_settings_dict
 
 def make_graph(list_of_datasets, graph_path, ymax="", ymin="", size_h="", size_v="", dh="", th="", tc="", dc="", extra={}):
