@@ -115,6 +115,7 @@ class ctrl_pnl(scrolled.ScrolledPanel):
         # Combo box for available graphs
         self.graph_choice = wx.ComboBox(self, style=wx.CB_READONLY)
         self.populate_graph_choices()
+        self.graph_choice.Bind(wx.EVT_COMBOBOX, self.on_graph_selected)
 
         # 'Make' button
         self.make_graph_btn = wx.Button(self, label="Make")
@@ -130,6 +131,9 @@ class ctrl_pnl(scrolled.ScrolledPanel):
         self.configure_graph_chk.Bind(wx.EVT_CHECKBOX, self.on_configure_graph)
         self.main_sizer.Add(self.configure_graph_chk, 0, wx.ALIGN_LEFT | wx.ALL, 5)
 
+    def on_graph_selected(self, e):
+        self.on_configure_graph(None)
+
     def populate_graph_choices(self):
         """Populate the combo box with available graph modules."""
         graph_modules_dir = os.path.abspath(os.path.join(os.getcwd(), '..', 'graph_modules'))
@@ -144,7 +148,7 @@ class ctrl_pnl(scrolled.ScrolledPanel):
             wx.MessageBox(f"Graph modules directory not found: {graph_modules_dir}", "Error", wx.OK | wx.ICON_ERROR)
 
         # Reorder based on default_order
-        default_order = ['line', 'overlaid_days', 'day_range']
+        default_order = ['line', 'overlaid_days', 'averages', 'day_range', 'histogram', 'bar']
         # We'll loop in reverse so we insert them at the front in correct order
         for name in reversed(default_order):
             if name in self.graph_names:
