@@ -1,7 +1,12 @@
 import wx
 
 import wx.lib.newevent
-import cv2
+try:
+    import cv2
+    use_cv2 = True
+except:
+    print("Not using opencv as it's not installed.")
+    use_cv2 = False
 import numpy as np
 ROIChangedEvent, EVT_ROI_CHANGED = wx.lib.newevent.NewEvent()
 
@@ -363,6 +368,9 @@ class rpicap_sets_pnl(wx.Panel):
 
 class SetAFROIDialog(wx.Dialog):
     def __init__(self, parent, image_path, initial_roi=None):
+        if use_cv2 == False:
+            print("Unable to complete as cv2 is ot installed")
+            return None
         self.image = cv2.imread(image_path)
         self.image = cv2.cvtColor(self.image, cv2.COLOR_BGR2RGB)
         self.image_height, self.image_width = self.image.shape[:2]
