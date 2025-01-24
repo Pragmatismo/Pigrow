@@ -97,7 +97,9 @@ class ctrl_pnl(scrolled.ScrolledPanel):
         print("Sorry this is not yet complete.")
 
     def read_info_module(self, module):
-        return f"not reading {module} as not coded yet"
+        script_cmd = self.shared_data.remote_pigrow_path + "scripts/gui/info_modules/info_" + module + ".py"
+        out, error = self.parent.link_pnl.run_on_pi(script_cmd)
+        return out
 
 
 class info_pnl(scrolled.ScrolledPanel):
