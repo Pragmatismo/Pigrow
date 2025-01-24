@@ -83,11 +83,13 @@ class ctrl_pnl(scrolled.ScrolledPanel):
         for line in datawall_preset_file.splitlines():
             if "=" in line:
                 key, value = line.split("=", 1)
-
-                if key.strip() == 'info_read':
+                key = key.strip()
+                if key == 'info_read':
                     info = self.read_info_module(value)
                     data_for_datawall["info"][value] = info
-                elif key.strip() == 'graph_name':
+                if key == 'picture_path':
+                    data_for_datawall["images"][value] = self.get_image(value)
+                elif key == 'graph_name':
                     # Handle creating a new graph settings
                     pass
 
@@ -96,10 +98,45 @@ class ctrl_pnl(scrolled.ScrolledPanel):
 
         print("Sorry this is not yet complete.")
 
-    def read_info_module(self, module):
-        script_cmd = self.shared_data.remote_pigrow_path + "scripts/gui/info_modules/info_" + module + ".py"
-        out, error = self.parent.link_pnl.run_on_pi(script_cmd)
-        return out
+    def read_info_module(self, module, prefix="info_"):
+        args = ""
+        if " " in module:
+            e_pos = module.find(" ")
+            args = module[e_pos:]
+            module = module[:e_pos]
+        # check name is in module format
+        info_modules_path = self.shared_data.remote_pigrow_path + "scripts/gui/info_modules/"
+        if not prefix in module:
+            module = prefix + module
+        if not ".py" in module:
+            module += ".py"
+        # module
+        out, error = self.parent.link_pnl.run_on_pi(info_modules_path + module + args)
+        return out.strip()
+
+    def get_image(self, value):
+        # find the image path
+        info_o = self.read_info_module(value, "picture_")
+        print("!!!!", info_o)
+        if info_o.lower().strip() == "none":
+            print("No image found")
+            return info_o
+        # copy locally if required
+        remote_path = info_o
+        img_filename = info_o.split("/")[-1]
+        img_fold = info_o.split("/")[-2]
+        caps_path = os.path.join(self.shared_data.frompi_path, img_fold)
+        local_img_path = os.path.join(caps_path, img_filename)
+
+        if os.path.isfile(local_img_path):
+            print("Image already exists locally")
+        else:
+            print("image not yet downloaaded locally")
+            print(f"Copying image for datawall from {remote_path} to {img_fold + "/" + img_filename}")
+            self.parent.link_pnl.download_file_to_folder(remote_path,
+                                                         img_fold + "/" + img_filename)
+
+        return local_img_path
 
 
 class info_pnl(scrolled.ScrolledPanel):
