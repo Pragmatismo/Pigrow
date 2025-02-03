@@ -9,6 +9,7 @@ import datetime
 import time
 import sys
 import matplotlib.pyplot as plt
+from Onboard.utils import funcKeys
 
 
 class ctrl_pnl(scrolled.ScrolledPanel):
@@ -2136,57 +2137,14 @@ class GraphPreset:
 
             # Clear existing datasets
             parent.loaded_datasets = []
-            parent.refresh_table()
-
-            # First, load the datasets without trimming
             for dataset_params in datasets_info:
-                dataset = {
-                    'data': [],
-                    'trimmed_data': [],
-                    'trim_mode': dataset_params.get('trim_mode', 'none'),
-                    'key': dataset_params.get('key', '')
-                }
-
-                trim_mode = dataset['trim_mode']
-                if trim_mode == 'none' or trim_mode == 'custom':
-                    start_str = dataset_params.get('start_datetime')
-                    end_str = dataset_params.get('end_datetime')
-                    if start_str and end_str:
-                        dataset['start_datetime'] = datetime.datetime.fromisoformat(start_str)
-                        dataset['end_datetime'] = datetime.datetime.fromisoformat(end_str)
-                    else:
-                        dataset['start_datetime'] = None
-                        dataset['end_datetime'] = None
-                else:
-                    # 'last:' or 'log:' modes do not store direct start/end
-                    dataset['start_datetime'] = None
-                    dataset['end_datetime'] = None
-
-                # Identify dataset type and load data
-                if 'module_name' in dataset_params:
-                    module_name = dataset_params.get('module_name')
-                    ds_settings = dataset_params.get('ds_settings', {})
-                    self.load_datasucker_dataset(parent, module_name, ds_settings, dataset)
-                elif 'split_char' in dataset_params:
-                    file_path = dataset_params.get('file_path', '')
-                    split_char = dataset_params.get('split_char', '')
-                    kv_split_char = dataset_params.get('kv_split_char', '')
-                    date_key = dataset_params.get('date_key', None)
-                    self.load_log_dataset(parent, file_path, dataset['key'], split_char, kv_split_char, date_key,
-                                          dataset)
-                elif 'base_path' in dataset_params and 'cap_set' in dataset_params:
-                    base_path = dataset_params.get('base_path', '')
-                    cap_set = dataset_params.get('cap_set', '')
-                    self.load_caps_dataset(parent, base_path, cap_set, dataset['key'], dataset)
-                else:
-                    # no special loading info, dataset might remain empty
-                    pass
-
-                parent.loaded_datasets.append(dataset)
-
-            # After all datasets are loaded, re-apply trimming logic
-            self.reapply_trimming(parent.loaded_datasets)
+                ds = self.construct_dataset_from_params(parent, dataset_params)
+                parent.loaded_datasets.append(ds)
             parent.refresh_table()
+
+                        # After all datasets are loaded, re-apply trimming logic
+            #self.reapply_trimming(parent.loaded_datasets)
+            #parent.refresh_table()
 
             # Update graph selection and options
             graph_info = preset_data.get('graph', {})
@@ -2200,6 +2158,67 @@ class GraphPreset:
                 parent.configure_graph_chk.SetValue(False)
         else:
             print(f"Preset file {preset_file} does not exist.")
+
+    def load_dataset_preset(self, parent, preset_name):
+        """
+        loads the preset file (by name) and returns the list
+        of dataset dictionaries that it contains.
+        """
+        preset_file = os.path.join(self.preset_folder, preset_name + '.json')
+        if os.path.exists(preset_file):
+            with open(preset_file, 'r') as f:
+                preset_data = json.load(f)
+            datasets_info = preset_data.get('datasets', [])
+            dataset_list = []
+            for dataset_params in datasets_info:
+                ds = self.construct_dataset_from_params(parent, dataset_params)
+                dataset_list.append(ds)
+            return dataset_list
+        else:
+            print(f"Preset file {preset_file} does not exist.")
+            return None
+
+    def construct_dataset_from_params(self, parent, dataset_params):
+        """
+        Given a dataset parameters dictionary (from the preset JSON),
+        create a dataset dictionary in the same format used by the graphs tab.
+        """
+        dataset = {
+            'data': [],
+            'trimmed_data': [],
+            'trim_mode': dataset_params.get('trim_mode', 'none'),
+            'key': dataset_params.get('key', '')
+        }
+        # For 'none' or 'custom' modes, load start/end times if available.
+        if dataset['trim_mode'] in ['none', 'custom']:
+            start_str = dataset_params.get('start_datetime')
+            end_str = dataset_params.get('end_datetime')
+            if start_str and end_str:
+                dataset['start_datetime'] = datetime.datetime.fromisoformat(start_str)
+                dataset['end_datetime'] = datetime.datetime.fromisoformat(end_str)
+            else:
+                dataset['start_datetime'] = None
+                dataset['end_datetime'] = None
+        else:
+            dataset['start_datetime'] = None
+            dataset['end_datetime'] = None
+
+        # Now call the appropriate loader based on the dataset parameters.
+        if 'module_name' in dataset_params:
+            module_name = dataset_params.get('module_name')
+            ds_settings = dataset_params.get('ds_settings', {})
+            self.load_datasucker_dataset(parent, module_name, ds_settings, dataset)
+        elif 'split_char' in dataset_params:
+            file_path = dataset_params.get('file_path', '')
+            split_char = dataset_params.get('split_char', '')
+            kv_split_char = dataset_params.get('kv_split_char', '')
+            date_key = dataset_params.get('date_key', None)
+            self.load_log_dataset(parent, file_path, dataset['key'], split_char, kv_split_char, date_key, dataset)
+        elif 'base_path' in dataset_params and 'cap_set' in dataset_params:
+            base_path = dataset_params.get('base_path', '')
+            cap_set = dataset_params.get('cap_set', '')
+            self.load_caps_dataset(parent, base_path, cap_set, dataset['key'], dataset)
+        return dataset
 
     def reapply_trimming(self, loaded_datasets):
         """

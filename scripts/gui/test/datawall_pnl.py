@@ -16,6 +16,7 @@ class ctrl_pnl(scrolled.ScrolledPanel):
         self.parent = parent
         self.shared_data = parent.shared_data
         self.loaded_datasets = []
+        self.datawall_data = {}
 
         # Initialize ScrolledPanel instead of Panel
         scrolled.ScrolledPanel.__init__(self, parent, id=wx.ID_ANY, style=wx.TAB_TRAVERSAL)
@@ -33,6 +34,16 @@ class ctrl_pnl(scrolled.ScrolledPanel):
         self.load_preset_btn.Bind(wx.EVT_BUTTON, self.on_load_preset)
         self.main_sizer.Add(self.preset_choice, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 5)
         self.main_sizer.Add(self.load_preset_btn, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 5)
+
+        # Datawall Module
+        module_opts = self.get_datawall_module_list()
+        self.module_choice = wx.Choice(self, choices=module_opts)
+        self.run_module_btn = wx.Button(self, label="Run Datawall Module")
+        self.run_module_btn.Bind(wx.EVT_BUTTON, self.on_run_datawall_module)
+        self.main_sizer.Add(wx.StaticText(self, label="Select Datawall Module:"),
+                            0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 5)
+        self.main_sizer.Add(self.module_choice, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 5)
+        self.main_sizer.Add(self.run_module_btn, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 5)
 
         # Set the sizer
         self.SetSizer(self.main_sizer)
@@ -92,9 +103,15 @@ class ctrl_pnl(scrolled.ScrolledPanel):
                     graph_path = self.parent.dict_C_pnl['graphs_pnl'].create_graph_by_preset(value)
                     if graph_path:
                         data_for_datawall["graphs"][graph_path] = graph_path
+                elif key == 'log_preset':
+                    # Instead of creating a graph, load the datasets used to create it.
+                    dataset = self.parent.dict_C_pnl['graphs_pnl'].graph_preset.load_dataset_preset(
+                        self.parent.dict_C_pnl['graphs_pnl'], value)
+                    if dataset:
+                        data_for_datawall["data"][value] = dataset
 
         print(data_for_datawall)
-        print("Sorry this is not yet complete.")
+        self.datawall_data = data_for_datawall
 
     def read_info_module(self, module, prefix="info_"):
         args = ""
@@ -135,6 +152,38 @@ class ctrl_pnl(scrolled.ScrolledPanel):
                                                          img_fold + "/" + img_filename)
 
         return local_img_path
+
+    def get_datawall_module_list(self):
+        modules = []
+        module_path = "./datawall_modules/"
+        if os.path.isdir(module_path):
+            for filename in os.listdir(module_path):
+                if filename.startswith("datawall_") and filename.endswith(".py"):
+                    name = filename[len("datawall_"):-3]
+                    modules.append(name)
+        return modules
+
+    def on_run_datawall_module(self, event):
+        selected = self.module_choice.GetStringSelection()
+        if not selected:
+            wx.MessageBox("Please select a datawall module.", "Error", wx.OK | wx.ICON_ERROR)
+            return
+        module_name = f"datawall_{selected}"
+        module_path = os.path.abspath("./datawall_modules")
+        if module_path not in sys.path:
+            sys.path.insert(0, module_path)
+        try:
+            if module_name in sys.modules:
+                importlib.reload(sys.modules[module_name])
+                module = sys.modules[module_name]
+            else:
+                module = importlib.import_module(module_name)
+            # Call the module’s make_datawall() function, handing it the preset data.
+            output = module.make_datawall(self.datawall_data)
+            print(f"Datawall module output: {output}")
+            wx.MessageBox(f"Datawall module output: {output}", "Info", wx.OK | wx.ICON_INFORMATION)
+        except Exception as e:
+            wx.MessageBox(f"Error running datawall module: {e}", "Error", wx.OK | wx.ICON_ERROR)
 
 
 class info_pnl(scrolled.ScrolledPanel):
