@@ -148,7 +148,7 @@ class ctrl_pnl(scrolled.ScrolledPanel):
             wx.MessageBox(f"Graph modules directory not found: {graph_modules_dir}", "Error", wx.OK | wx.ICON_ERROR)
 
         # Reorder based on default_order
-        default_order = ['line', 'overlaid_days', 'averages', 'day_range', 'histogram', 'bar']
+        default_order = ['line', 'overlaid_days', 'averages', 'high_low', 'histogram', 'bar']
         # We'll loop in reverse so we insert them at the front in correct order
         for name in reversed(default_order):
             if name in self.graph_names:
@@ -159,25 +159,25 @@ class ctrl_pnl(scrolled.ScrolledPanel):
         if self.graph_names:
             self.graph_choice.SetSelection(0)
 
-    def on_make_graph(self, event):
+    def do_make_graph(self):
+        """Creates the graph image and returns the graph file path."""
         datasets = self.prepare_datasets_for_graph()
-        # Get selected graph and options
         selected_graph = self.graph_choice.GetStringSelection()
         if not selected_graph:
             wx.MessageBox("Please select a graph.", "Error", wx.OK | wx.ICON_ERROR)
-            return
+            return None
 
         options = self.options_panel.get_options()
 
-        # Extract values from options with default conversion
+        # Validate axis limits:
         ymax = options.get("Y axis Maximum", "")
-        if not ymax == "":
+        if ymax != "":
             try:
                 int(ymax)
             except:
                 ymax = ""
         ymin = options.get("Y axis Minimum", "")
-        if not ymin == "":
+        if ymin != "":
             try:
                 int(ymin)
             except:
@@ -186,44 +186,54 @@ class ctrl_pnl(scrolled.ScrolledPanel):
         size_h = int(options.get("Width", 12))
         size_v = int(options.get("Height", 7))
 
-        # Define the graph file path
         module_name = f"graph_{selected_graph}"
         file_name = module_name + "_graph.png"
         graph_path = os.path.join(self.shared_data.frompi_path, file_name)
 
-        # Import the selected graph module and make the graph
+        # Add the graph_modules folder to sys.path if needed:
         graph_modules_dir = os.path.abspath(os.path.join(os.getcwd(), '..', 'graph_modules'))
-
-        # Add graph_modules_dir to sys.path if not already present
         if graph_modules_dir not in sys.path:
             sys.path.insert(0, graph_modules_dir)
 
         try:
-            # Load or reload the module
+            # Import or reload the graph module
             if module_name in sys.modules:
                 importlib.reload(sys.modules[module_name])
                 graph_module = sys.modules[module_name]
             else:
                 graph_module = importlib.import_module(module_name)
 
-            # Ensure 'make_graph' function exists in the module
             if hasattr(graph_module, 'make_graph'):
                 make_graph = graph_module.make_graph
-
-                # Time the graph creation
                 start_time = time.time()
-                make_graph(datasets, graph_path, ymax, ymin, size_h, size_v, None, None, None, None,
-                           options)
+                make_graph(datasets, graph_path, ymax, ymin, size_h, size_v,
+                           None, None, None, None, options)
                 end_time = time.time()
-
                 elapsed_time = round(end_time - start_time, 2)
                 print(f"{module_name} graph created in {elapsed_time} seconds and saved to {graph_path}")
-                self.parent.dict_I_pnl['graphs_pnl'].add_graph_to_panel(graph_path)
+                return graph_path
             else:
                 print(f"The module '{module_name}' does not have a 'make_graph' function.")
+                return None
         except Exception as e:
-            raise
-            print(f"Failed to import or execute '{module_name}':\n{e}")
+            print(f"Failed to import or execute '{module_name}': {e}")
+            return None
+
+    def on_make_graph(self, event):
+        graph_path = self.do_make_graph()
+        if graph_path:
+            self.parent.dict_I_pnl['graphs_pnl'].add_graph_to_panel(graph_path)
+
+    def create_graph_by_preset(self, preset_name):
+        """
+        This method is called externally (e.g. from the datawall tab). It loads the given graph preset,
+        then creates the graph and returns its path.
+        """
+        # Load the preset by name (using the updated load_preset)
+        self.graph_preset.load_preset(self, preset_name)
+        # Now create the graph:
+        graph_path = self.do_make_graph()
+        return graph_path
 
     def prepare_datasets_for_graph(self):
         new_dataset = []
@@ -685,12 +695,17 @@ class CapsDataDialog(wx.Dialog):
     def on_select_caps_set(self, e=None):
         self.select_caps_set()
 
-
 class LoadLogPanel(wx.Panel):
     def __init__(self, parent):
         super(LoadLogPanel, self).__init__(parent)
         self.parent = parent  # Reference to info_pnl
         self.c_pnl = parent.c_pnl  # Reference to ctrl_pnl
+
+        # Flag to indicate which parsing approach we’ll use
+        self.use_key_value = False
+        # In positional mode, we’ll store which field is the date
+        self.date_index = None
+
         self.init_ui()
 
     def init_ui(self):
@@ -707,13 +722,11 @@ class LoadLogPanel(wx.Panel):
         topbar_sizer.Add(self.hide_btn, 0, wx.ALL, 5)
         main_sizer.Add(topbar_sizer, 0, wx.EXPAND, 5)
 
-
-        # Buttons 'load from pi' and 'load local' beside each other
+        # Buttons 'load from pi' and 'load local'
         button_sizer = wx.BoxSizer(wx.HORIZONTAL)
         self.load_from_pi_btn = wx.Button(self, label="Load from Pi")
         self.load_local_btn = wx.Button(self, label="Load Local")
         button_sizer.Add(self.load_from_pi_btn, 0, wx.ALL, 5)
-
         button_sizer.Add(self.load_local_btn, 0, wx.ALL, 5)
         main_sizer.Add(button_sizer, 0, wx.ALIGN_LEFT)
 
@@ -770,13 +783,13 @@ class LoadLogPanel(wx.Panel):
         self.parent.main_sizer.Layout()
 
     def on_load_from_pi(self, event):
-        # Select Files on Pi
+        # Select files on Pi
         pi_logs = self.parent.parent.shared_data.remote_pigrow_path + "/logs/"
         select_files = self.parent.parent.link_pnl.select_files_on_pi
         selected_files, selected_folders = select_files(single_folder=False,
                                                         default_path=pi_logs)
-        if selected_files == []:
-            return None
+        if not selected_files:
+            return
 
         # Download File
         remote_path = selected_files[0][0]
@@ -786,7 +799,7 @@ class LoadLogPanel(wx.Panel):
         print("Copying", remote_path, "to", local_path)
         self.parent.parent.link_pnl.download_file_to_folder(remote_path, local_path)
 
-        # load downloaded log
+        # Load the downloaded log
         self.load_log_file(local_path)
         self.load_data_btn.Enable()
         self.Layout()
@@ -794,16 +807,15 @@ class LoadLogPanel(wx.Panel):
 
     def on_load_local(self, event):
         with wx.FileDialog(
-                self,
-                "Open Log File",
-                wildcard="Log files (*.txt;*.log)|*.txt;*.log",
-                style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST,
-                defaultDir=self.parent.parent.shared_data.frompi_path
+            self,
+            "Open Log File",
+            wildcard="Log files (*.txt;*.log)|*.txt;*.log",
+            style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST,
+            defaultDir=self.parent.parent.shared_data.frompi_path
         ) as fileDialog:
             if fileDialog.ShowModal() == wx.ID_CANCEL:
                 return
 
-            # Proceed to load the file
             path = fileDialog.GetPath()
             self.load_log_file(path)
         self.load_data_btn.Enable()
@@ -820,61 +832,114 @@ class LoadLogPanel(wx.Panel):
             last_line = self.lines[-1].strip()
             log_info = f"{self.log_title}:\n       {first_line}\n       {last_line}"
             self.log_info_text.SetLabel(log_info)
-            # Proceed to identify split characters
-            self.identify_split_characters()
+
+            # Attempt to detect key=value pairs or fallback to positional
+            self.identify_format()
+
         except Exception as e:
             wx.MessageBox(f"Failed to load log file: {e}", "Error", wx.OK | wx.ICON_ERROR)
 
-    def identify_split_characters(self):
-        """Identify the split character and KV split character."""
-        first_line = self.lines[0].strip()
+    def identify_format(self):
+        """
+        Try to identify if the log lines are in key=value format or
+        if we should treat them as CSV/positional.
+        """
+        # Reset stuff
+        self.use_key_value = False
+        self.date_index = None
+        self.split_char = None
+        self.kv_split_char = None
+
+        # Try to find a key and a date in the first line(s) as before
+        if self.identify_key_value_format():
+            print("Found Key=Value pair type")
+            # If we found key-value format (use_key_value = True),
+            # we do the old logic: extract keys, then extract dates
+            self.split_char_text.SetValue(self.split_char)
+            self.kv_split_char_text.SetValue(self.kv_split_char)
+            self.extract_keys_kv()
+            self.extract_dates_kv()
+        else:
+            # If we fail, fallback to a positional approach
+            # Attempt to detect a suitable split char and date field index
+            if self.identify_positional_format():
+                self.split_char_text.SetValue(self.split_char)
+                self.kv_split_char_text.SetValue("")  # no kv split in positional
+                self.extract_keys_positional()
+                self.extract_dates_positional()
+            else:
+                wx.MessageBox("Failed to identify format or date field.",
+                              "Error", wx.OK | wx.ICON_ERROR)
+
+    def identify_key_value_format(self):
         split_char_candidates = ['>', ',', ';', '|', ' ']
         kv_split_char_candidates = ['=', ':']
-        found = False
+        first_line = self.lines[0].strip()
+
         for sc in split_char_candidates:
             fields = first_line.split(sc)
             if len(fields) > 1:
                 for kv_sc in kv_split_char_candidates:
-                    date_field = self.find_date_field(fields, kv_sc)
+                    # Quick skip: does any field contain kv_sc at all?
+                    if not any(kv_sc in f for f in fields):
+                        continue  # No point in checking if none has kv_sc
+
+                    date_field = self.find_date_field_kv(fields, kv_sc)
                     if date_field is not None:
+                        # We found a valid date in 'key=val' form
                         self.split_char = sc
                         self.kv_split_char = kv_sc
-                        self.split_char_text.SetValue(self.split_char)
-                        self.kv_split_char_text.SetValue(self.kv_split_char)
-                        found = True
-                        break
-                if found:
-                    break
-        if found:
-            # Now extract all keys
-            self.extract_keys()
-        else:
-            wx.MessageBox("Failed to identify split characters and date field.", "Error", wx.OK | wx.ICON_ERROR)
+                        self.use_key_value = True
+                        return True
+        return False
 
-    def find_date_field(self, fields, kv_sc):
-        """Find the field containing the date."""
+    def find_date_field_kv(self, fields, kv_sc):
+        """Find a field that includes a date. Return the field if found, else None."""
         for field in fields:
             if kv_sc in field:
                 key, value = field.split(kv_sc, 1)
                 if self.is_date(value):
+                    # We'll store date_key for key=value mode
                     self.date_key = key
-                    return field
-            else:
-                if self.is_date(field):
-                    self.date_key = None
                     return field
         return None
 
+    def identify_positional_format(self):
+        """
+        Attempt to find a single 'split_char' and a single position
+        that is interpretable as date in the first line.
+        """
+        split_char_candidates = ['>', ',', ';', '|', ' ']
+        first_line = self.lines[0].strip()
+
+        for sc in split_char_candidates:
+            fields = first_line.split(sc)
+            # see how many date-like fields we can find
+            date_positions = []
+            for i, fld in enumerate(fields):
+                if self.is_date(fld):
+                    print("Found date", i, fld)
+                    date_positions.append(i)
+            # For simplicity, if there's exactly 1 date field, we pick that as the date index
+            if len(date_positions) > 0:
+                self.split_char = sc
+                self.date_index = date_positions[0]
+                # For positional mode, we won't have a date_key
+                self.date_key = None
+                return True
+        # if we get here, we haven't found a workable positional format
+        return False
+
     def is_date(self, text):
-        """Check if a text string is a date."""
+        """Check if the text is interpretable as a date or timestamp."""
+        # 1) try float -> timestamp
         try:
-            # Try to parse as a Unix timestamp
             timestamp = float(text)
             datetime.datetime.fromtimestamp(timestamp)
             return True
         except:
             pass
-        # Try common date formats
+        # 2) try common date formats
         date_formats = ["%Y-%m-%d %H:%M:%S.%f", "%Y-%m-%d %H:%M:%S",
                         "%d/%m/%Y %H:%M:%S", "%d/%m/%Y %H:%M:%S.%f"]
         for fmt in date_formats:
@@ -885,8 +950,11 @@ class LoadLogPanel(wx.Panel):
                 pass
         return False
 
-    def extract_keys(self):
-        """Extract keys from the first line."""
+    # -------------------------------------------------------------------------
+    # Key=Value Mode
+    # -------------------------------------------------------------------------
+    def extract_keys_kv(self):
+        """Extract keys from the first line (key=value style)."""
         first_line = self.lines[0].strip()
         fields = first_line.split(self.split_char)
         keys = []
@@ -895,14 +963,14 @@ class LoadLogPanel(wx.Panel):
                 key, value = field.split(self.kv_split_char, 1)
                 keys.append(key)
         self.keys = keys
-        self.extract_dates()
+        # Filter out the date key
         filtered_keys = [key for key in self.keys if key != self.date_key]
         self.key_choice.SetItems(filtered_keys)
-        self.key_choice.SetSelection(0)
+        if filtered_keys:
+            self.key_choice.SetSelection(0)
 
-
-    def extract_dates(self):
-        """Extract dates from all lines."""
+    def extract_dates_kv(self):
+        """Extract dates from all lines in key=value mode."""
         self.dates = []
         self.data_lines = []
         for line in self.lines:
@@ -911,99 +979,190 @@ class LoadLogPanel(wx.Panel):
             date_found = False
             for field in fields:
                 if self.kv_split_char in field:
-                    key, value = field.split(self.kv_split_char, 1)
+                    key, val = field.split(self.kv_split_char, 1)
                     if key == self.date_key or self.date_key is None:
-                        date = self.parse_date(value)
+                        date = self.parse_date(val)
                         if date:
                             self.dates.append(date)
-                            date_found = True
                             self.data_lines.append(line)
+                            date_found = True
                             break
                 else:
+                    # If date_key is None, we also consider the entire field for a date
                     if self.date_key is None:
                         date = self.parse_date(field)
                         if date:
                             self.dates.append(date)
-                            date_found = True
                             self.data_lines.append(line)
+                            date_found = True
                             break
+            # If no date found, we skip the line
             if not date_found:
-                continue  # Skip lines without date
-        if self.dates:
-            first_date = self.dates[0]
-            last_date = self.dates[-1]
-            duration = str(last_date - first_date)
-            f_first_date = first_date.strftime("%d-%b-%y %H:%M")
-            f_last_date = last_date.strftime("%d-%b-%y %H:%M")
-            if "." in duration:
-                duration = duration.split(".")[0]
-            date_info = f"From: {f_first_date} to {f_last_date}\nDuration: {duration}"
-            self.date_info_text.SetLabel(date_info)
-        else:
-            self.date_info_text.SetLabel("No dates found.")
-        self.Layout()
-        self.Fit()
+                continue
 
+        self.update_date_info()
+
+    # -------------------------------------------------------------------------
+    # Positional (CSV-like) Mode
+    # -------------------------------------------------------------------------
+    def extract_keys_positional(self):
+        """
+        In positional mode, we just use numeric indexes as possible keys,
+        excluding self.date_index.
+        """
+        first_line = self.lines[0].strip()
+        fields = first_line.split(self.split_char)
+        # create a list of indexes as strings, skipping the date_index
+        self.positional_keys = [
+            str(i) for i in range(len(fields)) if i != self.date_index
+        ]
+        self.key_choice.SetItems(self.positional_keys)
+        if self.positional_keys:
+            self.key_choice.SetSelection(0)
+
+    def extract_dates_positional(self):
+        """Extract dates by picking the field at self.date_index."""
+        self.dates = []
+        self.data_lines = []
+        for line in self.lines:
+            line = line.strip()
+            fields = line.split(self.split_char)
+            if len(fields) <= self.date_index:
+                continue
+            date_text = fields[self.date_index]
+            date_obj = self.parse_date(date_text)
+            if date_obj:
+                self.dates.append(date_obj)
+                self.data_lines.append(line)
+
+        self.update_date_info()
+
+    # -------------------------------------------------------------------------
+    # Common Helpers
+    # -------------------------------------------------------------------------
     def parse_date(self, text):
-        """Parse a date from text."""
+        """Parse a date from text as float or various date formats."""
+        # 1) float -> timestamp
         try:
             timestamp = float(text)
-            date = datetime.datetime.fromtimestamp(timestamp)
-            return date
+            return datetime.datetime.fromtimestamp(timestamp)
         except:
             pass
+
+        # 2) common date formats
         date_formats = ["%Y-%m-%d %H:%M:%S.%f", "%Y-%m-%d %H:%M:%S",
                         "%d/%m/%Y %H:%M:%S", "%d/%m/%Y %H:%M:%S.%f"]
         for fmt in date_formats:
             try:
-                date = datetime.datetime.strptime(text, fmt)
-                return date
+                return datetime.datetime.strptime(text, fmt)
             except:
                 pass
         return None
 
+    def update_date_info(self):
+        """Update self.date_info_text with summary of first/last date and duration."""
+        if self.dates:
+            first_date = self.dates[0]
+            last_date = self.dates[-1]
+            duration = str(last_date - first_date)
+            if "." in duration:
+                # strip microseconds, optional
+                duration = duration.split(".")[0]
+            f_first_date = first_date.strftime("%d-%b-%y %H:%M")
+            f_last_date = last_date.strftime("%d-%b-%y %H:%M")
+            date_info = f"From: {f_first_date} to {f_last_date}\nDuration: {duration}"
+            self.date_info_text.SetLabel(date_info)
+        else:
+            self.date_info_text.SetLabel("No dates found.")
+
+        self.Layout()
+        self.Fit()
+
     def on_key_selected(self, event):
+        """
+        When the user picks a key from the choice, we display
+        its value from the first line. This logic differs
+        slightly based on mode.
+        """
         selected_key = self.key_choice.GetStringSelection()
-        # Get the value of that key in the first line
         first_line = self.lines[0].strip()
         fields = first_line.split(self.split_char)
-        value = None
-        for field in fields:
-            if self.kv_split_char in field:
-                key, val = field.split(self.kv_split_char, 1)
-                if key == selected_key:
-                    value = val
-                    break
-        if value:
-            self.key_value_text.SetLabel(f"Value: {value}")
-        else:
-            self.key_value_text.SetLabel("Value not found.")
-        self.Layout()
 
-    def on_import_data(self, event):
-        """Load data and add to ctrl_pnl."""
-        selected_key = self.key_choice.GetStringSelection()
-        data_tuples = []
-        for line in self.data_lines:
-            line = line.strip()
-            fields = line.split(self.split_char)
-            date = None
+        if self.use_key_value:
+            # Key=Value mode
             value = None
             for field in fields:
                 if self.kv_split_char in field:
                     key, val = field.split(self.kv_split_char, 1)
                     if key == selected_key:
                         value = val
-                    if key == self.date_key or self.date_key is None:
-                        date = self.parse_date(val)
+                        break
+            if value:
+                self.key_value_text.SetLabel(f"Value: {value}")
+            else:
+                self.key_value_text.SetLabel("Value not found.")
+        else:
+            # Positional mode
+            try:
+                index = int(selected_key)
+                if index < len(fields):
+                    self.key_value_text.SetLabel(f"Value: {fields[index]}")
                 else:
-                    if self.date_key is None:
-                        date = self.parse_date(field)
-            if date and value is not None:
-                try:
-                    data_tuples.append((date, float(value)))
-                except ValueError:
-                    continue  # Skip lines where value cannot be converted to float
+                    self.key_value_text.SetLabel("Value not found.")
+            except:
+                self.key_value_text.SetLabel("Value not found.")
+
+        self.Layout()
+
+    def on_import_data(self, event):
+        """Load data and add to ctrl_pnl based on whichever mode (K=V or positional)."""
+        selected_key = self.key_choice.GetStringSelection()
+        data_tuples = []
+
+        if self.use_key_value:
+            # Key=Value mode
+            for line in self.data_lines:
+                line = line.strip()
+                fields = line.split(self.split_char)
+                date = None
+                value = None
+                for field in fields:
+                    if self.kv_split_char in field:
+                        key, val = field.split(self.kv_split_char, 1)
+                        if key == selected_key:
+                            value = val
+                        if key == self.date_key or self.date_key is None:
+                            date = self.parse_date(val)
+                    else:
+                        if self.date_key is None:
+                            date = self.parse_date(field)
+                if date and value is not None:
+                    try:
+                        data_tuples.append((date, float(value)))
+                    except ValueError:
+                        pass  # skip lines where value isn't float
+        else:
+            # Positional mode
+            try:
+                value_index = int(selected_key)
+            except:
+                wx.MessageBox("Invalid key selection for positional data.",
+                              "Error", wx.OK | wx.ICON_ERROR)
+                return
+
+            for line in self.data_lines:
+                line = line.strip()
+                fields = line.split(self.split_char)
+                if len(fields) <= max(self.date_index, value_index):
+                    continue
+                date_text = fields[self.date_index]
+                val_text = fields[value_index]
+                date = self.parse_date(date_text)
+                if date is not None:
+                    try:
+                        data_tuples.append((date, float(val_text)))
+                    except ValueError:
+                        pass  # skip lines with non-numeric data
 
         # Add the dataset to ctrl_pnl
         dataset = {
@@ -1012,7 +1171,7 @@ class LoadLogPanel(wx.Panel):
             'data': data_tuples,
             'trimmed_data': data_tuples,  # Initially same as data
             'split_char': self.split_char,
-            'kv_split_char': self.kv_split_char,
+            'kv_split_char': self.kv_split_char if self.use_key_value else "",
             'date_key': self.date_key
         }
         self.c_pnl.loaded_datasets.append(dataset)
@@ -1964,8 +2123,11 @@ class GraphPreset:
 
         return datasets_list
 
-    def load_preset(self, parent):
-        preset_name = parent.preset_choice.GetStringSelection()
+    def load_preset(self, parent, preset_name=None):
+        # If no name is given, use the preset currently selected in the GUI
+        if preset_name is None:
+            preset_name = parent.preset_choice.GetStringSelection()
+
         preset_file = os.path.join(self.preset_folder, preset_name + '.json')
         if os.path.exists(preset_file):
             with open(preset_file, 'r') as f:

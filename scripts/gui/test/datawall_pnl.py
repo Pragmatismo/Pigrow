@@ -57,18 +57,16 @@ class ctrl_pnl(scrolled.ScrolledPanel):
 
     def on_load_preset(self, e):
         choice = self.preset_choice.GetStringSelection()
-        # Construct the filename based on the selection
         filename = 'datawall_' + choice + ".txt"
         preset_path = os.path.join('./datawall_presets', filename)
 
-        # Prepare the data structure
         data_for_datawall = {
             "info": {},
             "images": {},
-            "data": {}
+            "data": {},
+            "graphs": {}  # add a new key for graphs
         }
 
-        # Attempt to open and read the preset file
         try:
             with open(preset_path, 'r', encoding='utf-8') as f:
                 datawall_preset_file = f.read()
@@ -79,23 +77,23 @@ class ctrl_pnl(scrolled.ScrolledPanel):
             print(f"Error reading {filename}: {ex}")
             return
 
-        # Split the file content into lines and process each line
         for line in datawall_preset_file.splitlines():
             if "=" in line:
                 key, value = line.split("=", 1)
                 key = key.strip()
+                value = value.strip()
                 if key == 'info_read':
                     info = self.read_info_module(value)
                     data_for_datawall["info"][value] = info
-                if key == 'picture_path':
+                elif key == 'picture_path':
                     data_for_datawall["images"][value] = self.get_image(value)
-                elif key == 'graph_name':
-                    # Handle creating a new graph settings
-                    pass
+                elif key == "graph_preset":
+                    # Call the graphs tab’s new method:
+                    graph_path = self.parent.dict_C_pnl['graphs_pnl'].create_graph_by_preset(value)
+                    if graph_path:
+                        data_for_datawall["graphs"][graph_path] = graph_path
 
-        # Show for debugging
         print(data_for_datawall)
-
         print("Sorry this is not yet complete.")
 
     def read_info_module(self, module, prefix="info_"):
