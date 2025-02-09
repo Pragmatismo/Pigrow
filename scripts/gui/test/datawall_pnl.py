@@ -181,9 +181,14 @@ class ctrl_pnl(scrolled.ScrolledPanel):
             # Call the module’s make_datawall() function, handing it the preset data.
             output = module.make_datawall(self.datawall_data)
             print(f"Datawall module output: {output}")
-            wx.MessageBox(f"Datawall module output: {output}", "Info", wx.OK | wx.ICON_INFORMATION)
+            #
+            if os.path.isfile(output):
+                self.parent.dict_I_pnl['datawall_pnl'].display_image(output)
+            else:
+                wx.MessageBox(f"Datawall module output: {output}", "Info", wx.OK | wx.ICON_INFORMATION)
         except Exception as e:
             wx.MessageBox(f"Error running datawall module: {e}", "Error", wx.OK | wx.ICON_ERROR)
+
 
 
 class info_pnl(scrolled.ScrolledPanel):
@@ -192,7 +197,8 @@ class info_pnl(scrolled.ScrolledPanel):
         self.shared_data = parent.shared_data
         self.c_pnl = parent.dict_C_pnl['datawall_pnl']
         w = 1000
-        wx.Panel.__init__(self, parent, size=(w, -1), id=wx.ID_ANY, style=wx.TAB_TRAVERSAL)
+        # Initialize as a ScrolledPanel so that if the image is large the user can scroll.
+        scrolled.ScrolledPanel.__init__(self, parent, size=(w, -1), id=wx.ID_ANY, style=wx.TAB_TRAVERSAL)
 
         # Tab Title
         self.SetFont(self.shared_data.title_font)
@@ -206,8 +212,39 @@ class info_pnl(scrolled.ScrolledPanel):
         self.main_sizer.Add(title_l, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
         self.main_sizer.Add(page_sub_title, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
 
+        # Create an image box (using wx.StaticBitmap)
+        self.image_box = wx.StaticBitmap(self, bitmap=wx.NullBitmap)
+        # Initially, no image is loaded.
+        self.main_sizer.Add(self.image_box, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 5)
+
         self.SetSizer(self.main_sizer)
         self.SetupScrolling()
 
+    def display_image(self, image_path):
+        """Load the image from image_path and display it in the image_box.
+        The box is resized to fit the new image."""
+        if not os.path.isfile(image_path):
+            wx.MessageBox(f"Image file not found: {image_path}", "Error", wx.OK | wx.ICON_ERROR)
+            return
+
+        try:
+            # Load the image. The BITMAP_TYPE_ANY flag lets wxPython decide the type.
+            img = wx.Image(image_path, wx.BITMAP_TYPE_ANY)
+        except Exception as e:
+            wx.MessageBox(f"Failed to load image: {e}", "Error", wx.OK | wx.ICON_ERROR)
+            return
+
+        # (Optional) If you want to ensure the image is not too large, you can scale it here.
+        # For example:
+        # max_width, max_height = 800, 600
+        # if img.GetWidth() > max_width or img.GetHeight() > max_height:
+        #     img = img.Scale(max_width, max_height, wx.IMAGE_QUALITY_HIGH)
+
+        bmp = wx.Bitmap(img)
+        self.image_box.SetBitmap(bmp)
+        # Resize the image box to match the bitmap dimensions.
+        self.image_box.SetSize(bmp.GetWidth(), bmp.GetHeight())
+        # Re-layout the panel to account for the new image size.
+        self.main_sizer.Layout()
 
 
