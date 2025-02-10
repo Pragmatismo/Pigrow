@@ -188,7 +188,7 @@ class ctrl_pnl(scrolled.ScrolledPanel):
         size_v = int(options.get("Height", 7))
 
         module_name = f"graph_{selected_graph}"
-        file_name = module_name + "_graph.png"
+        file_name = module_name + ".png"
         graph_path = os.path.join(self.shared_data.frompi_path, file_name)
 
         # Add the graph_modules folder to sys.path if needed:
