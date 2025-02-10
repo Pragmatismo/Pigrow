@@ -75,7 +75,7 @@ class ctrl_pnl(scrolled.ScrolledPanel):
             "info": {},
             "images": {},
             "data": {},
-            "graphs": {}  # add a new key for graphs
+            "graphs": {}
         }
 
         try:
@@ -99,7 +99,6 @@ class ctrl_pnl(scrolled.ScrolledPanel):
                 elif key == 'picture_path':
                     data_for_datawall["images"][value] = self.get_image(value)
                 elif key == "graph_preset":
-                    # Call the graphs tab’s new method:
                     graph_path = self.parent.dict_C_pnl['graphs_pnl'].create_graph_by_preset(value)
                     if graph_path:
                         data_for_datawall["graphs"][graph_path] = graph_path
@@ -110,7 +109,6 @@ class ctrl_pnl(scrolled.ScrolledPanel):
                     if dataset:
                         data_for_datawall["data"][value] = dataset
 
-        print(data_for_datawall)
         self.datawall_data = data_for_datawall
 
     def read_info_module(self, module, prefix="info_"):
@@ -132,7 +130,6 @@ class ctrl_pnl(scrolled.ScrolledPanel):
     def get_image(self, value):
         # find the image path
         info_o = self.read_info_module(value, "picture_")
-        print("!!!!", info_o)
         if info_o.lower().strip() == "none":
             print("No image found")
             return info_o
