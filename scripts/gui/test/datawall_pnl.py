@@ -125,6 +125,7 @@ class ctrl_pnl(scrolled.ScrolledPanel):
             module += ".py"
         # module
         out, error = self.parent.link_pnl.run_on_pi(info_modules_path + module + args)
+        print (out, error)
         return out.strip()
 
     def get_image(self, value):
