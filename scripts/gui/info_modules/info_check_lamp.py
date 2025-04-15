@@ -23,10 +23,10 @@ def show_info():
                 lamp_on_hour = int(time_lamp_on.split(":")[0])
                 lamp_on_min  = int(time_lamp_on.split(":")[1])
             else:
-                lamp_msg += "Lamp on time not valid"
+                lamp_msg += "Lamp on time not valid\n"
                 lamp_config_set = False
         else:
-            lamp_msg += "Lamp on time not set in config dict"
+            lamp_msg += "Lamp on time not set in config dict\n"
             lamp_config_set = False
 
         # Lamp off
