@@ -1,64 +1,99 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 import os
+import subprocess
+import shutil
+import re
 
-def show_info():
-    #check pi to determin os version
-
-
-    # picam info
-    out =  os.popen("vcgencmd get_camera").read()
-    if "detected=" in out:
-        out = out.split('detected=')[1].strip()
-        if out == "0":
-            # If no cam detected check if camera module is enabled
-            get_cam =  os.popen("sudo raspi-config nonint get_camera").read()
-            if get_cam.strip() == "1":
-                picam_text = "Picam Module Not Enabled\n"
-            elif get_cam.strip() == "0":
-                picam_text = 'Picam Enabled, None detected\n'
-            else:
-                picam_text = "Unable to determine if picam module is enabled"
-        elif out == "1":
-            picam_text = "1 Picam\n"
-        elif out == "2":
-            picam_text = "Dual Picams\n"
-        else:
-            picam_text = 'Multipul Picams\n'
-    else:
-        picam_text = " Command line output did not match expected format, possibly because vcgencmd is not installed"
-        picam_text += " or possibly because your language is set to something other than english."
-
-    # web camera info
-    cam_text = "No webcam detected"
-    out =  os.popen("ls /dev/video*").read()
-    if "No such file or directory" in out:
-        cam_text = "No webcams"
-    else:
-        camera_list = []
-        possible_cams = out.strip().split()
-        list_of_fake_video_channels = ['/dev/video10', '/dev/video11', '/dev/video12']
-        for x in possible_cams:
-            if not x in list_of_fake_video_channels:
-                camera_list.append(x)
+def detect_cameras():
+    cameras = []
+    # Enumerate all /dev/video* devices
+    video_devs = sorted([dev for dev in os.listdir("/dev") if re.match(r"video\d+$", dev)])
+    for dev in video_devs:
+        dev_path = f"/dev/{dev}"
+        # Get udev info for the device
         try:
-            #if len(camera_list) == 1:
-            #    out =  os.popen("udevadm info --query=all /dev/video0 |grep ID_MODEL=").read()
-            #    cam_name = out.split("=")[1].strip()
-            #    cam_text = cam_name
-            #elif len(camera_list) > 1:
-            for cam in camera_list:
-                out =  os.popen("udevadm info --query=all " + cam + " |grep ID_MODEL=").read()
-                if not "=" in out:
-                    cam_name = "unknown device"
+            result = subprocess.run(
+                ["udevadm", "info", "--query=property", "--name", dev_path],
+                capture_output=True, text=True, check=True
+            )
+        except subprocess.CalledProcessError:
+            continue
+        props = {key: val for line in result.stdout.splitlines() if '=' in line
+                 for key, val in [line.split('=', 1)]}
+        # Only consider video devices that can capture (i.e. camera inputs)
+        if "capture" not in props.get("ID_V4L_CAPABILITIES", ""):
+            continue
+
+        # Check the product property
+        product = props.get("ID_V4L_PRODUCT", "")
+        # Exclude known auxiliary nodes from the ISP (e.g. "bcm2835-isp")
+        if "bcm2835-isp" in product.lower():
+            continue
+
+        # Determine interface type and device name
+        interface = "CSI"  # default assume CSI unless USB flag is found
+        name = None
+        if props.get("ID_BUS") == "usb" or "usb" in props.get("ID_PATH", "") or props.get("ID_USB_DRIVER"):
+            interface = "USB"
+            if props.get("ID_MODEL_FROM_DATABASE"):
+                name = props["ID_MODEL_FROM_DATABASE"]
+            elif props.get("ID_MODEL"):
+                name = props["ID_MODEL"]
+            elif product:
+                name = product
+            else:
+                name = "USB Camera"
+        else:
+            if product:
+                if "mmal" in product.lower() or "unicam" in product.lower():
+                    name = "Raspberry Pi Camera Module"
                 else:
-                    cam_name = out.split("=")[1].strip()
-                    cam_text = cam_name + "\n       on " + cam + "\n"
-        except:
-            #print("Failed to identify video source")
-            cam_text = "Error reading webcams"
-    info_text = picam_text + cam_text
-    return info_text
+                    name = product
+            else:
+                name = "Raspberry Pi Camera Module"
+        if name:
+            name = name.replace('_', ' ').strip()
+        cameras.append((interface, name))
+    # Legacy stack fallback using vcgencmd (if no CSI camera found above)
+    has_csi = any(iface == "CSI" for iface, _ in cameras)
+    vcgencmd = shutil.which("vcgencmd")
+    if not has_csi and vcgencmd:
+        try:
+            vcg_output = subprocess.run(
+                [vcgencmd, "get_camera"], capture_output=True, text=True, check=True
+            ).stdout.strip()
+            if "detected=1" in vcg_output:
+                cameras.append(("CSI", "Raspberry Pi Camera Module"))
+        except subprocess.CalledProcessError:
+            pass
+    return cameras
 
+def summarize_cameras(cameras):
+    count = len(cameras)
+    if count == 0:
+        return "Detected 0 cameras."
+    # Group cameras by interface type
+    grouped = {}
+    for iface, name in cameras:
+        grouped.setdefault(iface, []).append(name)
+    type_order = {"CSI": 0, "USB": 1}
+    parts = []
+    for iface in sorted(grouped.keys(), key=lambda x: type_order.get(x, 2)):
+        names = grouped[iface]
+        n = len(names)
+        if n == 1:
+            desc = names[0]
+        else:
+            unique_names = set(names)
+            if len(unique_names) == 1:
+                desc = f"{names[0]} (x{n})"
+            else:
+                desc = ", ".join(names)
+        label = f"{iface} camera" + ("" if n == 1 else "s")
+        parts.append(f"{n} {label} ({desc})")
+    summary = " and ".join(parts)
+    return f"Detected {count} camera{'s' if count != 1 else ''}: {summary}."
 
-if __name__ == '__main__':
-    print(show_info())
+if __name__ == "__main__":
+    cams = detect_cameras()
+    print(summarize_cameras(cams))
