@@ -585,7 +585,7 @@ class upgrade_pigrow_dialog(wx.Dialog):
         self.SetSizer(main_sizer)
 
     def read_changes(self):
-        pigrow_path = "/home/" + self.parent.parent.shared_data.gui_set_dict['username'] + "/Pigrow"
+        pigrow_path = self.parent.parent.shared_data.remote_pigrow_path
         info_path = pigrow_path + "/scripts/gui/info_modules/info_git_update.py"
         out, error = self.parent.parent.link_pnl.run_on_pi(info_path)
         print (out, error)
