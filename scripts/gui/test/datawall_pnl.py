@@ -202,7 +202,7 @@ class info_pnl(scrolled.ScrolledPanel):
         self.SetFont(self.shared_data.title_font)
         title_l = wx.StaticText(self, label='Datawall')
         self.SetFont(self.shared_data.sub_title_font)
-        sub_title_text = "This is in progress and doesn't do anything useful yet"
+        sub_title_text = "This is in progress and subject to change."
         page_sub_title = wx.StaticText(self, label=sub_title_text)
 
         # Main Sizer
