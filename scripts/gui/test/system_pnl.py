@@ -208,20 +208,19 @@ class ctrl_pnl(wx.Panel):
         update_dbox.Destroy()
 
     def run_cmd_on_pi_click(self, e):
-        msg = 'Input command to run on pi\n\n This will run the command and wait for it to finish before\ngiving results and resuming the gui'
-        generic = 'ls ~/Pigrow/'
-        run_cmd_dbox = wx.TextEntryDialog(self, msg, "Run command on pi", generic)
-        if run_cmd_dbox.ShowModal() == wx.ID_OK:
-            cmd_to_run = run_cmd_dbox.GetValue()
+        # Instead of a simple TextEntryDialog, open our custom command dialog.
+        dlg = CustomRunCmdDialog(self)
+        if dlg.ShowModal() == wx.ID_OK:
+            cmd_to_run = dlg.GetCommand()
         else:
+            dlg.Destroy()
             return "cancelled"
-        run_cmd_dbox.Destroy()
-        # run command on the pi
+        dlg.Destroy()
         print("Running command; " + str(cmd_to_run))
         out, error = self.parent.link_pnl.run_on_pi(cmd_to_run)
         print(out, error)
-        # tell user about it with a dialog boxes
-        dbox = self.parent.shared_data.scroll_text_dialog(None, str(out) + str(error), "Output of " + str(cmd_to_run), False)
+        dbox = self.parent.shared_data.scroll_text_dialog(
+            None, str(out) + str(error), "Output of " + str(cmd_to_run), False)
         dbox.ShowModal()
         dbox.Destroy()
 
@@ -1969,3 +1968,56 @@ class VenvDialog(wx.Dialog):
     # exit behaviour
     def on_cancel(self, event):
         self.Close()
+
+
+class CustomRunCmdDialog(wx.Dialog):
+    def __init__(self, parent):
+        super().__init__(parent, title="Run Command on Pi", size=(500, 150))
+        self.parent_panel = parent  # typically the link panel
+        self.InitUI()
+
+    def InitUI(self):
+        main_sizer = wx.BoxSizer(wx.HORIZONTAL)
+
+        # Text control for entering command:
+        self.command_text = wx.TextCtrl(self, style=wx.TE_PROCESS_ENTER)
+
+        # Button labelled "..." to open remote file selection.
+        self.browse_btn = wx.Button(self, label="...", size=(30, -1))
+        self.browse_btn.Bind(wx.EVT_BUTTON, self.OnBrowse)
+
+        # OK and Cancel buttons:
+        ok_btn = wx.Button(self, wx.ID_OK, label="OK")
+        cancel_btn = wx.Button(self, wx.ID_CANCEL, label="Cancel")
+        btn_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        btn_sizer.Add(ok_btn, 0, wx.ALL, 5)
+        btn_sizer.Add(cancel_btn, 0, wx.ALL, 5)
+
+        top_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        top_sizer.Add(self.command_text, 1, wx.ALL | wx.EXPAND, 5)
+        top_sizer.Add(self.browse_btn, 0, wx.ALL, 5)
+
+        vertical_sizer = wx.BoxSizer(wx.VERTICAL)
+        vertical_sizer.Add(top_sizer, 0, wx.EXPAND)
+        vertical_sizer.Add(btn_sizer, 0, wx.ALIGN_CENTER)
+
+        self.SetSizer(vertical_sizer)
+
+    def OnBrowse(self, event):
+        # This method opens your file-selection dialog.
+        # For example, you can call your existing select_files_on_pi dialog.
+        # Assume it returns (selected_files, selected_folders) where selected_files is a list.
+        selected_files, selected_folders = self.parent_panel.parent.link_pnl.select_files_on_pi()
+        if selected_files:
+            # Use the first selected file.
+            remote_path = selected_files[0][0]  # adjust indexing if needed
+            # Check file extension and prepend accordingly:
+            ext = os.path.splitext(remote_path)[1].lower()
+            if ext == ".txt":
+                cmd = "cat " + remote_path
+            else:
+                cmd = remote_path
+            self.command_text.SetValue(cmd)
+
+    def GetCommand(self):
+        return self.command_text.GetValue()
