@@ -2382,6 +2382,13 @@ class GraphPreset:
             dataset['key'] = key
         except Exception as e:
             wx.MessageBox(f"Failed to load log file: {e}", "Error", wx.OK | wx.ICON_ERROR)
+            dataset['data'] = []
+            dataset['trimmed_data'] = []
+            dataset['file_path'] = 'log not found'
+            dataset['split_char'] = ''
+            dataset['kv_split_char'] = ''
+            dataset['date_key'] = None
+            dataset['key'] = key
 
     def parse_date(self, text):
         """Parse a date from text."""
