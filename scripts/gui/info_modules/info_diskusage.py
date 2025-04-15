@@ -44,7 +44,7 @@ if __name__ == '__main__':
             print("   [percent_only=true]   Output only the numeric percentage")
             print("")
             print("Example:")
-            print("   ./diskusage_info.py percent_only=true")
+            print("   ./info_diskusage.py percent_only=true")
             sys.exit(0)
         elif arg_lower == "-flags":
             print("Available setting:")
