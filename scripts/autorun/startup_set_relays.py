@@ -52,29 +52,36 @@ def check_device(device, on_time, off_time):
     return 'error', False
 
 def read_cron():
-    cron_text = os.popen('crontab -l').read() # os.system("crontab -l")
-    cron_text = cron_text.split('\n')
+    cron_lines = os.popen('crontab -l').read().splitlines()
     timing_dict = {}
-    for cron_line in cron_text:
-        cron_line = cron_line.strip()
-        # ignore start up jobs
-        if len(cron_line) > 10:
-            if not "@reboot" in cron_line:
-                # ignore muted jobs
-                if not cron_line[0] == '#':
-                    # determine if it's a daily job
-                    split_cron = cron_line.split(' ')
-                    if split_cron[2] == "*" and split_cron[3] == "*" and split_cron[4] == "*":
-                        if split_cron[0].isdigit() and split_cron[1].isdigit():
-                            # find device settings
-                            if "_on.py" in cron_line:
-                                on_time = datetime.time(int(split_cron[1]),int(split_cron[0]))
-                                device = cron_line.split("_on.py")[0].split("/")[-1]
-                                timing_dict[device + "| on"] = on_time
-                            elif "_off.py" in cron_line:
-                                off_time = datetime.time(int(split_cron[1]),int(split_cron[0]))
-                                device = cron_line.split("_off.py")[0].split("/")[-1]
-                                timing_dict[device + "| off"] = off_time
+
+    for line in cron_lines:
+        line = line.strip()
+        # skip too‑short, blank, reboot or commented out
+        if len(line) <= 10 or not line or line.startswith('#') or '@reboot' in line:
+            continue
+
+        # split on any whitespace—no empty strings in the result
+        parts = line.split()
+        # we expect at least 6 parts: minute, hour, dom, mon, dow, command...
+        if len(parts) < 6:
+            continue
+
+        minute, hour, dom, month, dow = parts[:5]
+        cmd = ' '.join(parts[5:])
+
+        # only daily jobs (dom, month, dow all “*”) and numeric time
+        if dom == month == dow == '*' and minute.isdigit() and hour.isdigit():
+            t = datetime.time(int(hour), int(minute))
+
+            # pick on/off by filename suffix
+            if '_on.py' in cmd:
+                device = cmd.split('_on.py')[0].split('/')[-1]
+                timing_dict[f"{device}| on"] = t
+            elif '_off.py' in cmd:
+                device = cmd.split('_off.py')[0].split('/')[-1]
+                timing_dict[f"{device}| off"] = t
+
     return timing_dict
 
 
