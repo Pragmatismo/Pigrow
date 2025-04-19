@@ -94,7 +94,7 @@ def change_setting(loc_settings, setting, value):
 
 
 def write_log(script, message, switch_log):
-    line = script + "@" + str(datetime.datetime.now()) + "@" + message + '\n'
+    line = script + "@" + str(datetime.datetime.now()) + "@" + str(message) + '\n'
     with open(switch_log, "a") as f:
         f.write(line)
     print("Log writen:" + line)
