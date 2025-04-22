@@ -3,10 +3,9 @@ import time
 import datetime
 import os
 import sys
-import subprocess
+import argparse
 homedir = os.getenv("HOME")
-sys.path.append(homedir + '/Pigrow/scripts/')
-import pigrow_defs
+
 try:
     from watchdog.observers import Observer
     from watchdog.events import PatternMatchingEventHandler
@@ -15,13 +14,29 @@ except:
     err_msg = "Watchdog is not installed, trigger_log unable to run"
     pigrow_defs.write_log('trigger_log.py', err_msg, err_log)
     sys.exit()
+sys.path.append(homedir + '/Pigrow/scripts/')
+import pigrow_defs
 
 trigger_events_path     = homedir + "/Pigrow/config/trigger_events.txt"
 trigger_conditions_path = homedir + "/Pigrow/logs/trigger_conditions.txt"
+trig_log                = homedir + "/Pigrow/logs/trig_log.txt"
+
+parser = argparse.ArgumentParser(description="Watch Pigrow logs and fire triggers based on conditions.")
+parser.add_argument('-v', '--verbose', type=int, choices=[0,1,2], default=2,
+                    help='Set output verbosity level: 0=errors, 1=info, 2=debug')
+parser.add_argument('-l', '--log', action='store_true',
+                    help='Enable trigger logging to trig_log.txt')
+args = parser.parse_args()
+
+# Global settings
+print_level = args.verbose
+enable_logging = args.log
 
 def clear_conditions():
-    cmd = "rm " + homedir + "/Pigrow/logs/trigger_conditions.txt"
-    os.system(cmd)
+    try:
+        os.remove(trigger_conditions_path)
+    except FileNotFoundError:
+        pass
 
 class config_data:
     def __init__():
@@ -69,9 +84,10 @@ class config_data:
         print_limit(" - Checking logs;" + str(logs_to_check), 2)
 
 def print_limit(text, level=1):
-    print_level = 2
     if level <= print_level:
         print(text)
+    if enable_logging and level <= print_level:
+        pigrow_defs.write_log('trigger_watcher.py', text, trig_log)
 
 def check_condition(condition_name, trig_direction):
     '''
@@ -242,7 +258,13 @@ def trig_change(event):
 def observe_trig_file():
     print_limit(" - Enabling Trigger Events Config File Observation -", 2)
     path = homedir + "/Pigrow/config/"
-    trig_events_handler = PatternMatchingEventHandler(["*.txt"], None, True, False)
+    #trig_events_handler = PatternMatchingEventHandler(["*.txt"], None, True, False)
+    trig_events_handler = PatternMatchingEventHandler(
+            patterns = ["*.txt"],
+            ignore_patterns = None,
+            ignore_directories = True,
+            case_sensitive = False
+                              )
     trig_events_handler.on_created = trig_change
     trig_events_handler.on_modified = trig_change
     trig_e_handler.on_deleted = on_deleted
@@ -265,7 +287,13 @@ if __name__ == "__main__":
     # Set up and run log file watcher
     path = homedir + "/Pigrow/logs/"
     patterns = ["*.txt"]
-    trig_e_handler = PatternMatchingEventHandler(patterns, None, True, False)
+    #trig_e_handler = PatternMatchingEventHandler(patterns, None, True, False)
+    trig_e_handler = PatternMatchingEventHandler(
+            patterns = patterns,
+            ignore_patterns = None,
+            ignore_directories = True,
+            case_sensitive = False
+                              )
     trig_e_handler.on_created = on_created #,
     trig_e_handler.on_deleted = on_deleted
     trig_e_handler.on_modified = on_modified
