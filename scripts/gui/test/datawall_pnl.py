@@ -5,7 +5,7 @@ import wx.lib.scrolledpanel as scrolled
 import importlib
 import os
 import sys
-
+from uitools import MakeDynamicOptPnl
 
 class ctrl_pnl(scrolled.ScrolledPanel):
     def __init__(self, parent):
@@ -35,6 +35,7 @@ class ctrl_pnl(scrolled.ScrolledPanel):
         # Datawall Module
         module_opts = self.get_datawall_module_list()
         self.module_choice = wx.Choice(self, choices=module_opts)
+        self.module_choice.Bind(wx.EVT_CHOICE, self.on_module_choice)
         # refresh button
         refresh_bmp = wx.ArtProvider.GetBitmap(wx.ART_REDO, wx.ART_BUTTON, (16, 16))
         self.refresh_btn = wx.BitmapButton(self, id=wx.ID_ANY, bitmap=refresh_bmp)
@@ -47,17 +48,51 @@ class ctrl_pnl(scrolled.ScrolledPanel):
         # run button
         self.run_module_btn = wx.Button(self, label="Run Datawall Module")
         self.run_module_btn.Bind(wx.EVT_BUTTON, self.on_run_datawall_module)
+        # opts area
+        self.options_panel = MakeDynamicOptPnl(self)
+
         # sizer
         self.main_sizer.Add(wx.StaticText(self, label="Select Datawall Module:"),
                             0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 5)
         self.main_sizer.Add(mod_sizer, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 5)
         self.main_sizer.Add(self.run_module_btn, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 5)
+        self.main_sizer.Add(self.options_panel, 0, wx.EXPAND | wx.ALL, 5)
 
         # Set the sizer
         self.SetSizer(self.main_sizer)
 
         # Setup scrolling
         self.SetupScrolling(scroll_x=False, scroll_y=True)
+
+    def on_module_choice(self, event):
+        """When the user picks a datawall module, reload its options."""
+        sel = self.module_choice.GetStringSelection()
+        if not sel:
+            return
+
+        module_name = f"datawall_{sel}"
+        module_dir = os.path.abspath("./datawall_modules")
+        if module_dir not in sys.path:
+            sys.path.insert(0, module_dir)
+
+        try:
+            if module_name in sys.modules:
+                importlib.reload(sys.modules[module_name])
+                m = sys.modules[module_name]
+            else:
+                m = importlib.import_module(module_name)
+        except Exception as e:
+            wx.MessageBox(f"Failed to load {module_name}:\n{e}",
+                          "Error", wx.OK | wx.ICON_ERROR)
+            return
+
+        if hasattr(m, "read_datawall_options"):
+            opts = m.read_datawall_options()
+        else:
+            opts = {}
+
+        # rebuild the controls
+        self.options_panel.build(opts)
 
     def on_refresh(self, event):
         """Refresh both presets and modules lists."""
@@ -204,7 +239,8 @@ class ctrl_pnl(scrolled.ScrolledPanel):
             else:
                 module = importlib.import_module(module_name)
             # Call the module’s make_datawall() function, handing it the preset data.
-            output = module.make_datawall(self.datawall_data)
+            settings = self.options_panel.get_settings()
+            output = module.make_datawall(self.datawall_data, opts=settings)
             print(f"Datawall module output: {output}")
             #
             if os.path.isfile(output):
