@@ -37,7 +37,7 @@ class ctrl_pnl(wx.Panel):
         self.run_cmd_on_pi_btn = wx.Button(self, label='Run Command On Pi')
         self.run_cmd_on_pi_btn.Bind(wx.EVT_BUTTON, self.run_cmd_on_pi_click)
         #edit boot conf file
-        self.edit_boot_config_btn = wx.Button(self, label='Edit /boot/config.txt')
+        self.edit_boot_config_btn = wx.Button(self, label='Edit rpi\nboot config')
         self.edit_boot_config_btn.Bind(wx.EVT_BUTTON, self.edit_boot_config_click)
         # pi gpio overlay control
         self.i2c_baudrate_btn = wx.Button(self, label='i2c baudrate')
@@ -121,20 +121,21 @@ class ctrl_pnl(wx.Panel):
         edit_1wire_dbox.ShowModal()
 
     def update_boot_config(self, config_text):
-        question_text = "Are you sure you want to change the pi's /boot/config.txt file?"
-        dbox = wx.MessageDialog(self, question_text, "update pigrow /boot/config.txt?", wx.OK | wx.CANCEL | wx.ICON_QUESTION)
+        config_txt_path = self.parent.shared_data.config_txt_path
+        question_text = f"Are you sure you want to change the pi's {config_txt_path} file?"
+        dbox = wx.MessageDialog(self, question_text, f"update pigrow {config_txt_path}", wx.OK | wx.CANCEL | wx.ICON_QUESTION)
         answer = dbox.ShowModal()
         dbox.Destroy()
         if (answer == wx.ID_OK):
-            config_path = '/boot/config.txt'
-            self.parent.link_pnl.update_config_file_on_pi(config_text, config_path)
-            print(" Written config to " + config_path)
+            self.parent.link_pnl.update_config_file_on_pi(config_text, config_txt_path)
+            print(" Written config to " + config_txt_path)
 
     # I2C
     def set_i2c_baudrate(self, e):
+        config_txt_path = self.parent.shared_data.config_txt_path
         new_i2c_baudrate = "30000"
         # ask the user what baudrate they want to set
-        baud_dbox = wx.TextEntryDialog(self, 'Set i2c baudrate in /boot/config.txt to', 'Change i2c baudrate', new_i2c_baudrate)
+        baud_dbox = wx.TextEntryDialog(self, f'Set i2c baudrate in {config_txt_path} to', 'Change i2c baudrate', new_i2c_baudrate)
         if baud_dbox.ShowModal() == wx.ID_OK:
             new_i2c_baudrate = baud_dbox.GetValue()
         else:
@@ -142,7 +143,7 @@ class ctrl_pnl(wx.Panel):
         baud_dbox.Destroy()
         #
         print("changing the i2c baudrate")
-        out, error = self.parent.link_pnl.run_on_pi("cat /boot/config.txt")
+        out, error = self.parent.link_pnl.run_on_pi(f"cat {config_txt_path}")
         raspberry_config = out.splitlines()
         # put it together again chaning settings line
         config_text = ""
@@ -150,11 +151,11 @@ class ctrl_pnl(wx.Panel):
         for line in raspberry_config:
             if "dtparam=i2c_baudrate=" in line:
                 line = "dtparam=i2c_baudrate=" + new_i2c_baudrate
-                print ("i2c set baudrate changing /boot/config.txt line to " + line)
+                print (f"i2c set baudrate changing {config_txt_path} line to " + line)
                 changed = True
             config_text = config_text + line + "\n"
         if changed == False:
-            print("/boot/config.txt did not have 'dtparam=12c_baudrate=' so adding it")
+            print(f"{config_txt_path} did not have 'dtparam=12c_baudrate=' so adding it")
             config_text = config_text + "dtparam=i2c_baudrate=" + new_i2c_baudrate + "\n"
         self.update_boot_config(config_text)
 
@@ -313,11 +314,12 @@ class edit_boot_config_dialog(wx.Dialog):
     def __init__(self, parent, *args, **kw):
         super(edit_boot_config_dialog, self).__init__(*args, **kw)
         self.parent = parent
+        self.config_txt_path = parent.parent.shared_data.config_txt_path
         self.InitUI(parent)
         self.SetSize((600, 600))
-        self.SetTitle("Edit /boot/config.txt")
+        self.SetTitle(f"Edit {self.config_txt_path}")
     def InitUI(self, parent):
-        self.boot_config_original, error = parent.parent.link_pnl.run_on_pi("cat /boot/config.txt")
+        self.boot_config_original, error = parent.parent.link_pnl.run_on_pi(f"cat {self.config_txt_path}")
         header_text = "This file is an integral part of the the Raspbery Pi's system\n"
         header_text += " settings loaded here take effect right at the start of the boot procedure\n"
         header_text += " so even minor errors can cause serious problems."
@@ -395,7 +397,8 @@ class one_wire_change_pin_dbox(wx.Dialog):
         self.SetFont(shared_data.title_font)
         title = wx.StaticText(self,  label='Change 1wire Pin')
         self.SetFont(shared_data.sub_title_font)
-        sub_text = wx.StaticText(self,  label="Editing the /boot/config.txt file's dtoverlay=w1-gpio,gpiopin= lines")
+        config_txt_path = parent.parent.shared_data.config_txt_path
+        sub_text = wx.StaticText(self,  label=f"Editing the {config_txt_path} file's dtoverlay=w1-gpio,gpiopin= lines")
         # add drop down box with list of 1wire overlay gpio pins
         tochange_gpiopin_l = wx.StaticText(self, label='current 1wire gpio pin -')
 
@@ -408,7 +411,7 @@ class one_wire_change_pin_dbox(wx.Dialog):
         self.SetFont(shared_data.button_font)
         self.new_gpiopin_tc = wx.TextCtrl(self, size=(110, 25)) # new number
         self.new_gpiopin_tc.Bind(wx.EVT_TEXT, self.make_config_line)
-        line_l = wx.StaticText(self, label="/boot/config/txt line")
+        line_l = wx.StaticText(self, label=f"{config_txt_path} line")
         self.line_t = wx.StaticText(self, label="")
         # add remove buttons
         self.add_btn = wx.Button(self, label='Add', size=(175, 30))
@@ -491,7 +494,8 @@ class one_wire_change_pin_dbox(wx.Dialog):
 
     def modify_config_line(self, old, new):
         #
-        out, error = self.parent.parent.link_pnl.run_on_pi("cat /boot/config.txt")
+        config_txt_path = self.parent.shared_data.config_txt_path
+        out, error = self.parent.parent.link_pnl.run_on_pi(f"cat {config_txt_path}")
         config_lines = out.splitlines()
         new_config_text = ""
         for line in config_lines:

@@ -39,6 +39,7 @@ class shared_data:
         self.frompi_path = self.frompi_base_path
         self.remote_pigrow_path = ""
         self.config_dict = {} # pigrow_config.txt
+        self.config_txt_path = "unset"
         #
         self.always_show_config_changes = False  # if true always show the 'upload to pigrow?' dialog box
         #

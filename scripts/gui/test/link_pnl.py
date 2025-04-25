@@ -239,10 +239,29 @@ class link_pnl(wx.Panel):
         if not box_name == "" and not box_name == None:
             shared_data.frompi_path = os.path.join(shared_data.frompi_base_path, box_name)
             shared_data.remote_pigrow_path = "/home/" + self.tb_user.GetValue() + "/Pigrow/"
+            shared_data.config_txt_path = self.determine_boot_config_path()
             self.parent.tell_pnls_connected()
         else:
             shared_data.frompi_path = ""
             shared_data.remote_pigrow_path = ""
+
+    def determine_boot_config_path(self):
+        """
+        On newer Raspberry Pi OS the config lives in /boot/firmware/config.txt;
+        on older releases it’s still at /boot/config.txt.  We ssh out to the Pi
+        and test for the presence of each file in turn, returning the first one
+        we find.
+        """
+        # 1) check new path
+        out, error = self.run_on_pi(
+            "if [ -f /boot/firmware/config.txt ]; then echo exists; fi"
+        )
+        if out.strip() == "exists":
+            return "/boot/firmware/config.txt"
+
+        # 2) fallback to old path (even if it’s just the “DO NOT EDIT” stub,
+        #    at least it’ll always exist)
+        return "/boot/config.txt"
 
     def update_ip_store(self, ip):
         if self.parent.shared_data.gui_set_dict['save_ip'] == "False":
@@ -493,7 +512,6 @@ class link_pnl(wx.Panel):
 
         def GetId(self):
             return self.id
-
 
 
 class select_files_on_pi_dialog(wx.Dialog):
