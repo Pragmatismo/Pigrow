@@ -1,14 +1,10 @@
 import wx
-import wx.grid as gridlib
+#import wx.grid as gridlib
 import wx.adv
 import wx.lib.scrolledpanel as scrolled
 import importlib
 import os
-import json
-import datetime
-import time
 import sys
-
 
 
 class ctrl_pnl(scrolled.ScrolledPanel):
@@ -19,7 +15,8 @@ class ctrl_pnl(scrolled.ScrolledPanel):
         self.datawall_data = {}
 
         # Initialize ScrolledPanel instead of Panel
-        scrolled.ScrolledPanel.__init__(self, parent, id=wx.ID_ANY, style=wx.TAB_TRAVERSAL)
+        #scrolled.ScrolledPanel.__init__(self, parent, id=wx.ID_ANY, style=wx.TAB_TRAVERSAL)
+        super().__init__(parent, id=wx.ID_ANY, style=wx.TAB_TRAVERSAL)
 
         # Main Sizer
         self.main_sizer = wx.BoxSizer(wx.VERTICAL)
@@ -38,11 +35,22 @@ class ctrl_pnl(scrolled.ScrolledPanel):
         # Datawall Module
         module_opts = self.get_datawall_module_list()
         self.module_choice = wx.Choice(self, choices=module_opts)
+        # refresh button
+        refresh_bmp = wx.ArtProvider.GetBitmap(wx.ART_REDO, wx.ART_BUTTON, (16, 16))
+        self.refresh_btn = wx.BitmapButton(self, id=wx.ID_ANY, bitmap=refresh_bmp)
+        self.refresh_btn.SetToolTip("Refresh presets and modules")
+        self.refresh_btn.Bind(wx.EVT_BUTTON, self.on_refresh)
+        # mod sizer
+        mod_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        mod_sizer.Add(self.module_choice, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 5)
+        mod_sizer.Add(self.refresh_btn, 0, wx.ALIGN_CENTER_VERTICAL)
+        # run button
         self.run_module_btn = wx.Button(self, label="Run Datawall Module")
         self.run_module_btn.Bind(wx.EVT_BUTTON, self.on_run_datawall_module)
+        # sizer
         self.main_sizer.Add(wx.StaticText(self, label="Select Datawall Module:"),
                             0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 5)
-        self.main_sizer.Add(self.module_choice, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 5)
+        self.main_sizer.Add(mod_sizer, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 5)
         self.main_sizer.Add(self.run_module_btn, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 5)
 
         # Set the sizer
@@ -50,6 +58,25 @@ class ctrl_pnl(scrolled.ScrolledPanel):
 
         # Setup scrolling
         self.SetupScrolling(scroll_x=False, scroll_y=True)
+
+    def on_refresh(self, event):
+        """Refresh both presets and modules lists."""
+        # re-fetch options
+        preset_opts = self.get_datawall_presets()
+        module_opts = self.get_datawall_module_list()
+
+        # update preset_choice
+        self.preset_choice.Clear()
+        if preset_opts:
+            self.preset_choice.Append(preset_opts)
+        else:
+            # leave empty if none found
+            pass
+
+        # update module_choice
+        self.module_choice.Clear()
+        if module_opts:
+            self.module_choice.Append(module_opts)
 
     def get_datawall_presets(self):
         print("NOTE: preset does not yet check for log availability")
