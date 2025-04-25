@@ -16,7 +16,7 @@ class ctrl_pnl(wx.Panel):
         self.pigrow_side_label = wx.StaticText(self,  label='Pigrow Software')
         self.system_side_label = wx.StaticText(self,  label='System')
         self.boot_label = wx.StaticText(self,  label='Boot config')
-        self.picam_label = wx.StaticText(self,  label='Picam')
+        self.picam_label = wx.StaticText(self,  label='Picam (legacy)')
 
         #buttons
         # info panel refresh info boxes
