@@ -93,6 +93,7 @@ class ctrl_pnl(scrolled.ScrolledPanel):
 
         # rebuild the controls
         self.options_panel.build(opts)
+        self.Layout()
 
     def on_refresh(self, event):
         """Refresh both presets and modules lists."""
