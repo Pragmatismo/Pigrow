@@ -3,6 +3,7 @@ import wx.lib.scrolledpanel as scrolled
 import os
 import time
 import threading
+from uitools import ScriptConfigTool
 
 class ctrl_pnl(wx.Panel):
     def __init__( self, parent ):
@@ -1976,52 +1977,71 @@ class VenvDialog(wx.Dialog):
 
 class CustomRunCmdDialog(wx.Dialog):
     def __init__(self, parent):
-        super().__init__(parent, title="Run Command on Pi", size=(500, 150))
+        super().__init__(parent, title="Run Command on Pi", size=(700, 300))
         self.parent_panel = parent  # typically the link panel
+        self._orig_cmd = ""        # to remember last-read command
         self.InitUI()
 
     def InitUI(self):
-        main_sizer = wx.BoxSizer(wx.HORIZONTAL)
-
-        # Text control for entering command:
+        # Horizontal: [command_text] [Browse] [Read]
+        top_sizer = wx.BoxSizer(wx.HORIZONTAL)
         self.command_text = wx.TextCtrl(self, style=wx.TE_PROCESS_ENTER)
+        self.command_text.Bind(wx.EVT_TEXT, self.OnCommandTextChanged)
 
-        # Button labelled "..." to open remote file selection.
-        self.browse_btn = wx.Button(self, label="...", size=(30, -1))
+        self.browse_btn = wx.Button(self, label="…", size=(30, -1))
         self.browse_btn.Bind(wx.EVT_BUTTON, self.OnBrowse)
 
-        # OK and Cancel buttons:
-        ok_btn = wx.Button(self, wx.ID_OK, label="OK")
-        cancel_btn = wx.Button(self, wx.ID_CANCEL, label="Cancel")
-        btn_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        btn_sizer.Add(ok_btn, 0, wx.ALL, 5)
-        btn_sizer.Add(cancel_btn, 0, wx.ALL, 5)
+        self.read_btn = wx.Button(self, label="Read")
+        self.read_btn.Bind(wx.EVT_BUTTON, self.OnRead)
 
-        top_sizer = wx.BoxSizer(wx.HORIZONTAL)
         top_sizer.Add(self.command_text, 1, wx.ALL | wx.EXPAND, 5)
         top_sizer.Add(self.browse_btn, 0, wx.ALL, 5)
 
-        vertical_sizer = wx.BoxSizer(wx.VERTICAL)
-        vertical_sizer.Add(top_sizer, 0, wx.EXPAND)
-        vertical_sizer.Add(btn_sizer, 0, wx.ALIGN_CENTER)
+        # Script config placeholder panel
+        self.script_config = ScriptConfigTool(self)
 
-        self.SetSizer(vertical_sizer)
+        # OK / Cancel
+        btn_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        ok_btn = wx.Button(self, wx.ID_OK, label="Run")
+        cancel_btn = wx.Button(self, wx.ID_CANCEL, label="Cancel")
+        btn_sizer.Add(ok_btn, 0, wx.ALL, 5)
+        btn_sizer.Add(cancel_btn, 0, wx.ALL, 5)
+
+        # Layout
+        main_v = wx.BoxSizer(wx.VERTICAL)
+        main_v.Add(top_sizer, 0, wx.EXPAND | wx.ALL, 5)
+        main_v.Add(self.read_btn, 0, wx.ALL, 5)
+        main_v.Add(self.script_config, 0, wx.EXPAND | wx.ALL, 5)
+        main_v.Add(btn_sizer,    0, wx.ALIGN_CENTER | wx.ALL, 5)
+
+        self.SetSizer(main_v)
 
     def OnBrowse(self, event):
-        # This method opens your file-selection dialog.
-        # For example, you can call your existing select_files_on_pi dialog.
-        # Assume it returns (selected_files, selected_folders) where selected_files is a list.
         selected_files, selected_folders = self.parent_panel.parent.link_pnl.select_files_on_pi()
         if selected_files:
-            # Use the first selected file.
-            remote_path = selected_files[0][0]  # adjust indexing if needed
-            # Check file extension and prepend accordingly:
+            remote_path = selected_files[0][0]
             ext = os.path.splitext(remote_path)[1].lower()
-            if ext == ".txt":
-                cmd = "cat " + remote_path
-            else:
-                cmd = remote_path
+            cmd = "cat " + remote_path if ext == ".txt" else remote_path
             self.command_text.SetValue(cmd)
+
+    def OnRead(self, event):
+        cmd = self.command_text.GetValue().strip()
+        if not cmd:
+            wx.MessageBox("Enter or browse a command first.", "Error", wx.OK|wx.ICON_ERROR)
+            return
+        # remember and update the config panel
+        self._orig_cmd = cmd
+        self.script_config.update_command(cmd)
+
+    def OnCommandTextChanged(self, event):
+        current = self.command_text.GetValue()
+        # disable the config panel if the text no longer matches the last-read cmd
+        if not self.script_config.is_unchanged(current):
+            self.script_config.Enable(False)
+        else:
+            # re-enable only if it exactly matches
+            self.script_config.Enable(True)
+        event.Skip()
 
     def GetCommand(self):
         return self.command_text.GetValue()

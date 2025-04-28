@@ -78,3 +78,37 @@ class MakeDynamicOptPnl(wx.Panel):
                 # Unknown control type
                 settings[key] = None
         return settings
+
+
+class ScriptConfigTool(wx.Panel):
+    """
+    A placeholder panel for dynamically configuring script arguments.
+
+    Later this will be replaced with actual controls based on script parsing.
+    """
+    def __init__(self, parent):
+        super().__init__(parent)
+        self._original_cmd = ''
+        self.main_sizer = wx.BoxSizer(wx.VERTICAL)
+        self.placeholder = wx.StaticText(self, label='args config tool coming soon')
+        self.main_sizer.Add(self.placeholder, 0, wx.ALL, 5)
+        self.SetSizer(self.main_sizer)
+        self.Enable(False)
+
+    def update_command(self, cmd):
+        """Populate the panel with the original and current command text and enable it."""
+        self._original_cmd = cmd
+        self.placeholder.SetLabel(f"Original: {cmd}")
+        self.Layout()
+        self.Enable(True)
+
+    def reset(self):
+        """Clear the stored command and disable the panel."""
+        self._original_cmd = ''
+        self.placeholder.SetLabel('args config tool coming soon')
+        self.Layout()
+        self.Enable(False)
+
+    def is_unchanged(self, current_cmd):
+        """Return True if current_cmd matches the last read command."""
+        return current_cmd == self._original_cmd
