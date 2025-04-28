@@ -9,60 +9,49 @@ from uitools import MakeDynamicOptPnl
 
 class ctrl_pnl(scrolled.ScrolledPanel):
     def __init__(self, parent):
+        super().__init__(parent, id=wx.ID_ANY, style=wx.TAB_TRAVERSAL)
         self.parent = parent
         self.shared_data = parent.shared_data
         self.loaded_datasets = []
         self.datawall_data = {}
 
-        # Initialize ScrolledPanel instead of Panel
-        #scrolled.ScrolledPanel.__init__(self, parent, id=wx.ID_ANY, style=wx.TAB_TRAVERSAL)
-        super().__init__(parent, id=wx.ID_ANY, style=wx.TAB_TRAVERSAL)
-
         # Main Sizer
         self.main_sizer = wx.BoxSizer(wx.VERTICAL)
-
         label = wx.StaticText(self, label="Datawall")
         self.main_sizer.Add(label, 0, wx.ALIGN_LEFT | wx.ALL, 5)
 
-        # Preset
-        opts = self.get_datawall_presets()
-        self.preset_choice = wx.Choice(self, choices=opts)
-        self.load_preset_btn = wx.Button(self, label="Load Datawall Preset")
-        self.load_preset_btn.Bind(wx.EVT_BUTTON, self.on_load_preset)
-        self.main_sizer.Add(self.preset_choice, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 5)
-        self.main_sizer.Add(self.load_preset_btn, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 5)
-
-        # Datawall Module
-        module_opts = self.get_datawall_module_list()
-        self.module_choice = wx.Choice(self, choices=module_opts)
+        # module selector
+        self.module_choice = wx.Choice(self, choices=self.get_datawall_module_list())
         self.module_choice.Bind(wx.EVT_CHOICE, self.on_module_choice)
-        # refresh button
-        refresh_bmp = wx.ArtProvider.GetBitmap(wx.ART_REDO, wx.ART_BUTTON, (16, 16))
-        self.refresh_btn = wx.BitmapButton(self, id=wx.ID_ANY, bitmap=refresh_bmp)
-        self.refresh_btn.SetToolTip("Refresh presets and modules")
-        self.refresh_btn.Bind(wx.EVT_BUTTON, self.on_refresh)
-        # mod sizer
-        mod_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        mod_sizer.Add(self.module_choice, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 5)
-        mod_sizer.Add(self.refresh_btn, 0, wx.ALIGN_CENTER_VERTICAL)
-        # run button
-        self.run_module_btn = wx.Button(self, label="Run Datawall Module")
-        self.run_module_btn.Bind(wx.EVT_BUTTON, self.on_run_datawall_module)
-        # opts area
-        self.options_panel = MakeDynamicOptPnl(self)
+        h = wx.BoxSizer(wx.HORIZONTAL)
+        h.Add(wx.StaticText(self, label="Module:"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 5)
+        h.Add(self.module_choice, 1, wx.EXPAND)
+        self.main_sizer.Add(h, 0, wx.EXPAND | wx.ALL, 5)
 
-        # sizer
-        self.main_sizer.Add(wx.StaticText(self, label="Select Datawall Module:"),
-                            0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 5)
-        self.main_sizer.Add(mod_sizer, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 5)
-        self.main_sizer.Add(self.run_module_btn, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 5)
+        # preset panel (owns its own dropdown + save + dynamic controls)
+        self.preset_options_panel = PresetOptionsPanel(self)
+        self.main_sizer.Add(self.preset_options_panel, 0, wx.EXPAND | wx.ALL, 5)
+
+        # Import / Create buttons
+        self.import_btn = wx.Button(self, label="Import Data")
+        self.import_btn.Bind(wx.EVT_BUTTON, self.on_import_data)
+
+        self.create_btn = wx.Button(self, label="Create Datawall")
+        self.create_btn.Disable()
+        self.create_btn.Bind(wx.EVT_BUTTON, self.on_run_datawall_module)
+
+        btn_s = wx.BoxSizer(wx.HORIZONTAL)
+        btn_s.Add(self.import_btn, 0, wx.RIGHT, 10)
+        btn_s.Add(self.create_btn, 0)
+        self.main_sizer.Add(btn_s, 0, wx.ALIGN_CENTER | wx.ALL, 5)
+
+        # options area (unchanged)
+        self.options_panel = MakeDynamicOptPnl(self)
         self.main_sizer.Add(self.options_panel, 0, wx.EXPAND | wx.ALL, 5)
 
-        # Set the sizer
         self.SetSizer(self.main_sizer)
-
-        # Setup scrolling
         self.SetupScrolling(scroll_x=False, scroll_y=True)
+
 
     def on_module_choice(self, event):
         """When the user picks a datawall module, reload its options."""
@@ -87,13 +76,46 @@ class ctrl_pnl(scrolled.ScrolledPanel):
             return
 
         if hasattr(m, "read_datawall_options"):
-            opts = m.read_datawall_options()
+            opts, preset_req = m.read_datawall_options()
+            self.preset_options_panel.update_preset_panel(preset_req)
         else:
-            opts = {}
+            opts, preset_req = {}, {}
+            self.preset_options_panel.update_preset_panel(preset_req)
+            self.options_panel.build(opts)
+            self.create_btn.Disable()
+            self.Layout()
 
         # rebuild the controls
+        print("preest_req =", preset_req)
         self.options_panel.build(opts)
         self.Layout()
+
+    def on_import_data(self, event):
+        text = self.preset_options_panel.get_text()
+        print("!",text,"!")
+
+        data = {"info": {}, "images": {}, "data": {}, "graphs": {}}
+        for line in text:
+            if "=" not in line:
+                continue
+            key, val = (s.strip() for s in line.split("=", 1))
+            if key == "info_read":
+                info = self.read_info_module(val)
+                data["info"][val] = info
+            elif key.startswith("picture_path"):
+                data["images"][key[13:]] = self.get_image(val)
+            elif key.startswith("graph_preset"):
+                gp = self.parent.dict_C_pnl['graphs_pnl'].create_graph_by_preset(val)
+                data["graphs"][key[13:]] = gp or None
+            elif key.startswith("log_preset"):
+                ds = self.parent.dict_C_pnl['graphs_pnl'].graph_preset.load_dataset_preset(
+                    self.parent.dict_C_pnl['graphs_pnl'], val)
+                data["data"][key[11:]] = ds or None
+        self.datawall_data = data
+
+        # now enable Create
+        self.create_btn.Enable()
+
 
     def on_refresh(self, event):
         """Refresh both presets and modules lists."""
@@ -128,51 +150,6 @@ class ctrl_pnl(scrolled.ScrolledPanel):
                 name = filename[9:-4]
                 options.append(name)
         return options
-
-    def on_load_preset(self, e):
-        choice = self.preset_choice.GetStringSelection()
-        filename = 'datawall_' + choice + ".txt"
-        preset_path = os.path.join('./datawall_presets', filename)
-
-        data_for_datawall = {
-            "info": {},
-            "images": {},
-            "data": {},
-            "graphs": {}
-        }
-
-        try:
-            with open(preset_path, 'r', encoding='utf-8') as f:
-                datawall_preset_file = f.read()
-        except FileNotFoundError:
-            print(f"Error: {filename} not found in datawall_presets folder.")
-            return
-        except Exception as ex:
-            print(f"Error reading {filename}: {ex}")
-            return
-
-        for line in datawall_preset_file.splitlines():
-            if "=" in line:
-                key, value = line.split("=", 1)
-                key = key.strip()
-                value = value.strip()
-                if key == 'info_read':
-                    info = self.read_info_module(value)
-                    data_for_datawall["info"][value] = info
-                elif key == 'picture_path':
-                    data_for_datawall["images"][value] = self.get_image(value)
-                elif key == "graph_preset":
-                    graph_path = self.parent.dict_C_pnl['graphs_pnl'].create_graph_by_preset(value)
-                    if graph_path:
-                        data_for_datawall["graphs"][graph_path] = graph_path
-                elif key == 'log_preset':
-                    # Instead of creating a graph, load the datasets used to create it.
-                    dataset = self.parent.dict_C_pnl['graphs_pnl'].graph_preset.load_dataset_preset(
-                        self.parent.dict_C_pnl['graphs_pnl'], value)
-                    if dataset:
-                        data_for_datawall["data"][value] = dataset
-
-        self.datawall_data = data_for_datawall
 
     def read_info_module(self, module, prefix="info_"):
         args = ""
@@ -309,4 +286,231 @@ class info_pnl(scrolled.ScrolledPanel):
         # Re-layout the panel to account for the new image size.
         self.main_sizer.Layout()
 
+class PresetOptionsPanel(wx.Panel):
+    def __init__(self, parent):
+        super().__init__(parent, size=(300, -1))
+        self.parent = parent
+        self.SetBackgroundColour(wx.Colour(230, 230, 230))
 
+        # — Preset selector —
+        self.preset_choice = wx.Choice(self)
+        lbl = wx.StaticText(self, label="Select Preset:")
+        ps = wx.BoxSizer(wx.HORIZONTAL)
+        ps.Add(lbl, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 5)
+        ps.Add(self.preset_choice, 1, wx.EXPAND)
+        self.save_btn = wx.Button(self, label="Save")
+        self.save_btn.Bind(wx.EVT_BUTTON, self.on_save)
+        ps.Add(self.save_btn, 0, wx.ALIGN_CENTER | wx.ALL, 5)
+
+        # bind selection
+        self.preset_choice.Bind(wx.EVT_CHOICE, self.on_preset_select)
+
+        # dynamic controls
+        self.graph_controls   = {}
+        self.log_controls     = {}
+        self.picture_controls = {}
+        self.info_modules     = []
+
+        self.content_sizer = wx.BoxSizer(wx.VERTICAL)
+
+        # main sizer
+        self.main_sizer = wx.BoxSizer(wx.VERTICAL)
+        self.main_sizer.Add(ps,               0, wx.EXPAND | wx.ALL, 5)
+        self.main_sizer.Add(self.content_sizer, 0, wx.EXPAND | wx.ALL, 5)
+
+        self.SetSizer(self.main_sizer)
+
+    def _preset_filepath(self, name):
+        return os.path.join("./datawall_presets", f"datawall_{name}.txt")
+
+    def on_preset_select(self, event):
+        preset = self.preset_choice.GetStringSelection()
+        if not preset:
+            return
+        path = self._preset_filepath(preset)
+        try:
+            lines = open(path, encoding="utf-8").read().splitlines()
+        except Exception:
+            wx.MessageBox(f"Could not load preset file:\n{path}",
+                          "Error", wx.OK | wx.ICON_ERROR)
+            return
+
+        # parse into dict: { ("graph", name): value, ... }
+        settings = {}
+        for line in lines:
+            if "=" not in line:
+                continue
+            left, val = line.split("=", 1)
+            val = val.strip()
+            if left.startswith("graph_preset:"):
+                _, name = left.split(":", 1)
+                settings[("graph", name)] = val
+            elif left.startswith("log_preset:"):
+                _, name = left.split(":", 1)
+                settings[("log", name)] = val
+            elif left.startswith("picture_path:"):
+                _, name = left.split(":", 1)
+                settings[("picture", name)] = val
+
+        # apply to each section
+        for name, ctrl in self.graph_controls.items():
+            self.apply_setting(ctrl, settings.get(("graph", name)))
+
+        for name, ctrl in self.log_controls.items():
+            self.apply_setting(ctrl, settings.get(("log", name)))
+
+        for name, ctrl in self.picture_controls.items():
+            self.apply_setting(ctrl, settings.get(("picture", name)))
+
+        self.content_sizer.Fit(self)
+        self.Layout()
+        if hasattr(self.parent, "SetupScrolling"):
+            self.parent.SetupScrolling(scroll_x=False, scroll_y=True)
+        self.parent.Layout()
+
+    def apply_setting(self, ctrl: wx.ComboBox, value: str):
+        """Set ctrl to value; color red if invalid, black if valid."""
+        if value is None:
+            return
+        choices = list(ctrl.GetItems())
+        ctrl.SetValue(value)
+        print(value, choices)
+        if value in choices:
+            ctrl.SetForegroundColour(wx.Colour(0, 0, 0))
+        else:
+            ctrl.SetForegroundColour(wx.Colour(255, 0, 0))
+        ctrl.Refresh()
+
+    def set_col(self, event):
+        ctrl = event.GetEventObject()
+        val = ctrl.GetValue()
+        # GetItems() returns the list of valid choices
+        if val in ctrl.GetItems():
+            ctrl.SetForegroundColour(wx.Colour(0, 0, 0))  # valid → black
+        else:
+            ctrl.SetForegroundColour(wx.Colour(255, 0, 0))  # invalid → red
+        ctrl.Refresh()
+        event.Skip()
+
+    def _get_presets_for_module(self, module_name):
+        """Scan ./datawall_presets for files that contain module=<module_name>."""
+        presets = []
+        d = "./datawall_presets"
+        if not os.path.isdir(d):
+            return presets
+        for fn in os.listdir(d):
+            if not (fn.startswith("datawall_") and fn.endswith(".txt")):
+                continue
+            name = fn[len("datawall_"):-4]
+            path = os.path.join(d, fn)
+            with open(path, encoding="utf-8") as f:
+                for line in f:
+                    if line.strip() == f"module={module_name}":
+                        presets.append(name)
+                        break
+        return sorted(presets)
+
+    def update_preset_panel(self, preset_req):
+        """Rebuild everything under the dropdown (graphs/logs/pics),
+           AND refresh the preset_choice list to only those matching."""
+        # 1) Refresh the preset dropdown
+        module = self.parent.module_choice.GetStringSelection()
+        print("update for", module)
+        self.preset_choice.Clear()
+        self.preset_choice.Append(self._get_presets_for_module(module))
+
+        # 2) clear old dynamic controls
+        for d in (self.graph_controls, self.log_controls, self.picture_controls):
+            d.clear()
+        self.content_sizer.Clear(True)
+
+        # 3) load info_read
+        self.info_modules = preset_req.get("info_read", [])
+
+        # 4) graph presets list
+        graph_dir = "./graph_presets"
+        graph_presets = []
+        if os.path.isdir(graph_dir):
+            graph_presets = sorted(p[:-5]  # strip “.json”
+                                   for p in os.listdir(graph_dir)
+                                   if p.endswith(".json"))
+
+        # 5) build sections
+        for title, key, ctrl_dict in [
+            ("Graphs",   "graphs",   self.graph_controls),
+            ("Logs",     "logs",     self.log_controls),
+            ("Pictures", "pictures", self.picture_controls)
+        ]:
+            items = preset_req.get(key, [])
+            if not items:
+                continue
+
+            self.content_sizer.Add(wx.StaticText(self, label=title),
+                                   0, wx.TOP|wx.CENTER, 5)
+
+            for name, default in items:
+                row = wx.BoxSizer(wx.HORIZONTAL)
+                row.Add(wx.StaticText(self, label=name),
+                        0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, 5)
+
+                choices = graph_presets if key != "pictures" else ["recent"]
+                ctrl = wx.ComboBox(self, choices=choices)
+                ctrl.SetValue(default)
+                ctrl.Bind(wx.EVT_COMBOBOX, self.set_col)
+                ctrl.Bind(wx.EVT_TEXT, self.set_col)
+                ctrl_dict[name] = ctrl
+
+                row.Add(ctrl, 1, wx.EXPAND)
+                self.content_sizer.Add(row, 0, wx.EXPAND|wx.ALL, 5)
+
+        # 6) resize to fit content
+        self.content_sizer.Fit(self)
+        self.Layout()
+
+        # 7) let parent re‐layout (it’s a ScrolledPanel)
+        if hasattr(self.parent, "SetupScrolling"):
+            self.parent.SetupScrolling(scroll_x=False, scroll_y=True)
+        self.parent.Layout()
+
+    def on_save(self, event):
+        name = wx.GetTextFromUser("Enter preset name:", "Save Datawall Preset")
+        if not name:
+            return
+
+        lines = self.get_text()
+
+        os.makedirs("./datawall_presets", exist_ok=True)
+        fn = os.path.join("./datawall_presets", f"datawall_{name}.txt")
+        try:
+            with open(fn, "w", encoding="utf-8") as f:
+                f.write("\n".join(lines))
+            wx.MessageBox(f"Preset saved to {fn}", "Success",
+                          wx.OK|wx.ICON_INFORMATION)
+
+            # refresh the list for future updates
+            module = self.parent.module_choice.GetStringSelection()
+            new_list = self._get_presets_for_module(module)
+            self.preset_choice.Clear()
+            self.preset_choice.Append(new_list)
+            if name in new_list:
+                self.preset_choice.SetStringSelection(name)
+
+        except Exception as e:
+            wx.MessageBox(f"Error saving preset:\n{e}", "Error", wx.OK|wx.ICON_ERROR)
+
+    def get_text(self):
+        lines = []
+        # always include module line
+        module = self.parent.module_choice.GetStringSelection()
+        lines.append(f"module={module}")
+
+        for g, c in self.graph_controls.items():
+            lines.append(f"graph_preset:{g}={c.GetValue()}")
+        for l, c in self.log_controls.items():
+            lines.append(f"log_preset:{l}={c.GetValue()}")
+        for p, c in self.picture_controls.items():
+            lines.append(f"picture_path:{p}={c.GetValue()}")
+        for info in self.info_modules:
+            lines.append(f"info_read={info}")
+
+        return lines
