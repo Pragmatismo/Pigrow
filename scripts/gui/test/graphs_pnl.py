@@ -10,6 +10,7 @@ import time
 import sys
 import matplotlib.pyplot as plt
 from Onboard.utils import funcKeys
+from scipy.stats import trim_mean
 
 
 class ctrl_pnl(scrolled.ScrolledPanel):
@@ -2083,16 +2084,19 @@ class GraphPreset:
             }
 
             trim_mode = dataset_entry['trim_mode']
-            if trim_mode == 'none' or trim_mode == 'custom':
+            if trim_mode == 'none':
+                trim_to_last = None
+            elif trim_mode == 'custom':
                 # Store start/end times if available
                 start_dt = dataset.get('start_datetime')
                 end_dt = dataset.get('end_datetime')
-                if start_dt and end_dt:
+                if start_dt:
                     dataset_entry['start_datetime'] = start_dt.isoformat()
+                if end_dt:
                     dataset_entry['end_datetime'] = end_dt.isoformat()
             elif trim_mode.startswith('last:'):
-                # last:unit:count format, no start/end needed
-                # already stored in trim_mode
+                # not needed?
+                trim_to_last = trim_mode[5:]
                 pass
             elif trim_mode.startswith('log:'):
                 # log:<index>, no start/end needed
@@ -2143,8 +2147,8 @@ class GraphPreset:
             parent.refresh_table()
 
                         # After all datasets are loaded, re-apply trimming logic
-            #self.reapply_trimming(parent.loaded_datasets)
-            #parent.refresh_table()
+            self.reapply_trimming(parent.loaded_datasets)
+            parent.refresh_table()
 
             # Update graph selection and options
             graph_info = preset_data.get('graph', {})
@@ -2189,8 +2193,8 @@ class GraphPreset:
             'trim_mode': dataset_params.get('trim_mode', 'none'),
             'key': dataset_params.get('key', '')
         }
-        # For 'none' or 'custom' modes, load start/end times if available.
-        if dataset['trim_mode'] in ['none', 'custom']:
+        # For 'custom' mode load start/end times if available.
+        if dataset['trim_mode'] == 'custom':
             start_str = dataset_params.get('start_datetime')
             end_str = dataset_params.get('end_datetime')
             if start_str and end_str:
@@ -2200,6 +2204,7 @@ class GraphPreset:
                 dataset['start_datetime'] = None
                 dataset['end_datetime'] = None
         else:
+            print("SET TRIM MODE TO", dataset['trim_mode'])
             dataset['start_datetime'] = None
             dataset['end_datetime'] = None
 
@@ -2229,7 +2234,7 @@ class GraphPreset:
         # First pass: handle none, custom, last
         for dataset in loaded_datasets:
             trim_mode = dataset.get('trim_mode', 'none')
-            if trim_mode in ['none', 'custom']:
+            if trim_mode == 'custom':
                 data = dataset['data']
                 start_dt = dataset.get('start_datetime')
                 end_dt = dataset.get('end_datetime')
@@ -2243,7 +2248,7 @@ class GraphPreset:
                 if len(parts) == 3:
                     _, unit, count_str = parts
                     try:
-                        count = int(count_str)
+                        count = int(count_str.strip())
                     except ValueError:
                         count = 1
                     now = datetime.datetime.now()
@@ -2269,6 +2274,7 @@ class GraphPreset:
                         trimmed = data
                     dataset['trimmed_data'] = trimmed if trimmed else []
                 else:
+                    print(f"Trimming data to {parts} failed.")
                     dataset['trimmed_data'] = dataset['data']
             # log: handled in second pass
 
