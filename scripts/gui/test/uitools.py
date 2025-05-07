@@ -83,30 +83,57 @@ class MakeDynamicOptPnl(wx.Panel):
 class ScriptConfigTool(wx.Panel):
     """
     A placeholder panel for dynamically configuring script arguments.
-
-    Later this will be replaced with actual controls based on script parsing.
     """
     def __init__(self, parent):
         super().__init__(parent)
+        self.parent = parent
         self._original_cmd = ''
+
+        # Make a read-only, multi-line text control instead of StaticText
+        self.placeholder = wx.TextCtrl(
+            self,
+            style=wx.TE_MULTILINE | wx.TE_READONLY | wx.BORDER_SUNKEN
+        )
+
         self.main_sizer = wx.BoxSizer(wx.VERTICAL)
-        self.placeholder = wx.StaticText(self, label='args config tool coming soon')
-        self.main_sizer.Add(self.placeholder, 0, wx.ALL, 5)
+        # give it a proportion so it expands vertically
+        self.main_sizer.Add(self.placeholder, 1, wx.ALL | wx.EXPAND, 5)
         self.SetSizer(self.main_sizer)
+
+        # start disabled
         self.Enable(False)
 
     def update_command(self, cmd):
         """Populate the panel with the original and current command text and enable it."""
         self._original_cmd = cmd
-        self.placeholder.SetLabel(f"Original: {cmd}")
+
+        if self.has_flags_flag(cmd):
+            raw = self.get_script_flags(cmd)
+            display = f"Flags for `{cmd}`:\n\n{raw}"
+        else:
+            display = "No flag‐introspection tag found, automatic options not supported."
+
+        # show it in the multi‐line box
+        self.placeholder.SetValue(display)
         self.Layout()
         self.Enable(True)
+
+    def get_script_flags(self, cmd):
+        out, error = self.parent.parent.parent.link_pnl.run_on_pi(f"{cmd} -flags")
+        return out
+
+    def has_flags_flag(self, cmd):
+        """Check if the script has the magic tag."""
+        out, error = self.parent.parent.parent.link_pnl.run_on_pi(f"cat {cmd}")
+        for line in out.splitlines():
+            if line.strip() == "#Flags output enabled":
+                return True
+        return False
 
     def reset(self):
         """Clear the stored command and disable the panel."""
         self._original_cmd = ''
-        self.placeholder.SetLabel('args config tool coming soon')
-        self.Layout()
+        self.placeholder.Clear()
         self.Enable(False)
 
     def is_unchanged(self, current_cmd):

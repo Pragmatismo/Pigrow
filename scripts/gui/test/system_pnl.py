@@ -1977,9 +1977,9 @@ class VenvDialog(wx.Dialog):
 
 class CustomRunCmdDialog(wx.Dialog):
     def __init__(self, parent):
-        super().__init__(parent, title="Run Command on Pi", size=(700, 300))
-        self.parent_panel = parent  # typically the link panel
-        self._orig_cmd = ""        # to remember last-read command
+        super().__init__(parent, title="Run Command on Pi", size=(700, 500))
+        self.parent = parent
+        self._orig_cmd = ""
         self.InitUI()
 
     def InitUI(self):
@@ -2011,13 +2011,13 @@ class CustomRunCmdDialog(wx.Dialog):
         main_v = wx.BoxSizer(wx.VERTICAL)
         main_v.Add(top_sizer, 0, wx.EXPAND | wx.ALL, 5)
         main_v.Add(self.read_btn, 0, wx.ALL, 5)
-        main_v.Add(self.script_config, 0, wx.EXPAND | wx.ALL, 5)
+        main_v.Add(self.script_config, 1, wx.EXPAND | wx.ALL, 5)
         main_v.Add(btn_sizer,    0, wx.ALIGN_CENTER | wx.ALL, 5)
 
         self.SetSizer(main_v)
 
     def OnBrowse(self, event):
-        selected_files, selected_folders = self.parent_panel.parent.link_pnl.select_files_on_pi()
+        selected_files, selected_folders = self.parent.parent.link_pnl.select_files_on_pi()
         if selected_files:
             remote_path = selected_files[0][0]
             ext = os.path.splitext(remote_path)[1].lower()
