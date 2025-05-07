@@ -185,7 +185,8 @@ class ctrl_pnl(scrolled.ScrolledPanel):
             print("Image already exists locally")
         else:
             print("image not yet downloaaded locally")
-            print(f"Copying image for datawall from {remote_path} to {img_fold + "/" + img_filename}")
+            path_text = img_fold + "/" + img_filename
+            print(f"Copying image for datawall from {remote_path} to {path_text}")
             self.parent.link_pnl.download_file_to_folder(remote_path,
                                                          img_fold + "/" + img_filename)
 
