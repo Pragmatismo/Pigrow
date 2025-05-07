@@ -5,7 +5,9 @@ def read_graph_options():
     Returns a dictionary of settings and their default values for use by the remote gui
     '''
     graph_module_settings_dict = {
-             "use_time":"lamp",       # sun or lamp
+             "use_time":["sun", "lamp"],       # sun or lamp
+             "day_color":"yellow",
+             "night_color":"darkblue",
              "latitude":"51.50",
              "longitude":"0.12",
              "light_on_time_hour":"7",
@@ -34,8 +36,8 @@ def make_graph(list_of_datasets, graph_path, ymax="", ymin="", size_h="", size_v
     import matplotlib.dates as mdates
     import matplotlib.ticker as plticker
 
-    day_color = "yellow"
-    night_color = "darkblue"
+    day_color = extra['day_color']
+    night_color = extra['night_color']
 
     if extra == {}:
         extra = read_graph_options()
@@ -168,5 +170,5 @@ def make_graph(list_of_datasets, graph_path, ymax="", ymin="", size_h="", size_v
         plt.ylim(ymin=float(ymin))
     # save the graph and tidy up our workspace
     plt.savefig(graph_path)
-    print("divided days created and saved to " + graph_path)
+    print("Day Night graph created and saved to " + graph_path)
     plt.close(fig)
