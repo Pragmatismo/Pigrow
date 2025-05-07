@@ -9,9 +9,6 @@ import datetime
 import time
 import sys
 import matplotlib.pyplot as plt
-from Onboard.utils import funcKeys
-from scipy.stats import trim_mean
-
 
 class ctrl_pnl(scrolled.ScrolledPanel):
     def __init__(self, parent):
