@@ -3,8 +3,7 @@ def read_graph_options():
     Returns a dictionary of settings and their default values for use by the remote GUI.
     """
     return {
-        "group_by": ["day", "week", "month"]
-
+        "group_by": ["day", "week", "month"],
         # Additional bar styling options
         "title_text": "Min - Max Values",
         "show_time_period": "true",
