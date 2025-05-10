@@ -154,7 +154,8 @@ if __name__ == '__main__':
             print("")
             sys.exit(0)
         elif argu == "-flags":
-            print("name=<LED NAME>")
+            print("name=[<LED NAME>]")
+            print("unusedpath=<PATH>")
             print("set=['on', 'off', 'slow', 'blink', 'fast', 'dash', 'time:ON:OFF']")
             sys.exit(0)
 
