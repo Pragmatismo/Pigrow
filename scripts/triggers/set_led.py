@@ -105,7 +105,7 @@ def remove_state_file(name):
         os.system('rm ' + led_stat_path)
         print("Removed obsolete", led_stat_path)
 
-def list_leds():
+def list_leds(as_list=False):
     config_path = homedir + "/Pigrow/config/pigrow_config.txt"
     set_dic = pigrow_defs.load_settings(config_path, err_log=err_path)
     led_list = []
@@ -117,9 +117,15 @@ def list_leds():
     if len(led_list) == 0:
         print("No LEDs found in pigrow_setting.txt")
     else:
-        print(" Found", len(led_list), "available LEDs")
-        for item in led_list:
-            print(item)
+        if as_list == False:
+            print(" Found", len(led_list), "available LEDs")
+            for item in led_list:
+                print(item)
+        else:
+            msg = ""
+            for item in led_list:
+                msg += item + ","
+            return msg[:-1]
 
 if __name__ == '__main__':
     name = ""
@@ -154,9 +160,15 @@ if __name__ == '__main__':
             print("")
             sys.exit(0)
         elif argu == "-flags":
-            print("name=[<LED NAME>]")
+            print("name=" + list_leds(as_list=True))
             print("unusedpath=<PATH>")
             print("set=['on', 'off', 'slow', 'blink', 'fast', 'dash', 'time:ON:OFF']")
+            print("test_unimportant=")
+            sys.exit(0)
+        elif argu == "-defaults":
+            print("name=")
+            print('unusedpath="./testpath/test.lol"'
+            print("set=")
             sys.exit(0)
 
     if not name=="":
