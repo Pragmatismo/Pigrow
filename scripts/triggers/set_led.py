@@ -167,7 +167,7 @@ if __name__ == '__main__':
             sys.exit(0)
         elif argu == "-defaults":
             print("name=")
-            print('unusedpath="./testpath/test.lol"'
+            print('unusedpath="./testpath/test.lol"')
             print("set=")
             sys.exit(0)
 
