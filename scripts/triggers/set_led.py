@@ -36,25 +36,44 @@ def read_config(name):
 
 def kill_blink(name):
     script_path = homedir + "/Pigrow/scripts/persistent/blink_led.py"
-    cmd = "pidof -x " + str(script_path)
-    pid_text = subprocess.run(cmd, shell=True, capture_output=True, text=True)
-    pid_text = pid_text.stdout.strip()
-    # make list of  pids
-    if " " in pid_text:
-        pids = pid_text.split(" ")
-    else:
-        pids = [pid_text]
-    # check list for name=NAME
-    named_list = []
+
+    # 1) Try the old pidof -x <script_path>
+    p = subprocess.run(
+        ["pidof", "-x", script_path],
+        capture_output=True, text=True
+    )
+    pid_text = p.stdout.strip()
+
+    # 2) If nothing found, fall back to pgrep -f <script_path>
+    if not pid_text:
+        p2 = subprocess.run(
+            ["pgrep", "-f", script_path],
+            capture_output=True, text=True
+        )
+        pid_text = p2.stdout.strip()
+
+    if not pid_text:
+        # no processes running for that script
+        return
+
+    # 3) Split into a list of PIDs
+    pids = pid_text.split()
+
+    # 4) Filter by the command-line argument name=<name>
+    named_pids = []
     for pid in pids:
-        cmd = "ps -fp " + pid
-        stdout = subprocess.run(cmd, shell=True, capture_output=True, text=True)
-        if "name=" + name + " " in stdout.stdout + " ":
-            named_list.append(pid)
-    # kill processes
-    for pid in named_list:
-        cmd = "kill " + pid
-        subprocess.run(cmd, shell=True)
+        ps = subprocess.run(
+            ["ps", "-fp", pid],
+            capture_output=True, text=True
+        )
+        # add trailing space so we catch "name=foo " even if at end
+        if f"name={name} " in ps.stdout + " ":
+            named_pids.append(pid)
+
+    # 5) Kill each matching PID
+    for pid in named_pids:
+        subprocess.run(["kill", pid])
+
 
 def set_led_solid(mode, gpio):
     import RPi.GPIO as GPIO
