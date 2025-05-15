@@ -51,7 +51,7 @@ for argu in sys.argv[1:]:
         print("                to see a list of settings")
         sys.exit(0)
     elif argu == '-flags':
-        print("name=" + get_trig_names())
+        print("name=[" + get_trig_names() +']')
         print("set=[on,off,pause]")
         print('cooldown=<INT>')
         sys.exit()
