@@ -82,8 +82,10 @@ def set_led_solid(mode, gpio):
     GPIO.setup(gpio, GPIO.OUT)
     if mode == 'on':
         GPIO.output(gpio, GPIO.HIGH)
+        print("LED set to on")
     elif mode == 'off':
         GPIO.output(gpio, GPIO.LOW)
+        print("LED set to off")
 
 def set_led_blink(name, mode, gpio):
     mode_dict = {'blink':'500',
@@ -99,13 +101,9 @@ def set_led_blink(name, mode, gpio):
         print("     set=blink")
         print("     blink, slow, fast, dash, time:500:2000")
         sys.exit()
-    #cmd = [homedir + "/Pigrow/scripts/persistent/blink_led.py", "name=" + name, "speed=" + speed]
     cmd = "nohup " + homedir + "/Pigrow/scripts/persistent/blink_led.py" + " name=" + name + " speed=" + speed + " > /dev/null 2>&1 &"
     subprocess.Popen(cmd, shell=True)
-
-    #import time
-    #subprocess.Popen("ps -A -F |grep set_led", shell=True)
-    #time.sleep(60)
+    print("Set LED" + name + " to blink at speed " + speed)
 
 def write_onboot(name, made):
     led_stat_path = homedir + "/Pigrow/logs/ledstat_" + name + ".txt"
