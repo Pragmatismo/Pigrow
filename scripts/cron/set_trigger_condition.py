@@ -58,6 +58,7 @@ for argu in sys.argv[1:]:
     elif argu == "-defaults":
         print("name=")
         print("set=")
+        sys.exit()
     if "=" in argu:
         key = str(argu).split('=')[0]
         value = str(argu).split('=')[1]
