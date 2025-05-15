@@ -29,11 +29,12 @@ for argu in sys.argv[1:]:
         print("log=")
         print("script=")
         print('message=')
-        sys.exit()
+        sys.exit(0)
     elif argu == "-defaults":
         print("log=" + log_path)
         print('script="write_log.py"')
         print('message=')
+        sys.exit(0)
     elif "=" in argu:
         thearg = argu_l.split('=')[0]
         thevalue = argu.split('=')[1]
