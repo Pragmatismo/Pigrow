@@ -52,7 +52,7 @@ for argu in sys.argv[1:]:
         sys.exit(0)
     elif argu == '-flags':
         print("name=[" + get_trig_names() +']')
-        print("set=[on,off,pause]")
+        print("set=[on,off,pause,unpause]")
         print('cooldown=<INT>')
         sys.exit()
     elif argu == "-defaults":
@@ -74,8 +74,8 @@ if trigger_name == None:
     print("trigger names;" + get_trig_names())
     sys.exit()
 if set_direct == None:
-    print("It was not specified what to set the condition to, use set=on,off,pause")
-    print(" or use --help for more information.")
+    print("It was not specified what to set the condition to, use set=on,off,pause,unpause")
+    print("     --help for more information.")
     sys.exit()
 
 #set the condition
