@@ -180,13 +180,10 @@ if __name__ == '__main__':
             sys.exit(0)
         elif argu == "-flags":
             print("name=[" + list_leds(as_list=True) + "]")
-            print("unusedpath=<PATH>")
             print("set=[on, off, slow, blink, fast, dash, time:ON:OFF]")
-            print("test_unimportant=")
             sys.exit(0)
         elif argu == "-defaults":
             print("name=")
-            print('unusedpath="./testpath/test.lol"')
             print("set=")
             sys.exit(0)
 
