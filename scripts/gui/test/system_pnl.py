@@ -1991,8 +1991,13 @@ class CustomRunCmdDialog(wx.Dialog):
         self.browse_btn = wx.Button(self, label="…", size=(30, -1))
         self.browse_btn.Bind(wx.EVT_BUTTON, self.OnBrowse)
 
-        self.read_btn = wx.Button(self, label="Read")
+        self.read_btn = wx.Button(self, label="Read Settings")
         self.read_btn.Bind(wx.EVT_BUTTON, self.OnRead)
+        self.make_args_btn = wx.Button(self, label="Make Args")
+        self.make_args_btn.Bind(wx.EVT_BUTTON, self.OnMakeArgs)
+        buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        buttons_sizer.Add(self.read_btn, 0, wx.EXPAND | wx.ALL, 5)
+        buttons_sizer.Add(self.make_args_btn, 0, wx.EXPAND | wx.ALL, 5)
 
         top_sizer.Add(self.command_text, 1, wx.ALL | wx.EXPAND, 5)
         top_sizer.Add(self.browse_btn, 0, wx.ALL, 5)
@@ -2010,7 +2015,7 @@ class CustomRunCmdDialog(wx.Dialog):
         # Layout
         main_v = wx.BoxSizer(wx.VERTICAL)
         main_v.Add(top_sizer, 0, wx.EXPAND | wx.ALL, 5)
-        main_v.Add(self.read_btn, 0, wx.ALL, 5)
+        main_v.Add(buttons_sizer, 0, wx.ALL, 5)
         main_v.Add(self.script_config, 1, wx.EXPAND | wx.ALL, 5)
         main_v.Add(btn_sizer,    0, wx.ALIGN_CENTER | wx.ALL, 5)
 
@@ -2033,10 +2038,14 @@ class CustomRunCmdDialog(wx.Dialog):
         self._orig_cmd = cmd
         self.script_config.update_command(cmd)
 
+    def OnMakeArgs(self, event):
+        cmd_str = self.script_config.get_command_string()
+        self.command_text.SetValue(cmd_str)
+
     def OnCommandTextChanged(self, event):
         current = self.command_text.GetValue()
         # disable the config panel if the text no longer matches the last-read cmd
-        if not self.script_config.is_unchanged(current):
+        if not current == self._orig_cmd:
             self.script_config.Enable(False)
         else:
             # re-enable only if it exactly matches
