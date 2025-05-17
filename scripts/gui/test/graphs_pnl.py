@@ -2350,9 +2350,45 @@ class GraphPreset:
         except Exception as e:
             wx.MessageBox(f"Error loading dataset from module '{module_name}': {e}", "Error", wx.OK | wx.ICON_ERROR)
 
+    def check_for_newer_log(self, file_path, local_path):
+        """
+        Check whether the remote log (under .../logs/file_path) is newer (i.e. different size)
+        than the local file at local_path. If local is missing or smaller, re-download it.
+        Returns True if a download was performed, False otherwise.
+        """
+        # Build the remote path
+        pigrow_root = self.parent.parent.shared_data.remote_pigrow_path
+        remote = pigrow_root + "logs/" + file_path
+
+        # 1) Get the remote file size
+        #    -stat -c%s prints just the byte count
+        out, err = self.parent.parent.link_pnl.run_on_pi(f"stat -c%s {remote}")
+        try:
+            remote_size = int(out.strip())
+        except (ValueError, AttributeError):
+            print(f"DEBUG: could not get remote size for {remote!r} (got {out!r})")
+            return False
+
+        # 2) Get the local file size (0 if missing)
+        try:
+            local_size = os.path.getsize(local_path)
+        except OSError:
+            local_size = 0
+
+        # 3) If local is missing or smaller, download
+        if local_size != remote_size:
+            print(f"Downloading Updated {file_path}")
+            self.parent.parent.link_pnl.download_file_to_folder(remote, local_path)
+            return True
+
+        # 4) Otherwise nothing to do
+        return False
+
+
     def load_log_dataset(self, parent, file_path, key, split_char, kv_split_char, date_key, dataset):
         try:
             full_file_path = os.path.join(self.parent.shared_data.frompi_path, 'logs', file_path)
+            self.check_for_newer_log(file_path, full_file_path)
             with open(full_file_path, 'r') as f:
                 lines = f.readlines()
             data_tuples = []

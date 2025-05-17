@@ -92,7 +92,6 @@ class ctrl_pnl(scrolled.ScrolledPanel):
 
     def on_import_data(self, event):
         text = self.preset_options_panel.get_text()
-        print("!",text,"!")
 
         data = {"info": {}, "images": {}, "data": {}, "graphs": {}}
         for line in text:
