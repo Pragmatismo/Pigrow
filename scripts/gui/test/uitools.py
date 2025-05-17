@@ -80,132 +80,177 @@ class MakeDynamicOptPnl(wx.Panel):
         return settings
 
 
-
 class ScriptConfigTool(wx.Panel):
     """
-    A panel that introspects a Python script for flags and dynamically generates controls,
-    including support for special lists and commands.
+    A panel that introspects a Python script for flags and defaults,
+    generates controls, highlights required fields, and builds a command.
     """
+    MAGIC_TAG = "#Flags output enabled"
+
     def __init__(self, parent):
         super().__init__(parent)
         self.parent = parent
         self._original_cmd = ''
-        # mappings for special handlers
+        self._order = []       # to remember flag order
+        self.flags = {}        # key -> flag format value
+        self.defaults = {}     # key -> default format value
+        self.controls = {}     # key -> main wx.Control
+
+        # special handlers
         self.special_lists = {"LED NAME": self.get_led_name}
         self.special_commands = {"PATH": self.path_ctrl}
-        # dict to store main controls
-        self.controls = {}
 
-        # sizer for dynamic option rows
         self.opts_sizer = wx.BoxSizer(wx.VERTICAL)
-        # placeholder for raw flags output
-        self.placeholder = wx.TextCtrl(
+        self.raw_output = wx.TextCtrl(
             self,
             style=wx.TE_MULTILINE | wx.TE_READONLY | wx.BORDER_SUNKEN
         )
 
-        # assemble main layout
         self.main_sizer = wx.BoxSizer(wx.VERTICAL)
         self.main_sizer.Add(self.opts_sizer, 0, wx.EXPAND | wx.ALL, 5)
-        self.main_sizer.Add(self.placeholder, 1, wx.EXPAND | wx.ALL, 5)
-        self.SetSizer(self.main_sizer)
+        self.main_sizer.Add(self.raw_output, 1, wx.EXPAND | wx.ALL, 5)
 
+        self.SetSizer(self.main_sizer)
         self.Enable(False)
 
     def update_command(self, cmd):
+        """Re-introspect script for flags and defaults, rebuild controls."""
         self._original_cmd = cmd
-        # clear existing controls
+        self._order.clear()
+        self.flags.clear()
+        self.defaults.clear()
+
+        # clear old controls
         self.opts_sizer.Clear(True)
-        for k in list(self.controls):
-            del self.controls[k]
+        self.controls.clear()
 
-        raw = ''
-        opts = {}
-        if self.has_flags_flag(cmd):
-            raw = self.get_script_flags(cmd)
-            for line in raw.splitlines():
-                if '=' in line:
-                    key, val = line.split('=', 1)
-                    opts[key.strip()] = val.strip()
+        # fetch flags
+        raw_flags = self._run(f"{cmd} -flags")
+        for line in raw_flags.splitlines():
+            if '=' in line:
+                key, val = line.split('=', 1)
+                self.flags[key] = val
+                self._order.append(key)
 
-        # build a row for each option
-        for key, val in opts.items():
+        # fetch defaults
+        raw_defs = self._run(f"{cmd} -defaults")
+        for line in raw_defs.splitlines():
+            if '=' in line:
+                key, val = line.split('=', 1)
+                self.defaults[key] = val
+
+        # build rows
+        for key in self._order:
+            flag_val = self.flags.get(key, '')
+            def_val  = self.defaults.get(key, '')
+
             row = wx.BoxSizer(wx.HORIZONTAL)
             lbl = wx.StaticText(self, label=key)
             row.Add(lbl, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 5)
-            ctrl_main = None
-            # special list: [<TAG>]
-            if val.startswith('[<') and val.endswith('>]'):
-                tag = val[2:-2]
-                if tag in self.special_lists:
-                    items = self.special_lists[tag]()
-                    combo = wx.ComboBox(self, choices=items)
-                    if items:
-                        combo.SetStringSelection(items[0])
-                    row.Add(combo, 1, wx.EXPAND)
-                    ctrl_main = combo
-            # normal list: [a, b, c]
-            elif val.startswith('[') and val.endswith(']'):
-                items = [i.strip() for i in val[1:-1].split(',')]
+
+            ctrl = None
+            # [<TAG>] → special list
+            if flag_val.startswith('[<') and flag_val.endswith('>]'):
+                tag = flag_val[2:-2]
+                items = self.special_lists.get(tag, lambda: [])()
                 combo = wx.ComboBox(self, choices=items)
-                if items:
-                    combo.SetStringSelection(items[0])
                 row.Add(combo, 1, wx.EXPAND)
-                ctrl_main = combo
-            # special command: <TAG>
-            elif val.startswith('<') and val.endswith('>'):
-                tag = val[1:-1]
-                if tag in self.special_commands:
-                    ctrl_sizer, ctrl = self.special_commands[tag]()
-                    row.Add(ctrl_sizer, 1, wx.EXPAND)
-                    ctrl_main = ctrl
+                ctrl = combo
+
+            # [a,b,c] → dropdown
+            elif flag_val.startswith('[') and flag_val.endswith(']'):
+                items = [i.strip() for i in flag_val[1:-1].split(',') if i.strip()]
+                combo = wx.ComboBox(self, choices=items)
+                row.Add(combo, 1, wx.EXPAND)
+                ctrl = combo
+
+            # <TAG> → special command control
+            elif flag_val.startswith('<') and flag_val.endswith('>'):
+                tag = flag_val[1:-1]
+                creator = self.special_commands.get(tag)
+                if creator:
+                    sizer, ctrl_widget = creator()
+                    row.Add(sizer, 1, wx.EXPAND)
+                    ctrl = ctrl_widget
+
             # free text
             else:
-                txt = wx.TextCtrl(self, value=val)
+                txt = wx.TextCtrl(self, value='')
                 row.Add(txt, 1, wx.EXPAND)
-                ctrl_main = txt
+                ctrl = txt
 
-            if ctrl_main:
-                self.controls[key] = ctrl_main
+            # initialize control value & style
+            if ctrl:
+                has_default = key in self.defaults
+                raw_def = self.defaults.get(key, '')
+                def_str = raw_def.strip().strip('"').strip("'")
+
+                if has_default and def_str:
+                    # optional argument with a non‐empty default
+                    ctrl.SetValue(def_str)
+                    ctrl.SetBackgroundColour(wx.NullColour)
+
+                elif has_default and not def_str:
+                    # required argument (explicitly in defaults but blank)
+                    ctrl.SetValue('')
+                    ctrl.SetBackgroundColour(wx.Colour(255, 200, 200))
+
+                else:
+                    # not mentioned in defaults at all → leave blank, normal style
+                    ctrl.SetValue('')
+                    ctrl.SetBackgroundColour(wx.NullColour)
+
+                # bind change to clear red when filled
+                ctrl.Bind(wx.EVT_TEXT, lambda evt, k=key: self._on_value_change(k))
+                self.controls[key] = ctrl
+
             self.opts_sizer.Add(row, 0, wx.EXPAND | wx.ALL, 2)
 
-        # update raw flags placeholder
-        if raw:
-            self.placeholder.SetValue(f"Flags for `{cmd}`:\n\n{raw}")
-        else:
-            self.placeholder.SetValue("No flag‐introspection tag found, automatic options not supported.")
+        # show raw flags & defaults
+        self.raw_output.SetValue(
+            f"Flags (`-flags`):\n{raw_flags}\n\nDefaults (`-defaults`):\n{raw_defs}"
+        )
+
         self.Layout()
         self.Enable(True)
 
-    def get_script_flags(self, cmd):
-        out, error = self.parent.parent.parent.link_pnl.run_on_pi(f"{cmd} -flags")
-        return out
+    def _run(self, cmd):
+        """Helper to run via remote link_pnl; returns stdout or empty."""
+        out, err = self.parent.parent.parent.link_pnl.run_on_pi(cmd)
+        return out or ''
 
-    def has_flags_flag(self, cmd):
-        out, error = self.parent.parent.parent.link_pnl.run_on_pi(f"cat {cmd}")
-        for line in out.splitlines():
-            if line.strip() == "#Flags output enabled":
-                return True
-        return False
+    def _on_value_change(self, key):
+        ctrl = self.controls.get(key)
+        if not ctrl:
+            return
+        current = ctrl.GetValue().strip()
+        raw_def = self.defaults.get(key, None)
+        # only for keys explicitly in defaults with empty default:
+        if (raw_def is not None) and (raw_def.strip() == '') and current:
+            ctrl.SetBackgroundColour(wx.NullColour)
+            self.Refresh()
 
-    def reset(self):
-        self._original_cmd = ''
-        self.controls.clear()
-        self.opts_sizer.Clear(True)
-        self.placeholder.Clear()
-        self.Enable(False)
+    def get_command_string(self):
+        """Compose: original_cmd + only args that differ from default/nonblank."""
+        parts = [self._original_cmd]
+        for key in self._order:
+            ctrl = self.controls.get(key)
+            if not ctrl:
+                continue
+            val = ctrl.GetValue().strip()
+            def_val = self.defaults.get(key, '').strip().strip('"').strip("'")
+            # include if required (def_val=='') and filled, or optional but changed
+            if val and val != def_val:
+                # quote if contains space
+                v = f"\"{val}\"" if ' ' in val else val
+                parts.append(f"{key}={v}")
+        return " ".join(parts)
 
-    def is_unchanged(self, current_cmd):
-        return current_cmd == self._original_cmd
-
-    # example special handlers
+    # --- example special handlers ---
     def get_led_name(self):
         return ['test 1', 'test 2', 'test 3']
 
     def path_ctrl(self):
-        """
-        Returns a sizer and a text control for file path selection.
-        """
         hs = wx.BoxSizer(wx.HORIZONTAL)
         txt = wx.TextCtrl(self)
         btn = wx.Button(self, label="...")
