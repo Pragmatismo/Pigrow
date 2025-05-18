@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+#Flags output enabled
 import os
 import sys
 import subprocess
@@ -35,25 +36,44 @@ def read_config(name):
 
 def kill_blink(name):
     script_path = homedir + "/Pigrow/scripts/persistent/blink_led.py"
-    cmd = "pidof -x " + str(script_path)
-    pid_text = subprocess.run(cmd, shell=True, capture_output=True, text=True)
-    pid_text = pid_text.stdout.strip()
-    # make list of  pids
-    if " " in pid_text:
-        pids = pid_text.split(" ")
-    else:
-        pids = [pid_text]
-    # check list for name=NAME
-    named_list = []
+
+    # 1) Try the old pidof -x <script_path>
+    p = subprocess.run(
+        ["pidof", "-x", script_path],
+        capture_output=True, text=True
+    )
+    pid_text = p.stdout.strip()
+
+    # 2) If nothing found, fall back to pgrep -f <script_path>
+    if not pid_text:
+        p2 = subprocess.run(
+            ["pgrep", "-f", script_path],
+            capture_output=True, text=True
+        )
+        pid_text = p2.stdout.strip()
+
+    if not pid_text:
+        # no processes running for that script
+        return
+
+    # 3) Split into a list of PIDs
+    pids = pid_text.split()
+
+    # 4) Filter by the command-line argument name=<name>
+    named_pids = []
     for pid in pids:
-        cmd = "ps -fp " + pid
-        stdout = subprocess.run(cmd, shell=True, capture_output=True, text=True)
-        if "name=" + name + " " in stdout.stdout + " ":
-            named_list.append(pid)
-    # kill processes
-    for pid in named_list:
-        cmd = "kill " + pid
-        subprocess.run(cmd, shell=True)
+        ps = subprocess.run(
+            ["ps", "-fp", pid],
+            capture_output=True, text=True
+        )
+        # add trailing space so we catch "name=foo " even if at end
+        if f"name={name} " in ps.stdout + " ":
+            named_pids.append(pid)
+
+    # 5) Kill each matching PID
+    for pid in named_pids:
+        subprocess.run(["kill", pid])
+
 
 def set_led_solid(mode, gpio):
     import RPi.GPIO as GPIO
@@ -62,8 +82,10 @@ def set_led_solid(mode, gpio):
     GPIO.setup(gpio, GPIO.OUT)
     if mode == 'on':
         GPIO.output(gpio, GPIO.HIGH)
+        print("LED set to on")
     elif mode == 'off':
         GPIO.output(gpio, GPIO.LOW)
+        print("LED set to off")
 
 def set_led_blink(name, mode, gpio):
     mode_dict = {'blink':'500',
@@ -79,13 +101,9 @@ def set_led_blink(name, mode, gpio):
         print("     set=blink")
         print("     blink, slow, fast, dash, time:500:2000")
         sys.exit()
-    #cmd = [homedir + "/Pigrow/scripts/persistent/blink_led.py", "name=" + name, "speed=" + speed]
     cmd = "nohup " + homedir + "/Pigrow/scripts/persistent/blink_led.py" + " name=" + name + " speed=" + speed + " > /dev/null 2>&1 &"
     subprocess.Popen(cmd, shell=True)
-
-    #import time
-    #subprocess.Popen("ps -A -F |grep set_led", shell=True)
-    #time.sleep(60)
+    print("Set LED " + name + " to blink at speed " + speed)
 
 def write_onboot(name, made):
     led_stat_path = homedir + "/Pigrow/logs/ledstat_" + name + ".txt"
@@ -104,7 +122,7 @@ def remove_state_file(name):
         os.system('rm ' + led_stat_path)
         print("Removed obsolete", led_stat_path)
 
-def list_leds():
+def list_leds(as_list=False):
     config_path = homedir + "/Pigrow/config/pigrow_config.txt"
     set_dic = pigrow_defs.load_settings(config_path, err_log=err_path)
     led_list = []
@@ -116,9 +134,15 @@ def list_leds():
     if len(led_list) == 0:
         print("No LEDs found in pigrow_setting.txt")
     else:
-        print(" Found", len(led_list), "available LEDs")
-        for item in led_list:
-            print(item)
+        if as_list == False:
+            print(" Found", len(led_list), "available LEDs")
+            for item in led_list:
+                print(item)
+        else:
+            msg = ""
+            for item in led_list:
+                msg += item + ","
+            return msg[:-1]
 
 if __name__ == '__main__':
     name = ""
@@ -153,8 +177,12 @@ if __name__ == '__main__':
             print("")
             sys.exit(0)
         elif argu == "-flags":
-            print("name=LED NAME")
-            print("set=['on', 'off', 'slow', 'blink', 'fast', 'dash', 'time:ON:OFF']")
+            print("name=[" + list_leds(as_list=True) + "]")
+            print("set=[on, off, slow, blink, fast, dash, time:ON:OFF]")
+            sys.exit(0)
+        elif argu == "-defaults":
+            print("name=")
+            print("set=")
             sys.exit(0)
 
     if not name=="":

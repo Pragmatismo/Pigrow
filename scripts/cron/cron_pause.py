@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+#Flags output enabled
 import os
 import sys
 homedir = os.getenv("HOME") #discovers home directory location use in default path generation
@@ -24,8 +25,12 @@ for argu in sys.argv[1:]:
         print("     cron_pause.py script=\"log_sensor_module.py name=bmetemp\" pause=true ")
         sys.exit(0)
     elif argu == '-flags':
-        print("script=camcap.py")
-        print("pause=[true|false]")
+        print("script=")
+        print("pause=[true,false]")
+        sys.exit()
+    elif argu == "-defaults":
+        print("script=")
+        print("pause=")
         sys.exit()
     if "=" in argu:
         arg = str(argu).split('=')[0]

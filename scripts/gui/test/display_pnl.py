@@ -185,35 +185,52 @@ class info_pnl(scrolled.ScrolledPanel):
 
             return "not blinking"
 
-
         def find_running_blink(self):
-            # find running blink scripts
-            blink_path = self.parent.parent.shared_data.remote_pigrow_path + "scripts/persistent/blink_led.py"
-            cmd = "pidof -x " + str(blink_path)
-            out, error = self.parent.parent.link_pnl.run_on_pi(cmd)
-            if " " in out:
-                pids = out.split(" ")
-            else:
-                pids = [out]
+            """
+            Find all running blink_led.py processes (old & new shebangs) and return
+            a list of [name, speed] pairs for those matching name=<...> and speed=<...>.
+            """
+            blink_path = (
+                    self.parent.parent.shared_data.remote_pigrow_path
+                    + "scripts/persistent/blink_led.py"
+            )
 
-            # get command strings
+            # 1) Try the old-style lookup
+            out, error = self.parent.parent.link_pnl.run_on_pi(
+                f"pidof -x {blink_path}"
+            )
+            pid_text = out.strip()
+
+            # 2) Fallback to pgrep -f if nothing found
+            if not pid_text:
+                out2, err2 = self.parent.parent.link_pnl.run_on_pi(
+                    f"pgrep -f {blink_path}"
+                )
+                pid_text = out2.strip()
+
+            # No blink process at all?
+            if not pid_text:
+                return []
+
+            # Split into individual PIDs
+            pids = pid_text.split()
+
             blink_names = []
             for pid in pids:
-                cmd = "ps -fp " + pid
-                out, error = self.parent.parent.link_pnl.run_on_pi(cmd)
-                out = out.strip() + " "
+                ps_out, ps_err = self.parent.parent.link_pnl.run_on_pi(
+                    f"ps -fp {pid}"
+                )
+                line = ps_out.strip() + " "
 
-                if "name=" in out:
-                    name = out.split("name=")[1].split(" ")[0]
-                    if "speed=" in out:
-                        sett = out.split("speed=")[1].split(" ")[0]
-                        blink_names.append([name, sett])
-
-            print (blink_names)
-
+                # extract name=<...> and speed=<...>
+                if "name=" in line:
+                    name = line.split("name=")[1].split(" ")[0]
+                    speed = None
+                    if "speed=" in line:
+                        speed = line.split("speed=")[1].split(" ")[0]
+                    # only append if we have both name and speed
+                    blink_names.append([name, speed or ""])
             return blink_names
-
-
 
         def doubleclick(self, e):
             index =  e.GetIndex()

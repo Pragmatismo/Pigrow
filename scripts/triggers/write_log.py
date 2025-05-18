@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+#Flags output enabled
+
 import datetime
 import sys
 import os
@@ -16,16 +18,23 @@ for argu in sys.argv[1:]:
         print(" log=" + homedir + "/Pigrow/logs/trigger_log.txt")
         print(" ")
         print(' script="text with spaces"')
+        print('        The initial identifier for log entries, normally the calling script')
+        print('        but can be any text to identify entries as long as @ is not used')
         print('        to include spaces ensure the text is in "speech marks"')
         print("")
         print(' message="text with spaces"')
         print('        to include spaces ensure the text is in "speech marks"')
         sys.exit()
     elif argu_l == '-flags':
+        print("log=")
+        print("script=")
+        print('message=')
+        sys.exit(0)
+    elif argu == "-defaults":
         print("log=" + log_path)
-        print("script=write_log.py")
-        print('message="text to record here"')
-        sys.exit()
+        print('script="write_log.py"')
+        print('message=')
+        sys.exit(0)
     elif "=" in argu:
         thearg = argu_l.split('=')[0]
         thevalue = argu.split('=')[1]

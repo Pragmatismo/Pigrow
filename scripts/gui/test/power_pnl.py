@@ -232,11 +232,27 @@ class info_pnl(wx.Panel):
                     if not name in relay_list:
                         relay_list.append(name)
 
+            switch_status = self.get_switch_dict()
             for relay_name in relay_list:
                 gpio, wiring = self.read_relay_conf(relay_name, config_dict, "gpio_")
                 if not relay_name == "dht22sensor": #ignore
-                    self.add_to_relay_table(relay_name, gpio, wiring)
+                    s_state = switch_status.get(relay_name, "not found")
+                    self.add_to_relay_table(relay_name, gpio, wiring, s_state)
             self.autosizeme()
+
+        def get_switch_dict(self):
+            cmd = self.parent.parent.shared_data.remote_pigrow_path + "scripts/gui/info_modules/info_switch_position.py"
+            out, error = self.parent.parent.link_pnl.run_on_pi(cmd)
+            switch_lines = out.splitlines()
+
+            switches = {}
+            for line in switch_lines:
+                parts = line.split(" is ")
+                if len(parts) == 2:
+                    switch_name = parts[0].strip()
+                    status = parts[1].strip().lower()
+                    switches[switch_name] = status
+            return switches
 
         def read_relay_conf(self, item_name, config_dict, prefix):
             # Extract sensor config info from config dictionary
@@ -260,13 +276,11 @@ class info_pnl(wx.Panel):
                 if l > h:
                     self.SetColumnWidth(i, wx.LIST_AUTOSIZE)
 
-        def add_to_relay_table(self, name, gpio, wiring):
+        def add_to_relay_table(self, name, gpio, wiring, switch_status):
             self.InsertItem(0, str(name))
             self.SetItem(0, 1, str(gpio))
             self.SetItem(0, 2, str(wiring))
-            pin_state = self.read_pin_state(gpio)
-            current = self.determine_device_state(pin_state, wiring)
-            self.SetItem(0, 3, str(current))
+            self.SetItem(0, 3, str(switch_status))
 
         def doubleclick(self, e):
             index =  e.GetIndex()
@@ -280,19 +294,49 @@ class info_pnl(wx.Panel):
             self.parent.c_pnl.fill_tables_click("e")
 
         def read_pin_state(self, gpio_pin):
-            # could also just use
-            # cmd = "gpio -g read " + gpio_pin
+            """
+            Remotely read GPIO state, using:
+              1) existing sysfs export
+              2) sysfs export if needed
+              3) gpioget fallback
+            """
+            remote = self.parent.parent.link_pnl
+            sys_path = f"/sys/class/gpio/gpio{gpio_pin}"
+            value_path = f"{sys_path}/value"
+            direction_path = f"{sys_path}/direction"
 
-            # create info on gpio pin
-            cmd = "echo " + str(gpio_pin) + " > /sys/class/gpio/export"
-            out, error = self.parent.parent.link_pnl.run_on_pi(cmd)
-            # read the pins value
-            cmd = "cat /sys/class/gpio/gpio" + str(gpio_pin) + "/value"
-            out, error = self.parent.parent.link_pnl.run_on_pi(cmd)
-            gpio_status = out.strip()
-            return gpio_status
+            # 1) If already exported via sysfs, read it
+            out, err = remote.run_on_pi(f"if [ -d {sys_path} ]; then echo yes; else echo no; fi")
+            if out.strip() == "yes":
+                # If it's an output pin, bail out
+                out_dir, _ = remote.run_on_pi(f"cat {direction_path} 2>/dev/null")
+                if out_dir.strip() == "out":
+                    return f"GPIO {gpio_pin} is set as OUTPUT and cannot be read."
+                # Otherwise read its value
+                out_val, _ = remote.run_on_pi(f"cat {value_path}")
+                return out_val.strip()
+
+            # 2) Try to export via sysfs (older kernels)
+            out_exp, _ = remote.run_on_pi(
+                f"echo {gpio_pin} > /sys/class/gpio/export 2>/dev/null && echo success || echo fail"
+            )
+            if out_exp.strip() == "success":
+                # small pause to let sysfs create the directory
+                remote.run_on_pi("sleep 0.1")
+                out_val, _ = remote.run_on_pi(f"cat {value_path}")
+                return out_val.strip()
+
+            # 3) Fallback to gpioget if available
+            out_chk, _ = remote.run_on_pi("command -v gpioget >/dev/null 2>&1 && echo yes || echo no")
+            if out_chk.strip() == "yes":
+                out_val, _ = remote.run_on_pi(f"gpioget gpiochip0 {gpio_pin}")
+                return out_val.strip()
+
+            # If all else fails
+            return f"Unable to determine GPIO {gpio_pin} status."
 
         def determine_device_state(self, pin_state, wiring):
+            text = "unset"
             if pin_state == "1":
                 if wiring == "low":
                     text = "off"
@@ -608,6 +652,8 @@ class relay_dialog(wx.Dialog):
         msg += "Device = " + text
         self.read_m_label.SetLabel(msg)
 
+
+
     def switch_relay_on(self, e):
         shared_data = self.parent.parent.parent.shared_data
         #
@@ -804,17 +850,46 @@ class hbridge_dialog(wx.Dialog):
         self.read_m_label.SetLabel(msg)
 
     def read_pin_state(self, gpio_pin):
-        # could also just use
-        # cmd = "gpio -g read " + gpio_pin
+        """
+        Remotely read GPIO state, using:
+          1) existing sysfs export
+          2) sysfs export if needed
+          3) gpioget fallback
+        """
+        remote = self.parent.parent.link_pnl
+        sys_path = f"/sys/class/gpio/gpio{gpio_pin}"
+        value_path = f"{sys_path}/value"
+        direction_path = f"{sys_path}/direction"
 
-        # create info on gpio pin
-        cmd = "echo " + str(gpio_pin) + " > /sys/class/gpio/export"
-        out, error = self.parent.parent.parent.link_pnl.run_on_pi(cmd)
-        # read the pins value
-        cmd = "cat /sys/class/gpio/gpio" + str(gpio_pin) + "/value"
-        out, error = self.parent.parent.parent.link_pnl.run_on_pi(cmd)
-        gpio_status = out.strip()
-        return gpio_status
+        # 1) If already exported via sysfs, read it
+        out, err = remote.run_on_pi(f"if [ -d {sys_path} ]; then echo yes; else echo no; fi")
+        if out.strip() == "yes":
+            # If it's an output pin, bail out
+            out_dir, _ = remote.run_on_pi(f"cat {direction_path} 2>/dev/null")
+            if out_dir.strip() == "out":
+                return f"GPIO {gpio_pin} is set as OUTPUT and cannot be read."
+            # Otherwise read its value
+            out_val, _ = remote.run_on_pi(f"cat {value_path}")
+            return out_val.strip()
+
+        # 2) Try to export via sysfs (older kernels)
+        out_exp, _ = remote.run_on_pi(
+            f"echo {gpio_pin} > /sys/class/gpio/export 2>/dev/null && echo success || echo fail"
+        )
+        if out_exp.strip() == "success":
+            # small pause to let sysfs create the directory
+            remote.run_on_pi("sleep 0.1")
+            out_val, _ = remote.run_on_pi(f"cat {value_path}")
+            return out_val.strip()
+
+        # 3) Fallback to gpioget if available
+        out_chk, _ = remote.run_on_pi("command -v gpioget >/dev/null 2>&1 && echo yes || echo no")
+        if out_chk.strip() == "yes":
+            out_val, _ = remote.run_on_pi(f"gpioget gpiochip0 {gpio_pin}")
+            return out_val.strip()
+
+        # If all else fails
+        return f"Unable to determine GPIO {gpio_pin} status."
 
     def set_pin(self, pin, dir):
         cmd = "gpio -g mode " + str(pin) + " out"

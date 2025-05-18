@@ -36,9 +36,10 @@ class shared_data:
                                        ['camera','i2c','error_log','connected_network','datetime']]
         # setiings related to current connection
         self.frompi_base_path = self.set_local_path() # base path without box_name folder
-        self.frompi_path = ""
+        self.frompi_path = self.frompi_base_path
         self.remote_pigrow_path = ""
         self.config_dict = {} # pigrow_config.txt
+        self.config_txt_path = "unset"
         #
         self.always_show_config_changes = False  # if true always show the 'upload to pigrow?' dialog box
         #

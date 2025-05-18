@@ -635,9 +635,7 @@ class ctrl_pnl(scrolled.ScrolledPanel):
             default_path = self.parent.shared_data.remote_pigrow_path
         if set_path == "":
             set_path = default_path
-        self.parent.link_pnl.select_files_on_pi(create_file=True, default_path=set_path)
-        selected_files = self.parent.link_pnl.selected_files
-        selected_folders = self.parent.link_pnl.selected_folders
+        selected_files, selected_folders = self.parent.link_pnl.select_files_on_pi(create_file=True, default_path=set_path)
         if len(selected_files) == 0 and len(selected_folders) == 0:
             return None
         else:
