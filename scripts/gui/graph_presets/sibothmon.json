@@ -1,0 +1,36 @@
+{
+    "datasets": [
+        {
+            "key": "temperature",
+            "trim_mode": "last:Month:1",
+            "file_path": "si7021_log.txt",
+            "split_char": ">",
+            "kv_split_char": "=",
+            "date_key": "time"
+        },
+        {
+            "key": "humid",
+            "trim_mode": "last:Month:1",
+            "file_path": "si7021_log.txt",
+            "split_char": ">",
+            "kv_split_char": "=",
+            "date_key": "time"
+        }
+    ],
+    "graph": {
+        "type": "twoaxis",
+        "settings": {
+            "Y axis Minimum": "",
+            "Y axis Maximum": "",
+            "Width": "12",
+            "Height": "7",
+            "title_text": "",
+            "color_cycle": "",
+            "line_style": "-",
+            "marker": "",
+            "show_grid": "true",
+            "major_ticks": "",
+            "minor_ticks": ""
+        }
+    }
+}

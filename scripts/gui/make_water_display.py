@@ -9,7 +9,7 @@ from PIL import ImageDraw, ImageFont
 ##
 ##
 font_size = 30
-font = ImageFont.truetype("../ui_images/datawall/Caslon.ttf", 35)
+font = ImageFont.truetype("ui_images/datawall/Caslon.ttf", 35)
 ascent, descent = font.getmetrics()
 font_h = font.getmask("A").getbbox()[3] + descent
 font_w = font.getmask("A").getbbox()[2]

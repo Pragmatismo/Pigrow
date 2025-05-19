@@ -1,0 +1,17 @@
+{
+    "datasets": [
+        {
+            "key": "temperature",
+            "trim_mode": "none",
+            "start_datetime": "2024-09-30T15:33:56",
+            "end_datetime": "2024-12-22T15:33:56",
+            "file_path": "si7021_log.txt",
+            "split_char": ">",
+            "kv_split_char": "=",
+            "date_key": "time"
+        }
+    ],
+    "graph": {
+        "type": "line"
+    }
+}

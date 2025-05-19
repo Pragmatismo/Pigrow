@@ -15,7 +15,7 @@ class ctrl_pnl(wx.Panel):
 
         main_sizer = wx.BoxSizer(wx.VERTICAL)
         main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
-        main_sizer.Add(self.refresh_btn, 0, wx.ALL, 0)
+        main_sizer.Add(self.refresh_btn, 0, wx.ALL|wx.EXPAND, 0)
         main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
         self.SetSizer(main_sizer)
 

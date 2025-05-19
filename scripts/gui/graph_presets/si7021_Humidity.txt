@@ -1,9 +1,0 @@
-log_path=si7021_log.txt
-split_chr=>
-date_pos=2
-value_pos=1
-key_manual=Humidity
-key_pos=Manual
-value_range_source=config
-low=heater_templow
-high=heater_temphigh

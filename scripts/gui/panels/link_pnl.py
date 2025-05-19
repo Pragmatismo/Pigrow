@@ -171,6 +171,7 @@ class link_pnl(wx.Panel):
             print("#sb# Can't read Pigrow's name ")
         if boxname == '':
             boxname = None
+        self.shared_data.box_name = boxname
         return boxname
 
 

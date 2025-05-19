@@ -36,11 +36,15 @@ def label_day_bar(top_img, day, x_pos, bar_width, top_section):
     draw = ImageDraw.Draw(top_img)
 
     # Dynamically calculate the font size based on 80% of the bar width (since the text is rotated)
-    font_size = int(bar_width * 0.5)  # Set the font size to 80% of the bar width
+    font_size = int(bar_width * 0.5)  # Set the font size to 50% actually (as per your code)
     font = ImageFont.truetype("Antonio-Regular.ttf", font_size)
 
     text = day.strftime('%b %d')
-    text_width, text_height = draw.textsize(text, font=font)
+
+    # Use textbbox to measure the text instead of textsize
+    bbox = draw.textbbox((0, 0), text, font=font)
+    text_width = bbox[2] - bbox[0]
+    text_height = bbox[3] - bbox[1]
 
     # Create an image for the rotated text
     rotated_text = Image.new('RGBA', (top_section, text_height), (255, 255, 255, 0))
@@ -56,7 +60,6 @@ def label_day_bar(top_img, day, x_pos, bar_width, top_section):
     draw.line([(x_pos + bar_width, top_section - 10), (x_pos + bar_width, top_section)], fill="black", width=2)
 
     return top_img
-
 
 
 def analyse_set(ani_frame_list, out_file):

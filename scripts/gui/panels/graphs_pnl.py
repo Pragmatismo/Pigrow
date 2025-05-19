@@ -135,7 +135,7 @@ class ctrl_pnl(scrolled.ScrolledPanel):
 
     def populate_graph_choices(self):
         """Populate the combo box with available graph modules."""
-        graph_modules_dir = os.path.abspath(os.path.join(os.getcwd(), '..', 'graph_modules'))
+        graph_modules_dir = os.path.abspath(os.path.join(os.getcwd(), 'graph_modules'))
         self.graph_names = []
 
         if os.path.isdir(graph_modules_dir):

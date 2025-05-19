@@ -1,0 +1,55 @@
+{
+    "datasets": [
+        {
+            "key": "temperature",
+            "trim_mode": "last:Week:1",
+            "file_path": "bme280_log.txt",
+            "split_char": ">",
+            "kv_split_char": "=",
+            "date_key": "time"
+        }
+    ],
+    "graph": {
+        "type": "line",
+        "settings": {
+            "Y axis Minimum": "",
+            "Y axis Maximum": "",
+            "Width": "12",
+            "Height": "7",
+            "title_text": "",
+            "color_cycle": "xkcd:wine, xkcd:brick red, xkcd:burnt orange, xkcd:dark brown, xkcd:mustard yellow",
+            "line_style": "-",
+            "marker": "o",
+            "major_ticks": "",
+            "minor_ticks": "",
+            "title_fontsize": "22",
+            "title_color": "black",
+            "label_fontsize": "19",
+            "label_color": "black",
+            "legend_fontsize": "15",
+            "legend_color": "black",
+            "x_axis_color": "",
+            "y_axis_color": "",
+            "x_tick_color": "",
+            "y_tick_color": "",
+            "x_tick_fontsize": "14",
+            "y_tick_fontsize": "14",
+            "line_width": "1.5",
+            "line_alpha": "1.0",
+            "color_palette": "",
+            "show_grid": "true",
+            "grid_color": "tab:gray",
+            "grid_style": "--",
+            "grid_alpha": "0.5",
+            "background_color": "xkcd:light blue",
+            "axes_background_color": "ghostwhite",
+            "legend_position": "best",
+            "legend_border": "true",
+            "legend_alpha": "1.0",
+            "x_tick_rotation": "0",
+            "y_tick_format": "",
+            "mpl_style": "",
+            "use_only_mpl": "false"
+        }
+    }
+}

@@ -23,6 +23,10 @@ class shared_data:
         self.gui_set_dict['volume_unit'] = "ml"
         self.gui_set_dict['temp_unit'] = "c"
 
+        # connection behavior
+        self.gui_set_dict['start_datawall'] = True
+        self.gui_set_dict['start_datawall_preset'] = ""
+        self.gui_set_dict['start_dw_dict'] = {}
 
 
         # load from file
@@ -35,6 +39,7 @@ class shared_data:
             self.system_info_layout = [['boxname','check_pigrow_folder','os_version','hardware_version','power_warnings','cpu_temp','diskusage'],
                                        ['camera','i2c','error_log','connected_network','datetime']]
         # setiings related to current connection
+        self.box_name = ""
         self.frompi_base_path = self.set_local_path() # base path without box_name folder
         self.frompi_path = self.frompi_base_path
         self.remote_pigrow_path = ""

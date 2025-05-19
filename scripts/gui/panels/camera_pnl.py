@@ -2,18 +2,15 @@ import os
 import wx
 import re
 import json
+import time
 import wx.lib.scrolledpanel as scrolled
 import image_combine
 import shutil
-from picam_set_pnl import picam_sets_pnl
-#from picam2_set_pnl import picam2_sets_pnl
-from rpicap_set_pnl import rpicap_sets_pnl
-from fswebcam_set_pnl import fs_sets_pnl
-from motion_set_pnl import motion_sets_pnl
-from libcam_set_pnl import libcam_sets_pnl
-import wx.lib.delayedresult as delayedresult
-
-import time
+from panels.picam_set_pnl import picam_sets_pnl
+from panels.rpicap_set_pnl import rpicap_sets_pnl
+from panels.fswebcam_set_pnl import fs_sets_pnl
+from panels.motion_set_pnl import motion_sets_pnl
+from panels.libcam_set_pnl import libcam_sets_pnl
 
 
 class ctrl_pnl(scrolled.ScrolledPanel):
@@ -35,7 +32,7 @@ class ctrl_pnl(scrolled.ScrolledPanel):
         self.cam_cb = wx.ComboBox(self, choices = cam_opts, size=(225, 30))
         # capture options
         self.cap_tool_l = wx.StaticText(self,  label='Capture tool;')
-        webcam_opts = ['uvccapture', 'fswebcam', 'rpicam', 'picamcap', 'picam2cap', 'libcamera', 'motion']
+        webcam_opts = ['uvccapture', 'fswebcam', 'rpicam', 'picamcap', 'libcamera', 'motion']
         self.captool_cb = wx.ComboBox(self, choices = webcam_opts, size=(265, 30))
         self.captool_cb.Bind(wx.EVT_COMBOBOX, self.camcap_combo_go)
 
@@ -263,8 +260,6 @@ class ctrl_pnl(scrolled.ScrolledPanel):
             I_pnl.show_uvc_control()
         elif option == 'picamcap':
             I_pnl.show_picamcap_control()
-        elif option == 'picam2cap':
-            I_pnl.show_picam2cap_control()
         elif option == 'rpicam':
             I_pnl.show_rpicap_control()
         elif option == 'motion':
@@ -508,7 +503,6 @@ class info_pnl(scrolled.ScrolledPanel):
 
         #intiate settings pnls
         self.picam_set_pnl  = picam_sets_pnl(self)
-        #self.picam2_set_pnl = picam2_sets_pnl(self)
         self.rpicap_set_pnl = rpicap_sets_pnl(self)
         self.fs_set_pnl     = fs_sets_pnl(self)
         self.motion_set_pnl = motion_sets_pnl(self)
@@ -651,13 +645,6 @@ class info_pnl(scrolled.ScrolledPanel):
         self.sets_pnl.Show()
         self.Layout()
 
-    # def show_picam2cap_control(self):
-    #     if not self.sets_pnl == None:
-    #         self.sets_pnl.Hide()
-    #     self.sets_pnl = self.picam2_set_pnl
-    #     self.sets_pnl.Show()
-    #     self.Layout()
-
     def show_rpicap_control(self):
         if not self.sets_pnl == None:
             self.sets_pnl.Hide()
@@ -693,7 +680,6 @@ class info_pnl(scrolled.ScrolledPanel):
         self.sets_pnl = None
         # self.fs_set_pnl.Show()
         self.Layout()
-
 
 class quicktl_dialog(wx.Dialog):
     def __init__(self, parent, *args, **kw):
@@ -859,8 +845,7 @@ class quicktl_dialog(wx.Dialog):
         return control_panel
 
     def get_folder(self, e):
-        self.parent.parent.link_pnl.select_files_on_pi(single_folder=True)
-        selected_folders = self.parent.parent.link_pnl.selected_folders
+        selected_files, selected_folders = self.parent.parent.link_pnl.select_files_on_pi(single_folder=True)
         self.outfolder_textctrl.SetValue(selected_folders[0])
         self.Layout()
 
@@ -966,7 +951,6 @@ class longtl_dialog(wx.Dialog):
         tool = {'uvccapture':'camcap',
                 'fswebcam':'camcap',
                 'picamcap':'picamcap',
-                'picam2cap':'picam2',
                 'libcamera':'libcam_cap',
                 'rpicam':'rpicap'}
         if cap_tool in tool:
@@ -980,7 +964,7 @@ class longtl_dialog(wx.Dialog):
         self.cap_tool_path = self.parent.parent.shared_data.remote_pigrow_path
         self.cap_tool_path += "scripts/cron/" + self.cap_tool + '.py'
         self.check_cron(self.cap_tool_path)
-        tool_list = ['camcap', 'picamcap', 'picam2cap', 'libcam_cap', 'rpicap']
+        tool_list = ['camcap', 'picamcap', 'libcam_cap', 'rpicap']
         tool_list.remove(self.cap_tool)
         self.check_other_capstools(tool_list)
         return True
@@ -1169,11 +1153,9 @@ class longtl_dialog(wx.Dialog):
         return arg_dict
 
     def select_caps_folder(self, e):
-        self.parent.parent.link_pnl.select_files_on_pi(single_folder=True)
-        selected_folders = self.parent.parent.link_pnl.selected_folders
+        selected_files, selected_folders = self.parent.parent.link_pnl.select_files_on_pi(single_folder=True)
         self.caps_folder_tc.SetValue(selected_folders[0])
         self.Layout()
-
 
     def go_click(self, e):
         self.make_cron()

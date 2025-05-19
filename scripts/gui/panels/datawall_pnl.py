@@ -91,29 +91,40 @@ class ctrl_pnl(scrolled.ScrolledPanel):
         self.Layout()
 
     def on_import_data(self, event):
-        text = self.preset_options_panel.get_text()
 
+        text = self.preset_options_panel.get_text()
+        data = self.create_datawall_data(text)
+
+        self.datawall_data = data
+        self.create_btn.Enable()
+
+    def create_datawall_data(self, text_lines):
+        """
+        Given a list of preset lines (key=val strings),
+        build and return the full data package.
+        """
         data = {"info": {}, "images": {}, "data": {}, "graphs": {}}
-        for line in text:
+        for line in text_lines:
             if "=" not in line:
                 continue
             key, val = (s.strip() for s in line.split("=", 1))
+
             if key == "info_read":
                 info = self.read_info_module(val)
                 data["info"][val] = info
+
             elif key.startswith("picture_path"):
-                data["images"][key[13:]] = self.get_image(val)
+                data["images"][key[len("picture_path:"):]] = self.get_image(val)
+
             elif key.startswith("graph_preset"):
                 gp = self.parent.dict_C_pnl['graphs_pnl'].create_graph_by_preset(val)
-                data["graphs"][key[13:]] = gp or None
-            elif key.startswith("log_preset"):
-                ds = self.parent.dict_C_pnl['graphs_pnl'].graph_preset.load_dataset_preset(
-                    self.parent.dict_C_pnl['graphs_pnl'], val)
-                data["data"][key[11:]] = ds or None
-        self.datawall_data = data
+                data["graphs"][key[len("graph_preset:"):]] = gp or None
 
-        # now enable Create
-        self.create_btn.Enable()
+            elif key.startswith("log_preset"):
+                ds = self.parent.dict_C_pnl['graphs_pnl'].graph_preset.load_dataset_preset(self.parent.dict_C_pnl['graphs_pnl'], val)
+                data["data"][key[len("log_preset:"):]] = ds or None
+
+        return data
 
 
     def on_refresh(self, event):
