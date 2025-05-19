@@ -2,6 +2,7 @@ import os
 import wx
 import sys
 import wx.lib.scrolledpanel as scrolled
+from uitools import RunCmdDialog
 
 
 '''
@@ -642,12 +643,10 @@ class ctrl_pnl(scrolled.ScrolledPanel):
             text_control.SetValue(selected_files[0])
 
 
-
 class set_trigger_dialog(wx.Dialog):
     def __init__(self, parent, *args, **kw):
         self.parent = parent
         super(set_trigger_dialog, self).__init__(*args, **kw)
-        print(" INITing UI....")
         self.InitUI()
         self.SetSize((800, 700))
         self.SetTitle("Sensor Setup from Module")
@@ -710,12 +709,8 @@ class set_trigger_dialog(wx.Dialog):
         # shell comand
         cmd_l = wx.StaticText(self,  label='Shell Command')
         self.cmd_tc = wx.TextCtrl(self, value=trigger_list.initial_cmd, size=(500,30))
-        self.find_cmd_btn = wx.Button(self, label='...', size=(50, 30))
-        self.find_cmd_btn.Bind(wx.EVT_BUTTON, self.find_cmd_click)
-
-        self.test_cmd_btn = wx.Button(self, label='Test', size=(100, 30))
-        self.test_cmd_btn.Bind(wx.EVT_BUTTON, self.testcmd)
-
+        self.make_cmd_btn = wx.Button(self, label='Make')
+        self.make_cmd_btn.Bind(wx.EVT_BUTTON, self.make_cmd_click)
 
         # Read trigger conditions
         triggger_cond_l = wx.StaticText(self,  label='Current Trigger Condition;', size=(550,30))
@@ -748,8 +743,7 @@ class set_trigger_dialog(wx.Dialog):
             (self.lock_tc, (6, 1), (1, 1), wx.EXPAND),
             (cmd_l, (7, 0), (1, 1), wx.EXPAND),
             (self.cmd_tc, (7, 1), (1, 1), wx.EXPAND),
-            (self.find_cmd_btn, (7, 2), (1, 1), wx.EXPAND),
-            (self.test_cmd_btn, (7, 3), (1, 1), wx.EXPAND)
+            (self.make_cmd_btn, (7, 2), (1, 1), wx.EXPAND)
         ])
 
         trigger_conditions_sizer = wx.BoxSizer(wx.VERTICAL)
@@ -781,19 +775,15 @@ class set_trigger_dialog(wx.Dialog):
             self.mirror_l.SetForegroundColour((75,190,75))
             self.mirror_l.SetValue(True)
 
-    def find_cmd_click(self, e=""):
-        shared_data = self.parent.parent.parent.shared_data
-        scripts_path = shared_data.remote_pigrow_path + "scripts/"
-        c_pnl = self.parent.parent.parent.dict_C_pnl['sensors_pnl']
-        c_pnl.select_file(self.cmd_tc, scripts_path)
-
-
-    def testcmd(self, e=""):
-        cmd = self.cmd_tc.GetValue()
-        if not cmd == "":
-            c_pnl = self.parent.parent.parent.dict_C_pnl['sensors_pnl']
-            c_pnl.run_test_cmd(cmd)
-
+    def make_cmd_click(self, e=""):
+        dlg = RunCmdDialog(self.parent.parent, cancel_button=True, start_text=self.cmd_tc.GetValue())
+        if dlg.ShowModal() == wx.ID_OK:
+            cmd_to_run = dlg.GetCommand()
+            print("Wants to use", cmd_to_run)
+            self.cmd_tc.SetValue(cmd_to_run)
+        else:
+            print("cancelled")
+        dlg.Destroy()
 
     def find_mirror(self):
         print(" looking for mirror")

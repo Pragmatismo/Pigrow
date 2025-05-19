@@ -1,4 +1,140 @@
 import wx
+import os
+import re
+
+class RunCmdDialog(wx.Dialog):
+    def __init__(self, parent, cancel_button=False, start_text=None):
+        super().__init__(parent, title="Run Command on Pi", size=(700, 500))
+        self.parent = parent
+        self._orig_cmd = ""
+        self._use_ok_cancel = cancel_button
+        self._start_text = start_text or ''
+        # dict to hold parsed k=v args from start_text
+        self._start_args = {}
+        # parsed base command without k=v args
+        self._parsed_base = ''
+        self.InitUI()
+
+    def _apply_start_text(self, text):
+        """
+        Extract k=v pairs from self._start_text into self._start_args,
+        and set self._parsed_base to the remainder (script path + other flags).
+        """
+        args = {}
+        # regex: key = value where value is quoted or unquoted
+        pattern = re.compile(r"(\w+)=('.*?'|\".*?\"|\S+)")
+        # find all key=value pairs
+        for match in pattern.finditer(text):
+            key = match.group(1)
+            val = match.group(2)
+            # strip quotes if present
+            if (val.startswith('"') and val.endswith('"')) or (val.startswith("'") and val.endswith("'")):
+                val = val[1:-1]
+            args[key] = val
+        # remove args (and leading spaces) from text
+        cleaned = re.sub(r"\s*(\w+=(?:'.*?'|\".*?\"|\S+))", "", text)
+        self._start_args = args
+        self._parsed_base = cleaned.strip()
+        # set orig for later use
+        self._orig_cmd = self._parsed_base
+        return self._parsed_base, args
+
+    def InitUI(self):
+        # Top row: [command_text] [Browse] [Run]
+        top_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.command_text = wx.TextCtrl(self, style=wx.TE_PROCESS_ENTER)
+        # pre-fill text control
+        if self._start_text:
+            self.command_text.SetValue(self._start_text)
+        self.command_text.Bind(wx.EVT_TEXT, self.OnCommandTextChanged)
+
+        self.browse_btn = wx.Button(self, label="…", size=(30, -1))
+        self.browse_btn.Bind(wx.EVT_BUTTON, self.OnBrowse)
+
+        self.run_btn = wx.Button(self, label="Run")
+        self.run_btn.Bind(wx.EVT_BUTTON, self.OnRun)
+
+        top_sizer.Add(self.command_text, 1, wx.ALL | wx.EXPAND, 5)
+        top_sizer.Add(self.browse_btn, 0, wx.ALL, 5)
+        top_sizer.Add(self.run_btn, 0, wx.ALL, 5)
+
+        # Buttons for Read Settings / Make Args
+        buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.read_btn = wx.Button(self, label="Read Settings")
+        self.read_btn.Bind(wx.EVT_BUTTON, self.OnRead)
+        self.make_args_btn = wx.Button(self, label="Make Args")
+        self.make_args_btn.Bind(wx.EVT_BUTTON, self.OnMakeArgs)
+        buttons_sizer.Add(self.read_btn, 0, wx.EXPAND | wx.ALL, 5)
+        buttons_sizer.Add(self.make_args_btn, 0, wx.EXPAND | wx.ALL, 5)
+
+        # Script configuration panel
+        self.script_config = ScriptConfigTool(self)
+
+        # Output text area (read-only, multiline)
+        self.output_text = wx.TextCtrl(self, style=wx.TE_MULTILINE | wx.TE_READONLY)
+
+        # OK / Cancel or Done button
+        btn_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        if self._use_ok_cancel:
+            ok_btn = wx.Button(self, wx.ID_OK, label="OK")
+            cancel_btn = wx.Button(self, wx.ID_CANCEL, label="Cancel")
+            btn_sizer.Add(ok_btn, 0, wx.ALL, 5)
+            btn_sizer.Add(cancel_btn, 0, wx.ALL, 5)
+        else:
+            done_btn = wx.Button(self, label="Done")
+            done_btn.Bind(wx.EVT_BUTTON, lambda evt: self.Close())
+            btn_sizer.Add(done_btn, 0, wx.ALL, 5)
+
+        # Layout
+        main_v = wx.BoxSizer(wx.VERTICAL)
+        main_v.Add(top_sizer, 0, wx.EXPAND | wx.ALL, 5)
+        main_v.Add(buttons_sizer, 0, wx.ALL, 5)
+        main_v.Add(self.script_config, 1, wx.EXPAND | wx.ALL, 5)
+        main_v.Add(self.output_text, 1, wx.EXPAND | wx.ALL, 5)
+        main_v.Add(btn_sizer, 0, wx.ALIGN_CENTER | wx.ALL, 5)
+
+        self.SetSizer(main_v)
+
+    def OnBrowse(self, event):
+        selected_files, selected_folders = self.parent.parent.link_pnl.select_files_on_pi()
+        if selected_files:
+            remote_path = selected_files[0][0]
+            ext = os.path.splitext(remote_path)[1].lower()
+            cmd = "cat " + remote_path if ext == ".txt" else remote_path
+            self.command_text.SetValue(cmd)
+
+    def OnRead(self, event):
+        cmd = self.command_text.GetValue().strip()
+        if not cmd:
+            wx.MessageBox("Enter or browse a command first.", "Error", wx.OK | wx.ICON_ERROR)
+            return
+        base_cmd, args = self._apply_start_text(cmd)
+        self._orig_cmd = base_cmd
+        self.script_config.update_command(base_cmd, args)
+
+    def OnMakeArgs(self, event):
+        cmd_str = self.script_config.get_command_string()
+        self.command_text.SetValue(cmd_str)
+
+    def OnCommandTextChanged(self, event):
+        current = self.command_text.GetValue()
+        base_cmd, args = self._apply_start_text(current)
+        self.script_config.Enable(base_cmd == self._orig_cmd)
+        event.Skip()
+
+    def OnRun(self, event):
+        cmd = self.command_text.GetValue().strip()
+        if not cmd:
+            wx.MessageBox("Enter or browse a command first.", "Error", wx.OK | wx.ICON_ERROR)
+            return
+        # Execute the command on Pi and display output
+        out, err = self.parent.parent.link_pnl.run_on_pi(cmd)
+        result = (out or '') + (('\n' + err) if err else '')
+        self.output_text.SetValue(result)
+
+    def GetCommand(self):
+        return self.command_text.GetValue()
+
 
 class MakeDynamicOptPnl(wx.Panel):
     """
@@ -17,7 +153,6 @@ class MakeDynamicOptPnl(wx.Panel):
         self.SetSizer(self.main_sizer)
 
     def build(self, options_dict):
-        print("making table thing")
         """
         Construct controls for each key/value in options_dict.
         Clears any existing controls.
@@ -79,7 +214,6 @@ class MakeDynamicOptPnl(wx.Panel):
                 settings[key] = None
         return settings
 
-
 class ScriptConfigTool(wx.Panel):
     """
     A panel that introspects a Python script for flags and defaults,
@@ -101,30 +235,22 @@ class ScriptConfigTool(wx.Panel):
         self.special_commands = {"PATH": self.path_ctrl}
 
         self.opts_sizer = wx.BoxSizer(wx.VERTICAL)
-        self.raw_output = wx.TextCtrl(
-            self,
-            style=wx.TE_MULTILINE | wx.TE_READONLY | wx.BORDER_SUNKEN
-        )
 
         self.main_sizer = wx.BoxSizer(wx.VERTICAL)
         self.main_sizer.Add(self.opts_sizer, 0, wx.EXPAND | wx.ALL, 5)
-        self.main_sizer.Add(self.raw_output, 1, wx.EXPAND | wx.ALL, 5)
 
         self.SetSizer(self.main_sizer)
         self.Enable(False)
 
-    def update_command(self, cmd):
-        """Re-introspect script for flags and defaults, rebuild controls."""
+    def update_command(self, cmd, args):
+        """Re-introspect script for flags and defaults, rebuild controls, prefill from args."""
         self._original_cmd = cmd
         self._order.clear()
         self.flags.clear()
         self.defaults.clear()
-
-        # clear old controls
         self.opts_sizer.Clear(True)
         self.controls.clear()
 
-        # fetch flags
         raw_flags = self._run(f"{cmd} -flags")
         for line in raw_flags.splitlines():
             if '=' in line:
@@ -132,84 +258,64 @@ class ScriptConfigTool(wx.Panel):
                 self.flags[key] = val
                 self._order.append(key)
 
-        # fetch defaults
         raw_defs = self._run(f"{cmd} -defaults")
         for line in raw_defs.splitlines():
             if '=' in line:
                 key, val = line.split('=', 1)
                 self.defaults[key] = val
 
-        # build rows
         for key in self._order:
             flag_val = self.flags.get(key, '')
-            def_val  = self.defaults.get(key, '')
+            def_val = self.defaults.get(key, '')
 
             row = wx.BoxSizer(wx.HORIZONTAL)
             lbl = wx.StaticText(self, label=key)
             row.Add(lbl, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 5)
 
             ctrl = None
-            # [<TAG>] → special list
             if flag_val.startswith('[<') and flag_val.endswith('>]'):
                 tag = flag_val[2:-2]
                 items = self.special_lists.get(tag, lambda: [])()
-                combo = wx.ComboBox(self, choices=items)
-                row.Add(combo, 1, wx.EXPAND)
-                ctrl = combo
-
-            # [a,b,c] → dropdown
+                ctrl = wx.ComboBox(self, choices=items)
+                row.Add(ctrl, 1, wx.EXPAND)
             elif flag_val.startswith('[') and flag_val.endswith(']'):
                 items = [i.strip() for i in flag_val[1:-1].split(',') if i.strip()]
-                combo = wx.ComboBox(self, choices=items)
-                row.Add(combo, 1, wx.EXPAND)
-                ctrl = combo
-
-            # <TAG> → special command control
+                ctrl = wx.ComboBox(self, choices=items)
+                row.Add(ctrl, 1, wx.EXPAND)
             elif flag_val.startswith('<') and flag_val.endswith('>'):
                 tag = flag_val[1:-1]
                 creator = self.special_commands.get(tag)
                 if creator:
-                    sizer, ctrl_widget = creator()
+                    sizer, widget = creator()
+                    ctrl = widget
                     row.Add(sizer, 1, wx.EXPAND)
-                    ctrl = ctrl_widget
-
-            # free text
             else:
-                txt = wx.TextCtrl(self, value='')
-                row.Add(txt, 1, wx.EXPAND)
-                ctrl = txt
+                ctrl = wx.TextCtrl(self, value='')
+                row.Add(ctrl, 1, wx.EXPAND)
 
-            # initialize control value & style
             if ctrl:
                 has_default = key in self.defaults
                 raw_def = self.defaults.get(key, '')
                 def_str = raw_def.strip().strip('"').strip("'")
-
+                # initial set from default
                 if has_default and def_str:
-                    # optional argument with a non‐empty default
                     ctrl.SetValue(def_str)
                     ctrl.SetBackgroundColour(wx.NullColour)
-
                 elif has_default and not def_str:
-                    # required argument (explicitly in defaults but blank)
                     ctrl.SetValue('')
                     ctrl.SetBackgroundColour(wx.Colour(255, 200, 200))
-
                 else:
-                    # not mentioned in defaults at all → leave blank, normal style
                     ctrl.SetValue('')
+
+                # override from start args if present
+                if key in args:
+                    ctrl.SetValue(args[key])
                     ctrl.SetBackgroundColour(wx.NullColour)
 
-                # bind change to clear red when filled
                 ctrl.Bind(wx.EVT_TEXT, lambda evt, k=key: self._on_value_change(k))
                 self.controls[key] = ctrl
 
             self.opts_sizer.Add(row, 0, wx.EXPAND | wx.ALL, 2)
-
-        # show raw flags & defaults
-        self.raw_output.SetValue(
-            f"Flags (`-flags`):\n{raw_flags}\n\nDefaults (`-defaults`):\n{raw_defs}"
-        )
 
         self.Layout()
         self.Enable(True)
