@@ -8,7 +8,10 @@ import time
 homedir = os.path.expanduser("~")
 sys.path.append(homedir + '/Pigrow/scripts/')
 import pigrow_defs
-err_path = homedir + "/Pigrow/logs/err_log.txt"
+err_log = homedir + "/Pigrow/logs/err_log.txt"
+switch_log = homedir + "/Pigrow/logs/switch_log.txt"
+
+script = "lamp_confirm"
 
 def list_lampconf(as_list=True):
     config_path = homedir + "/Pigrow/config/pigrow_config.txt"
@@ -139,8 +142,9 @@ def test_pic(settings):
         if attempt < 3:
             time.sleep(3)
     else: # All retries failed
-        print("Failed to capture image after 3 attempts")
-        return False
+        print("Failed to capture image after 3 attempts, can't use image detection")
+        pigrow_defs.write_log(script, 'lamp confirmed failed to take picture', err_log)
+        sys.exit(1)
 
     # Check file size against threshold
     file_size = os.path.getsize(image_path)
@@ -217,9 +221,12 @@ def main():
 
     if not success:
         print("Sending failure alert")
+        pigrow_defs.write_log(script, f"Lamp failed to trigger", err_log)
         alert_cmd = settings["alert_cmd"]
         subprocess.run(alert_cmd, shell=True)
         sys.exit(1)
+    else:
+        pigrow_defs.write_log(script, 'Lamp triggering confirmed', switch_log)
 
     sys.exit(0)
 
