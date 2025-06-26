@@ -15,7 +15,7 @@ script = "lamp_confirm"
 
 def list_lampconf(as_list=True):
     config_path = homedir + "/Pigrow/config/pigrow_config.txt"
-    set_dic = pigrow_defs.load_settings(config_path, err_log=err_path)
+    set_dic = pigrow_defs.load_settings(config_path, err_log=err_log)
     lc_list = []
     for item in set_dic:
         if "lampcon_" in item:
@@ -76,7 +76,7 @@ def load_config(name):
 
     # Config file location
     config_path = os.path.join(homedir, "Pigrow/config/pigrow_config.txt")
-    full_settings = pigrow_defs.load_settings(config_path, err_log=err_path)
+    full_settings = pigrow_defs.load_settings(config_path, err_log=err_log)
 
     # Filter keys for this lamp_confirm script
     # Expecting settings named like "lampcon_<switch_name>_<key>"
