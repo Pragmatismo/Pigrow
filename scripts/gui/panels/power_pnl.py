@@ -1,3 +1,5 @@
+from random import choices
+
 import wx
 
 
@@ -1223,6 +1225,8 @@ class hwpwm_dialog(wx.Dialog):
     def show_guide_click(self, e):
         self.parent.parent.parent.shared_data.show_help('hwpwm_help.png')
 
+
+
 class lampcon_dialog(wx.Dialog):
     def __init__(self, parent, *args, **kw):
         self.parent = parent
@@ -1233,47 +1237,212 @@ class lampcon_dialog(wx.Dialog):
         self.Bind(wx.EVT_CLOSE, self.OnClose)
 
     def InitUI(self):
-        #i_pnl = self.parent.parent.parent.dict_I_pnl['power_pnl']
-        shared_data = self.parent.parent.shared_data
+        self.shared_data = self.parent.parent.shared_data
 
-        # panel
-        pnl = wx.Panel(self)
+        main_sizer = wx.BoxSizer(wx.VERTICAL)
 
-        # Header
-        box_label = wx.StaticText(self,  label='Lamp with Confirmation Test')
-        box_label.SetFont(shared_data.title_font)
-        # Show guide button
-        show_guide_btn = wx.Button(self, label='Guide', size=(175, 30))
-        show_guide_btn.Bind(wx.EVT_BUTTON, self.show_guide_click)
-        header_sizer =  wx.BoxSizer(wx.HORIZONTAL)
-        header_sizer.Add(box_label, 0, wx.ALL, 5)
-        header_sizer.AddStretchSpacer(1)
-        header_sizer.Add(show_guide_btn, 0, wx.ALL, 5)
+        # — Header —
+        header = wx.BoxSizer(wx.HORIZONTAL)
+        title = wx.StaticText(self, label="Lamp with Confirmation Test")
+        title.SetFont(self.shared_data.title_font)
+        header.Add(title, 0, wx.ALL, 5)
+        header.AddStretchSpacer(1)
+        guide_btn = wx.Button(self, label="Guide", size=(75, 30))
+        guide_btn.Bind(wx.EVT_BUTTON, self.show_guide_click)
+        header.Add(guide_btn, 0, wx.ALL, 5)
+        main_sizer.Add(header, 0, wx.EXPAND)
 
+        # — Name dropdown —
+        name_row = wx.BoxSizer(wx.HORIZONTAL)
+        name_row.Add(wx.StaticText(self, label="Name:"), 0,
+                     wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 5)
+        # allow ENTER so user can type a new name and hit return
+        self.name_choice = wx.ComboBox(
+            self,
+            style=wx.CB_DROPDOWN | wx.TE_PROCESS_ENTER,
+            choices=self.get_name_opts()
+        )
+        # when they pick or type+enter, load settings
+        self.name_choice.Bind(wx.EVT_COMBOBOX, self.on_name_change)
+        self.name_choice.Bind(wx.EVT_TEXT_ENTER, self.on_name_change)
+        name_row.Add(self.name_choice, 1, wx.EXPAND)
+        main_sizer.Add(name_row, 0, wx.ALL | wx.EXPAND, 5)
 
-        # buttons_
-        self.save_btn = wx.Button(self, label='Save', size=(175, 30))
+        # — Command rows helper —
+        def cmd_row(parent, label, attr, with_button=False):
+            row = wx.BoxSizer(wx.HORIZONTAL)
+            row.Add(wx.StaticText(parent, label=label), 0,
+                    wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 5)
+            txt = wx.TextCtrl(parent)
+            setattr(self, attr, txt)
+            row.Add(txt, 1, wx.EXPAND | wx.RIGHT, 5)
+            if with_button:
+                btn = wx.Button(parent, label="…", size=(30, 24))
+                btn.Bind(wx.EVT_BUTTON,
+                         lambda e, t=txt: t.SetValue("button not yet coded"))
+                row.Add(btn, 0)
+            return row
+
+        # — On/Off/Alert cmds (with “…”) —
+        main_sizer.Add(cmd_row(self, "Switch On Cmd:", "switch_on_cmd", True),
+                       0, wx.ALL | wx.EXPAND, 3)
+        main_sizer.Add(cmd_row(self, "Switch Off Cmd:", "switch_off_cmd", True),
+                       0, wx.ALL | wx.EXPAND, 3)
+        main_sizer.Add(cmd_row(self, "Alert Cmd:", "alert_cmd", True),
+                       0, wx.ALL | wx.EXPAND, 3)
+
+        # — General options —
+        main_sizer.Add(cmd_row(self, "Retry Count:", "retry_count"),
+                       0, wx.ALL | wx.EXPAND, 3)
+        main_sizer.Add(cmd_row(self, "Delay before Test (seconds):", "delay"),
+                       0, wx.ALL | wx.EXPAND, 3)
+        main_sizer.Add(cmd_row(self, "Throw (reset relay on retry):", "throw"),
+                       0, wx.ALL | wx.EXPAND, 3)
+
+        # — Testing Method choice —
+        tm_sizer = wx.BoxSizer(wx.VERTICAL)
+        choice_row = wx.BoxSizer(wx.HORIZONTAL)
+        choice_row.Add(wx.StaticText(self, label="Testing Method:"), 0,
+                       wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 5)
+        self.method_choice = wx.Choice(self, choices=["camera", "sensor"])
+        self.method_choice.SetSelection(0)
+        self.method_choice.Bind(wx.EVT_CHOICE, self.on_method_change)
+        choice_row.Add(self.method_choice, 0)
+        tm_sizer.Add(choice_row, 0, wx.ALL | wx.EXPAND, 5)
+
+        # — Camera panel —
+        self.camera_panel = wx.Panel(self)
+        cam_sizer = wx.BoxSizer(wx.VERTICAL)
+        cam_sizer.Add(cmd_row(self.camera_panel, "Cam Cmd:", "cam_cmd", True),
+                      0, wx.ALL | wx.EXPAND, 3)
+        cam_sizer.Add(cmd_row(self.camera_panel, "Size:", "size"),
+                      0, wx.ALL | wx.EXPAND, 3)
+        self.camera_panel.SetSizer(cam_sizer)
+
+        # — Sensor panel placeholder —
+        self.sensor_panel = wx.Panel(self)
+        sensor_sizer = wx.BoxSizer(wx.VERTICAL)
+        sensor_sizer.Add(wx.StaticText(self.sensor_panel,
+                                       label="Sensor options coming soon."),
+                         0, wx.ALL, 10)
+        self.sensor_panel.SetSizer(sensor_sizer)
+
+        tm_sizer.Add(self.camera_panel, 0, wx.ALL | wx.EXPAND, 5)
+        tm_sizer.Add(self.sensor_panel, 0, wx.ALL | wx.EXPAND, 5)
+        main_sizer.Add(tm_sizer, 0, wx.EXPAND)
+
+        # — Save / Cancel —
+        btn_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        btn_sizer.AddStretchSpacer(1)
+        self.save_btn = wx.Button(self, label="Save", size=(100, 30))
         self.save_btn.Bind(wx.EVT_BUTTON, self.save_click)
-        self.cancel_btn = wx.Button(self, label='Cancel', size=(175, 30))
+        btn_sizer.Add(self.save_btn, 0, wx.ALL, 5)
+        self.cancel_btn = wx.Button(self, label="Cancel", size=(100, 30))
         self.cancel_btn.Bind(wx.EVT_BUTTON, self.OnClose)
-        buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        buttons_sizer.AddStretchSpacer(1)
-        buttons_sizer.Add(self.save_btn, 0,  wx.ALL, 3)
-        buttons_sizer.AddStretchSpacer(1)
-        buttons_sizer.Add(self.cancel_btn, 0,  wx.ALL, 3)
-        buttons_sizer.AddStretchSpacer(1)
+        btn_sizer.Add(self.cancel_btn, 0, wx.ALL, 5)
+        btn_sizer.AddStretchSpacer(1)
+        main_sizer.Add(btn_sizer, 0, wx.EXPAND | wx.BOTTOM, 10)
 
-        main_sizer =  wx.BoxSizer(wx.VERTICAL)
-        main_sizer.Add(header_sizer, 0, wx.ALL|wx.EXPAND, 5)
-        main_sizer.AddStretchSpacer(1)
-        main_sizer.Add(buttons_sizer, 0, wx.ALL|wx.EXPAND, 5)
         self.SetSizer(main_sizer)
+        self.on_method_change()  # ensure panels are shown/hidden correctly
+
+    def on_name_change(self, event):
+        name = self.name_choice.GetValue().strip()
+        prefix = f"lampcon_{name}_"
+
+        cfg = self.shared_data.config_dict
+
+        # map each control attribute to its config‐dict key suffix
+        mapping = {
+            "switch_on_cmd":    "switch_on_cmd",
+            "switch_off_cmd":   "switch_off_cmd",
+            "alert_cmd":        "alert_cmd",
+            "cam_cmd":          "cam_cmd",
+            "retry_count":      "retry_count",
+            "delay":            "delay",
+            "throw":            "throw",
+            "size":             "size",
+        }
+
+        # populate text controls
+        for attr, key_suffix in mapping.items():
+            ctrl = getattr(self, attr, None)
+            if ctrl:
+                val = cfg.get(prefix + key_suffix, "")
+                ctrl.SetValue(val)
+
+        # mode (camera/sensor)
+        mode = cfg.get(prefix + "mode", "camera")
+        if mode in ("camera", "sensor"):
+            self.method_choice.SetStringSelection(mode)
+        else:
+            self.method_choice.SetSelection(0)
+        self.on_method_change()
+
+        # (optional) force a layout
+        self.Layout()
+
+
+    def on_method_change(self, event=None):
+        use_cam = (self.method_choice.GetStringSelection() == "camera")
+        self.camera_panel.Show(use_cam)
+        self.sensor_panel.Show(not use_cam)
+        self.Layout()
+
+    def get_name_opts(self):
+        cmd =  self.shared_data.remote_pigrow_path + "scripts/switches/lamp_confirm.py -flags"
+        out, err = self.parent.parent.link_pnl.run_on_pi(cmd)
+
+        for line in out.splitlines():
+            if "name=" in line:
+                list = line.replace("name=[", "").replace("]", "")
+        if not list:
+            return []
+
+        if "," in list:
+            return list.split(",")
+
+        return [list]
 
     def show_guide_click(self, e):
-        self.parent.parent.parent.shared_data.show_help('lampcon_help.png')
+        self.parent.parent.show_help('lampcon_help.png')
 
     def OnClose(self, e):
         self.Destroy()
 
     def save_click(self, e):
-        print("Save is not written yet.")
+        # write all current settings into the shared config_dict
+        name = self.name_choice.GetValue().strip()
+        if not name:
+            wx.MessageBox("Please enter a name before saving", "Error", wx.OK | wx.ICON_ERROR)
+            return
+
+        prefix = f"lampcon_{name}_"
+        cfg = self.shared_data.config_dict
+
+        # mapping of control attributes to config dict suffixes
+        mapping = {
+            "switch_on_cmd":  "switch_on_cmd",
+            "switch_off_cmd": "switch_off_cmd",
+            "alert_cmd":      "alert_cmd",
+            "cam_cmd":        "cam_cmd",
+            "retry_count":    "retry_count",
+            "delay":          "delay",
+            "throw":          "throw",
+            "size":           "size",
+        }
+
+        # save text control values
+        for attr, key_suffix in mapping.items():
+            ctrl = getattr(self, attr, None)
+            if ctrl:
+                cfg[prefix + key_suffix] = ctrl.GetValue()
+
+        # save the testing method
+        mode = self.method_choice.GetStringSelection()
+        cfg[prefix + "mode"] = mode
+
+        self.shared_data.update_pigrow_config_file_on_pi()
+        wx.MessageBox("Settings saved.", "Info", wx.OK | wx.ICON_INFORMATION)
+
+        self.Destroy()
