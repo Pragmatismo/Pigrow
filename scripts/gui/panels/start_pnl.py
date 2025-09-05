@@ -41,7 +41,7 @@ class ctrl_pnl(wx.Panel):
 
     def onToggleCreateDatawall(self, event):
         val = self.cbCreateDatawall.GetValue()
-        self.shared_data.gui_set_dict['start_datawall'] = val
+        self.shared_data.gui_set_dict['start_datawall'] = str(val)
 
     def onSelectPreset(self, event):
         dlg = DatawallPresetDialog(self, self.shared_data)
@@ -60,7 +60,7 @@ class ctrl_pnl(wx.Panel):
         If Datawall creation is enabled, build it using the stored preset.
         '''
         # Only proceed if user enabled datawall
-        if not self.shared_data.gui_set_dict.get('start_datawall', False):
+        if not self.shared_data.gui_set_dict.get('start_datawall', "False") == "True":
             return
 
         # Retrieve chosen preset
