@@ -26,6 +26,11 @@ for argu in sys.argv[1:]:
         print("conf=" + homedir + "/Pigrow/config/camera_settings.txt")
         print("<setting_name>=<new value>")
         sys.exit()
+    elif argu == '-defaults':
+        print("conf=" + homedir + "/Pigrow/config/camera_settings.txt")
+        print("<setting_name>=<new value>")
+        sys.exit()
+
     if "=" in argu:
         epos = argu.find("=")
         arg_key = argu[:epos]
