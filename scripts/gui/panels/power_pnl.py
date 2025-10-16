@@ -36,8 +36,8 @@ class ctrl_pnl(wx.Panel):
         #main_sizer.AddStretchSpacer(1)
         main_sizer.Add(self.fill_table_btn, 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.AddStretchSpacer(1)
-        main_sizer.Add(self.lamp_confirm_btn, 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.Add(self.add_relay_btn, 0, wx.ALL | wx.EXPAND, 5)
+        main_sizer.Add(self.lamp_confirm_btn, 0, wx.ALL | wx.EXPAND, 5)
         main_sizer.AddStretchSpacer(1)
         main_sizer.AddStretchSpacer(1)
         main_sizer.Add(self.add_hbridge_btn, 0, wx.ALL|wx.EXPAND, 5)
@@ -1392,6 +1392,7 @@ class lampcon_dialog(wx.Dialog):
     def get_name_opts(self):
         cmd =  self.shared_data.remote_pigrow_path + "scripts/switches/lamp_confirm.py -flags"
         out, err = self.parent.parent.link_pnl.run_on_pi(cmd)
+        list = None
 
         for line in out.splitlines():
             if "name=" in line:
