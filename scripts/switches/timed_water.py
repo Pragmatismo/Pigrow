@@ -49,6 +49,7 @@ for argu in sys.argv[1:]:
     elif "flags" in argu:
         print("duration=time in seconds")
         print("safety=off")
+        sys.exit()
     elif "=" in argu:
         thearg = str(argu).split('=')[0].lower()
         thevalue = str(argu).split('=')[1]
