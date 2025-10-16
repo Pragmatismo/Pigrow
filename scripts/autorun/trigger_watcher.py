@@ -2,6 +2,7 @@
 import time
 import datetime
 import os
+import re
 import sys
 import argparse
 homedir = os.getenv("HOME")
@@ -31,62 +32,166 @@ args = parser.parse_args()
 print_level = args.verbose
 enable_logging = args.log
 
+_TIME_RANGE_RE = re.compile(r"^\s*(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})\s*$", re.ASCII)
+
+
 def clear_conditions():
     try:
         os.remove(trigger_conditions_path)
     except FileNotFoundError:
         pass
 
+
 class config_data:
-    def __init__():
-        config_data.trigger_conditions = []
-        config_data.logs_to_check = []
+    """
+    Stores trigger specs as a list of dicts and the set of logs to watch.
+    Legacy keys (always present):
+      log_name, value_label, trigger_type, trigger_value,
+      condition_name, trig_direction, trig_cooldown, cmd
+    v2-only optional keys:
+      enabled_window, device_link
+    """
 
-    def load_trigger_events(trigger_file):
-        print_limit(" - Loading trigger events", 1)
-        if not os.path.isfile(trigger_file):
-            with open(trigger_file, "w") as file:
+    def __init__(self):
+        self.trigger_conditions = []  # list[dict]
+        self.logs_to_check = []       # list[str]
+
+    # ---------- file helpers ----------
+    def read_file_lines(self, filepath: str):
+        print_limit(f" - Loading {filepath}", 1)
+        if not os.path.isfile(filepath):
+            with open(filepath, "w") as _:
                 pass
-            print_limit(" - Trigger file not fonnd, creating blank.", 0)
-        with open(trigger_file) as f:
-            lines = f.read().splitlines()
-        trigger_conditions = []
-        for line in lines:
-            if "," in line:
-                # locate commas, done this awkward way so the last one can include commas too
-                first_comma = line.find(",")
-                second_comma  = first_comma + 1 + line[first_comma+1:].find(",")
-                third_comma   = second_comma + 1 + line[second_comma+1:].find(",")
-                fourth_comma  = third_comma + 1 + line[third_comma+1:].find(",")
-                fifth_comma   = fourth_comma + 1 + line[fourth_comma+1:].find(",")
-                sixth_comma   = fifth_comma + 1 + line[fifth_comma+1:].find(",")
-                seventh_comma = sixth_comma + 1 + line[sixth_comma+1:].find(",")
-                eighth_comma = seventh_comma + 1 + line[seventh_comma+1:].find(",")
-                # find values between commas
-                log_name        = line[:first_comma].strip()
-                value_label     = line[first_comma  +1 :second_comma].strip()
-                trigger_type    = line[second_comma +1 :third_comma].strip()
-                trigger_value   = line[third_comma  +1 :fourth_comma].strip()
-                condition_name  = line[fourth_comma +1 :fifth_comma].strip()
-                trig_direction  = line[fifth_comma  +1 :sixth_comma].strip()
-                trig_cooldown   = line[sixth_comma  +1 :seventh_comma].strip()
-                cmd            = line[seventh_comma+1:].strip()
-                trigger_conditions.append([log_name, value_label, trigger_type, trigger_value, condition_name, trig_direction, trig_cooldown, cmd])
-        config_data.trigger_conditions = trigger_conditions
+            print_limit(f" - {filepath} not found. Created blank.", 0)
+            return []
+        with open(filepath, "r", encoding="utf-8", errors="replace") as f:
+            return f.read().splitlines()
 
-        # make a list of logs we've got confitions for
-        logs_to_check = []
-        for item in config_data.trigger_conditions:
-            if not item[0] in logs_to_check:
-                logs_to_check.append(item[0])
-        config_data.logs_to_check = logs_to_check
-        print_limit(" - Checking logs;" + str(logs_to_check), 2)
+    # ---------- main loader ----------
+    def load_trigger_events(self, trigger_file: str):
+        lines = self.read_file_lines(self, trigger_file)
+        triggers = []
+
+        for raw in lines:
+            line = raw.strip()
+            if not line or "," not in line:
+                continue
+            try:
+                if line.startswith("v2,"):
+                    row = self._parse_v2_line(self, line)
+                else:
+                    row = self._parse_legacy_line(self, line)
+            except Exception as e:
+                print_limit(f" !! Failed to parse trigger line: {line} :: {e}", 0)
+                continue
+
+            if row:
+                triggers.append(row)
+
+        self.trigger_conditions = triggers
+
+        # unique logs_to_check
+        seen = set()
+        logs = []
+        for d in self.trigger_conditions:
+            name = d["log_name"]
+            if name not in seen:
+                seen.add(name)
+                logs.append(name)
+        self.logs_to_check = logs
+        print_limit(" - Checking logs; " + str(self.logs_to_check), 2)
+
+    # ---------- parsing helpers ----------
+    def _nth_comma_positions(line: str, n: int):
+        pos, start = [], 0
+        for _ in range(n):
+            i = line.find(",", start)
+            if i == -1:
+                break
+            pos.append(i)
+            start = i + 1
+        return pos
+
+    def _parse_legacy_line(self, line: str) -> dict:
+        """
+        Legacy format (no version marker). 8 fields (7 commas).
+        cmd is the tail and may contain commas.
+        """
+        commas = self._nth_comma_positions(line, 7)
+        if len(commas) < 7:
+            raise ValueError("legacy line has fewer than 7 commas")
+
+        c = commas
+        log_name       = line[:c[0]].strip()
+        value_label    = line[c[0]+1:c[1]].strip()
+        trigger_type   = line[c[1]+1:c[2]].strip()
+        trigger_value  = line[c[2]+1:c[3]].strip()
+        condition_name = line[c[3]+1:c[4]].strip()
+        trig_direction = line[c[4]+1:c[5]].strip()
+        trig_cooldown  = line[c[5]+1:c[6]].strip()
+        cmd            = line[c[6]+1:].strip()
+
+        return {
+            "log_name": log_name,
+            "value_label": value_label,
+            "trigger_type": trigger_type,
+            "trigger_value": trigger_value,
+            "condition_name": condition_name,
+            "trig_direction": trig_direction,
+            "trig_cooldown": trig_cooldown,
+            "cmd": cmd,
+            # v2 fields absent
+        }
+
+    def _parse_v2_line(self, line: str) -> dict:
+        """
+        v2 format starts with 'v2,' and has exactly one guard field.
+        Body fields after 'v2,' → 9 fields (8 commas):
+          0 log_name
+          1 value_label
+          2 trigger_type
+          3 trigger_value
+          4 condition_name
+          5 trig_direction
+          6 trig_cooldown
+          7 enable_guard     ('' | 'none' | 'HH:MM-HH:MM' | 'device:<type>:<name>:on|off')
+          8 cmd              (tail; may contain commas)
+        """
+        body = line[3:]  # strip leading 'v2,'
+
+        commas = self._nth_comma_positions(body, 8)
+        if len(commas) < 8:
+            raise ValueError("v2 line malformed: expected at least 8 commas after marker")
+
+        c = commas
+        log_name       = body[:c[0]].strip()
+        value_label    = body[c[0]+1:c[1]].strip()
+        trigger_type   = body[c[1]+1:c[2]].strip()
+        trigger_value  = body[c[2]+1:c[3]].strip()
+        condition_name = body[c[3]+1:c[4]].strip()
+        trig_direction = body[c[4]+1:c[5]].strip()
+        trig_cooldown  = body[c[5]+1:c[6]].strip()
+        enable_guard   = body[c[6]+1:c[7]].strip()
+        cmd            = body[c[7]+1:].strip()
+
+        return {
+            "log_name": log_name,
+            "value_label": value_label,
+            "trigger_type": trigger_type,
+            "trigger_value": trigger_value,
+            "condition_name": condition_name,
+            "trig_direction": trig_direction,
+            "trig_cooldown": trig_cooldown,
+            "enable_guard": enable_guard,  # single guard field
+            "cmd": cmd,
+        }
 
 def print_limit(text, level=1):
     if level <= print_level:
         print(text)
     if enable_logging and level <= print_level:
         pigrow_defs.write_log('trigger_watcher.py', text, trig_log)
+
 
 def check_condition(condition_name, trig_direction):
     '''
@@ -118,124 +223,217 @@ def check_condition(condition_name, trig_direction):
                 try:
                     trigger_datetime = datetime.datetime.fromtimestamp(float(trigger_cooldown))
                     if trigger_datetime > datetime.datetime.now():
-                        print_limit("Trigger still cooling down, wont fire again for " + str(trigger_datetime - datetime.datetime.now()), 1)
+                        print_limit(f"{condition_name}, {trig_direction} - still cooling down, wont fire again for " + str(trigger_datetime - datetime.datetime.now()), 1)
                         return False
                 except:
                     print_limit(" !! Failed to convert cooldown to date, it should be a timestamp")
             # check if trigger state is already set
             if trigger_state == trig_direction:
-                print_limit("  - Not triggering because condition is already set...", 2)
+                print_limit(f"{condition_name}, {trig_direction} - Not triggering because condition is already set...", 2)
                 return False
             else:
                 if not trigger_state == "pause":
-                    print_limit(" - Trigger state doesn't match trigger direction, trigger enabled.", 2)
+                    print_limit(f"{condition_name}, {trig_direction} - Trigger is not paused and not already set.", 2)
                     return True
                 else:
-                    print_limit(" - Trigger paused, not triggering.", 2)
+                    print_limit(f"{condition_name}, {trig_direction} - Trigger paused, not triggering.", 2)
                     return False
         else:
             return True
 
 
-def check_value(log_path):
+def get_last_line(log_path: str) -> str:
+    """
+    Robustly read the last line of a (possibly small) text file.
+    Returns '' if the file is empty.
+    """
+    try:
+        size = os.path.getsize(log_path)
+    except OSError:
+        return ""
+
+    if size == 0:
+        return ""
+
+    # Try a simple tail: read a small chunk from the end and splitlines
+    chunk = 1024
+    with open(log_path, "rb") as f:
+        if size <= chunk:
+            data = f.read()
+        else:
+            f.seek(-chunk, os.SEEK_END)
+            data = f.read()
+    try:
+        text = data.decode("utf-8", errors="replace")
+    except Exception:
+        text = data.decode(errors="replace")
+
+    lines = text.splitlines()
+    if lines:
+        return lines[-1]
+    return ""
+
+def get_item_from_line(line, key):
     split_chr = ">"
     second_split_chr = "="
-    value_side = 1
+
+    if not line or split_chr not in line:
+        return None
+
+    for token in line.split(split_chr):
+        if second_split_chr in token:
+            k, v = token.split(second_split_chr, 1)
+            if k.strip() == key:
+                return v.strip()
+    return None
+
+def create_conditions_list(log_name):
+    """
+        Preserve existing consumer order while sourcing from dicts.
+    """
+    conditions = []
+    for item in config_data.trigger_conditions:
+        if item.get("log_name", "") == log_name:
+            conditions.append([
+                item.get("value_label", ""),
+                item.get("trigger_type", ""),
+                item.get("trigger_value", ""),
+                item.get("condition_name", ""),
+                item.get("trig_direction", ""),
+                item.get("trig_cooldown", ""),
+                item.get("cmd", ""),
+                item.get("enable_guard", ""),
+            ])
+    return conditions
+
+
+
+def check_trigger_value(trigger: str, line_value: str, value: str) -> bool:
+    """
+    Returns True if the trigger condition is met.
+    """
+    # Guard numeric cases
+    def _to_float(s):
+        return float(str(s).strip())
+
+    try:
+        if trigger == "above":
+            if _to_float(value) < _to_float(line_value):
+                print_limit(f" Value {line_value} larger than trigger value {value}", 1)
+                return True
+
+        elif trigger == "below":
+            if _to_float(value) > _to_float(line_value):
+                print_limit(f" Value {line_value} smaller than trigger value {value}", 1)
+                return True
+
+        elif trigger == "window":  # inside min:max
+            if ":" in value:
+                val_min, val_max = [p.strip() for p in value.split(":", 1)]
+                if _to_float(line_value) > _to_float(val_min) and _to_float(line_value) < _to_float(val_max):
+                    print_limit(f"Value greater than {val_min} and less than {val_max}", 1)
+                    return True
+
+        elif trigger == "frame":  # outside min:max
+            if ":" in value:
+                val_min, val_max = [p.strip() for p in value.split(":", 1)]
+                outside = not (_to_float(line_value) > _to_float(val_min) and _to_float(line_value) < _to_float(val_max))
+                if outside:
+                    print_limit(f"Value less than {val_min} or greater than {val_max}", 1)
+                    return True
+
+        elif trigger == "all":
+            print_limit(f"Trigger set to all", 1)
+            return True
+
+    except ValueError:
+        print_limit(f" !! Non-numeric comparison: trigger={trigger} value='{value}' line_value='{line_value}'", 0)
+        return False
+
+    return False
+
+def _parse_time_range(guard: str):
+    m = _TIME_RANGE_RE.match(guard or "")
+    if not m:
+        return None
+    h1, m1, h2, m2 = map(int, m.groups())
+    if not (0 <= h1 < 24 and 0 <= h2 < 24 and 0 <= m1 < 60 and 0 <= m2 < 60):
+        return None
+    return h1 * 60 + m1, h2 * 60 + m2
+
+def _now_minutes_local():
+    t = datetime.datetime.now().time()
+    return t.hour * 60 + t.minute
+
+def _within_window(now_mins, start_mins, end_mins):
+    if start_mins == end_mins:
+        return False
+    if start_mins < end_mins:
+        return start_mins <= now_mins < end_mins
+    return now_mins >= start_mins or now_mins < end_mins  # overnight
+
+def guard_allows_firing(enable_guard: str) -> bool:
+    g = (enable_guard or "").strip()
+    if not g or g.lower() == "none":
+        return True
+    if g.lower().startswith("device:"):
+        print_limit(f"link to device: {g} not yet supported.", 1)
+        return False
+    tr = _parse_time_range(g)
+    if tr is None:
+        print_limit(f" !! Unknown enable_guard format '{g}', blocking trigger.", 0)
+        return False
+    now_m = _now_minutes_local()
+    ok = _within_window(now_m, tr[0], tr[1])
+    if not ok:
+        print_limit(f" - Outside time window {g}; not triggering.", 2)
+    return ok
+
+def check_value(log_path):
+
     date_text = "time"
+    log_name = os.path.split(log_path)[1]
+    print_limit(" - log changed - " + log_name, 1)
 
     # Check the conditions for this log
     # read log
-    log_name = os.path.split(log_path)[1]
-    print_limit(" - log changed - " + log_path, 1)
     if log_name in config_data.logs_to_check:
-        with open(log_path, 'rb') as f:
-            f.seek(-2, os.SEEK_END)
-            while f.read(1) != b'\n':
-                f.seek(-2, os.SEEK_CUR)
-            last_line = f.readline().decode()
+        last_line = get_last_line(log_path)
+        if not last_line:
+            print_limit(" - Empty or unreadable log; skipping", 2)
+            return
 
-        # create list of trigger conditions
-        # this should be outside the loop
-        conditions = []
-        for item in config_data.trigger_conditions:
-            #print_limit(item)
-            if item[0] == log_name:
-                conditions.append([item[1], item[2], item[3], item[4], item[5], item[6], item[7]])
+        line_date = get_item_from_line(last_line, "time")
+        conditions = create_conditions_list(log_name)
 
+        # check each trigger assocaiated wit this log
+        for condition in conditions:
+            val_label      = condition[0]
+            trigger        = condition[1]
+            value          = condition[2]
+            condition_name = condition[3]
+            trig_direction = condition[4]
+            trig_cooldown  = condition[5]
+            cmd            = condition[6]
+            enable_guard   = condition[7]
 
-        if split_chr in last_line:
-            line_items = last_line.split(split_chr)
-            line_date = None
-            line_value = None
-            # find the datetime the last log was written
-                  # current this is not used for anything....
-            for item in line_items:
-                if second_split_chr in item:
-                    if date_text in item:
-                        line_date = item.split(second_split_chr)[value_side]
-            # check each trigger assocaiated wit this log
-            for condition in conditions:
-                val_label      = condition[0]
-                trigger        = condition[1]
-                value          = condition[2]
-                condition_name = condition[3]
-                trig_direction = condition[4]
-                trig_cooldown  = condition[5]
-                cmd            = condition[6]
-                # check trigger state
-                if check_condition(condition_name, trig_direction) == True:
-                    # find the selected value in the log
-                    for item in line_items:
-                        if second_split_chr in item:
-                            if val_label in item:
-                                line_value = item.split(second_split_chr)[value_side].strip()
+            if not guard_allows_firing(enable_guard):
+                continue
 
-                    # perform logic to see if value causes a trigger condition
-                    if not line_date == None or not line_value == None:
-                        # Above
-                        if trigger == "above":
-                            if float(value) < float(line_value):
-                                print_limit(" Vakue " + line_value + " larger than trigger value of " + str(value) + " running " + cmd, 1)
-                                os.system(cmd + " &")
-                                pigrow_defs.set_condition(condition_name, trig_direction, trig_cooldown)
-                            else:
-                                print_limit(" - trigger value conditions not met, no action", 2)
-                        # Below
-                        elif trigger == "below":
-                            if float(value) > float(line_value):
-                                print_limit(" Value " + line_value + " smaller than trigger value of " + str(value) + " running " + cmd, 1)
-                                os.system(cmd + " &")
-                                pigrow_defs.set_condition(condition_name, trig_direction, trig_cooldown)
-                            else:
-                                print_limit(" - trigger value conditions not met, no action", 2)
-                        # Window
-                        #    Trigger inside a window
-                        elif trigger == "window":
-                            if ":" in value:
-                                val_min, val_max = value.split(":")
-                                if float(line_value) > float(val_min) and float(line_value) < float(val_max):
-                                    print_limit("Value greater than " + val_min + " and less than " + val_max + ", running " + cmd, 1)
-                                    os.system(cmd + " &")
-                                    pigrow_defs.set_condition(condition_name, trig_direction, trig_cooldown)
-                                else:
-                                    print_limit(" - trigger value conditions not met, no action", 2)
-                        # Frame
-                        #    trigger outside a window
-                        elif trigger == "frame":
-                            if ":" in value:
-                                val_min, val_max = value.split(":")
-                                if not (float(line_value) > float(val_min) and float(line_value) < float(val_max)):
-                                    print_limit("Value less than " + val_min + " or greater than " + val_max + ", running " + cmd, 1)
-                                    os.system(cmd + " &")
-                                    pigrow_defs.set_condition(condition_name, trig_direction, trig_cooldown)
-                                else:
-                                    print_limit(" - trigger value conditions not met, no action", 2)
-                        # Any
-                        #    trigger on any value being recorded
-                        elif trigger == "all":
-                            os.system(cmd + " &")
-                            print_limit("Trigger set to all, running " + cmd, 1)
-                            pigrow_defs.set_condition(condition_name, trig_direction, trig_cooldown)
+            if check_condition(condition_name, trig_direction) is True:
+                line_value = get_item_from_line(last_line, val_label)
+
+                if line_value is None or line_value == "":
+                    print_limit(f" - No '{val_label}' in line; no action", 2)
+                    continue
+
+                if check_trigger_value(trigger, line_value, value):
+                    print(f"Running Command; {cmd}")
+                    os.system(cmd + " &")
+                    pigrow_defs.set_condition(condition_name, trig_direction, trig_cooldown)
+                else:
+                    print_limit(" - trigger value conditions not met, no action", 2)
+
 
 def on_created(event):
     check_value(event.src_path)
@@ -252,7 +450,7 @@ def on_moved(event):
 def trig_change(event):
     if "trigger_events.txt" in event.src_path:
         print_limit(" - - - Trigger events file changed - - -", 2)
-        config_data.load_trigger_events(trigger_events_path)
+        config_data.load_trigger_events(config_data, trigger_events_path)
 
 def observe_trig_file():
     print_limit(" - Enabling Trigger Events Config File Observation -", 2)
@@ -266,8 +464,11 @@ def observe_trig_file():
                               )
     trig_events_handler.on_created = trig_change
     trig_events_handler.on_modified = trig_change
+    ####
+    # are these not pointing to the wrong events handler? 
     trig_e_handler.on_deleted = on_deleted
     trig_e_handler.on_modified = on_modified
+    ###
     trig_events_ob = Observer()
     trig_events_ob.schedule(trig_events_handler, path, recursive=True)
     trig_events_ob.start()
@@ -280,9 +481,10 @@ if __name__ == "__main__":
     # empty the conditions file
     clear_conditions()
     # set path from locs file
-    config_data.load_trigger_events(trigger_events_path)
+    config_data.load_trigger_events(config_data, trigger_events_path)
     print_limit(" - Loaded trigger events;", 1)
     print_limit(config_data.trigger_conditions, 2)
+
     # Set up and run log file watcher
     path = homedir + "/Pigrow/logs/"
     patterns = ["*.txt"]
