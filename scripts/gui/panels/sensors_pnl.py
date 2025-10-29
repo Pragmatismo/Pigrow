@@ -3,6 +3,10 @@ import wx
 import sys
 import wx.lib.scrolledpanel as scrolled
 from uitools import RunCmdDialog
+import re
+_TIME_RE = re.compile(r"^\s*(\d{1,2}):(\d{2})\s*$")
+_RANGE_RE = re.compile(r"^\s*(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})\s*$")
+
 
 
 '''
@@ -277,7 +281,7 @@ class info_pnl(scrolled.ScrolledPanel):
     class trigger_table(wx.ListCtrl):
         def __init__(self, parent, id):
             self.parent = parent
-            wx.ListCtrl.__init__(self, parent, id, style=wx.LC_REPORT|wx.LC_VRULES)
+            wx.ListCtrl.__init__(self, parent, id, style=wx.LC_REPORT | wx.LC_VRULES)
             self.InsertColumn(0, 'Log')
             self.InsertColumn(1, 'Value Label')
             self.InsertColumn(2, 'Type')
@@ -285,7 +289,8 @@ class info_pnl(scrolled.ScrolledPanel):
             self.InsertColumn(4, 'Condition Name')
             self.InsertColumn(5, 'Set')
             self.InsertColumn(6, 'lock (min)')
-            self.InsertColumn(7, 'Shell Command')
+            self.InsertColumn(7, 'Enabled Time')  # NEW: v2 enable_guard (time window or device:...)
+            self.InsertColumn(8, 'Shell Command')  # shifted right
             self.autosizeme()
 
         def autosizeme(self):
@@ -297,108 +302,172 @@ class info_pnl(scrolled.ScrolledPanel):
                 if l > h:
                     self.SetColumnWidth(i, wx.LIST_AUTOSIZE)
 
+        # ---- small helpers to parse a single line (legacy or v2) ----
+        def _nth_comma_positions(self, line: str, n: int):
+            pos, start = [], 0
+            for _ in range(n):
+                i = line.find(",", start)
+                if i == -1:
+                    break
+                pos.append(i)
+                start = i + 1
+            return pos
+
+        def _parse_legacy_line(self, line: str):
+            """
+            Legacy: 8 fields (7 commas). Tail is cmd and may contain commas.
+            Returns tuple (log, label, type, value, name, set, cooldown, enable_guard, cmd)
+            with enable_guard = '' for legacy rows.
+            """
+            commas = self._nth_comma_positions(line, 7)
+            if len(commas) < 7:
+                return None
+            c = commas
+            log = line[:c[0]].strip()
+            label = line[c[0] + 1:c[1]].strip()
+            typ = line[c[1] + 1:c[2]].strip()
+            val = line[c[2] + 1:c[3]].strip()
+            name = line[c[3] + 1:c[4]].strip()
+            setv = line[c[4] + 1:c[5]].strip()
+            cooldown = line[c[5] + 1:c[6]].strip()
+            cmd = line[c[6] + 1:].strip()
+            enable_guard = ""  # none in legacy
+            return (log, label, typ, val, name, setv, cooldown, enable_guard, cmd)
+
+        def _parse_v2_line(self, line: str):
+            """
+            v2: begins 'v2,' then 9 fields (8 commas), tail is cmd (may contain commas).
+              0 log, 1 label, 2 type, 3 value, 4 name, 5 set, 6 cooldown, 7 enable_guard, 8 cmd
+            Returns same tuple order as _parse_legacy_line.
+            """
+            body = line[3:]  # strip 'v2,'
+            commas = self._nth_comma_positions(body, 8)
+            if len(commas) < 8:
+                return None
+            c = commas
+            log = body[:c[0]].strip()
+            label = body[c[0] + 1:c[1]].strip()
+            typ = body[c[1] + 1:c[2]].strip()
+            val = body[c[2] + 1:c[3]].strip()
+            name = body[c[3] + 1:c[4]].strip()
+            setv = body[c[4] + 1:c[5]].strip()
+            cooldown = body[c[5] + 1:c[6]].strip()
+            enable_g = body[c[6] + 1:c[7]].strip()
+            cmd = body[c[7] + 1:].strip()
+            return (log, label, typ, val, name, setv, cooldown, enable_g, cmd)
+
+        def _parse_trigger_line(self, line: str):
+            line = line.strip()
+            if not line or "," not in line:
+                return None
+            if line.startswith("v2,"):
+                return self._parse_v2_line(line)
+            return self._parse_legacy_line(line)
+
         def make_trigger_table(self):
             self.DeleteAllItems()
             print("  - Filling Trigger Table - ")
             trig_path = self.parent.parent.shared_data.remote_pigrow_path + "config/trigger_events.txt"
             out, error = self.parent.parent.link_pnl.run_on_pi("cat " + trig_path)
-            for line in out.splitlines():
-                first_comma = line.find(",")
-                second_comma  = first_comma + 1 + line[first_comma+1:].find(",")
-                third_comma   = second_comma + 1 + line[second_comma+1:].find(",")
-                fourth_comma  = third_comma + 1 + line[third_comma+1:].find(",")
-                fifth_comma   = fourth_comma + 1 + line[fourth_comma+1:].find(",")
-                sixth_comma   = fifth_comma + 1 + line[fifth_comma+1:].find(",")
-                seventh_comma = sixth_comma + 1 + line[sixth_comma+1:].find(",")
-                eighth_comma = seventh_comma + 1 + line[seventh_comma+1:].find(",")
-                # find values between commas
-                log_name        = line[:first_comma].strip()
-                value_label     = line[first_comma  +1 :second_comma].strip()
-                trigger_type    = line[second_comma +1 :third_comma].strip()
-                trigger_value   = line[third_comma  +1 :fourth_comma].strip()
-                condition_name  = line[fourth_comma +1 :fifth_comma].strip()
-                trig_direction  = line[fifth_comma  +1 :sixth_comma].strip()
-                trig_cooldown   = line[sixth_comma  +1 :seventh_comma].strip()
-                cmd            = line[seventh_comma+1:].strip()
-                self.add_to_trigger_list(log_name, value_label, trigger_type, trigger_value, condition_name, trig_direction, trig_cooldown, cmd)
+            for raw in out.splitlines():
+                parsed = self._parse_trigger_line(raw)
+                if not parsed:
+                    continue
+                log_name, value_label, trigger_type, trigger_value, condition_name, trig_direction, trig_cooldown, enable_guard, cmd = parsed
+                # Display note: column header says 'Enabled Time' but we store the guard text as-is.
+                # For device links, it'll show 'device:type:name:on|off' (fine for now).
+                self.add_to_trigger_list(log_name, value_label, trigger_type, trigger_value,
+                                         condition_name, trig_direction, trig_cooldown,
+                                         enable_guard, cmd)
             # resize
             self.autosizeme()
 
-        def add_to_trigger_list(self, log, label, type, value, name, set, cooldown, cmd):
+        def add_to_trigger_list(self, log, label, trig_type, value, name, d_set, cooldown, enable_guard, cmd):
             self.InsertItem(0, str(log))
             self.SetItem(0, 1, str(label))
-            self.SetItem(0, 2, str(type))
+            self.SetItem(0, 2, str(trig_type))
             self.SetItem(0, 3, str(value))
             self.SetItem(0, 4, str(name))
-            self.SetItem(0, 5, str(set))
+            self.SetItem(0, 5, str(d_set))
             self.SetItem(0, 6, str(cooldown))
-            self.SetItem(0, 7, str(cmd))
+            self.SetItem(0, 7, str(enable_guard))  # NEW
+            self.SetItem(0, 8, str(cmd))  # shifted
 
-        def update_table_line(self, index, log, label, type, value, name, set, cooldown, cmd):
+        def update_table_line(self, index, log, label, trig_type, value, name, d_set, cooldown, enable_guard, cmd):
             self.SetItem(index, 0, str(log))
             self.SetItem(index, 1, str(label))
-            self.SetItem(index, 2, str(type))
+            self.SetItem(index, 2, str(trig_type))
             self.SetItem(index, 3, str(value))
             self.SetItem(index, 4, str(name))
-            self.SetItem(index, 5, str(set))
+            self.SetItem(index, 5, str(d_set))
             self.SetItem(index, 6, str(cooldown))
-            self.SetItem(index, 7, str(cmd))
+            self.SetItem(index, 7, str(enable_guard))  # NEW
+            self.SetItem(index, 8, str(cmd))  # shifted
 
         def save_table_to_pi(self):
-            trigger_file_text = ""
-
+            """
+            Always serialize as v2:
+              v2,log,label,type,value,name,set,cooldown,enable_guard,cmd
+            (cmd remains tail; may contain commas)
+            """
+            lines = []
             for index in range(0, self.parent.trigger_list.GetItemCount()):
-                log      = self.GetItem(index,0).GetText()
-                label    = self.GetItem(index,1).GetText()
-                type     = self.GetItem(index,2).GetText()
-                value    = self.GetItem(index,3).GetText()
-                name     = self.GetItem(index,4).GetText()
-                set      = self.GetItem(index,5).GetText()
-                cooldown = self.GetItem(index,6).GetText()
-                cmd      = self.GetItem(index,7).GetText()
-                trigger_file_text += log + "," + label + "," + type + "," + value + "," + name + "," + set + "," + cooldown + "," + cmd + "\n"
-            # remove trailing line from file
-            if len(trigger_file_text) > 1:
-                if trigger_file_text[0:-2] == "\n":
-                    trigger_file_text = trigger_file_text[0:-2]
+                log = self.GetItem(index, 0).GetText()
+                label = self.GetItem(index, 1).GetText()
+                trig_type = self.GetItem(index, 2).GetText()
+                value = self.GetItem(index, 3).GetText()
+                name = self.GetItem(index, 4).GetText()
+                d_set = self.GetItem(index, 5).GetText()
+                cooldown = self.GetItem(index, 6).GetText()
+                enable_g = self.GetItem(index, 7).GetText().strip()
+                cmd = self.GetItem(index, 8).GetText()
+
+                # normalize guard: treat 'none' textual as empty on save if you prefer
+                # but it's fine to keep whatever the user typed:
+                line = f"v2,{log},{label},{trig_type},{value},{name},{d_set},{cooldown},{enable_g},{cmd}"
+                lines.append(line)
+
+            trigger_file_text = "\n".join(lines).rstrip("\n")
 
             # back up current trigger events file
             remote_pigrow_path = self.parent.parent.shared_data.remote_pigrow_path
             pi_trigger_events_file = remote_pigrow_path + "config/trigger_events.txt"
-            backup_events_file     = remote_pigrow_path + "config/trigger_events_prev.txt"
+            backup_events_file = remote_pigrow_path + "config/trigger_events_prev.txt"
             cmd = "mv " + pi_trigger_events_file + " " + backup_events_file
             out, error = self.parent.parent.link_pnl.run_on_pi(cmd)
 
             # write text file to pi
-            self.parent.parent.link_pnl.write_textfile_to_pi( trigger_file_text, pi_trigger_events_file )
+            self.parent.parent.link_pnl.write_textfile_to_pi(trigger_file_text, pi_trigger_events_file)
 
-            # check file is valid
+            # verify round-trip
             cmd = "cat " + pi_trigger_events_file
             out, error = self.parent.parent.link_pnl.run_on_pi(cmd)
-            out = "".join(l + "\n" for l in out.splitlines() if l)
-            if out.strip() == trigger_file_text.strip():
+            # Normalize both sides to the same newline policy
+            out_norm = "\n".join(l for l in out.splitlines() if l).rstrip("\n")
+            if out_norm.strip() == trigger_file_text.strip():
                 print(" - Copied trigger file matches expected text. ")
             else:
                 print(" - ERROR - copied trigger file does not match expected text! reverted to original")
                 cmd = "mv " + backup_events_file + " " + pi_trigger_events_file
                 out, error = self.parent.parent.link_pnl.run_on_pi(cmd)
-                msg_text = "There was an error copying the file, the written file did not match the expected text changes not saved."
+                msg_text = "There was an error copying the file, the written file did not match the expected text. Changes not saved."
                 dbox = wx.MessageDialog(self, msg_text, "Error", wx.OK | wx.ICON_ERROR)
                 dbox.ShowModal()
                 dbox.Destroy()
 
         def double_click(self, e):
             print(self, e)
-            index =  e.GetIndex()
+            index = e.GetIndex()
             print(index)
-            self.initial_log       = self.GetItem(index, 0).GetText()
+            self.initial_log = self.GetItem(index, 0).GetText()
             self.initial_val_label = self.GetItem(index, 1).GetText()
-            self.initial_type      = self.GetItem(index, 2).GetText()
-            self.initial_value     = self.GetItem(index, 3).GetText()
+            self.initial_type = self.GetItem(index, 2).GetText()
+            self.initial_value = self.GetItem(index, 3).GetText()
             self.initial_cond_name = self.GetItem(index, 4).GetText()
-            self.initial_set       = self.GetItem(index, 5).GetText()
-            self.initial_lock      = self.GetItem(index, 6).GetText()
-            self.initial_cmd       = self.GetItem(index, 7).GetText()
+            self.initial_set = self.GetItem(index, 5).GetText()
+            self.initial_lock = self.GetItem(index, 6).GetText()
+            self.initial_enable_guard = self.GetItem(index, 7).GetText()  # NEW
+            self.initial_cmd = self.GetItem(index, 8).GetText()
             self.initial_index = index
             trigger_edit_box = set_trigger_dialog(self, self.parent)
             trigger_edit_box.ShowModal()
@@ -706,6 +775,20 @@ class set_trigger_dialog(wx.Dialog):
         lock_l = wx.StaticText(self,  label='Cooldown Lock')
         self.lock_tc = wx.TextCtrl(self, value=trigger_list.initial_lock, size=(400,30))
 
+        # --- Enabled Time / Device Link (v2 enable_guard) ---
+        enabled_l = wx.StaticText(self, label='Enabled Time')
+        self.enable_mode_cb = wx.ComboBox(self, choices=['none', 'time', 'device link'])
+        self.enable_mode_cb.Bind(wx.EVT_COMBOBOX, self.on_enable_mode_change)
+
+        # time option controls
+        self.time_on_l = wx.StaticText(self, label='Time on (HH:MM)')
+        self.time_off_l = wx.StaticText(self, label='Time off (HH:MM)')
+        self.time_on_tc = wx.TextCtrl(self, value="", size=(120, 30))
+        self.time_off_tc = wx.TextCtrl(self, value="", size=(120, 30))
+
+        # device option placeholder
+        self.device_placeholder = wx.StaticText(self, label='Feature not yet coded')
+
         # shell comand
         cmd_l = wx.StaticText(self,  label='Shell Command')
         self.cmd_tc = wx.TextCtrl(self, value=trigger_list.initial_cmd, size=(500,30))
@@ -727,6 +810,7 @@ class set_trigger_dialog(wx.Dialog):
 
         trig_options_sizer = wx.GridBagSizer(8, 4)
         trig_options_sizer.AddMany([
+            # --- existing controls ---
             (log_l, (0, 0), (1, 1), wx.EXPAND),
             (self.log_cb, (0, 1), (1, 1), wx.EXPAND),
             (val_label_l, (1, 0), (1, 1), wx.EXPAND),
@@ -741,9 +825,24 @@ class set_trigger_dialog(wx.Dialog):
             (self.set_cb, (5, 1), (1, 1), wx.EXPAND),
             (lock_l, (6, 0), (1, 1), wx.EXPAND),
             (self.lock_tc, (6, 1), (1, 1), wx.EXPAND),
-            (cmd_l, (7, 0), (1, 1), wx.EXPAND),
-            (self.cmd_tc, (7, 1), (1, 1), wx.EXPAND),
-            (self.make_cmd_btn, (7, 2), (1, 1), wx.EXPAND)
+
+            # --- enable_guard controls ---
+            (enabled_l, (7, 0), (1, 1), wx.EXPAND),
+            (self.enable_mode_cb, (7, 1), (1, 1), wx.EXPAND),
+
+            # time option (rows 8–9)
+            (self.time_on_l, (8, 0), (1, 1), wx.EXPAND),
+            (self.time_on_tc, (8, 1), (1, 1), wx.EXPAND),
+            (self.time_off_l, (9, 0), (1, 1), wx.EXPAND),
+            (self.time_off_tc, (9, 1), (1, 1), wx.EXPAND),
+
+            # device option placeholder on its own row (no overlap with rows 8–9)
+            (self.device_placeholder, (10, 0), (1, 3), wx.EXPAND),
+
+            # --- shell command (moved down to row 11) ---
+            (cmd_l, (11, 0), (1, 1), wx.EXPAND),
+            (self.cmd_tc, (11, 1), (1, 1), wx.EXPAND),
+            (self.make_cmd_btn, (11, 2), (1, 1), wx.EXPAND),
         ])
 
         trigger_conditions_sizer = wx.BoxSizer(wx.VERTICAL)
@@ -775,6 +874,101 @@ class set_trigger_dialog(wx.Dialog):
             self.mirror_l.SetForegroundColour((75,190,75))
             self.mirror_l.SetValue(True)
 
+        # Initialize mode/fields from initial_enable_guard
+        self._init_enable_controls(self.parent.parent.trigger_list.initial_enable_guard)
+        self._apply_enable_mode_visibility()
+
+    def _init_enable_controls(self, initial_guard: str):
+        """
+        Set UI state from initial_enable_guard:
+          '' or 'none'            -> mode 'none'
+          'HH:MM-HH:MM'           -> mode 'time' with fields filled
+          'device:...'            -> mode 'device link'
+        """
+        g = (initial_guard or "").strip()
+        if not g or g.lower() == "none":
+            self.enable_mode_cb.SetValue('none')
+            self.time_on_tc.SetValue("")
+            self.time_off_tc.SetValue("")
+            return
+
+        if g.lower().startswith("device:"):
+            self.enable_mode_cb.SetValue('device link')
+            # we’ll show only the placeholder for now
+            self.time_on_tc.SetValue("")
+            self.time_off_tc.SetValue("")
+            return
+
+        m = _RANGE_RE.match(g)
+        if m:
+            self.enable_mode_cb.SetValue('time')
+            on_h, on_m, off_h, off_m = m.groups()
+            self.time_on_tc.SetValue(f"{int(on_h):02d}:{int(on_m):02d}")
+            self.time_off_tc.SetValue(f"{int(off_h):02d}:{int(off_m):02d}")
+            return
+
+        # Unknown format -> be conservative, display as 'none' (user can correct)
+        self.enable_mode_cb.SetValue('none')
+        self.time_on_tc.SetValue("")
+        self.time_off_tc.SetValue("")
+
+    def _apply_enable_mode_visibility(self):
+        mode = self.enable_mode_cb.GetValue()
+        # Hide all first
+        self.time_on_l.Hide();
+        self.time_on_tc.Hide()
+        self.time_off_l.Hide();
+        self.time_off_tc.Hide()
+        self.device_placeholder.Hide()
+
+        if mode == 'time':
+            self.time_on_l.Show();
+            self.time_on_tc.Show()
+            self.time_off_l.Show();
+            self.time_off_tc.Show()
+        elif mode == 'device link':
+            self.device_placeholder.Show()
+
+        self.Layout()
+
+    def on_enable_mode_change(self, e):
+        self._apply_enable_mode_visibility()
+
+    def _compose_enable_guard(self) -> str:
+        """
+        Build enable_guard string from current UI.
+        Returns one of: ''|'none'|'HH:MM-HH:MM'|'device:<type>:<name>:on|off'
+        (device link UI not built yet; we return a stub if user selects device link)
+        """
+        mode = self.enable_mode_cb.GetValue()
+        if mode == 'none' or not mode:
+            return ""  # save as empty (watcher treats '' or 'none' as no guard)
+
+        if mode == 'device link':
+            # For now, we have no device fields; return a stable placeholder or 'none'
+            # If you prefer to save 'none' until implemented, uncomment the next line:
+            # return ""
+            return "device:placeholder:device:on"  # visible marker; watcher will log "not yet supported"
+
+        # mode == 'time'
+        on_s = self.time_on_tc.GetValue().strip()
+        off_s = self.time_off_tc.GetValue().strip()
+
+        m_on = _TIME_RE.match(on_s)
+        m_off = _TIME_RE.match(off_s)
+        if not (m_on and m_off):
+            # Invalid time entries: choose to save as 'none' (or keep previous value if you store it)
+            wx.MessageBox("Please enter times as HH:MM (00–23:59).", "Invalid time", wx.ICON_WARNING)
+            return ""  # treat as none rather than writing a broken guard
+
+        oh, om = map(int, m_on.groups())
+        fh, fm = map(int, m_off.groups())
+        if not (0 <= oh < 24 and 0 <= fh < 24 and 0 <= om < 60 and 0 <= fm < 60):
+            wx.MessageBox("Times must be within 00:00 to 23:59.", "Invalid time", wx.ICON_WARNING)
+            return ""
+
+        return f"{oh:02d}:{om:02d}-{fh:02d}:{fm:02d}"
+
     def make_cmd_click(self, e=""):
         dlg = RunCmdDialog(self.parent.parent, cancel_button=True, start_text=self.cmd_tc.GetValue())
         if dlg.ShowModal() == wx.ID_OK:
@@ -802,7 +996,7 @@ class set_trigger_dialog(wx.Dialog):
                                 mirror_trigger_index = index
         return mirror_trigger_index
 
-    def create_mirror(self, log, label, type, value, name, set, cooldown, cmd):
+    def create_mirror(self, log, label, type, value, name, set, cooldown, enable_guard, cmd):
         trigger_list = self.parent.parent.trigger_list
         # flip set direction
         if set == "on":
@@ -816,16 +1010,17 @@ class set_trigger_dialog(wx.Dialog):
             cmd = cmd.replace("_off.py", "_on.py")
         # flip type direction
         if type == "above":
-            trigger_list.add_to_trigger_list(log, label, "below", value, name, set, cooldown, cmd)
+            trigger_list.add_to_trigger_list(log, label, "below", value, name, set, cooldown, enable_guard, cmd)
         elif type == "below":
-            trigger_list.add_to_trigger_list(log, label, "above", value, name, set, cooldown, cmd)
+            trigger_list.add_to_trigger_list(log, label, "above", value, name, set, cooldown, enable_guard, cmd)
 
-    def change_mirror(self, mirror_index, log, label, value, name):
+    def change_mirror(self, mirror_index, log, label, value, name, enable_guard):
         trigger_list = self.parent.parent.trigger_list
         trigger_list.SetItem(mirror_index,0, log)
         trigger_list.SetItem(mirror_index,1, label)
         trigger_list.SetItem(mirror_index,3, value)
         trigger_list.SetItem(mirror_index,4, name)
+        trigger_list.SetItem(mirror_index,7, enable_guard)
 
     def get_log_options(self):
         sensor_list = self.parent.parent.sensor_list
@@ -915,6 +1110,9 @@ class set_trigger_dialog(wx.Dialog):
             return True
         if self.mirror_l.GetValue() == True and self.mirror_l.GetLabel() == 'Create Mirror':
             return True
+        current_guard = self._compose_enable_guard()
+        if not trigger_list.initial_enable_guard == current_guard:
+            return True
         # If nothing has changed and the users not asking to create a new mirror trigger
         return False
 
@@ -930,24 +1128,27 @@ class set_trigger_dialog(wx.Dialog):
             set = self.set_cb.GetValue()
             cooldown = self.lock_tc.GetValue()
             cmd = self.cmd_tc.GetValue()
+            enable_guard = self._compose_enable_guard()
             tt_index = trigger_list.initial_index
             # if new create a new item in the table
             if tt_index == -1:
-                # If not already in the table
-                trigger_list.add_to_trigger_list(log, label, type, value, name, set, cooldown, cmd)
+                # new row
+                trigger_list.add_to_trigger_list(log, label, type, value, name, set, cooldown, enable_guard, cmd)
                 if self.mirror_l.GetValue() == True:
-                    self.create_mirror(log, label, type, value, name, set, cooldown, cmd)
+                    self.create_mirror(log, label, type, value, name, set, cooldown, enable_guard, cmd)
             else:
-                # Fot existing triggers
-                trigger_list.update_table_line(tt_index, log, label, type, value, name, set, cooldown, cmd)
+                # update existing
+                trigger_list.update_table_line(tt_index, log, label, type, value, name, set, cooldown, enable_guard,
+                                               cmd)
                 if self.mirror_l.GetValue() == True:
                     mirror_index = self.find_mirror()
                     if type == "above" or type == "below":
                         if mirror_index > -1:
                             print(" -- might be be editing the mirror -- ")
-                            self.change_mirror(mirror_index, log, label, value, name)
+                            self.change_mirror(mirror_index, log, label, value, name, enable_guard)
                         else:
-                            self.create_mirror(log, label, type, value, name, set, cooldown, cmd)
+                            self.create_mirror(log, label, type, value, name, set, cooldown, enable_guard, cmd)
+
             trigger_list.save_table_to_pi()
         self.Destroy()
 

@@ -390,7 +390,6 @@ def guard_allows_firing(enable_guard: str) -> bool:
     return ok
 
 def check_value(log_path):
-
     date_text = "time"
     log_name = os.path.split(log_path)[1]
     print_limit(" - log changed - " + log_name, 1)
