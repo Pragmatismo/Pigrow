@@ -67,7 +67,7 @@ def read_from_settings(name):
     name_freq = "hwpwm_" + name + "_freq"
 
     if name_pin in set_dic and name_freq in set_dic:
-        pin  = set_dic[name_i2c]
+        pin  = set_dic[name_pin]
         freq = set_dic[name_freq]
         if not pin == "":
             return pin, freq
