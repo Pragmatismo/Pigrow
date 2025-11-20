@@ -274,3 +274,42 @@ def detect_timed_devices():
     #print(trig__con_tosave)
     #print("!pgd!------------")
 
+
+def device_schedule_state(on_time, off_time, current_time=None):
+    """Return the expected state ("on"/"off") for a scheduled device.
+
+    The on/off times can span midnight. If they are identical, ``None`` is
+    returned to indicate an indeterminate schedule.
+
+    Args:
+        on_time (datetime.time): Start of the active window.
+        off_time (datetime.time): End of the active window.
+        current_time (datetime.time, optional): Time to check against. Defaults
+            to ``datetime.datetime.now().time()``.
+
+    Returns:
+        str | None: "on" or "off" for deterministic schedules, otherwise
+        ``None`` if the state cannot be determined.
+    """
+
+    if current_time is None:
+        current_time = datetime.datetime.now().time()
+
+    # Undefined schedule if the times are the same
+    if on_time == off_time:
+        return None
+
+    # on period spans over midnight
+    if on_time > off_time:
+        if current_time >= on_time or current_time < off_time:
+            return "on"
+        return "off"
+
+    # on period in same day
+    if on_time < off_time:
+        if on_time <= current_time < off_time:
+            return "on"
+        return "off"
+
+    return None
+
