@@ -55,14 +55,8 @@ def check_gpio_status(gpio_pin, on_power_state):
     # Try sysfs method if the GPIO directory exists.
     if os.path.isdir(gpio_sys_path):
         try:
-            # Check the GPIO direction so we can only read input pins.
-            direction_path = gpio_sys_path + "/direction"
-            if os.path.exists(direction_path):
-                with open(direction_path, "r") as f:
-                    direction = f.read().strip()
-                if direction == "out":
-                    return "GPIO " + gpio_pin + " is set as OUTPUT and cannot be read."
-            # Read the GPIO value.
+            # Read the GPIO value even if configured as an output. The status is
+            # still meaningful for relays or other output-driven devices.
             if os.path.exists(value_path):
                 with open(value_path, "r") as f:
                     gpio_status = f.read().strip()
@@ -101,7 +95,7 @@ def check_gpio_status(gpio_pin, on_power_state):
                 return (
                     "gpioget returned empty output for GPIO "
                     + gpio_pin
-                    + ". Check wiring and that the pin is configured as an input."
+                    + ". Check wiring and that the pin is configured correctly."
                 )
             return interpret_gpio_status(gpio_status, on_power_state)
         except Exception as e:
