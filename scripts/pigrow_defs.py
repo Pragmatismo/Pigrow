@@ -271,9 +271,6 @@ def detect_timed_devices():
         timed_devices.append((device, on_time, off_time, "lampcon"))
 
     return timed_devices
-    #print(trig__con_tosave)
-    #print("!pgd!------------")
-
 
 def device_schedule_state(on_time, off_time, current_time=None):
     """Return the expected state ("on"/"off") for a scheduled device.
