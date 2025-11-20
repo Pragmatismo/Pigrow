@@ -2160,7 +2160,7 @@ class GraphPreset:
         else:
             print(f"Preset file {preset_file} does not exist.")
 
-    def load_dataset_preset(self, parent, preset_name):
+    def load_dataset_preset(self, parent, preset_name, show_dialog=True, error_collector=None):
         """
         loads the preset file (by name) and returns the list
         of dataset dictionaries that it contains.
@@ -2172,14 +2172,14 @@ class GraphPreset:
             datasets_info = preset_data.get('datasets', [])
             dataset_list = []
             for dataset_params in datasets_info:
-                ds = self.construct_dataset_from_params(parent, dataset_params)
+                ds = self.construct_dataset_from_params(parent, dataset_params, show_dialog=show_dialog, error_collector=error_collector)
                 dataset_list.append(ds)
             return dataset_list
         else:
             print(f"Preset file {preset_file} does not exist.")
             return None
 
-    def construct_dataset_from_params(self, parent, dataset_params):
+    def construct_dataset_from_params(self, parent, dataset_params, show_dialog=True, error_collector=None):
         """
         Given a dataset parameters dictionary (from the preset JSON),
         create a dataset dictionary in the same format used by the graphs tab.
@@ -2215,7 +2215,8 @@ class GraphPreset:
             split_char = dataset_params.get('split_char', '')
             kv_split_char = dataset_params.get('kv_split_char', '')
             date_key = dataset_params.get('date_key', None)
-            self.load_log_dataset(parent, file_path, dataset['key'], split_char, kv_split_char, date_key, dataset)
+            self.load_log_dataset(parent, file_path, dataset['key'], split_char, kv_split_char, date_key, dataset,
+                                  show_dialog=show_dialog, error_collector=error_collector)
         elif 'base_path' in dataset_params and 'cap_set' in dataset_params:
             base_path = dataset_params.get('base_path', '')
             cap_set = dataset_params.get('cap_set', '')
@@ -2385,7 +2386,8 @@ class GraphPreset:
         return False
 
 
-    def load_log_dataset(self, parent, file_path, key, split_char, kv_split_char, date_key, dataset):
+    def load_log_dataset(self, parent, file_path, key, split_char, kv_split_char, date_key, dataset,
+                         show_dialog=True, error_collector=None):
         try:
             full_file_path = os.path.join(self.parent.shared_data.frompi_path, 'logs', file_path)
             self.check_for_newer_log(file_path, full_file_path)
@@ -2420,7 +2422,14 @@ class GraphPreset:
             dataset['date_key'] = date_key
             dataset['key'] = key
         except Exception as e:
-            wx.MessageBox(f"Failed to load log file: {e}", "Error", wx.OK | wx.ICON_ERROR)
+            if isinstance(e, FileNotFoundError):
+                message = f"{file_path} not found"
+            else:
+                message = f"Failed to load log file {file_path}: {e}"
+            if error_collector is not None:
+                error_collector.append(message)
+            if show_dialog:
+                wx.MessageBox(message, "Error", wx.OK | wx.ICON_ERROR)
             dataset['data'] = []
             dataset['trimmed_data'] = []
             dataset['file_path'] = 'log not found'
