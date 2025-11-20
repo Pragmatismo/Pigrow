@@ -4,6 +4,7 @@ import os, sys
 import datetime
 
 homedir = os.getenv("HOME")
+
 def load_locs(loc_locs):
     loc_dic = {}
     #print("Loading location details")
@@ -19,6 +20,7 @@ def load_locs(loc_locs):
         print("Switch log not set, confirm your pigrow is configured properly")
         loc_switchlog = homedir + '/Pigrow/logs/switch_log.txt'
         print('Trying default switch log,')
+
     if 'loc_settings' in loc_dic:
         loc_settings = loc_dic['loc_settings']
         #print("Settings file present")
@@ -161,9 +163,9 @@ def archive_grow(loc_dic, name, compress=False):
             move(graph_path+graph, archive_path+"/graphs/")
         responce += "and " + str(len(os.listdir(archive_path+"/graphs/"))) + " graphs. "
     else:
-        responce += "ignoring graohs, and compressing caps folder into a timelapse video. "
+        responce += "ignoring graphs, and compressing caps folder into a timelapse video. "
         responce += " --well actually i'm just pretending to for now, sorry... "
-        response += "  \n  \n I won't delete all your files tho either, so don't worry... (do a normal archive)"
+        responce += "  \n  \n I won't delete all your files tho either, so don't worry... (do a normal archive)"
     return responce
 
 def set_condition(condition_name, trig_direction, cooldown="none"):
@@ -199,16 +201,3 @@ def set_condition(condition_name, trig_direction, cooldown="none"):
     #print(trig__con_tosave)
     #print("!pgd!------------")
 
-
-
-if __name__ == '__main__':
-    global loc_locs
-    # test1.py executed as script
-    # do something
-    loc_locs = homedir + '/Pigrow/config/dirlocs.txt'
-
-    for argu in sys.argv:
-        thearg = str(argu).split('=')[0]
-        if  thearg == 'locs':
-            loc_locs = str(argu).split('=')[1]
-    load_locs(loc_locs)

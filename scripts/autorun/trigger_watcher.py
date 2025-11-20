@@ -378,6 +378,7 @@ def guard_allows_firing(enable_guard: str) -> bool:
         return True
     if g.lower().startswith("device:"):
         print_limit(f"link to device: {g} not yet supported.", 1)
+        determine_linked_times(g[7:])
         return False
     tr = _parse_time_range(g)
     if tr is None:
@@ -432,6 +433,11 @@ def check_value(log_path):
                     pigrow_defs.set_condition(condition_name, trig_direction, trig_cooldown)
                 else:
                     print_limit(" - trigger value conditions not met, no action", 2)
+
+def determine_linked_times(device):
+    print(f"Testing link timing associations with {device}")
+
+
 
 
 def on_created(event):

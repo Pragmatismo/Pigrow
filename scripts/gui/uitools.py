@@ -1,6 +1,7 @@
 import wx
 import os
 import re
+import shlex
 
 class RunCmdDialog(wx.Dialog):
     def __init__(self, parent, cancel_button=False, start_text=None):
@@ -242,8 +243,71 @@ class ScriptConfigTool(wx.Panel):
         self.SetSizer(self.main_sizer)
         self.Enable(False)
 
+    # --- Helpers -------------------------------------------------------------
+
+    def _extract_script_path(self, cmd: str) -> str:
+        """
+        Try to pull the actual script path from a launch command.
+        Handles:
+          - '/path/to/script.py'
+          - 'python /path/to/script.py' or 'python3 ...'
+        Falls back to the first token.
+        """
+        try:
+            parts = shlex.split(cmd)
+        except Exception:
+            return ""
+        if not parts:
+            return ""
+
+        first = parts[0]
+        if first.endswith(".py"):
+            return first
+        if first.endswith("/python") or first.endswith("/python3") or first in ("python", "python3"):
+            return parts[1] if len(parts) > 1 else ""
+        return first  # hope it's a script path; if it’s a binary, the cat will fail (safe)
+
+    def _supports_flags(self, cmd: str) -> bool:
+        """
+        Return True iff the script file contains MAGIC_TAG as a full line
+        within the first ~120 lines. We do NOT execute the script here.
+        """
+        script_path = self._extract_script_path(cmd)
+        if not script_path:
+            return False
+
+        quoted = shlex.quote(script_path)
+
+        # Try 'sed' first (works even if 'head' is missing on some minimal systems)
+        head_out = self._run(f"sed -n '1,120p' {quoted}")
+        if not head_out:
+            head_out = self._run(f"head -n 120 {quoted}")
+
+        if not head_out:
+            return False
+
+        tag = self.MAGIC_TAG.strip()
+        for line in head_out.splitlines():
+            if line.strip() == tag:
+                return True
+        return False
+
+    def _fetch_switch(self, base_cmd: str, switch: str) -> str:
+        """
+        Execute `base_cmd <switch>` and return stdout. If empty and switch is
+        `--something`, try the single-dash variant `-something` for compatibility.
+        Only called when MAGIC_TAG is present.
+        """
+        out = self._run(f"{base_cmd} {switch}")
+        if not out and switch.startswith("--"):
+            alt = "-" + switch.lstrip("-")
+            out = self._run(f"{base_cmd} {alt}")
+        return out or ""
+
+    # --- Main API ------------------------------------------------------------
+
     def update_command(self, cmd, args):
-        """Re-introspect script for flags and defaults, rebuild controls, prefill from args."""
+        """Re-introspect script for flags/defaults (only if MAGIC_TAG present)."""
         self._original_cmd = cmd
         self._order.clear()
         self.flags.clear()
@@ -251,22 +315,31 @@ class ScriptConfigTool(wx.Panel):
         self.opts_sizer.Clear(True)
         self.controls.clear()
 
-        raw_flags = self._run(f"{cmd} -flags")
+        has_magic = self._supports_flags(cmd)
+        if not has_magic:
+            # No tag => assume custom system not available; don't run the script at all.
+            self.Layout()
+            self.Enable(False)
+            return
+
+        # Safe to interrogate: the script declares support.
+        raw_flags = self._fetch_switch(cmd, "--flags")
         for line in raw_flags.splitlines():
-            if '=' in line:
-                key, val = line.split('=', 1)
+            if "=" in line:
+                key, val = line.split("=", 1)
                 self.flags[key] = val
                 self._order.append(key)
 
-        raw_defs = self._run(f"{cmd} -defaults")
+        raw_defs = self._fetch_switch(cmd, "--defaults")
         for line in raw_defs.splitlines():
-            if '=' in line:
-                key, val = line.split('=', 1)
+            if "=" in line:
+                key, val = line.split("=", 1)
                 self.defaults[key] = val
 
+        # Build controls from discovered flags (order preserved)
         for key in self._order:
-            flag_val = self.flags.get(key, '')
-            def_val = self.defaults.get(key, '')
+            flag_val = self.flags.get(key, "")
+            def_val = self.defaults.get(key, "")
 
             row = wx.BoxSizer(wx.HORIZONTAL)
             lbl = wx.StaticText(self, label=key)
@@ -290,24 +363,23 @@ class ScriptConfigTool(wx.Panel):
                     ctrl = widget
                     row.Add(sizer, 1, wx.EXPAND)
             else:
-                ctrl = wx.TextCtrl(self, value='')
+                ctrl = wx.TextCtrl(self, value="")
                 row.Add(ctrl, 1, wx.EXPAND)
 
             if ctrl:
                 has_default = key in self.defaults
-                raw_def = self.defaults.get(key, '')
+                raw_def = self.defaults.get(key, "")
                 def_str = raw_def.strip().strip('"').strip("'")
-                # initial set from default
+
                 if has_default and def_str:
                     ctrl.SetValue(def_str)
                     ctrl.SetBackgroundColour(wx.NullColour)
                 elif has_default and not def_str:
-                    ctrl.SetValue('')
+                    ctrl.SetValue("")
                     ctrl.SetBackgroundColour(wx.Colour(255, 200, 200))
                 else:
-                    ctrl.SetValue('')
+                    ctrl.SetValue("")
 
-                # override from start args if present
                 if key in args:
                     ctrl.SetValue(args[key])
                     ctrl.SetBackgroundColour(wx.NullColour)
@@ -323,7 +395,7 @@ class ScriptConfigTool(wx.Panel):
     def _run(self, cmd):
         """Helper to run via remote link_pnl; returns stdout or empty."""
         out, err = self.parent.parent.parent.link_pnl.run_on_pi(cmd)
-        return out or ''
+        return out or ""
 
     def _on_value_change(self, key):
         ctrl = self.controls.get(key)
@@ -331,24 +403,21 @@ class ScriptConfigTool(wx.Panel):
             return
         current = ctrl.GetValue().strip()
         raw_def = self.defaults.get(key, None)
-        # only for keys explicitly in defaults with empty default:
-        if (raw_def is not None) and (raw_def.strip() == '') and current:
+        if (raw_def is not None) and (raw_def.strip() == "") and current:
             ctrl.SetBackgroundColour(wx.NullColour)
             self.Refresh()
 
     def get_command_string(self):
-        """Compose: original_cmd + only args that differ from default/nonblank."""
+        """Compose original_cmd + only args that differ from default/nonblank."""
         parts = [self._original_cmd]
         for key in self._order:
             ctrl = self.controls.get(key)
             if not ctrl:
                 continue
             val = ctrl.GetValue().strip()
-            def_val = self.defaults.get(key, '').strip().strip('"').strip("'")
-            # include if required (def_val=='') and filled, or optional but changed
+            def_val = self.defaults.get(key, "").strip().strip('"').strip("'")
             if val and val != def_val:
-                # quote if contains space
-                v = f"\"{val}\"" if ' ' in val else val
+                v = f"\"{val}\"" if " " in val else val
                 parts.append(f"{key}={v}")
         return " ".join(parts)
 
