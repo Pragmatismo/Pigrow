@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 import os
 import sys
-import datetime
 homedir = os.getenv("HOME")
 sys.path.append(homedir + '/Pigrow/scripts/')
 import pigrow_defs
@@ -38,38 +37,19 @@ def make_switch_cmd(device, direction, swit):
     return cmd
 
 
-def check_device(device, on_time, off_time, swit):
-    current_time = datetime.datetime.now().time()
-    # on period spans over midnight
-    if on_time > off_time:
-        if current_time > on_time or current_time < off_time:
-            # replace with cmd call to appropriate device
-            os.system(make_switch_cmd(device, "on", swit))
-            return 'on', True
-        else:
-            # replace with cmd call to appropriate device
-            os.system(make_switch_cmd(device, "off", swit))
-            return 'off', True
-
-    # On period is in the same day
-    elif on_time < off_time:
-        if current_time > on_time and current_time < off_time:
-            # replace with cmd call to appropriate device
-            make_switch_cmd(device, "on", swit)
-            return 'on', True
-        else:
-            # replace with cmd call to appropriate device
-            make_switch_cmd(device, "off", swit)
-            return 'off', True
-
-    elif current_time == on_time:
-        return ' - Actually it was a crazy coincidence, exact time match! cron will switch it for us', False
-    return 'error', False
-
 timed_devices = pigrow_defs.detect_timed_devices()
 
 for device, on_time, off_time, swit in timed_devices:
     print(device, on_time, off_time)
-    condition = check_device(device, on_time, off_time, swit)
-    print(f" --- {device} triggered by startup script")
+    target_state = pigrow_defs.device_schedule_state(on_time, off_time)
+
+    if target_state:
+        cmd = make_switch_cmd(device, target_state, swit)
+        if cmd:
+            os.system(cmd)
+            print(f" --- {device} switched {target_state} by startup script")
+        else:
+            print(f" --- Unable to determine command for {device}")
+    else:
+        print(f" --- Unable to determine target state for {device}")
 

@@ -438,7 +438,11 @@ def determine_linked_times(device):
     print(f"Testing link timing associations with {device}")
     timed_devices = pigrow_defs.detect_timed_devices()
     for dev_name, on_time, off_time, _ in timed_devices:
-        print(f"device {dev_name} on: {on_time} off: {off_time}")
+        state = pigrow_defs.device_schedule_state(on_time, off_time)
+        if state:
+            print(f"device {dev_name} on: {on_time} off: {off_time} -> should be {state}")
+        else:
+            print(f"device {dev_name} on: {on_time} off: {off_time} -> unable to determine state")
 
 def on_created(event):
     check_value(event.src_path)
