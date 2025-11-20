@@ -98,7 +98,7 @@ class ctrl_pnl(scrolled.ScrolledPanel):
         self.datawall_data = data
         self.create_btn.Enable()
 
-    def create_datawall_data(self, text_lines):
+    def create_datawall_data(self, text_lines, show_dialog=True, error_collector=None):
         """
         Given a list of preset lines (key=val strings),
         build and return the full data package.
@@ -121,7 +121,9 @@ class ctrl_pnl(scrolled.ScrolledPanel):
                 data["graphs"][key[len("graph_preset:"):]] = gp or None
 
             elif key.startswith("log_preset"):
-                ds = self.parent.dict_C_pnl['graphs_pnl'].graph_preset.load_dataset_preset(self.parent.dict_C_pnl['graphs_pnl'], val)
+                ds = self.parent.dict_C_pnl['graphs_pnl'].graph_preset.load_dataset_preset(
+                    self.parent.dict_C_pnl['graphs_pnl'], val, show_dialog=show_dialog, error_collector=error_collector
+                )
                 data["data"][key[len("log_preset:"):]] = ds or None
 
         return data
