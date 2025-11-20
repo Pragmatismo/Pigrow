@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 import os
 import shutil
-
+import subprocess
 
 def is_bookworm():
     """
@@ -38,75 +38,67 @@ def interpret_gpio_status(gpio_status, on_power_state):
         return "read error -" + gpio_status
 
 
+def run_cmd(cmd):
+    """
+    Helper: run a command, return stdout as stripped string or "" on error.
+    """
+    try:
+        out = subprocess.check_output(cmd, stderr=subprocess.DEVNULL, text=True)
+        return out.strip()
+    except Exception:
+        return ""
+
+
 def check_gpio_status(gpio_pin, on_power_state):
     """
-    Check the status of a given GPIO pin.
+    Check the status of a given GPIO pin without changing its configuration.
 
-    This function first tries the legacy sysfs method. If the sysfs GPIO
-    directory for the pin exists, it will read the value as before.
-
-    If the path does not exist or an error occurs—and if the newer interface
-    is available (i.e. /dev/gpiochip0 exists)—then it falls back to reading
-    the pin value using the "gpioget" command.
+    Strategy:
+      1. If available, use 'raspi-gpio get N' (Raspberry Pi specific, no side effects).
+      2. Else, if /sys/class/gpio/gpioN/value exists, read that.
+      3. Else, if 'gpioget' is present, use 'gpioget --numeric --chip 0 N'.
     """
-    gpio_sys_path = "/sys/class/gpio/gpio" + gpio_pin
-    value_path = gpio_sys_path + "/value"
+    # 1) Prefer raspi-gpio on Raspberry Pi systems
+    if shutil.which("raspi-gpio"):
+        line = run_cmd(["raspi-gpio", "get", str(gpio_pin)])
+        # Typical output contains 'level=0' or 'level=1'
+        if line:
+            tokens = line.replace(",", " ").split()
+            for t in tokens:
+                if t.startswith("level="):
+                    level = t.split("=", 1)[1]
+                    if level in ("0", "1"):
+                        return interpret_gpio_status(level, on_power_state)
+            # If we couldn't parse level, fall through to other methods
 
-    # Try sysfs method if the GPIO directory exists.
-    if os.path.isdir(gpio_sys_path):
+    # 2) Sysfs, **only** if already exported
+    gpio_sys_path = f"/sys/class/gpio/gpio{gpio_pin}"
+    value_path = os.path.join(gpio_sys_path, "value")
+
+    if os.path.exists(value_path):
         try:
-            # Read the GPIO value even if configured as an output. The status is
-            # still meaningful for relays or other output-driven devices.
-            if os.path.exists(value_path):
-                with open(value_path, "r") as f:
-                    gpio_status = f.read().strip()
-            else:
-                return "GPIO " + gpio_pin + " value file does not exist."
-            return interpret_gpio_status(gpio_status, on_power_state)
+            with open(value_path, "r") as f:
+                gpio_status = f.read().strip()
+            if gpio_status in ("0", "1"):
+                return interpret_gpio_status(gpio_status, on_power_state)
         except Exception:
-            # If any error occurs in the sysfs method, fall through to the new method.
-            pass
-    else:
-        # On older systems (non-Bookworm) try exporting the GPIO pin via sysfs.
-        if not is_bookworm():
-            try:
-                cmd = "echo " + gpio_pin + " > /sys/class/gpio/export"
-                os.popen(cmd).read()
-                # Check if exporting worked.
-                if os.path.isdir(gpio_sys_path) and os.path.exists(value_path):
-                    with open(value_path, "r") as f:
-                        gpio_status = f.read().strip()
-                    return interpret_gpio_status(gpio_status, on_power_state)
-            except Exception:
-                pass
+            pass  # fall through to gpioget
 
-    # Fallback: Try using the new GPIO interface (via libgpiod) using "gpioget".
-    if os.path.exists("/dev/gpiochip0"):
-        gpioget_path = shutil.which("gpioget")
-        if gpioget_path is None:
-            return (
-                "gpioget command not found. Install the 'gpiod' package to read GPIO via "
-                "the modern interface."
-            )
-        try:
-            cmd = gpioget_path + " gpiochip0 " + gpio_pin
-            gpio_status = os.popen(cmd).read().strip()
-            if gpio_status == "":
-                return (
-                    "gpioget returned empty output for GPIO "
-                    + gpio_pin
-                    + ". Check wiring and that the pin is configured correctly."
-                )
-            return interpret_gpio_status(gpio_status, on_power_state)
-        except Exception as e:
-            return "Error using gpioget: " + str(e)
+    # 3) libgpiod / gpioget (new GPIO character device API)
+    if shutil.which("gpioget"):
+        # --numeric gives plain 0/1, --chip 0 scopes to gpiochip0
+        line = run_cmd(["gpioget", "--numeric", "--chip", "0", str(gpio_pin)])
+        if line in ("0", "1"):
+            return interpret_gpio_status(line, on_power_state)
+        elif line:
+            # Some kind of unexpected text (probably an error to stdout)
+            return f"gpioget unexpected output for GPIO {gpio_pin}: {line}"
+        else:
+            # Errors usually go to stderr, so stdout is empty
+            return f"gpioget returned empty output for GPIO {gpio_pin}"
 
-    return (
-        "GPIO "
-        + gpio_pin
-        + " not accessible via sysfs or the modern /dev/gpiochip interface. "
-        "Ensure GPIO is enabled on this system."
-    )
+    # If we got here, nothing worked
+    return f"GPIO {gpio_pin} not accessible (raspi-gpio, sysfs, and gpioget all failed)."
 
 
 def show_info():
