@@ -198,6 +198,79 @@ def set_condition(condition_name, trig_direction, cooldown="none"):
     with open(trigger_conditions_path, 'w') as f:
         f.write(trig__con_tosave)
     #print("!pgd! - written; ")
+
+
+def read_cron_timers():
+    cron_lines = os.popen('crontab -l').read().splitlines()
+    timing_dict = {}
+    lampconf_dict = {}
+
+    for line in cron_lines:
+        line = line.strip()
+        # skip too‑short, blank, reboot or commented out
+        if len(line) <= 10 or not line or line.startswith('#') or '@reboot' in line:
+            continue
+
+        # split on any whitespace—no empty strings in the result
+        parts = line.split()
+        # we expect at least 6 parts: minute, hour, dom, mon, dow, command...
+        if len(parts) < 6:
+            continue
+
+        minute, hour, dom, month, dow = parts[:5]
+        cmd = ' '.join(parts[5:])
+
+        # only daily jobs (dom, month, dow all “*”) and numeric time
+        if dom == month == dow == '*' and minute.isdigit() and hour.isdigit():
+            t = datetime.time(int(hour), int(minute))
+
+            # pick on/off relay by filename suffix
+            if '_on.py' in cmd:
+                device = cmd.split('_on.py')[0].split('/')[-1]
+                timing_dict[f"{device}| on"] = t
+            elif '_off.py' in cmd:
+                device = cmd.split('_off.py')[0].split('/')[-1]
+                timing_dict[f"{device}| off"] = t
+
+            # find lamp_confirm
+            device, direction = None, None
+            if "lamp_confirm.py" in cmd:
+                parts = cmd.split(" ")
+                for part in parts:
+                    if "name=" in part:
+                        device = part.replace("name=", "")
+                    if "direction=" in part:
+                        direction = part.replace("direction=", "")
+                if device and direction:
+                    lampconf_dict[f"{device}| {direction}"] = t
+
+    return timing_dict, lampconf_dict
+
+
+def find_timer_pairs(unsorted_dict):
+    pairs = []
+    for key in unsorted_dict:
+        if "| on" in key:
+            device = key.split("| on")[0]
+            counterpart = key.replace("| on", "| off")
+            if counterpart in unsorted_dict:
+                on_time = unsorted_dict[key]
+                off_time = unsorted_dict[counterpart]
+                pairs.append((device, on_time, off_time))
+    return pairs
+
+
+def detect_timed_devices():
+    relay_dict, lampconf_dict = read_cron_timers()
+    timed_devices = []
+
+    for device, on_time, off_time in find_timer_pairs(relay_dict):
+        timed_devices.append((device, on_time, off_time, "relay"))
+
+    for device, on_time, off_time in find_timer_pairs(lampconf_dict):
+        timed_devices.append((device, on_time, off_time, "lampcon"))
+
+    return timed_devices
     #print(trig__con_tosave)
     #print("!pgd!------------")
 

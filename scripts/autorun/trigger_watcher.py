@@ -436,9 +436,9 @@ def check_value(log_path):
 
 def determine_linked_times(device):
     print(f"Testing link timing associations with {device}")
-
-
-
+    timed_devices = pigrow_defs.detect_timed_devices()
+    for dev_name, on_time, off_time, _ in timed_devices:
+        print(f"device {dev_name} on: {on_time} off: {off_time}")
 
 def on_created(event):
     check_value(event.src_path)
