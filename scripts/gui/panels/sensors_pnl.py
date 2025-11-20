@@ -666,6 +666,7 @@ class ctrl_pnl(scrolled.ScrolledPanel):
         trigger_list.initial_cond_name = ""
         trigger_list.initial_set = ""
         trigger_list.initial_lock = ""
+        trigger_list.initial_enable_guard = ""
         trigger_list.initial_cmd = ""
         trigger_list.initial_index = -1
         trigger_edit_box = set_trigger_dialog(trigger_list, trigger_list.parent)
