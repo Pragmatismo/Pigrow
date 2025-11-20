@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 import os
+import shutil
 
 
 def is_bookworm():
@@ -54,14 +55,8 @@ def check_gpio_status(gpio_pin, on_power_state):
     # Try sysfs method if the GPIO directory exists.
     if os.path.isdir(gpio_sys_path):
         try:
-            # Check the GPIO direction so we can only read input pins.
-            direction_path = gpio_sys_path + "/direction"
-            if os.path.exists(direction_path):
-                with open(direction_path, "r") as f:
-                    direction = f.read().strip()
-                if direction == "out":
-                    return "GPIO " + gpio_pin + " is set as OUTPUT and cannot be read."
-            # Read the GPIO value.
+            # Read the GPIO value even if configured as an output. The status is
+            # still meaningful for relays or other output-driven devices.
             if os.path.exists(value_path):
                 with open(value_path, "r") as f:
                     gpio_status = f.read().strip()
@@ -87,16 +82,31 @@ def check_gpio_status(gpio_pin, on_power_state):
 
     # Fallback: Try using the new GPIO interface (via libgpiod) using "gpioget".
     if os.path.exists("/dev/gpiochip0"):
+        gpioget_path = shutil.which("gpioget")
+        if gpioget_path is None:
+            return (
+                "gpioget command not found. Install the 'gpiod' package to read GPIO via "
+                "the modern interface."
+            )
         try:
-            cmd = "gpioget gpiochip0 " + gpio_pin
+            cmd = gpioget_path + " gpiochip0 " + gpio_pin
             gpio_status = os.popen(cmd).read().strip()
             if gpio_status == "":
-                return "gpioget returned empty output for GPIO " + gpio_pin
+                return (
+                    "gpioget returned empty output for GPIO "
+                    + gpio_pin
+                    + ". Check wiring and that the pin is configured correctly."
+                )
             return interpret_gpio_status(gpio_status, on_power_state)
         except Exception as e:
-            return "Error using gpioget: " + e
+            return "Error using gpioget: " + str(e)
 
-    return "GPIO " + gpio_pin + " not accessible via sysfs or new interface."
+    return (
+        "GPIO "
+        + gpio_pin
+        + " not accessible via sysfs or the modern /dev/gpiochip interface. "
+        "Ensure GPIO is enabled on this system."
+    )
 
 
 def show_info():
