@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 import os
+import shutil
 
 
 def is_bookworm():
@@ -87,16 +88,31 @@ def check_gpio_status(gpio_pin, on_power_state):
 
     # Fallback: Try using the new GPIO interface (via libgpiod) using "gpioget".
     if os.path.exists("/dev/gpiochip0"):
+        gpioget_path = shutil.which("gpioget")
+        if gpioget_path is None:
+            return (
+                "gpioget command not found. Install the 'gpiod' package to read GPIO via "
+                "the modern interface."
+            )
         try:
-            cmd = "gpioget gpiochip0 " + gpio_pin
+            cmd = gpioget_path + " gpiochip0 " + gpio_pin
             gpio_status = os.popen(cmd).read().strip()
             if gpio_status == "":
-                return "gpioget returned empty output for GPIO " + gpio_pin
+                return (
+                    "gpioget returned empty output for GPIO "
+                    + gpio_pin
+                    + ". Check wiring and that the pin is configured as an input."
+                )
             return interpret_gpio_status(gpio_status, on_power_state)
         except Exception as e:
-            return "Error using gpioget: " + e
+            return "Error using gpioget: " + str(e)
 
-    return "GPIO " + gpio_pin + " not accessible via sysfs or new interface."
+    return (
+        "GPIO "
+        + gpio_pin
+        + " not accessible via sysfs or the modern /dev/gpiochip interface. "
+        "Ensure GPIO is enabled on this system."
+    )
 
 
 def show_info():
