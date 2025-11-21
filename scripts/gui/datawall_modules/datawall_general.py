@@ -334,8 +334,6 @@ def make_datawall(data: Dict[str, Any], opts: Optional[Dict[str, Any]] = None) -
         hl_lines = ["No dataset found"]
 
     switch_lines = [ln.strip() for ln in (switch_pos or "").splitlines() if ln.strip()]
-    if switch_lines:
-        hl_lines += ["", "Switch Positions"] + switch_lines
 
     # Placeholder text list if all empty
     hl_lines = [ln for ln in hl_lines if ln is not None]
@@ -361,9 +359,18 @@ def make_datawall(data: Dict[str, Any], opts: Optional[Dict[str, Any]] = None) -
         img, gw, gh = graph_data
         if gw == 0:
             gw = 1
-        ratio = graph_available_w / gw
-        graph_height = max(220, int(gh * ratio))
-        graph_img = img.resize((graph_available_w, graph_height), resample=RESAMPLE)
+        max_graph_height = int(opts.get("graph_max_height", 720))
+        scale_w = graph_available_w / gw
+        scale_h = max_graph_height / gh if max_graph_height > 0 else scale_w
+        ratio = min(scale_w, scale_h)
+        new_w, new_h = int(gw * ratio), int(gh * ratio)
+        graph_height = max(220, new_h)
+
+        # Build a background canvas so the resized graph is centered while preserving aspect ratio
+        graph_canvas = Image.new("RGB", (graph_available_w, graph_height), CARD_BG)
+        resized = img.resize((new_w, new_h), resample=RESAMPLE)
+        graph_canvas.paste(resized, ((graph_available_w - new_w) // 2, (graph_height - new_h) // 2))
+        graph_img = graph_canvas
 
     # Determine font size to fit text inside left panel
     max_font_size = 32
@@ -395,17 +402,42 @@ def make_datawall(data: Dict[str, Any], opts: Optional[Dict[str, Any]] = None) -
     total_h = sum(h for _, h in stored_sizes)
     total_h += (len(stored_sizes) - 1) * 6 if len(stored_sizes) > 1 else 0
 
-    left_rect2 = (left_x, left_top, left_x + left_col_w, left_top + graph_height)
+    # Build switch position image (colored icons) and size it to fit the column width
+    switch_img = None
+    switch_img_h = 0
+    if switch_lines:
+        switch_cols = int(opts.get("switch_cols", 4))
+        switch_img = InfoModuleVisuals.switch_positions_image("\n".join(switch_lines), columns=switch_cols)
+        if switch_img:
+            iw, ih = switch_img.size
+            if iw == 0:
+                iw = 1
+            ratio = (left_col_w - 2 * PADDING) / iw
+            new_w, new_h = int(iw * ratio), int(ih * ratio)
+            switch_img = switch_img.resize((new_w, new_h), resample=RESAMPLE)
+            switch_img_h = new_h
+
+    block_gap = 16 if switch_img else 0
+    content_total_h = total_h + switch_img_h + block_gap
+    left_card_h = max(graph_height, content_total_h + 2 * PADDING)
+
+    left_rect2 = (left_x, left_top, left_x + left_col_w, left_top + left_card_h)
     drop_shadow(base, left_rect2)
     rounded_rectangle(d, left_rect2, fill=CARD_BG, outline=BORDER)
 
-    text_start_y = left_top + (graph_height - total_h) // 2
+    block_top = left_top + (left_card_h - content_total_h) // 2
+    text_start_y = block_top
     for idx, line in enumerate(hl_lines):
         lw, lh = stored_sizes[idx]
         d.text((left_x + (left_col_w - lw) // 2, text_start_y), line, font=chosen_font, fill=FG_COLOR if line.strip() else MUTED)
         text_start_y += lh
         if idx < len(hl_lines) - 1:
             text_start_y += 6
+
+    if switch_img:
+        switch_y = block_top + total_h + block_gap
+        paste_x = left_x + (left_col_w - switch_img.width) // 2
+        base.paste(switch_img, (paste_x, switch_y))
 
     # RIGHT CONTENT (graph or fallback)
     right_top = y
@@ -444,7 +476,7 @@ def make_datawall(data: Dict[str, Any], opts: Optional[Dict[str, Any]] = None) -
             d.text((gx0 + (right_col_w-mw)//2, gy0 + (area_h-mh)//2), msg, font=text_font, fill=NEUTRAL)
         gy0 += area_h
 
-    y = max(left_top + graph_height, gy0) + PADDING
+    y = max(left_top + left_card_h, gy0) + PADDING
 
     # --------------------------
     # ROW 3 — Logs
