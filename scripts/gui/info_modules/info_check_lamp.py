@@ -38,7 +38,7 @@ def show_info():
     lamp_msg += (
         "Lamp controlled using "
         + controller
-        + ", on: "
+        + "\n     on: "
         + str(on_time)[:-3]
         + " off: "
         + str(off_time)[:-3]
