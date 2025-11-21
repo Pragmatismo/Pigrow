@@ -359,11 +359,19 @@ def make_datawall(data: Dict[str, Any], opts: Optional[Dict[str, Any]] = None) -
         img, gw, gh = graph_data
         if gw == 0:
             gw = 1
+        if gh == 0:
+            gh = 1
+
         max_graph_height = int(opts.get("graph_max_height", 720))
+        target_h = max_graph_height if max_graph_height > 0 else graph_available_w
+        target_h = max(1, target_h)
+
         scale_w = graph_available_w / gw
-        scale_h = max_graph_height / gh if max_graph_height > 0 else scale_w
+        scale_h = target_h / gh
         ratio = min(scale_w, scale_h)
-        new_w, new_h = int(gw * ratio), int(gh * ratio)
+
+        new_w = max(1, int(gw * ratio))
+        new_h = max(1, int(gh * ratio))
         graph_height = max(220, new_h)
 
         # Build a background canvas so the resized graph is centered while preserving aspect ratio
