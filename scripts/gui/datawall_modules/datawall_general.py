@@ -233,72 +233,91 @@ def make_datawall(data: Dict[str, Any], opts: Optional[Dict[str, Any]] = None) -
     # ROW 1 — LEFT: recent image uses FULL left column area (no inner padding)
     #          RIGHT: info card (matched height to left for a tidy row)
     # --------------------------
-    col_w = (W - (PADDING*2) - GUTTER) // 2
+    total_row_w = (W - (PADDING*2) - GUTTER)
+    image_col_w = int(total_row_w * 2 / 3)
+    info_col_w = total_row_w - image_col_w
     left_x = PADDING
-    right_x = left_x + col_w + GUTTER
+    right_x = left_x + image_col_w + GUTTER
 
     # Left: build stamped image
     stamped = make_image_box(recent_image_path, text="bottom_left", age=True)
     sw, sh = stamped.size
-    new_h = int(sh * (col_w / sw)) if sw else 0
+    new_h = int(sh * (image_col_w / sw)) if sw else 0
     if new_h <= 0:
         new_h = 220
-    stamped = stamped.resize((col_w, new_h), resample=RESAMPLE)
+    stamped = stamped.resize((image_col_w, new_h), resample=RESAMPLE)
 
-    left_rect = (left_x, y, left_x + col_w, y + new_h)
+    left_rect = (left_x, y, left_x + image_col_w, y + new_h)
     drop_shadow(base, left_rect)
     rounded_rectangle(d, left_rect, fill=CARD_BG, outline=BORDER)
     base.paste(stamped, (left_x, y))
 
     # Right: info card, match left height
-    info_card_h = max(220, new_h)
-    right_rect = (right_x, y, right_x + col_w, y + info_card_h)
+    info_w = info_col_w - 2*PADDING
+
+    info_items: List[Tuple[str, List[str]]] = []
+    for label, val in [("Check Lamp", check_lamp), ("Power", power_warn)]:
+        clean_val = (val or "").strip() or "—"
+        lines = wrap_ellipsis(d, clean_val, text_font, max_width=info_w, max_lines=3)
+        info_items.append((label, lines))
+
+    pct = safe_float(diskusage_raw, 0.0)
+    info_items.append(("Disk", [f"{pct:.0f}%"]))
+
+    block_spacing = 20
+    line_spacing = 6
+    label_font = subtitle_font
+    value_font = text_font
+
+    def block_height(label: str, lines: List[str]) -> int:
+        lw, lh = text_size(d, label, label_font)
+        total = lh
+        for i, line in enumerate(lines):
+            fw, fh = text_size(d, line, value_font)
+            total += fh
+            if i < len(lines) - 1:
+                total += line_spacing
+        total += 6  # gap between label and first line
+        return total
+
+    content_height = sum(block_height(lab, ln) for lab, ln in info_items)
+    content_height += block_spacing * (len(info_items) - 1)
+
+    info_card_h = max(220, new_h, content_height + 2 * PADDING)
+    right_rect = (right_x, y, right_x + info_col_w, y + info_card_h)
     drop_shadow(base, right_rect)
     rounded_rectangle(d, right_rect, fill=CARD_BG, outline=BORDER)
 
-    info_x = right_x + PADDING
-    info_y = y + PADDING
-    info_w = col_w - 2*PADDING
+    info_y = y + (info_card_h - content_height) // 2
+    center_x = right_x + info_col_w // 2
 
-    items = [
-        ("Check Lamp", check_lamp),
-        ("Power", power_warn),
-        ("Disk", None),  # custom bar
-    ]
+    for idx, (label, lines) in enumerate(info_items):
+        lw, lh = text_size(d, label, label_font)
+        d.text((center_x - lw // 2, info_y), label, font=label_font, fill=FG_COLOR)
+        info_y += lh + 6
 
-    for label, val in items:
-        dw_, dh_ = text_size(d, label + ":", text_font)
-        d.text((info_x, info_y), label + ":", font=text_font, fill=FG_COLOR)
-        if label == "Disk":
-            pct = safe_float(diskusage_raw, 0.0)
-            bar_h = max(18, SMALL_SIZE+6)
-            bar_rect = (info_x + dw_ + 8, info_y + (dh_-bar_h)//2, info_x + dw_ + 8 + 180, info_y + (dh_-bar_h)//2 + bar_h)
-            draw_progress_bar(d, bar_rect, pct)
-            pct_txt = f"{pct:.0f}%"
-            pw, ph = text_size(d, pct_txt, small_font)
-            d.text((bar_rect[0] + (bar_rect[2]-bar_rect[0]-pw)//2, bar_rect[1] + (bar_rect[3]-bar_rect[1]-ph)//2), pct_txt, font=small_font, fill=(0,0,0))
-        else:
-            val = (val or "").strip() or "—"
-            lines = wrap_ellipsis(d, val, text_font, max_width=info_w - dw_ - 12, max_lines=2)
-            d.text((info_x + dw_ + 8, info_y), "\n".join(lines), font=text_font, fill=MUTED)
-        info_y += dh_ + 10
+        for i, line in enumerate(lines):
+            fw, fh = text_size(d, line, value_font)
+            d.text((center_x - fw // 2, info_y), line, font=value_font, fill=MUTED)
+            info_y += fh
+            if i < len(lines) - 1:
+                info_y += line_spacing
+
+        if idx < len(info_items) - 1:
+            info_y += block_spacing
 
     y = y + max(new_h, info_card_h) + PADDING
 
     # --------------------------
-    # ROW 2 — LEFT: High/Low + Switch chips  |  RIGHT: Graph (or sparkline fallback)
+    # ROW 2 — LEFT: High/Low summary | RIGHT: Graph (or sparkline fallback)
     # --------------------------
     left_top = y
 
-    # LEFT CONTENT
-    left_rect2 = (left_x, left_top, left_x + col_w, left_top)  # end y set later
-    content_y = left_top + PADDING
+    left_col_w = total_row_w - int(total_row_w * 2 / 3)
+    right_col_w = total_row_w - left_col_w
+    right_x = left_x + left_col_w + GUTTER
 
-    # High/Low block
-    hl_title = "High/Low"
-    d.text((left_x + PADDING, content_y), hl_title, font=text_font, fill=FG_COLOR)
-    content_y += text_size(d, hl_title, text_font)[1] + 6
-
+    # Build High/Low + switch summary lines
     hl_lines: List[str] = []
     if dataset_list:
         for ds in dataset_list:
@@ -314,115 +333,123 @@ def make_datawall(data: Dict[str, Any], opts: Optional[Dict[str, Any]] = None) -
     else:
         hl_lines = ["No dataset found"]
 
-    for line in hl_lines:
-        d.text((left_x + PADDING, content_y), line, font=small_font if line and not line.endswith(':') and not line.startswith('High') and not line.startswith('Low') else text_font, fill=MUTED)
-        content_y += text_size(d, line if line else " ", text_font)[1] + 2
+    switch_lines = [ln.strip() for ln in (switch_pos or "").splitlines() if ln.strip()]
 
-    content_y += 6
+    # Placeholder text list if all empty
+    hl_lines = [ln for ln in hl_lines if ln is not None]
+    if not hl_lines:
+        hl_lines = ["No details available"]
 
-    # Switch positions
-    # d.text((left_x + PADDING, content_y), "Switch Positions", font=text_font, fill=FG_COLOR)
-    # content_y += text_size(d, "Switch Positions", text_font)[1] + 8
-    #
-    # switches: List[Tuple[str, str]] = []
-    # for raw in (switch_pos or "").splitlines():
-    #     parts = raw.split(" is ")
-    #     if len(parts) == 2:
-    #         name, status = parts[0].strip(), parts[1].strip().lower()
-    #         if name:
-    #             switches.append((name, status))
-    #
-    # chip_w, chip_h = 110, 44
-    # grid_h = 4*chip_h + 3*8
-    # area_x, area_y = left_x + PADDING, content_y
-    #
-    # # Lay out chips by index mapping over generated positions
-    # idx = 0
-    # for gx, gy in grid_positions(area_x, area_y, col_w - 2*PADDING, chip_w, grid_h, chip_h, gap=8):
-    #     if idx >= len(switches):
-    #         break
-    #     name, status = switches[idx]
-    #     idx += 1
-    #     color = OK if status == 'on' else (BAD if status == 'off' else NEUTRAL)
-    #     rounded_rectangle(d, (gx, gy, gx+chip_w, gy+chip_h), fill=(247,248,250), outline=BORDER, radius=12)
-    #     dot_r = 7
-    #     d.ellipse((gx+10-dot_r, gy+chip_h//2-dot_r, gx+10+dot_r, gy+chip_h//2+dot_r), fill=color)
-    #     label = f"{name} · {status.upper()}" if status else name
-    #     d.text((gx+24, gy + (chip_h - text_size(d, label, small_font)[1])//2), label, font=small_font, fill=FG_COLOR)
-    #
-    # left_end_y = max(area_y + grid_h, content_y + 4) + PADDING
-    # left_rect2 = (left_x, left_top, left_x + col_w, left_end_y)
-    # drop_shadow(base, left_rect2)
-    # rounded_rectangle(d, left_rect2, fill=None, outline=BORDER)
-
-
-
-    # After drawing the High/Low section:
-    content_y += PADDING  # pad, item1, pad
-
-    # Build the switch positions image (choose column count; or make it configurable via opts)
-    switch_cols = int(opts.get("switch_cols", 4))
-    sp_img = InfoModuleVisuals.switch_positions_image(switch_pos, columns=switch_cols)
-
-    # Scale to fill available width while maintaining aspect ratio
-    avail_w = col_w - 2 * PADDING
-    try:
-        RESAMPLE = Image.Resampling.LANCZOS
-    except AttributeError:
-        RESAMPLE = Image.LANCZOS
-
-    iw, ih = sp_img.size
-    if iw == 0:
-        iw = 1
-    new_h = int(ih * (avail_w / iw))
-    sp_img = sp_img.resize((avail_w, new_h), resample=RESAMPLE)
-
-    # Paste into the left card
-    base.paste(sp_img, (left_x + PADDING, content_y))
-    content_y += new_h
-
-    # Bottom pad
-    content_y += PADDING
-
-    # Now finalize the left card frame/height
-    left_end_y = content_y
-    left_rect2 = (left_x, left_top, left_x + col_w, left_end_y)
-    drop_shadow(base, left_rect2)
-    rounded_rectangle(d, left_rect2, fill=None, outline=BORDER)
-
-
-
-    # RIGHT CONTENT (graph or fallback)
-    right_top = y
-    gx0, gy0 = right_x + PADDING, right_top + PADDING
-    d.text((gx0, gy0), "Graph", font=text_font, fill=FG_COLOR)
-    gy0 += text_size(d, "Graph", text_font)[1] + 8
-
-    # Try to load external graph image to a neat box
-    def load_image_letterbox(path: Optional[str], target_w: int, target_h: int) -> Optional[Image.Image]:
+    # Calculate graph size first to set target height for left card
+    def load_graph_image(path: Optional[str]) -> Optional[Tuple[Image.Image, int, int]]:
         if not path or not os.path.isfile(path):
             return None
         try:
             img = Image.open(path).convert("RGB")
-            ow, oh = img.size
-            ratio = min(target_w/ow, target_h/oh)
-            nw, nh = int(ow*ratio), int(oh*ratio)
-            resized = img.resize((nw, nh), resample=RESAMPLE)
-            canvas = Image.new("RGB", (target_w, target_h), (247,248,250))
-            canvas.paste(resized, ((target_w-nw)//2, (target_h-nh)//2))
-            return canvas
+            return img, *img.size
         except Exception:
             return None
 
-    area_w, area_h = col_w - 2*PADDING, 220
-    graph_img = load_image_letterbox(graph_image_path, area_w, area_h)
+    graph_data = load_graph_image(graph_image_path)
+    graph_available_w = right_col_w
+    graph_img = None
+    graph_height = 300
+
+    if graph_data:
+        img, gw, gh = graph_data
+        if gw == 0:
+            gw = 1
+        max_graph_height = int(opts.get("graph_max_height", 720))
+        scale_w = graph_available_w / gw
+        scale_h = max_graph_height / gh if max_graph_height > 0 else scale_w
+        ratio = min(scale_w, scale_h)
+        new_w, new_h = int(gw * ratio), int(gh * ratio)
+        graph_height = max(220, new_h)
+
+        # Build a background canvas so the resized graph is centered while preserving aspect ratio
+        graph_canvas = Image.new("RGB", (graph_available_w, graph_height), CARD_BG)
+        resized = img.resize((new_w, new_h), resample=RESAMPLE)
+        graph_canvas.paste(resized, ((graph_available_w - new_w) // 2, (graph_height - new_h) // 2))
+        graph_img = graph_canvas
+
+    # Determine font size to fit text inside left panel
+    max_font_size = 32
+    min_font_size = 12
+    left_available_w = left_col_w - 2 * PADDING
+    left_available_h = graph_height - 2 * PADDING
+
+    def text_block_size(font: ImageFont.ImageFont) -> Tuple[int, int, List[Tuple[int, int]]]:
+        widths_heights = [text_size(d, line if line else " ", font) for line in hl_lines]
+        max_w = max(w for w, _ in widths_heights)
+        total_h = sum(h for _, h in widths_heights)
+        total_h += (len(widths_heights) - 1) * 6 if len(widths_heights) > 1 else 0
+        return max_w, total_h, widths_heights
+
+    chosen_font = load_font(text_font.size)
+    stored_sizes: List[Tuple[int, int]] = []
+    for size in range(max_font_size, min_font_size - 1, -1):
+        font_candidate = load_font(size)
+        max_w, total_h, widths_heights = text_block_size(font_candidate)
+        if max_w <= left_available_w and total_h <= left_available_h:
+            chosen_font = font_candidate
+            stored_sizes = widths_heights
+            break
+    else:
+        chosen_font = load_font(min_font_size)
+        _, _, stored_sizes = text_block_size(chosen_font)
+
+    max_w = max(w for w, _ in stored_sizes) if stored_sizes else 0
+    total_h = sum(h for _, h in stored_sizes)
+    total_h += (len(stored_sizes) - 1) * 6 if len(stored_sizes) > 1 else 0
+
+    # Build switch position image (colored icons) and size it to fit the column width
+    switch_img = None
+    switch_img_h = 0
+    if switch_lines:
+        switch_cols = int(opts.get("switch_cols", 4))
+        switch_img = InfoModuleVisuals.switch_positions_image("\n".join(switch_lines), columns=switch_cols)
+        if switch_img:
+            iw, ih = switch_img.size
+            if iw == 0:
+                iw = 1
+            ratio = (left_col_w - 2 * PADDING) / iw
+            new_w, new_h = int(iw * ratio), int(ih * ratio)
+            switch_img = switch_img.resize((new_w, new_h), resample=RESAMPLE)
+            switch_img_h = new_h
+
+    block_gap = 16 if switch_img else 0
+    content_total_h = total_h + switch_img_h + block_gap
+    left_card_h = max(graph_height, content_total_h + 2 * PADDING)
+
+    left_rect2 = (left_x, left_top, left_x + left_col_w, left_top + left_card_h)
+    drop_shadow(base, left_rect2)
+    rounded_rectangle(d, left_rect2, fill=CARD_BG, outline=BORDER)
+
+    block_top = left_top + (left_card_h - content_total_h) // 2
+    text_start_y = block_top
+    for idx, line in enumerate(hl_lines):
+        lw, lh = stored_sizes[idx]
+        d.text((left_x + (left_col_w - lw) // 2, text_start_y), line, font=chosen_font, fill=FG_COLOR if line.strip() else MUTED)
+        text_start_y += lh
+        if idx < len(hl_lines) - 1:
+            text_start_y += 6
+
+    if switch_img:
+        switch_y = block_top + total_h + block_gap
+        paste_x = left_x + (left_col_w - switch_img.width) // 2
+        base.paste(switch_img, (paste_x, switch_y))
+
+    # RIGHT CONTENT (graph or fallback)
+    right_top = y
+    gx0, gy0 = right_x, right_top
 
     if graph_img is not None:
+        drop_shadow(base, (gx0, gy0, gx0 + right_col_w, gy0 + graph_height))
         base.paste(graph_img, (gx0, gy0))
-        gy0 += area_h
+        gy0 += graph_height
     else:
-        # simple sparkline fallback
-        rounded_rectangle(d, (gx0, gy0, gx0+area_w, gy0+area_h), fill=(247,248,250), outline=BORDER, radius=12)
+        area_h = graph_height
+        rounded_rectangle(d, (gx0, gy0, gx0+right_col_w, gy0+area_h), fill=(247,248,250), outline=None, radius=12)
         series = None
         for ds in dataset_list:
             tuples = ds.get("trimmed_data", []) or []
@@ -433,7 +460,7 @@ def make_datawall(data: Dict[str, Any], opts: Optional[Dict[str, Any]] = None) -
         if series:
             mn, mx = min(series), max(series)
             rng = (mx - mn) or 1.0
-            px1, py1, px2, py2 = gx0+16, gy0+16, gx0+area_w-16, gy0+area_h-16
+            px1, py1, px2, py2 = gx0+16, gy0+16, gx0+right_col_w-16, gy0+area_h-16
             d.line((px1, py2, px2, py2), fill=BORDER, width=1)
             for i in range(len(series)-1):
                 t1 = i/(len(series)-1)
@@ -446,15 +473,10 @@ def make_datawall(data: Dict[str, Any], opts: Optional[Dict[str, Any]] = None) -
         else:
             msg = "No graph data"
             mw, mh = text_size(d, msg, text_font)
-            d.text((gx0 + (area_w-mw)//2, gy0 + (area_h-mh)//2), msg, font=text_font, fill=NEUTRAL)
+            d.text((gx0 + (right_col_w-mw)//2, gy0 + (area_h-mh)//2), msg, font=text_font, fill=NEUTRAL)
         gy0 += area_h
 
-    right_end_y = gy0 + PADDING
-    right_rect2 = (right_x, right_top, right_x + col_w, right_end_y)
-    drop_shadow(base, right_rect2)
-    rounded_rectangle(d, right_rect2, fill=None, outline=BORDER)
-
-    y = max(left_end_y, right_end_y) + PADDING
+    y = max(left_top + left_card_h, gy0) + PADDING
 
     # --------------------------
     # ROW 3 — Logs
