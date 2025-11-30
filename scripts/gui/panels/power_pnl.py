@@ -1406,7 +1406,7 @@ class lampcon_dialog(wx.Dialog):
         return [list]
 
     def show_guide_click(self, e):
-        self.parent.parent.show_help('lampcon_help.png')
+        self.shared_data.show_help('lampcon_help.png')
 
     def OnClose(self, e):
         self.Destroy()
