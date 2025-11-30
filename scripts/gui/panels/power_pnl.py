@@ -1,6 +1,7 @@
 from random import choices
 
 import wx
+from uitools import RunCmdDialog
 
 
 class ctrl_pnl(wx.Panel):
@@ -1278,8 +1279,15 @@ class lampcon_dialog(wx.Dialog):
             row.Add(txt, 1, wx.EXPAND | wx.RIGHT, 5)
             if with_button:
                 btn = wx.Button(parent, label="…", size=(30, 24))
-                btn.Bind(wx.EVT_BUTTON,
-                         lambda e, t=txt: t.SetValue("button not yet coded"))
+                def on_cmd_click(event, t=txt):
+                    dialog = RunCmdDialog(self, cancel_button=True,
+                                          start_text=t.GetValue())
+                    result = dialog.ShowModal()
+                    if result == wx.ID_OK:
+                        t.SetValue(dialog.GetCommand())
+                    dialog.Destroy()
+
+                btn.Bind(wx.EVT_BUTTON, on_cmd_click)
                 row.Add(btn, 0)
             return row
 
