@@ -15,6 +15,11 @@ class ctrl_pnl(wx.Panel):
         super().__init__(parent, id=wx.ID_ANY, style=wx.TAB_TRAVERSAL)
         self.SetBackgroundColour((100, 150, 170))
 
+        # Datawall status / error note (placed above toggle)
+        self.datawall_note = wx.StaticText(self, label="")
+        self.datawall_note.SetForegroundColour(wx.Colour(200, 0, 0))
+        self.datawall_note.Wrap(250)
+
         # Create Datawall checkbox
         self.cbCreateDatawall = wx.CheckBox(self, label="Create Datawall")
         init_val = self.shared_data.gui_set_dict.get('start_datawall', "False")
@@ -30,17 +35,13 @@ class ctrl_pnl(wx.Panel):
         self.btnRefreshDatawall = wx.Button(self, label="Refresh Datawall")
         self.btnRefreshDatawall.Bind(wx.EVT_BUTTON, self.onRefreshDatawall)
 
-        # Datawall status / error note
-        self.datawall_note = wx.StaticText(self, label="")
-        self.datawall_note.Wrap(250)
-
         # Layout: center controls vertically & horizontally
         sizer = wx.BoxSizer(wx.VERTICAL)
         sizer.AddStretchSpacer(1)
+        sizer.Add(self.datawall_note, 0, wx.ALIGN_CENTER_HORIZONTAL)
         sizer.Add(self.cbCreateDatawall, 0, wx.ALIGN_CENTER_HORIZONTAL)
         sizer.Add(self.btnSelectPreset, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.TOP, 10)
         sizer.Add(self.btnRefreshDatawall, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.TOP, 10)
-        sizer.Add(self.datawall_note, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.TOP, 10)
         sizer.AddStretchSpacer(1)
         self.SetSizer(sizer)
 
@@ -75,11 +76,11 @@ class ctrl_pnl(wx.Panel):
         preset = self.shared_data.config_dict.get('gui_datawall', '')
         if not preset:
             preset = self.shared_data.gui_set_dict.get('default_datawall', '')
-        if not preset:
-            preset = self.shared_data.gui_set_dict.get('start_datawall_preset', '')
 
         # If no preset, nothing to build
         if not preset:
+            self.datawall_note.SetLabel("No datawall set")
+            self.Layout()
             return
 
         print(f"Wants to create datawall using preset: {preset}")
@@ -202,7 +203,6 @@ class DatawallPresetDialog(wx.Dialog):
 
     def onOk(self, event):
         sel = self.choicePreset.GetStringSelection()
-        self.shared_data.gui_set_dict['start_datawall_preset'] = sel
         self.shared_data.config_dict['gui_datawall'] = sel
 
         if self.cbSetAll.GetValue():
