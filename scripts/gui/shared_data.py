@@ -381,7 +381,12 @@ class shared_data:
 
     class show_image_dialog(wx.Dialog):
         def __init__(self, parent, image_to_show, title):
-            wx.Dialog.__init__(self, parent, title=title)
+            wx.Dialog.__init__(
+                self,
+                parent,
+                title=title,
+                style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER,
+            )
             self.title = title
             self.zoom_factor = 1.0  # User-driven zoom factor
 
@@ -421,8 +426,10 @@ class shared_data:
             self.display_panel.SetSizer(panel_sizer)
 
             sizer = wx.BoxSizer(wx.VERTICAL)
-            sizer.Add(self.display_panel)
-            self.SetSizerAndFit(sizer)
+            sizer.Add(self.display_panel, 1, wx.EXPAND)
+            self.SetSizer(sizer)
+            self.Layout()
+            self.Fit()
             self.Bind(wx.EVT_SIZE, self.on_resize)
             self.update_title()
 
