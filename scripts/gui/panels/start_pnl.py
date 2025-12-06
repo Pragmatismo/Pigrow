@@ -18,7 +18,7 @@ class ctrl_pnl(wx.Panel):
         # Create Datawall checkbox
         self.cbCreateDatawall = wx.CheckBox(self, label="Create Datawall")
         init_val = self.shared_data.gui_set_dict.get('start_datawall', "False")
-        if init_val.lower() == 'true':
+        if str(init_val).lower() == 'true':
             self.cbCreateDatawall.SetValue(1)
         self.cbCreateDatawall.Bind(wx.EVT_CHECKBOX, self.onToggleCreateDatawall)
 
@@ -72,12 +72,11 @@ class ctrl_pnl(wx.Panel):
         self.datawall_note.SetLabel("")
 
         # Retrieve chosen preset
-        preset = self.shared_data.gui_set_dict.get('start_datawall_preset', '')
-        # Apply per-box override if present
-        boxname = getattr(self.shared_data, 'boxname', '')
-        dw_dict = self.shared_data.gui_set_dict.get('start_dw_dict', {})
-        if boxname and boxname in dw_dict:
-            preset = dw_dict[boxname]
+        preset = self.shared_data.config_dict.get('gui_datawall', '')
+        if not preset:
+            preset = self.shared_data.gui_set_dict.get('default_datawall', '')
+        if not preset:
+            preset = self.shared_data.gui_set_dict.get('start_datawall_preset', '')
 
         # If no preset, nothing to build
         if not preset:
@@ -169,11 +168,18 @@ class DatawallPresetDialog(wx.Dialog):
         presets = parent._get_presets()
         self.choicePreset = wx.Choice(self, choices=presets)
         if presets:
-            self.choicePreset.SetSelection(0)
+            current_preset = shared_data.config_dict.get(
+                'gui_datawall',
+                shared_data.gui_set_dict.get('default_datawall', "")
+            )
+            try:
+                self.choicePreset.SetStringSelection(current_preset)
+            except wx.wxAssertionError:
+                self.choicePreset.SetSelection(0)
 
-        # Checkbox: set for all pigrows
-        self.cbSetAll = wx.CheckBox(self, label="Set for all pigrows")
-        self.cbSetAll.SetValue(False)
+        # Checkbox: set as global default
+        self.cbSetAll = wx.CheckBox(self, label="Set as global default")
+        self.cbSetAll.SetValue(True)
 
         # Set & Cancel buttons
         btnOk     = wx.Button(self, wx.ID_OK,     label="Set")
@@ -197,7 +203,16 @@ class DatawallPresetDialog(wx.Dialog):
     def onOk(self, event):
         sel = self.choicePreset.GetStringSelection()
         self.shared_data.gui_set_dict['start_datawall_preset'] = sel
-        self.shared_data.gui_set_dict['start_datawall_preset_for_all'] = self.cbSetAll.GetValue()
+        self.shared_data.config_dict['gui_datawall'] = sel
+
+        if self.cbSetAll.GetValue():
+            prev_default = self.shared_data.gui_set_dict.get('default_datawall', "")
+            self.shared_data.gui_set_dict['default_datawall'] = sel
+            if sel != prev_default:
+                self.shared_data.save_gui_settings()
+
+        if getattr(self.shared_data, 'remote_pigrow_path', ""):
+            self.shared_data.update_pigrow_config_file_on_pi()
         self.EndModal(wx.ID_OK)
 
     def onCancel(self, event):
