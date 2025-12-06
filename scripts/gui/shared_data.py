@@ -383,7 +383,7 @@ class shared_data:
         def __init__(self, parent, image_to_show, title):
             wx.Dialog.__init__(self, parent, title=title)
             self.title = title
-            self.zoom_factor = 1.0  # Initial zoom factor
+            self.zoom_factor = 1.0  # User-driven zoom factor
 
             if type(image_to_show) == type("str"):
                 print("Displaying Image; ", image_to_show)
@@ -392,62 +392,90 @@ class shared_data:
             else:
                 print(type(image_to_show))
 
-            self.original_image = image_to_show  # Save the original image for reference
+            self.original_image = image_to_show.ConvertToImage()
 
-            width, height = wx.GetDisplaySize()
-            im_width, im_height = image_to_show.GetSize()
+            display_width, display_height = wx.GetDisplaySize()
+            available_width = int(display_width * 0.9)
+            available_height = int(display_height * 0.9)
+            self.fit_scale = min(
+                available_width / self.original_image.GetWidth(),
+                available_height / self.original_image.GetHeight(),
+                1.0,
+            )
 
-            if im_height > height:
-                im_height = height
-            if im_width > width:
-                im_width = width
+            initial_width = int(self.original_image.GetWidth() * self.fit_scale)
+            initial_height = int(self.original_image.GetHeight() * self.fit_scale)
 
-            display_panel = scrolled.ScrolledPanel(self, size=(im_width, im_height), style=wx.HSCROLL | wx.VSCROLL)
-            display_panel.SetupScrolling()
-            self.pic = wx.StaticBitmap(display_panel, -1, image_to_show)
+            self.display_panel = scrolled.ScrolledPanel(
+                self, size=(initial_width, initial_height), style=wx.HSCROLL | wx.VSCROLL
+            )
+            self.display_panel.SetupScrolling()
+
+            scaled_bitmap = self._get_scaled_bitmap(initial_width, initial_height)
+            self.pic = wx.StaticBitmap(self.display_panel, -1, scaled_bitmap)
             self.pic.Bind(wx.EVT_LEFT_DOWN, self.on_left_click)
             self.pic.Bind(wx.EVT_RIGHT_DOWN, self.on_right_click)
 
             panel_sizer = wx.BoxSizer(wx.VERTICAL)
             panel_sizer.Add(self.pic)
-            display_panel.SetSizer(panel_sizer)
+            self.display_panel.SetSizer(panel_sizer)
 
             sizer = wx.BoxSizer(wx.VERTICAL)
-            sizer.Add(display_panel)
+            sizer.Add(self.display_panel)
             self.SetSizerAndFit(sizer)
+            self.Bind(wx.EVT_SIZE, self.on_resize)
+            self.update_title()
 
         def on_left_click(self, event):
             click_point = event.GetPosition()
-            self.zoom_factor *= 1.1  # You can adjust the zoom factor as needed
+            self.zoom_factor *= 1.1
             self.update_image(click_point)
             self.update_title()
 
         def on_right_click(self, event):
             click_point = event.GetPosition()
-            self.zoom_factor /= 1.1  # You can adjust the zoom factor as needed
+            self.zoom_factor /= 1.1
             self.update_image(click_point)
             self.update_title()
 
-        def update_image(self, click_point):
-            # Update the image size based on the current zoom factor
-            image_to_show = self.original_image.ConvertToImage()
-            new_width = int(image_to_show.GetWidth() * self.zoom_factor)
-            new_height = int(image_to_show.GetHeight() * self.zoom_factor)
-            image_to_show = image_to_show.Scale(new_width, new_height, wx.IMAGE_QUALITY_HIGH)
+        def on_resize(self, event):
+            panel_size = self.display_panel.GetClientSize()
+            if panel_size.width > 0 and panel_size.height > 0:
+                self.fit_scale = min(
+                    panel_size.width / self.original_image.GetWidth(),
+                    panel_size.height / self.original_image.GetHeight(),
+                    1.0,
+                )
+                self.update_image()
+                self.update_title()
+            event.Skip()
 
-            # Center the clicked point in the image box
-            scroll_pos = self.pic.GetParent().GetViewStart()
-            offset_x = int((click_point.x + scroll_pos[0]) * self.zoom_factor - click_point.x)
-            offset_y = int((click_point.y + scroll_pos[1]) * self.zoom_factor - click_point.y)
+        def update_image(self, click_point=None):
+            scale = self.fit_scale * self.zoom_factor
+            image_to_show = self.original_image.Scale(
+                max(1, int(self.original_image.GetWidth() * scale)),
+                max(1, int(self.original_image.GetHeight() * scale)),
+                wx.IMAGE_QUALITY_HIGH,
+            )
 
-            # Update the bitmap within the scrolled panel
-            self.pic.SetBitmap(wx.Bitmap(image_to_show))
-            # Resize the display_panel to match the new image size
-            self.pic.GetParent().SetVirtualSize((new_width, new_height))
-            self.pic.GetParent().Layout()
-            # Scroll to the new position
-            self.pic.GetParent().Scroll(offset_x, offset_y)
+            if click_point is None:
+                scroll_pos = self.display_panel.GetViewStart()
+                click_point = wx.Point(scroll_pos[0], scroll_pos[1])
+
+            scroll_pos = self.display_panel.GetViewStart()
+            offset_x = int((click_point.x + scroll_pos[0]) * scale - click_point.x)
+            offset_y = int((click_point.y + scroll_pos[1]) * scale - click_point.y)
+
+            scaled_bitmap = wx.Bitmap(image_to_show)
+            self.pic.SetBitmap(scaled_bitmap)
+            self.display_panel.SetVirtualSize(scaled_bitmap.GetSize())
+            self.display_panel.Layout()
+            self.display_panel.Scroll(offset_x, offset_y)
+
+        def _get_scaled_bitmap(self, width, height):
+            scaled_image = self.original_image.Scale(width, height, wx.IMAGE_QUALITY_HIGH)
+            return wx.Bitmap(scaled_image)
 
         def update_title(self):
-            # Update the dialog box title with the current zoom level
-            self.SetTitle(f"{self.title} - Zoom: {round(self.zoom_factor, 2) * 100}")
+            overall_zoom = round(self.fit_scale * self.zoom_factor, 2) * 100
+            self.SetTitle(f"{self.title} - Zoom: {overall_zoom}")
