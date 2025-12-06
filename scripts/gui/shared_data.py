@@ -26,7 +26,6 @@ class shared_data:
         # connection behavior
         self.gui_set_dict['start_datawall'] = True
         self.gui_set_dict['default_datawall'] = ""
-        self.gui_set_dict['start_datawall_preset'] = ""
 
 
         # load from file
@@ -147,7 +146,7 @@ class shared_data:
                 legacy = self.gui_set_dict.get('start_datawall_preset', "")
                 self.gui_set_dict['default_datawall'] = legacy
             # remove obsolete keys
-            for obsolete_key in ['start_dw_dict', 'start_datawall_preset_for_all']:
+            for obsolete_key in ['start_dw_dict', 'start_datawall_preset_for_all', 'start_datawall_preset']:
                 if obsolete_key in self.gui_set_dict:
                     del self.gui_set_dict[obsolete_key]
         else:
@@ -156,7 +155,7 @@ class shared_data:
     def save_gui_settings(self):
         gui_settings_path = "gui_settings.txt"
         settings_file_text = ""
-        skip_keys = {'start_dw_dict', 'start_datawall_preset_for_all'}
+        skip_keys = {'start_dw_dict', 'start_datawall_preset_for_all', 'start_datawall_preset'}
         for key, value in self.gui_set_dict.items():
             if key in skip_keys:
                 continue
