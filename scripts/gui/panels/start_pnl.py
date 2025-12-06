@@ -48,6 +48,7 @@ class ctrl_pnl(wx.Panel):
     def onToggleCreateDatawall(self, event):
         val = self.cbCreateDatawall.GetValue()
         self.shared_data.gui_set_dict['start_datawall'] = str(val)
+        self.shared_data.save_gui_settings()
 
     def onSelectPreset(self, event):
         dlg = DatawallPresetDialog(self, self.shared_data)
