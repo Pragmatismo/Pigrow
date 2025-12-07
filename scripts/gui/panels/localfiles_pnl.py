@@ -1743,19 +1743,19 @@ class log_detail_dialog(wx.Dialog):
                     stats[key] = []
                 stats[key].append(value)
 
+        panel = wx.Panel(self)
         grid = wx.FlexGridSizer(rows=len(stats) + 1, cols=4, hgap=10, vgap=5)
         headers = ['Key', 'Most recent', 'Min', 'Max']
         for header in headers:
-            grid.Add(wx.StaticText(self, label=header), 0, wx.ALL, 5)
+            grid.Add(wx.StaticText(panel, label=header), 0, wx.ALL, 5)
 
         for key, values in stats.items():
             min_val, max_val = self.calculate_min_max(values)
-            grid.Add(wx.StaticText(self, label=key), 0, wx.ALL, 5)
-            grid.Add(wx.StaticText(self, label=values[-1]), 0, wx.ALL, 5)
-            grid.Add(wx.StaticText(self, label=min_val), 0, wx.ALL, 5)
-            grid.Add(wx.StaticText(self, label=max_val), 0, wx.ALL, 5)
+            grid.Add(wx.StaticText(panel, label=key), 0, wx.ALL, 5)
+            grid.Add(wx.StaticText(panel, label=values[-1]), 0, wx.ALL, 5)
+            grid.Add(wx.StaticText(panel, label=min_val), 0, wx.ALL, 5)
+            grid.Add(wx.StaticText(panel, label=max_val), 0, wx.ALL, 5)
 
-        panel = wx.Panel(self)
         panel.SetSizer(grid)
         return panel
 
