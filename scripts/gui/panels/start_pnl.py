@@ -66,6 +66,12 @@ class ctrl_pnl(wx.Panel):
         Called whenever a connection to a PiGrow is made.
         If Datawall creation is enabled, build it using the stored preset.
         '''
+        # Skip if no Pigrow installation was detected on the remote Pi
+        if not self.shared_data.box_name:
+            self.datawall_note.SetLabel("Pigrow software not detected; skipping datawall creation")
+            self.Layout()
+            return
+
         # Only proceed if user enabled datawall
         if not self.shared_data.gui_set_dict.get('start_datawall', "False") == "True":
             return
