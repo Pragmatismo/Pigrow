@@ -196,6 +196,7 @@ class motion_sets_pnl(wx.Panel):
         #print(" Running command - " + cmd)
         #print(" ")
         out, error = self.parent.parent.link_pnl.run_on_pi(cmd)
+        combined_output = (out + error).strip()
         #print("out, error =", out, error)
 
     def start_detect_click(self, e):
@@ -551,6 +552,7 @@ class motion_sets_pnl(wx.Panel):
         cmd = "wget http://localhost:" + port + "/0/action/snapshot > /dev/null"
         print(" Taking a picture using ", cmd)
         out, error = self.parent.parent.link_pnl.run_on_pi(cmd)
+        combined_output = (out + error).strip()
 
         # check for text output listing save location
         if "‘snapshot’ saved [255]" in out:
@@ -564,7 +566,8 @@ class motion_sets_pnl(wx.Panel):
         path = out.strip()
         # return path
         print(path)
-        return path
+        return path, combined_output
 
     def take_default(self, outpath):
         print("Motion does not support taking default images")
+        return outpath, "motion", "Motion does not support taking default images"

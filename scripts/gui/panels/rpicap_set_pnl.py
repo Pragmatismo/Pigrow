@@ -350,13 +350,14 @@ class rpicap_sets_pnl(wx.Panel):
         pigrow_path = self.parent.parent.shared_data.remote_pigrow_path
         cmd = pigrow_path + 'scripts/cron/rpicap.py caps=' + outpath + ' set=' + settings_file
         out, error = self.parent.parent.link_pnl.run_on_pi(cmd)
+        combined_output = (out + error).strip()
         print(out, error)
         # check for text output listing save location
-        if "Saving image to:" in out:
-            path = out.split("Saving image to:")[1].split("\n")[0].strip()
+        if "Saving image to:" in combined_output:
+            path = combined_output.split("Saving image to:")[1].split("\n")[0].strip()
         else:
-            path = "Error : Image path not given \n\n" + out + '\n' + error
-        return path
+            path = "Error : Image path not given \n\n" + combined_output
+        return path, combined_output
 
     def take_default(self, outpath):
         print(" Taking default image using rpicam-still ")
@@ -364,7 +365,7 @@ class rpicap_sets_pnl(wx.Panel):
         print("saving metadata to", metapath)
         cam_cmd = "rpicam-still --nopreview --metadata " + metapath + " -o " + outpath
         out, error = self.parent.parent.link_pnl.run_on_pi(cam_cmd)
-        return out + error, "rpicam-still"
+        return outpath, "rpicam-still", (out + error).strip()
 
 class SetAFROIDialog(wx.Dialog):
     def __init__(self, parent, image_path, initial_roi=None):
