@@ -1766,6 +1766,7 @@ class log_detail_dialog(wx.Dialog):
 
     def build_kv_summary(self, lines, parent=None):
         stats = {}
+        time_values = []
         for line in lines:
             segments = [seg for seg in line.strip().split('>') if seg]
             for seg in segments:
@@ -1774,12 +1775,21 @@ class log_detail_dialog(wx.Dialog):
                 key, value = seg.split('=', 1)
                 key = key.strip()
                 value = value.strip()
+                if key == 'time':
+                    time_values.append(self.strip_microseconds(value))
+                    continue
                 if key not in stats:
                     stats[key] = []
                 stats[key].append(value)
 
         parent_panel = parent if parent else self
         panel = wx.Panel(parent_panel)
+        main_sizer = wx.BoxSizer(wx.VERTICAL)
+
+        time_range = self.format_time_range(time_values)
+        if time_range:
+            main_sizer.Add(wx.StaticText(panel, label=time_range), 0, wx.ALL, 5)
+
         grid = wx.FlexGridSizer(rows=len(stats) + 1, cols=4, hgap=10, vgap=5)
         headers = ['Key', 'Most recent', 'Min', 'Max']
         for header in headers:
@@ -1792,7 +1802,8 @@ class log_detail_dialog(wx.Dialog):
             grid.Add(wx.StaticText(panel, label=min_val), 0, wx.ALL, 5)
             grid.Add(wx.StaticText(panel, label=max_val), 0, wx.ALL, 5)
 
-        panel.SetSizer(grid)
+        main_sizer.Add(grid, 0, wx.ALL, 0)
+        panel.SetSizer(main_sizer)
         return panel
 
     def calculate_min_max(self, values):
@@ -1810,6 +1821,36 @@ class log_detail_dialog(wx.Dialog):
             min_val = min(values)
             max_val = max(values)
         return min_val, max_val
+
+    def format_time_range(self, time_values):
+        if not time_values:
+            return None
+
+        parsed_times = []
+        for val in time_values:
+            dt = self.parse_datetime(val)
+            if dt:
+                parsed_times.append(dt)
+
+        if parsed_times:
+            earliest = min(parsed_times)
+            latest = max(parsed_times)
+            start = earliest.strftime("%Y-%m-%d %H:%M:%S")
+            end = latest.strftime("%Y-%m-%d %H:%M:%S")
+        else:
+            start = min(time_values)
+            end = max(time_values)
+
+        return f"from {start} to {end}"
+
+    def parse_datetime(self, value):
+        try:
+            return datetime.datetime.fromisoformat(value)
+        except ValueError:
+            return None
+
+    def strip_microseconds(self, value):
+        return value.split('.', 1)[0]
 
     def format_size(self, size):
         for unit in ['B', 'KB', 'MB', 'GB']:
