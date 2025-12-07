@@ -592,8 +592,9 @@ class info_pnl(scrolled.ScrolledPanel):
         pic.SetLabel(img_to_show)
         pic.Bind(wx.EVT_LEFT_DOWN, self.pic_click)
 
-        self.picture_sizer.Add(wx.StaticText(self,  label=text_label), 0, wx.ALL, 2)
-        self.picture_sizer.Add(pic, 0, wx.ALL, 2)
+        label_ctrl = wx.StaticText(self,  label=text_label)
+        self.picture_sizer.Insert(0, pic, 0, wx.ALL, 2)
+        self.picture_sizer.Insert(0, label_ctrl, 0, wx.ALL, 2)
         shared_data.most_recent_camconf_image = img_to_show
         self.parent.Layout()
 
