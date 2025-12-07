@@ -1502,6 +1502,7 @@ class info_pnl(scrolled.ScrolledPanel):
             self.InsertColumn(1, 'date modified', format=wx.LIST_FORMAT_CENTER)
             self.InsertColumn(2, 'age', format=wx.LIST_FORMAT_CENTER)
             self.InsertColumn(3, 'size', format=wx.LIST_FORMAT_CENTER)
+            self.InsertColumn(4, 'lines', format=wx.LIST_FORMAT_CENTER)
             self.autosizeme()
 
         def autosizeme(self):
@@ -1515,11 +1516,12 @@ class info_pnl(scrolled.ScrolledPanel):
                 else:
                     self.SetColumnWidth(i, h + 15)
 
-        def add_to_config_list(self, name, mod_date, age, size):
+        def add_to_config_list(self, name, mod_date, age, size, lines):
             self.InsertItem(0, str(name))
             self.SetItem(0, 1, str(mod_date))
             self.SetItem(0, 2, str(age))
             self.SetItem(0, 3, str(size))
+            self.SetItem(0, 4, str(lines))
 
         def read_configs(self, folder_name):
             self.DeleteAllItems()
@@ -1536,10 +1538,11 @@ class info_pnl(scrolled.ScrolledPanel):
                     modified = datetime.datetime.fromtimestamp(modified)
                     file_age = datetime.datetime.now() - modified
                     file_size = os.path.getsize(thing_path)
+                    lines = self.count_lines(thing_path)
                     modified = modified.strftime("%Y-%m-%d %H:%M")
                     file_age = str(file_age).split(".")[0]
                     file_size = self.format_size(file_size)
-                    self.add_to_config_list(file, modified, file_age, file_size)
+                    self.add_to_config_list(file, modified, file_age, file_size, lines)
             self.autosizeme()
 
         def format_size(self, size):
@@ -1548,6 +1551,10 @@ class info_pnl(scrolled.ScrolledPanel):
                     return f"{size:3.1f} {unit}"
                 size /= 1024.0
             return f"{size:.1f} TB"
+
+        def count_lines(self, file_path):
+            with open(file_path, "r") as file_contents:
+                return len(file_contents.read().splitlines())
 
         def doubleclick_config(self, e):
             shared_data = self.parent.parent.shared_data
@@ -1585,6 +1592,7 @@ class info_pnl(scrolled.ScrolledPanel):
             self.InsertColumn(1, 'date modified', format=wx.LIST_FORMAT_CENTER)
             self.InsertColumn(2, 'age', format=wx.LIST_FORMAT_CENTER)
             self.InsertColumn(3, 'size', format=wx.LIST_FORMAT_CENTER)
+            self.InsertColumn(4, 'lines', format=wx.LIST_FORMAT_CENTER)
             self.autosizeme()
 
         def autosizeme(self):
@@ -1607,11 +1615,12 @@ class info_pnl(scrolled.ScrolledPanel):
             log_dialog.ShowModal()
             log_dialog.Destroy()
 
-        def add_to_logs_list(self, name, mod_date, age, size):
+        def add_to_logs_list(self, name, mod_date, age, size, lines):
             self.InsertItem(0, str(name))
             self.SetItem(0, 1, str(mod_date))
             self.SetItem(0, 2, str(age))
             self.SetItem(0, 3, str(size))
+            self.SetItem(0, 4, str(lines))
 
         def read_logs(self, folder_name):
             self.DeleteAllItems()
@@ -1627,10 +1636,11 @@ class info_pnl(scrolled.ScrolledPanel):
                     modified = datetime.datetime.fromtimestamp(modified)
                     file_age = datetime.datetime.now() - modified
                     file_size = os.path.getsize(file_path)
+                    lines = self.count_lines(file_path)
                     modified = modified.strftime("%Y-%m-%d %H:%M")
                     file_age = str(file_age).split(".")[0]
                     file_size = self.format_size(file_size)
-                    self.add_to_logs_list(file, modified, file_age, file_size)
+                    self.add_to_logs_list(file, modified, file_age, file_size, lines)
             self.autosizeme()
 
         def format_size(self, size):
@@ -1640,10 +1650,18 @@ class info_pnl(scrolled.ScrolledPanel):
                 size /= 1024.0
             return f"{size:.1f} TB"
 
+        def count_lines(self, file_path):
+            with open(file_path, "r") as file_contents:
+                return len(file_contents.read().splitlines())
+
 
 class log_detail_dialog(wx.Dialog):
     def __init__(self, parent, filename, file_path):
-        super(log_detail_dialog, self).__init__(parent, title=f"Log details - {filename}")
+        super(log_detail_dialog, self).__init__(
+            parent,
+            title=f"Log details - {filename}",
+            style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER | wx.MAXIMIZE_BOX,
+        )
         self.file_path = file_path
         self.filename = filename
         self.SetSize((800, 600))
@@ -1661,28 +1679,38 @@ class log_detail_dialog(wx.Dialog):
             self.log_lines = log_file.read().splitlines()
         last_lines = "\n".join(self.log_lines[-10:])
 
-        filename_l = wx.StaticText(self, label=f"Name: {self.filename}")
-        date_l = wx.StaticText(self, label=f"Date: {readable_date}")
-        age_l = wx.StaticText(self, label=f"Age: {readable_age}")
-        size_l = wx.StaticText(self, label=f"Size: {file_size}")
+        total_lines = len(self.log_lines)
+        non_blank_lines = len([line for line in self.log_lines if line.strip()])
 
-        self.log_text = wx.TextCtrl(self, value=last_lines, style=wx.TE_MULTILINE | wx.TE_READONLY)
+        panel = scrolled.ScrolledPanel(self)
+
+        filename_l = wx.StaticText(panel, label=f"Name: {self.filename}")
+        date_l = wx.StaticText(panel, label=f"Date: {readable_date}")
+        age_l = wx.StaticText(panel, label=f"Age: {readable_age}")
+        size_l = wx.StaticText(panel, label=f"Size: {file_size}")
+        lines_l = wx.StaticText(panel, label=f"Lines: {total_lines} (non-blank: {non_blank_lines})")
+
+        self.log_text = wx.TextCtrl(
+            panel,
+            value=last_lines,
+            style=wx.TE_MULTILINE | wx.TE_READONLY | wx.TE_DONTWRAP | wx.HSCROLL,
+        )
         self.log_text.SetMinSize((750, 250))
 
-        self.show_full_btn = wx.Button(self, label='Show full log')
+        self.show_full_btn = wx.Button(panel, label='Show full log')
         self.show_full_btn.Bind(wx.EVT_BUTTON, self.show_full_log)
 
-        self.graph_btn = wx.Button(self, label='Graph log')
+        self.graph_btn = wx.Button(panel, label='Graph log')
         self.graph_btn.Bind(wx.EVT_BUTTON, self.graph_log)
 
         log_type = self.detect_log_type(self.log_lines)
-        log_type_l = wx.StaticText(self, label=f"Log type: {log_type}")
+        log_type_l = wx.StaticText(panel, label=f"Log type: {log_type}")
 
         type_sizer = wx.BoxSizer(wx.VERTICAL)
         type_sizer.Add(log_type_l, 0, wx.ALL, 5)
 
         if log_type == 'k=v>':
-            kv_panel = self.build_kv_summary(self.log_lines)
+            kv_panel = self.build_kv_summary(self.log_lines, panel)
             type_sizer.Add(kv_panel, 0, wx.ALL | wx.EXPAND, 5)
 
         info_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -1690,16 +1718,23 @@ class log_detail_dialog(wx.Dialog):
         info_sizer.Add(date_l, 0, wx.ALL, 5)
         info_sizer.Add(age_l, 0, wx.ALL, 5)
         info_sizer.Add(size_l, 0, wx.ALL, 5)
+        info_sizer.Add(lines_l, 0, wx.ALL, 5)
 
         button_sizer = wx.BoxSizer(wx.HORIZONTAL)
         button_sizer.Add(self.show_full_btn, 0, wx.ALL, 5)
         button_sizer.Add(self.graph_btn, 0, wx.ALL, 5)
 
+        panel_sizer = wx.BoxSizer(wx.VERTICAL)
+        panel_sizer.Add(info_sizer, 0, wx.ALL, 5)
+        panel_sizer.Add(self.log_text, 1, wx.ALL | wx.EXPAND, 5)
+        panel_sizer.Add(button_sizer, 0, wx.ALL, 5)
+        panel_sizer.Add(type_sizer, 0, wx.ALL | wx.EXPAND, 5)
+
+        panel.SetSizer(panel_sizer)
+        panel.SetupScrolling(scroll_x=True, scroll_y=True)
+
         main_sizer = wx.BoxSizer(wx.VERTICAL)
-        main_sizer.Add(info_sizer, 0, wx.ALL, 5)
-        main_sizer.Add(self.log_text, 1, wx.ALL | wx.EXPAND, 5)
-        main_sizer.Add(button_sizer, 0, wx.ALL, 5)
-        main_sizer.Add(type_sizer, 0, wx.ALL | wx.EXPAND, 5)
+        main_sizer.Add(panel, 1, wx.ALL | wx.EXPAND, 0)
 
         self.SetSizer(main_sizer)
 
@@ -1729,7 +1764,7 @@ class log_detail_dialog(wx.Dialog):
             break
         return 'unknown'
 
-    def build_kv_summary(self, lines):
+    def build_kv_summary(self, lines, parent=None):
         stats = {}
         for line in lines:
             segments = [seg for seg in line.strip().split('>') if seg]
@@ -1743,7 +1778,8 @@ class log_detail_dialog(wx.Dialog):
                     stats[key] = []
                 stats[key].append(value)
 
-        panel = wx.Panel(self)
+        parent_panel = parent if parent else self
+        panel = wx.Panel(parent_panel)
         grid = wx.FlexGridSizer(rows=len(stats) + 1, cols=4, hgap=10, vgap=5)
         headers = ['Key', 'Most recent', 'Min', 'Max']
         for header in headers:
