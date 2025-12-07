@@ -125,15 +125,16 @@ class libcam_sets_pnl(wx.Panel):
         cmd = pigrow_path + 'scripts/cron/libcam_cap.py caps=' + outpath + ' set=' + settings_file
         print(cmd)
         out, error = self.parent.parent.link_pnl.run_on_pi(cmd)
+        combined_output = (out + error).strip()
         # check for text output listing save location
-        if "Saving image to:" in out:
-            path = out.split("Saving image to:")[1].split("\n")[0].strip()
+        if "Saving image to:" in combined_output:
+            path = combined_output.split("Saving image to:")[1].split("\n")[0].strip()
         else:
-            path = "Error : Image path not given \n\n" + out + '\n' + error
-        return path
+            path = "Error : Image path not given \n\n" + combined_output
+        return path, combined_output
 
     def take_default(self, outpath):
         print(" Taking default image using libcamera-still ")
         cam_cmd = "libcamera-still -o " + outpath
         out, error = self.parent.parent.link_pnl.run_on_pi(cam_cmd)
-        return out + error, "libcam-still"
+        return outpath, "libcam-still", (out + error).strip()
