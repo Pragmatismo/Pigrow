@@ -1,0 +1,94 @@
+#!/usr/bin/env python3
+import sys
+import os
+
+homedir = os.getenv("HOME")
+sys.path.append(homedir + '/Pigrow/scripts/')
+import pigrow_defs
+
+
+def parse_args():
+    name = None
+    for argu in sys.argv[1:]:
+        if argu in ('-h', '--help'):
+            print("Pigrow Relay switch - ON")
+            print("")
+            print("This turns a relay ON based on settings in pigrow_config.txt")
+            print("Set relay settings using the config tool or edit config.txt")
+            print("")
+            print("Usage:")
+            print("  relay_on.py name=<relay name>")
+            print("")
+            print("Example:")
+            print("  relay_on.py name=lamp")
+            sys.exit(0)
+        if "=" in argu:
+            key, value = argu.split("=", 1)
+            if key == "name":
+                name = value.strip()
+    return name
+
+
+def relay_on(set_dic, switch_log, name):
+    script = 'relay_on.py'
+    msg = ("")
+    msg +=("      #############################################\n")
+    msg +=("      ##        Turning relay - ON ({})        ##\n".format(name))
+
+    gpio_key = f"gpio_{name}"
+    gpio_on_key = f"gpio_{name}_on"
+
+    if not name:
+        msg +=("      !!              NO RELAY NAME             !!\n")
+        msg +=("      !!   use name=<relay name> to specify     !!\n")
+        msg +=("      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n")
+        pigrow_defs.write_log(script, 'Failed - no relay name supplied', switch_log)
+        return msg
+
+    if gpio_key in set_dic and str(set_dic[gpio_key]).strip() != '':
+        gpio_pin = int(set_dic[gpio_key])
+        gpio_pin_on = set_dic.get(gpio_on_key, '').strip().lower()
+        if gpio_pin_on == '':
+            msg +=("      !!       NO GPIO DIRECTION SET IN CONFIG   !!\n")
+            msg +=("      !!  run config program or edit config.txt  !!\n")
+            msg +=("      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n")
+            pigrow_defs.write_log(script, 'Failed - no direction set in config', switch_log)
+            return msg
+        import RPi.GPIO as GPIO
+        GPIO.setmode(GPIO.BCM)
+        GPIO.setwarnings(False)
+        GPIO.setup(gpio_pin, GPIO.OUT)
+        if gpio_pin_on == "low":
+            GPIO.output(gpio_pin, GPIO.LOW)
+        elif gpio_pin_on == "high":
+            GPIO.output(gpio_pin, GPIO.HIGH)
+        else:
+            msg +=("      !!       CAN'T DETERMINE GPIO DIRECTION    !!\n")
+            msg +=("      !!  run config program or edit config.txt  !!\n")
+            msg +=("      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n")
+            pigrow_defs.write_log(script, 'Failed - invalid direction in config', switch_log)
+            return msg
+    else:
+        msg +=("      !!             RELAY NOT SET              !!\n")
+        msg +=("      !!  run config program or edit config.txt  !!\n")
+        msg +=("      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n")
+        pigrow_defs.write_log(script, f'Failed - no gpio set for {name}', switch_log)
+        return msg
+
+    msg +=("      ##    Switched GPIO {} to {} (ON)    ##\n".format(gpio_pin, gpio_pin_on))
+    msg +=("      #############################################\n")
+    pigrow_defs.set_condition(condition_name=name, trig_direction="on", cooldown="none")
+    pigrow_defs.write_log(script, f"relay '{name}' turned on", switch_log)
+    return msg
+
+
+if __name__ == '__main__':
+    relay_name = parse_args()
+    dirlocs_path = homedir + "/Pigrow/config/dirlocs.txt"
+    if os.path.isfile(dirlocs_path):
+        loc_dic = pigrow_defs.load_locs(dirlocs_path)
+        set_dic = pigrow_defs.load_settings(loc_dic['loc_settings'], err_log=loc_dic['err_log'],)
+        msg = relay_on(set_dic, loc_dic['loc_switchlog'], relay_name)
+        print(msg)
+    else:
+        print("!!!! Locations file does not exist at " + dirlocs_path)
