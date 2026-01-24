@@ -82,13 +82,15 @@ def relay_on(set_dic, switch_log, name):
     return msg
 
 
+
 if __name__ == '__main__':
     relay_name = parse_args()
-    dirlocs_path = homedir + "/Pigrow/config/dirlocs.txt"
-    if os.path.isfile(dirlocs_path):
-        loc_dic = pigrow_defs.load_locs(dirlocs_path)
-        set_dic = pigrow_defs.load_settings(loc_dic['loc_settings'], err_log=loc_dic['err_log'],)
-        msg = relay_on(set_dic, loc_dic['loc_switchlog'], relay_name)
+    settings_path = os.path.join(homedir, 'Pigrow/config/pigrow_config.txt')
+    err_path = os.path.join(homedir, 'Pigrow/logs/err_log.txt')
+    sl_path  = os.path.join(homedir, 'Pigrow/logs/switch_log.txt')
+    if os.path.isfile(settings_path):
+        set_dic = pigrow_defs.load_settings(settings_path, err_log=err_path,)
+        msg = relay_on(set_dic, sl_path, relay_name)
         print(msg)
     else:
-        print("!!!! Locations file does not exist at " + dirlocs_path)
+        print("!!!! Settings file does not exist at " + settings_path)
