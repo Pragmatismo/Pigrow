@@ -7,6 +7,7 @@ import wx.lib.delayedresult as delayedresult
 import  wx.lib.newevent
 import threading
 import platform
+import uuid
 
 import subprocess
 from datetime import datetime
@@ -288,6 +289,72 @@ class link_pnl(wx.Panel):
             print(error)
             return "", error
         return out, error
+
+    def cmd_on_pi(self, command, write_status=True):
+        """Run a command on the pi with live output buffers and cancel support."""
+        stdout_buffer = []
+        stderr_buffer = []
+        token = f"PIGROW_CMD_TOKEN_{uuid.uuid4().hex}"
+        command_with_token = f"PIGROW_CMD_TOKEN={token} {command}"
+        channel = None
+
+        class CmdOnPiHandle:
+            def __init__(self):
+                self.is_running = True
+                self.stdout = stdout_buffer
+                self.stderr = stderr_buffer
+
+            def cancel(self, kill_remote=True):
+                if channel is None:
+                    return
+                try:
+                    if kill_remote:
+                        link_pnl_self.run_on_pi(f"pkill -f {token}", write_status=False)
+                finally:
+                    try:
+                        channel.close()
+                    except Exception:
+                        pass
+                    self.is_running = False
+
+        link_pnl_self = self
+        handle = CmdOnPiHandle()
+
+        def read_output():
+            try:
+                while True:
+                    if channel.recv_ready():
+                        data = channel.recv(4096)
+                        if data:
+                            stdout_buffer.append(data.decode())
+                    if channel.recv_stderr_ready():
+                        data = channel.recv_stderr(4096)
+                        if data:
+                            stderr_buffer.append(data.decode())
+                    if channel.exit_status_ready():
+                        if not channel.recv_ready() and not channel.recv_stderr_ready():
+                            break
+                    time.sleep(0.05)
+            finally:
+                try:
+                    channel.close()
+                except Exception:
+                    pass
+                handle.is_running = False
+
+        try:
+            full_command = f"/bin/bash -l -c '{command_with_token}'"
+            transport = self.ssh.get_transport()
+            channel = transport.open_session()
+            channel.exec_command(full_command)
+            output_thread = threading.Thread(target=read_output, daemon=True)
+            output_thread.start()
+        except Exception as e:
+            error = "failed running command;" + str(command) + " with error - " + str(e)
+            print(error)
+            stderr_buffer.append(error)
+            handle.is_running = False
+        return handle
 
     def write_textfile_to_pi(self, text, location):
         '''
