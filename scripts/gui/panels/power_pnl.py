@@ -526,7 +526,6 @@ class relay_dialog(wx.Dialog):
         self.parent = parent
         super(relay_dialog, self).__init__(*args, **kw)
         self.InitUI()
-        self.SetSize((500, 450))
         self.SetTitle("Relay setup")
         self.Bind(wx.EVT_CLOSE, self.OnClose)
 
@@ -644,7 +643,8 @@ class relay_dialog(wx.Dialog):
         main_sizer.Add(self.switch_warn_label, 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.AddStretchSpacer(1)
         main_sizer.Add(buttons_sizer, 0, wx.ALL|wx.EXPAND, 5)
-        self.SetSizer(main_sizer)
+        self.SetSizerAndFit(main_sizer)
+        self.SetMinSize(self.GetSize())
         self.name_tc.Bind(wx.EVT_TEXT, self.update_manual_commands)
         self.update_control_display()
 
@@ -671,6 +671,7 @@ class relay_dialog(wx.Dialog):
         if is_manual:
             self.update_manual_commands()
         self.Layout()
+        self.GetSizer().Fit(self)
 
     def OnClose(self, e):
         self.relay_ctrl_lst.s_name  = ""
