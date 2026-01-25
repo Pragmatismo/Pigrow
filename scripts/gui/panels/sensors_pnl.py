@@ -1532,6 +1532,7 @@ class button_dialog(wx.Dialog):
         ## unique name
         name_label = wx.StaticText(self,  label='Unique name')
         self.name_tc = wx.TextCtrl(self, value=self.s_name, size=(200,30))
+        self.name_tc.Bind(wx.EVT_TEXT, self.update_watcher_status)
         name_sizer =  wx.BoxSizer(wx.HORIZONTAL)
         name_sizer.Add(name_label, 0, wx.ALL|wx.EXPAND, 5)
         name_sizer.Add(self.name_tc, 0, wx.ALL|wx.EXPAND, 5)
@@ -1565,6 +1566,14 @@ class button_dialog(wx.Dialog):
         # controls used by button_watcher.py
         watcher_label = wx.StaticText(self,  label='button_watcher.py')
         watcher_label.SetFont(shared_data.sub_title_font)
+        self.watcher_status_label = wx.StaticText(self, label="")
+        self.add_to_cron_btn = wx.Button(self, label='Add to Cron', size=(175, 30))
+        self.add_to_cron_btn.Bind(wx.EVT_BUTTON, self.add_to_cron_click)
+        watcher_header_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        watcher_header_sizer.Add(watcher_label, 0, wx.ALL|wx.EXPAND, 3)
+        watcher_header_sizer.AddStretchSpacer(1)
+        watcher_header_sizer.Add(self.watcher_status_label, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 3)
+        watcher_header_sizer.Add(self.add_to_cron_btn, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 3)
         ## log path  - path for log
         log_label = wx.StaticText(self,  label='Log path')
         self.log_tc = wx.TextCtrl(self, value=self.s_log, size=(400,30))
@@ -1604,7 +1613,7 @@ class button_dialog(wx.Dialog):
         cmdU_sizer.Add(self.cmdU_test_btn, 0, wx.ALL|wx.EXPAND, 5)
 
         watcher_ctrl_sizer = wx.BoxSizer(wx.VERTICAL)
-        watcher_ctrl_sizer.Add(watcher_label, 0, wx.ALL|wx.EXPAND, 3)
+        watcher_ctrl_sizer.Add(watcher_header_sizer, 0, wx.ALL|wx.EXPAND, 3)
         watcher_ctrl_sizer.Add(log_sizer, 0, wx.ALL|wx.EXPAND, 3)
         watcher_ctrl_sizer.Add(self.logtype_cb, 0, wx.ALL|wx.EXPAND, 3)
         watcher_ctrl_sizer.Add(cmdD_sizer, 0, wx.ALL|wx.EXPAND, 3)
@@ -1631,6 +1640,7 @@ class button_dialog(wx.Dialog):
         main_sizer.AddStretchSpacer(1)
         main_sizer.Add(buttons_sizer, 0, wx.ALL|wx.EXPAND, 5)
         self.SetSizer(main_sizer)
+        self.update_watcher_status()
 
     def log_click(self, e):
         pigrow_log_path = self.parent.parent.parent.shared_data.remote_pigrow_path
@@ -1660,6 +1670,57 @@ class button_dialog(wx.Dialog):
         cmd = self.cmdU_tc.GetValue()
         c_pnl = self.parent.parent.parent.dict_C_pnl['sensors_pnl']
         c_pnl.run_test_cmd(cmd)
+
+    def get_watcher_cron_entry(self):
+        cron_i_pnl = self.parent.parent.parent.dict_I_pnl['cron_pnl']
+        startup_cron = cron_i_pnl.startup_cron
+        button_name = self.name_tc.GetValue().strip()
+        if button_name == "":
+            return None
+        desired_arg = "name=" + button_name
+        for index in range(0, startup_cron.GetItemCount()):
+            if startup_cron.GetItem(index, 0).GetText() == "deleted":
+                continue
+            task = startup_cron.GetItem(index, 3).GetText()
+            args = startup_cron.GetItem(index, 4).GetText()
+            if "watcher_button.py" in task and desired_arg in args:
+                enabled = startup_cron.GetItem(index, 1).GetText() == "True"
+                return {"enabled": enabled, "task": task, "args": args}
+        return None
+
+    def update_watcher_status(self, event=None):
+        cron_c_pnl = self.parent.parent.parent.dict_C_pnl['cron_pnl']
+        entry = self.get_watcher_cron_entry()
+        if entry is None or not entry["enabled"]:
+            self.watcher_status_label.SetLabel("Not enabled in Cron")
+            self.watcher_status_label.SetForegroundColour((200, 75, 75))
+            self.add_to_cron_btn.Enable()
+        else:
+            is_running = cron_c_pnl.test_if_script_running(entry["task"], entry["args"])
+            if is_running:
+                self.watcher_status_label.SetLabel("Enabled and Active")
+                self.watcher_status_label.SetForegroundColour((80, 150, 80))
+            else:
+                self.watcher_status_label.SetLabel("enabled but not running")
+                self.watcher_status_label.SetForegroundColour((200, 75, 75))
+            self.add_to_cron_btn.Disable()
+        self.Layout()
+
+    def add_to_cron_click(self, e):
+        button_name = self.name_tc.GetValue().strip()
+        if button_name == "":
+            msg = "Please enter a unique name before adding to cron."
+            mbox = wx.MessageDialog(None, msg, "Missing name", wx.OK|wx.ICON_WARNING)
+            mbox.ShowModal()
+            mbox.Destroy()
+            return None
+        cron_c_pnl = self.parent.parent.parent.dict_C_pnl['cron_pnl']
+        cron_i_pnl = self.parent.parent.parent.dict_I_pnl['cron_pnl']
+        shared_data = self.parent.parent.parent.shared_data
+        script_path = shared_data.remote_pigrow_path + "scripts/autorun/watcher_button.py"
+        cron_c_pnl.add_to_startup_list(cron_i_pnl.startup_cron, "new", True, script_path, "name=" + button_name)
+        cron_c_pnl.update_cron_click()
+        self.update_watcher_status()
 
     def save_click(self, e):
         i_pnl       = self.parent.parent.parent.dict_I_pnl['sensors_pnl']
