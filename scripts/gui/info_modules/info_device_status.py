@@ -47,11 +47,13 @@ def collect_gpio_status(settings):
         if not key.startswith("gpio_"):
             continue
         tail = key[len("gpio_"):]
-        if tail.endswith("_on"):
+        if tail.endswith("_on") and tail.count("_") == 1:
             device = tail[:-3]
             gpio_on_map[device] = value
-        else:
-            gpio_pins[tail] = value
+            continue
+        if "_" in tail:
+            continue
+        gpio_pins[tail] = value
 
     status_lines = []
     for device in sorted(gpio_on_map):
