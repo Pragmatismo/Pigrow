@@ -65,6 +65,7 @@ class ctrl_pnl(wx.Panel):
         i_pnl.relay_ctrl_lst.s_name = ""
         i_pnl.relay_ctrl_lst.s_gpio = ""
         i_pnl.relay_ctrl_lst.s_wiring = ""
+        i_pnl.relay_ctrl_lst.s_ctrl = ""
     #    i_pnl.motor_ctrl_lst.s_current = ""
         # call dialog box
         add_button = relay_dialog(i_pnl.relay_ctrl_lst, i_pnl.relay_ctrl_lst.parent)
@@ -233,7 +234,8 @@ class info_pnl(wx.Panel):
             self.InsertColumn(0, 'Unique Name')
             self.InsertColumn(1, 'gpio')
             self.InsertColumn(2, 'wiring')
-            self.InsertColumn(3, 'currently')
+            self.InsertColumn(3, 'control')
+            self.InsertColumn(4, 'currently')
             self.autosizeme()
 
         def make_table(self):
@@ -250,10 +252,10 @@ class info_pnl(wx.Panel):
 
             switch_status = self.get_switch_dict()
             for relay_name in relay_list:
-                gpio, wiring = self.read_relay_conf(relay_name, config_dict, "gpio_")
+                gpio, wiring, control = self.read_relay_conf(relay_name, config_dict, "gpio_")
                 if not relay_name == "dht22sensor": #ignore
                     s_state = switch_status.get(relay_name, "not found")
-                    self.add_to_relay_table(relay_name, gpio, wiring, s_state)
+                    self.add_to_relay_table(relay_name, gpio, wiring, control, s_state)
             self.autosizeme()
 
         def get_switch_dict(self):
@@ -273,7 +275,8 @@ class info_pnl(wx.Panel):
         def read_relay_conf(self, item_name, config_dict, prefix):
             # Extract sensor config info from config dictionary
             field_list = ["",
-                          "_on"]
+                          "_on",
+                          "_ctrl"]
             info = []
             for field in field_list:
                 field_key = prefix + item_name + field
@@ -292,11 +295,12 @@ class info_pnl(wx.Panel):
                 if l > h:
                     self.SetColumnWidth(i, wx.LIST_AUTOSIZE)
 
-        def add_to_relay_table(self, name, gpio, wiring, switch_status):
+        def add_to_relay_table(self, name, gpio, wiring, control, switch_status):
             self.InsertItem(0, str(name))
             self.SetItem(0, 1, str(gpio))
             self.SetItem(0, 2, str(wiring))
-            self.SetItem(0, 3, str(switch_status))
+            self.SetItem(0, 3, str(control))
+            self.SetItem(0, 4, str(switch_status))
 
         def doubleclick(self, e):
             index =  e.GetIndex()
@@ -304,7 +308,8 @@ class info_pnl(wx.Panel):
             self.s_name  = self.GetItem(index, 0).GetText()
             self.s_gpio = self.GetItem(index, 1).GetText()
             self.s_wiring = self.GetItem(index, 2).GetText()
-        #    self.s_current   = self.GetItem(index, 3).GetText()
+            self.s_ctrl = self.GetItem(index, 3).GetText()
+        #    self.s_current   = self.GetItem(index, 4).GetText()
             relay_box = relay_dialog(self, self.parent)
             relay_box.ShowModal()
             self.parent.c_pnl.fill_tables_click("e")
@@ -534,6 +539,7 @@ class relay_dialog(wx.Dialog):
         self.s_name  = self.relay_ctrl_lst.s_name
         self.s_gpio = self.relay_ctrl_lst.s_gpio
         self.s_wiring = self.relay_ctrl_lst.s_wiring
+        self.s_ctrl = getattr(self.relay_ctrl_lst, "s_ctrl", "")
 
         # panel
         pnl = wx.Panel(self)
@@ -570,6 +576,28 @@ class relay_dialog(wx.Dialog):
         wiring_sizer =  wx.BoxSizer(wx.HORIZONTAL)
         wiring_sizer.Add(wiring_label, 0, wx.ALL|wx.EXPAND, 5)
         wiring_sizer.Add(self.wiring_combo, 0, wx.ALL|wx.EXPAND, 5)
+
+        control_label = wx.StaticText(self, label='Control Method')
+        control_choices = ['manual', 'timed', 'lamp_confirm', 'sensor']
+        control_value = self.s_ctrl if self.s_ctrl else 'manual'
+        self.control_combo = wx.ComboBox(self, choices=control_choices, value=control_value, size=(180, 30))
+        self.control_combo.Bind(wx.EVT_COMBOBOX, self.update_control_display)
+        control_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        control_sizer.Add(control_label, 0, wx.ALL|wx.EXPAND, 5)
+        control_sizer.Add(self.control_combo, 0, wx.ALL|wx.EXPAND, 5)
+
+        self.manual_cmd_on_label = wx.StaticText(self, label='Manual relay on command')
+        self.manual_cmd_on_tc = wx.TextCtrl(self, value="", style=wx.TE_READONLY, size=(450, -1))
+        self.manual_cmd_off_label = wx.StaticText(self, label='Manual relay off command')
+        self.manual_cmd_off_tc = wx.TextCtrl(self, value="", style=wx.TE_READONLY, size=(450, -1))
+        self.control_info_label = wx.StaticText(self, label='coding in progress')
+
+        control_cmd_sizer = wx.BoxSizer(wx.VERTICAL)
+        control_cmd_sizer.Add(self.manual_cmd_on_label, 0, wx.ALL|wx.EXPAND, 2)
+        control_cmd_sizer.Add(self.manual_cmd_on_tc, 0, wx.ALL|wx.EXPAND, 2)
+        control_cmd_sizer.Add(self.manual_cmd_off_label, 0, wx.ALL|wx.EXPAND, 2)
+        control_cmd_sizer.Add(self.manual_cmd_off_tc, 0, wx.ALL|wx.EXPAND, 2)
+        control_cmd_sizer.Add(self.control_info_label, 0, wx.ALL|wx.EXPAND, 2)
 
         # Read relay directon
         self.read_m_btn = wx.Button(self, label='Read Relay Direction', size=(175, 30))
@@ -609,20 +637,46 @@ class relay_dialog(wx.Dialog):
         main_sizer.Add(name_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
         main_sizer.Add(gpio_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
         main_sizer.Add(wiring_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
+        main_sizer.Add(control_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
+        main_sizer.Add(control_cmd_sizer, 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.Add(read_m_sizer, 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.Add(switch_m_d_sizer, 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.Add(self.switch_warn_label, 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.AddStretchSpacer(1)
         main_sizer.Add(buttons_sizer, 0, wx.ALL|wx.EXPAND, 5)
         self.SetSizer(main_sizer)
+        self.name_tc.Bind(wx.EVT_TEXT, self.update_manual_commands)
+        self.update_control_display()
 
     def show_guide_click(self, e):
         self.parent.parent.parent.shared_data.show_help('relay_help.png')
+
+    def update_manual_commands(self, e=None):
+        shared_data = self.parent.parent.parent.shared_data
+        relay_name = self.name_tc.GetValue().strip()
+        base_path = shared_data.remote_pigrow_path + "scripts/switches/"
+        on_cmd = f"{base_path}relay_on.py name={relay_name}"
+        off_cmd = f"{base_path}relay_off.py name={relay_name}"
+        self.manual_cmd_on_tc.SetValue(on_cmd)
+        self.manual_cmd_off_tc.SetValue(off_cmd)
+
+    def update_control_display(self, e=None):
+        control = self.control_combo.GetValue()
+        is_manual = control == "manual"
+        self.manual_cmd_on_label.Show(is_manual)
+        self.manual_cmd_on_tc.Show(is_manual)
+        self.manual_cmd_off_label.Show(is_manual)
+        self.manual_cmd_off_tc.Show(is_manual)
+        self.control_info_label.Show(not is_manual)
+        if is_manual:
+            self.update_manual_commands()
+        self.Layout()
 
     def OnClose(self, e):
         self.relay_ctrl_lst.s_name  = ""
         self.relay_ctrl_lst.s_gpio = ""
         self.relay_ctrl_lst.s_wiring = ""
+        self.relay_ctrl_lst.s_ctrl = ""
         self.Destroy()
 
     def save_click(self, e):
@@ -630,13 +684,15 @@ class relay_dialog(wx.Dialog):
         n_name  = self.name_tc.GetValue()
         n_gpio = self.gpio_tc.GetValue()
         n_wiring = self.wiring_combo.GetValue()
+        n_ctrl = self.control_combo.GetValue()
         #n_pwm   =
         # as yet unused self.s_pwm
         changed = "yes"
         if self.s_name == n_name:
             if self.s_gpio == n_gpio:
                 if self.s_wiring == n_wiring:
-                    changed = None
+                    if self.s_ctrl == n_ctrl:
+                        changed = None
 
         if changed == None:
             print(" - Nothing changed, no need to save ")
@@ -644,13 +700,15 @@ class relay_dialog(wx.Dialog):
             name_start = "gpio_" + n_name
             shared_data.config_dict[name_start + ""] = n_gpio
             shared_data.config_dict[name_start + "_on"] = n_wiring
+            shared_data.config_dict[name_start + "_ctrl"] = n_ctrl
             #shared_data.config_dict[name_start + "_pwm"] = n_pwm
 
             # If name changed delete old entries
             if not n_name == self.s_name:
                 name_start = "gpio_" + self.s_name
                 possible_keys = [name_start + "",
-                                 name_start + "_on"]
+                                 name_start + "_on",
+                                 name_start + "_ctrl"]
                 for possible_key in possible_keys:
                     if possible_key in shared_data.config_dict:
                         del shared_data.config_dict[possible_key]
