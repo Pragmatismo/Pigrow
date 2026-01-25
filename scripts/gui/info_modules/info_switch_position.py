@@ -166,15 +166,15 @@ def show_info():
         setting_name = item[:equals_pos].strip()
         setting_value = item[equals_pos + 1:].strip()
 
-        if "gpio_" in setting_name:
-            # Assume format like gpio_device or gpio_device_on.
-            parts = setting_name.split("_")
-            if len(parts) >= 2:
-                device_name = parts[1]
-                if "on" not in setting_name:
-                    gpio_dict[device_name] = setting_value
-                else:
-                    gpio_on_dict[device_name] = setting_value
+        if setting_name.startswith("gpio_"):
+            tail = setting_name[len("gpio_"):]
+            if not tail:
+                continue
+            if tail.endswith("_on") and tail.count("_") == 1:
+                device_name = tail[:-3]
+                gpio_on_dict[device_name] = setting_value
+            elif "_" not in tail:
+                gpio_dict[tail] = setting_value
 
     # Generate a status report for each device.
     text_out = ""
