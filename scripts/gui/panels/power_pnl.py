@@ -751,6 +751,8 @@ class relay_dialog(wx.Dialog):
         if not relay_name:
             wx.MessageBox("Please set a relay name first.", "Missing name", wx.OK | wx.ICON_ERROR)
             return
+        shared_data = self.parent.parent.parent.shared_data
+        base_path = shared_data.remote_pigrow_path + "scripts/switches/"
         sensors_panel = self.parent.parent.parent.dict_I_pnl['sensors_pnl']
         trigger_list = sensors_panel.trigger_list
         trigger_list.initial_log = ""
@@ -761,7 +763,7 @@ class relay_dialog(wx.Dialog):
         trigger_list.initial_set = ""
         trigger_list.initial_lock = ""
         trigger_list.initial_enable_guard = ""
-        trigger_list.initial_cmd = f"relay_on.py name={relay_name}"
+        trigger_list.initial_cmd = f"{base_path}relay_on.py name={relay_name}"
         trigger_list.initial_index = -1
         trigger_edit_box = set_trigger_dialog(trigger_list, trigger_list.parent)
         trigger_edit_box.ShowModal()
