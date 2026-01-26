@@ -590,6 +590,8 @@ class relay_dialog(wx.Dialog):
         self.manual_cmd_off_label = wx.StaticText(self, label='Manual relay off command')
         self.manual_cmd_off_tc = wx.TextCtrl(self, value="", style=wx.TE_READONLY, size=(450, -1))
         self.control_info_label = wx.StaticText(self, label='coding in progress')
+        self.lamp_confirm_settings_btn = wx.Button(self, label='Open Lamp Confirm Setup', size=(220, 30))
+        self.lamp_confirm_settings_btn.Bind(wx.EVT_BUTTON, self.open_lamp_confirm_dialog)
 
         control_cmd_sizer = wx.BoxSizer(wx.VERTICAL)
         control_cmd_sizer.Add(self.manual_cmd_on_label, 0, wx.ALL|wx.EXPAND, 2)
@@ -597,6 +599,7 @@ class relay_dialog(wx.Dialog):
         control_cmd_sizer.Add(self.manual_cmd_off_label, 0, wx.ALL|wx.EXPAND, 2)
         control_cmd_sizer.Add(self.manual_cmd_off_tc, 0, wx.ALL|wx.EXPAND, 2)
         control_cmd_sizer.Add(self.control_info_label, 0, wx.ALL|wx.EXPAND, 2)
+        control_cmd_sizer.Add(self.lamp_confirm_settings_btn, 0, wx.ALL|wx.ALIGN_LEFT, 5)
 
         self.timed_status_label = wx.StaticText(self, label='No Cron Job')
         self.timed_status_label.SetForegroundColour(wx.Colour(255, 0, 0))
@@ -711,13 +714,16 @@ class relay_dialog(wx.Dialog):
         control = self.control_combo.GetValue()
         is_manual = control == "manual"
         is_timed = control == "timed"
+        is_lamp_confirm = control == "lamp_confirm"
+        is_sensor = control == "sensor"
         if self.last_control == "timed" and not is_timed:
             self.handle_timed_control_exit()
         self.manual_cmd_on_label.Show(is_manual)
         self.manual_cmd_on_tc.Show(is_manual)
         self.manual_cmd_off_label.Show(is_manual)
         self.manual_cmd_off_tc.Show(is_manual)
-        self.control_info_label.Show(not is_manual and not is_timed)
+        self.control_info_label.Show(is_sensor)
+        self.lamp_confirm_settings_btn.Show(is_lamp_confirm)
         self.timed_controls_sizer.ShowItems(is_timed)
         if is_manual:
             self.update_manual_commands()
@@ -726,6 +732,49 @@ class relay_dialog(wx.Dialog):
         self.last_control = control
         self.Layout()
         self.GetSizer().Fit(self)
+
+    def find_lamp_confirm_config_name(self, relay_name):
+        cfg = self.parent.parent.parent.shared_data.config_dict
+        for key, on_cmd in cfg.items():
+            if not key.startswith("lampcon_") or not key.endswith("_switch_on_cmd"):
+                continue
+            name = key[len("lampcon_"):-len("_switch_on_cmd")]
+            off_cmd = cfg.get(f"lampcon_{name}_switch_off_cmd", "")
+            if self.is_relay_lamp_confirm_cmd(on_cmd, off_cmd, relay_name):
+                return name
+        return None
+
+    def is_relay_lamp_confirm_cmd(self, on_cmd, off_cmd, relay_name):
+        if not on_cmd or not off_cmd:
+            return False
+        on_match = "relay_on.py" in on_cmd and f"name={relay_name}" in on_cmd
+        off_match = "relay_off.py" in off_cmd and f"name={relay_name}" in off_cmd
+        return on_match and off_match
+
+    def open_lamp_confirm_dialog(self, e):
+        relay_name = self.name_tc.GetValue().strip()
+        if not relay_name:
+            wx.MessageBox("Please set a relay name first.", "Missing name", wx.OK | wx.ICON_ERROR)
+            return
+        shared_data = self.parent.parent.parent.shared_data
+        base_path = shared_data.remote_pigrow_path + "scripts/switches/"
+        on_cmd = f"{base_path}relay_on.py name={relay_name}"
+        off_cmd = f"{base_path}relay_off.py name={relay_name}"
+        existing_name = self.find_lamp_confirm_config_name(relay_name)
+        prefill = None
+        selected_name = None
+        if existing_name:
+            selected_name = existing_name
+        else:
+            selected_name = relay_name
+            prefill = {
+                "switch_on_cmd": on_cmd,
+                "switch_off_cmd": off_cmd,
+            }
+        lamp_dialog = lampcon_dialog(self.parent.parent, self.parent.parent.parent,
+                                     selected_name=selected_name,
+                                     prefill=prefill)
+        lamp_dialog.ShowModal()
 
     def parse_timed_cron_time(self, cron_time_string):
         if not cron_time_string:
@@ -1500,8 +1549,10 @@ class hwpwm_dialog(wx.Dialog):
 
 
 class lampcon_dialog(wx.Dialog):
-    def __init__(self, parent, *args, **kw):
+    def __init__(self, parent, *args, selected_name=None, prefill=None, **kw):
         self.parent = parent
+        self.selected_name = selected_name or ""
+        self.prefill = prefill or {}
         super(lampcon_dialog, self).__init__(*args, **kw)
         self.InitUI()
         self.SetSize((800, 700))
@@ -1624,12 +1675,16 @@ class lampcon_dialog(wx.Dialog):
 
         self.SetSizer(main_sizer)
         self.on_method_change()  # ensure panels are shown/hidden correctly
+        if self.selected_name:
+            self.name_choice.SetValue(self.selected_name)
+            self.on_name_change(None)
 
     def on_name_change(self, event):
         name = self.name_choice.GetValue().strip()
         prefix = f"lampcon_{name}_"
 
         cfg = self.shared_data.config_dict
+        has_config = any(key.startswith(prefix) for key in cfg)
 
         # map each control attribute to its config‐dict key suffix
         mapping = {
@@ -1649,6 +1704,12 @@ class lampcon_dialog(wx.Dialog):
             if ctrl:
                 val = cfg.get(prefix + key_suffix, "")
                 ctrl.SetValue(val)
+
+        if not has_config and self.prefill:
+            for attr, value in self.prefill.items():
+                ctrl = getattr(self, attr, None)
+                if ctrl and not ctrl.GetValue():
+                    ctrl.SetValue(value)
 
         # mode (camera/sensor)
         mode = cfg.get(prefix + "mode", "camera")
