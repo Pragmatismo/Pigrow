@@ -598,6 +598,44 @@ class relay_dialog(wx.Dialog):
         control_cmd_sizer.Add(self.manual_cmd_off_tc, 0, wx.ALL|wx.EXPAND, 2)
         control_cmd_sizer.Add(self.control_info_label, 0, wx.ALL|wx.EXPAND, 2)
 
+        self.timed_status_label = wx.StaticText(self, label='No Cron Job')
+        self.timed_status_label.SetForegroundColour(wx.Colour(255, 0, 0))
+        self.timed_enabled_cb = wx.CheckBox(self, label='enabled')
+        timed_status_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        timed_status_sizer.Add(self.timed_status_label, 0, wx.ALL|wx.EXPAND, 2)
+        timed_status_sizer.AddStretchSpacer(1)
+        timed_status_sizer.Add(self.timed_enabled_cb, 0, wx.ALL|wx.EXPAND, 2)
+
+        self.timed_on_hour_tc = wx.TextCtrl(self, size=(40, 30))
+        self.timed_on_hour_tc.SetMaxLength(2)
+        self.timed_on_min_tc = wx.TextCtrl(self, size=(40, 30))
+        self.timed_on_min_tc.SetMaxLength(2)
+        timed_on_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        timed_on_sizer.Add(wx.StaticText(self, label='On hour'), 0, wx.ALL|wx.EXPAND, 2)
+        timed_on_sizer.Add(self.timed_on_hour_tc, 0, wx.ALL|wx.EXPAND, 2)
+        timed_on_sizer.Add(wx.StaticText(self, label='min'), 0, wx.ALL|wx.EXPAND, 2)
+        timed_on_sizer.Add(self.timed_on_min_tc, 0, wx.ALL|wx.EXPAND, 2)
+
+        self.timed_off_hour_tc = wx.TextCtrl(self, size=(40, 30))
+        self.timed_off_hour_tc.SetMaxLength(2)
+        self.timed_off_min_tc = wx.TextCtrl(self, size=(40, 30))
+        self.timed_off_min_tc.SetMaxLength(2)
+        timed_off_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        timed_off_sizer.Add(wx.StaticText(self, label='Off hour'), 0, wx.ALL|wx.EXPAND, 2)
+        timed_off_sizer.Add(self.timed_off_hour_tc, 0, wx.ALL|wx.EXPAND, 2)
+        timed_off_sizer.Add(wx.StaticText(self, label='min'), 0, wx.ALL|wx.EXPAND, 2)
+        timed_off_sizer.Add(self.timed_off_min_tc, 0, wx.ALL|wx.EXPAND, 2)
+
+        self.timed_duration_label = wx.StaticText(self, label='Duration: Set on/off times')
+        timed_duration_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        timed_duration_sizer.Add(self.timed_duration_label, 0, wx.ALL|wx.EXPAND, 2)
+
+        self.timed_controls_sizer = wx.BoxSizer(wx.VERTICAL)
+        self.timed_controls_sizer.Add(timed_status_sizer, 0, wx.ALL|wx.EXPAND, 2)
+        self.timed_controls_sizer.Add(timed_on_sizer, 0, wx.ALL|wx.EXPAND, 2)
+        self.timed_controls_sizer.Add(timed_off_sizer, 0, wx.ALL|wx.EXPAND, 2)
+        self.timed_controls_sizer.Add(timed_duration_sizer, 0, wx.ALL|wx.EXPAND, 2)
+
         # Read relay directon
         self.read_m_btn = wx.Button(self, label='Read Relay Direction', size=(175, 30))
         self.read_m_btn.Bind(wx.EVT_BUTTON, self.read_relay_directon)
@@ -637,6 +675,7 @@ class relay_dialog(wx.Dialog):
         main_sizer.Add(gpio_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
         main_sizer.Add(wiring_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
         main_sizer.Add(control_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
+        main_sizer.Add(self.timed_controls_sizer, 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.Add(control_cmd_sizer, 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.Add(read_m_sizer, 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.Add(switch_m_d_sizer, 0, wx.ALL|wx.EXPAND, 5)
@@ -646,6 +685,12 @@ class relay_dialog(wx.Dialog):
         self.SetSizerAndFit(main_sizer)
         self.SetMinSize(self.GetSize())
         self.name_tc.Bind(wx.EVT_TEXT, self.update_manual_commands)
+        self.timed_on_hour_tc.Bind(wx.EVT_TEXT, self.update_timed_duration)
+        self.timed_on_min_tc.Bind(wx.EVT_TEXT, self.update_timed_duration)
+        self.timed_off_hour_tc.Bind(wx.EVT_TEXT, self.update_timed_duration)
+        self.timed_off_min_tc.Bind(wx.EVT_TEXT, self.update_timed_duration)
+        self.last_control = None
+        self.last_timed_name = None
         self.update_control_display()
 
     def show_guide_click(self, e):
@@ -659,19 +704,142 @@ class relay_dialog(wx.Dialog):
         off_cmd = f"{base_path}relay_off.py name={relay_name}"
         self.manual_cmd_on_tc.SetValue(on_cmd)
         self.manual_cmd_off_tc.SetValue(off_cmd)
+        if self.control_combo.GetValue() == "timed":
+            self.load_timed_cron_fields(force_refresh=True)
 
     def update_control_display(self, e=None):
         control = self.control_combo.GetValue()
         is_manual = control == "manual"
+        is_timed = control == "timed"
+        if self.last_control == "timed" and not is_timed:
+            self.handle_timed_control_exit()
         self.manual_cmd_on_label.Show(is_manual)
         self.manual_cmd_on_tc.Show(is_manual)
         self.manual_cmd_off_label.Show(is_manual)
         self.manual_cmd_off_tc.Show(is_manual)
-        self.control_info_label.Show(not is_manual)
+        self.control_info_label.Show(not is_manual and not is_timed)
+        self.timed_controls_sizer.ShowItems(is_timed)
         if is_manual:
             self.update_manual_commands()
+        if is_timed:
+            self.load_timed_cron_fields()
+        self.last_control = control
         self.Layout()
         self.GetSizer().Fit(self)
+
+    def parse_timed_cron_time(self, cron_time_string):
+        if not cron_time_string:
+            return "", ""
+        cron_parts = cron_time_string.split()
+        if len(cron_parts) < 2:
+            return "", ""
+        cron_min = cron_parts[0]
+        cron_hour = cron_parts[1]
+        if not cron_min.isdigit():
+            cron_min = ""
+        if not cron_hour.isdigit():
+            cron_hour = ""
+        return cron_hour, cron_min
+
+    def get_timed_cron_jobs(self, relay_name):
+        cron_panel = self.parent.parent.parent.dict_I_pnl['cron_pnl']
+        on_jobs = cron_panel.list_timed_by_key("relay_on.py", "name", relay_name)
+        off_jobs = cron_panel.list_timed_by_key("relay_off.py", "name", relay_name)
+        return on_jobs, off_jobs
+
+    def set_timed_status(self, on_jobs, off_jobs):
+        status_label = "No Cron Job"
+        color = wx.Colour(255, 0, 0)
+        if on_jobs or off_jobs:
+            enabled_states = [job[1] == "True" for job in on_jobs + off_jobs]
+            if enabled_states and all(enabled_states):
+                status_label = "Cron Job Enabled"
+                color = wx.Colour(0, 128, 0)
+            else:
+                status_label = "Cron Job Paused"
+                color = wx.Colour(255, 165, 0)
+        self.timed_status_label.SetLabel(status_label)
+        self.timed_status_label.SetForegroundColour(color)
+
+    def load_timed_cron_fields(self, force_refresh=False):
+        relay_name = self.name_tc.GetValue().strip()
+        if not force_refresh and relay_name == self.last_timed_name:
+            return
+        self.last_timed_name = relay_name
+        on_jobs, off_jobs = self.get_timed_cron_jobs(relay_name)
+        on_hour, on_min = "", ""
+        off_hour, off_min = "", ""
+        if on_jobs:
+            on_hour, on_min = self.parse_timed_cron_time(on_jobs[0][2])
+        if off_jobs:
+            off_hour, off_min = self.parse_timed_cron_time(off_jobs[0][2])
+        self.timed_on_hour_tc.SetValue(on_hour)
+        self.timed_on_min_tc.SetValue(on_min)
+        self.timed_off_hour_tc.SetValue(off_hour)
+        self.timed_off_min_tc.SetValue(off_min)
+        if on_jobs or off_jobs:
+            enabled = all(job[1] == "True" for job in on_jobs + off_jobs)
+            self.timed_enabled_cb.SetValue(enabled)
+        else:
+            self.timed_enabled_cb.SetValue(True)
+        self.set_timed_status(on_jobs, off_jobs)
+        self.update_timed_duration()
+
+    def timed_time_values(self, hour_text, min_text):
+        if hour_text.isdigit() and min_text.isdigit():
+            hour = int(hour_text)
+            minute = int(min_text)
+            if hour in range(0, 24) and minute in range(0, 60):
+                return hour, minute
+        return None
+
+    def format_duration_hours(self, minutes):
+        hours = minutes / 60
+        if minutes % 60 == 0:
+            return str(int(hours))
+        return f"{hours:.2f}".rstrip('0').rstrip('.')
+
+    def update_timed_duration(self, e=None):
+        on_time = self.timed_time_values(self.timed_on_hour_tc.GetValue().strip(),
+                                         self.timed_on_min_tc.GetValue().strip())
+        off_time = self.timed_time_values(self.timed_off_hour_tc.GetValue().strip(),
+                                          self.timed_off_min_tc.GetValue().strip())
+        if not on_time or not off_time:
+            self.timed_duration_label.SetLabel("Duration: Set on/off times")
+            return
+        on_minutes = (on_time[0] * 60) + on_time[1]
+        off_minutes = (off_time[0] * 60) + off_time[1]
+        if off_minutes >= on_minutes:
+            on_duration = off_minutes - on_minutes
+        else:
+            on_duration = (1440 - on_minutes) + off_minutes
+        off_duration = 1440 - on_duration
+        on_text = self.format_duration_hours(on_duration)
+        off_text = self.format_duration_hours(off_duration)
+        self.timed_duration_label.SetLabel(f"Duration: {on_text} On : {off_text} Off")
+
+    def handle_timed_control_exit(self):
+        relay_name = self.name_tc.GetValue().strip()
+        on_jobs, off_jobs = self.get_timed_cron_jobs(relay_name)
+        active_jobs = [job for job in on_jobs + off_jobs if job[1] == "True"]
+        if not active_jobs:
+            return
+        choices = ["Remove", "Pause", "Keep"]
+        prompt = "Timed cron jobs are set for this relay. Remove or pause them?"
+        choice_box = wx.SingleChoiceDialog(self, prompt, "Cron jobs found", choices)
+        choice_result = choice_box.ShowModal()
+        choice = choice_box.GetStringSelection()
+        choice_box.Destroy()
+        if choice_result != wx.ID_OK or choice == "Keep":
+            return
+        timed_list = self.parent.parent.parent.dict_I_pnl['cron_pnl'].timed_cron
+        for job in on_jobs + off_jobs:
+            index = job[0]
+            if choice == "Remove":
+                timed_list.SetItem(index, 0, "deleted")
+            elif choice == "Pause":
+                timed_list.SetItem(index, 1, "False")
+        self.parent.parent.parent.dict_C_pnl['cron_pnl'].update_cron_click("e")
 
     def OnClose(self, e):
         self.relay_ctrl_lst.s_name  = ""
@@ -715,7 +883,51 @@ class relay_dialog(wx.Dialog):
                         del shared_data.config_dict[possible_key]
 
             shared_data.update_pigrow_config_file_on_pi()
+        if n_ctrl == "timed":
+            self.update_timed_cron_jobs(n_name)
         self.Destroy()
+
+    def update_timed_cron_jobs(self, relay_name):
+        shared_data = self.parent.parent.parent.shared_data
+        if relay_name.strip() == "":
+            return
+        on_time = self.timed_time_values(self.timed_on_hour_tc.GetValue().strip(),
+                                         self.timed_on_min_tc.GetValue().strip())
+        off_time = self.timed_time_values(self.timed_off_hour_tc.GetValue().strip(),
+                                          self.timed_off_min_tc.GetValue().strip())
+        cron_panel = self.parent.parent.parent.dict_I_pnl['cron_pnl']
+        cron_ctrl = self.parent.parent.parent.dict_C_pnl['cron_pnl']
+        timed_list = cron_panel.timed_cron
+        on_jobs, off_jobs = self.get_timed_cron_jobs(relay_name)
+        enabled_state = self.timed_enabled_cb.GetValue()
+        base_path = shared_data.remote_pigrow_path + "scripts/switches/"
+        on_task = f"{base_path}relay_on.py"
+        off_task = f"{base_path}relay_off.py"
+        args = f"name={relay_name}"
+        if on_time and off_time:
+            on_time_str = cron_ctrl.make_onetime_cron_timestring(str(on_time[1]), str(on_time[0]), "*", "*", "*")
+            off_time_str = cron_ctrl.make_onetime_cron_timestring(str(off_time[1]), str(off_time[0]), "*", "*", "*")
+            self.set_or_add_timed_job(timed_list, on_jobs, on_time_str, on_task, args, enabled_state)
+            self.set_or_add_timed_job(timed_list, off_jobs, off_time_str, off_task, args, enabled_state)
+            cron_ctrl.update_cron_click("e")
+            return
+        if on_jobs or off_jobs:
+            for job in on_jobs + off_jobs:
+                timed_list.SetItem(job[0], 1, str(enabled_state))
+            cron_ctrl.update_cron_click("e")
+
+    def set_or_add_timed_job(self, timed_list, jobs, timing_string, task, args, enabled_state):
+        cron_ctrl = self.parent.parent.parent.dict_C_pnl['cron_pnl']
+        if jobs:
+            primary = jobs[0]
+            timed_list.SetItem(primary[0], 1, str(enabled_state))
+            timed_list.SetItem(primary[0], 2, timing_string)
+            timed_list.SetItem(primary[0], 3, task)
+            timed_list.SetItem(primary[0], 4, args)
+            for extra_job in jobs[1:]:
+                timed_list.SetItem(extra_job[0], 0, "deleted")
+        else:
+            cron_ctrl.add_to_onetime_list(timed_list, "new", enabled_state, timing_string, task, args)
 
 
     def read_relay_directon(self, e):
