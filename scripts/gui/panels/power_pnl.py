@@ -2,6 +2,7 @@ from random import choices
 
 import wx
 from uitools import RunCmdDialog
+from panels.sensors_pnl import set_trigger_dialog
 
 
 class ctrl_pnl(wx.Panel):
@@ -592,6 +593,12 @@ class relay_dialog(wx.Dialog):
         self.control_info_label = wx.StaticText(self, label='coding in progress')
         self.lamp_confirm_settings_btn = wx.Button(self, label='Open Lamp Confirm Setup', size=(220, 30))
         self.lamp_confirm_settings_btn.Bind(wx.EVT_BUTTON, self.open_lamp_confirm_dialog)
+        self.sensor_trigger_btn = wx.Button(self, label='Open Trigger Dialog', size=(200, 30))
+        self.sensor_trigger_btn.Bind(wx.EVT_BUTTON, self.open_sensor_trigger_dialog)
+        self.sensor_trigger_status_label = wx.StaticText(self, label='used in 0 triggers')
+        sensor_trigger_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        sensor_trigger_sizer.Add(self.sensor_trigger_btn, 0, wx.ALL, 0)
+        sensor_trigger_sizer.Add(self.sensor_trigger_status_label, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
 
         control_cmd_sizer = wx.BoxSizer(wx.VERTICAL)
         control_cmd_sizer.Add(self.manual_cmd_on_label, 0, wx.ALL|wx.EXPAND, 2)
@@ -600,6 +607,7 @@ class relay_dialog(wx.Dialog):
         control_cmd_sizer.Add(self.manual_cmd_off_tc, 0, wx.ALL|wx.EXPAND, 2)
         control_cmd_sizer.Add(self.control_info_label, 0, wx.ALL|wx.EXPAND, 2)
         control_cmd_sizer.Add(self.lamp_confirm_settings_btn, 0, wx.ALL|wx.ALIGN_LEFT, 5)
+        control_cmd_sizer.Add(sensor_trigger_sizer, 0, wx.ALL | wx.ALIGN_LEFT, 5)
 
         self.timed_status_label = wx.StaticText(self, label='No Cron Job')
         self.timed_status_label.SetForegroundColour(wx.Colour(255, 0, 0))
@@ -694,6 +702,7 @@ class relay_dialog(wx.Dialog):
         self.timed_off_min_tc.Bind(wx.EVT_TEXT, self.update_timed_duration)
         self.last_control = None
         self.last_timed_name = None
+        self.last_sensor_trigger_name = None
         self.update_control_display()
 
     def show_guide_click(self, e):
@@ -709,6 +718,54 @@ class relay_dialog(wx.Dialog):
         self.manual_cmd_off_tc.SetValue(off_cmd)
         if self.control_combo.GetValue() == "timed":
             self.load_timed_cron_fields(force_refresh=True)
+        if self.control_combo.GetValue() == "sensor":
+            self.update_sensor_trigger_display()
+
+    def get_sensor_trigger_count(self, relay_name):
+        if not relay_name:
+            return 0
+        sensors_panel = self.parent.parent.parent.dict_I_pnl.get('sensors_pnl')
+        if not sensors_panel:
+            return 0
+        trigger_list = sensors_panel.trigger_list
+        trigger_list.make_trigger_table()
+        count = 0
+        for index in range(trigger_list.GetItemCount()):
+            cmd = trigger_list.GetItem(index, 8).GetText()
+            if "relay_on.py" in cmd and f"name={relay_name}" in cmd:
+                count += 1
+        return count
+
+    def update_sensor_trigger_display(self, force_refresh=False):
+        relay_name = self.name_tc.GetValue().strip()
+        if not force_refresh and relay_name == self.last_sensor_trigger_name:
+            return
+        self.last_sensor_trigger_name = relay_name
+        count = self.get_sensor_trigger_count(relay_name)
+        self.sensor_trigger_status_label.SetLabel(f"used in {count} triggers")
+        self.Layout()
+        self.GetSizer().Fit(self)
+
+    def open_sensor_trigger_dialog(self, e):
+        relay_name = self.name_tc.GetValue().strip()
+        if not relay_name:
+            wx.MessageBox("Please set a relay name first.", "Missing name", wx.OK | wx.ICON_ERROR)
+            return
+        sensors_panel = self.parent.parent.parent.dict_I_pnl['sensors_pnl']
+        trigger_list = sensors_panel.trigger_list
+        trigger_list.initial_log = ""
+        trigger_list.initial_val_label = ""
+        trigger_list.initial_type = ""
+        trigger_list.initial_value = ""
+        trigger_list.initial_cond_name = ""
+        trigger_list.initial_set = ""
+        trigger_list.initial_lock = ""
+        trigger_list.initial_enable_guard = ""
+        trigger_list.initial_cmd = f"relay_on.py name={relay_name}"
+        trigger_list.initial_index = -1
+        trigger_edit_box = set_trigger_dialog(trigger_list, trigger_list.parent)
+        trigger_edit_box.ShowModal()
+        self.update_sensor_trigger_display(force_refresh=True)
 
     def update_control_display(self, e=None):
         control = self.control_combo.GetValue()
@@ -724,9 +781,13 @@ class relay_dialog(wx.Dialog):
         self.manual_cmd_off_tc.Show(is_manual)
         self.control_info_label.Show(is_sensor)
         self.lamp_confirm_settings_btn.Show(is_lamp_confirm)
+        self.sensor_trigger_btn.Show(is_sensor)
+        self.sensor_trigger_status_label.Show(is_sensor)
         self.timed_controls_sizer.ShowItems(is_timed)
         if is_manual:
             self.update_manual_commands()
+        if is_sensor:
+            self.update_sensor_trigger_display(force_refresh=True)
         if is_timed:
             self.load_timed_cron_fields()
         self.last_control = control
