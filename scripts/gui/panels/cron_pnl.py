@@ -961,7 +961,7 @@ class cron_job_dialog(wx.Dialog):
         self.parent = parent
         super(cron_job_dialog, self).__init__(*args, **kw)
         self.InitUI(parent)
-        self.SetSize((850, 460))
+        self.SetMinSize((850, 460))
         self.SetTitle("Cron Job Editor")
         self.Bind(wx.EVT_CLOSE, self.OnClose)
     def InitUI(self, parent):
@@ -1287,6 +1287,13 @@ class cron_job_dialog(wx.Dialog):
             self.month_l.Hide()
             self.dow_l.Hide()
         self.Layout()
+        self.resize_to_contents()
+
+    def resize_to_contents(self):
+        sizer = self.GetSizer()
+        if not sizer:
+            return
+        sizer.Fit(self)
 
     def get_help_text(self, script_to_ask):
         #open an ssh pipe and runs the script with a -h argument
