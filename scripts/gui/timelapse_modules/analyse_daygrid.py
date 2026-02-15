@@ -1,4 +1,5 @@
 import os
+from statistics import median
 from datetime import datetime
 from datetime import time as dt_time
 from collections import defaultdict
@@ -14,6 +15,53 @@ def shrink_image(image_path, bar_width, bar_height):
 
 def find_vertical_position(hour, minute, img_height):
     return (hour * 60 + minute) * (img_height / (24 * 60))
+
+
+def find_vertical_position_from_datetime(dt_value, img_height):
+    total_minutes = (dt_value.hour * 60) + dt_value.minute + (dt_value.second / 60)
+    return total_minutes * (img_height / (24 * 60))
+
+
+def get_image_windows(day_datetimes, full_day_minutes, jitter_tolerance=1.5):
+    """
+    Build minute windows for each image.
+
+    Windows are centered on each capture using a robust interval estimate (median),
+    so small timing jitter does not leave thin unpainted gaps. Large gaps remain
+    visible as background.
+    """
+    if len(day_datetimes) == 1:
+        dt_value = day_datetimes[0]
+        center_minute = dt_value.hour * 60 + dt_value.minute + (dt_value.second / 60)
+        start = max(0.0, center_minute - 15.0)
+        end = min(float(full_day_minutes), center_minute + 15.0)
+        return [(start, end)]
+
+    intervals = []
+    for i in range(1, len(day_datetimes)):
+        interval_minutes = (day_datetimes[i] - day_datetimes[i - 1]).total_seconds() / 60
+        if interval_minutes > 0:
+            intervals.append(interval_minutes)
+
+    base_interval = median(intervals) if intervals else 30.0
+    half_window = base_interval / 2.0
+    windows = []
+
+    for dt_value in day_datetimes:
+        center_minute = dt_value.hour * 60 + dt_value.minute + (dt_value.second / 60)
+        start = max(0.0, center_minute - half_window)
+        end = min(float(full_day_minutes), center_minute + half_window)
+        windows.append([start, end])
+
+    # Snap tiny jitter gaps shut while preserving larger real gaps.
+    for i in range(1, len(windows)):
+        gap = windows[i][0] - windows[i - 1][1]
+        if 0 < gap <= jitter_tolerance:
+            midpoint = windows[i - 1][1] + (gap / 2.0)
+            windows[i - 1][1] = midpoint
+            windows[i][0] = midpoint
+
+    return [(start, end) for start, end in windows]
 
 def draw_labels_and_markers(draw, left_section_width, img_height):
     # Dynamically calculate the available height between hours and set the font size
@@ -102,23 +150,17 @@ def analyse_set(ani_frame_list, out_file):
         # Sort the images by time to ensure correct order
         images.sort(key=lambda x: x[0])
 
-        # Calculate the time gap between the first two images to set a standard slice height
-        if len(images) > 1:
-            first_image_time = images[0][0]
-            second_image_time = images[1][0]
-            time_gap = (second_image_time - first_image_time).total_seconds() / 60  # Time gap in minutes
-        else:
-            # If there's only one image, default the time gap to 30 minutes for reasonable scaling
-            time_gap = 30
+        image_times = [image_time for image_time, _ in images]
+        image_windows = get_image_windows(image_times, full_day_minutes)
 
-        # Scale the image height based on the time gap
-        slice_height = int((time_gap / full_day_minutes) * img_height)
+        for (time, image_path), (window_start, window_end) in zip(images, image_windows):
+            top_position = int((window_start / full_day_minutes) * img_height)
+            bottom_position = int((window_end / full_day_minutes) * img_height)
+            slice_height = max(1, bottom_position - top_position)
 
-        for j, (time, image_path) in enumerate(images):
-            # Determine the time position of the current image
-            time_position = int(find_vertical_position(time.hour, time.minute, img_height))
+            # If jitter handling creates near-zero windows, still place a 1px minimum slice.
+            time_position = min(top_position, img_height - 1)
 
-            # Shrink the image to fit the calculated slice height
             shrunk_image = shrink_image(image_path, bar_width, slice_height)
             result_image.paste(shrunk_image, (x_pos, time_position))
 
@@ -127,8 +169,8 @@ def analyse_set(ani_frame_list, out_file):
         sunrise = sun.get_sunrise_time(day_datetime)
         sunset = sun.get_sunset_time(day_datetime)
 
-        sunrise_position = find_vertical_position(sunrise.hour, sunrise.minute, img_height)
-        sunset_position = find_vertical_position(sunset.hour, sunset.minute, img_height)
+        sunrise_position = find_vertical_position_from_datetime(sunrise, img_height)
+        sunset_position = find_vertical_position_from_datetime(sunset, img_height)
 
         draw = ImageDraw.Draw(result_image)
         draw.line([(x_pos, sunrise_position), (x_pos + bar_width, sunrise_position)], fill="red", width=10)
