@@ -3,6 +3,7 @@ import wx
 import re
 import json
 import time
+import shlex
 import wx.lib.scrolledpanel as scrolled
 import image_combine
 import shutil
@@ -80,6 +81,8 @@ class ctrl_pnl(scrolled.ScrolledPanel):
         quick_timelapse_btn.Bind(wx.EVT_BUTTON, self.quick_timelapse_click)
         long_timelapse_btn = wx.Button(self, label='Long Timelapse')
         long_timelapse_btn.Bind(wx.EVT_BUTTON, self.long_timelapse_click)
+        stopmotion_btn = wx.Button(self, label='Stop Motion')
+        stopmotion_btn.Bind(wx.EVT_BUTTON, self.stopmotion_click)
 
         # Sizers
         load_save_btn_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -138,6 +141,7 @@ class ctrl_pnl(scrolled.ScrolledPanel):
         main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 10)
         main_sizer.Add(quick_timelapse_btn, 0, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 5)
         main_sizer.Add(long_timelapse_btn, 0, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 5)
+        main_sizer.Add(stopmotion_btn, 0, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 5)
         self.SetAutoLayout(1)
         self.SetupScrolling()
         self.SetSizer(main_sizer)
@@ -505,6 +509,13 @@ class ctrl_pnl(scrolled.ScrolledPanel):
         if self.quicktl_dbox:
             if not self.quicktl_dbox.IsBeingDeleted():
                 self.quicktl_dbox.Destroy()
+
+    def stopmotion_click(self, e):
+        if hasattr(self, 'stopmotion_dbox') and self.stopmotion_dbox and self.stopmotion_dbox.IsShown():
+            self.stopmotion_dbox.Raise()
+            return
+        self.stopmotion_dbox = stopmotion_dialog(self, self.parent)
+        self.stopmotion_dbox.Show()
 
 
 class info_pnl(scrolled.ScrolledPanel):
@@ -1158,6 +1169,7 @@ class longtl_dialog(wx.Dialog):
         else:
             return default_caps
 
+
     def split_arguments(self, argument_string):
         # Split the string based on spaces outside quotes
         args = re.findall(r'[^"\s]+|"[^"]*"', argument_string)
@@ -1228,6 +1240,174 @@ class longtl_dialog(wx.Dialog):
 
         return None
 
+
+    def OnClose(self, e):
+        self.Destroy()
+
+class stopmotion_dialog(wx.Dialog):
+    def __init__(self, parent, *args, **kw):
+        super(stopmotion_dialog, self).__init__(*args, **kw)
+        self.parent = parent
+        self.link_pnl = self.parent.parent.link_pnl
+        self.frame_count = 0
+        if not self.set_camconf_file():
+            return
+        self.InitUI()
+        self.SetSize((640, 360))
+        self.SetTitle("Stop Motion")
+        self.Bind(wx.EVT_CLOSE, self.OnClose)
+        self.update_frame_count()
+
+    def set_camconf_file(self):
+        I_pnl = self.parent.parent.dict_I_pnl['camera_pnl']
+        self.camconf_path = I_pnl.camconf_path_tc.GetValue()
+        if self.camconf_path == "":
+            print("ERROR no cam conf")
+            wx.MessageBox("No camera configuration file has been selected.", "Error - no camconf", wx.OK | wx.ICON_WARNING)
+            self.Destroy()
+            return False
+        return True
+
+    def InitUI(self):
+        title = wx.StaticText(self, label='Stop Motion')
+
+        camera_tool_label = wx.StaticText(self, label="Camera Tool:")
+        camera_tool_choices = ["picam", "fswebcam", "rpicam"]
+        self.camera_tool_dropdown = wx.ComboBox(self, choices=camera_tool_choices, style=wx.CB_READONLY)
+        self.set_camtool()
+        camera_tool_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        camera_tool_sizer.Add(camera_tool_label, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
+        camera_tool_sizer.Add(self.camera_tool_dropdown, 1, wx.ALL | wx.EXPAND, 5)
+
+        outfolder_label = wx.StaticText(self, label="Outfolder:")
+        self.outfolder_textctrl = wx.TextCtrl(self)
+        out_folder = self.parent.parent.shared_data.remote_pigrow_path + "caps/"
+        self.outfolder_textctrl.SetValue(out_folder)
+        outfolder_button = wx.Button(self, label="...")
+        outfolder_button.Bind(wx.EVT_BUTTON, self.get_folder)
+        outfolder_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        outfolder_sizer.Add(outfolder_label, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
+        outfolder_sizer.Add(self.outfolder_textctrl, 1, wx.ALL | wx.EXPAND, 5)
+        outfolder_sizer.Add(outfolder_button, 0, wx.ALL, 5)
+
+        setname_label = wx.StaticText(self, label="Set Name:")
+        self.setname_textctrl = wx.TextCtrl(self)
+        self.setname_textctrl.SetValue("stopmotion")
+        setname_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        setname_sizer.Add(setname_label, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
+        setname_sizer.Add(self.setname_textctrl, 1, wx.ALL | wx.EXPAND, 5)
+
+        self.frame_count_l = wx.StaticText(self, label="Frames captured: 0")
+        self.take_image_btn = wx.Button(self, label='Take Image')
+        self.take_image_btn.Bind(wx.EVT_BUTTON, self.take_image_click)
+
+        done_btn = wx.Button(self, label='Done')
+        done_btn.Bind(wx.EVT_BUTTON, self.OnClose)
+
+        self.main_sizer = wx.BoxSizer(wx.VERTICAL)
+        self.main_sizer.Add(title, 0, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 8)
+        self.main_sizer.Add(camera_tool_sizer, 0, wx.ALL | wx.EXPAND, 2)
+        self.main_sizer.Add(outfolder_sizer, 0, wx.ALL | wx.EXPAND, 2)
+        self.main_sizer.Add(setname_sizer, 0, wx.ALL | wx.EXPAND, 2)
+        self.main_sizer.Add(self.frame_count_l, 0, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 8)
+        self.main_sizer.Add(self.take_image_btn, 0, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 5)
+        self.main_sizer.AddStretchSpacer(1)
+        self.main_sizer.Add(done_btn, 0, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 8)
+        self.SetSizer(self.main_sizer)
+
+    def set_camtool(self):
+        currently_supported = ["fswebcam", "rpicam", "picamcap"]
+        camopt = self.parent.captool_cb.GetValue()
+        if camopt in currently_supported:
+            if camopt == "picamcap":
+                self.camera_tool_dropdown.SetValue("picam")
+            else:
+                self.camera_tool_dropdown.SetValue(camopt)
+        else:
+            self.camera_tool_dropdown.SetValue("fswebcam")
+
+    def get_folder(self, e):
+        selected_files, selected_folders = self.parent.parent.link_pnl.select_files_on_pi(single_folder=True)
+        if selected_folders:
+            self.outfolder_textctrl.SetValue(selected_folders[0])
+            self.update_frame_count()
+
+    def update_frame_count(self):
+        outfolder = self._normalise_outfolder(self.outfolder_textctrl.GetValue())
+        setname = self.setname_textctrl.GetValue().strip()
+        if outfolder == "" or setname == "":
+            self.frame_count = 0
+            self.frame_count_l.SetLabel("Frames captured: 0")
+            return
+        pattern = shlex.quote(outfolder + setname + "_*.jpg")
+        cmd = f"ls {pattern} 2>/dev/null | wc -l"
+        out, error = self.link_pnl.run_on_pi(cmd)
+        try:
+            self.frame_count = int(out.strip())
+        except ValueError:
+            self.frame_count = 0
+        self.frame_count_l.SetLabel(f"Frames captured: {self.frame_count}")
+
+    def take_image_click(self, e):
+        outfolder = self._normalise_outfolder(self.outfolder_textctrl.GetValue())
+        setname = self.setname_textctrl.GetValue().strip()
+        if outfolder == "" or setname == "":
+            wx.MessageBox("Outfolder and Set Name are required.", "Missing values", wx.OK | wx.ICON_WARNING)
+            return
+
+        self.update_frame_count()
+        filename = f"{setname}_{self.frame_count + 1:04d}.jpg"
+        full_outpath = outfolder + filename
+        camera_tool = self.camera_tool_dropdown.GetValue()
+
+        self.take_image_btn.Disable()
+        try:
+            out, error = self.capture_stopmotion_frame(camera_tool, outfolder, full_outpath)
+            if (out + error).strip() == "":
+                print("Stop motion capture command completed with no output")
+            else:
+                print((out + error).strip())
+        finally:
+            self.take_image_btn.Enable()
+
+        self.update_frame_count()
+
+    def capture_stopmotion_frame(self, camera_tool, outfolder, full_outpath):
+        base_path = self.parent.parent.shared_data.remote_pigrow_path
+        script_map = {
+            "picam": "picamcap.py",
+            "rpicam": "rpicap.py",
+            "fswebcam": "camcap.py"
+        }
+        script_name = script_map.get(camera_tool)
+        if script_name is None:
+            wx.MessageBox(f"Camera tool {camera_tool} is not supported.", "Unsupported Tool", wx.OK | wx.ICON_WARNING)
+            return "", ""
+
+        quoted_script = shlex.quote(base_path + "scripts/cron/" + script_name)
+        quoted_conf = shlex.quote(self.camconf_path)
+        quoted_caps = shlex.quote(outfolder)
+        quoted_outpath = shlex.quote(full_outpath)
+
+        if camera_tool == "fswebcam":
+            quoted_fsw_glob = shlex.quote(outfolder + "cap_*.jpg")
+            cmd = (
+                f"python3 {quoted_script} set={quoted_conf} caps={quoted_caps}; "
+                f"latest=$(ls -t {quoted_fsw_glob} 2>/dev/null | head -n 1); "
+                f"if [ -n \"$latest\" ]; then mv \"$latest\" {quoted_outpath}; fi"
+            )
+        else:
+            cmd = f"python3 {quoted_script} set={quoted_conf} caps={quoted_caps} filename={quoted_outpath}"
+
+        return self.link_pnl.run_on_pi(cmd)
+
+    def _normalise_outfolder(self, outfolder):
+        outfolder = outfolder.strip()
+        if outfolder == "":
+            return ""
+        if not outfolder.endswith('/'):
+            outfolder += '/'
+        return outfolder
 
     def OnClose(self, e):
         self.Destroy()
