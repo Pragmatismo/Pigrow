@@ -1631,6 +1631,8 @@ class stopmotion_dialog(wx.Dialog):
         wx_image = wx.Image(image_to_show.width, image_to_show.height)
         wx_image.SetData(image_to_show.tobytes())
         self.preview_image.SetBitmap(wx_image.ConvertToBitmap())
+        self.preview_image.Refresh()
+        self.preview_image.Update()
         self.image_panel.Layout()
 
     def preview_click(self, e):
@@ -1651,7 +1653,7 @@ class stopmotion_dialog(wx.Dialog):
         self.preview_index = 0
         self.preview_running = True
         self.preview_btn.SetLabel("Stop")
-        self.preview_timer.Start(100)
+        self.preview_timer.StartOnce(100)
 
     def preview_timer_tick(self, e):
         if not self.preview_running or len(self.preview_frames) == 0:
@@ -1665,6 +1667,8 @@ class stopmotion_dialog(wx.Dialog):
             frame_index = len(self.local_frame_paths) - 1
         self.show_frame(frame_index)
         self.preview_index = (self.preview_index + 1) % len(self.preview_frames)
+        if self.preview_running:
+            self.preview_timer.StartOnce(100)
 
     def stop_preview(self):
         if self.preview_timer.IsRunning():
