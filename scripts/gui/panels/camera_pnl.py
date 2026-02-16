@@ -297,37 +297,43 @@ class ctrl_pnl(scrolled.ScrolledPanel):
      # Image Area Display
      #     now in I_pnl
 
-    def download_and_show_picture(self, path, label, combine=False):
+    def download_and_show_picture(self, path, label, combine=False, method=None, output_text=""):
         I_pnl = self.parent.dict_I_pnl['camera_pnl']
+        method_name = method if method else label
+        combined_output = output_text.strip()
+        if not path:
+            I_pnl.show_failure_message(method_name, combined_output)
+            return
         if "error" in path.lower():
-            msg_text = "Photo was not taken, \n\n" + path
-            dbox = wx.MessageDialog(self, msg_text, "Error", wx.OK | wx.ICON_ERROR)
-            dbox.ShowModal()
-            dbox.Destroy()
+            failure_reason = combined_output if not combined_output == "" else path
+            I_pnl.show_failure_message(method_name, failure_reason)
+            return
+        # check the claimed image actually exists on the pi
+        cmd = "ls " + path
+        out, error = self.parent.link_pnl.run_on_pi(cmd)
+        if not out.strip() == path:
+            failure_reason = combined_output if not combined_output == "" else (out + error).strip()
+            I_pnl.show_failure_message(method_name, failure_reason)
+            return
+        # download photo
+        local_temp_img_path = os.path.join("temp", os.path.basename(path))
+        img_path = self.parent.link_pnl.download_file_to_folder(path, local_temp_img_path)
+        # display on screen
+        if combine == True:
+            self.local_img_paths.append(img_path)
         else:
-            # check the claimed image actually exists on the pi
-            cmd = "ls " + path
-            out, error = self.parent.link_pnl.run_on_pi(cmd)
-            if out.strip() == path:
-                # download photo
-                local_temp_img_path = os.path.join("temp", os.path.basename(path))
-                img_path = self.parent.link_pnl.download_file_to_folder(path, local_temp_img_path)
-                # display on screen
-                if combine == True:
-                    self.local_img_paths.append(img_path)
-                else:
-                    I_pnl.show_image_onscreen(img_path, label)
-            # check for associated json file
-            if not combine == True:
-                jpath = path.split(".")[0] + ".json"
-                print("looking for", jpath)
-                out, error = self.parent.link_pnl.run_on_pi("ls " + jpath)
-                print(out,error)
-                if out.strip() == jpath:
-                    print("Found json file associated with image.")
-                    local_jpath = os.path.join("temp", os.path.basename(jpath))
-                    l_jpath = self.parent.link_pnl.download_file_to_folder(jpath, local_jpath)
-                    I_pnl.show_json_onscreen(l_jpath)
+            I_pnl.show_image_onscreen(img_path, label)
+        # check for associated json file
+        if not combine == True:
+            jpath = path.split(".")[0] + ".json"
+            print("looking for", jpath)
+            out, error = self.parent.link_pnl.run_on_pi("ls " + jpath)
+            print(out,error)
+            if out.strip() == jpath:
+                print("Found json file associated with image.")
+                local_jpath = os.path.join("temp", os.path.basename(jpath))
+                l_jpath = self.parent.link_pnl.download_file_to_folder(jpath, local_jpath)
+                I_pnl.show_json_onscreen(l_jpath)
 
 
     # Take image buttons
@@ -338,10 +344,10 @@ class ctrl_pnl(scrolled.ScrolledPanel):
             print(" - No config file selected, skipping taking picture.")
         # Take photo using module
         outpath = self.parent.shared_data.remote_pigrow_path + 'temp/'
-        path = I_pnl.sets_pnl.take_image(settings_file, outpath)
+        path, output_text = I_pnl.sets_pnl.take_image(settings_file, outpath)
         # download and show
         label = "Taken with settings stored on the Pigrow"
-        self.download_and_show_picture(path, label)
+        self.download_and_show_picture(path, label, method="saved settings", output_text=output_text)
 
     def take_set_click(self, e, filename="test_settings.jpg"):
         # create a temp settings file on the pi
@@ -358,18 +364,28 @@ class ctrl_pnl(scrolled.ScrolledPanel):
         self.parent.link_pnl.write_textfile_to_pi(conf_text, temp_set_path)
         # call camera's take photo command
         outpath = rpp + 'temp/'
-        path = I_pnl.sets_pnl.take_image(temp_set_path, outpath)
+        path, output_text = I_pnl.sets_pnl.take_image(temp_set_path, outpath)
         # show on the screen
         label = "Taken with gui settings"
-        self.download_and_show_picture(path, label)
+        self.download_and_show_picture(path, label, method="local settings", output_text=output_text)
 
     def take_unset_click(self, e):
         print("taking unset image ")
         I_pnl = self.parent.dict_I_pnl['camera_pnl']
         outpath = self.parent.shared_data.remote_pigrow_path + 'temp/default_image.jpg'
-        output, tool = I_pnl.sets_pnl.take_default(outpath)
+        self.clear_default_files(outpath)
+        path, tool, output_text = I_pnl.sets_pnl.take_default(outpath)
         label = "Taken using " + tool + " default settings."
-        self.download_and_show_picture(outpath, label)
+        self.download_and_show_picture(path, label, method="default settings", output_text=output_text)
+
+    def clear_default_files(self, remote_image_path):
+        local_paths = [os.path.join("temp", "default_image.jpg"), os.path.join("temp", "default_image.json")]
+        for local_path in local_paths:
+            if os.path.exists(local_path):
+                os.remove(local_path)
+        remote_json = remote_image_path.split(".")[0] + ".json"
+        cmd = f"rm -f {remote_image_path} {remote_json}"
+        self.parent.link_pnl.run_on_pi(cmd)
 
     def range_btn_click(self, e):
         I_pnl = self.parent.dict_I_pnl['camera_pnl']
@@ -417,19 +433,19 @@ class ctrl_pnl(scrolled.ScrolledPanel):
         img_paths = []
         outpath = rpp + 'temp/'
         for set_path in settings_paths:
-            path = I_pnl.sets_pnl.take_image(set_path, outpath)
-            img_paths.append(path)
+            path, output_text = I_pnl.sets_pnl.take_image(set_path, outpath)
+            img_paths.append((path, output_text))
         # download images
         self.local_img_paths = []
         for i in range(0, len(img_paths)):
-            path = img_paths[i]
+            path, output_text = img_paths[i]
             val = opt_list[i]
             label = "Range - " + key + " " + str(val)
             if not self.use_range_combine.GetValue() == True:
-                self.download_and_show_picture(path, label)
+                self.download_and_show_picture(path, label, output_text=output_text)
             else:
                 # if combine range
-                self.download_and_show_picture(path, label, combine=True)
+                self.download_and_show_picture(path, label, combine=True, output_text=output_text)
         if self.use_range_combine.GetValue() == True:
             style = self.set_style_cb.GetValue()
             output_path = os.path.join(self.parent.shared_data.frompi_path, "temp/combined.jpg")
@@ -452,12 +468,13 @@ class ctrl_pnl(scrolled.ScrolledPanel):
         pic_amount = int(self.capture_stack_count.GetValue())
         filename_list = []
         for i in range(0, pic_amount):
-            path = I_pnl.sets_pnl.take_image(temp_set_path, rpp + "temp/")
-            filename_list.append(path)
+            path, output_text = I_pnl.sets_pnl.take_image(temp_set_path, rpp + "temp/")
+            filename_list.append((path, output_text))
         # download
         self.local_img_paths = []
         for file in filename_list:
-            self.download_and_show_picture(file, "Noise test", combine=True)
+            path, output_text = file
+            self.download_and_show_picture(path, "Noise test", combine=True, output_text=output_text)
         # combine list of images
         style = self.set_style_cb.GetValue()
         output_path = os.path.join(self.parent.shared_data.frompi_path, "temp/combined.jpg")
@@ -575,9 +592,17 @@ class info_pnl(scrolled.ScrolledPanel):
         pic.SetLabel(img_to_show)
         pic.Bind(wx.EVT_LEFT_DOWN, self.pic_click)
 
-        self.picture_sizer.Add(wx.StaticText(self,  label=text_label), 0, wx.ALL, 2)
-        self.picture_sizer.Add(pic, 0, wx.ALL, 2)
+        label_ctrl = wx.StaticText(self,  label=text_label)
+        self.picture_sizer.Insert(0, pic, 0, wx.ALL, 2)
+        self.picture_sizer.Insert(0, label_ctrl, 0, wx.ALL, 2)
         shared_data.most_recent_camconf_image = img_to_show
+        self.parent.Layout()
+
+    def show_failure_message(self, method, reason=""):
+        message = f"Image taking using {method} failed"
+        if not reason == "":
+            message += f": {reason}"
+        self.picture_sizer.Add(wx.StaticText(self,  label=message), 0, wx.ALL, 2)
         self.parent.Layout()
 
 

@@ -961,7 +961,7 @@ class cron_job_dialog(wx.Dialog):
         self.parent = parent
         super(cron_job_dialog, self).__init__(*args, **kw)
         self.InitUI(parent)
-        self.SetSize((850, 460))
+        self.SetMinSize((850, 460))
         self.SetTitle("Cron Job Editor")
         self.Bind(wx.EVT_CLOSE, self.OnClose)
     def InitUI(self, parent):
@@ -1121,7 +1121,7 @@ class cron_job_dialog(wx.Dialog):
         time_sizer.Add(month_sizer, 0, wx.ALL, 2)
         time_sizer.Add(dow_sizer, 0, wx.ALL, 2)
 
-                #Bottom Row of Buttons
+        #Bottom Row of Buttons
         self.SetFont(shared_data.button_font)
         okButton = wx.Button(self, label='Save')
         okButton.Bind(wx.EVT_BUTTON, self.do_upload)
@@ -1134,6 +1134,13 @@ class cron_job_dialog(wx.Dialog):
         buttons_sizer.Add(closeButton, 0, wx.ALL, 2)
         buttons_sizer.AddStretchSpacer(1)
 
+        test_cmd_btn = wx.Button(self, label='Test command')
+        test_cmd_btn.Bind(wx.EVT_BUTTON, self.on_test_command)
+        test_cmd_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        test_cmd_sizer.AddStretchSpacer(1)
+        test_cmd_sizer.Add(test_cmd_btn, 0, wx.ALL, 2)
+        test_cmd_sizer.AddStretchSpacer(1)
+
         main_sizer = wx.BoxSizer(wx.VERTICAL)
         main_sizer.Add(title, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
         #main_sizer.AddStretchSpacer(1)
@@ -1145,6 +1152,7 @@ class cron_job_dialog(wx.Dialog):
         main_sizer.Add(rep_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
         main_sizer.Add(time_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
         main_sizer.AddStretchSpacer(1)
+        main_sizer.Add(test_cmd_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
         main_sizer.Add(buttons_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
         self.SetSizer(main_sizer)
         self.set_control_visi()
@@ -1279,6 +1287,13 @@ class cron_job_dialog(wx.Dialog):
             self.month_l.Hide()
             self.dow_l.Hide()
         self.Layout()
+        self.resize_to_contents()
+
+    def resize_to_contents(self):
+        sizer = self.GetSizer()
+        if not sizer:
+            return
+        sizer.Fit(self)
 
     def get_help_text(self, script_to_ask):
         #open an ssh pipe and runs the script with a -h argument
@@ -1298,6 +1313,32 @@ class cron_job_dialog(wx.Dialog):
         dbox = self.parent.parent.shared_data.scroll_text_dialog(None, helpfile, script_name + " help info", False)
         dbox.ShowModal()
         dbox.Destroy()
+
+    def build_test_command(self):
+        script_path = self.cron_path_combo.GetValue().strip()
+        script_name = self.cron_script_cb.GetValue().strip()
+        args = self.cron_args_tc.GetValue().strip()
+        if script_path == "" or script_name == "":
+            msg_text = "Select a path and script before testing the command."
+            dbox = wx.MessageDialog(self, msg_text, "Missing command", wx.OK | wx.ICON_WARNING)
+            dbox.ShowModal()
+            dbox.Destroy()
+            return None
+        return f"{script_path}{script_name} {args}".strip()
+
+    def on_test_command(self, e):
+        command = self.build_test_command()
+        if not command:
+            return
+        msg_text = f"{command}\n\nAre you sure you want to run this command on the raspberry pi?"
+        dbox = wx.MessageDialog(self, msg_text, "Run command on pi?", wx.YES_NO | wx.ICON_QUESTION)
+        answer = dbox.ShowModal()
+        dbox.Destroy()
+        if answer != wx.ID_YES:
+            return
+        cmd_dialog = cron_cmd_run_dialog(self, self.parent.parent.link_pnl, command)
+        cmd_dialog.ShowModal()
+        cmd_dialog.Destroy()
 
     def do_upload(self, e):
         #get data from boxes
@@ -1335,3 +1376,85 @@ class cron_job_dialog(wx.Dialog):
         self.job_month = None
         self.job_dow = None
         self.Destroy()
+
+class cron_cmd_run_dialog(wx.Dialog):
+    def __init__(self, parent, link_pnl, command):
+        super(cron_cmd_run_dialog, self).__init__(parent, title="Run command on pi", size=(700, 500))
+        self.link_pnl = link_pnl
+        self.command = command
+        self._handle = None
+        self._stdout_idx = 0
+        self._stderr_idx = 0
+        self._cancel_requested = False
+        self.InitUI()
+        self.start_command()
+
+    def InitUI(self):
+        cmd_label = wx.StaticText(self, label="Command:")
+        self.cmd_text = wx.TextCtrl(self, value=self.command, style=wx.TE_READONLY)
+
+        output_label = wx.StaticText(self, label="Output:")
+        self.output_text = wx.TextCtrl(self, style=wx.TE_MULTILINE | wx.TE_READONLY)
+
+        self.cancel_btn = wx.Button(self, label="Cancel")
+        self.cancel_btn.Bind(wx.EVT_BUTTON, self.on_cancel)
+
+        cmd_sizer = wx.BoxSizer(wx.VERTICAL)
+        cmd_sizer.Add(cmd_label, 0, wx.ALL, 5)
+        cmd_sizer.Add(self.cmd_text, 0, wx.EXPAND | wx.ALL, 5)
+
+        output_sizer = wx.BoxSizer(wx.VERTICAL)
+        output_sizer.Add(output_label, 0, wx.ALL, 5)
+        output_sizer.Add(self.output_text, 1, wx.EXPAND | wx.ALL, 5)
+
+        btn_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        btn_sizer.AddStretchSpacer(1)
+        btn_sizer.Add(self.cancel_btn, 0, wx.ALL, 5)
+        btn_sizer.AddStretchSpacer(1)
+
+        main_sizer = wx.BoxSizer(wx.VERTICAL)
+        main_sizer.Add(cmd_sizer, 0, wx.EXPAND | wx.ALL, 5)
+        main_sizer.Add(output_sizer, 1, wx.EXPAND | wx.ALL, 5)
+        main_sizer.Add(btn_sizer, 0, wx.EXPAND | wx.ALL, 5)
+        self.SetSizer(main_sizer)
+
+        self.timer = wx.Timer(self)
+        self.Bind(wx.EVT_TIMER, self.on_timer, self.timer)
+
+    def start_command(self):
+        self.output_text.SetValue("Running command...\n")
+        self._handle = self.link_pnl.cmd_on_pi(self.command)
+        self.timer.Start(200)
+
+    def _append_new_output(self):
+        if not self._handle:
+            return
+        new_stdout = self._handle.stdout[self._stdout_idx:]
+        new_stderr = self._handle.stderr[self._stderr_idx:]
+        if new_stdout:
+            self.output_text.AppendText("".join(new_stdout))
+            self._stdout_idx = len(self._handle.stdout)
+        if new_stderr:
+            self.output_text.AppendText("".join(new_stderr))
+            self._stderr_idx = len(self._handle.stderr)
+
+    def on_timer(self, e):
+        self._append_new_output()
+        if self._handle and not self._handle.is_running:
+            self.timer.Stop()
+            self._append_new_output()
+            if self._cancel_requested:
+                self.output_text.AppendText("\nCommand canceled.\n")
+            self.cancel_btn.SetLabel("Close")
+            self.cancel_btn.Bind(wx.EVT_BUTTON, self.on_close)
+
+    def on_cancel(self, e):
+        if not self._handle or not self._handle.is_running:
+            self.Close()
+            return
+        self._cancel_requested = True
+        self.output_text.AppendText("\nCancel requested...\n")
+        self._handle.cancel()
+
+    def on_close(self, e):
+        self.Close()

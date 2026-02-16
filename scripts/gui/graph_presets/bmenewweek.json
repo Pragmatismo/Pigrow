@@ -1,0 +1,36 @@
+{
+    "datasets": [
+        {
+            "key": "temperature",
+            "trim_mode": "none",
+            "file_path": "bme280new_log",
+            "split_char": ">",
+            "kv_split_char": "=",
+            "date_key": "time"
+        },
+        {
+            "key": "humid",
+            "trim_mode": "last:Week:1",
+            "file_path": "bme280new_log",
+            "split_char": ">",
+            "kv_split_char": "=",
+            "date_key": "time"
+        }
+    ],
+    "graph": {
+        "type": "twoaxis",
+        "settings": {
+            "Y axis Minimum": "",
+            "Y axis Maximum": "",
+            "Width": "24",
+            "Height": "14",
+            "title_text": "Temp and Humid",
+            "color_cycle": "",
+            "line_style": "-",
+            "marker": "o",
+            "show_grid": "true",
+            "major_ticks": "",
+            "minor_ticks": ""
+        }
+    }
+}

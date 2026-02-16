@@ -15,10 +15,15 @@ class ctrl_pnl(wx.Panel):
         super().__init__(parent, id=wx.ID_ANY, style=wx.TAB_TRAVERSAL)
         self.SetBackgroundColour((100, 150, 170))
 
+        # Datawall status / error note (placed above toggle)
+        self.datawall_note = wx.StaticText(self, label="")
+        self.datawall_note.SetForegroundColour(wx.Colour(200, 0, 0))
+        self.datawall_note.Wrap(250)
+
         # Create Datawall checkbox
         self.cbCreateDatawall = wx.CheckBox(self, label="Create Datawall")
         init_val = self.shared_data.gui_set_dict.get('start_datawall', "False")
-        if init_val.lower() == 'true':
+        if str(init_val).lower() == 'true':
             self.cbCreateDatawall.SetValue(1)
         self.cbCreateDatawall.Bind(wx.EVT_CHECKBOX, self.onToggleCreateDatawall)
 
@@ -33,6 +38,7 @@ class ctrl_pnl(wx.Panel):
         # Layout: center controls vertically & horizontally
         sizer = wx.BoxSizer(wx.VERTICAL)
         sizer.AddStretchSpacer(1)
+        sizer.Add(self.datawall_note, 0, wx.ALIGN_CENTER_HORIZONTAL)
         sizer.Add(self.cbCreateDatawall, 0, wx.ALIGN_CENTER_HORIZONTAL)
         sizer.Add(self.btnSelectPreset, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.TOP, 10)
         sizer.Add(self.btnRefreshDatawall, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.TOP, 10)
@@ -42,6 +48,7 @@ class ctrl_pnl(wx.Panel):
     def onToggleCreateDatawall(self, event):
         val = self.cbCreateDatawall.GetValue()
         self.shared_data.gui_set_dict['start_datawall'] = str(val)
+        self.shared_data.save_gui_settings()
 
     def onSelectPreset(self, event):
         dlg = DatawallPresetDialog(self, self.shared_data)
@@ -59,20 +66,28 @@ class ctrl_pnl(wx.Panel):
         Called whenever a connection to a PiGrow is made.
         If Datawall creation is enabled, build it using the stored preset.
         '''
+        # Skip if no Pigrow installation was detected on the remote Pi
+        if not self.shared_data.box_name:
+            self.datawall_note.SetLabel("Pigrow software not detected; skipping datawall creation")
+            self.Layout()
+            return
+
         # Only proceed if user enabled datawall
         if not self.shared_data.gui_set_dict.get('start_datawall', "False") == "True":
             return
 
+        # Clear previous note
+        self.datawall_note.SetLabel("")
+
         # Retrieve chosen preset
-        preset = self.shared_data.gui_set_dict.get('start_datawall_preset', '')
-        # Apply per-box override if present
-        boxname = getattr(self.shared_data, 'boxname', '')
-        dw_dict = self.shared_data.gui_set_dict.get('start_dw_dict', {})
-        if boxname and boxname in dw_dict:
-            preset = dw_dict[boxname]
+        preset = self.shared_data.config_dict.get('gui_datawall', '')
+        if not preset:
+            preset = self.shared_data.gui_set_dict.get('default_datawall', '')
 
         # If no preset, nothing to build
         if not preset:
+            self.datawall_note.SetLabel("No datawall set")
+            self.Layout()
             return
 
         print(f"Wants to create datawall using preset: {preset}")
@@ -86,7 +101,15 @@ class ctrl_pnl(wx.Panel):
             preset_lines = f.read().splitlines()
 
         # Build the data package
-        data_pkg = self.parent.dict_C_pnl['datawall_pnl'].create_datawall_data(preset_lines)
+        error_notes = []
+        data_pkg = self.parent.dict_C_pnl['datawall_pnl'].create_datawall_data(
+            preset_lines, show_dialog=False, error_collector=error_notes
+        )
+
+        if error_notes:
+            note = "Error creating datawall; " + ", ".join(error_notes)
+            self.datawall_note.SetLabel(note)
+            self.Layout()
 
         # Extract module name from preset
         module_name = None
@@ -116,8 +139,16 @@ class ctrl_pnl(wx.Panel):
             dw_i_pnl.display_image = output
             dw_i_pnl.Refresh()
             dw_i_pnl.Update()
+            if error_notes:
+                note = "Error creating datawall; " + ", ".join(error_notes)
+                self.datawall_note.SetLabel(note)
+                self.Layout()
         except Exception as e:
             print(f"Error creating datawall module '{full_mod}': {e}")
+            if error_notes:
+                note = "Error creating datawall; " + ", ".join(error_notes)
+                self.datawall_note.SetLabel(note)
+                self.Layout()
 
 
 
@@ -145,11 +176,18 @@ class DatawallPresetDialog(wx.Dialog):
         presets = parent._get_presets()
         self.choicePreset = wx.Choice(self, choices=presets)
         if presets:
-            self.choicePreset.SetSelection(0)
+            current_preset = shared_data.config_dict.get(
+                'gui_datawall',
+                shared_data.gui_set_dict.get('default_datawall', "")
+            )
+            try:
+                self.choicePreset.SetStringSelection(current_preset)
+            except wx.wxAssertionError:
+                self.choicePreset.SetSelection(0)
 
-        # Checkbox: set for all pigrows
-        self.cbSetAll = wx.CheckBox(self, label="Set for all pigrows")
-        self.cbSetAll.SetValue(False)
+        # Checkbox: set as global default
+        self.cbSetAll = wx.CheckBox(self, label="Set as global default")
+        self.cbSetAll.SetValue(True)
 
         # Set & Cancel buttons
         btnOk     = wx.Button(self, wx.ID_OK,     label="Set")
@@ -172,8 +210,16 @@ class DatawallPresetDialog(wx.Dialog):
 
     def onOk(self, event):
         sel = self.choicePreset.GetStringSelection()
-        self.shared_data.gui_set_dict['start_datawall_preset'] = sel
-        self.shared_data.gui_set_dict['start_datawall_preset_for_all'] = self.cbSetAll.GetValue()
+        self.shared_data.config_dict['gui_datawall'] = sel
+
+        if self.cbSetAll.GetValue():
+            prev_default = self.shared_data.gui_set_dict.get('default_datawall', "")
+            self.shared_data.gui_set_dict['default_datawall'] = sel
+            if sel != prev_default:
+                self.shared_data.save_gui_settings()
+
+        if getattr(self.shared_data, 'remote_pigrow_path', ""):
+            self.shared_data.update_pigrow_config_file_on_pi()
         self.EndModal(wx.ID_OK)
 
     def onCancel(self, event):

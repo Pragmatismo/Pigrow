@@ -4,6 +4,7 @@ import os, sys
 import datetime
 
 homedir = os.getenv("HOME")
+
 def load_locs(loc_locs):
     loc_dic = {}
     #print("Loading location details")
@@ -19,6 +20,7 @@ def load_locs(loc_locs):
         print("Switch log not set, confirm your pigrow is configured properly")
         loc_switchlog = homedir + '/Pigrow/logs/switch_log.txt'
         print('Trying default switch log,')
+
     if 'loc_settings' in loc_dic:
         loc_settings = loc_dic['loc_settings']
         #print("Settings file present")
@@ -161,9 +163,9 @@ def archive_grow(loc_dic, name, compress=False):
             move(graph_path+graph, archive_path+"/graphs/")
         responce += "and " + str(len(os.listdir(archive_path+"/graphs/"))) + " graphs. "
     else:
-        responce += "ignoring graohs, and compressing caps folder into a timelapse video. "
+        responce += "ignoring graphs, and compressing caps folder into a timelapse video. "
         responce += " --well actually i'm just pretending to for now, sorry... "
-        response += "  \n  \n I won't delete all your files tho either, so don't worry... (do a normal archive)"
+        responce += "  \n  \n I won't delete all your files tho either, so don't worry... (do a normal archive)"
     return responce
 
 def set_condition(condition_name, trig_direction, cooldown="none"):
@@ -196,19 +198,115 @@ def set_condition(condition_name, trig_direction, cooldown="none"):
     with open(trigger_conditions_path, 'w') as f:
         f.write(trig__con_tosave)
     #print("!pgd! - written; ")
-    #print(trig__con_tosave)
-    #print("!pgd!------------")
 
 
+def read_cron_timers():
+    cron_lines = os.popen('crontab -l').read().splitlines()
+    timing_dict = {}
+    lampconf_dict = {}
 
-if __name__ == '__main__':
-    global loc_locs
-    # test1.py executed as script
-    # do something
-    loc_locs = homedir + '/Pigrow/config/dirlocs.txt'
+    for line in cron_lines:
+        line = line.strip()
+        # skip too‑short, blank, reboot or commented out
+        if len(line) <= 10 or not line or line.startswith('#') or '@reboot' in line:
+            continue
 
-    for argu in sys.argv:
-        thearg = str(argu).split('=')[0]
-        if  thearg == 'locs':
-            loc_locs = str(argu).split('=')[1]
-    load_locs(loc_locs)
+        # split on any whitespace—no empty strings in the result
+        parts = line.split()
+        # we expect at least 6 parts: minute, hour, dom, mon, dow, command...
+        if len(parts) < 6:
+            continue
+
+        minute, hour, dom, month, dow = parts[:5]
+        cmd = ' '.join(parts[5:])
+
+        # only daily jobs (dom, month, dow all “*”) and numeric time
+        if dom == month == dow == '*' and minute.isdigit() and hour.isdigit():
+            t = datetime.time(int(hour), int(minute))
+
+            # pick on/off relay by filename suffix
+            if '_on.py' in cmd:
+                device = cmd.split('_on.py')[0].split('/')[-1]
+                timing_dict[f"{device}| on"] = t
+            elif '_off.py' in cmd:
+                device = cmd.split('_off.py')[0].split('/')[-1]
+                timing_dict[f"{device}| off"] = t
+
+            # find lamp_confirm
+            device, direction = None, None
+            if "lamp_confirm.py" in cmd:
+                parts = cmd.split(" ")
+                for part in parts:
+                    if "name=" in part:
+                        device = part.replace("name=", "")
+                    if "direction=" in part:
+                        direction = part.replace("direction=", "")
+                if device and direction:
+                    lampconf_dict[f"{device}| {direction}"] = t
+
+    return timing_dict, lampconf_dict
+
+
+def find_timer_pairs(unsorted_dict):
+    pairs = []
+    for key in unsorted_dict:
+        if "| on" in key:
+            device = key.split("| on")[0]
+            counterpart = key.replace("| on", "| off")
+            if counterpart in unsorted_dict:
+                on_time = unsorted_dict[key]
+                off_time = unsorted_dict[counterpart]
+                pairs.append((device, on_time, off_time))
+    return pairs
+
+
+def detect_timed_devices():
+    relay_dict, lampconf_dict = read_cron_timers()
+    timed_devices = []
+
+    for device, on_time, off_time in find_timer_pairs(relay_dict):
+        timed_devices.append((device, on_time, off_time, "relay"))
+
+    for device, on_time, off_time in find_timer_pairs(lampconf_dict):
+        timed_devices.append((device, on_time, off_time, "lampcon"))
+
+    return timed_devices
+
+def device_schedule_state(on_time, off_time, current_time=None):
+    """Return the expected state ("on"/"off") for a scheduled device.
+
+    The on/off times can span midnight. If they are identical, ``None`` is
+    returned to indicate an indeterminate schedule.
+
+    Args:
+        on_time (datetime.time): Start of the active window.
+        off_time (datetime.time): End of the active window.
+        current_time (datetime.time, optional): Time to check against. Defaults
+            to ``datetime.datetime.now().time()``.
+
+    Returns:
+        str | None: "on" or "off" for deterministic schedules, otherwise
+        ``None`` if the state cannot be determined.
+    """
+
+    if current_time is None:
+        current_time = datetime.datetime.now().time()
+
+    # Undefined schedule if the times are the same
+    if on_time == off_time:
+        return None
+
+    # on period spans over midnight
+    if on_time > off_time:
+        if current_time >= on_time or current_time < off_time:
+            return "on"
+        return "off"
+
+    # on period in same day
+    if on_time < off_time:
+        if on_time <= current_time < off_time:
+            return "on"
+        return "off"
+
+    return None
+

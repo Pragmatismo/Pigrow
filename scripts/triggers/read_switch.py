@@ -2,6 +2,8 @@
 import os
 import sys
 import datetime
+import re
+import subprocess
 
 
 def load_config():
@@ -48,12 +50,62 @@ def read_switch_pos(name, type, loc):
         print("Reading switch " + name)
     import RPi.GPIO as GPIO
     GPIO.setmode(GPIO.BCM)
+    try:
+        import lgpio
+        gpio_error = lgpio.error
+    except Exception:
+        gpio_error = Exception
+
+    def _is_gpio_busy(error):
+        message = str(error).lower()
+        return "gpio busy" in message or "device or resource busy" in message
+
+    def _read_level_from_command(command):
+        try:
+            result = subprocess.run(
+                command,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                check=False,
+            )
+        except FileNotFoundError:
+            return None
+        output = (result.stdout or "") + (result.stderr or "")
+        match = re.search(r'level=(0|1)', output)
+        if match:
+            return match.group(1)
+        return None
+
+    def _read_level_readonly(pin):
+        level = _read_level_from_command(["raspi-gpio", "get", str(pin)])
+        if level is None:
+            level = _read_level_from_command(["pinctrl", "get", str(pin)])
+        return level
+
+    def _interpret_level(level, switch_type):
+        if switch_type == "HIGH":
+            return level
+        if switch_type == "GND":
+            return "1" if level == "0" else "0"
+        return level
+
     if type == "HIGH":
-        GPIO.setup(int(loc),GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+        pull_up_down = GPIO.PUD_DOWN
     else:
-        GPIO.setup(int(loc),GPIO.IN, pull_up_down=GPIO.PUD_UP)
-    input = GPIO.input(int(loc))
-    return str(input)
+        pull_up_down = GPIO.PUD_UP
+
+    try:
+        GPIO.setup(int(loc), GPIO.IN, pull_up_down=pull_up_down)
+        input = GPIO.input(int(loc))
+        return str(input)
+    except (Exception, gpio_error) as exc:
+        if not _is_gpio_busy(exc):
+            return "Error: unable to read GPIO line ({})".format(exc)
+        level = _read_level_readonly(loc)
+        if level is None:
+            return "Error: unable to read GPIO line in busy state"
+        return _interpret_level(level, type)
 
 
 if __name__ == '__main__':

@@ -1,6 +1,8 @@
 from random import choices
 
 import wx
+from uitools import RunCmdDialog
+from panels.sensors_pnl import set_trigger_dialog
 
 
 class ctrl_pnl(wx.Panel):
@@ -64,6 +66,7 @@ class ctrl_pnl(wx.Panel):
         i_pnl.relay_ctrl_lst.s_name = ""
         i_pnl.relay_ctrl_lst.s_gpio = ""
         i_pnl.relay_ctrl_lst.s_wiring = ""
+        i_pnl.relay_ctrl_lst.s_ctrl = ""
     #    i_pnl.motor_ctrl_lst.s_current = ""
         # call dialog box
         add_button = relay_dialog(i_pnl.relay_ctrl_lst, i_pnl.relay_ctrl_lst.parent)
@@ -232,7 +235,8 @@ class info_pnl(wx.Panel):
             self.InsertColumn(0, 'Unique Name')
             self.InsertColumn(1, 'gpio')
             self.InsertColumn(2, 'wiring')
-            self.InsertColumn(3, 'currently')
+            self.InsertColumn(3, 'control')
+            self.InsertColumn(4, 'currently')
             self.autosizeme()
 
         def make_table(self):
@@ -249,10 +253,10 @@ class info_pnl(wx.Panel):
 
             switch_status = self.get_switch_dict()
             for relay_name in relay_list:
-                gpio, wiring = self.read_relay_conf(relay_name, config_dict, "gpio_")
+                gpio, wiring, control = self.read_relay_conf(relay_name, config_dict, "gpio_")
                 if not relay_name == "dht22sensor": #ignore
                     s_state = switch_status.get(relay_name, "not found")
-                    self.add_to_relay_table(relay_name, gpio, wiring, s_state)
+                    self.add_to_relay_table(relay_name, gpio, wiring, control, s_state)
             self.autosizeme()
 
         def get_switch_dict(self):
@@ -272,7 +276,8 @@ class info_pnl(wx.Panel):
         def read_relay_conf(self, item_name, config_dict, prefix):
             # Extract sensor config info from config dictionary
             field_list = ["",
-                          "_on"]
+                          "_on",
+                          "_ctrl"]
             info = []
             for field in field_list:
                 field_key = prefix + item_name + field
@@ -291,11 +296,12 @@ class info_pnl(wx.Panel):
                 if l > h:
                     self.SetColumnWidth(i, wx.LIST_AUTOSIZE)
 
-        def add_to_relay_table(self, name, gpio, wiring, switch_status):
+        def add_to_relay_table(self, name, gpio, wiring, control, switch_status):
             self.InsertItem(0, str(name))
             self.SetItem(0, 1, str(gpio))
             self.SetItem(0, 2, str(wiring))
-            self.SetItem(0, 3, str(switch_status))
+            self.SetItem(0, 3, str(control))
+            self.SetItem(0, 4, str(switch_status))
 
         def doubleclick(self, e):
             index =  e.GetIndex()
@@ -303,7 +309,8 @@ class info_pnl(wx.Panel):
             self.s_name  = self.GetItem(index, 0).GetText()
             self.s_gpio = self.GetItem(index, 1).GetText()
             self.s_wiring = self.GetItem(index, 2).GetText()
-        #    self.s_current   = self.GetItem(index, 3).GetText()
+            self.s_ctrl = self.GetItem(index, 3).GetText()
+        #    self.s_current   = self.GetItem(index, 4).GetText()
             relay_box = relay_dialog(self, self.parent)
             relay_box.ShowModal()
             self.parent.c_pnl.fill_tables_click("e")
@@ -520,7 +527,6 @@ class relay_dialog(wx.Dialog):
         self.parent = parent
         super(relay_dialog, self).__init__(*args, **kw)
         self.InitUI()
-        self.SetSize((500, 450))
         self.SetTitle("Relay setup")
         self.Bind(wx.EVT_CLOSE, self.OnClose)
 
@@ -533,6 +539,7 @@ class relay_dialog(wx.Dialog):
         self.s_name  = self.relay_ctrl_lst.s_name
         self.s_gpio = self.relay_ctrl_lst.s_gpio
         self.s_wiring = self.relay_ctrl_lst.s_wiring
+        self.s_ctrl = getattr(self.relay_ctrl_lst, "s_ctrl", "")
 
         # panel
         pnl = wx.Panel(self)
@@ -569,6 +576,76 @@ class relay_dialog(wx.Dialog):
         wiring_sizer =  wx.BoxSizer(wx.HORIZONTAL)
         wiring_sizer.Add(wiring_label, 0, wx.ALL|wx.EXPAND, 5)
         wiring_sizer.Add(self.wiring_combo, 0, wx.ALL|wx.EXPAND, 5)
+
+        control_label = wx.StaticText(self, label='Control Method')
+        control_choices = ['manual', 'timed', 'lamp_confirm', 'sensor']
+        control_value = self.s_ctrl if self.s_ctrl else 'manual'
+        self.control_combo = wx.ComboBox(self, choices=control_choices, value=control_value, size=(180, 30))
+        self.control_combo.Bind(wx.EVT_COMBOBOX, self.update_control_display)
+        control_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        control_sizer.Add(control_label, 0, wx.ALL|wx.EXPAND, 5)
+        control_sizer.Add(self.control_combo, 0, wx.ALL|wx.EXPAND, 5)
+
+        self.manual_cmd_on_label = wx.StaticText(self, label='Manual relay on command')
+        self.manual_cmd_on_tc = wx.TextCtrl(self, value="", style=wx.TE_READONLY, size=(450, -1))
+        self.manual_cmd_off_label = wx.StaticText(self, label='Manual relay off command')
+        self.manual_cmd_off_tc = wx.TextCtrl(self, value="", style=wx.TE_READONLY, size=(450, -1))
+        self.control_info_label = wx.StaticText(self, label='coding in progress')
+        self.lamp_confirm_settings_btn = wx.Button(self, label='Open Lamp Confirm Setup', size=(220, 30))
+        self.lamp_confirm_settings_btn.Bind(wx.EVT_BUTTON, self.open_lamp_confirm_dialog)
+        self.sensor_trigger_btn = wx.Button(self, label='Open Trigger Dialog', size=(200, 30))
+        self.sensor_trigger_btn.Bind(wx.EVT_BUTTON, self.open_sensor_trigger_dialog)
+        self.sensor_trigger_status_label = wx.StaticText(self, label='used in 0 triggers')
+        sensor_trigger_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        sensor_trigger_sizer.Add(self.sensor_trigger_btn, 0, wx.ALL, 0)
+        sensor_trigger_sizer.Add(self.sensor_trigger_status_label, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
+
+        control_cmd_sizer = wx.BoxSizer(wx.VERTICAL)
+        control_cmd_sizer.Add(self.manual_cmd_on_label, 0, wx.ALL|wx.EXPAND, 2)
+        control_cmd_sizer.Add(self.manual_cmd_on_tc, 0, wx.ALL|wx.EXPAND, 2)
+        control_cmd_sizer.Add(self.manual_cmd_off_label, 0, wx.ALL|wx.EXPAND, 2)
+        control_cmd_sizer.Add(self.manual_cmd_off_tc, 0, wx.ALL|wx.EXPAND, 2)
+        control_cmd_sizer.Add(self.control_info_label, 0, wx.ALL|wx.EXPAND, 2)
+        control_cmd_sizer.Add(self.lamp_confirm_settings_btn, 0, wx.ALL|wx.ALIGN_LEFT, 5)
+        control_cmd_sizer.Add(sensor_trigger_sizer, 0, wx.ALL | wx.ALIGN_LEFT, 5)
+
+        self.timed_status_label = wx.StaticText(self, label='No Cron Job')
+        self.timed_status_label.SetForegroundColour(wx.Colour(255, 0, 0))
+        self.timed_enabled_cb = wx.CheckBox(self, label='enabled')
+        timed_status_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        timed_status_sizer.Add(self.timed_status_label, 0, wx.ALL|wx.EXPAND, 2)
+        timed_status_sizer.AddStretchSpacer(1)
+        timed_status_sizer.Add(self.timed_enabled_cb, 0, wx.ALL|wx.EXPAND, 2)
+
+        self.timed_on_hour_tc = wx.TextCtrl(self, size=(40, 30))
+        self.timed_on_hour_tc.SetMaxLength(2)
+        self.timed_on_min_tc = wx.TextCtrl(self, size=(40, 30))
+        self.timed_on_min_tc.SetMaxLength(2)
+        timed_on_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        timed_on_sizer.Add(wx.StaticText(self, label='On hour'), 0, wx.ALL|wx.EXPAND, 2)
+        timed_on_sizer.Add(self.timed_on_hour_tc, 0, wx.ALL|wx.EXPAND, 2)
+        timed_on_sizer.Add(wx.StaticText(self, label='min'), 0, wx.ALL|wx.EXPAND, 2)
+        timed_on_sizer.Add(self.timed_on_min_tc, 0, wx.ALL|wx.EXPAND, 2)
+
+        self.timed_off_hour_tc = wx.TextCtrl(self, size=(40, 30))
+        self.timed_off_hour_tc.SetMaxLength(2)
+        self.timed_off_min_tc = wx.TextCtrl(self, size=(40, 30))
+        self.timed_off_min_tc.SetMaxLength(2)
+        timed_off_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        timed_off_sizer.Add(wx.StaticText(self, label='Off hour'), 0, wx.ALL|wx.EXPAND, 2)
+        timed_off_sizer.Add(self.timed_off_hour_tc, 0, wx.ALL|wx.EXPAND, 2)
+        timed_off_sizer.Add(wx.StaticText(self, label='min'), 0, wx.ALL|wx.EXPAND, 2)
+        timed_off_sizer.Add(self.timed_off_min_tc, 0, wx.ALL|wx.EXPAND, 2)
+
+        self.timed_duration_label = wx.StaticText(self, label='Duration: Set on/off times')
+        timed_duration_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        timed_duration_sizer.Add(self.timed_duration_label, 0, wx.ALL|wx.EXPAND, 2)
+
+        self.timed_controls_sizer = wx.BoxSizer(wx.VERTICAL)
+        self.timed_controls_sizer.Add(timed_status_sizer, 0, wx.ALL|wx.EXPAND, 2)
+        self.timed_controls_sizer.Add(timed_on_sizer, 0, wx.ALL|wx.EXPAND, 2)
+        self.timed_controls_sizer.Add(timed_off_sizer, 0, wx.ALL|wx.EXPAND, 2)
+        self.timed_controls_sizer.Add(timed_duration_sizer, 0, wx.ALL|wx.EXPAND, 2)
 
         # Read relay directon
         self.read_m_btn = wx.Button(self, label='Read Relay Direction', size=(175, 30))
@@ -608,20 +685,279 @@ class relay_dialog(wx.Dialog):
         main_sizer.Add(name_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
         main_sizer.Add(gpio_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
         main_sizer.Add(wiring_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
+        main_sizer.Add(control_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
+        main_sizer.Add(self.timed_controls_sizer, 0, wx.ALL|wx.EXPAND, 5)
+        main_sizer.Add(control_cmd_sizer, 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.Add(read_m_sizer, 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.Add(switch_m_d_sizer, 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.Add(self.switch_warn_label, 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.AddStretchSpacer(1)
         main_sizer.Add(buttons_sizer, 0, wx.ALL|wx.EXPAND, 5)
-        self.SetSizer(main_sizer)
+        self.SetSizerAndFit(main_sizer)
+        self.SetMinSize(self.GetSize())
+        self.name_tc.Bind(wx.EVT_TEXT, self.update_manual_commands)
+        self.timed_on_hour_tc.Bind(wx.EVT_TEXT, self.update_timed_duration)
+        self.timed_on_min_tc.Bind(wx.EVT_TEXT, self.update_timed_duration)
+        self.timed_off_hour_tc.Bind(wx.EVT_TEXT, self.update_timed_duration)
+        self.timed_off_min_tc.Bind(wx.EVT_TEXT, self.update_timed_duration)
+        self.last_control = None
+        self.last_timed_name = None
+        self.last_sensor_trigger_name = None
+        self.update_control_display()
 
     def show_guide_click(self, e):
         self.parent.parent.parent.shared_data.show_help('relay_help.png')
+
+    def update_manual_commands(self, e=None):
+        shared_data = self.parent.parent.parent.shared_data
+        relay_name = self.name_tc.GetValue().strip()
+        base_path = shared_data.remote_pigrow_path + "scripts/switches/"
+        on_cmd = f"{base_path}relay_on.py name={relay_name}"
+        off_cmd = f"{base_path}relay_off.py name={relay_name}"
+        self.manual_cmd_on_tc.SetValue(on_cmd)
+        self.manual_cmd_off_tc.SetValue(off_cmd)
+        if self.control_combo.GetValue() == "timed":
+            self.load_timed_cron_fields(force_refresh=True)
+        if self.control_combo.GetValue() == "sensor":
+            self.update_sensor_trigger_display()
+
+    def get_sensor_trigger_count(self, relay_name):
+        if not relay_name:
+            return 0
+        sensors_panel = self.parent.parent.parent.dict_I_pnl.get('sensors_pnl')
+        if not sensors_panel:
+            return 0
+        trigger_list = sensors_panel.trigger_list
+        trigger_list.make_trigger_table()
+        count = 0
+        for index in range(trigger_list.GetItemCount()):
+            cmd = trigger_list.GetItem(index, 8).GetText()
+            if "relay_on.py" in cmd and f"name={relay_name}" in cmd:
+                count += 1
+        return count
+
+    def update_sensor_trigger_display(self, force_refresh=False):
+        relay_name = self.name_tc.GetValue().strip()
+        if not force_refresh and relay_name == self.last_sensor_trigger_name:
+            return
+        self.last_sensor_trigger_name = relay_name
+        count = self.get_sensor_trigger_count(relay_name)
+        self.sensor_trigger_status_label.SetLabel(f"used in {count} triggers")
+        self.Layout()
+        self.GetSizer().Fit(self)
+
+    def open_sensor_trigger_dialog(self, e):
+        relay_name = self.name_tc.GetValue().strip()
+        if not relay_name:
+            wx.MessageBox("Please set a relay name first.", "Missing name", wx.OK | wx.ICON_ERROR)
+            return
+        shared_data = self.parent.parent.parent.shared_data
+        base_path = shared_data.remote_pigrow_path + "scripts/switches/"
+        sensors_panel = self.parent.parent.parent.dict_I_pnl['sensors_pnl']
+        trigger_list = sensors_panel.trigger_list
+        trigger_list.initial_log = ""
+        trigger_list.initial_val_label = ""
+        trigger_list.initial_type = ""
+        trigger_list.initial_value = ""
+        trigger_list.initial_cond_name = ""
+        trigger_list.initial_set = ""
+        trigger_list.initial_lock = ""
+        trigger_list.initial_enable_guard = ""
+        trigger_list.initial_cmd = f"{base_path}relay_on.py name={relay_name}"
+        trigger_list.initial_index = -1
+        trigger_edit_box = set_trigger_dialog(trigger_list, trigger_list.parent)
+        trigger_edit_box.ShowModal()
+        self.update_sensor_trigger_display(force_refresh=True)
+
+    def update_control_display(self, e=None):
+        control = self.control_combo.GetValue()
+        is_manual = control == "manual"
+        is_timed = control == "timed"
+        is_lamp_confirm = control == "lamp_confirm"
+        is_sensor = control == "sensor"
+        if self.last_control == "timed" and not is_timed:
+            self.handle_timed_control_exit()
+        self.manual_cmd_on_label.Show(is_manual)
+        self.manual_cmd_on_tc.Show(is_manual)
+        self.manual_cmd_off_label.Show(is_manual)
+        self.manual_cmd_off_tc.Show(is_manual)
+        self.control_info_label.Show(is_sensor)
+        self.lamp_confirm_settings_btn.Show(is_lamp_confirm)
+        self.sensor_trigger_btn.Show(is_sensor)
+        self.sensor_trigger_status_label.Show(is_sensor)
+        self.timed_controls_sizer.ShowItems(is_timed)
+        if is_manual:
+            self.update_manual_commands()
+        if is_sensor:
+            self.update_sensor_trigger_display(force_refresh=True)
+        if is_timed:
+            self.load_timed_cron_fields()
+        self.last_control = control
+        self.Layout()
+        self.GetSizer().Fit(self)
+
+    def find_lamp_confirm_config_name(self, relay_name):
+        cfg = self.parent.parent.parent.shared_data.config_dict
+        for key, on_cmd in cfg.items():
+            if not key.startswith("lampcon_") or not key.endswith("_switch_on_cmd"):
+                continue
+            name = key[len("lampcon_"):-len("_switch_on_cmd")]
+            off_cmd = cfg.get(f"lampcon_{name}_switch_off_cmd", "")
+            if self.is_relay_lamp_confirm_cmd(on_cmd, off_cmd, relay_name):
+                return name
+        return None
+
+    def is_relay_lamp_confirm_cmd(self, on_cmd, off_cmd, relay_name):
+        if not on_cmd or not off_cmd:
+            return False
+        on_match = "relay_on.py" in on_cmd and f"name={relay_name}" in on_cmd
+        off_match = "relay_off.py" in off_cmd and f"name={relay_name}" in off_cmd
+        return on_match and off_match
+
+    def open_lamp_confirm_dialog(self, e):
+        relay_name = self.name_tc.GetValue().strip()
+        if not relay_name:
+            wx.MessageBox("Please set a relay name first.", "Missing name", wx.OK | wx.ICON_ERROR)
+            return
+        shared_data = self.parent.parent.parent.shared_data
+        base_path = shared_data.remote_pigrow_path + "scripts/switches/"
+        on_cmd = f"{base_path}relay_on.py name={relay_name}"
+        off_cmd = f"{base_path}relay_off.py name={relay_name}"
+        existing_name = self.find_lamp_confirm_config_name(relay_name)
+        prefill = None
+        selected_name = None
+        if existing_name:
+            selected_name = existing_name
+        else:
+            selected_name = relay_name
+            prefill = {
+                "switch_on_cmd": on_cmd,
+                "switch_off_cmd": off_cmd,
+            }
+        lamp_dialog = lampcon_dialog(self.parent.parent, self.parent.parent.parent,
+                                     selected_name=selected_name,
+                                     prefill=prefill)
+        lamp_dialog.ShowModal()
+
+    def parse_timed_cron_time(self, cron_time_string):
+        if not cron_time_string:
+            return "", ""
+        cron_parts = cron_time_string.split()
+        if len(cron_parts) < 2:
+            return "", ""
+        cron_min = cron_parts[0]
+        cron_hour = cron_parts[1]
+        if not cron_min.isdigit():
+            cron_min = ""
+        if not cron_hour.isdigit():
+            cron_hour = ""
+        return cron_hour, cron_min
+
+    def get_timed_cron_jobs(self, relay_name):
+        cron_panel = self.parent.parent.parent.dict_I_pnl['cron_pnl']
+        on_jobs = cron_panel.list_timed_by_key("relay_on.py", "name", relay_name)
+        off_jobs = cron_panel.list_timed_by_key("relay_off.py", "name", relay_name)
+        return on_jobs, off_jobs
+
+    def set_timed_status(self, on_jobs, off_jobs):
+        status_label = "No Cron Job"
+        color = wx.Colour(255, 0, 0)
+        if on_jobs or off_jobs:
+            enabled_states = [job[1] == "True" for job in on_jobs + off_jobs]
+            if enabled_states and all(enabled_states):
+                status_label = "Cron Job Enabled"
+                color = wx.Colour(0, 128, 0)
+            else:
+                status_label = "Cron Job Paused"
+                color = wx.Colour(255, 165, 0)
+        self.timed_status_label.SetLabel(status_label)
+        self.timed_status_label.SetForegroundColour(color)
+
+    def load_timed_cron_fields(self, force_refresh=False):
+        relay_name = self.name_tc.GetValue().strip()
+        if not force_refresh and relay_name == self.last_timed_name:
+            return
+        self.last_timed_name = relay_name
+        on_jobs, off_jobs = self.get_timed_cron_jobs(relay_name)
+        on_hour, on_min = "", ""
+        off_hour, off_min = "", ""
+        if on_jobs:
+            on_hour, on_min = self.parse_timed_cron_time(on_jobs[0][2])
+        if off_jobs:
+            off_hour, off_min = self.parse_timed_cron_time(off_jobs[0][2])
+        self.timed_on_hour_tc.SetValue(on_hour)
+        self.timed_on_min_tc.SetValue(on_min)
+        self.timed_off_hour_tc.SetValue(off_hour)
+        self.timed_off_min_tc.SetValue(off_min)
+        if on_jobs or off_jobs:
+            enabled = all(job[1] == "True" for job in on_jobs + off_jobs)
+            self.timed_enabled_cb.SetValue(enabled)
+        else:
+            self.timed_enabled_cb.SetValue(True)
+        self.set_timed_status(on_jobs, off_jobs)
+        self.update_timed_duration()
+
+    def timed_time_values(self, hour_text, min_text):
+        if hour_text.isdigit() and min_text.isdigit():
+            hour = int(hour_text)
+            minute = int(min_text)
+            if hour in range(0, 24) and minute in range(0, 60):
+                return hour, minute
+        return None
+
+    def format_duration_hours(self, minutes):
+        hours = minutes / 60
+        if minutes % 60 == 0:
+            return str(int(hours))
+        return f"{hours:.2f}".rstrip('0').rstrip('.')
+
+    def update_timed_duration(self, e=None):
+        on_time = self.timed_time_values(self.timed_on_hour_tc.GetValue().strip(),
+                                         self.timed_on_min_tc.GetValue().strip())
+        off_time = self.timed_time_values(self.timed_off_hour_tc.GetValue().strip(),
+                                          self.timed_off_min_tc.GetValue().strip())
+        if not on_time or not off_time:
+            self.timed_duration_label.SetLabel("Duration: Set on/off times")
+            return
+        on_minutes = (on_time[0] * 60) + on_time[1]
+        off_minutes = (off_time[0] * 60) + off_time[1]
+        if off_minutes >= on_minutes:
+            on_duration = off_minutes - on_minutes
+        else:
+            on_duration = (1440 - on_minutes) + off_minutes
+        off_duration = 1440 - on_duration
+        on_text = self.format_duration_hours(on_duration)
+        off_text = self.format_duration_hours(off_duration)
+        self.timed_duration_label.SetLabel(f"Duration: {on_text} On : {off_text} Off")
+
+    def handle_timed_control_exit(self):
+        relay_name = self.name_tc.GetValue().strip()
+        on_jobs, off_jobs = self.get_timed_cron_jobs(relay_name)
+        active_jobs = [job for job in on_jobs + off_jobs if job[1] == "True"]
+        if not active_jobs:
+            return
+        choices = ["Remove", "Pause", "Keep"]
+        prompt = "Timed cron jobs are set for this relay. Remove or pause them?"
+        choice_box = wx.SingleChoiceDialog(self, prompt, "Cron jobs found", choices)
+        choice_result = choice_box.ShowModal()
+        choice = choice_box.GetStringSelection()
+        choice_box.Destroy()
+        if choice_result != wx.ID_OK or choice == "Keep":
+            return
+        timed_list = self.parent.parent.parent.dict_I_pnl['cron_pnl'].timed_cron
+        for job in on_jobs + off_jobs:
+            index = job[0]
+            if choice == "Remove":
+                timed_list.SetItem(index, 0, "deleted")
+            elif choice == "Pause":
+                timed_list.SetItem(index, 1, "False")
+        self.parent.parent.parent.dict_C_pnl['cron_pnl'].update_cron_click("e")
 
     def OnClose(self, e):
         self.relay_ctrl_lst.s_name  = ""
         self.relay_ctrl_lst.s_gpio = ""
         self.relay_ctrl_lst.s_wiring = ""
+        self.relay_ctrl_lst.s_ctrl = ""
         self.Destroy()
 
     def save_click(self, e):
@@ -629,13 +965,15 @@ class relay_dialog(wx.Dialog):
         n_name  = self.name_tc.GetValue()
         n_gpio = self.gpio_tc.GetValue()
         n_wiring = self.wiring_combo.GetValue()
+        n_ctrl = self.control_combo.GetValue()
         #n_pwm   =
         # as yet unused self.s_pwm
         changed = "yes"
         if self.s_name == n_name:
             if self.s_gpio == n_gpio:
                 if self.s_wiring == n_wiring:
-                    changed = None
+                    if self.s_ctrl == n_ctrl:
+                        changed = None
 
         if changed == None:
             print(" - Nothing changed, no need to save ")
@@ -643,19 +981,65 @@ class relay_dialog(wx.Dialog):
             name_start = "gpio_" + n_name
             shared_data.config_dict[name_start + ""] = n_gpio
             shared_data.config_dict[name_start + "_on"] = n_wiring
+            shared_data.config_dict[name_start + "_ctrl"] = n_ctrl
             #shared_data.config_dict[name_start + "_pwm"] = n_pwm
 
             # If name changed delete old entries
             if not n_name == self.s_name:
                 name_start = "gpio_" + self.s_name
                 possible_keys = [name_start + "",
-                                 name_start + "_on"]
+                                 name_start + "_on",
+                                 name_start + "_ctrl"]
                 for possible_key in possible_keys:
                     if possible_key in shared_data.config_dict:
                         del shared_data.config_dict[possible_key]
 
             shared_data.update_pigrow_config_file_on_pi()
+        if n_ctrl == "timed":
+            self.update_timed_cron_jobs(n_name)
         self.Destroy()
+
+    def update_timed_cron_jobs(self, relay_name):
+        shared_data = self.parent.parent.parent.shared_data
+        if relay_name.strip() == "":
+            return
+        on_time = self.timed_time_values(self.timed_on_hour_tc.GetValue().strip(),
+                                         self.timed_on_min_tc.GetValue().strip())
+        off_time = self.timed_time_values(self.timed_off_hour_tc.GetValue().strip(),
+                                          self.timed_off_min_tc.GetValue().strip())
+        cron_panel = self.parent.parent.parent.dict_I_pnl['cron_pnl']
+        cron_ctrl = self.parent.parent.parent.dict_C_pnl['cron_pnl']
+        timed_list = cron_panel.timed_cron
+        on_jobs, off_jobs = self.get_timed_cron_jobs(relay_name)
+        enabled_state = self.timed_enabled_cb.GetValue()
+        base_path = shared_data.remote_pigrow_path + "scripts/switches/"
+        on_task = f"{base_path}relay_on.py"
+        off_task = f"{base_path}relay_off.py"
+        args = f"name={relay_name}"
+        if on_time and off_time:
+            on_time_str = cron_ctrl.make_onetime_cron_timestring(str(on_time[1]), str(on_time[0]), "*", "*", "*")
+            off_time_str = cron_ctrl.make_onetime_cron_timestring(str(off_time[1]), str(off_time[0]), "*", "*", "*")
+            self.set_or_add_timed_job(timed_list, on_jobs, on_time_str, on_task, args, enabled_state)
+            self.set_or_add_timed_job(timed_list, off_jobs, off_time_str, off_task, args, enabled_state)
+            cron_ctrl.update_cron_click("e")
+            return
+        if on_jobs or off_jobs:
+            for job in on_jobs + off_jobs:
+                timed_list.SetItem(job[0], 1, str(enabled_state))
+            cron_ctrl.update_cron_click("e")
+
+    def set_or_add_timed_job(self, timed_list, jobs, timing_string, task, args, enabled_state):
+        cron_ctrl = self.parent.parent.parent.dict_C_pnl['cron_pnl']
+        if jobs:
+            primary = jobs[0]
+            timed_list.SetItem(primary[0], 1, str(enabled_state))
+            timed_list.SetItem(primary[0], 2, timing_string)
+            timed_list.SetItem(primary[0], 3, task)
+            timed_list.SetItem(primary[0], 4, args)
+            for extra_job in jobs[1:]:
+                timed_list.SetItem(extra_job[0], 0, "deleted")
+        else:
+            cron_ctrl.add_to_onetime_list(timed_list, "new", enabled_state, timing_string, task, args)
 
 
     def read_relay_directon(self, e):
@@ -1228,8 +1612,10 @@ class hwpwm_dialog(wx.Dialog):
 
 
 class lampcon_dialog(wx.Dialog):
-    def __init__(self, parent, *args, **kw):
+    def __init__(self, parent, *args, selected_name=None, prefill=None, **kw):
         self.parent = parent
+        self.selected_name = selected_name or ""
+        self.prefill = prefill or {}
         super(lampcon_dialog, self).__init__(*args, **kw)
         self.InitUI()
         self.SetSize((800, 700))
@@ -1278,8 +1664,15 @@ class lampcon_dialog(wx.Dialog):
             row.Add(txt, 1, wx.EXPAND | wx.RIGHT, 5)
             if with_button:
                 btn = wx.Button(parent, label="…", size=(30, 24))
-                btn.Bind(wx.EVT_BUTTON,
-                         lambda e, t=txt: t.SetValue("button not yet coded"))
+                def on_cmd_click(event, t=txt):
+                    dialog = RunCmdDialog(self, cancel_button=True,
+                                          start_text=t.GetValue())
+                    result = dialog.ShowModal()
+                    if result == wx.ID_OK:
+                        t.SetValue(dialog.GetCommand())
+                    dialog.Destroy()
+
+                btn.Bind(wx.EVT_BUTTON, on_cmd_click)
                 row.Add(btn, 0)
             return row
 
@@ -1345,12 +1738,16 @@ class lampcon_dialog(wx.Dialog):
 
         self.SetSizer(main_sizer)
         self.on_method_change()  # ensure panels are shown/hidden correctly
+        if self.selected_name:
+            self.name_choice.SetValue(self.selected_name)
+            self.on_name_change(None)
 
     def on_name_change(self, event):
         name = self.name_choice.GetValue().strip()
         prefix = f"lampcon_{name}_"
 
         cfg = self.shared_data.config_dict
+        has_config = any(key.startswith(prefix) for key in cfg)
 
         # map each control attribute to its config‐dict key suffix
         mapping = {
@@ -1370,6 +1767,12 @@ class lampcon_dialog(wx.Dialog):
             if ctrl:
                 val = cfg.get(prefix + key_suffix, "")
                 ctrl.SetValue(val)
+
+        if not has_config and self.prefill:
+            for attr, value in self.prefill.items():
+                ctrl = getattr(self, attr, None)
+                if ctrl and not ctrl.GetValue():
+                    ctrl.SetValue(value)
 
         # mode (camera/sensor)
         mode = cfg.get(prefix + "mode", "camera")
@@ -1406,7 +1809,7 @@ class lampcon_dialog(wx.Dialog):
         return [list]
 
     def show_guide_click(self, e):
-        self.parent.parent.show_help('lampcon_help.png')
+        self.shared_data.show_help('lampcon_help.png')
 
     def OnClose(self, e):
         self.Destroy()

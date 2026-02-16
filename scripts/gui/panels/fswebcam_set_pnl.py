@@ -356,15 +356,15 @@ class fs_sets_pnl(wx.Panel):
         cmd = pigrow_path + 'scripts/cron/camcap.py caps=' + outpath + ' set=' + settings_file
         print(" Taking a picture using ", cmd)
         out, error = self.parent.parent.link_pnl.run_on_pi(cmd)
+        combined_output = (out + error).strip()
         # check for text output listing save location
-        out = out + error
-        if "Saving image to:" in out:
-            path = out.split("Saving image to:")[1].split("\n")[0].strip()
+        if "Saving image to:" in combined_output:
+            path = combined_output.split("Saving image to:")[1].split("\n")[0].strip()
         else:
-            path = "Error : Image path not given \n\n" + out + '\n' + error
+            path = "Error : Image path not given \n\n" + combined_output
             self.check_fs()
         print(path)
-        return path
+        return path, combined_output
 
     def take_default(self, outpath):
         print(" Taking default image using fswebcam")
@@ -378,4 +378,4 @@ class fs_sets_pnl(wx.Panel):
         cam_cmd += " " + outpath  #output filename'
         print("---Doing: " + cam_cmd)
         out, error = self.parent.parent.link_pnl.run_on_pi(cam_cmd)
-        return outpath, "fswebcam"
+        return outpath, "fswebcam", (out + error).strip()

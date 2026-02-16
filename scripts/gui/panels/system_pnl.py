@@ -951,8 +951,8 @@ class install_dialog(wx.Dialog):
         #main_sizer.AddStretchSpacer(1)
         #main_sizer.Add(note, 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.AddStretchSpacer(1)
-        main_sizer.Add(self.venv_btn, 0, wx.ALL|wx.EXPAND, 5)
         main_sizer.Add(self.wizard_btn, 0, wx.ALL|wx.EXPAND, 5)
+        main_sizer.Add(self.venv_btn, 0, wx.ALL | wx.EXPAND, 5)
         main_sizer.AddStretchSpacer(1)
         main_sizer.Add(cat_sizer, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
         main_sizer.Add(opti_l, 0, wx.ALL|wx.EXPAND, 5)
@@ -1017,6 +1017,20 @@ class install_dialog(wx.Dialog):
         self.Destroy()
 
     def venv_click(self, e):
+        shared_data = self.parent.parent.shared_data
+        link_pnl = self.parent.parent.link_pnl
+
+        remote_path = shared_data.remote_pigrow_path
+        if not remote_path:
+            wx.MessageBox("Install Pigrow first", "Error", wx.OK | wx.ICON_ERROR)
+            return
+
+        check_cmd = f"if [ -d {remote_path.rstrip('/')} ]; then echo exists; fi"
+        out, error = link_pnl.run_on_pi(check_cmd)
+        if "exists" not in out:
+            wx.MessageBox("Install Pigrow first", "Error", wx.OK | wx.ICON_ERROR)
+            return
+
         self.dialog = VenvDialog(self.parent)
         self.dialog.Show()
         self.dialog.Destroy()
@@ -1794,6 +1808,7 @@ class VenvDialog(wx.Dialog):
         cron_text = path_line + out
 
         remote_pigrow_path = self.parent.parent.shared_data.remote_pigrow_path
+        self.ensure_temp_dir_exists()
         temppath = remote_pigrow_path + 'temp/remotecron.txt'
         self.parent.parent.link_pnl.write_textfile_to_pi( cron_text, temppath)
         # import file into cron
@@ -1825,6 +1840,7 @@ class VenvDialog(wx.Dialog):
 
         # Write the new content to a temporary file
         remote_pigrow_path = self.parent.parent.shared_data.remote_pigrow_path
+        self.ensure_temp_dir_exists()
         temp_path = remote_pigrow_path + 'temp/new_file.txt'
         self.parent.parent.link_pnl.write_textfile_to_pi(new_file_lines, temp_path)
 
@@ -1908,6 +1924,7 @@ class VenvDialog(wx.Dialog):
             msg = "The PATH line was not found in the crontab."
         else:
             remote_pigrow_path = self.parent.parent.shared_data.remote_pigrow_path
+            self.ensure_temp_dir_exists()
             temppath = remote_pigrow_path + 'temp/remotecron.txt'
             self.parent.parent.link_pnl.write_textfile_to_pi(new_cron_lines, temppath )
             # import file into cron
@@ -1941,6 +1958,7 @@ class VenvDialog(wx.Dialog):
             msg = f"The line was not found in {file_path}."
         else:
             remote_pigrow_path = self.parent.parent.shared_data.remote_pigrow_path
+            self.ensure_temp_dir_exists()
             temp_path = remote_pigrow_path + 'temp/new_file.txt'
             self.parent.parent.link_pnl.write_textfile_to_pi(new_file_lines, temp_path)
 
@@ -1961,4 +1979,9 @@ class VenvDialog(wx.Dialog):
     # exit behaviour
     def on_cancel(self, event):
         self.Close()
+
+    def ensure_temp_dir_exists(self):
+        run_on_pi = self.parent.parent.link_pnl.run_on_pi
+        remote_pigrow_path = self.parent.parent.shared_data.remote_pigrow_path
+        run_on_pi(f"mkdir -p {remote_pigrow_path}temp")
 

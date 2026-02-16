@@ -1501,6 +1501,8 @@ class info_pnl(scrolled.ScrolledPanel):
             self.InsertColumn(0, 'Filename')
             self.InsertColumn(1, 'date modified', format=wx.LIST_FORMAT_CENTER)
             self.InsertColumn(2, 'age', format=wx.LIST_FORMAT_CENTER)
+            self.InsertColumn(3, 'size', format=wx.LIST_FORMAT_CENTER)
+            self.InsertColumn(4, 'lines', format=wx.LIST_FORMAT_CENTER)
             self.autosizeme()
 
         def autosizeme(self):
@@ -1514,10 +1516,12 @@ class info_pnl(scrolled.ScrolledPanel):
                 else:
                     self.SetColumnWidth(i, h + 15)
 
-        def add_to_config_list(self, name, mod_date, age):
+        def add_to_config_list(self, name, mod_date, age, size, lines):
             self.InsertItem(0, str(name))
             self.SetItem(0, 1, str(mod_date))
             self.SetItem(0, 2, str(age))
+            self.SetItem(0, 3, str(size))
+            self.SetItem(0, 4, str(lines))
 
         def read_configs(self, folder_name):
             self.DeleteAllItems()
@@ -1533,10 +1537,24 @@ class info_pnl(scrolled.ScrolledPanel):
                     modified = os.path.getmtime(thing_path)
                     modified = datetime.datetime.fromtimestamp(modified)
                     file_age = datetime.datetime.now() - modified
+                    file_size = os.path.getsize(thing_path)
+                    lines = self.count_lines(thing_path)
                     modified = modified.strftime("%Y-%m-%d %H:%M")
                     file_age = str(file_age).split(".")[0]
-                    self.add_to_config_list(file, modified, file_age)
+                    file_size = self.format_size(file_size)
+                    self.add_to_config_list(file, modified, file_age, file_size, lines)
             self.autosizeme()
+
+        def format_size(self, size):
+            for unit in ['B', 'KB', 'MB', 'GB']:
+                if size < 1024.0:
+                    return f"{size:3.1f} {unit}"
+                size /= 1024.0
+            return f"{size:.1f} TB"
+
+        def count_lines(self, file_path):
+            with open(file_path, "r") as file_contents:
+                return len(file_contents.read().splitlines())
 
         def doubleclick_config(self, e):
             shared_data = self.parent.parent.shared_data
@@ -1573,6 +1591,8 @@ class info_pnl(scrolled.ScrolledPanel):
             self.InsertColumn(0, 'Filename')
             self.InsertColumn(1, 'date modified', format=wx.LIST_FORMAT_CENTER)
             self.InsertColumn(2, 'age', format=wx.LIST_FORMAT_CENTER)
+            self.InsertColumn(3, 'size', format=wx.LIST_FORMAT_CENTER)
+            self.InsertColumn(4, 'lines', format=wx.LIST_FORMAT_CENTER)
             self.autosizeme()
 
         def autosizeme(self):
@@ -1590,12 +1610,17 @@ class info_pnl(scrolled.ScrolledPanel):
             shared_data = self.parent.parent.shared_data
             index =  e.GetIndex()
             filename = self.GetItem(index, 0).GetText()
-            print(" not doing anything with the log at this momement")
+            full_path = os.path.join(shared_data.frompi_path, "logs", filename)
+            log_dialog = log_detail_dialog(self, filename, full_path)
+            log_dialog.ShowModal()
+            log_dialog.Destroy()
 
-        def add_to_logs_list(self, name, mod_date, age):
+        def add_to_logs_list(self, name, mod_date, age, size, lines):
             self.InsertItem(0, str(name))
             self.SetItem(0, 1, str(mod_date))
             self.SetItem(0, 2, str(age))
+            self.SetItem(0, 3, str(size))
+            self.SetItem(0, 4, str(lines))
 
         def read_logs(self, folder_name):
             self.DeleteAllItems()
@@ -1610,7 +1635,226 @@ class info_pnl(scrolled.ScrolledPanel):
                     modified = os.path.getmtime(file_path)
                     modified = datetime.datetime.fromtimestamp(modified)
                     file_age = datetime.datetime.now() - modified
+                    file_size = os.path.getsize(file_path)
+                    lines = self.count_lines(file_path)
                     modified = modified.strftime("%Y-%m-%d %H:%M")
                     file_age = str(file_age).split(".")[0]
-                    self.add_to_logs_list(file, modified, file_age)
+                    file_size = self.format_size(file_size)
+                    self.add_to_logs_list(file, modified, file_age, file_size, lines)
             self.autosizeme()
+
+        def format_size(self, size):
+            for unit in ['B', 'KB', 'MB', 'GB']:
+                if size < 1024.0:
+                    return f"{size:3.1f} {unit}"
+                size /= 1024.0
+            return f"{size:.1f} TB"
+
+        def count_lines(self, file_path):
+            with open(file_path, "r") as file_contents:
+                return len(file_contents.read().splitlines())
+
+
+class log_detail_dialog(wx.Dialog):
+    def __init__(self, parent, filename, file_path):
+        super(log_detail_dialog, self).__init__(
+            parent,
+            title=f"Log details - {filename}",
+            style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER | wx.MAXIMIZE_BOX,
+        )
+        self.file_path = file_path
+        self.filename = filename
+        self.SetSize((800, 600))
+        self.showing_full_log = False
+        self.InitUI()
+
+    def InitUI(self):
+        stat_info = os.stat(self.file_path)
+        modified = datetime.datetime.fromtimestamp(stat_info.st_mtime)
+        age = datetime.datetime.now() - modified
+        readable_age = str(age).split(".")[0]
+        readable_date = modified.strftime("%Y-%m-%d %H:%M")
+        file_size = self.format_size(stat_info.st_size)
+        with open(self.file_path, "r") as log_file:
+            self.log_lines = log_file.read().splitlines()
+        last_lines = "\n".join(self.log_lines[-10:])
+
+        total_lines = len(self.log_lines)
+        non_blank_lines = len([line for line in self.log_lines if line.strip()])
+
+        panel = scrolled.ScrolledPanel(self)
+
+        filename_l = wx.StaticText(panel, label=f"Name: {self.filename}")
+        date_l = wx.StaticText(panel, label=f"Date: {readable_date}")
+        age_l = wx.StaticText(panel, label=f"Age: {readable_age}")
+        size_l = wx.StaticText(panel, label=f"Size: {file_size}")
+        lines_l = wx.StaticText(panel, label=f"Lines: {total_lines} (non-blank: {non_blank_lines})")
+
+        self.log_text = wx.TextCtrl(
+            panel,
+            value=last_lines,
+            style=wx.TE_MULTILINE | wx.TE_READONLY | wx.TE_DONTWRAP | wx.HSCROLL,
+        )
+        self.log_text.SetMinSize((750, 250))
+
+        self.show_full_btn = wx.Button(panel, label='Show full log')
+        self.show_full_btn.Bind(wx.EVT_BUTTON, self.show_full_log)
+
+        self.graph_btn = wx.Button(panel, label='Graph log')
+        self.graph_btn.Bind(wx.EVT_BUTTON, self.graph_log)
+
+        log_type = self.detect_log_type(self.log_lines)
+        log_type_l = wx.StaticText(panel, label=f"Log type: {log_type}")
+
+        type_sizer = wx.BoxSizer(wx.VERTICAL)
+        type_sizer.Add(log_type_l, 0, wx.ALL, 5)
+
+        if log_type == 'k=v>':
+            kv_panel = self.build_kv_summary(self.log_lines, panel)
+            type_sizer.Add(kv_panel, 0, wx.ALL | wx.EXPAND, 5)
+
+        info_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        info_sizer.Add(filename_l, 0, wx.ALL, 5)
+        info_sizer.Add(date_l, 0, wx.ALL, 5)
+        info_sizer.Add(age_l, 0, wx.ALL, 5)
+        info_sizer.Add(size_l, 0, wx.ALL, 5)
+        info_sizer.Add(lines_l, 0, wx.ALL, 5)
+
+        button_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        button_sizer.Add(self.show_full_btn, 0, wx.ALL, 5)
+        button_sizer.Add(self.graph_btn, 0, wx.ALL, 5)
+
+        panel_sizer = wx.BoxSizer(wx.VERTICAL)
+        panel_sizer.Add(info_sizer, 0, wx.ALL, 5)
+        panel_sizer.Add(self.log_text, 1, wx.ALL | wx.EXPAND, 5)
+        panel_sizer.Add(button_sizer, 0, wx.ALL, 5)
+        panel_sizer.Add(type_sizer, 0, wx.ALL | wx.EXPAND, 5)
+
+        panel.SetSizer(panel_sizer)
+        panel.SetupScrolling(scroll_x=True, scroll_y=True)
+
+        main_sizer = wx.BoxSizer(wx.VERTICAL)
+        main_sizer.Add(panel, 1, wx.ALL | wx.EXPAND, 0)
+
+        self.SetSizer(main_sizer)
+
+    def show_full_log(self, e):
+        if not self.showing_full_log:
+            full_text = "\n".join(self.log_lines)
+            self.log_text.SetValue(full_text)
+            self.show_full_btn.SetLabel('Show last 10 lines')
+            self.showing_full_log = True
+        else:
+            self.log_text.SetValue("\n".join(self.log_lines[-10:]))
+            self.show_full_btn.SetLabel('Show full log')
+            self.showing_full_log = False
+
+    def graph_log(self, e):
+        print('graph link coming soon')
+
+    def detect_log_type(self, lines):
+        for line in lines:
+            stripped = line.strip()
+            if not stripped:
+                continue
+            if '>' in stripped and '=' in stripped:
+                segments = [seg for seg in stripped.split('>') if seg]
+                if segments and all('=' in seg for seg in segments):
+                    return 'k=v>'
+            break
+        return 'unknown'
+
+    def build_kv_summary(self, lines, parent=None):
+        stats = {}
+        time_values = []
+        for line in lines:
+            segments = [seg for seg in line.strip().split('>') if seg]
+            for seg in segments:
+                if '=' not in seg:
+                    continue
+                key, value = seg.split('=', 1)
+                key = key.strip()
+                value = value.strip()
+                if key == 'time':
+                    time_values.append(self.strip_microseconds(value))
+                    continue
+                if key not in stats:
+                    stats[key] = []
+                stats[key].append(value)
+
+        parent_panel = parent if parent else self
+        panel = wx.Panel(parent_panel)
+        main_sizer = wx.BoxSizer(wx.VERTICAL)
+
+        time_range = self.format_time_range(time_values)
+        if time_range:
+            main_sizer.Add(wx.StaticText(panel, label=time_range), 0, wx.ALL, 5)
+
+        grid = wx.FlexGridSizer(rows=len(stats) + 1, cols=4, hgap=10, vgap=5)
+        headers = ['Key', 'Most recent', 'Min', 'Max']
+        for header in headers:
+            grid.Add(wx.StaticText(panel, label=header), 0, wx.ALL, 5)
+
+        for key, values in stats.items():
+            min_val, max_val = self.calculate_min_max(values)
+            grid.Add(wx.StaticText(panel, label=key), 0, wx.ALL, 5)
+            grid.Add(wx.StaticText(panel, label=values[-1]), 0, wx.ALL, 5)
+            grid.Add(wx.StaticText(panel, label=min_val), 0, wx.ALL, 5)
+            grid.Add(wx.StaticText(panel, label=max_val), 0, wx.ALL, 5)
+
+        main_sizer.Add(grid, 0, wx.ALL, 0)
+        panel.SetSizer(main_sizer)
+        return panel
+
+    def calculate_min_max(self, values):
+        numeric_values = []
+        for val in values:
+            try:
+                numeric_values.append(float(val))
+            except ValueError:
+                numeric_values = []
+                break
+        if numeric_values:
+            min_val = str(min(numeric_values))
+            max_val = str(max(numeric_values))
+        else:
+            min_val = min(values)
+            max_val = max(values)
+        return min_val, max_val
+
+    def format_time_range(self, time_values):
+        if not time_values:
+            return None
+
+        parsed_times = []
+        for val in time_values:
+            dt = self.parse_datetime(val)
+            if dt:
+                parsed_times.append(dt)
+
+        if parsed_times:
+            earliest = min(parsed_times)
+            latest = max(parsed_times)
+            start = earliest.strftime("%Y-%m-%d %H:%M:%S")
+            end = latest.strftime("%Y-%m-%d %H:%M:%S")
+        else:
+            start = min(time_values)
+            end = max(time_values)
+
+        return f"from {start} to {end}"
+
+    def parse_datetime(self, value):
+        try:
+            return datetime.datetime.fromisoformat(value)
+        except ValueError:
+            return None
+
+    def strip_microseconds(self, value):
+        return value.split('.', 1)[0]
+
+    def format_size(self, size):
+        for unit in ['B', 'KB', 'MB', 'GB']:
+            if size < 1024.0:
+                return f"{size:3.1f} {unit}"
+            size /= 1024.0
+        return f"{size:.1f} TB"

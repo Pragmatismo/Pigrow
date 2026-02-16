@@ -2,7 +2,6 @@
 import os
 import sys
 
-
 def show_info(percent_only=False):
     """
     Retrieves disk usage for the root filesystem using 'df -l /'
@@ -29,7 +28,6 @@ def show_info(percent_only=False):
             return info
     return "No disk usage info available"
 
-
 if __name__ == '__main__':
     # Default setting
     percent_only = False
@@ -47,8 +45,7 @@ if __name__ == '__main__':
             print("   ./info_diskusage.py percent_only=true")
             sys.exit(0)
         elif arg_lower == "-flags":
-            print("Available setting:")
-            print("   percent_only=true")
+            print("percent_only=true")
             sys.exit(0)
         elif "=" in arg:
             key, val = arg.split("=", 1)

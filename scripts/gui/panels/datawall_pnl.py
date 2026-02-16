@@ -98,7 +98,7 @@ class ctrl_pnl(scrolled.ScrolledPanel):
         self.datawall_data = data
         self.create_btn.Enable()
 
-    def create_datawall_data(self, text_lines):
+    def create_datawall_data(self, text_lines, show_dialog=True, error_collector=None):
         """
         Given a list of preset lines (key=val strings),
         build and return the full data package.
@@ -121,7 +121,9 @@ class ctrl_pnl(scrolled.ScrolledPanel):
                 data["graphs"][key[len("graph_preset:"):]] = gp or None
 
             elif key.startswith("log_preset"):
-                ds = self.parent.dict_C_pnl['graphs_pnl'].graph_preset.load_dataset_preset(self.parent.dict_C_pnl['graphs_pnl'], val)
+                ds = self.parent.dict_C_pnl['graphs_pnl'].graph_preset.load_dataset_preset(
+                    self.parent.dict_C_pnl['graphs_pnl'], val, show_dialog=show_dialog, error_collector=error_collector
+                )
                 data["data"][key[len("log_preset:"):]] = ds or None
 
         return data
@@ -257,9 +259,17 @@ class info_pnl(scrolled.ScrolledPanel):
         sub_title_text = "This is in progress and subject to change."
         page_sub_title = wx.StaticText(self, label=sub_title_text)
 
+        guide_btn = wx.Button(self, label='Guide')
+        guide_btn.Bind(wx.EVT_BUTTON, self.show_guide)
+
+        title_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        title_sizer.Add(title_l, 0, wx.ALIGN_CENTER_VERTICAL)
+        title_sizer.AddStretchSpacer(1)
+        title_sizer.Add(guide_btn, 0, wx.ALIGN_CENTER_VERTICAL)
+
         # Main Sizer
         self.main_sizer = wx.BoxSizer(wx.VERTICAL)
-        self.main_sizer.Add(title_l, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
+        self.main_sizer.Add(title_sizer, 0, wx.EXPAND | wx.ALL, 5)
         self.main_sizer.Add(page_sub_title, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
 
         # Create an image box (using wx.StaticBitmap)
@@ -296,6 +306,9 @@ class info_pnl(scrolled.ScrolledPanel):
         self.image_box.SetSize(bmp.GetWidth(), bmp.GetHeight())
         # Re-layout the panel to account for the new image size.
         self.main_sizer.Layout()
+
+    def show_guide(self, event):
+        self.shared_data.show_help('datawall_help.png')
 
 class PresetOptionsPanel(wx.Panel):
     def __init__(self, parent):

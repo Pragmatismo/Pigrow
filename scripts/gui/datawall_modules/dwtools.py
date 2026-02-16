@@ -64,8 +64,23 @@ TEXT_SECONDARY = (230, 230, 230, 255)
 BAND_BG = (245, 246, 248)
 BAND_TEXT = (40, 44, 52)
 
-TITLE_SIZE = 28     # timestamp
-SUBTITLE_SIZE = 18  # age
+TITLE_SIZE = 28     # timestamp (fallback)
+SUBTITLE_SIZE = 18  # age (fallback)
+
+
+def _scaled_font_sizes(image_height: int) -> Tuple[int, int]:
+    """Return title/subtitle sizes proportional to the image height.
+
+    The overlay is rescaled later, so keep the text visible by making the
+    combined pill height roughly 1/8 of the image. A minimum size keeps
+    thumbnails readable and the legacy constants act as a floor for tiny
+    images.
+    """
+
+    target = max(12, image_height // 8)
+    title_size = max(TITLE_SIZE, int(target * 0.7))
+    subtitle_size = max(SUBTITLE_SIZE, int(title_size * 0.65))
+    return title_size, subtitle_size
 
 
 def _parse_ts_from_name(path: str) -> Optional[int]:
@@ -144,8 +159,10 @@ def make_image_box(
         main = _format_dt_local(ts)
         secondary = _format_age(ts) if age else None
 
-    title_font = _load_font(TITLE_SIZE)
-    sub_font = _load_font(SUBTITLE_SIZE)
+    title_size, subtitle_size = _scaled_font_sizes(H)
+
+    title_font = _load_font(title_size)
+    sub_font = _load_font(subtitle_size)
 
     title_w, title_h = _text_size(draw, main, title_font)
     sub_w, sub_h = (0, 0)
