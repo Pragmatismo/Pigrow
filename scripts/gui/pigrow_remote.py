@@ -79,8 +79,7 @@ class MainFrame(wx.Frame):
         side_bar_sizer.Add(self.link_pnl, 0, wx.ALL|wx.EXPAND, 0)
         side_bar_sizer.Add(self.view_pnl, 0, wx.ALL|wx.EXPAND, 0)
         for pnl in list_of_panels:
-            MainFrame.dict_C_pnl[pnl].SetMinSize((-1,800))
-            side_bar_sizer.Add(MainFrame.dict_C_pnl[pnl], 0, wx.ALL|wx.EXPAND, 0)
+            side_bar_sizer.Add(MainFrame.dict_C_pnl[pnl], 1, wx.ALL|wx.EXPAND, 0)
         # add info panels
         main_sizer = wx.BoxSizer(wx.HORIZONTAL)
         main_sizer.Add(side_bar_sizer, 0, wx.ALL|wx.EXPAND, 0)
