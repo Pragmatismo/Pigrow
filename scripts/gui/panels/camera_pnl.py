@@ -7,6 +7,7 @@ import shlex
 import wx.lib.scrolledpanel as scrolled
 import image_combine
 import shutil
+from PIL import Image
 from panels.picam_set_pnl import picam_sets_pnl
 from panels.rpicap_set_pnl import rpicap_sets_pnl
 from panels.fswebcam_set_pnl import fs_sets_pnl
@@ -1250,12 +1251,19 @@ class stopmotion_dialog(wx.Dialog):
         self.parent = parent
         self.link_pnl = self.parent.parent.link_pnl
         self.frame_count = 0
+        self.current_frame_index = -1
+        self.local_frame_paths = []
+        self.preview_running = False
+        self.preview_frames = []
+        self.preview_index = 0
+        self.preview_timer = wx.Timer(self)
         if not self.set_camconf_file():
             return
         self.InitUI()
         self.SetSize((640, 360))
         self.SetTitle("Stop Motion")
         self.Bind(wx.EVT_CLOSE, self.OnClose)
+        self.Bind(wx.EVT_TIMER, self.preview_timer_tick, self.preview_timer)
         self.update_frame_count()
 
     def set_camconf_file(self):
@@ -1283,6 +1291,7 @@ class stopmotion_dialog(wx.Dialog):
         self.outfolder_textctrl = wx.TextCtrl(self)
         out_folder = self.parent.parent.shared_data.remote_pigrow_path + "caps/"
         self.outfolder_textctrl.SetValue(out_folder)
+        self.outfolder_textctrl.Bind(wx.EVT_TEXT, self.path_value_changed)
         outfolder_button = wx.Button(self, label="...")
         outfolder_button.Bind(wx.EVT_BUTTON, self.get_folder)
         outfolder_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -1293,6 +1302,7 @@ class stopmotion_dialog(wx.Dialog):
         setname_label = wx.StaticText(self, label="Set Name:")
         self.setname_textctrl = wx.TextCtrl(self)
         self.setname_textctrl.SetValue("stopmotion")
+        self.setname_textctrl.Bind(wx.EVT_TEXT, self.path_value_changed)
         setname_sizer = wx.BoxSizer(wx.HORIZONTAL)
         setname_sizer.Add(setname_label, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
         setname_sizer.Add(self.setname_textctrl, 1, wx.ALL | wx.EXPAND, 5)
@@ -1300,6 +1310,51 @@ class stopmotion_dialog(wx.Dialog):
         self.frame_count_l = wx.StaticText(self, label="Frames captured: 0")
         self.take_image_btn = wx.Button(self, label='Take Image')
         self.take_image_btn.Bind(wx.EVT_BUTTON, self.take_image_click)
+
+        self.show_images_cb = wx.CheckBox(self, label='Show images')
+        self.show_images_cb.Bind(wx.EVT_CHECKBOX, self.show_images_toggle)
+
+        self.preview_image = wx.StaticBitmap(self, wx.ID_ANY, wx.Bitmap(840, 420))
+
+        frame_nav_l = wx.StaticText(self, label='Frame')
+        frame_left_btn = wx.Button(self, label='◀')
+        frame_left_btn.Bind(wx.EVT_BUTTON, self.frame_left_click)
+        frame_right_btn = wx.Button(self, label='▶')
+        frame_right_btn.Bind(wx.EVT_BUTTON, self.frame_right_click)
+        self.frame_no_tc = wx.TextCtrl(self, value="0", size=(70, -1), style=wx.TE_PROCESS_ENTER)
+        self.frame_no_tc.Bind(wx.EVT_TEXT_ENTER, self.frame_no_enter)
+
+        ghosting_l = wx.StaticText(self, label='Ghosting')
+        self.ghosting_tc = wx.TextCtrl(self, value="0", size=(50, -1), style=wx.TE_PROCESS_ENTER)
+        self.ghosting_tc.Bind(wx.EVT_TEXT_ENTER, self.refresh_current_preview)
+        self.show_first_cb = wx.CheckBox(self, label='Show 1st frame')
+        self.show_first_cb.Bind(wx.EVT_CHECKBOX, self.refresh_current_preview)
+
+        self.preview_btn = wx.Button(self, label='Preview')
+        self.preview_btn.Bind(wx.EVT_BUTTON, self.preview_click)
+        preview_frames_l = wx.StaticText(self, label='Frames')
+        self.preview_frames_tc = wx.TextCtrl(self, value="5", size=(60, -1))
+
+        nav_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        nav_sizer.Add(frame_nav_l, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 4)
+        nav_sizer.Add(frame_left_btn, 0, wx.ALL, 2)
+        nav_sizer.Add(self.frame_no_tc, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 2)
+        nav_sizer.Add(frame_right_btn, 0, wx.ALL, 2)
+        nav_sizer.AddSpacer(12)
+        nav_sizer.Add(ghosting_l, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 4)
+        nav_sizer.Add(self.ghosting_tc, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 2)
+        nav_sizer.Add(self.show_first_cb, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 4)
+        nav_sizer.AddStretchSpacer(1)
+        nav_sizer.Add(self.preview_btn, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 2)
+        nav_sizer.Add(preview_frames_l, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 4)
+        nav_sizer.Add(self.preview_frames_tc, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 2)
+
+        self.image_panel_sizer = wx.BoxSizer(wx.VERTICAL)
+        self.image_panel_sizer.Add(self.preview_image, 1, wx.ALL | wx.EXPAND, 2)
+        self.image_panel_sizer.Add(nav_sizer, 0, wx.ALL | wx.EXPAND, 2)
+        self.image_panel = wx.Panel(self)
+        self.image_panel.SetSizer(self.image_panel_sizer)
+        self.image_panel.Hide()
 
         done_btn = wx.Button(self, label='Done')
         done_btn.Bind(wx.EVT_BUTTON, self.OnClose)
@@ -1311,6 +1366,8 @@ class stopmotion_dialog(wx.Dialog):
         self.main_sizer.Add(setname_sizer, 0, wx.ALL | wx.EXPAND, 2)
         self.main_sizer.Add(self.frame_count_l, 0, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 8)
         self.main_sizer.Add(self.take_image_btn, 0, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 5)
+        self.main_sizer.Add(self.show_images_cb, 0, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 2)
+        self.main_sizer.Add(self.image_panel, 1, wx.ALL | wx.EXPAND, 5)
         self.main_sizer.AddStretchSpacer(1)
         self.main_sizer.Add(done_btn, 0, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 8)
         self.SetSizer(self.main_sizer)
@@ -1331,6 +1388,13 @@ class stopmotion_dialog(wx.Dialog):
         if selected_folders:
             self.outfolder_textctrl.SetValue(selected_folders[0])
             self.update_frame_count()
+            self.load_local_frame_list()
+
+    def path_value_changed(self, e):
+        self.update_frame_count()
+        self.load_local_frame_list()
+        if e is not None:
+            e.Skip()
 
     def update_frame_count(self):
         outfolder = self._normalise_outfolder(self.outfolder_textctrl.GetValue())
@@ -1372,6 +1436,16 @@ class stopmotion_dialog(wx.Dialog):
 
         self.update_frame_count()
 
+        if self.show_images_cb.GetValue():
+            local_path = self.download_remote_frame(full_outpath)
+            if local_path is not None:
+                self.load_local_frame_list()
+                if local_path in self.local_frame_paths:
+                    self.current_frame_index = self.local_frame_paths.index(local_path)
+                else:
+                    self.current_frame_index = len(self.local_frame_paths) - 1
+                self.show_frame(self.current_frame_index)
+
     def capture_stopmotion_frame(self, camera_tool, outfolder, full_outpath):
         base_path = self.parent.parent.shared_data.remote_pigrow_path
         script_map = {
@@ -1409,5 +1483,195 @@ class stopmotion_dialog(wx.Dialog):
             outfolder += '/'
         return outfolder
 
+    def get_local_outfolder(self):
+        local_root = self.parent.parent.shared_data.frompi_path
+        if local_root == "":
+            local_root = self.parent.parent.shared_data.frompi_base_path
+
+        outfolder = self._normalise_outfolder(self.outfolder_textctrl.GetValue())
+        if outfolder == "":
+            return local_root
+        if "Pigrow/" in outfolder:
+            relative_folder = outfolder.split("Pigrow/")[1].strip("/")
+        else:
+            relative_folder = os.path.basename(outfolder.strip("/"))
+        return os.path.join(local_root, relative_folder)
+
+    def get_local_frame_pattern(self):
+        setname = self.setname_textctrl.GetValue().strip()
+        if setname == "":
+            return None
+        return setname + "_"
+
+    def load_local_frame_list(self):
+        local_folder = self.get_local_outfolder()
+        file_prefix = self.get_local_frame_pattern()
+        self.local_frame_paths = []
+        if file_prefix is None or not os.path.isdir(local_folder):
+            self.current_frame_index = -1
+            self.frame_no_tc.SetValue("0")
+            return
+
+        for filename in os.listdir(local_folder):
+            if filename.startswith(file_prefix) and filename.lower().endswith((".jpg", ".png")):
+                self.local_frame_paths.append(os.path.join(local_folder, filename))
+        self.local_frame_paths.sort()
+
+        if len(self.local_frame_paths) == 0:
+            self.current_frame_index = -1
+            self.frame_no_tc.SetValue("0")
+            return
+
+        if self.current_frame_index < 0 or self.current_frame_index >= len(self.local_frame_paths):
+            self.current_frame_index = len(self.local_frame_paths) - 1
+        self.frame_no_tc.SetValue(str(self.current_frame_index + 1))
+
+    def download_remote_frame(self, remote_file):
+        local_folder = self.get_local_outfolder()
+        local_file = os.path.join(local_folder, os.path.basename(remote_file))
+        try:
+            return self.link_pnl.download_file_to_folder(remote_file, local_file)
+        except Exception as e:
+            print("Failed to download stopmotion frame", remote_file, "because", e)
+            return None
+
+    def show_images_toggle(self, e):
+        show_images = self.show_images_cb.GetValue()
+        if not show_images:
+            self.stop_preview()
+            self.image_panel.Hide()
+            self.SetSize((640, 360))
+            self.Layout()
+            return
+
+        self.load_local_frame_list()
+        self.image_panel.Show()
+        self.SetSize((980, 840))
+        if self.current_frame_index >= 0:
+            self.show_frame(self.current_frame_index)
+        self.Layout()
+
+    def frame_left_click(self, e):
+        if len(self.local_frame_paths) == 0:
+            return
+        self.current_frame_index = max(0, self.current_frame_index - 1)
+        self.show_frame(self.current_frame_index)
+
+    def frame_right_click(self, e):
+        if len(self.local_frame_paths) == 0:
+            return
+        self.current_frame_index = min(len(self.local_frame_paths) - 1, self.current_frame_index + 1)
+        self.show_frame(self.current_frame_index)
+
+    def frame_no_enter(self, e):
+        if len(self.local_frame_paths) == 0:
+            self.frame_no_tc.SetValue("0")
+            return
+        try:
+            requested_frame = int(self.frame_no_tc.GetValue())
+        except ValueError:
+            self.frame_no_tc.SetValue(str(self.current_frame_index + 1))
+            return
+
+        requested_frame = max(1, min(len(self.local_frame_paths), requested_frame))
+        self.current_frame_index = requested_frame - 1
+        self.show_frame(self.current_frame_index)
+
+    def get_ghosting_value(self):
+        try:
+            value = int(self.ghosting_tc.GetValue())
+        except ValueError:
+            value = 0
+        return max(0, value)
+
+    def refresh_current_preview(self, e=None):
+        if self.current_frame_index >= 0:
+            self.show_frame(self.current_frame_index)
+
+    def show_frame(self, index):
+        if len(self.local_frame_paths) == 0:
+            return
+        index = max(0, min(len(self.local_frame_paths) - 1, index))
+        self.current_frame_index = index
+        self.frame_no_tc.SetValue(str(index + 1))
+
+        current_path = self.local_frame_paths[index]
+        composed = self.compose_preview_image(current_path, index)
+        self.set_preview_bitmap(composed)
+
+    def compose_preview_image(self, current_path, index):
+        base = Image.open(current_path).convert("RGBA")
+        ghost_count = self.get_ghosting_value()
+
+        for ghost_i in range(1, ghost_count + 1):
+            ghost_index = index - ghost_i
+            if ghost_index < 0:
+                break
+            ghost_img = Image.open(self.local_frame_paths[ghost_index]).convert("RGBA")
+            if ghost_img.size != base.size:
+                ghost_img = ghost_img.resize(base.size)
+            ghost_img.putalpha(128)
+            base.alpha_composite(ghost_img)
+
+        if self.show_first_cb.GetValue() and len(self.local_frame_paths) > 0 and index > 0:
+            first_img = Image.open(self.local_frame_paths[0]).convert("RGBA")
+            if first_img.size != base.size:
+                first_img = first_img.resize(base.size)
+            first_img.putalpha(128)
+            base.alpha_composite(first_img)
+
+        return base
+
+    def set_preview_bitmap(self, pil_image):
+        max_w = max(100, self.image_panel.GetClientSize().width - 12)
+        max_h = max(100, self.image_panel.GetClientSize().height - 45)
+
+        image_to_show = pil_image.copy().convert("RGB")
+        image_to_show.thumbnail((max_w, max_h), Image.LANCZOS)
+        wx_image = wx.Image(image_to_show.width, image_to_show.height)
+        wx_image.SetData(image_to_show.tobytes())
+        self.preview_image.SetBitmap(wx_image.ConvertToBitmap())
+        self.image_panel.Layout()
+
+    def preview_click(self, e):
+        if self.preview_running:
+            self.stop_preview()
+            return
+
+        self.load_local_frame_list()
+        if len(self.local_frame_paths) == 0:
+            return
+        try:
+            preview_count = int(self.preview_frames_tc.GetValue())
+        except ValueError:
+            preview_count = 5
+        preview_count = max(1, min(len(self.local_frame_paths), preview_count))
+
+        self.preview_frames = self.local_frame_paths[-preview_count:]
+        self.preview_index = 0
+        self.preview_running = True
+        self.preview_btn.SetLabel("Stop")
+        self.preview_timer.Start(100)
+
+    def preview_timer_tick(self, e):
+        if not self.preview_running or len(self.preview_frames) == 0:
+            self.stop_preview()
+            return
+
+        frame_path = self.preview_frames[self.preview_index]
+        try:
+            frame_index = self.local_frame_paths.index(frame_path)
+        except ValueError:
+            frame_index = len(self.local_frame_paths) - 1
+        self.show_frame(frame_index)
+        self.preview_index = (self.preview_index + 1) % len(self.preview_frames)
+
+    def stop_preview(self):
+        if self.preview_timer.IsRunning():
+            self.preview_timer.Stop()
+        self.preview_running = False
+        self.preview_btn.SetLabel("Preview")
+
     def OnClose(self, e):
+        self.stop_preview()
         self.Destroy()
