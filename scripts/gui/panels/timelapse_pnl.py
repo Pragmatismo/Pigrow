@@ -750,11 +750,14 @@ class info_pnl(wx.Panel):
             self.first_frame_no.Bind(wx.EVT_TEXT, self.first_frame_change)
             first_next_btn = wx.Button(self, label='>')
             first_next_btn.Bind(wx.EVT_BUTTON, self.first_next_click)
+            first_delete_btn = wx.Button(self, label='delete frame')
+            first_delete_btn.Bind(wx.EVT_BUTTON, self.first_delete_click)
 
             first_ctrl_sizer = wx.BoxSizer(wx.HORIZONTAL)
             first_ctrl_sizer.Add(first_prev_btn, 0, wx.ALL, 5)
             first_ctrl_sizer.Add(self.first_frame_no, 0, wx.ALL, 5)
             first_ctrl_sizer.Add(first_next_btn, 0, wx.ALL, 5)
+            first_ctrl_sizer.Add(first_delete_btn, 0, wx.ALL, 5)
 
             first_img_sizer = wx.BoxSizer(wx.VERTICAL)
             first_img_sizer.Add(self.first_img_l, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
@@ -771,11 +774,14 @@ class info_pnl(wx.Panel):
             self.last_frame_no.Bind(wx.EVT_TEXT, self.last_frame_change)
             last_next_btn = wx.Button(self, label='>')
             last_next_btn.Bind(wx.EVT_BUTTON, self.last_next_click)
+            last_delete_btn = wx.Button(self, label='delete frame')
+            last_delete_btn.Bind(wx.EVT_BUTTON, self.last_delete_click)
 
             last_ctrl_sizer = wx.BoxSizer(wx.HORIZONTAL)
             last_ctrl_sizer.Add(last_prev_btn, 0, wx.ALL, 5)
             last_ctrl_sizer.Add(self.last_frame_no, 0, wx.ALL, 5)
             last_ctrl_sizer.Add(last_next_btn, 0, wx.ALL, 5)
+            last_ctrl_sizer.Add(last_delete_btn, 0, wx.ALL, 5)
 
             last_img_sizer = wx.BoxSizer(wx.VERTICAL)
             last_img_sizer.Add(self.last_img_l, 0, wx.ALIGN_CENTER_HORIZONTAL, 5)
@@ -1023,6 +1029,14 @@ class info_pnl(wx.Panel):
 
             self.c_pnl.list_val_changed()
 
+        def first_delete_click(self, e):
+            frame_num = self.first_frame_no.GetValue()
+            try:
+                frame_num = int(frame_num)
+            except:
+                return None
+            self.delete_frame(frame_num)
+
         # last image box controls
         def set_last_image(self, frame, resize=False):
             image_path = self.c_pnl.cap_file_paths[frame]
@@ -1088,6 +1102,95 @@ class info_pnl(wx.Panel):
                 frame_num = max_num
             self.set_last_image(frame_num)
 
+            self.c_pnl.list_val_changed()
+
+        def last_delete_click(self, e):
+            frame_num = self.last_frame_no.GetValue()
+            try:
+                frame_num = int(frame_num)
+            except:
+                return None
+            self.delete_frame(frame_num)
+
+        def delete_frame(self, frame_num):
+            if frame_num < 0 or frame_num >= len(self.c_pnl.cap_file_paths):
+                return None
+
+            confirm_msg = "are you sure you want to permanently delete this frame?"
+            confirm_dialog = wx.MessageDialog(self, confirm_msg, "Confirm", wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION)
+            if confirm_dialog.ShowModal() != wx.ID_YES:
+                confirm_dialog.Destroy()
+                return None
+            confirm_dialog.Destroy()
+
+            frame_path = self.c_pnl.cap_file_paths[frame_num]
+            self.delete_frame_remote(frame_path)
+            self.delete_frame_local(frame_path)
+
+            self.c_pnl.cap_file_paths.pop(frame_num)
+            self.c_pnl.trimmed_frame_list = [path for path in self.c_pnl.trimmed_frame_list if path != frame_path]
+            self.refresh_after_delete(frame_num)
+
+        def delete_frame_remote(self, local_frame_path):
+            shared_data = self.parent.shared_data
+            remote_pigrow_path = shared_data.remote_pigrow_path
+            frompi_path = shared_data.frompi_path
+
+            if remote_pigrow_path == "" or frompi_path == "":
+                return None
+
+            if not local_frame_path.startswith(frompi_path):
+                return None
+
+            remote_suffix = local_frame_path[len(frompi_path):].lstrip("/\\")
+            remote_frame_path = os.path.join(remote_pigrow_path, remote_suffix).replace("\\", "/")
+            remote_frame_path = remote_frame_path.replace('"', '\\"')
+            self.parent.link_pnl.run_on_pi(f'rm -f "{remote_frame_path}"')
+
+        def delete_frame_local(self, frame_path):
+            if os.path.isfile(frame_path):
+                try:
+                    os.remove(frame_path)
+                except Exception as e:
+                    print("Failed to delete local frame", frame_path, e)
+
+        def refresh_after_delete(self, deleted_frame):
+            if len(self.c_pnl.cap_file_paths) == 0:
+                self.first_img_l.SetLabel('-first image- \n(date)')
+                self.last_img_l.SetLabel('-last image- \n(date)')
+                blank_img = wx.Bitmap(self.pic_size, self.pic_size)
+                self.first_image.SetBitmap(blank_img)
+                self.last_image.SetBitmap(blank_img)
+                self.first_frame_no.ChangeValue("0")
+                self.last_frame_no.ChangeValue("0")
+                self.set_img_box()
+                return None
+
+            max_index = len(self.c_pnl.cap_file_paths) - 1
+
+            try:
+                first_frame = int(self.first_frame_no.GetValue())
+            except:
+                first_frame = 0
+            try:
+                last_frame = int(self.last_frame_no.GetValue())
+            except:
+                last_frame = max_index
+
+            if first_frame >= deleted_frame:
+                first_frame -= 1
+            if last_frame >= deleted_frame:
+                last_frame -= 1
+
+            first_frame = max(0, min(first_frame, max_index))
+            last_frame = max(0, min(last_frame, max_index))
+            if first_frame > last_frame:
+                first_frame = last_frame
+
+            self.first_frame_no.ChangeValue(str(first_frame))
+            self.last_frame_no.ChangeValue(str(last_frame))
+            self.set_first_image(first_frame)
+            self.set_last_image(last_frame)
             self.c_pnl.list_val_changed()
 
         # filename tools
