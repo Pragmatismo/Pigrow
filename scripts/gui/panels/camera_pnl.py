@@ -1333,6 +1333,8 @@ class stopmotion_dialog(wx.Dialog):
 
         self.preview_btn = wx.Button(self.image_panel, label='Preview')
         self.preview_btn.Bind(wx.EVT_BUTTON, self.preview_click)
+        self.delete_frame_btn = wx.Button(self.image_panel, label='delete frame')
+        self.delete_frame_btn.Bind(wx.EVT_BUTTON, self.delete_frame_click)
         preview_frames_l = wx.StaticText(self.image_panel, label='Frames')
         self.preview_frames_tc = wx.TextCtrl(self.image_panel, value="5", size=(60, -1))
 
@@ -1346,6 +1348,7 @@ class stopmotion_dialog(wx.Dialog):
         nav_sizer.Add(self.ghosting_tc, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 2)
         nav_sizer.Add(self.show_first_cb, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 4)
         nav_sizer.AddStretchSpacer(1)
+        nav_sizer.Add(self.delete_frame_btn, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 2)
         nav_sizer.Add(self.preview_btn, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 2)
         nav_sizer.Add(preview_frames_l, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 4)
         nav_sizer.Add(self.preview_frames_tc, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 2)
@@ -1587,6 +1590,35 @@ class stopmotion_dialog(wx.Dialog):
     def refresh_current_preview(self, e=None):
         if self.current_frame_index >= 0:
             self.show_frame(self.current_frame_index)
+
+    def delete_frame_click(self, e):
+        if len(self.local_frame_paths) == 0 or self.current_frame_index < 0:
+            return
+
+        self.stop_preview()
+        current_path = self.local_frame_paths[self.current_frame_index]
+        outfolder = self._normalise_outfolder(self.outfolder_textctrl.GetValue())
+        remote_frame = outfolder + os.path.basename(current_path)
+        quoted_remote_frame = shlex.quote(remote_frame)
+        self.link_pnl.run_on_pi(f"rm -f {quoted_remote_frame}")
+
+        if os.path.isfile(current_path):
+            try:
+                os.remove(current_path)
+            except OSError as e:
+                print("Failed to delete local stopmotion frame", current_path, "because", e)
+
+        self.update_frame_count()
+        self.load_local_frame_list()
+        if len(self.local_frame_paths) == 0:
+            self.current_frame_index = -1
+            self.frame_no_tc.SetValue("0")
+            self.preview_image.SetBitmap(wx.Bitmap(840, 420))
+            self.image_panel.Layout()
+            return
+
+        self.current_frame_index = min(self.current_frame_index, len(self.local_frame_paths) - 1)
+        self.show_frame(self.current_frame_index)
 
     def show_frame(self, index):
         if len(self.local_frame_paths) == 0:
