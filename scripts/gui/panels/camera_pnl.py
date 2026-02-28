@@ -3,9 +3,11 @@ import wx
 import re
 import json
 import time
+import shlex
 import wx.lib.scrolledpanel as scrolled
 import image_combine
 import shutil
+from PIL import Image
 from panels.picam_set_pnl import picam_sets_pnl
 from panels.rpicap_set_pnl import rpicap_sets_pnl
 from panels.fswebcam_set_pnl import fs_sets_pnl
@@ -80,6 +82,8 @@ class ctrl_pnl(scrolled.ScrolledPanel):
         quick_timelapse_btn.Bind(wx.EVT_BUTTON, self.quick_timelapse_click)
         long_timelapse_btn = wx.Button(self, label='Long Timelapse')
         long_timelapse_btn.Bind(wx.EVT_BUTTON, self.long_timelapse_click)
+        stopmotion_btn = wx.Button(self, label='Stop Motion')
+        stopmotion_btn.Bind(wx.EVT_BUTTON, self.stopmotion_click)
 
         # Sizers
         load_save_btn_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -138,6 +142,7 @@ class ctrl_pnl(scrolled.ScrolledPanel):
         main_sizer.Add(wx.StaticLine(self, wx.ID_ANY, size=(20, -1), style=wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 10)
         main_sizer.Add(quick_timelapse_btn, 0, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 5)
         main_sizer.Add(long_timelapse_btn, 0, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 5)
+        main_sizer.Add(stopmotion_btn, 0, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 5)
         self.SetAutoLayout(1)
         self.SetupScrolling()
         self.SetSizer(main_sizer)
@@ -505,6 +510,13 @@ class ctrl_pnl(scrolled.ScrolledPanel):
         if self.quicktl_dbox:
             if not self.quicktl_dbox.IsBeingDeleted():
                 self.quicktl_dbox.Destroy()
+
+    def stopmotion_click(self, e):
+        if hasattr(self, 'stopmotion_dbox') and self.stopmotion_dbox and self.stopmotion_dbox.IsShown():
+            self.stopmotion_dbox.Raise()
+            return
+        self.stopmotion_dbox = stopmotion_dialog(self, self.parent)
+        self.stopmotion_dbox.Show()
 
 
 class info_pnl(scrolled.ScrolledPanel):
@@ -1158,6 +1170,7 @@ class longtl_dialog(wx.Dialog):
         else:
             return default_caps
 
+
     def split_arguments(self, argument_string):
         # Split the string based on spaces outside quotes
         args = re.findall(r'[^"\s]+|"[^"]*"', argument_string)
@@ -1230,4 +1243,439 @@ class longtl_dialog(wx.Dialog):
 
 
     def OnClose(self, e):
+        self.Destroy()
+
+class stopmotion_dialog(wx.Dialog):
+    def __init__(self, parent, *args, **kw):
+        super(stopmotion_dialog, self).__init__(*args, **kw)
+        self.parent = parent
+        self.link_pnl = self.parent.parent.link_pnl
+        self.frame_count = 0
+        self.current_frame_index = -1
+        self.local_frame_paths = []
+        self.preview_running = False
+        self.preview_frames = []
+        self.preview_index = 0
+        self.preview_timer = wx.Timer(self)
+        if not self.set_camconf_file():
+            return
+        self.InitUI()
+        self.SetSize((640, 360))
+        self.SetTitle("Stop Motion")
+        self.Bind(wx.EVT_CLOSE, self.OnClose)
+        self.Bind(wx.EVT_TIMER, self.preview_timer_tick, self.preview_timer)
+        self.update_frame_count()
+
+    def set_camconf_file(self):
+        I_pnl = self.parent.parent.dict_I_pnl['camera_pnl']
+        self.camconf_path = I_pnl.camconf_path_tc.GetValue()
+        if self.camconf_path == "":
+            print("ERROR no cam conf")
+            wx.MessageBox("No camera configuration file has been selected.", "Error - no camconf", wx.OK | wx.ICON_WARNING)
+            self.Destroy()
+            return False
+        return True
+
+    def InitUI(self):
+        title = wx.StaticText(self, label='Stop Motion')
+
+        camera_tool_label = wx.StaticText(self, label="Camera Tool:")
+        camera_tool_choices = ["picam", "fswebcam", "rpicam"]
+        self.camera_tool_dropdown = wx.ComboBox(self, choices=camera_tool_choices, style=wx.CB_READONLY)
+        self.set_camtool()
+        camera_tool_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        camera_tool_sizer.Add(camera_tool_label, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
+        camera_tool_sizer.Add(self.camera_tool_dropdown, 1, wx.ALL | wx.EXPAND, 5)
+
+        outfolder_label = wx.StaticText(self, label="Outfolder:")
+        self.outfolder_textctrl = wx.TextCtrl(self)
+        out_folder = self.parent.parent.shared_data.remote_pigrow_path + "caps/"
+        self.outfolder_textctrl.SetValue(out_folder)
+        self.outfolder_textctrl.Bind(wx.EVT_TEXT, self.path_value_changed)
+        outfolder_button = wx.Button(self, label="...")
+        outfolder_button.Bind(wx.EVT_BUTTON, self.get_folder)
+        outfolder_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        outfolder_sizer.Add(outfolder_label, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
+        outfolder_sizer.Add(self.outfolder_textctrl, 1, wx.ALL | wx.EXPAND, 5)
+        outfolder_sizer.Add(outfolder_button, 0, wx.ALL, 5)
+
+        setname_label = wx.StaticText(self, label="Set Name:")
+        self.setname_textctrl = wx.TextCtrl(self)
+        self.setname_textctrl.SetValue("stopmotion")
+        self.setname_textctrl.Bind(wx.EVT_TEXT, self.path_value_changed)
+        setname_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        setname_sizer.Add(setname_label, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
+        setname_sizer.Add(self.setname_textctrl, 1, wx.ALL | wx.EXPAND, 5)
+
+        self.frame_count_l = wx.StaticText(self, label="Frames captured: 0")
+        self.take_image_btn = wx.Button(self, label='Take Image')
+        self.take_image_btn.Bind(wx.EVT_BUTTON, self.take_image_click)
+
+        self.show_images_cb = wx.CheckBox(self, label='Show images')
+        self.show_images_cb.Bind(wx.EVT_CHECKBOX, self.show_images_toggle)
+
+        self.image_panel = wx.Panel(self)
+        self.preview_image = wx.StaticBitmap(self.image_panel, wx.ID_ANY, wx.Bitmap(840, 420))
+
+        frame_nav_l = wx.StaticText(self.image_panel, label='Frame')
+        frame_left_btn = wx.Button(self.image_panel, label='◀')
+        frame_left_btn.Bind(wx.EVT_BUTTON, self.frame_left_click)
+        frame_right_btn = wx.Button(self.image_panel, label='▶')
+        frame_right_btn.Bind(wx.EVT_BUTTON, self.frame_right_click)
+        self.frame_no_tc = wx.TextCtrl(self.image_panel, value="0", size=(70, -1), style=wx.TE_PROCESS_ENTER)
+        self.frame_no_tc.Bind(wx.EVT_TEXT_ENTER, self.frame_no_enter)
+
+        ghosting_l = wx.StaticText(self.image_panel, label='Ghosting')
+        self.ghosting_tc = wx.TextCtrl(self.image_panel, value="0", size=(50, -1), style=wx.TE_PROCESS_ENTER)
+        self.ghosting_tc.Bind(wx.EVT_TEXT_ENTER, self.refresh_current_preview)
+        self.show_first_cb = wx.CheckBox(self.image_panel, label='Show 1st frame')
+        self.show_first_cb.Bind(wx.EVT_CHECKBOX, self.refresh_current_preview)
+
+        self.preview_btn = wx.Button(self.image_panel, label='Preview')
+        self.preview_btn.Bind(wx.EVT_BUTTON, self.preview_click)
+        preview_frames_l = wx.StaticText(self.image_panel, label='Frames')
+        self.preview_frames_tc = wx.TextCtrl(self.image_panel, value="5", size=(60, -1))
+
+        nav_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        nav_sizer.Add(frame_nav_l, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 4)
+        nav_sizer.Add(frame_left_btn, 0, wx.ALL, 2)
+        nav_sizer.Add(self.frame_no_tc, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 2)
+        nav_sizer.Add(frame_right_btn, 0, wx.ALL, 2)
+        nav_sizer.AddSpacer(12)
+        nav_sizer.Add(ghosting_l, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 4)
+        nav_sizer.Add(self.ghosting_tc, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 2)
+        nav_sizer.Add(self.show_first_cb, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 4)
+        nav_sizer.AddStretchSpacer(1)
+        nav_sizer.Add(self.preview_btn, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 2)
+        nav_sizer.Add(preview_frames_l, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 4)
+        nav_sizer.Add(self.preview_frames_tc, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 2)
+
+        self.image_panel_sizer = wx.BoxSizer(wx.VERTICAL)
+        self.image_panel_sizer.Add(self.preview_image, 1, wx.ALL | wx.EXPAND, 2)
+        self.image_panel_sizer.Add(nav_sizer, 0, wx.ALL | wx.EXPAND, 2)
+        self.image_panel.SetSizer(self.image_panel_sizer)
+        self.image_panel.Hide()
+
+        done_btn = wx.Button(self, label='Done')
+        done_btn.Bind(wx.EVT_BUTTON, self.OnClose)
+
+        self.main_sizer = wx.BoxSizer(wx.VERTICAL)
+        self.main_sizer.Add(title, 0, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 8)
+        self.main_sizer.Add(camera_tool_sizer, 0, wx.ALL | wx.EXPAND, 2)
+        self.main_sizer.Add(outfolder_sizer, 0, wx.ALL | wx.EXPAND, 2)
+        self.main_sizer.Add(setname_sizer, 0, wx.ALL | wx.EXPAND, 2)
+        self.main_sizer.Add(self.frame_count_l, 0, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 8)
+        self.main_sizer.Add(self.take_image_btn, 0, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 5)
+        self.main_sizer.Add(self.show_images_cb, 0, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 2)
+        self.main_sizer.Add(self.image_panel, 1, wx.ALL | wx.EXPAND, 5)
+        self.main_sizer.AddStretchSpacer(1)
+        self.main_sizer.Add(done_btn, 0, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 8)
+        self.SetSizer(self.main_sizer)
+
+    def set_camtool(self):
+        currently_supported = ["fswebcam", "rpicam", "picamcap"]
+        camopt = self.parent.captool_cb.GetValue()
+        if camopt in currently_supported:
+            if camopt == "picamcap":
+                self.camera_tool_dropdown.SetValue("picam")
+            else:
+                self.camera_tool_dropdown.SetValue(camopt)
+        else:
+            self.camera_tool_dropdown.SetValue("fswebcam")
+
+    def get_folder(self, e):
+        selected_files, selected_folders = self.parent.parent.link_pnl.select_files_on_pi(single_folder=True)
+        if selected_folders:
+            self.outfolder_textctrl.SetValue(selected_folders[0])
+            self.update_frame_count()
+            self.load_local_frame_list()
+
+    def path_value_changed(self, e):
+        self.update_frame_count()
+        self.load_local_frame_list()
+        if e is not None:
+            e.Skip()
+
+    def update_frame_count(self):
+        outfolder = self._normalise_outfolder(self.outfolder_textctrl.GetValue())
+        setname = self.setname_textctrl.GetValue().strip()
+        if outfolder == "" or setname == "":
+            self.frame_count = 0
+            self.frame_count_l.SetLabel("Frames captured: 0")
+            return
+        pattern = shlex.quote(outfolder + setname + "_*.jpg")
+        cmd = f"ls {pattern} 2>/dev/null | wc -l"
+        out, error = self.link_pnl.run_on_pi(cmd)
+        try:
+            self.frame_count = int(out.strip())
+        except ValueError:
+            self.frame_count = 0
+        self.frame_count_l.SetLabel(f"Frames captured: {self.frame_count}")
+
+    def take_image_click(self, e):
+        outfolder = self._normalise_outfolder(self.outfolder_textctrl.GetValue())
+        setname = self.setname_textctrl.GetValue().strip()
+        if outfolder == "" or setname == "":
+            wx.MessageBox("Outfolder and Set Name are required.", "Missing values", wx.OK | wx.ICON_WARNING)
+            return
+
+        self.update_frame_count()
+        filename = f"{setname}_{self.frame_count + 1:04d}.jpg"
+        full_outpath = outfolder + filename
+        camera_tool = self.camera_tool_dropdown.GetValue()
+
+        self.take_image_btn.Disable()
+        try:
+            out, error = self.capture_stopmotion_frame(camera_tool, outfolder, full_outpath)
+            if (out + error).strip() == "":
+                print("Stop motion capture command completed with no output")
+            else:
+                print((out + error).strip())
+        finally:
+            self.take_image_btn.Enable()
+
+        self.update_frame_count()
+
+        if self.show_images_cb.GetValue():
+            local_path = self.download_remote_frame(full_outpath)
+            if local_path is not None:
+                self.load_local_frame_list()
+                if local_path in self.local_frame_paths:
+                    self.current_frame_index = self.local_frame_paths.index(local_path)
+                else:
+                    self.current_frame_index = len(self.local_frame_paths) - 1
+                self.show_frame(self.current_frame_index)
+
+    def capture_stopmotion_frame(self, camera_tool, outfolder, full_outpath):
+        base_path = self.parent.parent.shared_data.remote_pigrow_path
+        script_map = {
+            "picam": "picamcap.py",
+            "rpicam": "rpicap.py",
+            "fswebcam": "camcap.py"
+        }
+        script_name = script_map.get(camera_tool)
+        if script_name is None:
+            wx.MessageBox(f"Camera tool {camera_tool} is not supported.", "Unsupported Tool", wx.OK | wx.ICON_WARNING)
+            return "", ""
+
+        quoted_script = shlex.quote(base_path + "scripts/cron/" + script_name)
+        quoted_conf = shlex.quote(self.camconf_path)
+        quoted_caps = shlex.quote(outfolder)
+        quoted_outpath = shlex.quote(full_outpath)
+
+        if camera_tool == "fswebcam":
+            quoted_fsw_glob = shlex.quote(outfolder + "cap_*.jpg")
+            cmd = (
+                f"python3 {quoted_script} set={quoted_conf} caps={quoted_caps}; "
+                f"latest=$(ls -t {quoted_fsw_glob} 2>/dev/null | head -n 1); "
+                f"if [ -n \"$latest\" ]; then mv \"$latest\" {quoted_outpath}; fi"
+            )
+        else:
+            cmd = f"python3 {quoted_script} set={quoted_conf} caps={quoted_caps} filename={quoted_outpath}"
+
+        return self.link_pnl.run_on_pi(cmd)
+
+    def _normalise_outfolder(self, outfolder):
+        outfolder = outfolder.strip()
+        if outfolder == "":
+            return ""
+        if not outfolder.endswith('/'):
+            outfolder += '/'
+        return outfolder
+
+    def get_local_outfolder(self):
+        local_root = self.parent.parent.shared_data.frompi_path
+        if local_root == "":
+            local_root = self.parent.parent.shared_data.frompi_base_path
+
+        outfolder = self._normalise_outfolder(self.outfolder_textctrl.GetValue())
+        if outfolder == "":
+            return local_root
+        if "Pigrow/" in outfolder:
+            relative_folder = outfolder.split("Pigrow/")[1].strip("/")
+        else:
+            relative_folder = os.path.basename(outfolder.strip("/"))
+        return os.path.join(local_root, relative_folder)
+
+    def get_local_frame_pattern(self):
+        setname = self.setname_textctrl.GetValue().strip()
+        if setname == "":
+            return None
+        return setname + "_"
+
+    def load_local_frame_list(self):
+        local_folder = self.get_local_outfolder()
+        file_prefix = self.get_local_frame_pattern()
+        self.local_frame_paths = []
+        if file_prefix is None or not os.path.isdir(local_folder):
+            self.current_frame_index = -1
+            self.frame_no_tc.SetValue("0")
+            return
+
+        for filename in os.listdir(local_folder):
+            if filename.startswith(file_prefix) and filename.lower().endswith((".jpg", ".png")):
+                self.local_frame_paths.append(os.path.join(local_folder, filename))
+        self.local_frame_paths.sort()
+
+        if len(self.local_frame_paths) == 0:
+            self.current_frame_index = -1
+            self.frame_no_tc.SetValue("0")
+            return
+
+        if self.current_frame_index < 0 or self.current_frame_index >= len(self.local_frame_paths):
+            self.current_frame_index = len(self.local_frame_paths) - 1
+        self.frame_no_tc.SetValue(str(self.current_frame_index + 1))
+
+    def download_remote_frame(self, remote_file):
+        local_folder = self.get_local_outfolder()
+        local_file = os.path.join(local_folder, os.path.basename(remote_file))
+        try:
+            return self.link_pnl.download_file_to_folder(remote_file, local_file)
+        except Exception as e:
+            print("Failed to download stopmotion frame", remote_file, "because", e)
+            return None
+
+    def show_images_toggle(self, e):
+        show_images = self.show_images_cb.GetValue()
+        if not show_images:
+            self.stop_preview()
+            self.image_panel.Hide()
+            self.SetSize((640, 360))
+            self.Layout()
+            return
+
+        self.load_local_frame_list()
+        self.image_panel.Show()
+        self.SetSize((980, 840))
+        if self.current_frame_index >= 0:
+            self.show_frame(self.current_frame_index)
+        self.Layout()
+
+    def frame_left_click(self, e):
+        if len(self.local_frame_paths) == 0:
+            return
+        self.current_frame_index = max(0, self.current_frame_index - 1)
+        self.show_frame(self.current_frame_index)
+
+    def frame_right_click(self, e):
+        if len(self.local_frame_paths) == 0:
+            return
+        self.current_frame_index = min(len(self.local_frame_paths) - 1, self.current_frame_index + 1)
+        self.show_frame(self.current_frame_index)
+
+    def frame_no_enter(self, e):
+        if len(self.local_frame_paths) == 0:
+            self.frame_no_tc.SetValue("0")
+            return
+        try:
+            requested_frame = int(self.frame_no_tc.GetValue())
+        except ValueError:
+            self.frame_no_tc.SetValue(str(self.current_frame_index + 1))
+            return
+
+        requested_frame = max(1, min(len(self.local_frame_paths), requested_frame))
+        self.current_frame_index = requested_frame - 1
+        self.show_frame(self.current_frame_index)
+
+    def get_ghosting_value(self):
+        try:
+            value = int(self.ghosting_tc.GetValue())
+        except ValueError:
+            value = 0
+        return max(0, value)
+
+    def refresh_current_preview(self, e=None):
+        if self.current_frame_index >= 0:
+            self.show_frame(self.current_frame_index)
+
+    def show_frame(self, index):
+        if len(self.local_frame_paths) == 0:
+            return
+        index = max(0, min(len(self.local_frame_paths) - 1, index))
+        self.current_frame_index = index
+        self.frame_no_tc.SetValue(str(index + 1))
+
+        current_path = self.local_frame_paths[index]
+        composed = self.compose_preview_image(current_path, index)
+        self.set_preview_bitmap(composed)
+
+    def compose_preview_image(self, current_path, index):
+        base = Image.open(current_path).convert("RGBA")
+        ghost_count = self.get_ghosting_value()
+
+        for ghost_i in range(1, ghost_count + 1):
+            ghost_index = index - ghost_i
+            if ghost_index < 0:
+                break
+            ghost_img = Image.open(self.local_frame_paths[ghost_index]).convert("RGBA")
+            if ghost_img.size != base.size:
+                ghost_img = ghost_img.resize(base.size)
+            ghost_img.putalpha(128)
+            base.alpha_composite(ghost_img)
+
+        if self.show_first_cb.GetValue() and len(self.local_frame_paths) > 0 and index > 0:
+            first_img = Image.open(self.local_frame_paths[0]).convert("RGBA")
+            if first_img.size != base.size:
+                first_img = first_img.resize(base.size)
+            first_img.putalpha(128)
+            base.alpha_composite(first_img)
+
+        return base
+
+    def set_preview_bitmap(self, pil_image):
+        max_w = max(100, self.image_panel.GetClientSize().width - 12)
+        max_h = max(100, self.image_panel.GetClientSize().height - 45)
+
+        image_to_show = pil_image.copy().convert("RGB")
+        image_to_show.thumbnail((max_w, max_h), Image.LANCZOS)
+        wx_image = wx.Image(image_to_show.width, image_to_show.height)
+        wx_image.SetData(image_to_show.tobytes())
+        self.preview_image.SetBitmap(wx_image.ConvertToBitmap())
+        self.preview_image.Refresh()
+        self.preview_image.Update()
+        self.image_panel.Layout()
+
+    def preview_click(self, e):
+        if self.preview_running:
+            self.stop_preview()
+            return
+
+        self.load_local_frame_list()
+        if len(self.local_frame_paths) == 0:
+            return
+        try:
+            preview_count = int(self.preview_frames_tc.GetValue())
+        except ValueError:
+            preview_count = 5
+        preview_count = max(1, min(len(self.local_frame_paths), preview_count))
+
+        self.preview_frames = self.local_frame_paths[-preview_count:]
+        self.preview_index = 0
+        self.preview_running = True
+        self.preview_btn.SetLabel("Stop")
+        self.preview_timer.StartOnce(100)
+
+    def preview_timer_tick(self, e):
+        if not self.preview_running or len(self.preview_frames) == 0:
+            self.stop_preview()
+            return
+
+        frame_path = self.preview_frames[self.preview_index]
+        try:
+            frame_index = self.local_frame_paths.index(frame_path)
+        except ValueError:
+            frame_index = len(self.local_frame_paths) - 1
+        self.show_frame(frame_index)
+        self.preview_index = (self.preview_index + 1) % len(self.preview_frames)
+        if self.preview_running:
+            self.preview_timer.StartOnce(100)
+
+    def stop_preview(self):
+        if self.preview_timer.IsRunning():
+            self.preview_timer.Stop()
+        self.preview_running = False
+        self.preview_btn.SetLabel("Preview")
+
+    def OnClose(self, e):
+        self.stop_preview()
         self.Destroy()
