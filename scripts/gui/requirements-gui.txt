@@ -1,0 +1,6 @@
+wxPython
+paramiko
+getmac
+Pillow
+matplotlib
+numpy
