@@ -8,11 +8,45 @@ from PIL import ImageDraw, ImageFont
 ##    Needs to take all tank information and collate into a single image
 ##
 ##
-font_size = 30
-font = ImageFont.truetype("ui_images/datawall/Caslon.ttf", 35)
-ascent, descent = font.getmetrics()
-font_h = font.getmask("A").getbbox()[3] + descent
-font_w = font.getmask("A").getbbox()[2]
+font_size = 35
+
+
+def _safe_text_dimensions(text_font, sample_text="A"):
+    """Return basic text width/height for layout calculations."""
+    bbox = text_font.getbbox(sample_text)
+    if bbox:
+        return bbox[2] - bbox[0], bbox[3] - bbox[1]
+    mask_bbox = text_font.getmask(sample_text).getbbox()
+    if mask_bbox:
+        return mask_bbox[2], mask_bbox[3]
+    return 10, 10
+
+
+def _load_display_font(size):
+    """Load preferred font with graceful fallbacks for packaged environments."""
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    root_dir = os.path.abspath(os.path.join(script_dir, "..", ".."))
+    preferred = [
+        os.path.join(root_dir, "ui_images", "datawall", "Caslon.ttf"),
+        "ui_images/datawall/Caslon.ttf",
+    ]
+    fallback_fonts = [
+        "DejaVuSans.ttf",
+        "Arial.ttf",
+    ]
+    for font_path in preferred + fallback_fonts:
+        try:
+            return ImageFont.truetype(font_path, size)
+        except OSError:
+            continue
+    print(" Warning: No truetype font found. Falling back to Pillow default font.")
+    return ImageFont.load_default()
+
+
+font = _load_display_font(font_size)
+_, font_h = _safe_text_dimensions(font, "Ag")
+font_h += 2
+font_w, _ = _safe_text_dimensions(font, "A")
 
 def make_display(tank_name, tank_vol, current_vol="", tank_active="", switch_log_path="", config_path="", config_dict=None, pump_timings=[], days_to_show=7):
     tank_vol = int(tank_vol)
@@ -36,7 +70,7 @@ def make_display(tank_name, tank_vol, current_vol="", tank_active="", switch_log
     vol_text = str(tank_vol) + "ml"
 
     # draw box for graph
-    bb_x = font.getmask(vol_text).getbbox()[2] + 10
+    bb_x = _safe_text_dimensions(font, vol_text)[0] + 10
     bb_y = font_h + 5 + 15 #gap over and under name text
     bb_x2 = x - 50
     bb_y2 = y - 50
@@ -289,7 +323,7 @@ def make_bar_labels(bb_w, days_to_show):
     '''
     left_side_space = bb_w/2
     # find max number of characters to show
-    font_w = font.getmask(str(days_to_show)).getbbox()[2]
+    font_w = _safe_text_dimensions(font, str(days_to_show))[0]
     font_w = font_w + 5
     limit_chr = False
     if font_w * days_to_show > left_side_space:
