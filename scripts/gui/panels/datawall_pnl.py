@@ -6,6 +6,7 @@ import importlib
 import os
 import sys
 from uitools import MakeDynamicOptPnl
+from shared_data import load_bitmap_safe
 
 class ctrl_pnl(scrolled.ScrolledPanel):
     def __init__(self, parent):
@@ -287,20 +288,7 @@ class info_pnl(scrolled.ScrolledPanel):
             wx.MessageBox(f"Image file not found: {image_path}", "Error", wx.OK | wx.ICON_ERROR)
             return
 
-        try:
-            # Load the image. The BITMAP_TYPE_ANY flag lets wxPython decide the type.
-            img = wx.Image(image_path, wx.BITMAP_TYPE_ANY)
-        except Exception as e:
-            wx.MessageBox(f"Failed to load image: {e}", "Error", wx.OK | wx.ICON_ERROR)
-            return
-
-        # (Optional) If you want to ensure the image is not too large, you can scale it here.
-        # For example:
-        # max_width, max_height = 800, 600
-        # if img.GetWidth() > max_width or img.GetHeight() > max_height:
-        #     img = img.Scale(max_width, max_height, wx.IMAGE_QUALITY_HIGH)
-
-        bmp = wx.Bitmap(img)
+        bmp = load_bitmap_safe(image_path)
         self.image_box.SetBitmap(bmp)
         # Resize the image box to match the bitmap dimensions.
         self.image_box.SetSize(bmp.GetWidth(), bmp.GetHeight())

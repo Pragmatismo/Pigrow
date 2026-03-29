@@ -5,6 +5,7 @@ import wx
 import wx.lib.scrolledpanel as scrolled
 import wx.lib.delayedresult as delayedresult
 import wx.lib.newevent
+from shared_data import load_bitmap_safe
 
 FileClearEvent, EVT_FILE_CLEAR = wx.lib.newevent.NewEvent()
 
@@ -1423,9 +1424,10 @@ class info_pnl(scrolled.ScrolledPanel):
     def set_image_preview(self, img_path, place):
         #print("Loading -", img_path, "to", place)
         try:
-            pic = wx.Image(img_path, wx.BITMAP_TYPE_ANY)
-            pic = self.parent.shared_data.scale_pic(pic, 300)
-            pic = pic.ConvertToBitmap()
+            if img_path is None:
+                raise ValueError("No image path provided")
+            pic = load_bitmap_safe(img_path)
+            pic = self.parent.shared_data.scale_pic(pic.ConvertToImage(), 300).ConvertToBitmap()
             if place == 'first':
                 self.photo_folder_first_pic.SetToolTip(img_path)
                 self.photo_folder_first_pic.SetBitmap(pic)
