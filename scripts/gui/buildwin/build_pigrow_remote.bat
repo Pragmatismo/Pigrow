@@ -4,12 +4,22 @@ setlocal
 REM Build Pigrow Remote for Windows using PyInstaller.
 REM This script is intended to be run from anywhere inside the repo.
 
-cd /d %~dp0\..\..\..
+set "REPO_ROOT=%~dp0\..\..\.."
+for %%I in ("%REPO_ROOT%") do set "REPO_ROOT=%%~fI"
+
+cd /d "%REPO_ROOT%"
 
 set "BUILDWIN_DIR=scripts\gui\buildwin"
 set "DIST_DIR=%BUILDWIN_DIR%\dist"
 set "WORK_DIR=%BUILDWIN_DIR%\build"
 set "SPEC_DIR=%BUILDWIN_DIR%"
+set "GUI_DIR=%REPO_ROOT%\scripts\gui"
+set "UI_IMAGES_DIR=%GUI_DIR%\ui_images"
+set "GRAPH_MODULES_DIR=%GUI_DIR%\graph_modules"
+set "SENSOR_MODULES_DIR=%GUI_DIR%\sensor_modules"
+set "TIMELAPSE_MODULES_DIR=%GUI_DIR%\timelapse_modules"
+set "GRAPH_PRESETS_DIR=%GUI_DIR%\graph_presets"
+set "DATAWALL_PRESETS_DIR=%GUI_DIR%\datawall_presets"
 
 if not exist "%DIST_DIR%" mkdir "%DIST_DIR%"
 if not exist "%WORK_DIR%" mkdir "%WORK_DIR%"
@@ -20,8 +30,8 @@ py -m PyInstaller ^
   --windowed ^
   --onedir ^
   --name PigrowRemote ^
-  --icon scripts\gui\ui_images\icon.ico ^
-  --paths scripts\gui ^
+  --icon "%UI_IMAGES_DIR%\icon.ico" ^
+  --paths "%GUI_DIR%" ^
   --distpath "%DIST_DIR%" ^
   --workpath "%WORK_DIR%" ^
   --specpath "%SPEC_DIR%" ^
@@ -48,13 +58,13 @@ py -m PyInstaller ^
   --collect-submodules graph_modules ^
   --collect-submodules datawall_modules ^
   --collect-submodules timelapse_modules ^
-  --add-data "scripts\gui\ui_images;ui_images" ^
-  --add-data "scripts\gui\graph_modules;graph_modules" ^
-  --add-data "scripts\gui\sensor_modules;sensor_modules" ^
-  --add-data "scripts\gui\timelapse_modules;timelapse_modules" ^
-  --add-data "scripts\gui\graph_presets;graph_presets" ^
-  --add-data "scripts\gui\datawall_presets;datawall_presets" ^
-  scripts\gui\pigrow_remote.py
+  --add-data "%UI_IMAGES_DIR%;ui_images" ^
+  --add-data "%GRAPH_MODULES_DIR%;graph_modules" ^
+  --add-data "%SENSOR_MODULES_DIR%;sensor_modules" ^
+  --add-data "%TIMELAPSE_MODULES_DIR%;timelapse_modules" ^
+  --add-data "%GRAPH_PRESETS_DIR%;graph_presets" ^
+  --add-data "%DATAWALL_PRESETS_DIR%;datawall_presets" ^
+  "%GUI_DIR%\pigrow_remote.py"
 
 if errorlevel 1 (
   echo.
