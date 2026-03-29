@@ -5,6 +5,44 @@ import platform
 import datetime
 import wx.lib.scrolledpanel as scrolled
 
+def resolve_resource_path(*parts):
+    if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
+        base_path = sys._MEIPASS
+    else:
+        base_path = os.path.abspath(os.path.dirname(__file__))
+    return os.path.join(base_path, *parts)
+
+def _fallback_bitmap(fallback_art=wx.ART_MISSING_IMAGE, size=None):
+    art_size = wx.Size(32, 32) if size is None else wx.Size(*size)
+    fallback = wx.ArtProvider.GetBitmap(fallback_art, wx.ART_OTHER, art_size)
+    if fallback.IsOk():
+        return fallback
+    return wx.Bitmap(art_size.GetWidth(), art_size.GetHeight())
+
+def load_bitmap_safe(path, fallback_art=wx.ART_MISSING_IMAGE, size=None, scale_to=None):
+    try:
+        if not path:
+            return _fallback_bitmap(fallback_art=fallback_art, size=size or scale_to)
+
+        resolved_path = path if os.path.isabs(path) else resolve_resource_path(path)
+        if not os.path.isfile(resolved_path):
+            print("WARNING: image file missing - " + str(resolved_path))
+            return _fallback_bitmap(fallback_art=fallback_art, size=size or scale_to)
+
+        img = wx.Image(resolved_path, wx.BITMAP_TYPE_ANY)
+        if not img.IsOk():
+            print("WARNING: image failed to load - " + str(resolved_path))
+            return _fallback_bitmap(fallback_art=fallback_art, size=size or scale_to)
+
+        if scale_to:
+            img = img.Scale(scale_to[0], scale_to[1], wx.IMAGE_QUALITY_HIGH)
+        elif size and (img.GetWidth() != size[0] or img.GetHeight() != size[1]):
+            img = img.Scale(size[0], size[1], wx.IMAGE_QUALITY_HIGH)
+        return img.ConvertToBitmap()
+    except Exception as e:
+        print("WARNING: image load error for " + str(path) + " reason: " + str(e))
+        return _fallback_bitmap(fallback_art=fallback_art, size=size or scale_to)
+
 class shared_data:
     def __init__(self, parent):
         self.parent = parent
@@ -50,16 +88,16 @@ class shared_data:
         ## paths
         #
         # gui system paths
-        self.cwd = os.getcwd()
-        self.ui_img_path = os.path.join(self.cwd, "ui_images")
-        self.graph_modules_path = os.path.join(self.cwd, "graph_modules")
-        self.sensor_modules_path = os.path.join(self.cwd, "sensor_modules")
-        self.timelapse_modules_path = os.path.join(self.cwd, "timelapse_modules")
+        self.cwd = resolve_resource_path()
+        self.ui_img_path = resolve_resource_path("ui_images")
+        self.graph_modules_path = resolve_resource_path("graph_modules")
+        self.sensor_modules_path = resolve_resource_path("sensor_modules")
+        self.timelapse_modules_path = resolve_resource_path("timelapse_modules")
         sys.path.append(self.graph_modules_path)
         sys.path.append(self.sensor_modules_path)
         sys.path.append(self.timelapse_modules_path)
-        self.graph_presets_path = os.path.join(self.cwd, "graph_presets")
-        self.datawall_presets_path = os.path.join(self.cwd, "datawall_presets")
+        self.graph_presets_path = resolve_resource_path("graph_presets")
+        self.datawall_presets_path = resolve_resource_path("datawall_presets")
         #
         ## Temporarily Stored data
         #
@@ -81,11 +119,11 @@ class shared_data:
         no_log_img_path = os.path.join(self.ui_img_path, "log_loaded_none.png")
         yes_log_img_path = os.path.join(self.ui_img_path, "log_loaded_true.png")
         warn_log_img_path = os.path.join(self.ui_img_path, "log_loaded_none.png")
-        self.no_log_image = wx.Image(no_log_img_path, wx.BITMAP_TYPE_ANY).ConvertToBitmap()
-        self.yes_log_image = wx.Image(yes_log_img_path, wx.BITMAP_TYPE_ANY).ConvertToBitmap()
-        self.warn_log_image = wx.Image(warn_log_img_path, wx.BITMAP_TYPE_ANY).ConvertToBitmap()
+        self.no_log_image = load_bitmap_safe(no_log_img_path)
+        self.yes_log_image = load_bitmap_safe(yes_log_img_path)
+        self.warn_log_image = load_bitmap_safe(warn_log_img_path)
         infobtn_img_path = os.path.join(self.ui_img_path, "Info_button.png")
-        self.infobtn_image = wx.Image(infobtn_img_path, wx.BITMAP_TYPE_ANY).ConvertToBitmap()
+        self.infobtn_image = load_bitmap_safe(infobtn_img_path)
         #
         ## Fonts
         #
@@ -168,8 +206,7 @@ class shared_data:
         guide_path = os.path.join(self.ui_img_path, img_path)
         if os.path.isfile(guide_path):
             print( " Showing help file - ", guide_path )
-            guide = wx.Image(guide_path, wx.BITMAP_TYPE_ANY)
-            guide = guide.ConvertToBitmap()
+            guide = load_bitmap_safe(guide_path)
             dbox = self.show_image_dialog(None, guide, "Cron Help")
             dbox.ShowModal()
             dbox.Destroy()
@@ -217,7 +254,7 @@ class shared_data:
 
     def get_module_options(self, module_prefix, m_folder="graph_modules"):
         list_of_modules = []
-        modules_folder = os.path.join(os.getcwd(), m_folder)
+        modules_folder = resolve_resource_path(m_folder)
         module_options = os.listdir(modules_folder)
         for file in module_options:
             if module_prefix in file:
@@ -392,8 +429,7 @@ class shared_data:
 
             if type(image_to_show) == type("str"):
                 print("Displaying Image; ", image_to_show)
-                image_to_show = wx.Image(image_to_show, wx.BITMAP_TYPE_ANY)
-                image_to_show = image_to_show.ConvertToBitmap()
+                image_to_show = load_bitmap_safe(image_to_show)
             else:
                 print(type(image_to_show))
 

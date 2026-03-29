@@ -3,6 +3,7 @@ import wx
 import sys
 import wx.lib.scrolledpanel as scrolled
 from uitools import RunCmdDialog
+from shared_data import load_bitmap_safe
 import re
 _TIME_RE = re.compile(r"^\s*(\d{1,2}):(\d{2})\s*$")
 _RANGE_RE = re.compile(r"^\s*(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})\s*$")
@@ -1302,9 +1303,8 @@ class sensor_from_module_dialog(wx.Dialog):
         shared_data = self.parent.parent.parent.shared_data
         guide_path = "guide_" + self.s_type + ".png"
         guide_path = os.path.join(shared_data.sensor_modules_path, guide_path)
-        guide = wx.Image(guide_path, wx.BITMAP_TYPE_ANY)
-        guide = guide.ConvertToBitmap()
         if os.path.isfile(guide_path):
+            guide = load_bitmap_safe(guide_path)
             dbox = shared_data.show_image_dialog(None, guide, self.s_type)
             dbox.ShowModal()
             dbox.Destroy()
@@ -1799,8 +1799,7 @@ class button_dialog(wx.Dialog):
         guide_path = os.path.join(shared_data.ui_img_path, "button_help.png")
 
         if os.path.isfile(guide_path):
-            guide = wx.Image(guide_path, wx.BITMAP_TYPE_ANY)
-            guide = guide.ConvertToBitmap()
+            guide = load_bitmap_safe(guide_path)
             dbox = shared_data.show_image_dialog(None, guide, "Button Help")
             dbox.ShowModal()
             dbox.Destroy()

@@ -13,6 +13,7 @@ from panels.rpicap_set_pnl import rpicap_sets_pnl
 from panels.fswebcam_set_pnl import fs_sets_pnl
 from panels.motion_set_pnl import motion_sets_pnl
 from panels.libcam_set_pnl import libcam_sets_pnl
+from shared_data import load_bitmap_safe
 
 
 class ctrl_pnl(scrolled.ScrolledPanel):
@@ -600,7 +601,7 @@ class info_pnl(scrolled.ScrolledPanel):
             img_to_show = img_path
             text_label  = label
         #
-        pic = wx.StaticBitmap(self, -1, wx.Image(img_to_show, wx.BITMAP_TYPE_ANY).ConvertToBitmap())
+        pic = wx.StaticBitmap(self, -1, load_bitmap_safe(img_to_show))
         pic.SetLabel(img_to_show)
         pic.Bind(wx.EVT_LEFT_DOWN, self.pic_click)
 

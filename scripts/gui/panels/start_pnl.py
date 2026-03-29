@@ -2,6 +2,7 @@ import os
 import wx
 import sys
 import importlib
+from shared_data import resolve_resource_path, load_bitmap_safe
 
 
 class ctrl_pnl(wx.Panel):
@@ -233,7 +234,7 @@ class info_pnl(wx.Panel):
     #
     def __init__( self, parent ):
         shared_data = parent.shared_data
-        self.display_image = "./ui_images/splash.png"
+        self.display_image = resolve_resource_path("ui_images", "splash.png")
         wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, pos = (285, 0), size = wx.Size( 910,800 ), style = wx.TAB_TRAVERSAL )
         self.SetBackgroundColour((150,210,170))
         self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
@@ -246,7 +247,5 @@ class info_pnl(wx.Panel):
                 dc.SetClippingRect(rect)
 
             dc.Clear()
-            img = wx.Image(self.display_image, wx.BITMAP_TYPE_ANY)
-            img = img.Scale(self.GetSize().GetWidth(), self.GetSize().GetHeight(), wx.IMAGE_QUALITY_HIGH)
-            bmp = img.ConvertToBitmap()
+            bmp = load_bitmap_safe(self.display_image, scale_to=(self.GetSize().GetWidth(), self.GetSize().GetHeight()))
             dc.DrawBitmap(bmp, 0, 0)

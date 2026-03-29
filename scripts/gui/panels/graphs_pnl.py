@@ -9,6 +9,7 @@ import datetime
 import time
 import sys
 import matplotlib.pyplot as plt
+from shared_data import load_bitmap_safe
 
 class ctrl_pnl(scrolled.ScrolledPanel):
     def __init__(self, parent):
@@ -1841,7 +1842,7 @@ class GraphPanel(wx.Panel):
 
     def add_graph(self, graph_path):
         """Add a graph image to the panel."""
-        bmp = wx.Image(graph_path, wx.BITMAP_TYPE_ANY).ConvertToBitmap()
+        bmp = load_bitmap_safe(graph_path)
         bitmap = wx.StaticBitmap(self, bitmap=bmp)
         bitmap.Bind(wx.EVT_LEFT_DCLICK, lambda event: self.on_double_click(graph_path))
 
@@ -2455,4 +2456,3 @@ class GraphPreset:
             except:
                 pass
         return None
-

@@ -6,6 +6,7 @@ import sys
 import datetime
 import wx.lib.delayedresult as delayedresult
 from PIL import Image, ImageDraw, ImageEnhance
+from shared_data import load_bitmap_safe
 
 class ctrl_pnl(wx.Panel):
     #
@@ -807,7 +808,7 @@ class info_pnl(wx.Panel):
             self.graph_image_path = img_path
             # load image and display in box
             try:
-                img = wx.Image(img_path, wx.BITMAP_TYPE_ANY)
+                img = load_bitmap_safe(img_path).ConvertToImage()
                 graph = self.shared_data.scale_pic(img, self.graph_size)
                 graph = graph.ConvertToBitmap()
                 self.graph_image_box.SetBitmap(graph)
@@ -973,7 +974,7 @@ class info_pnl(wx.Panel):
             self.first_img_l.SetLabel(image_title)
 
             try:
-                self.first_ani_pic = wx.Image(image_path, wx.BITMAP_TYPE_ANY)
+                self.first_ani_pic = load_bitmap_safe(image_path).ConvertToImage()
                 first = self.shared_data.scale_pic(self.first_ani_pic, self.pic_size)
                 first = first.ConvertToBitmap()
                 self.first_image.SetBitmap(first)
@@ -1045,7 +1046,7 @@ class info_pnl(wx.Panel):
             self.last_img_l.SetLabel(image_title)
 
             try:
-                self.last_ani_pic = wx.Image(image_path, wx.BITMAP_TYPE_ANY)
+                self.last_ani_pic = load_bitmap_safe(image_path).ConvertToImage()
                 last = self.shared_data.scale_pic(self.last_ani_pic, self.pic_size)
                 last = last.ConvertToBitmap()
                 self.last_image.SetBitmap(last)
@@ -1742,7 +1743,7 @@ class PreviewPanel(wx.Panel):
         wx.Panel.__init__(self, parent)
         self.parent = parent
         self.SetMinSize(wx.Size(790, 400))  # Set a minimum size
-        self.ref_background_image = wx.Image(ref_background_image, wx.BITMAP_TYPE_ANY)
+        self.ref_background_image = load_bitmap_safe(ref_background_image).ConvertToImage()
         self.ref_overlay_image = ref_overlay_image
         self.static_bitmap = wx.StaticBitmap(self, wx.ID_ANY, wx.Bitmap())
 
@@ -1753,7 +1754,7 @@ class PreviewPanel(wx.Panel):
     def update_preview(self, ref_background_image, ref_overlay_image):
         #print(ref_background_image, ref_overlay_image)
         if ref_overlay_image is None:
-            bg_image = wx.Image(ref_background_image, wx.BITMAP_TYPE_ANY)
+            bg_image = load_bitmap_safe(ref_background_image).ConvertToImage()
             self.draw_scaled_image(bg_image)
         else:
             # Draw the overlay on top of the background image
