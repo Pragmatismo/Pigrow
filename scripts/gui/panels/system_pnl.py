@@ -279,6 +279,8 @@ class info_pnl(wx.Panel):
         out, error = self.parent.link_pnl.run_on_pi(info_cmd)
         print(info_cmd, out, error, sep="\n")
         textbox.SetLabel(out)
+        if title == "boxname" and not error and out.strip():
+            self.parent.link_pnl.sync_connected_profile(out.strip())
         self.Layout()
 
     def doubleclick_pnl(self, e):
@@ -363,7 +365,12 @@ class one_wire_change_pin_dbox(wx.Dialog):
         self.updated_conf = None
         #
         def pin_list_from_info():
-            pigrow_path = "/home/" + shared_data.gui_set_dict['username'] + "/Pigrow"
+            link_pnl = parent.parent.link_pnl
+            username = (link_pnl.target_user if link_pnl.connected else
+                        shared_data.gui_set_dict['username'])
+            pigrow_path = (shared_data.remote_pigrow_path.rstrip("/")
+                           if link_pnl.connected and shared_data.remote_pigrow_path
+                           else "/home/" + username + "/Pigrow")
             info_path = pigrow_path + "/scripts/gui/info_modules/info_1wire.py"
             cmd = info_path + " |grep '1wire overlay enabled on'"
             out, error = parent.parent.link_pnl.run_on_pi(cmd)
@@ -1000,10 +1007,14 @@ class install_dialog(wx.Dialog):
             dlg.Destroy()
 
         if new_install == True:
-            box_name = "new"
-            self.parent.parent.link_pnl.set_link_pi_text(True, box_name)
-            self.parent.parent.link_pnl.set_shared_info_on_connect(box_name)
-            self.parent.parent.shared_data.config_dict = {}
+            link_pnl = self.parent.parent.link_pnl
+            shared_data = self.parent.parent.shared_data
+            link_pnl.set_link_pi_text(True, None)
+            # The installer needs a path before a name has been written to the
+            # Pi. Do not save its temporary "new" label as a confirmed profile.
+            shared_data.remote_pigrow_path = "/home/" + link_pnl.target_user + "/Pigrow/"
+            shared_data.config_txt_path = link_pnl.determine_boot_config_path()
+            shared_data.config_dict = {}
 
         # wizard
         self.create_dirlocs_from_template()
@@ -1040,12 +1051,15 @@ class install_dialog(wx.Dialog):
 
     def create_dirlocs_from_template(self):
         shared_data = self.parent.parent.shared_data
+        link_pnl = self.parent.parent.link_pnl
         print("Creating dirlocs.txt from template")
 
         # grab template from pi and swap wildcards for username
         dirlocs_template_path = shared_data.remote_pigrow_path + 'config/templates/dirlocs_temp.txt'
-        dirlocs_template, error = self.parent.parent.link_pnl.run_on_pi("cat " + dirlocs_template_path)
-        dirlocs_text = dirlocs_template.replace("**", str("/home/" + shared_data.gui_set_dict['username']))
+        dirlocs_template, error = link_pnl.run_on_pi("cat " + dirlocs_template_path)
+        username = (link_pnl.target_user if link_pnl.connected else
+                    shared_data.gui_set_dict['username'])
+        dirlocs_text = dirlocs_template.replace("**", "/home/" + username)
 
         # save to pi
         dirlocs_path = shared_data.remote_pigrow_path + 'config/dirlocs.txt'
@@ -1054,9 +1068,8 @@ class install_dialog(wx.Dialog):
 
 
     def name_pigrow(self):
-        if not 'box_name' in self.parent.parent.shared_data.config_dict:
-            self.parent.parent.shared_data.config_dict["box_name"] = "new"
-        box_name = self.parent.parent.shared_data.config_dict["box_name"]
+        shared_data = self.parent.parent.shared_data
+        link_pnl = self.parent.parent.link_pnl
         valid_name = False
         while valid_name == False:
             msg = "Select a name for your pigrow."
@@ -1065,11 +1078,10 @@ class install_dialog(wx.Dialog):
             msg += "Ideally choose a simple and descriptive name, like Veg, Flower, Bedroom, or Greenhouse"
             name_box_dbox = wx.TextEntryDialog(self, msg, "Name your Pigrow")
             if name_box_dbox.ShowModal() == wx.ID_OK:
-                box_name = name_box_dbox.GetValue()
-                if not box_name == "":
-                    box_name = box_name.strip().replace(" ", "_")
-                    self.parent.parent.shared_data.config_dict["box_name"] = box_name
-                    self.parent.parent.shared_data.update_pigrow_config_file_on_pi()
+                box_name = name_box_dbox.GetValue().strip().replace(" ", "_")
+                if box_name:
+                    shared_data.config_dict["box_name"] = box_name
+                    shared_data.update_pigrow_config_file_on_pi()
                     valid_name = True
                 else:
                     w_msg = "You must select a name for your pigrow"
@@ -1079,9 +1091,14 @@ class install_dialog(wx.Dialog):
             else:
                 print ("User decided not to set the box name")
                 valid_name = True
+            name_box_dbox.Destroy()
 
-        self.parent.parent.link_pnl.set_link_pi_text(True, box_name)
-        self.parent.parent.link_pnl.set_shared_info_on_connect(box_name)
+        # The upload confirmation can be cancelled. Only a name read back from
+        # the connected device may replace the saved profile's name.
+        box_name = link_pnl.get_box_name()
+        link_pnl.set_link_pi_text(True, box_name)
+        if box_name:
+            link_pnl.set_shared_info_on_connect(box_name)
 
     def enable_trigger_watcher(self):
         cron_i_pnl  = self.parent.parent.dict_I_pnl['cron_pnl']
