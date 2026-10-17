@@ -3,7 +3,33 @@ import os
 import sys
 import platform
 import datetime
+import json
+import locale
+import tempfile
 import wx.lib.scrolledpanel as scrolled
+from pigrow_profiles import load_profiles, normalize_profiles, serialize_profiles
+
+
+_SETTINGS_STRING_PREFIX = "@pigrow-json-string:"
+
+
+def _encode_setting(value):
+    value = str(value)
+    if (value.startswith(_SETTINGS_STRING_PREFIX)
+            or any(char in value for char in "\n\r\v\f\x1c\x1d\x1e\x85\u2028\u2029")):
+        return _SETTINGS_STRING_PREFIX + json.dumps(value, ensure_ascii=True)
+    return value
+
+
+def _decode_setting(value):
+    if value.startswith(_SETTINGS_STRING_PREFIX):
+        try:
+            decoded = json.loads(value[len(_SETTINGS_STRING_PREFIX):])
+            if isinstance(decoded, str):
+                return decoded
+        except (ValueError, TypeError):
+            pass
+    return value
 
 def resolve_resource_path(*parts):
     if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
@@ -68,6 +94,8 @@ class shared_data:
 
         # load from file
         self.load_gui_settings()
+        # Normalize/migrate once so profile IDs remain stable for this session.
+        self.get_pigrow_profiles()
         #
         ## settings
         # system tab layout
@@ -171,14 +199,20 @@ class shared_data:
     def load_gui_settings(self):
         gui_settings_path = "gui_settings.txt"
         if os.path.isfile(gui_settings_path):
-            with open(gui_settings_path, "r") as gui_set_text:
-                gui_settings_list = gui_set_text.read().splitlines()
+            with open(gui_settings_path, "rb") as gui_set_text:
+                settings_bytes = gui_set_text.read()
+            try:
+                settings_text = settings_bytes.decode("utf-8")
+            except UnicodeDecodeError:
+                # Older Windows installations wrote using the local encoding.
+                settings_text = settings_bytes.decode(locale.getpreferredencoding(False))
+            gui_settings_list = settings_text.splitlines()
             for line in gui_settings_list:
                 if "=" in line:
                     equals_pos = line.find("=")
                     setting = line[:equals_pos]
                     value = line[equals_pos+1:]
-                    self.gui_set_dict[setting]=value
+                    self.gui_set_dict[setting] = _decode_setting(value)
             # migrate legacy datawall settings
             if 'default_datawall' not in self.gui_set_dict:
                 legacy = self.gui_set_dict.get('start_datawall_preset', "")
@@ -192,14 +226,56 @@ class shared_data:
 
     def save_gui_settings(self):
         gui_settings_path = "gui_settings.txt"
-        settings_file_text = ""
+        settings_lines = []
         skip_keys = {'start_dw_dict', 'start_datawall_preset_for_all', 'start_datawall_preset'}
         for key, value in self.gui_set_dict.items():
             if key in skip_keys:
                 continue
-            settings_file_text += str(key) + "=" + str(value) + "\n"
-        with open(gui_settings_path, "w") as gui_set_text:
-            gui_set_text.write(settings_file_text)
+            key = str(key)
+            if (not key or "=" in key
+                    or any(char in key for char in "\n\r\v\f\x1c\x1d\x1e\x85\u2028\u2029")):
+                raise ValueError("Invalid GUI setting name")
+            settings_lines.append(key + "=" + _encode_setting(value) + "\n")
+
+        # Profiles contain passwords. Create a private file and replace the
+        # old settings atomically, leaving the previous file intact on failure.
+        directory = os.path.dirname(os.path.abspath(gui_settings_path))
+        file_descriptor, temporary_path = tempfile.mkstemp(
+            prefix=".gui_settings-", suffix=".tmp", dir=directory)
+        try:
+            with os.fdopen(file_descriptor, "w", encoding="utf-8", newline="\n") as gui_set_text:
+                gui_set_text.write("".join(settings_lines))
+                gui_set_text.flush()
+                os.fsync(gui_set_text.fileno())
+            os.replace(temporary_path, gui_settings_path)
+        finally:
+            if os.path.exists(temporary_path):
+                os.unlink(temporary_path)
+
+    def get_pigrow_profiles(self):
+        profiles = load_profiles(self.gui_set_dict)
+        self.gui_set_dict['pigrows'] = serialize_profiles(profiles)
+        return profiles
+
+    def save_pigrow_profiles(self, profiles, selected_id=None):
+        profiles = normalize_profiles(profiles)
+        if selected_id is None:
+            selected_id = self.gui_set_dict.get('selected_pigrow', '')
+        if not any(item['id'] == selected_id for item in profiles):
+            selected_id = profiles[0]['id'] if profiles else ''
+        previous = {key: self.gui_set_dict[key] for key in ('pigrows', 'selected_pigrow')
+                    if key in self.gui_set_dict}
+        self.gui_set_dict.update(pigrows=serialize_profiles(profiles),
+                                 selected_pigrow=selected_id)
+        try:
+            self.save_gui_settings()
+        except Exception:
+            for key in ('pigrows', 'selected_pigrow'):
+                if key in previous:
+                    self.gui_set_dict[key] = previous[key]
+                else:
+                    self.gui_set_dict.pop(key, None)
+            raise
 
     def show_help(self, img_path):
         # load image
@@ -276,6 +352,11 @@ class shared_data:
                 s_name   = line[:e_pos]
                 self.config_dict[s_name] = s_value
         print("  - Shared_data.config_dict set from pigrow_config.txt")
+        confirmed_name = self.config_dict.get('box_name', '').strip()
+        if not error and confirmed_name:
+            sync_profile = getattr(self.parent.link_pnl, 'sync_connected_profile', None)
+            if sync_profile is not None:
+                sync_profile(confirmed_name)
 
     def update_pigrow_config_file_on_pi(self, ask="yes"):
         setting_file_path = self.remote_pigrow_path + "config/pigrow_config.txt"
@@ -314,27 +395,17 @@ class shared_data:
             self.gui_set_dict = parent.shared_data.gui_set_dict
             self.parent = parent
             wx.Dialog.__init__(self, parent, title="Remote Gui Settings")
-            # Default connection address
-            self.default_address_l = wx.StaticText(self, label='Default Address')
+            # Defaults for new devices; stored devices are edited in the list.
+            self.default_address_l = wx.StaticText(self, label='New device address')
             self.default_address_tc = wx.TextCtrl(self, -1, self.gui_set_dict['default_address'], size=(250,30))
             # username and password
-            self.default_username_l = wx.StaticText(self, label='Username')
+            self.default_username_l = wx.StaticText(self, label='New device username')
             self.default_username_tc = wx.TextCtrl(self, -1, self.gui_set_dict['username'], size=(250,30))
-            self.default_password_l = wx.StaticText(self, label='Password')
-            self.default_password_tc = wx.TextCtrl(self, -1, self.gui_set_dict['password'], size=(250,30))
+            self.default_password_l = wx.StaticText(self, label='New device password')
+            self.default_password_tc = wx.TextCtrl(self, -1, self.gui_set_dict['password'], size=(250,30), style=wx.TE_PASSWORD)
             # SSH Settings
             self.sshport_l = wx.StaticText(self, label='SSH Port')
             self.ssh_port_tc = wx.TextCtrl(self, -1, str(self.gui_set_dict['ssh_port']))
-            # save ip on connect
-            self.save_ip_l = wx.StaticText(self, label='Save on connect')
-            self.save_ip_cb = wx.CheckBox(self, -1)
-            if self.gui_set_dict['save_ip'] == "True":
-                self.save_ip_cb.SetValue(True)
-            else:
-                self.save_ip_cb.SetValue(False)
-            #list of stored ips
-
-
             # ui settings
             self.font_scale_l = wx.StaticText(self, label='Font Scale')
             self.font_scale = wx.TextCtrl(self, -1, str(self.gui_set_dict['font_scale']))
@@ -359,8 +430,6 @@ class shared_data:
                 (self.default_password_tc, 0, wx.ALIGN_RIGHT),
                 (self.sshport_l, 0, wx.ALIGN_RIGHT),
                 (self.ssh_port_tc, 0),
-                (self.save_ip_l, 0),
-                (self.save_ip_cb, 0),
                 (self.font_scale_l, 0),
                 (self.font_scale, 0),
                 (self.temp_unit_l, 0),
@@ -372,6 +441,8 @@ class shared_data:
             btnsizer.Add((5,-1), 0, wx.ALL, 5)
             btnsizer.Add(cancel_btn, 0, wx.ALL, 5)
             main_sizer = wx.BoxSizer(wx.VERTICAL)
+            profile_help = wx.StaticText(self, label="Manage saved Pigrows with Edit list in the connection panel.\nSuccessful connections save their address and login details automatically.")
+            main_sizer.Add(profile_help, 0, wx.EXPAND|wx.ALL, 5)
             main_sizer.Add(conection_sizer, 0, wx.EXPAND|wx.ALL, 5)
             main_sizer.Add(btnsizer, 0, wx.ALL, 5)
             self.SetSizerAndFit(main_sizer)
@@ -380,7 +451,6 @@ class shared_data:
             self.gui_set_dict['default_address'] = self.default_address_tc.GetValue()
             self.gui_set_dict['username'] = self.default_username_tc.GetValue()
             self.gui_set_dict['password'] = self.default_password_tc.GetValue()
-            self.gui_set_dict['save_ip'] = str(self.save_ip_cb.GetValue())
             self.gui_set_dict['font_scale'] = self.font_scale.GetValue()
             self.gui_set_dict['temp_unit'] = self.temp_unit_cb.GetValue()
             self.gui_set_dict['volume_unit'] = self.vol_unit_cb.GetValue()

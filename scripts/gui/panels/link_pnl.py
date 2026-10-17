@@ -2,15 +2,16 @@ import wx
 import os
 import sys
 import time
-from getmac import get_mac_address
 import wx.lib.delayedresult as delayedresult
 import  wx.lib.newevent
 import threading
-import platform
 import uuid
 
-import subprocess
-from datetime import datetime
+from pigrow_profiles import (find_address_conflicts, normalized_address,
+                             record_connection)
+from panels.pigrow_discovery import DiscoverIPDialog
+from panels.pigrow_profiles_dialog import PigrowProfilesDialog
+
 
 FileDownloadEvent, EVT_FILE_DOWNLOAD = wx.lib.newevent.NewEvent()
 
@@ -35,212 +36,295 @@ class link_pnl(wx.Panel):
     # and connects ssh to the pi when button is pressed
     # or allows seeking
     #
-    def __init__( self, parent, shared_data ):
-        self.selected_files   = []
+    def __init__(self, parent, shared_data):
+        self.selected_files = []
         self.selected_folders = []
         self.parent = parent
-        # intiation
+        self.shared_data = shared_data
+        self.connected = False
+        self.selected_profile_id = None
+        self._last_profile_sync = None
         self.ssh = paramiko.SSHClient()
         self.ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        self.shared_data = shared_data
-        # pannel
-        wx.Panel.__init__(self, parent, id=wx.ID_ANY, style=wx.TAB_TRAVERSAL)
-        self.SetBackgroundColour((150,230,170))
-        ## UI
-        # IP address
-        self.l_ip = wx.StaticText(self,  label='address')
-        self.l_ip.SetFont(shared_data.button_font)
-        list_of_ips = ["000.000.00.000"] # self.discover_ip_list()
-        self.cb_ip = wx.ComboBox(self, choices = list_of_ips, style=wx.TE_PROCESS_ENTER)
-        self.cb_ip.Bind(wx.EVT_TEXT_ENTER, self.combo_return)
-        self.cb_ip.SetFont(shared_data.button_font)
-        # Username
-        self.l_user = wx.StaticText(self,  label='Username')
-        self.l_user.SetFont(shared_data.button_font)
-        self.tb_user = wx.TextCtrl(self)
-        self.tb_user.SetValue(shared_data.gui_set_dict['username'])
-        self.tb_user.SetFont(shared_data.button_font)
-        # Password
-        self.l_pass = wx.StaticText(self,  label='Password')
-        self.l_pass.SetFont(shared_data.button_font)
-        self.tb_pass = wx.TextCtrl(self, style=wx.TE_PROCESS_ENTER| wx.TE_PASSWORD)
-        self.tb_pass.Bind(wx.EVT_TEXT_ENTER, self.combo_return)
-        self.tb_pass.SetValue(shared_data.gui_set_dict['password'])
-        self.tb_pass.SetFont(shared_data.button_font)
-        # link with pi button
-        self.link_with_pi_btn = wx.Button(self, label='Link to Pi')
-        self.link_with_pi_btn.SetFont(shared_data.button_font)
+        wx.Panel.__init__(self, parent, style=wx.TAB_TRAVERSAL)
+        self.SetBackgroundColour((150, 230, 170))
+
+        self.link_status_text = wx.StaticText(self, label='disconnected')
+        self.pigrow_choice = wx.Choice(self)
+        self.pigrow_choice.Bind(wx.EVT_CHOICE, self.select_pigrow)
+        self.link_with_pi_btn = wx.Button(self, label='Connect')
         self.link_with_pi_btn.Bind(wx.EVT_BUTTON, self.link_with_pi_btn_click)
-        self.link_status_text = wx.StaticText(self,  label=' -- no link -- ')
-        self.link_status_text.SetFont(shared_data.button_font)
-        # seek next pi button
-        self.seek_for_pigrows_btn = wx.Button(self, label='Seek IPs')
-        self.seek_for_pigrows_btn.SetFont(shared_data.button_font)
-        self.seek_for_pigrows_btn.Bind(wx.EVT_BUTTON, self.seek_for_pigrows_click)
-        ##  sizers
-        login_sizer = wx.FlexGridSizer(3, 2, 3, 5)
-        login_sizer.AddMany( [(self.l_ip, 0, wx.EXPAND),
-            (self.cb_ip, 2, wx.EXPAND),
-            (self.l_user, 0, wx.EXPAND),
-            (self.tb_user, 2, wx.EXPAND),
-            (self.l_pass, 0, wx.EXPAND),
-            (self.tb_pass, 2, wx.EXPAND)])
+        self.edit_pigrows_btn = wx.Button(self, label='Edit list')
+        self.edit_pigrows_btn.Bind(wx.EVT_BUTTON, self.edit_pigrows_click)
+        self.quick_controls_btn = wx.Button(self, label='\u25bc', size=(40, -1))
+        self.quick_controls_btn.SetToolTip('Show address, username and password')
+        self.quick_controls_btn.Bind(wx.EVT_BUTTON, self.toggle_quick_controls)
 
-        link_buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        link_buttons_sizer.Add(self.link_with_pi_btn, 1, wx.EXPAND)
-        link_buttons_sizer.Add(self.seek_for_pigrows_btn, 0, wx.EXPAND)
-        link_text_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        link_text_sizer.Add(self.link_status_text, 1, wx.EXPAND)
-        main_sizer = wx.BoxSizer(wx.VERTICAL)
-        main_sizer.Add(login_sizer, 0, wx.EXPAND)
-        main_sizer.Add(link_buttons_sizer, 0, wx.EXPAND)
-        main_sizer.Add(link_text_sizer, 0, wx.EXPAND)
-        self.SetSizer(main_sizer)
+        self.quick_controls = wx.Panel(self)
+        self.l_ip = wx.StaticText(self.quick_controls, label='Address')
+        self.cb_ip = wx.ComboBox(self.quick_controls, style=wx.TE_PROCESS_ENTER)
+        self.cb_ip.Bind(wx.EVT_TEXT_ENTER, self.combo_return)
+        self.l_user = wx.StaticText(self.quick_controls, label='Username')
+        self.tb_user = wx.TextCtrl(self.quick_controls, style=wx.TE_PROCESS_ENTER)
+        self.tb_user.Bind(wx.EVT_TEXT_ENTER, self.combo_return)
+        self.l_pass = wx.StaticText(self.quick_controls, label='Password')
+        self.tb_pass = wx.TextCtrl(self.quick_controls,
+                                  style=wx.TE_PROCESS_ENTER | wx.TE_PASSWORD)
+        self.tb_pass.Bind(wx.EVT_TEXT_ENTER, self.combo_return)
+        for control in (self.link_status_text, self.pigrow_choice,
+                        self.link_with_pi_btn, self.edit_pigrows_btn,
+                        self.quick_controls_btn, self.l_ip, self.cb_ip,
+                        self.l_user, self.tb_user, self.l_pass, self.tb_pass):
+            control.SetFont(shared_data.button_font)
+        self.cb_ip.SetMinSize((180, -1))
+        login_sizer = wx.FlexGridSizer(3, 2, 5, 5)
+        login_sizer.AddGrowableCol(1)
+        for label, field in ((self.l_ip, self.cb_ip),
+                             (self.l_user, self.tb_user),
+                             (self.l_pass, self.tb_pass)):
+            login_sizer.Add(label, 0, wx.ALIGN_CENTER_VERTICAL)
+            login_sizer.Add(field, 1, wx.EXPAND)
+        self.quick_controls.SetSizer(login_sizer)
 
-        # This code to get around the fontsize being ignored, possibly unneeded on win
-        size = self.cb_ip.GetSize()
+        buttons = wx.BoxSizer(wx.HORIZONTAL)
+        buttons.Add(self.link_with_pi_btn, 1, wx.EXPAND)
+        buttons.Add(self.edit_pigrows_btn, 1, wx.EXPAND | wx.LEFT, 4)
+        buttons.Add(self.quick_controls_btn, 0, wx.EXPAND | wx.LEFT, 4)
+        self.main_sizer = wx.BoxSizer(wx.VERTICAL)
+        self.main_sizer.Add(self.link_status_text, 0, wx.EXPAND | wx.ALL, 5)
+        self.main_sizer.Add(self.pigrow_choice, 0, wx.EXPAND | wx.LEFT | wx.RIGHT, 5)
+        self.main_sizer.Add(buttons, 0, wx.EXPAND | wx.ALL, 5)
+        self.main_sizer.Add(self.quick_controls, 0, wx.EXPAND | wx.ALL, 5)
+        self.SetSizer(self.main_sizer)
+        self.main_sizer.Hide(self.quick_controls)
+        stored_id = shared_data.gui_set_dict.get('selected_pigrow')
+        profiles = shared_data.get_pigrow_profiles()
+        self.refresh_profiles(stored_id or (profiles[0]['id'] if profiles else None))
+        self.set_status('disconnected', (170, 0, 0))
+
+    def relayout(self):
+        self.InvalidateBestSize()
+        self.Layout()
+        self.parent.Layout()
+
+    def set_status(self, text, colour):
+        self.link_status_text.SetLabel(text)
+        self.link_status_text.SetForegroundColour(colour)
+        self.link_status_text.SetToolTip(text)
+        self.link_status_text.Wrap(max(260, self.GetClientSize().width - 10))
+        self.relayout()
+
+    def refresh_profiles(self, selected_id=None, load_fields=True):
+        self.profiles = self.shared_data.get_pigrow_profiles()
+        self.pigrow_choice.Clear()
+        self.profile_ids = []
+        for profile in self.profiles:
+            label = profile['box_name']
+            if profile['tentative']:
+                label += ' (' + (profile['address'] or 'unlinked') + ')'
+            self.pigrow_choice.Append(label)
+            self.profile_ids.append(profile['id'])
+        self.pigrow_choice.Append('New connection\u2026')
+        self.profile_ids.append(None)
+        if selected_id not in self.profile_ids:
+            selected_id = self.profile_ids[0]
+        self.pigrow_choice.SetSelection(self.profile_ids.index(selected_id))
+        self.selected_profile_id = selected_id
+        if load_fields:
+            self.load_selected_fields()
+        self.relayout()
+
+    def load_selected_fields(self):
+        profile = next((p for p in self.profiles
+                        if p['id'] == self.selected_profile_id), None)
+        defaults = self.shared_data.gui_set_dict
         self.cb_ip.Clear()
-        size[0] = int(size[0]  * 1.2)
-        self.cb_ip.SetMinSize(size)
-        self.cb_ip.SetValue(shared_data.gui_set_dict['default_address'])
+        for address in dict.fromkeys(p['address'] for p in self.profiles if p['address']):
+            self.cb_ip.Append(address)
+        self.cb_ip.SetValue(profile['address'] if profile else defaults['default_address'])
+        self.tb_user.ChangeValue(profile['username'] if profile else defaults['username'])
+        self.tb_pass.ChangeValue(profile['password'] if profile else defaults['password'])
 
-    def combo_return(self, e):
-        self.link_with_pi_btn_click(None)
+    def select_pigrow(self, event):
+        self.selected_profile_id = self.profile_ids[self.pigrow_choice.GetSelection()]
+        self.load_selected_fields()
+        if not self.cb_ip.GetValue().strip() or self.selected_profile_id is None:
+            self.show_quick_controls(True)
 
-    def discover_ip_list(self):
-        default_ip = self.parent.shared_data.gui_set_dict['default_address']
-        ip_ranges = ["192.168.0.", "192.168.1."]
+    def show_quick_controls(self, show):
+        self.main_sizer.Show(self.quick_controls, show)
+        self.quick_controls_btn.SetLabel('\u25b2' if show else '\u25bc')
+        self.quick_controls_btn.SetToolTip(
+            'Hide login details' if show else 'Show address, username and password')
+        self.relayout()
 
-        def ping_sweep(ip_range):
-            """Ping all IPs in the range to populate the ARP table."""
-            for x in range(0, 255):
-                print(f"pinging {x}")
-                ip = f"{ip_range}{x}"
-                param = "-n 1" if platform.system().lower() == "windows" else "-c 1"
-                os.system(f"ping {param} -w 1 {ip} > /dev/null 2>&1")
+    def toggle_quick_controls(self, event):
+        self.show_quick_controls(not self.quick_controls.IsShown())
 
-        # Initialize lists for Raspberry Pi and other IPs
-        raspi_ips = []
-        other_ips = []
+    def combo_return(self, event):
+        if not self.connected:
+            self.link_with_pi_btn_click(None)
 
-        # Perform ping sweep and MAC address lookup
-        for ip_range in ip_ranges:
-            print(f"Sweeping range {ip_range}")
-            ping_sweep(ip_range)  # Populate the ARP table
-            for x in range(0, 255):
-                ip = f"{ip_range}{x}"
-                ip_mac = get_mac_address(ip=ip)
-                if ip_mac is not None:
-                    if "00:00:00" not in ip_mac:
-                        if "b8:27:eb" in ip_mac:  # Raspberry Pi MAC prefix
-                            raspi_ips.append(ip)
-                            print(f"Found {ip}")
-                        else:
-                            other_ips.append(ip)
-
-        # IPv6 discovery (basic example)
-        ip6_mac = get_mac_address(ip6="::1")
-
-        # Combine results into the final IP list
-        final_ip_list = raspi_ips
-        if other_ips:
-            final_ip_list += ["-----"] + other_ips
-        if ip6_mac is not None:
-            final_ip_list += ["-----"] + [ip6_mac]
-        if not final_ip_list:  # No devices found
-            return ip6_mac
-        return final_ip_list
+    def edit_pigrows_click(self, event):
+        settings = self.shared_data.gui_set_dict
+        dlg = PigrowProfilesDialog(
+            self, self.shared_data.get_pigrow_profiles(),
+            default_username=settings['username'],
+            default_password=settings['password'],
+            ssh_port=int(settings['ssh_port']),
+            selected_profile_id=self.selected_profile_id)
+        try:
+            if dlg.ShowModal() == wx.ID_OK:
+                selected_id = dlg.get_selected_profile_id()
+                try:
+                    self.shared_data.save_pigrow_profiles(dlg.get_profiles(), selected_id)
+                except OSError as error:
+                    wx.MessageBox('Could not save Pigrow settings: ' + str(error),
+                                  'Settings error', wx.OK | wx.ICON_ERROR, self)
+                    return
+                self.refresh_profiles(selected_id)
+                if not self.cb_ip.GetValue().strip():
+                    self.show_quick_controls(True)
+        finally:
+            dlg.Destroy()
 
     def seek_for_pigrows_click(self, event):
-        dlg = DiscoverIPDialog(self, title="Discovery Options")
-        if dlg.ShowModal() == wx.ID_OK:
-            ip_list = dlg.get_ip_list()
-            self.cb_ip.Clear()
-            for item in ip_list:
-                self.cb_ip.Append(item)
-        dlg.Destroy()
+        # Kept for callers of the old panel API; discovery now lives in Edit list.
+        self.edit_pigrows_click(event)
 
     def get_box_name(self):
+        out, error = self.run_on_pi('cat ~/Pigrow/config/pigrow_config.txt')
         boxname = None
-        out, error = self.run_on_pi("cat /home/" + self.target_user + "/Pigrow/config/pigrow_config.txt | grep box_name")
-        if "=" in out:
-            boxname = out.strip().split("=")[1]
-            #MainApp.status.write_bar("Pigrow Found; " + boxname)
-            print("#sb# Pigrow Found; " + boxname)
-        else:
-            #MainApp.status.write_bar("Can't read Pigrow name, probably not installed")
-            print("#sb# Can't read Pigrow's name ")
-        if boxname == '':
-            boxname = None
+        if not error:
+            for line in out.splitlines():
+                key, separator, value = line.partition('=')
+                if separator and key.strip() == 'box_name':
+                    boxname = value.strip() or None
+                    break
         self.shared_data.box_name = boxname
+        if self.connected and boxname:
+            self.sync_connected_profile(boxname)
         return boxname
 
-
-    def link_with_pi_btn_click(self, e):
-        log_on_test = False
-        if self.link_with_pi_btn.GetLabel() == 'Disconnect':
-            #MainApp.status.write_bar("breaking ssh connection")
-            print("breaking ssh connection")
-            self.ssh.close()
-            # reset ui to connect
-            self.link_with_pi_btn.SetLabel('Link to Pi')
-            self.cb_ip.Enable()
-            self.tb_user.Enable()
-            self.tb_pass.Enable()
-            self.link_status_text.SetLabel("-- Disconnected --")
-            self.seek_for_pigrows_btn.Enable()
-            #self.blank_settings()
-            self.set_shared_info_on_connect("")
-        else:
-            #clear_temp_folder()
-            self.target_ip = self.cb_ip.GetValue()
-            self.target_user = self.tb_user.GetValue()
-            self.target_pass = self.tb_pass.GetValue()
+    def sync_connected_profile(self, box_name):
+        if not self.connected:
+            return
+        profiles = self.shared_data.get_pigrow_profiles()
+        selected = next((p for p in profiles if p['id'] == self.selected_profile_id), None)
+        name = box_name or (selected['box_name'] if selected else 'unknown pi')
+        fingerprint = (name, self.target_ip, self.target_user, self.target_pass,
+                       self.selected_profile_id)
+        if fingerprint == self._last_profile_sync:
+            return
+        actions = {}
+        conflicts = find_address_conflicts(profiles, self.target_ip, name)
+        # A hostname connection also detects an older entry stored by its IP.
+        try:
+            peer_ip = self.ssh.get_transport().sock.getpeername()[0]
+        except (AttributeError, OSError, TypeError):
+            peer_ip = self.target_ip
+        for profile in find_address_conflicts(profiles, peer_ip, name):
+            if profile['id'] not in {p['id'] for p in conflicts}:
+                conflicts.append(profile)
+        for profile in conflicts:
+            dlg = AddressConflictDialog(self, profile, name, self.target_ip)
             try:
-                port = int(self.shared_data.gui_set_dict['ssh_port'])
-                self.ssh.connect(self.target_ip, port=port, username=self.target_user, password=self.target_pass, timeout=3)
-                #MainApp.status.write_bar("Connected to " + self.target_ip)
-                print("#sb# Connected to " + self.target_ip)
-                log_on_test = True
-            except Exception as e:
-                #MainApp.status.write_bar("Failed to log on due to; " + str(e))
-                print(("#sb# Failed to log on due to; " + str(e)))
-            # when connected
-            if log_on_test == True:
-                box_name = self.get_box_name()
-                self.update_ip_store(self.target_ip)
-            else:
-                box_name = None
-            self.set_link_pi_text(log_on_test, box_name)
-            self.set_shared_info_on_connect(box_name)
-            #MainApp.window_self.Layout()
+                dlg.ShowModal()
+                actions[profile['id']] = dlg.action
+            finally:
+                dlg.Destroy()
+        record_selected_id = self.selected_profile_id
+        if box_name and selected is None:
+            sighting = next((p for p in profiles if p['tentative']
+                             and normalized_address(p['address']) == normalized_address(peer_ip)), None)
+            if sighting:
+                record_selected_id = sighting['id']
+        updated, selected_id = record_connection(
+            profiles, box_name or name, self.target_ip, self.target_user,
+            self.target_pass, selected_id=record_selected_id,
+            conflict_actions=actions)
+        if box_name:
+            # IP and hostname sightings become one device once its name is known.
+            updated = [p for p in updated if p['id'] == selected_id
+                       or not (p['tentative'] and normalized_address(p['address'])
+                               == normalized_address(peer_ip))]
+        try:
+            self.shared_data.save_pigrow_profiles(updated, selected_id)
+        except OSError as error:
+            wx.MessageBox('Connected, but could not save Pigrow settings: ' + str(error),
+                          'Settings error', wx.OK | wx.ICON_ERROR, self)
+            return
+        self.refresh_profiles(selected_id, load_fields=False)
+        self._last_profile_sync = (name, self.target_ip, self.target_user,
+                                   self.target_pass, selected_id)
+        if box_name:
+            self.shared_data.box_name = box_name
+            self.shared_data.frompi_path = os.path.join(
+                self.shared_data.frompi_base_path, box_name)
+
+    def set_connection_controls(self, connected):
+        self.link_with_pi_btn.SetLabel('Disconnect' if connected else 'Connect')
+        for control in (self.pigrow_choice, self.edit_pigrows_btn,
+                        self.cb_ip, self.tb_user, self.tb_pass):
+            control.Enable(not connected)
+
+    def link_with_pi_btn_click(self, event):
+        if self.connected:
+            self.ssh.close()
+            self.connected = False
+            self._last_profile_sync = None
+            self.shared_data.box_name = None
+            self.set_connection_controls(False)
+            self.set_status('disconnected', (170, 0, 0))
+            self.set_shared_info_on_connect(None)
+            return
+        self.target_ip = self.cb_ip.GetValue().strip()
+        self.target_user = self.tb_user.GetValue().strip()
+        self.target_pass = self.tb_pass.GetValue()
+        if not self.target_ip or not self.target_user:
+            self.show_quick_controls(True)
+            self.set_status('unable to connect: enter an address and username', (0, 0, 139))
+            return
+        self.set_status('connecting...', (0, 0, 139))
+        self.link_with_pi_btn.Disable()
+        try:
+            port = int(self.shared_data.gui_set_dict['ssh_port'])
+            self.ssh.connect(self.target_ip, port=port, username=self.target_user,
+                             password=self.target_pass, timeout=3,
+                             auth_timeout=3, banner_timeout=3)
+        except Exception as error:
+            self.ssh.close()
+            self.connected = False
+            self.set_connection_controls(False)
+            self.set_status('unable to connect: ' + str(error), (0, 0, 139))
+            self.set_shared_info_on_connect(None)
+            return
+        finally:
+            self.link_with_pi_btn.Enable()
+        self.connected = True
+        self.set_connection_controls(True)
+        self.set_status('connected', (0, 110, 0))
+        box_name = self.get_box_name()
+        if not box_name:
+            self.sync_connected_profile(None)
+        self.set_shared_info_on_connect(box_name)
 
     def set_link_pi_text(self, log_on_test, box_name):
-        if not box_name == None:
-            self.link_status_text.SetLabel("linked with - " + str(box_name))
-            #MainApp.view_cb.SetValue("Pigrow Setup")
-            #self.view_combo_go("e")
-            self.link_with_pi_btn.SetLabel('Disconnect')
-            self.cb_ip.Disable()
-            self.tb_user.Disable()
-            self.tb_pass.Disable()
-            self.seek_for_pigrows_btn.Disable()
-        elif log_on_test == False:
-            self.link_status_text.SetLabel("unable to connect")
+        # Installer and system panels use this after a confirmed name change.
+        self.connected = bool(log_on_test)
+        self.set_connection_controls(self.connected)
+        if self.connected:
+            self.set_status('connected', (0, 110, 0))
+            self.sync_connected_profile(box_name)
+        else:
             self.ssh.close()
-        if log_on_test == True and box_name == None:
-            self.link_status_text.SetLabel("No Pigrow config file")
-            self.link_with_pi_btn.SetLabel('Disconnect')
-            self.cb_ip.Disable()
-            self.tb_user.Disable()
-            self.tb_pass.Disable()
-            self.seek_for_pigrows_btn.Disable()
+            self.set_status('unable to connect', (0, 0, 139))
 
     def set_shared_info_on_connect(self, box_name):
         shared_data = self.parent.shared_data
         if not box_name == "" and not box_name == None:
             shared_data.frompi_path = os.path.join(shared_data.frompi_base_path, box_name)
-            shared_data.remote_pigrow_path = "/home/" + self.tb_user.GetValue() + "/Pigrow/"
+            shared_data.remote_pigrow_path = "/home/" + self.target_user + "/Pigrow/"
             shared_data.config_txt_path = self.determine_boot_config_path()
             self.parent.tell_pnls_connected()
         else:
@@ -266,11 +350,9 @@ class link_pnl(wx.Panel):
         return "/boot/config.txt"
 
     def update_ip_store(self, ip):
-        if self.parent.shared_data.gui_set_dict['save_ip'] == "False":
-            return None
-
-        self.parent.shared_data.gui_set_dict['default_address'] = ip
-        self.parent.shared_data.save_gui_settings()
+        # Saved profiles replace the old single-address store.
+        if self.connected:
+            self.sync_connected_profile(self.shared_data.box_name)
 
     # Commands for use by other sections of the gui
 
@@ -582,6 +664,42 @@ class link_pnl(wx.Panel):
             return self.id
 
 
+class AddressConflictDialog(wx.Dialog):
+    def __init__(self, parent, older, new_name, address):
+        super().__init__(parent, title='Pigrow name changed')
+        self.action = 'ignore'
+        text = wx.StaticText(self, label=(
+            'Connected to "' + new_name + '" at ' + address + '.\n'
+            '"' + older['box_name'] + '" already uses this address.\n'
+            'Remove deletes the older entry.\n'
+            'Unlink keeps its name and login details, clearing its address.\n'
+            'Ignore keeps both entries.'))
+        text.Wrap(460)
+        buttons = wx.BoxSizer(wx.HORIZONTAL)
+        for label, action in (('Remove', 'remove'), ('Unlink', 'unlink'), ('Ignore', 'ignore')):
+            button = wx.Button(self, label=label)
+            button.Bind(wx.EVT_BUTTON, lambda event, choice=action: self.choose(choice))
+            buttons.Add(button, 0, wx.ALL, 5)
+            if action == 'ignore':
+                button.SetDefault()
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        sizer.Add(text, 0, wx.ALL, 12)
+        sizer.Add(buttons, 0, wx.ALIGN_RIGHT | wx.ALL, 5)
+        self.SetSizerAndFit(sizer)
+        self.Bind(wx.EVT_CLOSE, lambda event: self.choose('ignore'))
+        self.Bind(wx.EVT_CHAR_HOOK, self.on_key)
+
+    def choose(self, action):
+        self.action = action
+        self.EndModal(wx.ID_OK)
+
+    def on_key(self, event):
+        if event.GetKeyCode() == wx.WXK_ESCAPE:
+            self.choose('ignore')
+        else:
+            event.Skip()
+
+
 class select_files_on_pi_dialog(wx.Dialog):
     #Dialog box for downloding files from pi to local storage folder
     def __init__(self, parent, single_folder=False, create_file=False, default_path=""):
@@ -858,260 +976,3 @@ class files_download_dialog(wx.Dialog):
         wx.PostEvent(self,FileDownloadEvent(from_p="Done", to_p="Done"))
         print("Download completed")
         return jobID
-
-class DiscoverIPDialog(wx.Dialog):
-    def __init__(self, parent, title="Discover IP Options"):
-        super(DiscoverIPDialog, self).__init__(parent, title=title, size=(550, 600))
-
-        self.parent = parent
-        self.ip_list = []  # Will store discovered IPs after scanning
-        self.stop_requested = threading.Event()  # Used to signal thread to stop
-        self.scanning_thread = None
-
-        panel = wx.Panel(self)
-        vbox = wx.BoxSizer(wx.VERTICAL)
-
-        info_text = (
-            "Discover IP addresses on your local network:\n"
-            "- 'Use get_mac': Will attempt to using get_mac to check for MAC address, if devices aren't showing we can populate the ARP tables by pinging devices, note this is slow.\n"
-            "- 'Use nmap': Will use nmap to discover hosts, then get MACs. nmap must be installed.\n\n"
-            "Raspberry Pi devices are identified by certain MAC prefixes, Raspi's will apear at the top of the list\n\n"
-            "You can also enable IPv6 scanning for a basic check.\n"
-        )
-        lbl_info = wx.StaticText(panel, label=info_text)
-        vbox.Add(lbl_info, 0, wx.ALL|wx.EXPAND, 10)
-
-        # Method selection
-        method_choices = ["Use nmap", "Use get_mac"]
-        self.rdo_method = wx.RadioBox(panel, label="Discovery Method",
-                                      choices=method_choices, majorDimension=1, style=wx.RA_SPECIFY_ROWS)
-        self.rdo_method.SetSelection(1)  # Default to get_mac
-        vbox.Add(self.rdo_method, 0, wx.ALL|wx.EXPAND, 10)
-        self.rdo_method.Bind(wx.EVT_RADIOBOX, self.on_method_changed)
-
-        # Ping checkbox
-        self.chk_ping = wx.CheckBox(panel, label="Enable Ping Sweep before 'get_mac' discovery")
-        self.chk_ping.SetValue(True)  # Default checked
-        vbox.Add(self.chk_ping, 0, wx.ALL|wx.EXPAND, 10)
-
-        # IPv6 checkbox
-        self.chk_ipv6 = wx.CheckBox(panel, label="Enable IPv6 Scanning")
-        self.chk_ipv6.SetValue(False)
-        vbox.Add(self.chk_ipv6, 0, wx.ALL|wx.EXPAND, 10)
-
-        # IP Range selection (editable ComboBox)
-        vbox.Add(wx.StaticText(panel, label="IP Range Prefix (e.g. '192.168.0.'):"), 0, wx.ALL|wx.EXPAND, 5)
-        self.cb_ip_range = wx.ComboBox(panel, style=wx.CB_DROPDOWN)
-        self.cb_ip_range.Append("192.168.0.")
-        self.cb_ip_range.Append("192.168.1.")
-        self.cb_ip_range.SetSelection(0)  # default selection
-        vbox.Add(self.cb_ip_range, 0, wx.ALL|wx.EXPAND, 10)
-
-        # Status label
-        self.lbl_status = wx.StaticText(panel, label="Status: Idle")
-        vbox.Add(self.lbl_status, 0, wx.ALL|wx.EXPAND, 10)
-
-        # Buttons
-        btn_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        self.btn_ok = wx.Button(panel, wx.ID_OK, label="OK (Start Scan)")
-        self.btn_cancel = wx.Button(panel, wx.ID_CANCEL, label="Cancel")
-        btn_sizer.Add(self.btn_ok, 0, wx.ALL, 5)
-        btn_sizer.Add(self.btn_cancel, 0, wx.ALL, 5)
-        vbox.Add(btn_sizer, 0, wx.ALIGN_CENTER|wx.ALL, 10)
-
-        panel.SetSizer(vbox)
-        self.Layout()
-
-        # Bind events
-        self.btn_ok.Bind(wx.EVT_BUTTON, self.on_ok)
-        self.btn_cancel.Bind(wx.EVT_BUTTON, self.on_cancel)
-        self.on_method_changed(None)  # Set initial state of ping checkbox
-
-    def on_method_changed(self, event):
-        # If method is "Use nmap", disable ping checkbox
-        method = self.rdo_method.GetStringSelection()
-        if method == "Use nmap":
-            self.chk_ping.Disable()
-        else:
-            self.chk_ping.Enable()
-
-    def get_options(self):
-        method = self.rdo_method.GetStringSelection()  # "Use nmap" or "Use get_mac"
-        enable_ping = self.chk_ping.GetValue() if method == "Use get_mac" else False
-        ipv6_enabled = self.chk_ipv6.GetValue()
-        ip_range_prefix = self.cb_ip_range.GetValue().strip()
-        if not ip_range_prefix.endswith('.'):
-            ip_range_prefix += '.'
-        return enable_ping, method, ipv6_enabled, ip_range_prefix
-
-    def on_ok(self, event):
-        # If scanning not started yet, start it; else do nothing since the dialog will close automatically
-        if not self.scanning_thread or not self.scanning_thread.is_alive():
-            enable_ping, method, ipv6_enabled, ip_range_prefix = self.get_options()
-
-            # Disable OK during scan
-            self.btn_ok.Disable()
-            self.stop_requested.clear()
-            self.ip_list = []
-
-            self.set_status("Starting scan...")
-            self.scanning_thread = threading.Thread(target=self.scan_network,
-                                                    args=(enable_ping, method, ipv6_enabled, ip_range_prefix))
-            self.scanning_thread.start()
-        # If already scanning, do nothing here - waiting for completion or cancel
-
-    def on_cancel(self, event):
-        # If scanning is in progress, request stop
-        if self.scanning_thread and self.scanning_thread.is_alive():
-            self.set_status("Stop requested, please wait...")
-            self.stop_requested.set()
-        else:
-            # No scanning in progress, just close
-            self.EndModal(wx.ID_CANCEL)
-
-    def set_status(self, msg):
-        # Update status label safely from main thread
-        wx.CallAfter(self.lbl_status.SetLabel, f"Status: {msg}")
-
-    def scan_network(self, enable_ping, method, ipv6_enabled, ip_range_prefix):
-        # Actual scanning logic in another thread
-        # We'll have a single ip_range from the combo box now
-        ip_ranges = [ip_range_prefix]  # Just one selected range
-
-        def check_stop():
-            return self.stop_requested.is_set()
-
-        def ping_sweep(ip_range):
-            for x in range(0, 255):
-                if check_stop():
-                    return
-                ip = f"{ip_range}{x}"
-                param = "-n 1" if platform.system().lower() == "windows" else "-c 1"
-                self.set_status(f"Pinging {ip}")
-                os.system(f"ping {param} -w 1 {ip} > /dev/null 2>&1")
-
-        def nmap_scan(ip_range):
-            if check_stop():
-                return []
-            self.set_status(f"Running nmap on {ip_range}0/24")
-            cmd = f"nmap -sn {ip_range}0/24"
-            try:
-                result = subprocess.check_output(cmd, shell=True).decode('utf-8', errors='ignore')
-            except subprocess.CalledProcessError:
-                result = ""
-            found_ips = []
-            for line in result.splitlines():
-                if check_stop():
-                    return found_ips
-                if "Nmap scan report for" in line:
-                    parts = line.split()
-                    ip = parts[-1] if parts else ""
-                    if ip:
-                        found_ips.append(ip)
-            return list(dict.fromkeys(found_ips))
-
-        def classify_ips_by_mac(ip_list_to_check):
-            raspi_ips = []
-            other_ips = []
-            total = len(ip_list_to_check)
-            for idx, ip in enumerate(ip_list_to_check):
-                if check_stop():
-                    return raspi_ips + (["-----"] + other_ips if other_ips else [])
-                self.set_status(f"Checking MAC for {ip} ({idx+1}/{total})")
-                ip_mac = get_mac_address(ip=ip)
-                if ip_mac is not None and "00:00:00" not in ip_mac:
-                    if "b8:27:eb" in ip_mac or "dc:a6:32" in ip_mac:
-                        raspi_ips.append(ip)
-                    else:
-                        other_ips.append(ip)
-            final_list = raspi_ips
-            if other_ips:
-                final_list += ["-----"] + other_ips
-            if not final_list:
-                final_list = ["No devices found."]
-            return final_list
-
-        def get_mac_approach(ip_ranges, do_ping):
-            raspi_ips = []
-            other_ips = []
-            for ip_range in ip_ranges:
-                if do_ping:
-                    self.set_status(f"Ping sweeping {ip_range}0/24...")
-                    ping_sweep(ip_range)
-                    if check_stop():
-                        return raspi_ips + other_ips
-                count = 0
-                total_ips = 255 * len(ip_ranges)
-                for x in range(0, 255):
-                    if check_stop():
-                        return raspi_ips + other_ips
-                    count += 1
-                    ip = f"{ip_range}{x}"
-                    self.set_status(f"Checking MAC {count}/{total_ips} - {ip}")
-                    ip_mac = get_mac_address(ip=ip)
-                    if ip_mac is not None and "00:00:00" not in ip_mac:
-                        if "b8:27:eb" in ip_mac or "dc:a6:32" in ip_mac:
-                            raspi_ips.append(ip)
-                        else:
-                            other_ips.append(ip)
-            final_list = raspi_ips
-            if other_ips:
-                final_list += ["-----"] + other_ips
-            if not final_list:
-                final_list = ["No devices found."]
-            return final_list
-
-        final_ip_list = []
-        if method == "Use nmap":
-            # No ping sweep
-            for ip_range in ip_ranges:
-                if check_stop():
-                    break
-                found_ips = nmap_scan(ip_range)
-                if check_stop():
-                    break
-                # classify by mac after scanning
-                if found_ips and "No devices found." not in found_ips:
-                    final_ip_list += found_ips
-            # remove duplicates
-            final_ip_list = list(dict.fromkeys(final_ip_list))
-            if final_ip_list and not check_stop():
-                final_ip_list = classify_ips_by_mac(final_ip_list)
-            else:
-                if not final_ip_list and not check_stop():
-                    final_ip_list = ["No devices found."]
-        else:
-            # Use get_mac approach
-            final_ip_list = get_mac_approach(ip_ranges, enable_ping)
-            if check_stop() and not final_ip_list:
-                final_ip_list = ["No devices found."]
-
-        # IPv6 check if enabled
-        if ipv6_enabled and not check_stop():
-            self.set_status("Checking IPv6...")
-            ip6_mac = get_mac_address(ip6="::1")
-            if ip6_mac:
-                # Insert after a separator
-                final_ip_list += ["-----"] + [f"IPv6:: {ip6_mac}"]
-            # If we want to do more complex IPv6 scanning, implement here.
-
-        if check_stop():
-            self.set_status("Scanning canceled.")
-            # partial results returned
-        else:
-            self.set_status("Scanning complete.")
-
-        self.ip_list = final_ip_list if final_ip_list else ["No devices found."]
-        # Re-enable OK button so user can close dialog
-        wx.CallAfter(self.btn_ok.Enable)
-
-        if self.stop_requested.is_set():
-            self.set_status("Scanning canceled.")
-            wx.CallAfter(self.EndModal, wx.ID_CANCEL)
-        else:
-            self.set_status("Scanning complete.")
-            # Now that scanning is done, close the dialog and return the list
-            wx.CallAfter(self.EndModal, wx.ID_OK)
-
-    def get_ip_list(self):
-        return self.ip_list

@@ -179,6 +179,12 @@ class ctrl_pnl(scrolled.ScrolledPanel):
         # module
         out, error = self.parent.link_pnl.run_on_pi(info_modules_path + module + args)
         print (out, error)
+        if prefix == "info_" and module == "info_boxname.py" and not error and out.strip():
+            sync_profile = self.parent.link_pnl.sync_connected_profile
+            if wx.IsMainThread():
+                sync_profile(out.strip())
+            else:
+                wx.CallAfter(sync_profile, out.strip())
         return out.strip()
 
     def get_image(self, value):
