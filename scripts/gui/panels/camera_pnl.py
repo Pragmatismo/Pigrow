@@ -4,6 +4,7 @@ import re
 import json
 import time
 import shlex
+from decimal import Decimal, InvalidOperation
 import wx.lib.scrolledpanel as scrolled
 import image_combine
 import shutil
@@ -13,6 +14,7 @@ from panels.rpicap_set_pnl import rpicap_sets_pnl
 from panels.fswebcam_set_pnl import fs_sets_pnl
 from panels.motion_set_pnl import motion_sets_pnl
 from panels.libcam_set_pnl import libcam_sets_pnl
+from panels.uvc_set_pnl import uvc_sets_pnl
 from shared_data import load_bitmap_safe
 
 
@@ -21,7 +23,7 @@ class ctrl_pnl(scrolled.ScrolledPanel):
         shared_data = parent.shared_data
         self.parent = parent
 
-        wx.Panel.__init__ (self, parent, id=wx.ID_ANY, size=(100,-1), style=wx.TAB_TRAVERSAL)
+        scrolled.ScrolledPanel.__init__(self, parent, id=wx.ID_ANY, size=(100,-1), style=wx.TAB_TRAVERSAL)
         # read / save cam config button
         self.read_cam_config_btn = wx.Button(self, label='read config')
         self.read_cam_config_btn.Bind(wx.EVT_BUTTON, self.read_cam_config_click)
@@ -49,6 +51,7 @@ class ctrl_pnl(scrolled.ScrolledPanel):
         # Take Range altering a single setting
         self.range_combo = wx.ComboBox(self, choices = [])
         self.range_combo.Bind(wx.EVT_COMBOBOX, self.range_combo_go)
+        self.range_combo.Bind(wx.EVT_COMBOBOX_DROPDOWN, self.refresh_range_options)
         # start point, end point, increment every x - text control, label, default settings
         self.range_start_tc = wx.TextCtrl(self)
         self.range_end_tc = wx.TextCtrl(self)
@@ -145,14 +148,20 @@ class ctrl_pnl(scrolled.ScrolledPanel):
         main_sizer.Add(long_timelapse_btn, 0, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 5)
         main_sizer.Add(stopmotion_btn, 0, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 5)
         self.SetAutoLayout(1)
-        self.SetupScrolling()
         self.SetSizer(main_sizer)
+        self.SetupScrolling(scrollToTop=False, scroll_x=False)
 
     def connect_to_pigrow(self):
         self.list_cams_click('e')
         self.seek_cam_configs()
 
     # Load / Save Config
+
+    def require_capture_tool(self):
+        panel = self.parent.dict_I_pnl['camera_pnl'].sets_pnl
+        if panel is None:
+            wx.MessageBox('Select a capture tool first.', 'Camera controls', wx.OK|wx.ICON_INFORMATION)
+        return panel is not None
 
     def seek_cam_configs(self):
         conf_folder = self.parent.shared_data.remote_pigrow_path + "config/"
@@ -169,6 +178,8 @@ class ctrl_pnl(scrolled.ScrolledPanel):
                 I_pnl.camconf_path_tc.Append(file_name)
 
     def save_cam_config_click(self, e):
+        if not self.require_capture_tool():
+            return
         I_pnl = self.parent.dict_I_pnl['camera_pnl']
         sets_text = I_pnl.sets_pnl.make_conf_text(I_pnl.sets_pnl.setting_crtl_dict)
         cam_opt = self.cam_cb.GetValue()
@@ -215,22 +226,26 @@ class ctrl_pnl(scrolled.ScrolledPanel):
         # Set cam num and capture opt
         cam_num = ""
         cam_opt = ""
-        for line in out.split("\n"):
-            if "cam_num=" in line:
-                cam_num = line.split("=")[1]
-            if "cam_opt=" in line:
-                cam_opt = line.split("=")[1]
+        for line in out.splitlines():
+            key, separator, value = line.partition('=')
+            if key.strip() == 'cam_num' and separator:
+                cam_num = value.strip()
+            elif key.strip() == 'cam_opt' and separator:
+                cam_opt = value.strip()
         self.cam_cb.SetValue(cam_num)
         self.captool_cb.SetValue(cam_opt)
         self.camcap_combo_go("e")
         # load captool spesific settings into
         I_pnl = self.parent.dict_I_pnl['camera_pnl']
-        I_pnl.sets_pnl.text_into_ui(out)
+        if I_pnl.sets_pnl is not None:
+            I_pnl.sets_pnl.text_into_ui(out)
+            I_pnl.Layout()
 
     # Controlls - camera select and capture tool
 
     def list_cams_click(self, e):
         # find picams
+        picam_list = []
         out, error = self.parent.link_pnl.run_on_pi("vcgencmd get_camera")
         if "detected=" in out:
             out = out.split('detected=')[1].strip()
@@ -250,12 +265,14 @@ class ctrl_pnl(scrolled.ScrolledPanel):
         out, error = self.parent.link_pnl.run_on_pi("ls /dev/video*")
         cam_list = out.strip().split("\n")
         # add cams to list box
+        selected_camera = self.cam_cb.GetValue()
         self.cam_cb.Clear()
-        cam_list = picam_list + cam_list
+        for cam in picam_list:
+            self.cam_cb.Append(cam)
         for cam in cam_list:
-            if "video" in cam:
-                if not int(cam.split("video")[1].strip()) > 9:
-                    self.cam_cb.Append(cam)
+            if re.fullmatch(r'/dev/video\d+', cam.strip()):
+                self.cam_cb.Append(cam.strip())
+        self.cam_cb.SetValue(selected_camera)
 
     def camcap_combo_go(self, e):
         I_pnl = self.parent.dict_I_pnl['camera_pnl']
@@ -272,17 +289,33 @@ class ctrl_pnl(scrolled.ScrolledPanel):
             I_pnl.show_motion_control()
         elif option == 'libcamera':
             I_pnl.show_libcam_control()
+        else:
+            return
         # add rangeable items to range_combo box
-        self.range_combo.Clear()
-        scd = I_pnl.sets_pnl.setting_crtl_dict
-        for key in scd.keys():
-            if type(scd[key]) == wx._core.Slider or type(scd[key]) == wx._core.ComboBox:
-                self.range_combo.Append(key)
+        self.refresh_range_options()
+
+    @staticmethod
+    def is_numeric_setting(control):
+        return hasattr(control, 'GetMin') and hasattr(control, 'GetMax')
+
+    def refresh_range_options(self, event=None):
+        panel = self.parent.dict_I_pnl['camera_pnl'].sets_pnl
+        previous = self.range_combo.GetValue()
+        choices = [] if panel is None else [
+            key for key, control in panel.setting_crtl_dict.items()
+            if self.is_numeric_setting(control) or isinstance(control, wx.ComboBox)]
+        self.range_combo.SetItems(choices)
+        self.range_combo.SetValue(previous if previous in choices else '')
+        if event is not None:
+            event.Skip()
 
     def range_combo_go(self, e):
         key = self.range_combo.GetValue()
-        scd = self.parent.dict_I_pnl['camera_pnl'].sets_pnl.setting_crtl_dict
-        if type(scd[key]) == wx._core.Slider:
+        panel = self.parent.dict_I_pnl['camera_pnl'].sets_pnl
+        if panel is None or key not in panel.setting_crtl_dict:
+            return
+        scd = panel.setting_crtl_dict
+        if self.is_numeric_setting(scd[key]):
             self.range_start_tc.Show()
             self.range_end_tc.Show()
             self.range_every_tc.Show()
@@ -291,14 +324,39 @@ class ctrl_pnl(scrolled.ScrolledPanel):
             self.range_every_l.Show()
             self.range_start_tc.SetValue(str(scd[key].GetMin()))
             self.range_end_tc.SetValue(str(scd[key].GetMax()))
-        if type(scd[key]) == wx._core.ComboBox:
+        if isinstance(scd[key], wx.ComboBox):
             self.range_start_tc.Hide()
             self.range_end_tc.Hide()
             self.range_every_tc.Hide()
             self.range_start_l.Hide()
             self.range_end_l.Hide()
             self.range_every_l.Hide()
-        self.parent.Layout()
+        self.Layout()
+
+    def range_values(self, control):
+        if isinstance(control, wx.ComboBox):
+            values = control.GetItems()
+            if not values:
+                raise ValueError('This setting has no choices to capture.')
+            return values
+        if not self.is_numeric_setting(control):
+            raise ValueError('Choose a numeric setting or a list of options.')
+        try:
+            start, end, step = [Decimal(box.GetValue()) for box in
+                                (self.range_start_tc, self.range_end_tc, self.range_every_tc)]
+        except InvalidOperation:
+            raise ValueError('Start, end and step must be numbers.')
+        if not all(value.is_finite() for value in (start, end, step)):
+            raise ValueError('Start, end and step must be finite numbers.')
+        if step == 0 or (end - start) * step < 0:
+            raise ValueError('Use a non-zero step pointing from start to end.')
+        integer = getattr(control, 'is_integer', isinstance(control, wx.Slider))
+        if integer:
+            if any(value != value.to_integral_value() for value in (start, end, step)):
+                raise ValueError('This setting requires whole numbers.')
+        count = int((end - start) / step) + 1
+        return [str(int(start + step * index)) if integer else format(start + step * index, 'f')
+                for index in range(count)]
 
      # Image Area Display
      #     now in I_pnl
@@ -324,6 +382,7 @@ class ctrl_pnl(scrolled.ScrolledPanel):
         # download photo
         local_temp_img_path = os.path.join("temp", os.path.basename(path))
         img_path = self.parent.link_pnl.download_file_to_folder(path, local_temp_img_path)
+        self.parent.shared_data.most_recent_camera_capture = img_path
         # display on screen
         if combine == True:
             self.local_img_paths.append(img_path)
@@ -344,10 +403,13 @@ class ctrl_pnl(scrolled.ScrolledPanel):
 
     # Take image buttons
     def take_saved_set_click(self, e):
+        if not self.require_capture_tool():
+            return
         I_pnl = self.parent.dict_I_pnl['camera_pnl']
         settings_file = I_pnl.camconf_path_tc.GetValue()
         if settings_file.strip() == "":
             print(" - No config file selected, skipping taking picture.")
+            return
         # Take photo using module
         outpath = self.parent.shared_data.remote_pigrow_path + 'temp/'
         path, output_text = I_pnl.sets_pnl.take_image(settings_file, outpath)
@@ -356,6 +418,8 @@ class ctrl_pnl(scrolled.ScrolledPanel):
         self.download_and_show_picture(path, label, method="saved settings", output_text=output_text)
 
     def take_set_click(self, e, filename="test_settings.jpg"):
+        if not self.require_capture_tool():
+            return
         # create a temp settings file on the pi
         I_pnl = self.parent.dict_I_pnl['camera_pnl']
         sets_text = I_pnl.sets_pnl.make_conf_text(I_pnl.sets_pnl.setting_crtl_dict)
@@ -376,6 +440,8 @@ class ctrl_pnl(scrolled.ScrolledPanel):
         self.download_and_show_picture(path, label, method="local settings", output_text=output_text)
 
     def take_unset_click(self, e):
+        if not self.require_capture_tool():
+            return
         print("taking unset image ")
         I_pnl = self.parent.dict_I_pnl['camera_pnl']
         outpath = self.parent.shared_data.remote_pigrow_path + 'temp/default_image.jpg'
@@ -397,34 +463,29 @@ class ctrl_pnl(scrolled.ScrolledPanel):
         I_pnl = self.parent.dict_I_pnl['camera_pnl']
         # create config files with range of settings
         key = self.range_combo.GetValue()
-        basic_sets = I_pnl.sets_pnl.setting_crtl_dict
-        basic_sets = I_pnl.sets_pnl.make_conf_text(basic_sets)
+        if I_pnl.sets_pnl is None or key not in I_pnl.sets_pnl.setting_crtl_dict:
+            wx.MessageBox('Choose a camera setting to vary.', 'Capture range', wx.OK|wx.ICON_INFORMATION)
+            return
+        try:
+            opt_list = self.range_values(I_pnl.sets_pnl.setting_crtl_dict[key])
+        except ValueError as error:
+            wx.MessageBox(str(error), 'Capture range', wx.OK|wx.ICON_WARNING)
+            return
         cam_opt = self.cam_cb.GetValue()
         cap_opt = self.captool_cb.GetValue()
         conf_text = "cam_num=" + cam_opt + "\n"
         conf_text += "cam_opt=" + cap_opt + "\n"
-        conf_text += basic_sets
-        scd = I_pnl.sets_pnl.setting_crtl_dict
-        if type(scd[key]) == wx._core.Slider:
-            range_start = self.range_start_tc.GetValue()
-            range_end =self.range_end_tc.GetValue()
-            range_every = self.range_every_tc.GetValue()
-            opt_list = range(int(range_start), int(range_end)+1, int(range_every))
-        if type(scd[key]) == wx._core.ComboBox:
-            opt_list = I_pnl.sets_pnl.setting_crtl_dict[key].GetItems()
-        # create selection of settings texts
+        # Use the panel's normal serialization for each value: resolution
+        # presets and legacy fsw_extra assignments need their usual conversion.
+        control = I_pnl.sets_pnl.setting_crtl_dict[key]
+        original = control.text.GetValue() if hasattr(control, 'text') else control.GetValue()
         sets_texts = []
-        for opt_n in opt_list:
-            is_set = False
-            temp_sets = ""
-            for line in conf_text.splitlines():
-                if "key" in line:
-                    line = key + "=" + str(opt_n)
-                    is_set = True
-                temp_sets += line + "\n"
-            if is_set == False:
-                temp_sets += key + "=" + str(opt_n)
-            sets_texts.append(temp_sets)
+        try:
+            for value in opt_list:
+                control.SetValue(int(value) if isinstance(control, wx.Slider) else value)
+                sets_texts.append(conf_text + I_pnl.sets_pnl.make_conf_text(I_pnl.sets_pnl.setting_crtl_dict))
+        finally:
+            control.SetValue(original)
         # create config files and save to pi
         rpp = self.parent.shared_data.remote_pigrow_path
         i = 0
@@ -456,9 +517,11 @@ class ctrl_pnl(scrolled.ScrolledPanel):
             style = self.set_style_cb.GetValue()
             output_path = os.path.join(self.parent.shared_data.frompi_path, "temp/combined.jpg")
             img_to_show = image_combine.multi_combine(self.local_img_paths, style, output_path)
-            I_pnl.show_image_onscreen(img_to_show, "Combined Image")
+            I_pnl.show_image_onscreen(img_to_show, "Combined Image", camera_frame=False)
 
     def cap_stack_click(self, e):
+        if not self.require_capture_tool():
+            return
         # Make temp settings
         I_pnl = self.parent.dict_I_pnl['camera_pnl']
         rpp = self.parent.shared_data.remote_pigrow_path
@@ -485,7 +548,7 @@ class ctrl_pnl(scrolled.ScrolledPanel):
         style = self.set_style_cb.GetValue()
         output_path = os.path.join(self.parent.shared_data.frompi_path, "temp/combined.jpg")
         img_to_show = image_combine.multi_combine(self.local_img_paths, style, output_path)
-        I_pnl.show_image_onscreen(img_to_show, style)
+        I_pnl.show_image_onscreen(img_to_show, style, camera_frame=False)
 
 
     def set_as_compare_click(self, e):
@@ -520,15 +583,24 @@ class ctrl_pnl(scrolled.ScrolledPanel):
         self.stopmotion_dbox.Show()
 
 
-class info_pnl(scrolled.ScrolledPanel):
+class info_pnl(wx.Panel):
     def __init__(self, parent):
         shared_data = parent.shared_data
         self.parent = parent
-        c_pnl = parent.dict_C_pnl['camera_pnl']
         wx.Panel.__init__ (self, parent, id = wx.ID_ANY, style = wx.TAB_TRAVERSAL, size = (1000,1000))
+        # Keep the pull-down outside the scrolling content, so the settings can
+        # always be reached while looking at photographs further down the page.
+        self.settings_toggle_btn = wx.Button(self, label='Hide camera controls \u25b2')
+        self.settings_toggle_btn.Bind(wx.EVT_BUTTON, self.toggle_camera_settings)
+        self.settings_toggle_btn.SetToolTip('Hide camera settings, or bring them back into view without changing their values.')
+        self.scroll_panel = scrolled.ScrolledPanel(self, style=wx.TAB_TRAVERSAL)
+        self.scroll_panel.SetMinSize((1, 1))
+        self.settings_body = wx.Panel(self.scroll_panel)
+        self.settings_expanded = True
         # config file choice
-        ccf_label = wx.StaticText(self,  label='Camera Config file', size=(150,30))
-        self.camconf_path_tc = wx.ComboBox(self, choices = [], size=(400, 30))
+        ccf_label = wx.StaticText(self.settings_body, label='Camera config')
+        self.camconf_path_tc = wx.ComboBox(self.settings_body, choices=[], size=(300, -1))
+        self.camconf_path_tc.SetToolTip('Select a saved configuration on the Pi, or enter its path.')
         self.camconf_path_tc.Bind(wx.EVT_COMBOBOX, self.camconf_select)
 
         #intiate settings pnls
@@ -537,16 +609,31 @@ class info_pnl(scrolled.ScrolledPanel):
         self.fs_set_pnl     = fs_sets_pnl(self)
         self.motion_set_pnl = motion_sets_pnl(self)
         self.libcam_set_pnl = libcam_sets_pnl(self)
+        self.uvc_set_pnl    = uvc_sets_pnl(self)
+
+        self.settings_panels = (self.picam_set_pnl, self.rpicap_set_pnl,
+                                self.fs_set_pnl, self.motion_set_pnl,
+                                self.libcam_set_pnl, self.uvc_set_pnl)
+        for panel in self.settings_panels:
+            # Preserve the panels' explicit .parent API used by capture scripts
+            # while making the whole settings area one collapsible native child.
+            panel.Reparent(self.settings_body)
+            panel.Hide()
 
         self.sets_pnl = None
         cam_conf_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        cam_conf_sizer.Add(ccf_label, 0, wx.ALL, 5)
-        cam_conf_sizer.Add(self.camconf_path_tc , 0, wx.ALL, 5)
+        cam_conf_sizer.Add(ccf_label, 0, wx.RIGHT|wx.ALIGN_CENTER_VERTICAL, 8)
+        cam_conf_sizer.Add(self.camconf_path_tc, 1, wx.EXPAND)
+        settings_sizer = wx.BoxSizer(wx.VERTICAL)
+        settings_sizer.Add(cam_conf_sizer, 0, wx.ALL|wx.EXPAND, 8)
+        for panel in self.settings_panels:
+            settings_sizer.Add(panel, 0, wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.EXPAND, 8)
+        self.settings_body.SetSizer(settings_sizer)
 
         # picture sizer and buttons
-        self.clear_pics_btn = wx.Button(self, label='Clear pics')
+        self.clear_pics_btn = wx.Button(self.scroll_panel, label='Clear photos')
         self.clear_pics_btn.Bind(wx.EVT_BUTTON, self.clear_pics_click)
-        self.show_last_btn = wx.Button(self, label='show last pic')
+        self.show_last_btn = wx.Button(self.scroll_panel, label='Show last photo')
         self.show_last_btn.Bind(wx.EVT_BUTTON, self.show_last_click)
         self.pic_buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
         self.pic_buttons_sizer.Add(self.clear_pics_btn, 0, wx.ALL, 5)
@@ -554,38 +641,93 @@ class info_pnl(scrolled.ScrolledPanel):
 
         self.picture_sizer = wx.BoxSizer(wx.VERTICAL)
 
+        self.content_sizer = wx.BoxSizer(wx.VERTICAL)
+        self.content_sizer.Add(self.settings_body, 0, wx.EXPAND)
+        self.content_sizer.Add(self.pic_buttons_sizer, 0, wx.ALL, 3)
+        self.content_sizer.Add(self.picture_sizer, 0, wx.ALL, 5)
+        self.scroll_panel.SetSizer(self.content_sizer)
+        self.scroll_panel.SetupScrolling(scrollToTop=False, scrollIntoView=False, rate_x=10, rate_y=10)
+        self.scroll_panel.Bind(wx.EVT_SCROLLWIN, self.on_camera_scroll)
+        self.scroll_panel.Bind(wx.EVT_MOUSEWHEEL, self.on_camera_scroll)
+        self.scroll_panel.Bind(wx.EVT_SIZE, self.on_camera_scroll)
         self.main_sizer = wx.BoxSizer(wx.VERTICAL)
-        self.main_sizer.Add(cam_conf_sizer, 0, wx.ALL, 0)
-        self.main_sizer.Add(self.picam_set_pnl , 0, wx.ALL, 5)
-        #self.main_sizer.Add(self.picam2_set_pnl , 0, wx.ALL, 5)
-        self.main_sizer.Add(self.rpicap_set_pnl , 0, wx.ALL, 5)
-        self.main_sizer.Add(self.fs_set_pnl , 0, wx.ALL, 5)
-        self.main_sizer.Add(self.motion_set_pnl , 0, wx.ALL, 5)
-        self.main_sizer.Add(self.libcam_set_pnl , 0, wx.ALL, 5)
-        self.main_sizer.Add(self.pic_buttons_sizer , 0, wx.ALL, 5)
-        self.main_sizer.Add(self.picture_sizer , 0, wx.ALL, 5)
-
-
-        self.SetAutoLayout(1)
-        self.SetupScrolling()
+        self.main_sizer.Add(self.settings_toggle_btn, 0, wx.ALL|wx.EXPAND, 4)
+        self.main_sizer.Add(self.scroll_panel, 1, wx.EXPAND)
         self.SetSizer(self.main_sizer)
-        self.picam_set_pnl.Hide()
-        #self.picam2_set_pnl.Hide()
-        self.rpicap_set_pnl.Hide()
-        self.fs_set_pnl.Hide()
-        self.motion_set_pnl.Hide()
-        self.libcam_set_pnl.Hide()
+
+    def Layout(self):
+        result = super().Layout()
+        if hasattr(self, 'content_sizer'):
+            # A full-resolution photo may be wider than the viewport. Keep
+            # settings within the visible width instead of stretching to it.
+            minimum = self.settings_body.GetSizer().CalcMin().width
+            self._settings_viewport_width = self.scroll_panel.GetClientSize().width
+            maximum = (max(minimum, self._settings_viewport_width), -1)
+            if self.settings_body.GetMaxSize() != maximum:
+                self.settings_body.SetMaxSize(maximum)
+            self.settings_body.Layout()
+            self.scroll_panel.Layout()
+            self.scroll_panel.FitInside()
+            self.update_settings_toggle()
+        return result
+
+    def on_camera_scroll(self, event):
+        event.Skip()
+        if (event.GetEventType() == wx.EVT_SIZE.typeId
+                and self.scroll_panel.GetClientSize().width != getattr(self, '_settings_viewport_width', None)):
+            wx.CallAfter(self.refresh_camera_layout)
+        wx.CallAfter(self.update_settings_toggle)
+
+    def refresh_camera_layout(self):
+        if self and not self.IsBeingDeleted():
+            self.Layout()
+
+    def settings_are_in_view(self):
+        if not self.settings_expanded:
+            return False
+        return self.settings_body.GetRect().Intersects(self.scroll_panel.GetClientRect())
+
+    def update_settings_toggle(self):
+        if not self or self.IsBeingDeleted():
+            return
+        label = ('Hide camera controls \u25b2' if self.settings_are_in_view()
+                 else 'Show camera controls \u25bc')
+        if self.settings_toggle_btn.GetLabel() != label:
+            self.settings_toggle_btn.SetLabel(label)
+
+    def toggle_camera_settings(self, event):
+        if self.settings_expanded and not self.settings_are_in_view():
+            self.scroll_panel.Scroll(0, 0)
+        elif self.settings_expanded:
+            # Keep the same photograph in view when removing the controls above it.
+            x, y = self.scroll_panel.GetViewStart()
+            _, unit_y = self.scroll_panel.GetScrollPixelsPerUnit()
+            height = self.settings_body.GetSize().height
+            self.settings_expanded = False
+            self.settings_body.Hide()
+            self.Layout()
+            self.scroll_panel.Scroll(x, max(0, y - height // max(1, unit_y)))
+        else:
+            self.settings_expanded = True
+            self.settings_body.Show()
+            self.Layout()
+            self.scroll_panel.Scroll(0, 0)
+        self.update_settings_toggle()
 
     def camconf_select(self, e):
         c_pnl = self.parent.dict_C_pnl['camera_pnl']
         c_pnl.read_cam_config_click(None, select=True)
 
-    def show_image_onscreen(self, img_path, label):
+    def show_image_onscreen(self, img_path, label, camera_frame=True):
         #
         C_pnl = self.parent.dict_C_pnl['camera_pnl']
 
         #
         shared_data = self.parent.shared_data
+        # Autofocus coordinates must use the camera frame, even when the display
+        # shows a side-by-side comparison or another combined presentation.
+        if camera_frame:
+            shared_data.most_recent_camera_capture = img_path
         if C_pnl.use_compare.GetValue():
             if shared_data.camcomf_compare_image == "":
                 print(" - No compare image, using this one")
@@ -601,22 +743,22 @@ class info_pnl(scrolled.ScrolledPanel):
             img_to_show = img_path
             text_label  = label
         #
-        pic = wx.StaticBitmap(self, -1, load_bitmap_safe(img_to_show))
+        pic = wx.StaticBitmap(self.scroll_panel, -1, load_bitmap_safe(img_to_show))
         pic.SetLabel(img_to_show)
         pic.Bind(wx.EVT_LEFT_DOWN, self.pic_click)
 
-        label_ctrl = wx.StaticText(self,  label=text_label)
+        label_ctrl = wx.StaticText(self.scroll_panel,  label=text_label)
         self.picture_sizer.Insert(0, pic, 0, wx.ALL, 2)
         self.picture_sizer.Insert(0, label_ctrl, 0, wx.ALL, 2)
         shared_data.most_recent_camconf_image = img_to_show
-        self.parent.Layout()
+        self.Layout()
 
     def show_failure_message(self, method, reason=""):
         message = f"Image taking using {method} failed"
         if not reason == "":
             message += f": {reason}"
-        self.picture_sizer.Add(wx.StaticText(self,  label=message), 0, wx.ALL, 2)
-        self.parent.Layout()
+        self.picture_sizer.Add(wx.StaticText(self.scroll_panel,  label=message), 0, wx.ALL, 2)
+        self.Layout()
 
 
     def show_json_onscreen(self, jpath):
@@ -641,10 +783,10 @@ class info_pnl(scrolled.ScrolledPanel):
         formatted_json = json.dumps(json_data, indent=4)
         print(formatted_json)
 
-        json_textbox = wx.TextCtrl(self, value=formatted_json, style=wx.TE_MULTILINE | wx.TE_READONLY)
+        json_textbox = wx.TextCtrl(self.scroll_panel, value=formatted_json, size=(-1, 160), style=wx.TE_MULTILINE | wx.TE_READONLY)
         self.picture_sizer.Add(json_textbox, proportion=1, flag=wx.EXPAND | wx.ALL, border=10)
 
-        self.parent.Layout()
+        self.Layout()
 
 
     def pic_click(self, e):
@@ -669,55 +811,34 @@ class info_pnl(scrolled.ScrolledPanel):
 
 
 
-    def clear_pics_click(self, e): # was; clear_picture_area(self):
-        children = self.picture_sizer.GetChildren()
-        for child in children:
-            item = child.GetWindow()
-            item.Destroy()
+    def clear_pics_click(self, e):
+        self.picture_sizer.Clear(delete_windows=True)
+        self.Layout()
 
+    def show_settings_panel(self, panel):
+        if self.sets_pnl is not None:
+            self.sets_pnl.Hide()
+        self.sets_pnl = panel
+        self.sets_pnl.Show()
+        self.Layout()
 
     def show_picamcap_control(self):
-        if not self.sets_pnl == None:
-            self.sets_pnl.Hide()
-        self.sets_pnl = self.picam_set_pnl
-        self.sets_pnl.Show()
-        self.Layout()
+        self.show_settings_panel(self.picam_set_pnl)
 
     def show_rpicap_control(self):
-        if not self.sets_pnl == None:
-            self.sets_pnl.Hide()
-        self.sets_pnl = self.rpicap_set_pnl
-        self.sets_pnl.Show()
-        self.Layout()
+        self.show_settings_panel(self.rpicap_set_pnl)
 
     def show_fswebcam_control(self):
-        if not self.sets_pnl == None:
-            self.sets_pnl.Hide()
-        self.sets_pnl = self.fs_set_pnl
-        self.fs_set_pnl.Show()
-        self.Layout()
+        self.show_settings_panel(self.fs_set_pnl)
 
     def show_motion_control(self):
-        if not self.sets_pnl == None:
-            self.sets_pnl.Hide()
-        self.sets_pnl = self.motion_set_pnl
-        self.sets_pnl.Show()
-        self.Layout()
+        self.show_settings_panel(self.motion_set_pnl)
 
     def show_libcam_control(self):
-        if not self.sets_pnl == None:
-            self.sets_pnl.Hide()
-        self.sets_pnl = self.libcam_set_pnl
-        self.sets_pnl.Show()
-        self.Layout()
+        self.show_settings_panel(self.libcam_set_pnl)
 
     def show_uvc_control(self):
-        print(" UVC CONTROL NOT YET CODED ! ! !")
-        if not self.sets_pnl == None:
-            self.sets_pnl.Hide()
-        self.sets_pnl = None
-        # self.fs_set_pnl.Show()
-        self.Layout()
+        self.show_settings_panel(self.uvc_set_pnl)
 
 class quicktl_dialog(wx.Dialog):
     def __init__(self, parent, *args, **kw):

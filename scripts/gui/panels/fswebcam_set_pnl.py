@@ -1,133 +1,84 @@
+import re
+import shlex
+
 import wx
 
-'''
- other fs webcam settings
+from panels.camera_controls import controls_grid, load_settings, parse_settings, serialize_settings
 
-
-    -R, --read
-        Use read() to capture images. This can be slower but more stable with some devices.
-        Default is to use mmap(), falling back on read() if mmap() is unavailable.
-
-    --no-banner      remove the bottom red/blue bar with date
-
-    --top-banner     Position the banner at the top of the image.
-
-    --banner-colour <#AARRGGBB>
-                    Set the colour of the banner. Uses the web-style hexadecimal format (#RRGGBB) to describe the colour, and can support an alpha channel (#AARRGGBB). Examples:
-                    "#FF0000" is pure red.
-
-                    "#80000000" is semi-transparent black.
-
-                    "#FF000000" is invisible (alpha channel is at maximum).
-
-                    Default is "#40263A93".
-
-    --line-colour <#AARRGGBB>      Set the colour of the divider line.
-
-    --text-colour <#AARRGGBB>     Set the colour of the text.
-
-    --font <[file or font name]:[font size]>
-                            Set the font used in the banner. If no path is specified the path in the
-                            GDFONTPATH environment variable is searched for the font. Fontconfig names may
-                            also be used if the GD library has support.
-
-    --no-shadow           Disable the text shadow
-
-    --title <text>        Set the main text, located in the top left of the banner.
-
-    --subtitle <text>     Set the sub-title text, located in the bottom left of the banner.
-
-    --timestamp <text>
-                        Set the timestamp text, located in the top right of the banner.
-                        This string is formatted by strftime.
-                            Default is "%Y-%m-%d %H:%M (%Z)".
-
-    --info <text>
-                        Set the info text, located in the bottom right of the banner.
-
-    --underlay <filename>
-                        Load a PNG image and overlay it on the image, below the banner.
-                        The image is aligned to the top left.
-
-    --overlay <filename>
-                        Load a PNG image and overlay on the image, above the banner.
-                        The image is aligned to the top left.
-
-
-'''
 
 class fs_sets_pnl(wx.Panel):
     def __init__(self, parent):
-        shared_data = parent.parent.shared_data
         self.parent = parent
-        wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, style = wx.TAB_TRAVERSAL )
-
-        self.label = wx.StaticText(self,  label='Fswebcam Settings')
-        self.label.SetFont(shared_data.button_font)
-
+        super().__init__(parent, style=wx.TAB_TRAVERSAL)
+        self.label = wx.StaticText(self, label="Fswebcam settings")
+        self.label.SetFont(parent.parent.shared_data.button_font)
         camera_res = ['1920x1080', '3280x2464', '1640x1232', '1640x922', '1280x720', '640x480']
-        camera_res = camera_res
-        self.generic_settings_dict = {"resolution"            : [camera_res[0], camera_res],
-                                 "fs_delay"            : ["2", (0, 15)],
-                                 "fs_fskip"            : ["5", (0, 25)],
-                                 "fs_jpg_q"            : ["90", (0, 100)],
-                                 "fs_banner"           : ["True", ["True", "False"]]
-                                 }
-
-        self.c_sets_sizer, self.setting_crtl_dict, self.setting_t_dict = self.create_settings_sizer(self.generic_settings_dict)
+        self.generic_settings_dict = {
+            "resolution": [camera_res[0], camera_res, "Select a preset or type custom WIDTHxHEIGHT dimensions."],
+            "fs_delay": ["2", (0, 15), "Delay before capture in seconds."],
+            "fs_fskip": ["5", (0, 25), "Discard this many frames before capturing the photo."],
+            "fs_jpg_q": ["90", (0, 100), "JPEG image quality."],
+            "fs_banner": ["True", ["True", "False"], "Include the date banner on the image."],
+        }
+        self.device_settings_dict = {}
+        self.c_sets_sizer = wx.BoxSizer(wx.VERTICAL)
+        self.setting_crtl_dict = {}
+        self.setting_t_dict = {}
         self.make_sizer()
+        self._rebuild_settings()
 
     def make_sizer(self):
-        self.test_btn = wx.Button(self, label='get resolutions')
-        #self.test_btn.SetFont(shared_data.button_font)
+        self.test_btn = wx.Button(self, label="Find resolutions")
+        self.test_btn.SetToolTip("Read supported resolutions from the selected camera. Custom dimensions remain editable.")
         self.test_btn.Bind(wx.EVT_BUTTON, self.get_resolutions_click)
-        self.testr_btn = wx.Button(self, label='get opt list ')
-        #self.testr_btn.SetFont(shared_data.button_font)
+        self.testr_btn = wx.Button(self, label="Find camera controls")
+        self.testr_btn.SetToolTip("Read the selected camera's controls; keep your current values.")
         self.testr_btn.Bind(wx.EVT_BUTTON, self.get_opt_list)
-
+        tools = wx.BoxSizer(wx.HORIZONTAL)
+        tools.Add(self.test_btn, 0, wx.RIGHT, 6)
+        tools.Add(self.testr_btn, 0)
+        self.status_label = wx.StaticText(self, label="")
+        self.status_label.Wrap(410)
         self.main_sizer = wx.BoxSizer(wx.VERTICAL)
-        self.main_sizer.Add(self.label, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 7)
-        self.main_sizer.Add(self.test_btn, 0, wx.ALL, 0)
-        self.main_sizer.Add(self.testr_btn, 0, wx.ALL, 0)
-        self.main_sizer.Add(self.c_sets_sizer, 0, wx.ALL, 0)
+        self.main_sizer.Add(self.label, 0, wx.BOTTOM, 8)
+        self.main_sizer.Add(tools, 0, wx.BOTTOM, 6)
+        self.main_sizer.Add(self.status_label, 0, wx.BOTTOM | wx.EXPAND, 4)
+        self.status_label.Hide()
+        self.main_sizer.Add(self.c_sets_sizer, 0, wx.EXPAND)
         self.SetSizer(self.main_sizer)
 
-    def create_settings_sizer(self, settings_dict):
-        c_settings_sizer = wx.FlexGridSizer(3, 0, 5)
-        settings_dict = {**self.generic_settings_dict, **settings_dict}
-        setting_crtl_dict = {}
-        setting_t_dict = {}
-        for setting in settings_dict.keys():
-            label, box, box_t = self.create_ui_element(setting, settings_dict[setting])
-            if not label == None:
-                setting_crtl_dict[setting] = box
-                setting_t_dict[setting] = box_t
-                c_settings_sizer.Add(label, 0, wx.TOP|wx.EXPAND|wx.ALIGN_RIGHT, 2)
-                c_settings_sizer.Add(box, 0, wx.TOP|wx.EXPAND, 2)
-                c_settings_sizer.Add(box_t, 0, wx.TOP|wx.EXPAND, 2)
-        return c_settings_sizer, setting_crtl_dict, setting_t_dict
+    def create_settings_sizer(self, settings):
+        return controls_grid(self, {**self.generic_settings_dict, **settings})
 
-    def create_ui_element(self, setting, vals):
-        label     = wx.StaticText(self,  label=setting)
-        input_box_t = wx.StaticText(self,  label="")
-        if isinstance(vals[1], list):
-            input_box = wx.ComboBox(self, choices=vals[1], value=vals[0])
-        elif isinstance(vals[1], str):
-            input_box = wx.TextCtrl(self, value=vals[0])
-        elif isinstance(vals[1], tuple):
-            min_val, max_val = vals[1]
-            default_val = int(vals[0])
-            #print(min_val, max_val, default_val)
-            input_box_t = wx.TextCtrl(self, value=str(default_val), style=wx.TE_PROCESS_ENTER)
-            input_box_t.SetLabel(setting)
-            input_box_t.Bind(wx.EVT_TEXT_ENTER, self.slider_text_change)
-            input_box = wx.Slider(self, id=wx.ID_ANY, value=default_val, minValue=int(min_val), maxValue=int(max_val))
-            input_box.SetLabel(setting)
-            input_box.Bind(wx.EVT_SLIDER, self.slider_move)
-        else:
-            print (" Error - picam_set create_ui_element - Not set up to undertand ", type(vals[1]), " as options type")
-            input_box = wx.TextCtrl(self, value="")
-        return label, input_box, input_box_t
+    def _rebuild_settings(self, values=None):
+        if values is None:
+            values = {key: control.GetValue() for key, control in self.setting_crtl_dict.items()}
+        self.c_sets_sizer.Clear(delete_windows=True)
+        grid, self.setting_crtl_dict, self.setting_t_dict = self.create_settings_sizer(self.device_settings_dict)
+        self.c_sets_sizer.Add(grid, 0, wx.EXPAND)
+        for key, value in values.items():
+            if key in self.setting_crtl_dict:
+                self.setting_crtl_dict[key].SetValue(value)
+        self._layout_controls()
+
+    def _layout_controls(self):
+        self.Layout()
+        self.parent.Layout()
+        if hasattr(self.parent, "SetupScrolling"):
+            self.parent.SetupScrolling(scrollToTop=False)
+
+    def _show_status(self, message):
+        self.status_label.SetLabel(message)
+        self.status_label.Wrap(410)
+        self.status_label.Show(bool(message))
+        self._layout_controls()
+
+    def _device_command(self, arguments):
+        controls = self.parent.parent.dict_C_pnl.get("camera_pnl")
+        device = controls.cam_cb.GetValue().strip() if controls is not None else ""
+        # v4l2-ctl can target /dev/videoN or a numeric device identifier.
+        suffix = " --device " + shlex.quote(device) if device else ""
+        return "v4l2-ctl " + arguments + suffix
 
     # install fs functions
     def check_fs(self):
@@ -160,7 +111,7 @@ class fs_sets_pnl(wx.Panel):
         dbox.Destroy()
         if (answer == wx.ID_OK):
             print("installing fswebcam on pigrow")
-            out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo apt-get install fswebcam --force-yes -y")
+            out, error = self.parent.parent.link_pnl.run_on_pi("sudo apt-get install fswebcam --force-yes -y")
             print(out, error)
         else:
             print("installing fswebcam cancelled")
@@ -173,7 +124,7 @@ class fs_sets_pnl(wx.Panel):
         dbox.Destroy()
         if (answer == wx.ID_OK):
             print("updating fswebcam on pigrow")
-            out, error = MainApp.localfiles_ctrl_pannel.run_on_pi("sudo apt-get install fswebcam --force-yes -y")
+            out, error = self.parent.parent.link_pnl.run_on_pi("sudo apt-get install fswebcam --force-yes -y")
             print(out, error)
         else:
             print("updating fswebcam cancelled")
@@ -190,164 +141,165 @@ class fs_sets_pnl(wx.Panel):
                     version = line.split(":")[1].strip()
             elif "Candidate" in line:
                 candidate = line.split(":")[1].strip()
-        if not version == None and candidate == None:
+        if version is not None and candidate is not None:
             if version == candidate:
                 return "current"
             else:
                 return "updatable"
 
-    # special controls
-    def get_resolutions_click(self, e):
-        # Other option if this doesn't work
-        #       ffmpeg -f video4linux2 -list_formats all -i /dev/video0
-        cmd = 'v4l2-ctl --list-formats-ext'
-        out, error = self.parent.parent.link_pnl.run_on_pi(cmd)
-        if not error == "":
-            print ("Error - ", error, "\n")
-            print("  Ensure v412-crl is installed correctly on the raspberry pi")
-            print("              sudo apt-get install v4l-utils")
-        res_opts = []
+    def get_resolutions_click(self, event):
+        out, error = self.parent.parent.link_pnl.run_on_pi(self._device_command("--list-formats-ext"))
+        resolutions = []
         for line in out.splitlines():
-            if "Size:" in line:
-                if 'with' in line:
-                    res = line.split("-")[1].split("with")[0].strip()
-                    if not res in res_opts:
-                        res_opts.append(res)
-                elif 'x' in line:
-                    items = line.split(" ")
-                    for item in items:
-                        if "x" in item:
-                            x, y = item.strip().split("x")
-                            if x.isdigit() and y.isdigit():
-                                res = item.strip()
-                                if not res in res_opts:
-                                    res_opts.append(res)
-
-        self.setting_crtl_dict['resolution'].Clear()
-        res_opts.sort(key = lambda x: int(x.split("x")[0]))
-        self.setting_crtl_dict['resolution'].Append(res_opts)
+            if "Size:" not in line:
+                continue
+            # Both discrete sizes and endpoints of continuous/stepwise ranges.
+            for width, height in re.findall(r"(\d+)\s*x\s*(\d+)", line):
+                resolution = width + "x" + height
+                if resolution not in resolutions:
+                    resolutions.append(resolution)
+        if not resolutions:
+            self._show_status("No resolutions returned. Check the selected camera and that v4l-utils is installed.")
+            return
+        control = self.setting_crtl_dict["resolution"]
+        current = control.GetValue()
+        resolutions.sort(key=lambda item: tuple(int(number) for number in item.split("x")), reverse=True)
+        control.SetItems(resolutions)
+        control.SetValue(current)
+        self._show_status("Found %d resolutions. You can also type custom dimensions." % len(resolutions))
 
     def make_line_dict(self, line):
-        line_opts = line.strip().split(":")[1].split(" ")
-        line_dict = {}
-        for item in line_opts:
-            if "=" in item:
-                key, value = item.strip().split("=")
-                line_dict[key]=value
-        return line_dict
+        return dict(re.findall(r"(\w+)=([^\s]+)", line))
 
-    def get_opt_list(self, e):
-        print("Getting opt list")
-        opt_list = []
-        #
-        cmd = 'v4l2-ctl --list-ctrls-menus'
-        out, error = self.parent.parent.link_pnl.run_on_pi(cmd)
-        if not error.strip() == "":
-            print ("Error - ", error, "\n")
-            print("  Ensure v412-crl is installed correctly on the raspberry pi")
-            print("              sudo apt-get install v4l-utils")
-        lines = out.splitlines()
-        new_sets_dict = {}
-        for i in range(0, len(lines)-1):
-            if ":" in lines[i] and "=" in lines[i]:
-                crtl_name = lines[i].strip().split(" ")[0]
-                line_dict = self.make_line_dict(lines[i])
-                if "(int)" in lines[i]:
-                    if "min" in line_dict and "max" in line_dict and "value" in line_dict:
-                        # add new control to dict for sliders - a list containing the current value and a tuple of min and max
-                        new_sets_dict[crtl_name] = [ line_dict['value'], (int(line_dict['min']), int(line_dict['max'])) ]
-                elif "(bool)" in lines[i]:
-                    if "value" in line_dict:
-                        val = line_dict['value']
-                        if val == "0":
-                            val = "False"
-                        else:
-                            val = "True"
-                        new_sets_dict[crtl_name] = [ val, ["True", "False"] ]
-                    else:
-                        new_sets_dict[crtl_name] = [ "", ["True", "False"] ]
-                elif "(menu)" in lines[i] or "(intmenu)" in lines[i]:
-                    menu_list = []
-                    for ii in range( i+1, i+int(line_dict['max'])+2 ):
-                        if not ii > len(lines)-1:
-                            if ":" in lines[ii]:
-                                line = lines[ii].strip().split(":")
-                                if line[0].isdigit():
-                                    menu_list.append(line[1])
-                        new_sets_dict[crtl_name] = [ '', menu_list ]
-        #print (new_sets_dict)
-        self.c_sets_sizer.Clear(True)
-        self.c_sets_sizer, self.setting_crtl_dict, self.setting_t_dict = self.create_settings_sizer(new_sets_dict)
-        self.make_sizer()
-        C_pnl = self.parent.parent.dict_C_pnl['camera_pnl']
-        C_pnl.camcap_combo_go("e")
-        self.parent.SetupScrolling()
-        self.parent.Layout()
+    def parse_device_controls(self, output):
+        settings = {}
+        lines = output.splitlines()
+        for index, line in enumerate(lines):
+            match = re.match(r"\s*(\S+)\s+0x[0-9a-fA-F]+\s+\(([^)]+)\)\s*:", line)
+            if match is None:
+                continue
+            setting, kind = match.groups()
+            metadata = self.make_line_dict(line)
+            if "read-only" in line or "read_only" in line:
+                continue
+            value = metadata.get("value", metadata.get("default", ""))
+            hint = "Camera control: " + setting
+            if kind in ("int", "int64") and "min" in metadata and "max" in metadata:
+                try:
+                    minimum, maximum = int(metadata["min"]), int(metadata["max"])
+                    if minimum >= maximum:
+                        continue
+                    settings[setting] = [value, (minimum, maximum), hint]
+                except ValueError:
+                    continue
+            elif kind == "bool":
+                value = "False" if value == "0" else "True" if value else ""
+                settings[setting] = [value, ["True", "False"], hint]
+            elif kind in ("menu", "intmenu"):
+                choices, numbered = [], {}
+                for menu_line in lines[index + 1:]:
+                    menu = re.match(r"\s*(\d+)\s*:\s*(.+)", menu_line)
+                    if menu is None:
+                        if menu_line.strip():
+                            break
+                        continue
+                    number, name = menu.groups()
+                    name = re.sub(r"\s+\(0x[0-9a-fA-F]+\)$", "", name).strip()
+                    numbered[number] = name
+                    choices.append(name)
+                settings[setting] = [numbered.get(value, value), choices, hint]
+            elif kind in ("str", "string", "bitmask"):
+                settings[setting] = [value, "", hint]
+        return settings
 
-        #
+    def get_opt_list(self, event):
+        out, error = self.parent.parent.link_pnl.run_on_pi(self._device_command("--list-ctrls-menus"))
+        discovered = self.parse_device_controls(out)
+        if not discovered:
+            self._show_status("No editable controls returned. Check the selected camera and that v4l-utils is installed.")
+            return
+        self.device_settings_dict.update(discovered)
+        self._rebuild_settings()
+        self._show_status("Found %d camera controls. Your current settings have been kept." % len(discovered))
+        controls = self.parent.parent.dict_C_pnl.get("camera_pnl")
+        if controls is not None:
+            controls.camcap_combo_go(None)
 
-    # controls
-    def slider_move(self, e):
-        setting_name = e.GetEventObject().GetLabel()
-        slider_val = e.GetEventObject().GetValue()
-        self.setting_t_dict[setting_name].SetValue(str(slider_val))
-
-    def slider_text_change(self, e):
-        setting_name = e.GetEventObject().GetLabel()
-        box_val = e.GetEventObject().GetValue()
-        self.setting_crtl_dict[setting_name].SetValue(int(box_val))
-
-    # conf
     def make_conf_text(self, setting_dict):
-        settings_text = ""
-        for item in setting_dict.keys():
-            value = str(setting_dict[item].GetValue())
-            if not value == "":
-                if not item == "resolution":
-                    #settings_text += ' --set "' + item + '"="' + str(value) + '"'
-                    settings_text += item + "=" + str(value) + '\n'
-                else:
-                    res = value
-        res_text = "resolution=" + res + "\n"
-        return res_text + settings_text
+        return serialize_settings(self, setting_dict, self._sync_legacy_extra)
 
     def old_make_conf_text(self, setting_dict):
-        settings_text = ""
-        for item in setting_dict.keys():
-            value = str(setting_dict[item].GetValue())
-            if not value == "":
-                settings_text += item + "=" + value + "\n"
-        return settings_text
+        return self.make_conf_text(setting_dict)
+
+    @staticmethod
+    def _legacy_extra_assignments(extra):
+        # Keep source spans so changing a legacy --set value does not rewrite
+        # unrelated options, shell quoting, or whitespace in fsw_extra.
+        word_pattern = r'''(?:[^\s"'\\]|\\.|"(?:\\.|[^"\\])*"|'[^']*')+'''
+        words = list(re.finditer(word_pattern, extra))
+        tokens = []
+        for word in words:
+            try:
+                tokens.append(shlex.split(word.group(), comments=False)[0])
+            except (ValueError, IndexError):
+                tokens.append(None)
+        assignments = []
+        for index, word in enumerate(words[:-1]):
+            if tokens[index] != "--set":
+                continue
+            end_index = index + 1
+            while end_index + 1 < len(words):
+                next_token = tokens[end_index + 1]
+                if next_token is None or re.match(r"--?[A-Za-z]", next_token):
+                    break
+                end_index += 1
+            argument = " ".join(token for token in tokens[index + 1:end_index + 1] if token is not None)
+            if "=" in argument:
+                key, value = argument.split("=", 1)
+                assignments.append((key.strip(), value.strip(), word.start(), words[end_index].end(), words[index + 1].start()))
+        return assignments
+
+    def _sync_legacy_extra(self, values):
+        extra = str(values.get("fsw_extra", ""))
+        aliases = {"b_val": "brightness", "c_val": "contrast", "s_val": "saturation",
+                   "g_val": "gain", "x_dim": "resolution", "y_dim": "resolution"}
+        for key, old_value, start, end, argument_start in reversed(self._legacy_extra_assignments(extra)):
+            if key in values:
+                value = str(values[key])
+                if value != old_value:
+                    argument = shlex.quote(key) + "=" + shlex.quote(value)
+                    extra = extra[:argument_start] + argument + extra[end:]
+            elif key in self.setting_crtl_dict:
+                # A cleared control should be omitted from both config forms.
+                extra = extra[:start] + extra[end:]
+            elif aliases.get(key) in self.setting_crtl_dict and aliases[key] not in values:
+                extra = extra[:start] + extra[end:]
+        if "fsw_extra" in values:
+            values["fsw_extra"] = extra
+        return values
 
     def text_into_ui(self, set_text):
-        cam_settings = set_text.splitlines()
-        self.camera_settings_dict = {}
-        for line in cam_settings:
-            if "=" in line:
-                equals_pos = line.find("=")
-                key = line[:equals_pos]
-                value = line[equals_pos+1:]
-                self.camera_settings_dict[key] = value
-        # make changes for old keys
-        csd = self.camera_settings_dict
-        if "x_dim" in csd and "y_dim" in csd:
-            if not "resolution" in csd:
-                csd['resolution'] = csd['x_dim'] + "x" + csd['y_dim']
-        if "b_val" in csd and not "brightness" in csd:
-            csd['brightness'] = csd['b_val']
-        if "s_val" in csd and not "saturation" in csd:
-            csd['saturation'] = csd['s_val']
-        if "c_val" in csd and not "contrast" in csd:
-            csd['contrast'] = csd['c_val']
-        if "g_val" in csd and not "iso" in csd:
-            csd['iso'] = csd['g_val']
-        # put into ui items
-        for key in csd.keys():
+        settings = parse_settings(set_text)
+        # Legacy extra settings take precedence in camcap.fs_sets_trim. Expose
+        # their effective values so editing the modern control still works.
+        for key, value, *_ in self._legacy_extra_assignments(settings.get("fsw_extra", "")):
+            settings[key] = value
+        aliases = {"b_val": "brightness", "s_val": "saturation", "c_val": "contrast", "g_val": "gain"}
+        for old, new in aliases.items():
+            if old in settings and new not in settings:
+                settings[new] = settings[old]
+        if "resolution" not in settings and "x_dim" in settings and "y_dim" in settings:
+            settings["resolution"] = settings["x_dim"] + "x" + settings["y_dim"]
+        legacy = {"cam_num", "cam_opt", "x_dim", "y_dim", "b_val", "c_val", "s_val", "g_val", "fsw_extra", "uvc_extra"}
+        for key, value in settings.items():
+            if key not in self.generic_settings_dict and key not in self.device_settings_dict and key not in legacy:
+                self.device_settings_dict[key] = [value, "", "Camera-specific setting from this configuration."]
+        previous = {key: control.GetValue() for key, control in self.setting_crtl_dict.items()}
+        self._rebuild_settings(previous)
+        load_settings(self, set_text, aliases=False)
+        for key, value in settings.items():
             if key in self.setting_crtl_dict:
-                if type(self.setting_crtl_dict[key]) == wx._core.Slider:
-                    self.setting_t_dict[key].SetValue(csd[key])
-                    csd[key] = int(csd[key])
-                self.setting_crtl_dict[key].SetValue(csd[key])
+                self.setting_crtl_dict[key].SetValue(value)
 
     #capture
 
