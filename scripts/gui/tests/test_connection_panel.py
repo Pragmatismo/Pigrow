@@ -63,7 +63,7 @@ class FakeSSH:
 class ConnectionPanelTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.app = wx.App(False)
+        cls.app = wx.GetApp() or wx.App(False)
 
     def setUp(self):
         self.previous_cwd = os.getcwd()

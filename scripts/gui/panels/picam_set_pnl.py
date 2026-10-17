@@ -1,6 +1,7 @@
 import wx
 
 from panels.camera_controls import controls_grid, load_settings, serialize_settings
+from panels.image_region import create_region_button
 
 
 class picam_sets_pnl(wx.Panel):
@@ -34,7 +35,10 @@ class picam_sets_pnl(wx.Panel):
                          "image_effect_params"   : ["", ""],
                          "awb_mode"              : ["", ['off', 'auto', 'sunlight', 'cloudy', 'shade', 'tungsten', 'fluorescent', 'incandescent', 'flash', 'horizon']]
                          }
-        self.c_sets_sizer, self.setting_crtl_dict, self.setting_t_dict = controls_grid(self, self.default_settings_dict)
+        self.c_sets_sizer, self.setting_crtl_dict, self.setting_t_dict = controls_grid(
+            self, self.default_settings_dict, auxiliary_factories={
+                "zoom": lambda control: create_region_button(self, "zoom", tuple_format=True),
+            })
         self.setting_crtl_dict["resolution"].SetToolTip("Image dimensions in pixels; select a preset or type WIDTHxHEIGHT.")
         main_sizer = wx.BoxSizer(wx.VERTICAL)
         main_sizer.Add(label, 0, wx.BOTTOM, 8)

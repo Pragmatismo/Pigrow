@@ -487,7 +487,8 @@ class shared_data:
             self.Destroy()
 
     class show_image_dialog(wx.Dialog):
-        def __init__(self, parent, image_to_show, title):
+        def __init__(self, parent, image_to_show, title, image=None,
+                     original_overwritten=False):
             wx.Dialog.__init__(
                 self,
                 parent,
@@ -496,14 +497,20 @@ class shared_data:
             )
             self.title = title
             self.zoom_factor = 1.0  # User-driven zoom factor
+            self.original_overwritten = bool(original_overwritten)
 
-            if type(image_to_show) == type("str"):
+            if image is not None:
+                # Camera photos supply their full-resolution memory snapshot.
+                # The filename may already belong to a more recent capture.
+                image_to_show = image
+            elif isinstance(image_to_show, (str, os.PathLike)):
                 print("Displaying Image; ", image_to_show)
-                image_to_show = load_bitmap_safe(image_to_show)
-            else:
-                print(type(image_to_show))
+                image_to_show = load_bitmap_safe(os.fspath(image_to_show))
 
-            self.original_image = image_to_show.ConvertToImage()
+            if isinstance(image_to_show, wx.Image):
+                self.original_image = image_to_show.Copy()
+            else:
+                self.original_image = image_to_show.ConvertToImage()
 
             display_width, display_height = wx.GetDisplaySize()
             available_width = int(display_width * 0.9)
@@ -591,4 +598,10 @@ class shared_data:
 
         def update_title(self):
             overall_zoom = round(self.fit_scale * self.zoom_factor, 2) * 100
-            self.SetTitle(f"{self.title} - Zoom: {overall_zoom}")
+            suffix = " (original overwritten)" if self.original_overwritten else ""
+            self.SetTitle(f"{self.title} - Zoom: {overall_zoom}{suffix}")
+
+        def set_original_overwritten(self, overwritten=True):
+            """Refresh an already open photo dialog after its source is reused."""
+            self.original_overwritten = bool(overwritten)
+            self.update_title()

@@ -16,6 +16,7 @@ _LABELS = {
     "awb_mode": "White balance",
     "awbgains": "White balance gains",
     "roi": "Crop region",
+    "zoom": "Crop region",
     "hflip": "Flip horizontally",
     "vflip": "Flip vertically",
     "drc_strength": "Dynamic range",
@@ -165,8 +166,9 @@ class SettingsGrid(wx.FlexGridSizer):
         self.parent = parent
         self.AddGrowableCol(1, 1)
 
-    def add_setting(self, setting, control, auxiliary=None, tooltip=""):
-        label = wx.StaticText(self.parent, label=readable_label(setting))
+    def add_setting(self, setting, control, auxiliary=None, tooltip="", label=None):
+        if label is None:
+            label = wx.StaticText(self.parent, label=readable_label(setting))
         tip = setting + ("\n" + tooltip if tooltip else "")
         label.SetToolTip(tip)
         control.SetToolTip(tip)
@@ -200,15 +202,22 @@ def create_setting(parent, setting, value, options, tooltip=""):
     return label, control, None
 
 
-def controls_grid(parent, settings):
+def controls_grid(parent, settings, auxiliary_factories=None):
+    """Build aligned rows, optionally adding a compact action beside a field.
+
+    Factories receive the newly created field, so a rebuilt grid owns and
+    destroys its auxiliary controls with the rest of that row.
+    """
     grid = SettingsGrid(parent)
     controls, auxiliary = {}, {}
+    auxiliary_factories = auxiliary_factories or {}
     for setting, spec in settings.items():
         value, options = spec[:2]
         tooltip = spec[2] if len(spec) > 2 else (options if isinstance(options, str) else "")
         label, control, extra = create_setting(parent, setting, value, options, tooltip)
-        grid.Add(label, 0, wx.ALIGN_CENTER_VERTICAL)
-        grid.Add(control, 1, wx.EXPAND)
+        if setting in auxiliary_factories:
+            extra = auxiliary_factories[setting](control)
+        grid.add_setting(setting, control, extra, tooltip, label=label)
         controls[setting] = control
         auxiliary[setting] = extra
     return grid, controls, auxiliary

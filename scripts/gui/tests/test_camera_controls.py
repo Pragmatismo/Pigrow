@@ -14,16 +14,19 @@ import sys
 import tempfile
 from types import SimpleNamespace
 import unittest
+from unittest.mock import patch
 
 GUI = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(GUI))
 
 import wx
-from PIL import Image
+from PIL import Image, ImageGrab
 
 from panels import camera_pnl
 from panels.camera_controls import NumericControl
 from panels.rpicap_set_pnl import SetAFROIDialog, parse_roi
+from panels.image_region import ImageRegionDialog
+from shared_data import shared_data
 
 
 V4L2_CONTROLS = """User Controls
@@ -70,7 +73,7 @@ class FakeLink:
 class CameraControlsTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.app = wx.App(False)
+        cls.app = wx.GetApp() or wx.App(False)
         scratch_parent = GUI.parents[1] / "work"
         scratch_parent.mkdir(exist_ok=True)
         cls.scratch = tempfile.TemporaryDirectory(prefix="camera-ui-", dir=scratch_parent)
@@ -132,16 +135,27 @@ class CameraControlsTests(unittest.TestCase):
         button.GetEventHandler().ProcessEvent(event)
         self.pump()
 
+    def check(self, checkbox, enabled):
+        checkbox.SetValue(enabled)
+        event = wx.CommandEvent(wx.EVT_CHECKBOX.typeId, checkbox.GetId())
+        event.SetEventObject(checkbox)
+        checkbox.GetEventHandler().ProcessEvent(event)
+        self.pump()
+
     def screenshot(self, name):
         destination = os.environ.get("CAMERA_UI_SCREENSHOT_DIR")
         if destination:
+            # Let GTK repaint through a real event loop before reading Xvfb.
+            self.frame.Refresh()
+            loop = wx.GUIEventLoop()
+            wx.CallLater(80, loop.Exit)
+            with wx.EventLoopActivator(loop):
+                loop.Run()
             rect = self.frame.GetScreenRect()
-            bitmap = wx.Bitmap(rect.width, rect.height)
-            memory = wx.MemoryDC(bitmap)
-            memory.Blit(0, 0, rect.width, rect.height, wx.ScreenDC(), rect.x, rect.y)
-            memory.SelectObject(wx.NullBitmap)
             Path(destination).mkdir(parents=True, exist_ok=True)
-            bitmap.SaveFile(str(Path(destination) / (name + ".png")), wx.BITMAP_TYPE_PNG)
+            # ScreenDC on wxGTK can return a stale cached root bitmap.
+            ImageGrab.grab(bbox=(rect.x, rect.y, rect.x + rect.width, rect.y + rect.height)).save(
+                Path(destination) / (name + ".png"))
 
     def test_existing_defaults_and_tool_switching(self):
         expected = {
@@ -374,6 +388,183 @@ class CameraControlsTests(unittest.TestCase):
             self.panel.scroll_panel.GetClientSize().width,
         )
 
+    def test_settings_are_compact_left_indented_with_small_right_toggle(self):
+        self.select("rpicam")
+        toggle = self.panel.settings_toggle_btn
+        body = self.panel.settings_body
+        self.assertLess(toggle.GetSize().width, 240)
+        self.assertLessEqual(abs(toggle.GetRect().right - self.panel.GetClientSize().width), 12)
+        self.assertGreaterEqual(body.GetPosition().x, 8)
+        self.assertLessEqual(body.GetSize().width, 650)
+        self.assertLess(body.GetRect().right, self.panel.scroll_panel.GetClientSize().width - 100)
+        self.panel.show_image_onscreen(str(self.large_image_path), "Large photograph")
+        self.pump()
+        self.assertLessEqual(body.GetSize().width, 650)
+
+    def test_photo_footer_is_fixed_and_clear_tracks_displayed_photos(self):
+        self.select("rpicam")
+        toolbar = self.panel.photo_toolbar
+        self.assertIs(toolbar.GetParent(), self.panel)
+        self.assertIs(self.panel.clear_pics_btn.GetParent(), toolbar)
+        self.assertIs(self.panel.show_last_btn.GetParent(), toolbar)
+        self.assertFalse(self.panel.clear_pics_btn.IsEnabled())
+        self.assertFalse(self.panel.scale_to_fit_cb.GetValue())
+        self.assertEqual(self.panel.photo_nav_buttons, [])
+        self.panel.show_image_onscreen(str(self.image_path), "First photo")
+        self.panel.show_image_onscreen(str(self.image_path), "Second photo")
+        self.pump()
+        self.assertTrue(self.panel.clear_pics_btn.IsEnabled())
+        footer_y = toolbar.GetScreenPosition().y
+        self.panel.scroll_panel.Scroll(0, 100000)
+        self.pump()
+        self.assertGreater(self.panel.scroll_panel.GetViewStart()[1], 0)
+        self.assertTrue(toolbar.IsShownOnScreen())
+        self.assertEqual(toolbar.GetScreenPosition().y, footer_y)
+        # A settings hide/restore does not displace the bottom photo actions.
+        self.press(self.panel.settings_toggle_btn)
+        self.press(self.panel.settings_toggle_btn)
+        self.assertEqual(toolbar.GetScreenPosition().y, footer_y)
+        self.frame.SetSize((800, 550))
+        self.frame.Layout()
+        self.pump()
+        self.assertTrue(toolbar.IsShownOnScreen())
+        self.assertLessEqual(toolbar.GetRect().bottom, self.panel.GetClientSize().height)
+        self.press(self.panel.clear_pics_btn)
+        self.assertFalse(self.panel.clear_pics_btn.IsEnabled())
+        self.assertEqual(self.panel.photo_store.records, [])
+        self.assertEqual(self.panel.photo_views, {})
+        self.assertEqual(self.panel.photo_nav_buttons, [])
+        self.assertEqual(self.panel.picture_sizer.GetItemCount(), 0)
+
+    def test_photo_navigation_uses_first_five_and_oldest_for_last(self):
+        self.select("rpicam")
+        for number in range(7):
+            self.panel.show_image_onscreen(str(self.image_path), "Photo " + str(number + 1))
+        self.pump()
+        self.assertEqual([button.GetLabel() for button in self.panel.photo_nav_buttons],
+                         ["1", "2", "3", "4", "5", "Last"])
+        targets = self.panel.photo_store.records[:5] + [self.panel.photo_store.records[-1]]
+        for button, target in zip(self.panel.photo_nav_buttons, targets):
+            with self.subTest(target=target.label):
+                self.assertTrue(button.GetBitmap().IsOk())
+                self.press(button)
+                view = self.panel.photo_views[target.record_id]
+                relative_y = view.panel.GetScreenPosition().y - self.panel.scroll_panel.GetScreenPosition().y
+                self.assertLessEqual(abs(relative_y), 15)
+        self.assertTrue(self.panel.settings_expanded)
+        self.press(self.panel.settings_toggle_btn)
+        self.press(self.panel.settings_toggle_btn)
+        self.assertFalse(self.panel.settings_expanded)
+        self.press(self.panel.photo_nav_buttons[2])
+        target = self.panel.photo_store.records[2]
+        relative_y = (self.panel.photo_views[target.record_id].panel.GetScreenPosition().y
+                      - self.panel.scroll_panel.GetScreenPosition().y)
+        self.assertLessEqual(abs(relative_y), 15)
+
+    def test_last_short_photo_scrolls_to_top_and_footer_wraps_at_narrow_width(self):
+        path = Path(self.scratch.name) / "small-photo.png"
+        Image.new("RGB", (120, 80), "#24546b").save(path)
+        for number in range(7):
+            self.panel.show_image_onscreen(str(path), "Small photo " + str(number + 1))
+        self.pump()
+        self.press(self.panel.settings_toggle_btn)
+        self.press(self.panel.photo_nav_buttons[-1])
+        oldest = self.panel.photo_store.records[-1]
+        view = self.panel.photo_views[oldest.record_id]
+        relative_y = view.GetScreenPosition().y - self.panel.scroll_panel.GetScreenPosition().y
+        self.assertLessEqual(abs(relative_y), 15)
+        self.frame.SetSize((350, 650))
+        self.frame.Layout()
+        self.pump()
+        self.pump()
+        toolbar = self.panel.photo_toolbar
+        self.assertTrue(toolbar.IsShownOnScreen())
+        for control in (self.panel.photo_nav_buttons + [self.panel.clear_pics_btn,
+                        self.panel.show_last_btn, self.panel.scale_to_fit_cb]):
+            with self.subTest(control=control.GetName()):
+                self.assertGreaterEqual(control.GetRect().left, 0)
+                self.assertLessEqual(control.GetRect().right, toolbar.GetClientSize().width)
+                self.assertLessEqual(control.GetRect().bottom, toolbar.GetClientSize().height)
+
+    def test_fit_photos_follow_width_and_restore_original_pixels(self):
+        self.panel.show_image_onscreen(str(self.large_image_path), "Large photograph")
+        self.pump()
+        record = self.panel.photo_store.records[0]
+        bitmap = self.panel.photo_views[record.record_id].bitmap
+        self.assertEqual(bitmap.GetBitmap().GetSize(), (2400, 1200))
+        self.check(self.panel.scale_to_fit_cb, True)
+        self.pump()
+        fitted = bitmap.GetBitmap().GetSize()
+        self.assertLessEqual(fitted.width, self.panel.scroll_panel.GetClientSize().width)
+        self.assertGreater(fitted.width, self.panel.scroll_panel.GetClientSize().width * 0.8)
+        self.assertAlmostEqual(fitted.width / fitted.height, 2, delta=0.01)
+        self.frame.SetSize((800, 600))
+        self.frame.Layout()
+        self.pump()
+        self.pump()
+        resized = bitmap.GetBitmap().GetSize()
+        self.assertLess(resized.width, fitted.width)
+        self.assertLessEqual(resized.width, self.panel.scroll_panel.GetClientSize().width)
+        self.assertAlmostEqual(resized.width / resized.height, 2, delta=0.01)
+        self.check(self.panel.scale_to_fit_cb, False)
+        self.assertEqual(bitmap.GetBitmap().GetSize(), (2400, 1200))
+        self.assertEqual(record.image.GetSize(), (2400, 1200))
+
+    def test_clicking_an_overwritten_photo_opens_its_snapshot(self):
+        path = Path(self.scratch.name) / "reused-capture.png"
+        Image.new("RGB", (120, 80), "#ed2314").save(path)
+        self.panel.show_image_onscreen(str(path), "First capture")
+        original = self.panel.photo_store.records[0]
+        Image.new("RGB", (120, 80), "#1423ed").save(path)
+        self.panel.show_image_onscreen(str(path), "Second capture")
+        opened = []
+
+        def dialog(*args, **kwargs):
+            opened.append((args, kwargs))
+            return SimpleNamespace(ShowModal=lambda: wx.ID_OK, Destroy=lambda: None)
+
+        self.frame.shared_data.show_image_dialog = dialog
+        bitmap = self.panel.photo_views[original.record_id].bitmap
+        event = wx.MouseEvent(wx.wxEVT_LEFT_DOWN)
+        event.SetEventObject(bitmap)
+        bitmap.GetEventHandler().ProcessEvent(event)
+        self.pump()
+        self.assertEqual(len(opened), 1)
+        args, kwargs = opened[0]
+        self.assertTrue(kwargs["original_overwritten"])
+        self.assertEqual(kwargs["image"].GetRed(0, 0), 237)
+        self.assertEqual(kwargs["image"].GetBlue(0, 0), 20)
+        self.panel.show_last_click(None)
+        self.assertEqual(len(opened), 2)
+        self.assertEqual(opened[-1][1]["image"].GetBlue(0, 0), 237)
+        self.panel.clear_pics_click(None)
+        self.panel.show_last_click(None)
+        self.assertEqual(len(opened), 3)
+        self.assertEqual(opened[-1][1]["image"].GetBlue(0, 0), 237)
+
+    def test_open_photo_dialog_title_updates_when_a_capture_reuses_its_filename(self):
+        path = Path(self.scratch.name) / "open-capture.png"
+        Image.new("RGB", (120, 80), "#ed2314").save(path)
+        self.panel.show_image_onscreen(str(path), "First capture")
+        record = self.panel.photo_store.records[0]
+        panel = self.panel
+        observed = []
+
+        class TestDialog(shared_data.show_image_dialog):
+            def ShowModal(dialog):
+                observed.append(dialog.GetTitle())
+                Image.new("RGB", (120, 80), "#1423ed").save(path)
+                panel.show_image_onscreen(str(path), "Second capture")
+                observed.append(dialog.GetTitle())
+                observed.append(dialog.original_image.GetRed(0, 0))
+                return wx.ID_OK
+
+        self.frame.shared_data.show_image_dialog = TestDialog
+        self.panel.open_photo(record)
+        self.assertNotIn("(original overwritten)", observed[0])
+        self.assertTrue(observed[1].endswith(" (original overwritten)"))
+        self.assertEqual(observed[2], 237)
+
     def test_autofocus_region_dialog_without_photo_and_with_scaled_photo(self):
         dialog = SetAFROIDialog(self.frame, initial_roi="0.1,0.2,0.3,0.4")
         try:
@@ -398,6 +589,72 @@ class CameraControlsTests(unittest.TestCase):
             for bad in ("0,0,0,1", "0.9,0,0.2,1", "nan,0,1,1"):
                 with self.subTest(invalid_roi=bad), self.assertRaises(ValueError):
                     parse_roi(bad)
+        finally:
+            dialog.Destroy()
+
+    def test_region_buttons_are_beside_their_fields(self):
+        for tool, keys in (("rpicam", ("roi", "autofocus-window")),
+                           ("libcamera", ("roi",)), ("picamcap", ("zoom",))):
+            panel = self.select(tool)
+            for key in keys:
+                with self.subTest(tool=tool, setting=key):
+                    control = panel.setting_crtl_dict[key]
+                    button = panel.setting_t_dict[key]
+                    self.assertEqual(button.GetLabel(), "Set region")
+                    self.assertGreater(button.GetPosition().x, control.GetRect().right)
+                    button_y = button.GetPosition().y + button.GetSize().height / 2
+                    control_y = control.GetPosition().y + control.GetSize().height / 2
+                    self.assertLessEqual(abs(button_y - control_y), 2)
+
+    def test_region_cancel_keeps_config_and_accept_updates_only_the_selected_setting(self):
+        created = []
+        result = [wx.ID_CANCEL]
+
+        def make_dialog(*args, **kwargs):
+            created.append((args, kwargs))
+            return SimpleNamespace(ShowModal=lambda: result[0],
+                                   get_roi=lambda: "0.2,0.3,0.4,0.5", Destroy=lambda: None)
+
+        with patch("panels.image_region.ImageRegionDialog", side_effect=make_dialog):
+            for tool, key, value in (("rpicam", "autofocus-window", "0.1,0.2,0.3,0.4"),
+                                     ("rpicam", "roi", "0.1,0.2,0.3,0.4"),
+                                     ("libcamera", "roi", "0.1,0.2,0.3,0.4"),
+                                     ("picamcap", "zoom", "(0.1,0.2,0.3,0.4)")):
+                with self.subTest(tool=tool, setting=key):
+                    panel = self.select(tool)
+                    panel.text_into_ui(key + "=" + value + "\nfuture_camera_option=kept\n")
+                    original = self.saved(panel)
+                    result[0] = wx.ID_CANCEL
+                    self.press(panel.setting_t_dict[key])
+                    self.assertEqual(self.saved(panel), original)
+                    self.assertEqual(created[-1][0][2], (0.1, 0.2, 0.3, 0.4))
+                    expected_kind = "autofocus" if key == "autofocus-window" else "crop"
+                    self.assertEqual(created[-1][1]["region_kind"], expected_kind)
+                    result[0] = wx.ID_OK
+                    self.press(panel.setting_t_dict[key])
+                    expected = "(0.2,0.3,0.4,0.5)" if key == "zoom" else "0.2,0.3,0.4,0.5"
+                    original[key] = expected
+                    self.assertEqual(self.saved(panel), original)
+
+    def test_crop_dialog_maps_a_cropped_memory_reference_to_full_sensor_coordinates(self):
+        image = wx.Image(str(self.large_image_path))
+        dialog = ImageRegionDialog(
+            self.frame, initial_roi=(0.2, 0.1, 0.5, 0.7), region_kind="crop",
+            image=image, reference_roi=(0.2, 0.1, 0.5, 0.7),
+        )
+        try:
+            dialog.Show()
+            self.pump()
+            self.assertEqual(dialog.GetTitle(), "Set crop region")
+            dialog._layout_image()
+            left, top, width, height = dialog._image_rect
+            top_left = dialog._normalized_position(wx.Point(left, top))
+            bottom_right = dialog._normalized_position(wx.Point(left + width, top + height))
+            self.assertEqual(top_left, (0.2, 0.1))
+            self.assertAlmostEqual(bottom_right[0], 0.7)
+            self.assertAlmostEqual(bottom_right[1], 0.8)
+            self.assertIn("already cropped", dialog.instruction.GetLabel())
+            self.assertEqual(dialog.image.GetSize(), (2400, 1200))
         finally:
             dialog.Destroy()
 
@@ -459,6 +716,39 @@ class CameraControlsTests(unittest.TestCase):
         ):
             box.SetValue(value)
         self.assertEqual(self.controls.range_values(integer), ["0", "1", "2"])
+
+    def test_capture_reference_crop_uses_the_settings_taken_with_the_photo(self):
+        panel = self.select("rpicam")
+        initial_roi = "0.1,0.2,0.3,0.4"
+        panel.text_into_ui("roi=" + initial_roi + "\n")
+        downloaded = []
+
+        def capture(settings_file, outpath):
+            # A later UI edit must not change the coordinate system of a photo
+            # captured using the already serialized settings.
+            panel.setting_crtl_dict["roi"].SetValue("0,0,1,1")
+            return "/fake/photo.jpg", "saved"
+
+        panel.take_image = capture
+        self.controls.download_and_show_picture = lambda *args, **kwargs: downloaded.append(kwargs)
+        self.controls.take_set_click(None)
+        self.assertEqual(downloaded[-1]["crop_region"], (0.1, 0.2, 0.3, 0.4))
+
+        settings_path = "/home/pi/Pigrow/config/saved-camera.txt"
+        self.panel.camconf_path_tc.SetValue(settings_path)
+        self.frame.link_pnl.responses["cat -- " + settings_path] = (
+            "cam_opt=rpicam\n roi = 0.15,0.2,0.3,0.4\n", "")
+        self.controls.take_saved_set_click(None)
+        self.assertEqual(downloaded[-1]["crop_region"], (0.15, 0.2, 0.3, 0.4))
+
+        panel.setting_crtl_dict["roi"].SetValue(initial_roi)
+        self.controls.range_combo.SetValue("brightness")
+        for box, value in zip((self.controls.range_start_tc, self.controls.range_end_tc,
+                               self.controls.range_every_tc), ("0", "0.2", "0.1")):
+            box.SetValue(value)
+        downloaded.clear()
+        self.controls.range_btn_click(None)
+        self.assertEqual([call["crop_region"] for call in downloaded], [(0.1, 0.2, 0.3, 0.4)] * 3)
 
     def test_resolution_ranges_use_capture_script_dimensions(self):
         panel = self.select("rpicam")

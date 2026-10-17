@@ -15,6 +15,9 @@ from panels.fswebcam_set_pnl import fs_sets_pnl
 from panels.motion_set_pnl import motion_sets_pnl
 from panels.libcam_set_pnl import libcam_sets_pnl
 from panels.uvc_set_pnl import uvc_sets_pnl
+from panels.camera_photos import PhotoStore
+from panels.camera_photo_view import PhotoView, PhotoToolbar
+from panels.image_region import parse_roi
 from shared_data import load_bitmap_safe
 
 
@@ -361,7 +364,7 @@ class ctrl_pnl(scrolled.ScrolledPanel):
      # Image Area Display
      #     now in I_pnl
 
-    def download_and_show_picture(self, path, label, combine=False, method=None, output_text=""):
+    def download_and_show_picture(self, path, label, combine=False, method=None, output_text="", crop_region=None):
         I_pnl = self.parent.dict_I_pnl['camera_pnl']
         method_name = method if method else label
         combined_output = output_text.strip()
@@ -382,12 +385,13 @@ class ctrl_pnl(scrolled.ScrolledPanel):
         # download photo
         local_temp_img_path = os.path.join("temp", os.path.basename(path))
         img_path = self.parent.link_pnl.download_file_to_folder(path, local_temp_img_path)
-        self.parent.shared_data.most_recent_camera_capture = img_path
+        I_pnl.refresh_photo_sources(img_path)
+        I_pnl.remember_camera_frame(img_path, crop_region)
         # display on screen
         if combine == True:
             self.local_img_paths.append(img_path)
         else:
-            I_pnl.show_image_onscreen(img_path, label)
+            I_pnl.show_image_onscreen(img_path, label, camera_frame=False)
         # check for associated json file
         if not combine == True:
             jpath = path.split(".")[0] + ".json"
@@ -402,6 +406,17 @@ class ctrl_pnl(scrolled.ScrolledPanel):
 
 
     # Take image buttons
+    @staticmethod
+    def settings_crop_region(settings_text):
+        settings = {key.strip(): value.strip() for line in settings_text.splitlines()
+                    if '=' in line and not line.lstrip().startswith('#')
+                    for key, value in [line.split('=', 1)]}
+        value = settings.get('roi', settings.get('zoom', '0,0,1,1'))
+        try:
+            return parse_roi(value)
+        except (TypeError, ValueError):
+            return (0, 0, 1, 1)
+
     def take_saved_set_click(self, e):
         if not self.require_capture_tool():
             return
@@ -411,11 +426,13 @@ class ctrl_pnl(scrolled.ScrolledPanel):
             print(" - No config file selected, skipping taking picture.")
             return
         # Take photo using module
+        settings_text, error = self.parent.link_pnl.run_on_pi('cat -- ' + shlex.quote(settings_file))
         outpath = self.parent.shared_data.remote_pigrow_path + 'temp/'
         path, output_text = I_pnl.sets_pnl.take_image(settings_file, outpath)
         # download and show
         label = "Taken with settings stored on the Pigrow"
-        self.download_and_show_picture(path, label, method="saved settings", output_text=output_text)
+        self.download_and_show_picture(path, label, method="saved settings", output_text=output_text,
+                                       crop_region=self.settings_crop_region(settings_text))
 
     def take_set_click(self, e, filename="test_settings.jpg"):
         if not self.require_capture_tool():
@@ -437,7 +454,8 @@ class ctrl_pnl(scrolled.ScrolledPanel):
         path, output_text = I_pnl.sets_pnl.take_image(temp_set_path, outpath)
         # show on the screen
         label = "Taken with gui settings"
-        self.download_and_show_picture(path, label, method="local settings", output_text=output_text)
+        self.download_and_show_picture(path, label, method="local settings", output_text=output_text,
+                                       crop_region=self.settings_crop_region(conf_text))
 
     def take_unset_click(self, e):
         if not self.require_capture_tool():
@@ -509,10 +527,12 @@ class ctrl_pnl(scrolled.ScrolledPanel):
             val = opt_list[i]
             label = "Range - " + key + " " + str(val)
             if not self.use_range_combine.GetValue() == True:
-                self.download_and_show_picture(path, label, output_text=output_text)
+                self.download_and_show_picture(path, label, output_text=output_text,
+                                               crop_region=self.settings_crop_region(sets_texts[i]))
             else:
                 # if combine range
-                self.download_and_show_picture(path, label, combine=True, output_text=output_text)
+                self.download_and_show_picture(path, label, combine=True, output_text=output_text,
+                                               crop_region=self.settings_crop_region(sets_texts[i]))
         if self.use_range_combine.GetValue() == True:
             style = self.set_style_cb.GetValue()
             output_path = os.path.join(self.parent.shared_data.frompi_path, "temp/combined.jpg")
@@ -543,7 +563,8 @@ class ctrl_pnl(scrolled.ScrolledPanel):
         self.local_img_paths = []
         for file in filename_list:
             path, output_text = file
-            self.download_and_show_picture(path, "Noise test", combine=True, output_text=output_text)
+            self.download_and_show_picture(path, "Noise test", combine=True, output_text=output_text,
+                                           crop_region=self.settings_crop_region(conf_text))
         # combine list of images
         style = self.set_style_cb.GetValue()
         output_path = os.path.join(self.parent.shared_data.frompi_path, "temp/combined.jpg")
@@ -597,6 +618,13 @@ class info_pnl(wx.Panel):
         self.scroll_panel.SetMinSize((1, 1))
         self.settings_body = wx.Panel(self.scroll_panel)
         self.settings_expanded = True
+        self.photo_store = PhotoStore()
+        self.photo_views = {}
+        self.photo_nav_buttons = []
+        self._photo_dialogs = {}
+        self._last_photo_record = None
+        self.latest_camera_image = None
+        self.latest_camera_roi = (0, 0, 1, 1)
         # config file choice
         ccf_label = wx.StaticText(self.settings_body, label='Camera config')
         self.camconf_path_tc = wx.ComboBox(self.settings_body, choices=[], size=(300, -1))
@@ -630,41 +658,50 @@ class info_pnl(wx.Panel):
             settings_sizer.Add(panel, 0, wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.EXPAND, 8)
         self.settings_body.SetSizer(settings_sizer)
 
-        # picture sizer and buttons
-        self.clear_pics_btn = wx.Button(self.scroll_panel, label='Clear photos')
-        self.clear_pics_btn.Bind(wx.EVT_BUTTON, self.clear_pics_click)
-        self.show_last_btn = wx.Button(self.scroll_panel, label='Show last photo')
-        self.show_last_btn.Bind(wx.EVT_BUTTON, self.show_last_click)
-        self.pic_buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        self.pic_buttons_sizer.Add(self.clear_pics_btn, 0, wx.ALL, 5)
-        self.pic_buttons_sizer.Add(self.show_last_btn, 0, wx.ALL, 5)
-
+        self.photo_toolbar = PhotoToolbar(self)
+        self.clear_pics_btn = self.photo_toolbar.clear_btn
+        self.show_last_btn = self.photo_toolbar.show_last_btn
+        self.scale_to_fit_cb = self.photo_toolbar.scale_cb
         self.picture_sizer = wx.BoxSizer(wx.VERTICAL)
 
         self.content_sizer = wx.BoxSizer(wx.VERTICAL)
-        self.content_sizer.Add(self.settings_body, 0, wx.EXPAND)
-        self.content_sizer.Add(self.pic_buttons_sizer, 0, wx.ALL, 3)
-        self.content_sizer.Add(self.picture_sizer, 0, wx.ALL, 5)
+        self.content_sizer.Add(self.settings_body, 0, wx.LEFT|wx.TOP|wx.BOTTOM, 14)
+        self.content_sizer.Add(self.picture_sizer, 0, wx.ALL, 8)
+        self.photo_tail_spacer = self.content_sizer.AddSpacer(0)
         self.scroll_panel.SetSizer(self.content_sizer)
         self.scroll_panel.SetupScrolling(scrollToTop=False, scrollIntoView=False, rate_x=10, rate_y=10)
         self.scroll_panel.Bind(wx.EVT_SCROLLWIN, self.on_camera_scroll)
         self.scroll_panel.Bind(wx.EVT_MOUSEWHEEL, self.on_camera_scroll)
         self.scroll_panel.Bind(wx.EVT_SIZE, self.on_camera_scroll)
         self.main_sizer = wx.BoxSizer(wx.VERTICAL)
-        self.main_sizer.Add(self.settings_toggle_btn, 0, wx.ALL|wx.EXPAND, 4)
+        self.main_sizer.Add(self.settings_toggle_btn, 0, wx.ALL|wx.ALIGN_RIGHT, 6)
         self.main_sizer.Add(self.scroll_panel, 1, wx.EXPAND)
+        self.main_sizer.Add(self.photo_toolbar, 0, wx.EXPAND)
         self.SetSizer(self.main_sizer)
 
     def Layout(self):
         result = super().Layout()
         if hasattr(self, 'content_sizer'):
-            # A full-resolution photo may be wider than the viewport. Keep
-            # settings within the visible width instead of stretching to it.
+            # Give settings a comfortable reading width, independently of the
+            # photograph's dimensions, with a small indent from the left edge.
             minimum = self.settings_body.GetSizer().CalcMin().width
             self._settings_viewport_width = self.scroll_panel.GetClientSize().width
-            maximum = (max(minimum, self._settings_viewport_width), -1)
-            if self.settings_body.GetMaxSize() != maximum:
-                self.settings_body.SetMaxSize(maximum)
+            width = max(minimum, min(self.FromDIP(620), self._settings_viewport_width - 28))
+            settings_size = (width, -1)
+            if self.settings_body.GetMaxSize() != settings_size:
+                self.settings_body.SetMaxSize(settings_size)
+                self.settings_body.SetMinSize(settings_size)
+            photo_width = max(1, self._settings_viewport_width - 16)
+            for view in self.photo_views.values():
+                view.render(photo_width if self.scale_to_fit_cb.GetValue() else None)
+            # Even a short final photograph can be brought to the top by its
+            # shortcut, rather than stopping partway down the viewport.
+            tail_height = 0
+            if self.photo_store.records:
+                final = self.photo_views[self.photo_store.records[-1].record_id]
+                tail_height = max(0, self.scroll_panel.GetClientSize().height - final.GetBestSize().height)
+            if self.photo_tail_spacer.GetMinSize().height != tail_height:
+                self.photo_tail_spacer.SetMinSize((0, tail_height))
             self.settings_body.Layout()
             self.scroll_panel.Layout()
             self.scroll_panel.FitInside()
@@ -718,6 +755,31 @@ class info_pnl(wx.Panel):
         c_pnl = self.parent.dict_C_pnl['camera_pnl']
         c_pnl.read_cam_config_click(None, select=True)
 
+    def remember_camera_frame(self, path, crop_region=None):
+        image = wx.Image(path, wx.BITMAP_TYPE_ANY)
+        if image.IsOk():
+            self.latest_camera_image = image
+            self.latest_camera_roi = crop_region or (0, 0, 1, 1)
+            self.parent.shared_data.most_recent_camera_capture = path
+
+    def get_region_reference_image(self):
+        return self.latest_camera_image.Copy() if self.latest_camera_image is not None else None
+
+    def get_region_reference_roi(self):
+        return self.latest_camera_roi
+
+    def refresh_photo_sources(self, path=None):
+        changed = self.photo_store.check_sources(path)
+        last = self._last_photo_record
+        if last is not None and self.photo_store.get(last.record_id) is None:
+            if last.check_source():
+                changed.append(last)
+        for record in changed:
+            for dialog in self._photo_dialogs.get(record.record_id, ()):
+                if dialog and not dialog.IsBeingDeleted():
+                    dialog.set_original_overwritten()
+        return changed
+
     def show_image_onscreen(self, img_path, label, camera_frame=True):
         #
         C_pnl = self.parent.dict_C_pnl['camera_pnl']
@@ -727,7 +789,7 @@ class info_pnl(wx.Panel):
         # Autofocus coordinates must use the camera frame, even when the display
         # shows a side-by-side comparison or another combined presentation.
         if camera_frame:
-            shared_data.most_recent_camera_capture = img_path
+            self.remember_camera_frame(img_path)
         if C_pnl.use_compare.GetValue():
             if shared_data.camcomf_compare_image == "":
                 print(" - No compare image, using this one")
@@ -743,13 +805,22 @@ class info_pnl(wx.Panel):
             img_to_show = img_path
             text_label  = label
         #
-        pic = wx.StaticBitmap(self.scroll_panel, -1, load_bitmap_safe(img_to_show))
-        pic.SetLabel(img_to_show)
-        pic.Bind(wx.EVT_LEFT_DOWN, self.pic_click)
-
-        label_ctrl = wx.StaticText(self.scroll_panel,  label=text_label)
-        self.picture_sizer.Insert(0, pic, 0, wx.ALL, 2)
-        self.picture_sizer.Insert(0, label_ctrl, 0, wx.ALL, 2)
+        self.refresh_photo_sources(img_to_show)
+        try:
+            record = self.photo_store.add(img_to_show, text_label)
+        except (OSError, ValueError) as error:
+            self.show_failure_message(label, str(error))
+            return
+        view = PhotoView(self.scroll_panel, record, self.open_photo)
+        view.bitmap.photo_record_id = record.record_id
+        self.photo_views[record.record_id] = view
+        self.picture_sizer.Insert(0, view, 0, wx.BOTTOM, 18)
+        for index, photo in enumerate(self.photo_store.records, 1):
+            self.photo_views[photo.record_id].set_number(index)
+        self._last_photo_record = record
+        self.photo_toolbar.set_photos(self.photo_store.records)
+        self.photo_nav_buttons = self.photo_toolbar.nav_buttons
+        self.show_last_btn.Enable()
         shared_data.most_recent_camconf_image = img_to_show
         self.Layout()
 
@@ -791,15 +862,33 @@ class info_pnl(wx.Panel):
 
     def pic_click(self, e):
         bitmap = e.GetEventObject()
-        path_label = bitmap.GetLabel()
+        record = self.photo_store.get(getattr(bitmap, 'photo_record_id', None))
+        if record is not None:
+            self.open_photo(record)
+
+    def open_photo(self, record):
+        # Always open the same full-resolution snapshot used by the preview.
+        # Reused filenames affect the title, never the pixels being displayed.
+        self.refresh_photo_sources(record.source_path)
+        record.check_source()
+        title = '{} · {}'.format(record.label, os.path.basename(record.source_path))
+        dialog = self.parent.shared_data.show_image_dialog(
+            self, record.source_path, title, image=record.image,
+            original_overwritten=record.original_overwritten)
+        dialogs = self._photo_dialogs.setdefault(record.record_id, [])
+        dialogs.append(dialog)
         try:
-            dbox = self.parent.shared_data.show_image_dialog(None, path_label, path_label)
-            dbox.ShowModal()
-            dbox.Destroy()
-        except:
-            pass
+            dialog.ShowModal()
+        finally:
+            dialogs.remove(dialog)
+            if not dialogs:
+                self._photo_dialogs.pop(record.record_id, None)
+            dialog.Destroy()
 
     def show_last_click(self, e):
+        if self._last_photo_record is not None:
+            self.open_photo(self._last_photo_record)
+            return
         shared_data = self.parent.shared_data
         path = shared_data.most_recent_camconf_image
         try:
@@ -811,8 +900,39 @@ class info_pnl(wx.Panel):
 
 
 
+    def scale_photos_click(self, event):
+        # Preserve a nearby photo's position when its display height changes.
+        anchor = None
+        offset = 0
+        for record in self.photo_store.records:
+            view = self.photo_views[record.record_id]
+            if view.GetRect().GetBottom() > 0:
+                anchor, offset = record.record_id, view.GetPosition().y
+                break
+        self.Layout()
+        if anchor is not None:
+            view = self.photo_views[anchor]
+            _, unit_y = self.scroll_panel.GetScrollPixelsPerUnit()
+            _, current_y = self.scroll_panel.GetViewStart()
+            self.scroll_panel.Scroll(0, max(0, current_y + round((view.GetPosition().y - offset) / max(1, unit_y))))
+        self.update_settings_toggle()
+
+    def scroll_to_photo(self, record_id):
+        view = self.photo_views.get(record_id)
+        if view is None:
+            return
+        self.Layout()
+        logical = self.scroll_panel.CalcUnscrolledPosition(view.GetPosition())
+        _, unit_y = self.scroll_panel.GetScrollPixelsPerUnit()
+        self.scroll_panel.Scroll(0, max(0, logical.y // max(1, unit_y)))
+        self.update_settings_toggle()
+
     def clear_pics_click(self, e):
         self.picture_sizer.Clear(delete_windows=True)
+        self.photo_views.clear()
+        self.photo_store.clear()
+        self.photo_toolbar.set_photos([])
+        self.photo_nav_buttons = self.photo_toolbar.nav_buttons
         self.Layout()
 
     def show_settings_panel(self, panel):

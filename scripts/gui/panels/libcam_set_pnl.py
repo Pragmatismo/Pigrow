@@ -6,6 +6,7 @@ from panels.camera_controls import (
     SettingsGrid, create_setting, load_settings, parse_settings,
     serialize_settings,
 )
+from panels.image_region import create_region_button
 
 
 class libcam_sets_pnl(wx.Panel):
@@ -71,6 +72,9 @@ class libcam_sets_pnl(wx.Panel):
             if setting in self.setting_crtl_dict:
                 continue
             label, control, auxiliary = create_setting(self, setting, values[0], values[1], values[2])
+            if setting in ("roi", "autofocus-window"):
+                kind = "autofocus" if setting == "autofocus-window" else "crop"
+                auxiliary = create_region_button(self, setting, kind)
             self.setting_crtl_dict[setting] = control
             self.setting_t_dict[setting] = auxiliary
             label.Destroy()
