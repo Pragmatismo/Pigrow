@@ -77,7 +77,10 @@ def create_set_string(libcam_dic):
         whitelist = ["width", "height", "brightness", "contrast",
                      "saturation", "sharpness", "awb", "roi",
                      "gain", "shutter", "vflip", "hflip",
-                     "metering", "exposure", "ev", "denoise", "encoding", "quality" ]
+                     "metering", "exposure", "ev", "denoise", "encoding", "quality",
+                     "timeout", "autofocus-mode", "autofocus-range",
+                     "autofocus-speed", "autofocus-window", "lens-position",
+                     "awbgains" ]
         for item in libcam_dic:
             if item in whitelist:
                 new_dict[item] = libcam_dic[item]
@@ -118,7 +121,13 @@ def take_libcamera(libcam_dic, caps_path):
     else:
         save_filename = user_filename
     # create and run command
-    cmd = '/usr/local/bin/libcamera-still -t 5000 -o ' +save_filename+ ' --autofocus ' + extra_commands
+    # Keep the historic settling time and autofocus flag for existing configs.
+    # New optional controls replace those defaults only when explicitly set.
+    timeout = '' if libcam_dic.get('timeout', '').strip() else '-t 5000 '
+    explicit_focus = any(libcam_dic.get(key, '').strip()
+                         for key in ('autofocus-mode', 'lens-position'))
+    autofocus = ' ' if explicit_focus else ' --autofocus '
+    cmd = '/usr/local/bin/libcamera-still ' + timeout + '-o ' +save_filename+ autofocus + extra_commands
     print (cmd)
     os.system(cmd)
     # return filename of saved file

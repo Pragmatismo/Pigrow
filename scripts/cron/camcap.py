@@ -275,7 +275,10 @@ def take_with_fswebcam(sets_dict, caps_path=""):
     if "fs_banner" in sets_dict:
         if sets_dict["fs_banner"].lower() == "false":
             cam_cmd += " --no-banner"
-    ignore_list = ['resolution', 'cam_num', 'fs_delay', 'fs_fskip', 'fs_banner']
+    # Launcher options already have dedicated flags; legacy aliases were
+    # converted by fs_sets_trim. Neither is a camera hardware control.
+    ignore_list = ['resolution', 'cam_num', 'fs_delay', 'fs_fskip', 'fs_banner',
+                   'fs_jpg_q', 'x_dim', 'y_dim', 's_val', 'c_val', 'g_val', 'b_val']
     for key, val in sets_dict.items():
         if not key in ignore_list:
             cam_cmd += ' --set "' + key + '"="' + val + '"'

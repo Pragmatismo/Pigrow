@@ -1,123 +1,114 @@
+import re
+
 import wx
-import wx.lib.agw.floatspin as FS
+
+from panels.camera_controls import (
+    SettingsGrid, create_setting, load_settings, parse_settings,
+    serialize_settings,
+)
+from panels.image_region import create_region_button
+
 
 class libcam_sets_pnl(wx.Panel):
+    # These settings are optional because older libcamera-still releases do not
+    # support all of them. Empty values never change the capture command.
+    optional_settings = {
+        "timeout": ["", "", "Preview / settling time, e.g. 5000 (milliseconds) or 5sec"],
+        "autofocus-mode": ["", ["", "manual", "auto", "continuous"], "Autofocus mode; leave empty to keep the capture script default"],
+        "autofocus-range": ["", ["", "normal", "macro", "full"], "Autofocus search range, on cameras with a focus motor"],
+        "autofocus-speed": ["", ["", "normal", "fast"], "Autofocus search speed"],
+        "autofocus-window": ["", "", "Focus region: x,y,width,height, each from 0 to 1"],
+        "lens-position": ["", "", "Manual lens position in dioptres; 0 means infinity. Use manual autofocus mode."],
+        "awbgains": ["", "", "Manual red,blue white balance gains, e.g. 1.5,1.2"],
+    }
+
     def __init__(self, parent):
         shared_data = parent.parent.shared_data
         self.parent = parent
-        wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, style = wx.TAB_TRAVERSAL )
+        wx.Panel.__init__(self, parent, id=wx.ID_ANY, style=wx.TAB_TRAVERSAL)
 
-        label = wx.StaticText(self,  label='libcam Settings')
+        label = wx.StaticText(self, label='libcamera Settings')
         label.SetFont(shared_data.button_font)
+        camera_res = ['0x0', '1920x1080', '3280x2464', '1640x1232', '1640x922', '1280x720', '640x480']
+        self.default_settings_dict = {
+            "resolution": [camera_res[0], camera_res, "Width x height; 0x0 uses the full-size camera default. Custom sizes may be typed."],
+            "brightness": ["0", (-1.0, 1.0), "Brightness: -1.0 to 1.0"],
+            "contrast": ["1", (0.0, 10.0), "1.0 = normal contrast"],
+            "saturation": ["1", (0.0, 10.0), "1.0 = normal; 0.0 = greyscale"],
+            "sharpness": ["1", (-1.0, 10.0), "1.0 = normal sharpening"],
+            "gain": ["0", (-100.0, 100.0), "Camera analogue gain; 0 uses automatic gain"],
+            "shutter": ["0", "", "Shutter speed in microseconds; 0 uses automatic exposure"],
+            "roi": ["0.0, 0.0, 1.0, 1.0", "", "Digital zoom region: x,y,width,height, each from 0 to 1"],
+            "vflip": ["0", ["0", "1"], "Vertical flip (existing 0/1 config values are retained)"],
+            "hflip": ["0", ["0", "1"], "Horizontal flip (existing 0/1 config values are retained)"],
+            "metering": ["centre", ["centre", "spot", "average", "custom"], "Exposure metering region"],
+            "exposure": ["normal", ["normal", "sport"], "Exposure profile"],
+            "ev": ["0", (-10.0, 10.0), "Exposure compensation in stops; 0 = no change"],
+            "awb": ["auto", ["auto", "incandescent", "tungsten", "fluorescent", "indoor", "daylight", "cloudy", "custom"], "Automatic white balance profile"],
+            "denoise": ["auto", ["auto", "off", "cdn_off", "cdn_fast", "cdn_hq"], "Noise reduction mode"],
+            "encoding": ["jpg", ["jpg", "png", "rgb", "bmp", "yuv420"], "Output image encoding"],
+            "quality": ["93", (1.0, 100.0), "JPEG quality, 1 to 100"],
+        }
+        self.setting_crtl_dict = {}
+        self.setting_t_dict = {}
+        self.c_settings_sizer = SettingsGrid(self)
+        self._append_settings(self.default_settings_dict)
 
-        def create_settings_sizer():
-            camera_res = get_camera_res()
-            self.default_settings_dict = {"resolution"            : [camera_res[0], camera_res, "0x0 sets full-size default"],
-                             "brightness"            : ["0", (-1.0, 1.0), "-1.0 to 1.0"],
-                             "contrast"              : ["1", (0.0, 10.0), "1.0 = normal contrast"],
-                             "saturation"            : ["1", (-0.0, 10.0), "1.0 = normal and 0.0 = greyscale"],
-                             "sharpness"             : ["1", (-1.0, 10.0), "1.0 = normal sharpening"],
-                             "gain"                  : ["0", (-100, 100), ""],
-                             "shutter"               : ["0", "", "Shutter speed in microseconds"],
-                             "roi"                   : ["0.0, 0.0, 1.0, 1.0", "", "Region Of Interest (digital zoom)"],
-                            # "rotation"              : ["0", (0, 180), ""],
-                             "vflip"                 : ["0", ["0", "1"], ""],
-                             "hflip"                 : ["0", ["0", "1"], ""],
-                             "metering"              : ["centre", ["centre", "spot", "average", "custom"], ""],
-                             "exposure"              : ["normal", ["normal", "sport"], ""],
-                             "ev"                    : ["0", (-10, 10), "EV exposure compensation, where 0 = no change"],
-                             "awb"                   : ["auto", ["auto", "incandescent", "tungsten", "fluorescent", "indoor", "daylight", "cloudy", "custom"], ""],
-                             "denoise"               : ["auto", ["auto", "off", "cdn_off", "cdn_fast", "cdn_hq"], ""],
-
-                             "encoding"              : ["jpg", ["jpg", "png", "rgb", "bmp", "yuv420"], ""],
-                             "quality"               : ["93", (1,100), "jpg quality"]
-                             }
-            settings_dict = self.default_settings_dict
-            c_settings_sizer = wx.FlexGridSizer(3, 0, 5)
-            setting_crtl_dict = {}
-            setting_t_dict = {}
-            for setting in settings_dict.keys():
-                label, box, box_t = create_ui_element(setting, settings_dict[setting])
-                if not label == None:
-                    setting_crtl_dict[setting] = box
-                    setting_t_dict[setting] = box_t
-                    c_settings_sizer.Add(label, 0, wx.TOP|wx.ALIGN_RIGHT, 2)
-                    c_settings_sizer.Add(box, 0, wx.TOP|wx.EXPAND, 2)
-                    c_settings_sizer.Add(box_t, 0, wx.TOP|wx.EXPAND, 2)
-            return c_settings_sizer, setting_crtl_dict, setting_t_dict
-
-        def get_camera_res():
-            camera_res_v1 = ['1920x1080', '2592x1944', '1296x972', '1296x730', '640x480']
-            camera_res_v2 = ['0x0', '1920x1080', '3280x2464', '1640x1232', '1640x922', '1280x720', '640x480']
-            return camera_res_v2
-
-        def create_ui_element(setting, vals):
-            label     = wx.StaticText(self,  label=setting)
-            input_box_t = wx.StaticText(self,  label=vals[2])
-            if isinstance(vals[1], list):
-                input_box = wx.ComboBox(self, choices=vals[1], value=vals[0])
-            elif isinstance(vals[1], str):
-                input_box = wx.TextCtrl(self, value=vals[0])
-            elif isinstance(vals[1], tuple):
-                # set the size of the scroll step
-                if isinstance(vals[1][1], int):
-                    slidestep = 1
-                else:
-                    slidestep = 0.1
-                # create spin control
-                min_val, max_val = vals[1]
-                default_val = float(vals[0])
-                #print(min_val, max_val, default_val)
-                input_box = FS.FloatSpin(self, -1, size=(200, 40), value=default_val, min_val=float(min_val), max_val=float(max_val), increment=slidestep, agwStyle=FS.FS_LEFT)
-                input_box.SetDigits(2)
-                #input_box.SetLabel(setting)
-            else:
-                print (" Error - libcam_set create_ui_element - Not set up to understand ", type(vals[1]), " as options type")
-                input_box = wx.TextCtrl(self, value="")
-            return label, input_box, input_box_t
-
-        c_sets_sizer, self.setting_crtl_dict, self.setting_t_dict = create_settings_sizer()
-
-        #    self.test_btn = wx.Button(self, label='test defult')
-        #    self.test_btn.SetFont(shared_data.button_font)
-        #    self.test_btn.Bind(wx.EVT_BUTTON, self.defult)
-        #    self.testr_btn = wx.Button(self, label='test read')
-        #    self.testr_btn.SetFont(shared_data.button_font)
-        #    self.testr_btn.Bind(wx.EVT_BUTTON, self.read_settings_file)
+        self.extra_options_btn = wx.Button(self, label='Find extra options')
+        self.extra_options_btn.SetToolTip('Check the installed libcamera-still version for optional focus, white balance and capture-time controls.')
+        self.extra_options_btn.Bind(wx.EVT_BUTTON, self.find_extra_options)
+        self.extra_options_status = wx.StaticText(self, label='')
+        extra_sizer = wx.WrapSizer(wx.HORIZONTAL)
+        extra_sizer.Add(self.extra_options_btn, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 8)
+        extra_sizer.Add(self.extra_options_status, 0, wx.ALIGN_CENTER_VERTICAL)
         main_sizer = wx.BoxSizer(wx.VERTICAL)
-        main_sizer.Add(label, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 7)
-        #    main_sizer.Add(self.test_btn, 0, wx.ALL, 0)
-        #    main_sizer.Add(self.testr_btn, 0, wx.ALL, 0)
-        main_sizer.Add(c_sets_sizer, 0, wx.ALL, 0)
+        main_sizer.Add(label, 0, wx.ALL, 6)
+        main_sizer.Add(self.c_settings_sizer, 0, wx.ALL | wx.EXPAND, 6)
+        main_sizer.Add(extra_sizer, 0, wx.ALL | wx.EXPAND, 6)
         self.SetSizer(main_sizer)
 
+    def _append_settings(self, specs):
+        for setting, values in specs.items():
+            if setting in self.setting_crtl_dict:
+                continue
+            label, control, auxiliary = create_setting(self, setting, values[0], values[1], values[2])
+            if setting in ("roi", "autofocus-window"):
+                kind = "autofocus" if setting == "autofocus-window" else "crop"
+                auxiliary = create_region_button(self, setting, kind)
+            self.setting_crtl_dict[setting] = control
+            self.setting_t_dict[setting] = auxiliary
+            label.Destroy()
+            self.c_settings_sizer.add_setting(setting, control, auxiliary, values[2])
+
+    def find_extra_options(self, event):
+        # Match the exact binary used by libcam_cap.py rather than a different
+        # installation that happens to be first on PATH.
+        out, error = self.parent.parent.link_pnl.run_on_pi('/usr/local/bin/libcamera-still --help 2>&1')
+        supported = set(re.findall(r'--([a-z][a-z0-9-]*)\b', out + error))
+        found = {key: values for key, values in self.optional_settings.items() if key in supported}
+        self._append_settings(found)
+        if found:
+            self.extra_options_status.SetLabel('{} extra options available'.format(len(found)))
+        else:
+            self.extra_options_status.SetLabel('No extra options reported')
+        self.extra_options_status.SetToolTip((out + error).strip() if not found else 'Leave optional fields empty to keep the existing capture behaviour.')
+        self.Layout()
+        self.parent.Layout()
 
     def make_conf_text(self, setting_dict):
-        settings_text = ""
-        for item in setting_dict.keys():
-            value = str(setting_dict[item].GetValue())
-            if not value == "":
-                settings_text += item + "=" + value + "\n"
-        return settings_text
+        return serialize_settings(self, setting_dict)
 
     def text_into_ui(self, set_text):
-        # convert config file into dictionary
-        cam_settings = set_text.splitlines()
-        self.camera_settings_dict = {}
-        for line in cam_settings:
-            if "=" in line:
-                equals_pos = line.find("=")
-                key = line[:equals_pos]
-                value = line[equals_pos+1:]
-                self.camera_settings_dict[key] = value
-
-        # put into ui items
-        csd = self.camera_settings_dict
-        for key in csd.keys():
-            if key in self.setting_crtl_dict:
-                if type(self.setting_crtl_dict[key]) == wx.lib.agw.floatspin.FloatSpin:
-                    csd[key] = float(csd[key])
-                self.setting_crtl_dict[key].SetValue(csd[key])
+        loaded = parse_settings(set_text)
+        self._append_settings({key: values for key, values in self.optional_settings.items() if key in loaded})
+        # Loading an older config must not inherit an optional override from the
+        # previously viewed config (in particular manual focus or a timeout).
+        for key in self.optional_settings:
+            if key in self.setting_crtl_dict and key not in loaded:
+                self.setting_crtl_dict[key].SetValue('')
+        load_settings(self, set_text, aliases=False)
+        self.Layout()
+        self.parent.Layout()
 
     def take_image(self, settings_file, outpath):
         print(" Taking a picture using ", settings_file, outpath)
@@ -126,7 +117,6 @@ class libcam_sets_pnl(wx.Panel):
         print(cmd)
         out, error = self.parent.parent.link_pnl.run_on_pi(cmd)
         combined_output = (out + error).strip()
-        # check for text output listing save location
         if "Saving image to:" in combined_output:
             path = combined_output.split("Saving image to:")[1].split("\n")[0].strip()
         else:
