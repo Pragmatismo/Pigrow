@@ -1,0 +1,9 @@
+module=timelapse_detailed
+setting:capture_path=auto
+setting:interval=auto
+setting:start=auto
+setting:gallery_mode=daily
+setting:daily_time=1700
+info_read=boxname
+info_read=datetime
+info_read=timelapse detail=detailed path={capture_path} interval={interval} start={start} selection={gallery_mode} daily_time={daily_time}
