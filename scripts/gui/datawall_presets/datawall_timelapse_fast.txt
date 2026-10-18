@@ -1,0 +1,7 @@
+module=timelapse_fast
+setting:capture_path=auto
+setting:interval=auto
+setting:start=auto
+info_read=boxname
+info_read=datetime
+info_read=timelapse detail=fast path={capture_path} interval={interval} start={start}

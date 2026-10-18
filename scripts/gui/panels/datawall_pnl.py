@@ -3,10 +3,29 @@ import wx
 import wx.adv
 import wx.lib.scrolledpanel as scrolled
 import importlib
+import hashlib
+import json
 import os
+import re
+import shlex
 import sys
 from uitools import MakeDynamicOptPnl
 from shared_data import load_bitmap_safe
+
+
+def _info_command_with_settings(command, settings):
+    """Expand unquoted named arguments without treating setting values as shell code."""
+    if not settings:
+        return command
+
+    def replace(match):
+        name = match.group(1)
+        if name not in settings:
+            return match.group(0)
+        return shlex.quote(str(settings[name]))
+
+    return re.sub(r"\{([A-Za-z_][A-Za-z0-9_]*)\}", replace, command)
+
 
 class ctrl_pnl(scrolled.ScrolledPanel):
     def __init__(self, parent):
@@ -105,14 +124,28 @@ class ctrl_pnl(scrolled.ScrolledPanel):
         build and return the full data package.
         """
         data = {"info": {}, "images": {}, "data": {}, "graphs": {}}
+        entries = []
         for line in text_lines:
             if "=" not in line:
                 continue
             key, val = (s.strip() for s in line.split("=", 1))
+            entries.append((key, val))
+
+        # Import settings must be available even when their lines follow info_read.
+        settings = {key[len("setting:"):]: val for key, val in entries
+                    if key.startswith("setting:") and key[len("setting:"):]}
+        if settings:
+            data["settings"] = settings
+
+        image_cache = {}
+        for key, val in entries:
 
             if key == "info_read":
-                info = self.read_info_module(val)
+                command = _info_command_with_settings(val, settings)
+                info = self.read_info_module(command)
+                # Keep the original key so existing renderers can identify requests.
                 data["info"][val] = info
+                self._import_info_images(info, data, image_cache)
 
             elif key.startswith("picture_path"):
                 data["images"][key[len("picture_path:"):]] = self.get_image(val)
@@ -128,6 +161,70 @@ class ctrl_pnl(scrolled.ScrolledPanel):
                 data["data"][key[len("log_preset:"):]] = ds or None
 
         return data
+
+    def _import_info_images(self, info, data, image_cache):
+        """Download an optional JSON image manifest without another remote query."""
+        try:
+            payload = json.loads(info)
+        except (TypeError, ValueError):
+            # Most existing info modules deliberately return plain text.
+            return
+        if not isinstance(payload, dict) or "datawall_images" not in payload:
+            return
+
+        manifest = payload["datawall_images"]
+        if not isinstance(manifest, dict):
+            data.setdefault("image_errors", {})["manifest"] = "Invalid image manifest"
+            return
+
+        for name, entry in manifest.items():
+            data["images"][name] = None
+            if entry is None:
+                continue
+            if not isinstance(entry, dict) or not isinstance(entry.get("path"), str) or not entry["path"]:
+                data.setdefault("image_errors", {})[name] = "Invalid image path"
+                continue
+
+            remote_path = entry["path"]
+            identity = json.dumps([remote_path, entry.get("size"), entry.get("mtime")],
+                                  ensure_ascii=True, sort_keys=True)
+            if identity not in image_cache:
+                image_cache[identity] = self._download_manifest_image(remote_path, entry, identity)
+            local_path, error = image_cache[identity]
+            data["images"][name] = local_path
+            if error:
+                data.setdefault("image_errors", {})[name] = error
+
+    def _download_manifest_image(self, remote_path, entry, identity):
+        """Cache captures by their full remote path and the reported file metadata."""
+        suffix = os.path.splitext(remote_path)[1].lower()
+        if suffix not in {".png", ".jpg", ".jpeg", ".gif", ".bmp", ".tif", ".tiff", ".webp"}:
+            suffix = ".img"
+        filename = hashlib.sha256(identity.encode("utf-8")).hexdigest() + suffix
+        relative_path = os.path.join("datawall_images", filename)
+        local_path = os.path.join(self.shared_data.frompi_path, relative_path)
+        expected_size = entry.get("size")
+
+        def size_matches():
+            return (not isinstance(expected_size, (int, float))
+                    or os.path.getsize(local_path) == expected_size)
+
+        try:
+            if not os.path.isfile(local_path) or not size_matches():
+                self.parent.link_pnl.download_file_to_folder(remote_path, relative_path)
+            if not os.path.isfile(local_path):
+                raise OSError("Downloaded image is missing")
+            if not size_matches():
+                raise OSError("Downloaded image size differs from the manifest")
+            return local_path, None
+        except Exception as exc:
+            # Failed SFTP transfers can leave a partial file in the cache.
+            try:
+                if os.path.isfile(local_path):
+                    os.remove(local_path)
+            except OSError:
+                pass
+            return None, str(exc) or "Image download failed"
 
 
     def on_refresh(self, event):
@@ -176,8 +273,11 @@ class ctrl_pnl(scrolled.ScrolledPanel):
             module = prefix + module
         if not ".py" in module:
             module += ".py"
-        # module
-        out, error = self.parent.link_pnl.run_on_pi(info_modules_path + module + args)
+        full_command = shlex.quote(info_modules_path + module) + args
+        # run_on_pi embeds its input in a single-quoted bash -c argument. Escape
+        # that outer boundary so quotes in paths/arguments reach bash unchanged.
+        wrapped_command = full_command.replace("'", "'\"'\"'")
+        out, error = self.parent.link_pnl.run_on_pi(wrapped_command)
         print (out, error)
         if prefix == "info_" and module == "info_boxname.py" and not error and out.strip():
             sync_profile = self.parent.link_pnl.sync_connected_profile
@@ -328,6 +428,8 @@ class PresetOptionsPanel(wx.Panel):
         self.log_controls     = {}
         self.picture_controls = {}
         self.info_modules     = []
+        self.settings_panel   = None
+        self.setting_defaults = {}
 
         self.content_sizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -347,7 +449,8 @@ class PresetOptionsPanel(wx.Panel):
             return
         path = self._preset_filepath(preset)
         try:
-            lines = open(path, encoding="utf-8").read().splitlines()
+            with open(path, encoding="utf-8") as preset_file:
+                lines = preset_file.read().splitlines()
         except Exception:
             wx.MessageBox(f"Could not load preset file:\n{path}",
                           "Error", wx.OK | wx.ICON_ERROR)
@@ -358,8 +461,7 @@ class PresetOptionsPanel(wx.Panel):
         for line in lines:
             if "=" not in line:
                 continue
-            left, val = line.split("=", 1)
-            val = val.strip()
+            left, val = (part.strip() for part in line.split("=", 1))
             if left.startswith("graph_preset:"):
                 _, name = left.split(":", 1)
                 settings[("graph", name)] = val
@@ -369,6 +471,9 @@ class PresetOptionsPanel(wx.Panel):
             elif left.startswith("picture_path:"):
                 _, name = left.split(":", 1)
                 settings[("picture", name)] = val
+            elif left.startswith("setting:"):
+                _, name = left.split(":", 1)
+                settings[("setting", name)] = val
 
         # apply to each section
         for name, ctrl in self.graph_controls.items():
@@ -380,18 +485,29 @@ class PresetOptionsPanel(wx.Panel):
         for name, ctrl in self.picture_controls.items():
             self.apply_setting(ctrl, settings.get(("picture", name)))
 
+        if self.settings_panel is not None:
+            for name, ctrl in self.settings_panel.controls.items():
+                value = settings.get(("setting", name), self.setting_defaults.get(name))
+                self.apply_setting(ctrl, value)
+
         self.content_sizer.Fit(self)
         self.Layout()
         if hasattr(self.parent, "SetupScrolling"):
             self.parent.SetupScrolling(scroll_x=False, scroll_y=True)
         self.parent.Layout()
 
-    def apply_setting(self, ctrl: wx.ComboBox, value: str):
-        """Set ctrl to value; color red if invalid, black if valid."""
+    def apply_setting(self, ctrl, value):
+        """Restore dynamic controls, retaining checkbox and text value types."""
         if value is None:
             return
+        if isinstance(ctrl, wx.CheckBox):
+            ctrl.SetValue(str(value).lower() == "true")
+            return
+        if not isinstance(ctrl, wx.ComboBox):
+            ctrl.SetValue(str(value))
+            return
         choices = list(ctrl.GetItems())
-        ctrl.SetValue(value)
+        ctrl.SetValue(str(value))
         print(value, choices)
         if value in choices:
             ctrl.SetForegroundColour(wx.Colour(0, 0, 0))
@@ -441,9 +557,21 @@ class PresetOptionsPanel(wx.Panel):
         for d in (self.graph_controls, self.log_controls, self.picture_controls):
             d.clear()
         self.content_sizer.Clear(True)
+        self.settings_panel = None
+        self.setting_defaults = {}
 
         # 3) load info_read
         self.info_modules = preset_req.get("info_read", [])
+
+        # Settings shared by metadata requests belong to the preset, not rendering.
+        import_settings = preset_req.get("settings", {})
+        if import_settings:
+            self.content_sizer.Add(wx.StaticText(self, label="Import Settings"),
+                                   0, wx.TOP | wx.CENTER, 5)
+            self.settings_panel = MakeDynamicOptPnl(self)
+            self.settings_panel.build(import_settings)
+            self.setting_defaults = self.settings_panel.get_settings()
+            self.content_sizer.Add(self.settings_panel, 0, wx.EXPAND | wx.ALL, 5)
 
         # 4) graph presets list
         graph_dir = "./graph_presets"
@@ -521,6 +649,10 @@ class PresetOptionsPanel(wx.Panel):
         # always include module line
         module = self.parent.module_choice.GetStringSelection()
         lines.append(f"module={module}")
+
+        if self.settings_panel is not None:
+            for name, value in self.settings_panel.get_settings().items():
+                lines.append(f"setting:{name}={value}")
 
         for g, c in self.graph_controls.items():
             lines.append(f"graph_preset:{g}={c.GetValue()}")
