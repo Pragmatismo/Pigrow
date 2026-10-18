@@ -57,18 +57,29 @@ def _normal_path(value, base=None):
 def _capture_path(path, config_path, warnings):
     if path != "auto":
         return _normal_path(path)
-    config = Path(config_path or os.path.expanduser("~/Pigrow/config/dirlocs.txt"))
+    # The GUI invokes this module from the connected account's installation.
+    # Anchor auto paths there rather than an inherited login-shell HOME or a
+    # previous user's standard path left in dirlocs after moving an install.
+    pigrow = Path(__file__).resolve().parents[3]
+    default = str(pigrow / "caps")
+    config = Path(config_path) if config_path is not None else pigrow / "config" / "dirlocs.txt"
     try:
         for line in config.read_text().splitlines():
             if "=" in line and not line.lstrip().startswith("#"):
                 key, value = line.split("=", 1)
                 if key.strip() == "caps_path" and value.strip():
-                    return _normal_path(value.strip(), config.parent.parent)
+                    configured = _normal_path(value.strip(), config.parent.parent)
+                    if configured != default and re.fullmatch(r"/home/[^/]+/Pigrow/caps", configured):
+                        warnings.append("Saved capture path {} is from another installation; using {}. "
+                                        "Set capture_path explicitly to use that saved folder."
+                                        .format(configured, default))
+                        return default
+                    return configured
     except FileNotFoundError:
         pass
     except OSError as exc:
         warnings.append("Could not read dirlocs: {}".format(exc))
-    return _normal_path("~/Pigrow/caps")
+    return default
 
 
 def _scan(path, warnings):

@@ -268,9 +268,64 @@ class TimelapseInfoTests(unittest.TestCase):
         config.write_text("path=/ignored\ncaps_path={}\n".format(self.path))
         report = info.collect_info(config_path=config, now=1600, cron_text="")
         self.assertEqual(report["path"], str(self.path))
-        with mock.patch.dict(os.environ, {"HOME": str(self.path)}):
+        module_path = self.path / "Pigrow" / "scripts" / "gui" / "info_modules" / "info_timelapse.py"
+        with mock.patch.dict(os.environ, {"HOME": str(self.path)}), \
+                mock.patch.object(info, "__file__", str(module_path)):
             report = info.collect_info(config_path=self.path / "missing", now=1600, cron_text="")
         self.assertEqual(report["path"], str(self.path / "Pigrow" / "caps"))
+
+    def test_auto_path_uses_current_installation_for_stale_user_defaults(self):
+        pigrow = self.path / "home" / "grower" / "Pigrow"
+        config = pigrow / "config" / "dirlocs.txt"
+        config.parent.mkdir(parents=True)
+        captures = pigrow / "caps"
+        captures.mkdir()
+        image = captures / "cap_1000.jpg"
+        image.write_bytes(b"capture metadata only")
+        module_path = pigrow / "scripts" / "gui" / "info_modules" / "info_timelapse.py"
+        for saved in ("/home/pi/Pigrow/caps/", "/home/previous-user/Pigrow/caps"):
+            config.write_text("caps_path={}\n".format(saved))
+            for detail in ("fast", "detailed"):
+                with self.subTest(saved=saved, detail=detail), \
+                        mock.patch.object(info, "__file__", str(module_path)), \
+                        mock.patch.dict(os.environ, {"HOME": str(pigrow.parent)}):
+                    report = info.collect_info(detail=detail, interval=100, now=1600)
+                self.assertEqual(report["path"], str(captures))
+                self.assertEqual(report["summary"]["image_count"], 1)
+                self.assertTrue(any(saved.rstrip("/") in warning
+                                    for warning in report["summary"]["warnings"]))
+                if detail == "detailed":
+                    self.assertEqual(report["datawall_images"]["timelapse_latest"]["path"], str(image))
+
+    def test_auto_path_does_not_depend_on_login_shell_home(self):
+        pigrow = self.path / "home" / "grower" / "Pigrow"
+        captures = pigrow / "caps"
+        captures.mkdir(parents=True)
+        (captures / "cap_1000.jpg").write_bytes(b"capture metadata only")
+        module_path = pigrow / "scripts" / "gui" / "info_modules" / "info_timelapse.py"
+        with mock.patch.object(info, "__file__", str(module_path)), \
+                mock.patch.dict(os.environ, {"HOME": str(self.path / "old-login-home")}):
+            report = info.collect_info(interval=100, now=1600)
+        self.assertEqual(report["path"], str(captures))
+        self.assertEqual(report["summary"]["image_count"], 1)
+
+    def test_auto_path_preserves_custom_folder_and_explicit_path(self):
+        pigrow = self.path / "home" / "grower" / "Pigrow"
+        config = pigrow / "config" / "dirlocs.txt"
+        config.parent.mkdir(parents=True)
+        custom = self.path / "mounted-camera"
+        custom.mkdir()
+        (custom / "cap_1000.jpg").write_bytes(b"capture metadata only")
+        config.write_text("caps_path={}\n".format(custom))
+        module_path = pigrow / "scripts" / "gui" / "info_modules" / "info_timelapse.py"
+        with mock.patch.object(info, "__file__", str(module_path)):
+            report = info.collect_info(interval=100, now=1600)
+            explicit = info.collect_info(path="/home/pi/Pigrow/caps", interval=100, now=1600)
+        self.assertEqual(report["path"], str(custom))
+        self.assertEqual(report["summary"]["image_count"], 1)
+        self.assertEqual(explicit["path"], "/home/pi/Pigrow/caps")
+        self.assertFalse(any("another installation" in warning
+                             for warning in explicit["summary"]["warnings"]))
 
     def test_naive_and_offset_iso_start(self):
         start = dt.datetime(2025, 1, 2, 12)

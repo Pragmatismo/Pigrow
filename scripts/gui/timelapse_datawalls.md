@@ -27,11 +27,16 @@ view and comparison row is downloaded once.
 
 | Setting | Meaning |
 | --- | --- |
-| `capture_path` | Remote capture folder. `auto` reads `caps_path` from the Pi's `~/Pigrow/config/dirlocs.txt`, falling back to `~/Pigrow/caps`. |
+| `capture_path` | Remote capture folder. `auto` reads `config/dirlocs.txt` in the connected Pi's Pigrow installation, falling back to that installation's `caps` folder (normally `/home/<username>/Pigrow/caps`). |
 | `interval` | Expected capture interval in **seconds**, or `auto` to read an active camera cron job for this folder. |
 | `start` | Recording start as an ISO date/time or Unix timestamp. `auto` starts the comparison at the first observed capture. |
 | `gallery_mode` | Detailed mode: `recent`, `hourly`, or `daily`. |
 | `daily_time` | Detailed daily target, such as `1700` or `17:00`. |
+
+If `dirlocs.txt` retains another user's standard `/home/<username>/Pigrow/caps`
+path, `auto` uses the current installation's `caps` folder and includes a note
+in the report. Custom capture folders remain supported. Set `capture_path`
+explicitly if you intend to read another user's standard capture folder.
 
 Photo labels and daily/hourly targets use the connected Pi's local time; graph
 axes are labelled in UTC. An explicit
