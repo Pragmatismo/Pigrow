@@ -326,6 +326,8 @@ class link_pnl(wx.Panel):
             shared_data.frompi_path = os.path.join(shared_data.frompi_base_path, box_name)
             shared_data.remote_pigrow_path = "/home/" + self.target_user + "/Pigrow/"
             shared_data.config_txt_path = self.determine_boot_config_path()
+            # The start panel runs first, before other panels refresh the config.
+            shared_data.read_pigrow_settings_file()
             self.parent.tell_pnls_connected()
         else:
             shared_data.frompi_path = ""
