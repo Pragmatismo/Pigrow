@@ -25,6 +25,7 @@ if wx is not None:
 class FakeSSH:
     def __init__(self):
         self.box_name = 'Garden'
+        self.config = ''
         self.failure = None
         self.closed = False
         self.peer = '192.168.1.20'
@@ -52,6 +53,7 @@ class FakeSSH:
     def exec_command(self, command):
         if 'pigrow_config.txt' in command:
             out = 'box_name=' + self.box_name + '\n' if self.box_name else ''
+            out += self.config
         elif 'firmware' in command:
             out = 'exists\n'
         else:
@@ -77,15 +79,18 @@ class ConnectionPanelTests(unittest.TestCase):
         self.shared.button_font = wx.Font(12, wx.FONTFAMILY_DEFAULT,
                                           wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
         self.shared.box_name = None
+        self.shared.config_dict = {}
         self.shared.frompi_base_path = self.folder.name
         self.shared.remote_pigrow_path = ''
         self.shared.frompi_path = ''
         self.frame = wx.Frame(None)
+        self.shared.parent = self.frame
         self.frame.shared_data = self.shared
         self.frame.tell_pnls_connected = lambda: None
         self.ssh = FakeSSH()
         with patch.object(connection.paramiko, 'SSHClient', return_value=self.ssh):
             self.panel = connection.link_pnl(self.frame, self.shared)
+        self.frame.link_pnl = self.panel
         sizer = wx.BoxSizer(wx.VERTICAL)
         sizer.Add(self.panel, 1, wx.EXPAND)
         self.frame.SetSizerAndFit(sizer)
@@ -149,6 +154,22 @@ class ConnectionPanelTests(unittest.TestCase):
         self.assertIn('Authentication failed', ' '.join(self.panel.link_status_text.GetLabel().split()))
         self.assertEqual(tuple(self.panel.link_status_text.GetForegroundColour())[:3], (0, 0, 139))
         self.assertEqual(self.saved()[0]['password'], 'old')
+
+    def test_remote_config_is_loaded_before_panels_receive_connection(self):
+        self.ssh.config = 'gui_datawall=timelapse_detailed\n'
+        observed = []
+        self.frame.tell_pnls_connected = lambda: observed.append(dict(self.shared.config_dict))
+        self.panel.link_with_pi_btn_click(None)
+        self.assertEqual(len(observed), 1)
+        self.assertEqual(observed[0]['gui_datawall'], 'timelapse_detailed')
+        self.assertEqual(observed[0]['box_name'], 'Garden')
+
+    def test_new_connection_does_not_reuse_previous_pigrow_datawall(self):
+        self.shared.config_dict = {'box_name': 'Previous garden', 'gui_datawall': 'previous_wall'}
+        observed = []
+        self.frame.tell_pnls_connected = lambda: observed.append(dict(self.shared.config_dict))
+        self.panel.link_with_pi_btn_click(None)
+        self.assertEqual(observed, [{'box_name': 'Garden'}])
 
     def test_unknown_ssh_connection_promotes_on_later_name_detection(self):
         self.ssh.box_name = ''

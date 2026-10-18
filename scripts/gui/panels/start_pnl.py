@@ -5,6 +5,11 @@ import importlib
 from shared_data import resolve_resource_path, load_bitmap_safe
 
 
+def _selected_preset(shared_data):
+    return ((shared_data.config_dict.get('gui_datawall') or '').strip()
+            or (shared_data.gui_set_dict.get('default_datawall') or '').strip())
+
+
 class ctrl_pnl(wx.Panel):
     '''
     The controls for the start panel
@@ -54,7 +59,7 @@ class ctrl_pnl(wx.Panel):
     def onSelectPreset(self, event):
         dlg = DatawallPresetDialog(self, self.shared_data)
         if dlg.ShowModal() == wx.ID_OK:
-            # preset stored in gui_set_dict inside dialog
+            # The dialog stores the preset in the connected Pigrow's config.
             pass
         dlg.Destroy()
 
@@ -81,9 +86,7 @@ class ctrl_pnl(wx.Panel):
         self.datawall_note.SetLabel("")
 
         # Retrieve chosen preset
-        preset = self.shared_data.config_dict.get('gui_datawall', '')
-        if not preset:
-            preset = self.shared_data.gui_set_dict.get('default_datawall', '')
+        preset = _selected_preset(self.shared_data)
 
         # If no preset, nothing to build
         if not preset:
@@ -177,10 +180,7 @@ class DatawallPresetDialog(wx.Dialog):
         presets = parent._get_presets()
         self.choicePreset = wx.Choice(self, choices=presets)
         if presets:
-            current_preset = shared_data.config_dict.get(
-                'gui_datawall',
-                shared_data.gui_set_dict.get('default_datawall', "")
-            )
+            current_preset = _selected_preset(shared_data)
             try:
                 self.choicePreset.SetStringSelection(current_preset)
             except wx.wxAssertionError:
@@ -188,7 +188,7 @@ class DatawallPresetDialog(wx.Dialog):
 
         # Checkbox: set as global default
         self.cbSetAll = wx.CheckBox(self, label="Set as global default")
-        self.cbSetAll.SetValue(True)
+        self.cbSetAll.SetValue(False)
 
         # Set & Cancel buttons
         btnOk     = wx.Button(self, wx.ID_OK,     label="Set")

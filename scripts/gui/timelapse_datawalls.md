@@ -16,6 +16,11 @@ GUI's existing Pillow and matplotlib dependencies.
 4. Save the preset to keep your settings. Select that saved preset in the start
    tab's datawall controls to use it automatically when connecting to the Pi.
 
+**Select Datawall Preset** saves the selection in the connected Pigrow's
+`gui_datawall` setting. On connection, this takes priority over the GUI's
+global default; the default applies only when the Pigrow's setting is absent
+or blank. **Set as global default** starts unchecked each time the dialog opens.
+
 Fast mode reads file metadata and reports recording status, including actual
 versus expected captures. It does not download photos or create a graph.
 Detailed mode adds a file-size graph over capture time, a large latest capture,
