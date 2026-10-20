@@ -1,70 +1,74 @@
-import matplotlib.pyplot as plt
-import os
-from datetime import datetime
+"""Adjacent capture intervals, preserving timing errors and unknown timestamps."""
+
+import numpy as np
+
+from timelapse_modules.analysis_common import (
+    capture_datetime, date_from_filename, frame_axis, new_figure, plot_series,
+    require_frames, save_figure, style_axis,
+)
+from timelapse_modules.analyse_time import time_unit
+
+DESCRIPTION = "Time between adjacent frames: spot gaps, duplicate timestamps and clock changes."
+
+
+def capture_intervals(frames):
+    dates = [capture_datetime(path) for path in frames]
+    intervals = np.full(len(frames), np.nan, dtype=float)
+    for index in range(1, len(dates)):
+        if dates[index - 1] is not None and dates[index] is not None:
+            intervals[index] = (dates[index] - dates[index - 1]).total_seconds()
+    return dates, intervals
+
 
 def analyse_set(ani_frame_list, out_file):
-    # Ensure there are images in the list
-    if not ani_frame_list:
-        print("No images in the list.")
-        return False
-
-    # Get creation dates for each image
-    file_dates = [date_from_filename(image_path)[1] for image_path in ani_frame_list]
-
-    # Calculate time differences between consecutive dates
-    time_diffs = [(file_dates[i] - file_dates[i - 1]).total_seconds() for i in range(1, len(file_dates))]
-
-    # Set the figure size based on the number of data points
-    num_data_points = len(time_diffs)
-    fig_width = max(1, num_data_points * 0.15)  # Adjust the minimum figure width as needed
-
-    # Set the maximum image size
-    max_image_size = 75000
-
-    # Check if the resulting image would exceed the maximum size
-    result_width = int(fig_width * 100)  # Assuming each bar has a width of 100 pixels
-    result_height = 1000  # Assuming the height of the bar graph is 1000 pixels
-    if result_width > max_image_size or result_height > max_image_size:
-        print("Error: Resulting image exceeds the maximum allowed size.")
-        return
-
-    plt.figure(figsize=(fig_width, 10))
-
-    # Create a bar graph
-    plt.bar(range(len(time_diffs)), time_diffs, color='blue', width=0.6)
-
-    # Adjust the layout to reduce empty space
-    plt.subplots_adjust(left=0.005, right=0.99, top=0.9, bottom=0.1)
-
-    plt.savefig(out_file)
-    plt.close()
-    print(f"Analysis complete. Result saved to {out_file}")
+    frames = require_frames(ani_frame_list)
+    dates, intervals = capture_intervals(frames)
+    valid = intervals[np.isfinite(intervals)]
+    if not valid.size:
+        if len(frames) == 1 and dates[0] is not None:
+            subtitle = "1 frame | At least two adjacent timestamped frames are needed to measure an interval."
+        else:
+            raise ValueError("No adjacent frames have usable capture timestamps; intervals cannot be measured.")
+    else:
+        positive = valid[valid > 0]
+        typical = float(np.median(positive)) if positive.size else None
+        subtitle = "{:,} frames | {:,} measured intervals".format(len(frames), valid.size)
+        if typical is not None:
+            subtitle += " | median positive interval {:g} s | {:,} gaps >1.5× median".format(
+                typical, int(np.count_nonzero(valid > 1.5 * typical)))
+        subtitle += " | {:,} duplicates | {:,} backwards".format(
+            int(np.count_nonzero(valid == 0)), int(np.count_nonzero(valid < 0)))
+        unknown = int(np.count_nonzero(~np.isfinite(intervals[1:])))
+        if unknown:
+            subtitle += " | {:,} unknown intervals shown as gaps".format(unknown)
+    scale, unit = time_unit(valid)
+    if len(frames) > 6000:
+        subtitle += " | Dense view: min–max ranges and mean per frame group"
+    fig, axes = new_figure("Time between frames", subtitle)
+    try:
+        ax = axes[0]
+        style_axis(ax, ylabel="Interval since previous frame ({})".format(unit))
+        frame_axis(ax, len(frames))
+        if valid.size:
+            plot_series(ax, np.arange(1, len(frames) + 1), intervals / scale)
+            ax.axhline(0, color="#77818a", linewidth=0.8)
+            positive = valid[valid > 0]
+            if positive.size:
+                typical = float(np.median(positive))
+                ax.axhline(typical / scale, color="#a56821", linewidth=1, linestyle="--",
+                           label="Median positive interval ({:g} s)".format(typical))
+            anomalies = np.isfinite(intervals) & (intervals <= 0)
+            if np.any(anomalies):
+                # Bound anomaly marker count too; the series still retains all extrema.
+                positions = np.flatnonzero(anomalies)
+                positions = positions[::max(1, int(np.ceil(len(positions) / 1000)))]
+                ax.scatter(positions + 1, intervals[positions] / scale, s=22, color="#b33434",
+                           zorder=4, label="Duplicate / backwards timestamp")
+            ax.legend(loc="best")
+        else:
+            ax.text(0.5, 0.5, "One frame: no interval yet", transform=ax.transAxes,
+                    ha="center", va="center", color="#52606d")
+        save_figure(fig, out_file)
+    finally:
+        fig.clear()
     return True
-
-
-def date_from_filename(image_path):
-    # Extract the file name without extension and folders
-    s_file_name, file_extension = os.path.splitext(os.path.basename(image_path))
-    file_name = s_file_name + file_extension
-
-    # Check if the file name contains an underscore
-    if '_' in file_name:
-        # Extract the last section after the final underscore
-        last_section = s_file_name.rsplit('_', 1)[-1]
-
-        # Try to parse the last section as a Linux epoch
-        try:
-            epoch_time = int(last_section)
-            date = datetime.utcfromtimestamp(epoch_time)
-            return file_name, date
-        except ValueError:
-            pass
-
-        # Try to parse the last section as a common date string
-        try:
-            date = datetime.strptime(last_section, '%Y%m%d%H%M%S')
-            return file_name, date
-        except ValueError:
-            pass
-
-    return file_name, 'undetermined'

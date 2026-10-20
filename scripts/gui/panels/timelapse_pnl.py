@@ -4,6 +4,9 @@ import os
 import re
 import sys
 import datetime
+import importlib
+import shutil
+import tempfile
 import wx.lib.delayedresult as delayedresult
 from PIL import Image, ImageDraw, ImageEnhance
 from shared_data import load_bitmap_safe
@@ -652,10 +655,22 @@ class info_pnl(wx.Panel):
             graph_l = wx.StaticText(self,  label='Image Set Analyse')
 
             analyse_opts = self.get_analyse_opts()
-            self.analyse_cb = wx.ComboBox(self, choices = analyse_opts)
-            self.analyse_cb.SetValue(analyse_opts[0])
+            self.analyse_cb = wx.ComboBox(self, choices=analyse_opts, style=wx.CB_READONLY)
+            if analyse_opts:
+                self.analyse_cb.SetValue(analyse_opts[0])
+            self.analyse_cb.Bind(wx.EVT_COMBOBOX, self.on_analyse_selection)
+            self.analyse_hint_l = wx.StaticText(self, label="")
+            self.analyse_hint_l.SetFont(self.shared_data.info_font)
+            self.on_analyse_selection(None)
             self.do_analyse_btn = wx.Button(self, label='Go')
             self.do_analyse_btn.Bind(wx.EVT_BUTTON, self.do_analyse_click)
+            self.do_analyse_btn.Enable(bool(analyse_opts))
+            self._analysis_running = False
+            self._analysis_destroyed = False
+            self._analysis_output_dir = None
+            self._graph_output_dir = None
+            self.graph_image_title = "Image set analysis"
+            self.Bind(wx.EVT_WINDOW_DESTROY, self.on_analysis_destroy)
 
             # Image box initialization with a blank image
             self.graph_image_path = ""
@@ -663,6 +678,7 @@ class info_pnl(wx.Panel):
             self.graph_image_box.Bind(wx.EVT_LEFT_DOWN, self.on_image_click)
             progress_msg = "Processing Image Set"
             self.graph_progress_l = wx.StaticText(self,  label=progress_msg)
+            self.graph_progress_l.SetFont(self.shared_data.info_font)
             self.graph_progress_l.Hide()
 
             analyse_select_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -672,6 +688,7 @@ class info_pnl(wx.Panel):
             graph_sizer = wx.BoxSizer(wx.VERTICAL)
             graph_sizer.Add(graph_l, 0, wx.ALL |  wx.ALIGN_CENTER_HORIZONTAL, 5)
             graph_sizer.Add(analyse_select_sizer, 0, wx.ALL |  wx.ALIGN_CENTER_HORIZONTAL, 5)
+            graph_sizer.Add(self.analyse_hint_l, 0, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 5)
             graph_sizer.Add(self.graph_progress_l, 0, wx.ALL |  wx.ALIGN_CENTER_HORIZONTAL, 5)
             graph_sizer.Add(self.graph_image_box, 1, wx.ALL | wx.EXPAND, 5)
             return graph_sizer
@@ -796,82 +813,164 @@ class info_pnl(wx.Panel):
             return img_box_sizer
 
         # graph sizer controls
+        ANALYSE_DESCRIPTIONS = {
+            "daygrid": "Compare days on a common 24-hour timeline; gaps show missing captures.",
+            "filesize": "File size by frame, for spotting light/dark transitions and unusual files.",
+            "filesizedistribution": "File size distribution, for choosing a light/dark size cutoff.",
+            "time": "Capture time by frame, for spotting breaks and changes in timing.",
+            "timediff": "Time between consecutive frames, highlighting gaps and timing changes.",
+            "colourswatch": "A compressed visual timeline of the set's colour changes.",
+            "colorgraph": "Compare red, green and blue levels across the image set.",
+            "brightness": "Brightness by frame, for spotting day/night changes and exposure shifts.",
+        }
+
+        def on_analyse_selection(self, event):
+            option = self.analyse_cb.GetValue()
+            description = self.ANALYSE_DESCRIPTIONS.get(
+                option, "Run the selected image set analysis tool.")
+            self.analyse_hint_l.SetLabel(description + "\nClick the output to open full size.")
+            self.analyse_hint_l.Wrap(380)
+            self.Layout()
+
         def on_image_click(self, event):
             if self.graph_image_path:
-                title = "Analyse " + self.analyse_cb.GetValue()
-                dbox = self.shared_data.show_image_dialog(None, self.graph_image_path, title)
-                dbox.ShowModal()
-                dbox.Destroy()
+                dbox = self.shared_data.show_image_dialog(
+                    None, self.graph_image_path, self.graph_image_title)
+                try:
+                    dbox.ShowModal()
+                finally:
+                    dbox.Destroy()
 
         def set_graph_image(self, img_path):
-            # set for later use by on_image_click
+            # Only replace the current preview after the new image can be displayed.
+            img = wx.Image(img_path, wx.BITMAP_TYPE_ANY)
+            if not img.IsOk():
+                raise ValueError("The analysis output could not be opened.")
+            graph = self.shared_data.scale_pic(img, self.graph_size)
+            self.graph_image_box.SetBitmap(graph.ConvertToBitmap())
             self.graph_image_path = img_path
-            # load image and display in box
-            try:
-                img = load_bitmap_safe(img_path).ConvertToImage()
-                graph = self.shared_data.scale_pic(img, self.graph_size)
-                graph = graph.ConvertToBitmap()
-                self.graph_image_box.SetBitmap(graph)
-            except:
-                print("!! Graph didn't work for timelapse tab.", img_path)
-
             self.graph_image_box.Layout()
             self.Layout()
 
         def graph_image_in_process(self):
             self.graph_image_box.Hide()
+            self.graph_progress_l.SetLabel("Processing image set; large sets may take a while…")
+            self.graph_progress_l.Wrap(380)
             self.graph_progress_l.Show()
             self.do_analyse_btn.Disable()
+            self.analyse_cb.Disable()
             self.Layout()
 
         def get_analyse_opts(self):
-            analyse_opts = self.parent.shared_data.get_module_options("analyse_", "timelapse_modules")
+            options = self.parent.shared_data.get_module_options("analyse_", "timelapse_modules")
+            return sorted({option for option in options
+                           if option != "daygridGPT" and option.isidentifier()})
 
-            return analyse_opts
+        def _cleanup_analysis_folder(self, folder):
+            if folder:
+                try:
+                    shutil.rmtree(folder)
+                except FileNotFoundError:
+                    pass
+                except OSError as error:
+                    print("Could not remove temporary analysis output:", error)
+
+        def _restore_analysis_controls(self):
+            self._analysis_running = False
+            self.graph_image_box.Show()
+            self.do_analyse_btn.Enable()
+            self.analyse_cb.Enable()
+            self.Layout()
+
+        def _show_analysis_error(self, error):
+            message = "Analysis failed: " + (str(error).strip() or type(error).__name__)
+            print(message)
+            self.graph_progress_l.SetLabel(message)
+            self.graph_progress_l.Wrap(380)
+            self.graph_progress_l.Show()
+
+        def on_analysis_destroy(self, event):
+            if event.GetEventObject() is self:
+                self._analysis_destroyed = True
+                self._cleanup_analysis_folder(self._graph_output_dir)
+                # A running worker owns its output until the result callback arrives.
+                if not self._analysis_running:
+                    self._cleanup_analysis_folder(self._analysis_output_dir)
+            event.Skip()
 
         def do_analyse_click(self, e):
+            if self._analysis_running:
+                return
             module_opt = self.analyse_cb.GetValue()
-            if module_opt == "" or module_opt == "none":
-                return None
+            if not module_opt or module_opt == "none":
+                return
 
-            local_path = self.parent.shared_data.frompi_path
-            if local_path == "":
-                local_path = self.parent.shared_data.frompi_base_path
+            self._analysis_output_dir = None
+            try:
+                if not module_opt.isidentifier() or module_opt not in self.get_analyse_opts():
+                    raise ValueError("Choose an available analysis tool.")
+                # Freeze the selected frames and function before the background job starts.
+                frames = list(self.c_pnl.trimmed_frame_list)
+                if not frames:
+                    raise ValueError("Select a set containing at least one image first.")
+                module = importlib.import_module("timelapse_modules.analyse_" + module_opt)
+                analyse = getattr(module, "analyse_set")
+                if not callable(analyse):
+                    raise ValueError("The selected tool has no analyse_set function.")
+                local_path = (self.parent.shared_data.frompi_path or
+                              self.parent.shared_data.frompi_base_path)
+                temp_folder = os.path.join(local_path, "temp")
+                os.makedirs(temp_folder, exist_ok=True)
+                self._analysis_output_dir = tempfile.mkdtemp(prefix="analysis-", dir=temp_folder)
+                out_file = os.path.join(self._analysis_output_dir, "result.png")
+                self._analysis_option = module_opt
+                self._analysis_running = True
+                self.graph_image_in_process()
+                delayedresult.startWorker(self._on_analyse_result,
+                                          self._run_analyse_set,
+                                          wargs=(frames, out_file, analyse))
+            except Exception as error:
+                self._cleanup_analysis_folder(self._analysis_output_dir)
+                self._analysis_output_dir = None
+                try:
+                    self._show_analysis_error(error)
+                finally:
+                    self._restore_analysis_controls()
 
-            temp_folder = os.path.join(local_path, "temp")
-            if not os.path.isdir(temp_folder):
-                os.makedirs(temp_folder)
-
-            ani_frame_list = self.c_pnl.trimmed_frame_list
-
-            module_name = "analyse_" + module_opt
-            self.c_pnl.import_module(module_name, "analyse_tool")
-            out_file = os.path.join(temp_folder, "result_image.png")
-
-            # run test tool
-            self.graph_image_in_process()
-
-            delayedresult.startWorker(self._on_analyse_result,
-                                self._run_analyse_set,
-                                wargs=(ani_frame_list, out_file),
-                                jobID=1)
-
-
-        def _run_analyse_set(self, ani_frame_list, out_file):
-            print("doing anal")
-            anal_test = analyse_tool.analyse_set(ani_frame_list, out_file)
-            print("analysis complete;", anal_test)
+        def _run_analyse_set(self, ani_frame_list, out_file, analyse):
+            success = analyse(ani_frame_list, out_file)
+            if not success or isinstance(success, str):
+                detail = success if isinstance(success, str) else "The tool did not produce an analysis."
+                raise ValueError(detail)
+            # A fresh folder prevents a failed tool from displaying a previous result.
+            if not os.path.isfile(out_file) or os.path.getsize(out_file) == 0:
+                raise ValueError("The tool completed without creating an output image.")
+            with Image.open(out_file) as image:
+                image.verify()
             return out_file
 
-
         def _on_analyse_result(self, result):
-            out_file = result.get()
-            print("got anal ", out_file)
-            self.graph_image_box.Show()
-            self.graph_progress_l.Hide()
-            self.do_analyse_btn.Enable()
-            self.set_graph_image(out_file)
-            self.Layout()
+            output_dir = self._analysis_output_dir
+            self._analysis_output_dir = None
+            if self._analysis_destroyed:
+                self._cleanup_analysis_folder(output_dir)
+                return
+            succeeded = False
+            try:
+                out_file = result.get()
+                self.set_graph_image(out_file)
+                previous_dir = self._graph_output_dir
+                self._graph_output_dir = output_dir
+                self.graph_image_title = "Analyse " + self._analysis_option
+                succeeded = True
+                self._cleanup_analysis_folder(previous_dir)
+                self.graph_progress_l.Hide()
+            except Exception as error:
+                self._show_analysis_error(error)
+            finally:
+                if not succeeded:
+                    self._cleanup_analysis_folder(output_dir)
+                self._restore_analysis_controls()
 
         # info box controls
         def set_img_box(self):
