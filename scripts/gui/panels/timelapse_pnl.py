@@ -245,11 +245,16 @@ class ctrl_pnl(wx.Panel):
         stylized_btn = wx.Button(self, label='Stylized Set')
         stylized_btn.Bind(wx.EVT_BUTTON, self.stylized_click)
 
+        stylized_new_btn = wx.Button(self, label='Stylized Set (new)')
+        stylized_new_btn.Bind(wx.EVT_BUTTON, self.stylized_new_click)
+        stylized_new_btn.SetToolTip('Build a set with editable layers, presets and a step-through preview')
+
         # sizer
         imgset_sizer = wx.BoxSizer(wx.VERTICAL)
         imgset_sizer.Add(log_overlay_btn, 0, wx.EXPAND, 5)
         imgset_sizer.Add(imgset_overlay_btn, 0, wx.EXPAND, 5)
         imgset_sizer.Add(stylized_btn, 0, wx.EXPAND, 5)
+        imgset_sizer.Add(stylized_new_btn, 0, wx.EXPAND, 5)
 
         return imgset_sizer
 
@@ -336,7 +341,8 @@ class ctrl_pnl(wx.Panel):
             raise
             return None
 
-        new_list = self.cap_file_paths[start:stop].copy()
+        # The controls specify the first and last included frame.
+        new_list = self.cap_file_paths[start:stop + 1].copy()
 
         new_list = self.limit_to_date(new_list)
         new_list = self.limit_by_time_cutoff(new_list)
@@ -393,7 +399,7 @@ class ctrl_pnl(wx.Panel):
         list_trimmed_by_startpoint = []
         for item in cap_list:
             filename, pic_time = i_pnl.date_from_filename(item)
-            if pic_time >= start_point_cutoff:
+            if isinstance(pic_time, datetime.datetime) and pic_time >= start_point_cutoff:
                 list_trimmed_by_startpoint.append(item)
 
         #print("date trimmed list; list now " + str(len(list_trimmed_by_startpoint)) + " frames long")
@@ -411,6 +417,9 @@ class ctrl_pnl(wx.Panel):
         list_trimmed = []
         for item in cap_list:
             filename, pic_time = i_pnl.date_from_filename(item)
+
+            if not isinstance(pic_time, datetime.datetime):
+                continue
 
             hour   = pic_time.hour
             mins = pic_time.minute
@@ -584,6 +593,54 @@ class ctrl_pnl(wx.Panel):
             print("Image set has zero length, can't overlay on nothing")
 
     # module tools
+    def stylized_new_click(self, e):
+        frames = list(self.trimmed_frame_list)
+        if not frames:
+            wx.MessageBox('Select a set containing at least one image first.',
+                          'Stylized Set (new)', wx.OK | wx.ICON_INFORMATION, self)
+            return
+        dialog = getattr(self, '_stylized_new_dialog', None)
+        if dialog and not dialog.IsBeingDeleted():
+            dialog.Iconize(False)
+            dialog.Raise()
+            return
+
+        from panels.stylized_set_dialog import StylizedSetDialog
+
+        shared = self.parent.shared_data
+        output_parent = shared.frompi_path or shared.frompi_base_path
+        dialog = StylizedSetDialog(self, frames, output_parent=output_parent,
+                                   on_use_set=self._use_new_stylized_set)
+        self._stylized_new_dialog = dialog
+        dialog.Bind(wx.EVT_WINDOW_DESTROY, self._on_new_stylized_destroy)
+        dialog.Show()
+
+    def _on_new_stylized_destroy(self, event):
+        if event.GetEventObject() is getattr(self, '_stylized_new_dialog', None):
+            self._stylized_new_dialog = None
+        event.Skip()
+
+    def _use_new_stylized_set(self, output_dir, image_type, set_name):
+        if self and not self.IsBeingDeleted():
+            if not any(name.endswith('.' + image_type) and name.split('_')[0] == set_name
+                       for name in os.listdir(output_dir)):
+                raise ValueError('The output folder no longer contains the generated images.')
+            # The exported input has already been trimmed. Import the complete new
+            # set, rather than silently applying the source selection a second time.
+            automatic = self.calc_cb.GetValue()
+            self.calc_cb.SetValue(False)
+            try:
+                self.use_every_tc.ChangeValue('')
+                self.min_size_tc.ChangeValue('')
+                self.time_lim_tc.ChangeValue('')
+                self.time_lim_cb.SetValue('all')
+                self.time_picker_before.SetTime(0, 0, 0)
+                self.time_picker_after.SetTime(23, 59, 59)
+                self.open_caps_folder(output_dir, image_type, set_name)
+                self.calc_frames_click(None)
+            finally:
+                self.calc_cb.SetValue(automatic)
+
     def import_module(self, module_name, import_name):
         print(" Importing module; " + module_name)
         if module_name in sys.modules:
@@ -1040,12 +1097,11 @@ class info_pnl(wx.Panel):
             self.period_t.SetLabel(str(period))
 
             # average Interval lengh
-            if len(self.c_pnl.trimmed_frame_list) > 1:
+            if (trimmed_count > 1 and isinstance(f_date, datetime.datetime)
+                    and isinstance(l_date, datetime.datetime)):
                 t_period = l_date - f_date
-                t_per = t_period.total_seconds() / trimmed_count
+                t_per = t_period.total_seconds() / (trimmed_count - 1)
                 t_per = str(datetime.timedelta(seconds=t_per))
-                if "." in t_per:
-                    duration = t_per.split(".")[0]
 
                 # playback rate
                 if trimmed_count == 0 or fps == 0:
@@ -1054,7 +1110,11 @@ class info_pnl(wx.Panel):
                     trim_length_sec = trimmed_count / fps
                 real_capture_seconds     = period_d.total_seconds()
                 playback_outfile_seconds = trim_length_sec
-                playback_rate = round(real_capture_seconds / playback_outfile_seconds, 3)
+                playback_rate = (round(real_capture_seconds / playback_outfile_seconds, 3)
+                                 if playback_outfile_seconds > 0 else "0")
+            elif trimmed_count > 1:
+                playback_rate = "undetermined"
+                t_per = "undetermined"
             else:
                 playback_rate = "0"
                 t_per = "0"
@@ -1069,7 +1129,9 @@ class info_pnl(wx.Panel):
         def set_first_image(self, frame, resize=False):
             image_path = self.c_pnl.cap_file_paths[frame]
             filename, date = self.date_from_filename(image_path)
-            image_title = filename + "\n" + date.strftime('%Y-%m-%d %H:%M:%S')
+            date_label = (date.strftime('%Y-%m-%d %H:%M:%S')
+                          if isinstance(date, datetime.datetime) else 'Capture time unknown')
+            image_title = filename + "\n" + date_label
             self.first_img_l.SetLabel(image_title)
 
             try:
@@ -1141,7 +1203,9 @@ class info_pnl(wx.Panel):
         def set_last_image(self, frame, resize=False):
             image_path = self.c_pnl.cap_file_paths[frame]
             filename, date = self.date_from_filename(image_path)
-            image_title = filename + "\n" + date.strftime('%Y-%m-%d %H:%M:%S')
+            date_label = (date.strftime('%Y-%m-%d %H:%M:%S')
+                          if isinstance(date, datetime.datetime) else 'Capture time unknown')
+            image_title = filename + "\n" + date_label
             self.last_img_l.SetLabel(image_title)
 
             try:
@@ -1295,31 +1359,8 @@ class info_pnl(wx.Panel):
 
         # filename tools
         def date_from_filename(self, image_path):
-            # Extract the file name without extension and folders
-            s_file_name, file_extension = os.path.splitext(os.path.basename(image_path))
-            file_name = s_file_name + file_extension
-
-            # Check if the file name contains an underscore
-            if '_' in file_name:
-                # Extract the last section after the final underscore
-                last_section = s_file_name.rsplit('_', 1)[-1]
-
-                # Try to parse the last section as a Linux epoch
-                try:
-                    epoch_time = int(last_section)
-                    date = datetime.datetime.utcfromtimestamp(epoch_time)
-                    return file_name, date
-                except ValueError:
-                    pass
-
-                # Try to parse the last section as a common date string
-                try:
-                    date = datetime.datetime.strptime(last_section, '%Y%m%d%H%M%S')
-                    return file_name, date
-                except ValueError:
-                    pass
-
-            return file_name, 'undetermined'
+            from timelapse_modules.analysis_common import date_from_filename
+            return date_from_filename(image_path)
 
 
 class stylized_dialog(wx.Dialog):
